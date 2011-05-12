@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mgdf:gameState xmlns:mgdf="http://schemas.matchstickframework.org/2007/gameState"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <gameuid>Test</gameuid>
+  <gameversion>0.1</gameversion>
+  <module>
+    <name>testModule1.dll:Test1</name>
+  </module>
+</mgdf:gameState>

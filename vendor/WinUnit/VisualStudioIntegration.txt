@@ -1,0 +1,59 @@
+/**
+
+@page VisualStudioIntegration Visual Studio Integration
+
+@par Adding WinUnit to the Tools menu
+
+Adding %WinUnit to your Tools menu will allow you to run it against any test
+project you have currently selected in Solution Explorer.
+
+-# Go to Tools -> External Tools.  Click Add.
+    - For Title, type WinUnit.  
+    - For Command, browse to WinUnit.exe.  
+    - For Arguments, type "$(TargetPath)" (include double-quotes).
+    - For Initial Directory, type "$(TargetDir)" (do not include double-quotes).
+-# Uncheck Close on Exit.  Check Use Output Window.
+
+@par Adding WinUnit as a post-build step
+
+If you add %WinUnit as a post-build step for a test project, it 
+will run the tests in the project after every build of the project.
+
+-# Right-click on your test project and select Properties.
+-# Under Configuration Properties / Build Events, select Post-Build Event.
+-# For Command Line, type the full path to WinUnit.exe, followed by "$(TargetPath)".  
+   Be sure to include the double quotes. 
+-# For Description, type <i>Running %WinUnit...</i>
+
+@par Setting up your test project for debugging
+
+(This assumes you have previous built WinUnit.exe and placed it in a known
+location on your machine.)
+-# Right-click on your test project and select Properties.  
+-# Under Configuration Properties, select Debugging.
+-# For Command, type the full (or relative) path to WinUnit.exe.
+-# For Command Arguments, type "$(TargetPath)" (include the double quotes).
+
+@par Using WinUnit Visual Studio macros
+
+Load WinUnit.vsmacros in Macro Explorer for some handy macros for code coverage
+(using the Visual Studio Team System tools) and finer granularity in running
+tests.  
+
+Once you've loaded the WinUnit macros, read the _Readme module and set the 
+variables in the _Variables module to suit your needs.  You'll find macros for
+the following:
+
+<i>CodeCoverage</i> - starting and stopping coverage data collection, instrumenting
+binaries, viewing a .coverage results file
+
+<i>RunningTests</i> - running the test at the cursor; running all tests in the active
+file; running all tests in the selected project
+
+<i>RunningTestsWithCoverage</i> - same as RunningTests, but with code coverage
+
+<i>ProjectSetup</i> - turning on the /profile switch in the current project; setting
+the debug command and arguments for the current project; adding WinUnit's 
+include directory to the list of include paths for the current project
+
+*/

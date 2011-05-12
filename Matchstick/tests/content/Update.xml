@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<mgdf:update xmlns:mgdf="http://schemas.matchstickframework.org/2007/update" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <updatedescription>An update</updatedescription>
+  <updateminversion>0.1</updateminversion>
+  <updatemaxversion>0.2</updatemaxversion>
+  <removefiles />
+</mgdf:update>

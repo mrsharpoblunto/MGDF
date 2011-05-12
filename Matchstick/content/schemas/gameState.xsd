@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema 	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        	xmlns="http://schemas.matchstickframework.org/2007/gameState"
+        	targetNamespace="http://schemas.matchstickframework.org/2007/gameState">
+	<xs:element name="gameState">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="gameuid" type="xs:string" maxOccurs="1"/>
+        <xs:element name="gameversion" type="xs:decimal" maxOccurs="1"/>
+				<xs:element name="module" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:all>
+							<xs:element name="parameters" type="xs:string" minOccurs="0"/>
+							<xs:element name="name" type="xs:string"/>
+						</xs:all>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

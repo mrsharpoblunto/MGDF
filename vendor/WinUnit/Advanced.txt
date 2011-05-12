@@ -1,0 +1,119 @@
+/**
+@page advanced Advanced Usage
+
+The BEGIN_TEST/END_TEST and WIN_ASSERT_* macros are all you need to write tests, 
+but you may wish to use the following features as well.
+
+@par Fixtures
+
+A fixture offers a way of providing a "SETUP" and "TEARDOWN" function that get
+called before and after each test that uses it (respectively).  To use this
+feature, you must first declare the fixture and its SETUP and TEARDOWN functions
+like this:
+
+@code
+
+// ...
+
+FIXTURE(MyFixture);
+
+SETUP(MyFixture)
+{
+  // Do stuff you want to have done before every test
+}
+
+TEARDOWN(MyFixture)
+{
+  // Do cleanup:
+  // - Undo what you did in SETUP
+  // - Undo any left over cleanup that still might need to be done after tests
+}
+
+@endcode
+
+A couple of notes:
+- SETUP and TEARDOWN are expected to act on data local to the file.  You can use
+  static variables or anonymous namespaces to be sure the data is contained.
+- Be sure to do in TEARDOWN whatever actions are required to undo what you did
+  in SETUP (or in the tests).  If you always use fixtures, you can leave some
+  cleanup out of your tests.
+  
+To use the fixture in a test, use the following syntax:
+
+@code
+
+BEGIN_TESTF(MyTest, MyFixture)
+{
+  // Do stuff here that relies on MyFixture's SETUP and TEARDOWN
+  // being executed
+}
+END_TESTF
+
+@endcode
+
+If you use the regular BEGIN_TEST/END_TEST syntax, any fixtures in the file 
+will be ignored.
+
+Consider also taking advantage of the fact that destructors are called when
+a stack object goes out of scope, and use objects in your test that will 
+do cleanup themselves.  (Just be careful in your destructors not to throw 
+exceptions or call any WIN_ASSERT_* macros, which throw exceptions.)
+
+@par Accessing Environment Variables
+
+One of the command-line options of WinUnit.exe (the '--' option) allows you 
+to set environment variables.  You can use the Environment::GetVariable() function
+to make these slightly easier to access.  For example, let's say I wanted to
+pass in a variable called "TestDir" where I'm expecting all my test files.  
+I might call %WinUnit like this:
+
+@code
+
+winunit --TestDir c:\TestFiles MyTests.dll
+
+@endcode
+
+Now to retrieve the directory in one of my tests:
+
+@code
+
+// local data
+namespace
+{
+   // I'm using TCHAR here so it will build with and without _UNICODE, but
+   // you can just use wchar_t if you're always building with _UNICODE.
+   TCHAR testDirectory[MAX_PATH] = _T("");
+}
+
+SETUP(MyFixture)
+{
+    WIN_ASSERT_TRUE(
+        Environment::GetVariable(_T("TestDir"), 
+            testDirectory,
+            ARRAYSIZE(testDirectory)),
+        _T("Environment variable TestDir was not set.  Use --TestDir option."));
+}
+
+TEARDOWN(MyFixture)
+{
+  // I want to completely get rid of what I did in SETUP so it won't be 
+  // expected by tests that are not using the fixture.
+  ::memset(testDirectory, 0, MAX_PATH * sizeof(TCHAR));
+}
+
+BEGIN_TESTF(MyTest, MyFixture)
+{
+    WIN_TRACE(_T("Test directory: %s\n"), testDirectory);
+}
+END_TESTF
+
+@endcode
+
+Note Environment::GetVariable also takes an optional fourth parameter, which
+can be used to distinguish between failures to get the variable because it 
+doesn't exist or because the buffer passed in was too small to receive the value.
+
+Here, I know my variable is going to be less than MAX_PATH so if the function
+fails, it's because I haven't set the variable.
+
+ */

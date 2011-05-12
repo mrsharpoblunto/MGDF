@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema 	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        	xmlns="http://schemas.matchstickframework.org/2007/game"
+        	targetNamespace="http://schemas.matchstickframework.org/2007/game">
+  <xs:simpleType name="str255">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="255" />
+    </xs:restriction>
+  </xs:simpleType>
+	<xs:element name="game">
+		<xs:complexType>
+			<xs:all>
+        <xs:element name="gameuid" type="str255" />
+				<xs:element name="gamename" type="str255"/>
+				<xs:element name="description" type="str255"/>
+				<xs:element name="version" type="xs:string"/>
+        <xs:element name="interfaceversion" type="xs:int"/>
+        <xs:element name="developeruid" type="str255" />
+        <xs:element name="developername" type="str255" />
+        <xs:element name="supportemail" type="xs:string" minOccurs="0"/>
+				<xs:element name="homepage" type="str255" minOccurs="0"/>
+        <xs:element name="gamesourceservice" type="xs:string" minOccurs="0" />
+        <xs:element name="statisticsservice" type="xs:string" minOccurs="0" />
+        <xs:element name="statisticsprivacypolicy" type="xs:string" minOccurs="0" />
+			</xs:all>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

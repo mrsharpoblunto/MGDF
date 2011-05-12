@@ -1,0 +1,83 @@
+/**
+   @mainpage WinUnit
+
+   @section GettingStarted Getting Started
+
+   -# Create a file called @c MyTests.cpp that looks like this:
+      @code
+      // MyTests.cpp
+        
+      #include "WinUnit.h"
+
+      BEGIN_TEST(MyFailingTest)
+      {
+        WIN_ASSERT_TRUE(3 > 4);
+      }
+      END_TEST
+
+      BEGIN_TEST(MySucceedingTest)
+      {
+        WIN_ASSERT_TRUE(4 > 3);
+      }
+      END_TEST
+
+      @endcode
+   -# Build this file into a DLL from a command prompt as follows (includePath 
+      is the path where WinUnit.h is found):
+        - cl /EHsc /LD [/I <i>includePath</i>] MyTests.cpp
+   -# Run WinUnit.exe against the DLL produced, MyTests.dll:
+        - %WinUnit MyTests.dll
+
+    You will see an indication that one test passed and the other failed.
+    Now you can add real tests.  See below for more details on how it works
+    and the kinds of ASSERTs you can use.
+
+   @section Details Details
+   For more information on writing tests using the provided macros, see 
+   @ref TestConstruction and @ref asserts.<br>
+   For usage of WinUnit.exe, see @ref Usage.
+
+   %WinUnit comprises:
+
+    - An executable, WinUnit.exe, which runs the tests in a DLL or set of DLLs
+    - An optional header file, WinUnit.h, which contains macros and functions that make writing the tests easier.
+  
+   The tests are simply functions exported from a DLL with a specific function
+   prototype and style of name.  For an export to be treated as a test, it must:
+  
+    - Have an undecorated name starting with "TEST_"
+    - Have the following prototype ("TestName" can be any name):
+          @code
+          bool __cdecl TEST_TestName(wchar_t* buffer, size_t cchBuffer);
+          @endcode
+  
+    It should return true on success and false on failure.  If it fails, an 
+    error message should be placed in the outgoing buffer.
+  
+   Here is an example of this type of function using the macros found in
+   WinUnit.h:
+   
+   @code
+      BEGIN_TEST(MyTest)
+      {
+          WIN_ASSERT_TRUE(3 > 4);   // This assert is obviously not true and will fail
+      }
+      END_TEST
+   @endcode
+  
+   (This example test would demonstrate a test failure.)
+   
+   Here is what the macros do to make this function conform to the above 
+   specifications:
+    - BEGIN_TEST ensures the function prototype is correct.  In this case, it
+      would be 'extern "C" __declspec(dllexport) bool __cdecl TEST_MyTest(wchar_t*, size_t)'
+    - WIN_ASSERT_TRUE throws an exception of type AssertException (with a member
+      containing the error message) if the expression is not true (as in this
+      case)
+    - BEGIN_TEST and END_TEST set up a try/catch block, which catches C++ exceptions
+      and copies the error message (or a generic one if the exception is not of
+      type AssertException) into the passed in buffer.  If an exception was caught,
+      false is returned; otherwise true.
+      
+   See @ref VisualStudioIntegration for how to use %WinUnit with Visual Studio 2005 or 2008.
+  */

@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Text;
+
+namespace MGDF.GamesManager.GameSource.Contracts.Entities
+{
+    [DataContract]
+    public class Game: GameInfoBase
+    {
+        [DataMember]
+        public GameVersion LatestVersion { get; set; }
+    }
+}

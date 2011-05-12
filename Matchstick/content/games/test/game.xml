@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mgdf:game xmlns:mgdf="http://schemas.matchstickframework.org/2007/game"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <gameuid>Test</gameuid>
+  <gamename>Test Game</gamename>
+  <description>A series of semi-automated tests designed to provide good test coverage over MGDF</description>
+  <version>0.1</version>
+  <interfaceversion>1</interfaceversion>
+  <developeruid>no.8 Interactive</developeruid>
+  <developername>no.8 Interactive</developername>
+  <homepage>http://www.junkship.org</homepage>
+</mgdf:game>

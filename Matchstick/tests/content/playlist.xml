@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mgdf:playlist  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	    xmlns:mgdf="http://schemas.matchstickframework.org/2007/playlist"
+		onComplete="repeat"
+		playOrder="random">
+	<track>test.mp3</track>
+	<track>test1.wav</track>
+</mgdf:playlist>

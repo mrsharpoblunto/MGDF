@@ -1,0 +1,284 @@
+<?xml version="1.0"?>
+<project name="MGDF" default="all" basedir="..\" xmlns="http://nant.sf.net/release/0.86-beta1/nant.xsd">
+
+	<property name="nant.settings.currentframework" value="net-3.5"/>
+	<include buildfile="Automation\Functions.include"/>
+  
+	<description>MGDF Build Script</description>
+
+	<property name="builddate" value="${year.now}-${month.now}-${day.now}"/>
+	<!-- Update the major.minor version number here whenever a new release is planned -->
+	<property name="buildnumber" value="0.9.${year.since2007}${month.now}${day.now}.${hour.now}${minute.now}"/>
+  
+  	<!-- use pre built vendor libs on the buildserver by default rather than building them each time -->
+	<property name="build_vendor_libs" value="False" />
+	
+	<property name="msbuild_target" value="debug"/>
+  <property name="nsis_path" value="C:\Program Files\NSIS\makensis.exe"/>
+	<property name="nunit_exe_path" value="C:\Program Files\NUnit 2.4.8\bin\nunit-console.exe"/>
+	<property name="nantcontrib_path" value="C:\Program Files\NantContrib-0.85\bin"/>
+	<property name="boost_path" value="C:\Program Files\boost\boost_1_35_0" />
+	<property name="vc_install_path" value="C:\Program Files\Microsoft Visual Studio 9.0" />
+	<property name="windows_sdk_path" value="C:\Program Files\Microsoft SDKs\Windows\v6.0A" />
+	<property name="directx_sdk_path" value="C:\Program Files\Microsoft DirectX 9.0 SDK (October 2005)" />
+	<property name="doxygen_path" value="C:\Program Files\doxygen\bin\doxygen.exe" />
+  <property name="sevenzip_path" value="C:\Program Files\7zip\7za.exe" />
+  <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>
+  <property name="ilmerge_exe_path" value="C:\Program Files\Microsoft\Ilmerge\Ilmerge.exe"/>
+  
+	<!-- default target  -->
+	<target name="all" depends="build, test, documentation, installer" description="build, test, and create installer"/>
+
+	<!-- Builds the MGDF core component -->
+	<target name="build" description="Compiles the MGDF core">
+
+		<loadtasks assembly="${nantcontrib_path}\NAnt.Contrib.Tasks.dll" />
+		
+		<echo message="Setting build version number to: ${buildnumber}"/>
+		<echo message="##teamcity[buildNumber '${buildnumber}']"/>
+
+		<createsolutioninfo product="Matchstick game development framework" version="${buildnumber}" solutionInfoFile="${project::get-base-directory()}\Src\GamesManager\SolutionInfo.cs" />
+    <testgameversion version="${buildnumber}" versionFile="${project::get-base-directory()}\content\games\test\game.xml" />
+    <mgdfversion version="${buildnumber}" versionFile="${project::get-base-directory()}\Src\core\common\MGDFVersionInfo.cpp" />
+    <installerversion version="${buildnumber}" installerFile="${project::get-base-directory()}\installer\installer.nsi" />
+
+    <echo message="adding dependant libraries to environment variables..."/>
+		<setenv>
+			<variable name="PATH" value="c:\windows\system32;c:\windows;${windows_sdk_path}\bin;${vc_install_path}\Common7\IDE;${vc_install_path}\VC\BIN;${vc_install_path}\Common7\Tools;C:\WINDOWS\Microsoft.NET\Framework\v3.5;C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727;${vc_install_path}\VC\VCPackages" />
+			<variable name="LIB" value="${windows_sdk_path}\lib;${vc_install_path}\VC\ATLMFC\LIB;${vc_install_path}\VC\LIB;${directx_sdk_path}\Lib\x86;${boost_path}\lib" />
+			<variable name="INCLUDE" value="${windows_sdk_path}\include;${vc_install_path}\VC\ATLMFC\INCLUDE;${vc_install_path}\VC\INCLUDE;${directx_sdk_path}\Include;${boost_path}" />
+			<variable name="LIBPATH" value="C:\WINDOWS\Microsoft.NET\Framework\v3.5;C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727;${windows_sdk_path}\lib;${vc_install_path}\VC\ATLMFC\LIB;${vc_install_path}\VC\LIB;${directx_sdk_path}\Lib\x86;${boost_path}\lib" />
+		</setenv>
+		
+		<if test="${build_vendor_libs=='True'}">
+			<echo message="Building MGDF vendor libraries..."/>
+			<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
+				<property name="Configuration" value="${msbuild_target}"/>
+				<arg value="/p:VCBuildUseEnvironment=true" />
+			</msbuild>
+		</if>
+		
+		<echo message="Building MGDF core..."/>
+		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
+			<property name="Configuration" value="${msbuild_target}"/>
+			<arg value="/p:VCBuildUseEnvironment=true" />
+		</msbuild>
+
+		<echo message="Copying vendor libs into MGDF core bin directory..."/>
+		<copy todir="bin\${msbuild_target}">
+			<fileset basedir="..\vendor\lib\${msbuild_target}">
+				<include name="*.dll" />
+			</fileset>
+		</copy>
+		<if test="${msbuild_target == 'debug'}">
+			<copy todir="bin\${msbuild_target}">
+				<fileset basedir="..\vendor\lib\Release">
+					<include name="*.dll" />
+				</fileset>
+			</copy>
+		</if>
+	</target>
+
+	<target name="test" description="Runs the MGDF core unit tests">
+		<echo message="Running MGDF GamesManager unit tests..."/>
+		<exec program="${nunit_exe_path}" output="${project::get-base-directory()}\GamesManager.Tests-Results.txt" failonerror="false" resultproperty="testresult.gamesmanager" workingdir="tests\GamesManager.Tests\bin\${msbuild_target}">
+			<arg value="GamesManager.Tests.dll" />
+			<arg value="/xml=${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
+			<arg value="/nologo" />
+			<arg value="/nodots" />
+		</exec>
+		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.Tests-Results.txt']"/>
+
+		<nunit2report out="${project::get-base-directory()}\GamesManager.Tests-Results.html">
+  			<fileset>
+    				<includes name="${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
+  			</fileset>
+		</nunit2report>
+		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.Tests-Results.html']"/>
+
+		<echo message="Running MGDF GamesManager GameSource unit tests..."/>
+		<exec program="${nunit_exe_path}" output="${project::get-base-directory()}\GamesManager.GameSource.Tests-Results.txt" failonerror="false" resultproperty="testresult.gamesource" workingdir="tests\GamesManager.GameSource.Tests\bin\${msbuild_target}">
+		  <arg value="GamesManager.GameSource.Tests.dll" />
+		  <arg value="/xml=${project::get-base-directory()}\GamesManager.GameSource.Tests-Results.xml" />
+		  <arg value="/nologo" />
+		  <arg value="/nodots" />
+		</exec>
+		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.GameSource.Tests-Results.txt']"/>
+
+		<nunit2report out="${project::get-base-directory()}\GamesManager.GameSource.Tests-Results.html">
+		  <fileset>
+			<includes name="${project::get-base-directory()}\GamesManager.GameSource.Tests-Results.xml" />
+		  </fileset>
+		</nunit2report>
+		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.GameSource.Tests-Results.html']"/>
+
+		<echo message="Running MGDF core unit tests..."/>
+		<exec program="${project::get-base-directory()}\..\vendor\bin\${msbuild_target}\WinUnit.exe" output="${project::get-base-directory()}\core.tests-Results.txt" failonerror="false" resultproperty="testresult.core" workingdir="bin\${msbuild_target}">
+			<arg value="-b" />
+			<arg value="core.tests.dll" />
+		</exec>
+		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\core.tests-Results.txt']"/>
+
+		<!-- Check the results and fail if necessary -->
+		<fail message="Failures reported in MGDF GamesManager unit tests." unless="${int::parse(testresult.gamesmanager)==0}" />
+		<fail message="Failures reported in MGDF GamesManager GameSource unit tests." unless="${int::parse(testresult.gamesource)==0}" />
+		<fail message="Failures reported in MGDF core unit tests." unless="${int::parse(testresult.core)==0}" />
+
+	</target>
+
+	<target name="documentation" description="Generates source code documentation for the MGDF framework">
+		<exec program="${doxygen_path}" failonerror="false" workingdir="${project::get-base-directory()}\automation">
+			<arg value="${project::get-base-directory()}\automation\documentation.Doxyfile" />
+		</exec>
+	</target>
+
+  <target name="installer" description="Generates the MGDF runtime installer">
+    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\core.tests.dll" />
+    <exec program="${nsis_path}" failonerror="false" workingdir="${project::get-base-directory()}\installer">
+      <arg value="${project::get-base-directory()}\installer\installer.nsi" />
+    </exec>
+
+    <mkdir dir="Package" />
+    <!-- copy framework setup to package dir -->
+    <copy file="installer\MGDF Setup.exe" tofile="Package\MGDF_${buildnumber}.exe" />
+    
+    <!-- package up the test game and put it in the package dir -->
+    <mkdir dir="Package/TestGame" />
+    <copy todir="Package/TestGame">
+      <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}\games\test">
+        <exclude name=".svn" />
+        <exclude name="*.exp"/>
+        <exclude name="*.lib"/>
+        <exclude name="*.pdb"/>
+        <include name="**/*.*" />
+      </fileset>
+    </copy>
+    <exec program="${sevenzip_path}" failonerror="false" workingdir="${project::get-base-directory()}\Package">
+      <arg value="a" />
+      <arg value="-r" />
+      <arg value="-mx7" />
+      <arg value="-tzip" />
+      <arg value="TestGame_${buildnumber}.mza" />
+      <arg value="${project::get-base-directory()}\Package\TestGame\*" />
+    </exec>
+    <delete dir="Package\TestGame"/>
+    
+    <mkdir dir="Package/SDK" />
+    
+    <!-- copy MGDF headers to SDK dir-->
+    <mkdir dir="Package/SDK/Include" />
+    <copy todir="Package/SDK/Include">
+      <fileset basedir="include">
+        <exclude name=".svn" />
+        <include name="**/*.*" />
+      </fileset>
+    </copy>  
+    
+    <mkdir dir="Package/SDK/Bin" />
+    <!-- ilmerge and copy packagegen & dataloader tools to SDK bin dir -->
+    <exec program="${ilmerge_exe_path}">
+      <arg value="/out:Package\SDK\Bin\DataLoader.exe" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.GameSource.DataLoader.exe" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\ACorns.WCF.DynamicClientProxy.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.Common.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.Controls.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.GameSource.Contracts.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.Model.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\IconLib.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
+    </exec>
+    <copy file="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.GameSource.DataLoader.exe.config" tofile="Package\SDK\Bin\DataLoader.exe.config" overwrite="true"/>
+
+    <exec program="${ilmerge_exe_path}">
+      <arg value="/out:Package\SDK\Bin\PackageGen.exe" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\ACorns.WCF.DynamicClientProxy.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Common.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.GameSource.Contracts.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Model.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\IconLib.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
+    </exec>
+    <copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\SDK\Bin\PackageGen.exe.config" overwrite="true"/>
+
+    <!-- copy docs to SDK/Documentation -->
+    <mkdir dir="Package/SDK/Documentation" />
+    <copy todir="Package/SDK/Documentation">
+      <fileset basedir="documentation">
+        <exclude name=".svn" />
+        <include name="**/*.*" />
+      </fileset>
+    </copy>
+    <mkdir dir="Package/SDK/Server" />
+
+    <!-- add gameSource service to the SDK package -->
+    <mkdir dir="Package/SDK/Server/GameSource" />
+    <echo message="Packaging MGDF GameSource Service"/>
+    <exec program="${aspnetcompiler_exe_path}">
+      <arg value="/v" />
+      <arg value="/" />
+      <arg value="/p" />
+      <arg value="Src\GamesManager\GamesManager.GameSource" />
+      <arg value="/u" />
+      <arg value="/f" />
+      <arg value="Package/SDK/Server/GameSource" />
+    </exec>
+    <copy file="Src\GamesManager\GamesManager.GameSource.Model\schema.sql" todir="Package/SDK/Server/GameSource" overwrite="true"/>
+    <copy file="Src\GamesManager\GamesManager.GameSource\Global.asax" todir="Package/SDK/Server/GameSource" overwrite="true"/>
+    <delete>
+      <fileset basedir="Package/SDK/Server/GameSource">
+        <include name="GamesManager.GameSource.csproj"/>
+        <include name="GamesManager.GameSource.csproj.user"/>
+        <include name="PrecompiledApp.config"/>
+        <include name="bin\App_global.asax.*"/>
+      </fileset>
+    </delete>
+    <delete dir="Package\SDK\Server\GameSource\obj"/>
+    <delete dir="Package\SDK\Server\GameSource\Configuration"/>
+    <delete dir="Package\SDK\Server\GameSource\Handlers"/>
+    <delete dir="Package\SDK\Server\GameSource\Log"/>
+    <delete dir="Package\SDK\Server\GameSource\Mapping"/>
+    <delete dir="Package\SDK\Server\GameSource\Properties"/>
+
+    <!-- add statistics service to the SDK package -->
+    <mkdir dir="Package/SDK/Server/StatisticsService" />
+    <echo message="Packaging MGDF Statistics Service"/>
+    <exec program="${aspnetcompiler_exe_path}">
+      <arg value="/v" />
+      <arg value="/" />
+      <arg value="/p" />
+      <arg value="Src\GamesManager\GamesManager.StatisticsService" />
+      <arg value="/u" />
+      <arg value="/f" />
+      <arg value="Package/SDK/Server/StatisticsService" />
+    </exec>
+    <copy file="Src\GamesManager\GamesManager.StatisticsService.Model\schema.sql" todir="Package/SDK/Server/StatisticsService" overwrite="true"/>
+    <copy file="Src\GamesManager\GamesManager.StatisticsService\Global.asax" todir="Package/SDK/Server/StatisticsService" overwrite="true"/>
+    <delete>
+      <fileset basedir="Package/SDK/Server/StatisticsService">
+        <include name="GamesManager.StatisticsService.csproj"/>
+        <include name="GamesManager.StatisticsService.csproj.user"/>
+        <include name="PrecompiledApp.config"/>
+        <include name="bin\App_global.asax.*"/>
+      </fileset>
+    </delete>
+    <delete dir="Package\SDK\Server\StatisticsService\obj"/>
+    <delete dir="Package\SDK\Server\StatisticsService\Log"/>
+    
+    <!-- zip up the SDK-->
+    <exec program="${sevenzip_path}" failonerror="false" workingdir="${project::get-base-directory()}\Package">
+      <arg value="a" />
+      <arg value="-r" />
+      <arg value="-mx7" />
+      <arg value="-tzip" />
+      <arg value="MGDF_${buildnumber}_SDK.zip" />
+      <arg value="${project::get-base-directory()}\Package\SDK" />
+    </exec>
+
+    <delete dir="Package\SDK"/>
+</target>
+</project>

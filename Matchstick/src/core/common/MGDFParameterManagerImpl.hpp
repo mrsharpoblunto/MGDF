@@ -1,0 +1,52 @@
+#pragma once
+
+#include <exception>
+#include <string>
+#include <hash_map>
+#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDFParameterManager.hpp>
+
+namespace MGDF { namespace core {
+
+class IParameterManagerImpl: public IParameterManager
+{
+public:
+	/**
+	 parse a parameter string into the given string,string hashmap
+	 the parameter string must be in the following format
+	     -flag[:value] -flag[:value]
+	 where [] indicates optional components of the parameter string
+	 NOTE: flags and values are case sensitive 
+	 NOTE: leading and trailing whitespace are stripped from values
+    */
+	virtual void ParseParameters(std::string &,stdext::hash_map<std::string,std::string> &)=0;
+};
+
+/**
+ singleton event log, outputs to a file specified in constants.h
+ uses buffered file writes to increase efficiency.
+ \author gcconner
+*/
+class ParameterManager: public IParameterManagerImpl
+{
+public:
+	static ParameterManager *InstancePtr() {
+		static ParameterManager pm;
+		return &pm;
+	}
+
+	virtual void ParseParameters(std::string &,stdext::hash_map<std::string,std::string> &);
+
+	virtual bool HasParameter(const char * param) const;
+	virtual const char *GetParameter(const char * param) const;
+	virtual bool AddParameterString(const char *  paramString);
+
+private:
+	virtual ~ParameterManager(){}
+	stdext::hash_map<std::string,std::string> _parameters;
+
+};
+
+MGDF_CORE_COMMON_DLL IParameterManagerImpl *GetParameterManagerImpl();
+
+}}

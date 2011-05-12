@@ -1,0 +1,60 @@
+========================================================================
+    Matchstick game development framework
+    core engine overview
+========================================================================
+
+This project generates an executable file which provides the core functionality
+of the MGDF framework. In order to create an executable MGDF configuration you will
+need a series of MGDF modules and a boot configuration xml file.
+
+DirectX 9 is used for 3d rendering
+DirectInput is used for user input
+OpenAL is used for sound and music
+
+To compile from source
+========================================================================
+-boost 1.35 must be installed and libs and includes on vc++'s path
+-the directx 9 sdk (october 2005 or later) must be installed and libs and includes on vc++'s path
+-the vendor\libs.sln solution must have been built in debug and release configurations
+-vendor\include and trunk\matchstick\include must be on visual c++'s include folders list
+-vendor\lib, trunk\matchstick\bin\debug, and trunk\matchstick\bin\release must be on visual c++'s library folders list
+-run automation\deployDebugLibs.bat and automation\deployReleaseLibs.dll every time you clean the solution (these copy a few
+ necessary runtime dlls into the bin folder for MGDF so it doesn't have to be done on every build)
+ 
+To Run unit tests
+========================================================================
+-All managed code projects use nunit 2.4.8 and providing nunit is installed (use testdriven.net for integration into the visual studio UI) they should work once the solution is compiled
+
+-all unmanaged code project use winunit which must first be compiled as part of the vendor\libs.sln project
+ Once builtwinunit can be invoked to run a unit test dll with the following command winunit -b test.dll
+ 
+ To make running winunit tests easier you can set up an external tool in visual studio. Go to tools->external tools
+ and select Add. Then fill in the following fields
+  Title: Core tests
+  Command: <path to winunit>\WinUnit.exe
+  Arguments: -b "$(TargetDir)\core.tests.dll"
+  Initial Directory: $(TargetDir)
+  Also tick use output window
+
+ providing you have the core.tests project selected in the solution explorer this command will run the tests and pipe the  output to the output window in visual studio
+
+Running core.exe: parameters passable via commandline or boot configuration (case sensitive)
+========================================================================
+
+-boot: this parameter is required, it specifies a boot configuration file to initialise the 
+ module manager, without one specified the application will not start
+ 
+-validateXML: if this parameter is set to "true" then all core module configurations
+ and persistency files will be validated using the provided xsd schemas, omitting this
+ parameter or setting it to false will turn off validation
+ NOTE: unless this is passed on the commandline the bootConfig will not be validated
+ this is the case when using the PackageManager, however the PackageManager parses and validates
+ all bootConfigurations of its own accord independant of the core, so the bootConfig executed
+ is effectivly still being checked
+
+-logLevel: this allows you to set the verbosity of the logging (possible values in descending order of verbosity log_low|log_medium|log_high|log_error)
+
+-userdiroveride: allows you to specify a directory from which to load and save user specific data to (save games/preferences etc.) by default this will be stored in the users appData\Local\MGDF folder
+
+ -gamesdiroveride: allows you to specify a directory from which to load games from (by default this is the core.exe's application directory)
+

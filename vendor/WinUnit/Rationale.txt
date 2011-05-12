@@ -1,0 +1,87 @@
+/**
+
+@page Rationale
+
+Following are some explanations for ways things were done within %WinUnit.
+
+@par Using exceptions to indicate test errors
+
+The C++ exception mechanism was chosen for indicating errors due to the fact
+that they can be effectively used anywhere within test code and will be caught
+and reported correctly at the top level of the test.
+
+The reason they are caught and not thrown across a DLL boundary is to ensure
+that the error message gets accurately received by the executor of the tests
+and there is no reliance on the binary format of the exception class across
+module boundaries.  (I have no concrete evidence this could be a problem but
+the practice is advised against in C++ Coding Standards [Sutter, Alexandrescu].)
+
+Additionally, the way the fixtures work, exceptions have to be caught within 
+the tests.  See explanation of fixtures below for more information.
+
+@par Requiring the TEST_ prefix on exports that are to be run as tests
+
+Because tests are run using GetProcAddress, it's essential that they have
+a certain function prototype.  To avoid inadvertently attempting to run 
+exports from a DLL that weren't intended to be run as tests and don't have
+the specified prototype, test names are restricted.
+
+@par UNICODE vs. non-UNICODE
+
+WinUnit.h is meant to be able to be used in test code that is built 
+with or without _UNICODE defined and uses TCHAR throughout.   
+WinUnit.exe (and WinUnitLib.lib) use char and wchar_t explicitly, as there is
+no need to be more flexible.
+
+The cases where char is used instead of wchar_t are specifically when dealing
+with exports from a DLL, whose names occur in non-UNICODE form.
+
+Note that the -o option and the writing to stdout and stderr are not done in
+UNICODE.  If you wish to capture logger output in a UNICODE file you can
+write your own custom logger (see @ref CustomLoggerFunctions).
+
+@par __declspec(property)
+
+The Microsoft extension __declspec(property) is used in some cases for 
+readability.  This is simply a marker data member of a class that indicates
+it takes up no space but is instead an alias for get and/or set methods.
+
+@par Pointers some places, references others
+
+I tried to use references everywhere possible, but there were a few places
+pointers were necessary.
+
+1. In the logger chain (managed by MasterLogger).  To add loggers to a chain
+   it made the most sense to use pointers.
+      
+2. In the static variable referred to by application-wide error handling
+   functions in WinUnit.exe.
+   
+@par No heap allocation or exceptions
+
+I tried to avoid heap allocation and throwing exceptions (except for test failures)
+as a fun exercise and to limit possible false alarms while running tests. 
+
+@par Structured exceptions vs. C++ exceptions
+
+C++ exceptions are caught within the tests (via the END_TEST macro in WinUnitAssert.h);
+structured exceptions are caught in the tool (WinUnit.exe).  When a structured 
+exception occurs, C++ objects in the test will not get destructed.  However,
+this is easily solved by not having structured exceptions to begin with!  If 
+structured exceptions are getting thrown by your test (or production) code
+you have a problem that needs to be fixed.  Fix it and run the tests again, and
+your objects will be destructed as expected.
+
+@par How fixtures work
+
+Since the tests are run with no state it made sense to do any Setup/Teardown
+(pre-/post-test actions) within the tests themselves.  The easiest way to do
+this is to take advantage of C++ scoping and do Setup in the constructor and
+Teardown in the destructor.  Due to the fact that it is illegal to throw an 
+exception in the destructor during the stack unwind because of another exception
+in the same block, the fixture object had to be put in its own outer try block,
+and all other exceptions caught in the inner try.  (This applies to tests that
+use fixture objects only.)  Setup is called in the constructor so if it fails,
+the destructor will not be called, and the exception-during-stack-unwind 
+problem will not be present.   
+*/

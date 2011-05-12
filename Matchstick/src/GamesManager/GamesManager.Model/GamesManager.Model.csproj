@@ -1,0 +1,205 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="3.5">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MGDF.GamesManager.Model</RootNamespace>
+    <AssemblyName>GamesManager.Model</AssemblyName>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>2.0</OldToolsVersion>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkSubset>Client</TargetFrameworkSubset>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ACorns.WCF.DynamicClientProxy, Version=1.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\vendor\lib\Release\ACorns.WCF.DynamicClientProxy.dll</HintPath>
+    </Reference>
+    <Reference Include="IconLib, Version=0.73.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\vendor\lib\Release\IconLib.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\vendor\lib\Release\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.EnterpriseServices" />
+    <Reference Include="System.Runtime.Serialization">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.ServiceModel">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\solutionInfo.cs">
+      <Link>Properties\solutionInfo.cs</Link>
+    </Compile>
+    <Compile Include="Contracts\Entities\InstalledGameInfo.cs" />
+    <Compile Include="Contracts\Entities\PendingOperation.cs" />
+    <Compile Include="Contracts\Messages\GetInstalledGameInfoRequest.cs" />
+    <Compile Include="Contracts\Messages\GetInstalledGameInfoResponse.cs" />
+    <Compile Include="Contracts\Messages\HearbeatRequest.cs" />
+    <Compile Include="Contracts\Messages\HearbeatResponse.cs" />
+    <Compile Include="Contracts\IGamesManagerAdminService.cs" />
+    <Compile Include="Contracts\Entities\IPendingOperation.cs" />
+    <Compile Include="Contracts\Messages\InstallLocalGameRequest.cs" />
+    <Compile Include="Contracts\Messages\InstallGameResponse.cs" />
+    <Compile Include="Contracts\Entities\IXmlWritable.cs" />
+    <Compile Include="Contracts\Messages\RequestBase.cs" />
+    <Compile Include="Contracts\Messages\ResponseBase.cs" />
+    <Compile Include="Contracts\Messages\PausePendingOperationsRequest.cs" />
+    <Compile Include="Contracts\Messages\PausePendingOperationsResponse.cs" />
+    <Compile Include="Contracts\Messages\ResumePendingOperationsRequest.cs" />
+    <Compile Include="Contracts\Messages\ResumePendingOperationsResponse.cs" />
+    <Compile Include="Contracts\Messages\SubmitStatisticsRequest.cs" />
+    <Compile Include="Contracts\Messages\SubmitStatisticsResponse.cs" />
+    <Compile Include="Contracts\Messages\UninstallGameRequest.cs" />
+    <Compile Include="Contracts\Messages\UninstallGameResponse.cs" />
+    <Compile Include="Contracts\Messages\UpdateGameRequest.cs" />
+    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingDownloadBase.cs" />
+    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingFrameworkDownload.cs" />
+    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingGameUninstall.cs" />
+    <Compile Include="Entities\XmlEntities\PendingOperationQueue.cs" />
+    <Compile Include="Events\CopyProgressEventArgs.cs" />
+    <Compile Include="Events\GetCredentialsEventArgs.cs" />
+    <Compile Include="Events\GetStatsPermissionEventArgs.cs" />
+    <Compile Include="Events\ProgressEventArgs.cs" />
+    <Compile Include="Events\ReloadGameEventArgs.cs" />
+    <Compile Include="Events\StatusChangeEventArgs.cs" />
+    <Compile Include="Factories\Archive.cs" />
+    <Compile Include="ServiceModel\FrameworkUpdateManager.cs" />
+    <Compile Include="ServiceModel\GamesManagerService.cs" />
+    <Compile Include="Helpers\FrameworkUpdateChecker.cs" />
+    <Compile Include="ServiceModel\InstalledGamesList.cs" />
+    <Compile Include="ServiceModel\InstalledGame.cs" />
+    <Compile Include="ServiceModel\PendingOperationRunner.cs" />
+    <Compile Include="ServiceModel\StatisticsManager.cs" />
+    <Compile Include="Services\GamesManagerAdminService.cs" />
+    <Compile Include="Services\ServiceManager.cs" />
+    <Compile Include="Entities\XmlEntities\SettingsManager.cs" />
+    <Compile Include="ClientModel\GamesManagerClient.cs" />
+    <Compile Include="ClientModel\GameSourceClient.cs" />
+    <Compile Include="ServiceModel\StatisticsServiceClient.cs" />
+    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingGameDownload.cs">
+    </Compile>
+    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingGameInstall.cs">
+    </Compile>
+    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingOperationBase.cs" />
+    <Compile Include="Entities\XmlEntities\FragmentEntities\Preference.cs" />
+    <Compile Include="Entities\XmlEntities\FragmentEntities\XmlFragmentEntity.cs" />
+    <Compile Include="Entities\XmlEntities\Game.cs" />
+    <Compile Include="Entities\XmlEntities\Preferences.cs" />
+    <Compile Include="Entities\XmlEntities\Update.cs" />
+    <Compile Include="Entities\XmlEntities\XmlEntity.cs" />
+    <Compile Include="Exceptions\GameException.cs" />
+    <Compile Include="Entities\GameInstall.cs" />
+    <Compile Include="Factories\EntityFactory.cs" />
+    <Compile Include="Entities\XmlEntities\XMLValidator.cs" />
+    <Compile Include="Contracts\Entities\IEntity.cs" />
+    <Compile Include="Contracts\Entities\IGameInstall.cs" />
+    <Compile Include="Contracts\Entities\IGame.cs" />
+    <Compile Include="Contracts\Entities\IPreference.cs" />
+    <Compile Include="Contracts\Entities\IPreferences.cs" />
+    <Compile Include="Contracts\Entities\IUpdate.cs" />
+    <Compile Include="Helpers\GameSourceManifestHelper.cs" />
+    <Compile Include="Services\GameExplorer.cs" />
+    <Compile Include="Services\IconManager.cs" />
+    <Compile Include="Helpers\InstalledProgramsHelper.cs" />
+    <Compile Include="Services\ProcessManager.cs" />
+    <Compile Include="Services\ShortcutManager.cs" />
+    <Compile Include="Helpers\ArchiveFileHelper.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\content\schemas\game.xsd">
+      <Link>Schemas\game.xsd</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\..\content\schemas\gamesourcemanifest.xsd">
+      <Link>Schemas\gamesourcemanifest.xsd</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\..\content\schemas\gameState.xsd">
+      <Link>Schemas\gameState.xsd</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\..\content\schemas\preferences.xsd">
+      <Link>Schemas\preferences.xsd</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\..\content\schemas\update.xsd">
+      <Link>Schemas\update.xsd</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GamesManager.Common\GamesManager.Common.csproj">
+      <Project>{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}</Project>
+      <Name>GamesManager.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GamesManager.GameSource.Contracts\GamesManager.GameSource.Contracts.csproj">
+      <Project>{1A4A7F0A-D75E-4571-9FF4-DD4A73733AE0}</Project>
+      <Name>GamesManager.GameSource.Contracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GamesManager.StatisticsService.Contracts\GamesManager.StatisticsService.Contracts.csproj">
+      <Project>{54EABEB3-4FF1-43DD-AEC2-5CBD566E3942}</Project>
+      <Name>GamesManager.StatisticsService.Contracts</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="IWshRuntimeLibrary">
+      <Guid>{F935DC20-1CF0-11D0-ADB9-00C04FD58A0B}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+    </COMReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

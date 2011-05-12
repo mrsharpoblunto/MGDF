@@ -1,0 +1,169 @@
+<project name="Functions" basedir="..\" xmlns="http://nant.sf.net/release/0.86-beta1/nant.xsd">
+
+  <property name="date.now" value="${ datetime::now() }"/>
+  <property name="year.now" value="${ datetime::get-year( date.now ) }"/>
+  <property name="year.since2007" value="${ datetime::get-year( date.now ) - 2007}"/>
+  <property name="month.now" value="${ datetime::get-month( date.now )}"/>
+  <property name="month.now" value="0${ month.now }" if="${ int::parse( month.now ) &lt; 10 }"/>
+  <property name="day.now" value="${ datetime::get-day( date.now )}"/>
+  <property name="day.now" value="0${ day.now }" if="${ int::parse( day.now ) &lt; 10 }"/>
+  <property name="hour.now" value="${ datetime::get-hour( date.now )}"/>
+  <property name="hour.now" value="0${ hour.now }" if="${ int::parse( hour.now ) &lt; 10 }"/>
+  <property name="minute.now" value="${ datetime::get-minute( date.now )}"/>
+  <property name="minute.now" value="0${ minute.now }" if="${ int::parse( minute.now ) &lt; 10 }"/>
+
+  <script language="C#">
+    <code>
+      <![CDATA[
+        [TaskName("createsolutioninfo")]
+        public class CreateSolutionInfoTask: Task
+        {
+          [TaskAttribute("product", Required=true)]
+          public string Product { get { return _product; } set { _product=value; } }
+          private string _product;
+          
+          [TaskAttribute("version", Required=true)]
+          public string Version { get { return _version; } set { _version=value; } }
+          private string _version;
+          
+          [TaskAttribute("solutionInfoFile", Required=true)]
+          public string SolutionInfoFile { get { return _solutionInfoFile; } set { _solutionInfoFile=value; } }
+          private string _solutionInfoFile;
+          
+          protected override void ExecuteTask()
+          {
+            string solutionInfo;
+            using (StreamReader reader = new StreamReader(SolutionInfoFile))
+            {
+                solutionInfo = reader.ReadToEnd();
+            }
+            
+            Regex productRegex = new Regex(@"\[assembly\:\sAssemblyProduct\("".+""\)\]");
+            Regex assemblyVersionRegex = new Regex(@"\[assembly\:\sAssemblyVersion\("".+""\)\]");
+            Regex assemblyFileVersionRegex = new Regex(@"\[assembly\:\sAssemblyFileVersion\("".+""\)\]");
+            
+            solutionInfo = productRegex.Replace(solutionInfo,@"[assembly: AssemblyProduct(""" + Product + @""")]");
+            solutionInfo = assemblyVersionRegex.Replace(solutionInfo,@"[assembly: AssemblyVersion(""" + Version + @""")]");
+            solutionInfo = assemblyFileVersionRegex.Replace(solutionInfo,@"[assembly: AssemblyFileVersion(""" + Version + @""")]");
+            
+            using (StreamWriter writer = new StreamWriter(SolutionInfoFile))
+            {
+                writer.Write(solutionInfo);
+            }
+          }
+        }
+      ]]>
+    </code>
+  </script>
+
+  <script language="C#">
+    <code>
+      <![CDATA[
+        [TaskName("mgdfversion")]
+        public class MGDFVersionTask: Task
+        {
+          [TaskAttribute("version", Required=true)]
+          public string Version { get { return _version; } set { _version=value; } }
+          private string _version;
+          
+          [TaskAttribute("versionFile", Required=true)]
+          public string VersionFile { get { return _versionFile; } set { _versionFile=value; } }
+          private string _versionFile;
+          
+          protected override void ExecuteTask()
+          {
+            string versionFile;
+            using (StreamReader reader = new StreamReader(VersionFile))
+            {
+                versionFile = reader.ReadToEnd();
+            }
+            
+            //const std::string MGDF_VERSION = "1.0.0.0";
+            Regex versionRegex = new Regex(@"const\sstd\:\:string\sMGDFVersionInfo\:\:MGDF_VERSION\s=\s"".+"";");
+            
+            versionFile = versionRegex.Replace(versionFile,@"const std::string MGDFVersionInfo::MGDF_VERSION = """+ Version +@""";");
+            
+            using (StreamWriter writer = new StreamWriter(VersionFile))
+            {
+                writer.Write(versionFile);
+            }
+          }
+        }
+      ]]>
+    </code>
+  </script>
+
+  <script language="C#">
+    <code>
+      <![CDATA[
+        [TaskName("installerversion")]
+        public class InstallerVersionTask: Task
+        {
+          [TaskAttribute("version", Required=true)]
+          public string Version { get { return _version; } set { _version=value; } }
+          private string _version;
+          
+          [TaskAttribute("installerFile", Required=true)]
+          public string InstallerFile { get { return _installerFile; } set { _installerFile=value; } }
+          private string _installerFile;
+          
+          protected override void ExecuteTask()
+          {
+            string installerFile;
+            using (StreamReader reader = new StreamReader(InstallerFile))
+            {
+                installerFile = reader.ReadToEnd();
+            }
+            
+            //"DisplayVersion" "1.0.0.0"
+            Regex versionRegex = new Regex(@"""DisplayVersion""\s"".+""");
+            
+            installerFile = versionRegex.Replace(installerFile,@"""DisplayVersion"" """+ Version +@"""");
+            
+            using (StreamWriter writer = new StreamWriter(InstallerFile))
+            {
+                writer.Write(installerFile);
+            }
+          }
+        }
+      ]]>
+    </code>
+  </script>
+
+  <script language="C#">
+    <code>
+      <![CDATA[
+        [TaskName("testgameversion")]
+        public class TestGameVersionTask: Task
+        {
+ [TaskAttribute("version", Required=true)]
+          public string Version { get { return _version; } set { _version=value; } }
+          private string _version;
+          
+          [TaskAttribute("versionFile", Required=true)]
+          public string VersionFile { get { return _versionFile; } set { _versionFile=value; } }
+          private string _versionFile;
+          
+          protected override void ExecuteTask()
+          {
+            string versionFile;
+            using (StreamReader reader = new StreamReader(VersionFile))
+            {
+                versionFile = reader.ReadToEnd();
+            }
+            
+            //<version>0.1</version>
+            Regex versionRegex = new Regex(@"\<version\>.*\</version\>");
+            
+            versionFile = versionRegex.Replace(versionFile,@"<version>"+ Version +@"</version>");
+            
+            using (StreamWriter writer = new StreamWriter(VersionFile))
+            {
+                writer.Write(versionFile);
+            }
+          }
+        }
+      ]]>
+    </code>
+  </script>
+</project>

@@ -1,0 +1,70 @@
+/**
+   @page Usage
+
+   @par Usage:
+        - %WinUnit -s [-x | -p <i>prefix</i>] [-l <i>customLoggerString</i>] [-o <i>file</i>] {<i>dir</i> | <i>dll</i>}
+        - %WinUnit [-p <i>prefix</i> | -e ( <i>testname></i>* )] [-v <i>verbosity</i>] [-n] [-q] [-l <i>customLoggerString</i>] [-o <i>file</i>] [--<i>var</i> <i>value</i>]* {<i>dir</i> | <i>dll</i>}*
+  
+   @par Options:
+        -  --<i>var</i> <i>value</i> = any variables that should be added to the environment
+        -  @ref quiet = do not output to console
+        -  @ref noui = no interactive UI
+        -  @ref debugoutput = output to debugger (OutputDebugString)
+        -  @ref prefix = prefix (only run tests starting with this)
+        -  @ref exactmatch = run a list of space delimited test names in parentheses
+        -  @ref ignorename = ignore "TEST_" prefix (run all exports)
+        -  @ref verbosity = verbosity
+        -  @ref customLogger = <i>logger DLL</i>[:<i>initialization string</i>]
+        -  @ref outputfile = output filename 
+        -  @ref listonly = list tests only (default is to run)
+        -  <i>dllName</i> = any single name of DLL
+        -  <i>directory</i> = any directory to run all the DLLs in
+        .
+   <hr>
+    @section quiet -q
+    Do not send output to console.  The default is to send output to console.
+   <hr>
+    @section noui -n
+    Do not show dialogs.  This mainly controls crash dialogs that occur on 
+    unhandled exceptions or abnormal termination.
+   <hr>
+    @section debugoutput -b
+    If this switch is set, output will be sent to the debug window (via OutputDebugString)
+    as well as to the console and anywhere else that was specified.  The default
+    is for output not to be sent to the debugger.
+   <hr>
+    @section prefix -p (string)
+    Whatever string is specified as the prefix will be matched (case-insensitively)
+    against all appropriate exports from the DLL.  Those that don't match will
+    not be run/listed.
+   <hr>
+    @section exactmatch -e ( (testname)* )
+    This option is intended for automation; the -p option is preferred for general
+    use.  You must specify exact matches for test names (case-sensitive--note the 
+    difference from the -p option), space-delimited, and enclosed in parentheses.  
+    No error will be displayed if there was no match for a specified test.
+   <hr>
+    @section ignorename -x
+    This flag is only valid with the -l option.  When this flag is specified,
+    DLL exports will not be checked for the TEST_ prefix.  Instead, all exports
+    will be listed as-is.
+   <hr>
+    @section verbosity -v (number)
+    This value sets the verbosity for the logging. The default is 1.
+     - 0: Shows only test failures, program errors, and final results.
+     - 1: Shows everything in verbosity 0 plus all test names as they are run, DLL start/end, and trace output.
+     - 2: Shows everything in verbosity 1 plus all test successes.
+     .
+   <hr>
+    @section customLogger -l (customLoggerString)
+    This value allows you to pass in a reference to your own custom logger 
+    implementation.  See @ref CustomLoggerFunctions for more information.
+   <hr>
+    @section outputfile -o (filename)
+    If specified, output goes to this filename as well as to the console and/or
+    debugger (specified in other options).
+   <hr>
+    @section listonly -s
+    If this flag is specified, tests in the specified dll(s) will be shown
+    only, and not run.
+ */

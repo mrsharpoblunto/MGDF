@@ -1,0 +1,188 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{3EEDEF62-4AAD-43BF-B260-28F16A201AE7}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MGDF.GamesManager</RootNamespace>
+    <AssemblyName>GamesManager</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkSubset>Client</TargetFrameworkSubset>
+    <ApplicationIcon>MGDF.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\..\bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\..\bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\solutionInfo.cs">
+      <Link>Properties\solutionInfo.cs</Link>
+    </Compile>
+    <Compile Include="MVP\Presenters\CheckUninstallPresenter.cs" />
+    <Compile Include="MVP\Presenters\GetCredentialsPresenter.cs" />
+    <Compile Include="MVP\Presenters\GetStatisticsPermissionHelper.cs" />
+    <Compile Include="MVP\Presenters\InstallLocalGamePresenter.cs" />
+    <Compile Include="MVP\Presenters\InstallSplashScreenPresenter.cs" />
+    <Compile Include="MVP\Presenters\LaunchGamePresenter.cs" />
+    <Compile Include="MVP\Presenters\SendStatisticsPresenter.cs" />
+    <Compile Include="MVP\Presenters\SubmitCoreErrorPresenter.cs" />
+    <Compile Include="MVP\Presenters\SubmitErrorPresenter.cs" />
+    <Compile Include="MVP\Presenters\UninstallGamePresenter.cs" />
+    <Compile Include="MVP\Presenters\UpdateGamePresenter.cs" />
+    <Compile Include="MVP\Views\ICheckUninstallView.cs" />
+    <Compile Include="MVP\Views\IGetCredentialsView.cs" />
+    <Compile Include="MVP\Views\Impl\CheckUninstallView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\CheckUninstallView.Designer.cs">
+      <DependentUpon>CheckUninstallView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\GamesManagerViewBase.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\GetCredentialsView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\GetCredentialsView.Designer.cs">
+      <DependentUpon>GetCredentialsView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\InstallSplashScreenView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\InstallSplashScreenView.Designer.cs">
+      <DependentUpon>InstallSplashScreenView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\ProgressView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\ProgressView.Designer.cs">
+      <DependentUpon>ProgressView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\SendStatisticsView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\SendStatisticsView.Designer.cs">
+      <DependentUpon>SendStatisticsView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\SubmitErrorView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\SubmitErrorView.Designer.cs">
+      <DependentUpon>SubmitErrorView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\ViewImpl.cs" />
+    <Compile Include="MVP\Views\IProgressView.cs" />
+    <Compile Include="MVP\Views\ISendStatisticsView.cs" />
+    <Compile Include="MVP\Views\ISplashScreenView.cs" />
+    <Compile Include="MVP\Views\ISubmitErrorView.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="MVP\Views\Impl\CheckUninstallView.resx">
+      <DependentUpon>CheckUninstallView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MVP\Views\Impl\GamesManagerViewBase.resx">
+      <DependentUpon>GamesManagerViewBase.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MVP\Views\Impl\GetCredentialsView.resx">
+      <DependentUpon>GetCredentialsView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MVP\Views\Impl\InstallSplashScreenView.resx">
+      <DependentUpon>InstallSplashScreenView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MVP\Views\Impl\ProgressView.resx">
+      <DependentUpon>ProgressView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MVP\Views\Impl\SendStatisticsView.resx">
+      <DependentUpon>SendStatisticsView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MVP\Views\Impl\SubmitErrorView.resx">
+      <DependentUpon>SubmitErrorView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <None Include="app.config" />
+    <None Include="app.manifest" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GamesManager.Common\GamesManager.Common.csproj">
+      <Project>{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}</Project>
+      <Name>GamesManager.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GamesManager.Controls\GamesManager.Controls.csproj">
+      <Project>{EFA49EB3-095E-47FA-BAE5-04E8F86E7676}</Project>
+      <Name>GamesManager.Controls</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GamesManager.GameSource.Contracts\GamesManager.GameSource.Contracts.csproj">
+      <Project>{1A4A7F0A-D75E-4571-9FF4-DD4A73733AE0}</Project>
+      <Name>GamesManager.GameSource.Contracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GamesManager.Model\GamesManager.Model.csproj">
+      <Project>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</Project>
+      <Name>GamesManager.Model</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Images\error.png" />
+    <Content Include="Images\lock.png" />
+    <Content Include="Images\gameIcon.png" />
+    <Content Include="Images\question.png" />
+    <Content Include="MGDF.ico" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
