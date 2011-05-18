@@ -254,17 +254,17 @@ namespace MGDF.GamesManager.Tests
             prefs.PreferenceCollection[0].Value = "30";
             prefs.Save(preferencesFile.FullName);
 
-                        const string ExpectedPreferencesXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
-<mgdf:preferences xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:mgdf=""http://schemas.matchstickframework.org/2007/preferences"">
-    <preference>
-        <name>maxFPS</name>
-        <value>30</value>
-    </preference>
-    <preference>
-        <name>newSetting</name>
-        <value>1.0</value>
-    </preference>
-</mgdf:preferences>";
+                        const string ExpectedPreferencesXml = @"<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
+@"<mgdf:preferences xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:mgdf=""http://schemas.matchstickframework.org/2007/preferences"">"+"\r\n"+
+@"    <preference>"+"\r\n"+
+@"        <name>maxFPS</name>"+"\r\n"+
+@"        <value>30</value>"+"\r\n"+
+@"    </preference>"+"\r\n"+
+@"    <preference>"+"\r\n"+
+@"        <name>newSetting</name>"+"\r\n"+
+@"        <value>1.0</value>"+"\r\n"+
+@"    </preference>"+"\r\n"+
+@"</mgdf:preferences>";
 
             string savedFile = string.Empty;
             using (var stream = preferencesFile.OpenStream(FileMode.Open))

@@ -703,27 +703,27 @@ namespace MGDF.GamesManager.Tests
             var queueFile = FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Console\\pendingoperationqueue.xml");
             string queueFileContents = queueFile.ReadText();
             string expectedQueueFile =
-                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>
-<pendingoperationqueue>
-	<pendinggamedownload>
-		<status>Paused</status>
-		<progress>16384</progress>
-		<total>35000</total>
-		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000000.mza</destinationfilename>
-		<sourceurl>http://repo/downloads/game.mza</sourceurl>
-		<md5hash>8f5936d96d62f0f093d2b947efcea284</md5hash>
-		<gameuid>Console</gameuid>
-	</pendinggamedownload>
-	<pendinggamedownload>
-		<status>Queued</status>
-		<progress>0</progress>
-		<total>1</total>
-		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000001.mza</destinationfilename>
-		<sourceurl>http://repo/downloads/game1.mza</sourceurl>
-		<md5hash>3b9243337d3aa965fa38ad66bb547c42</md5hash>
-		<gameuid>Console</gameuid>
-	</pendinggamedownload>
-</pendingoperationqueue>";
+                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
+@"<pendingoperationqueue>" + "\r\n" +
+@"	<pendinggamedownload>"+"\r\n"+
+@"		<status>Paused</status>"+"\r\n"+
+@"		<progress>16384</progress>"+"\r\n"+
+@"		<total>35000</total>"+"\r\n"+
+@"		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000000.mza</destinationfilename>"+"\r\n"+
+@"		<sourceurl>http://repo/downloads/game.mza</sourceurl>"+"\r\n"+
+@"		<md5hash>8f5936d96d62f0f093d2b947efcea284</md5hash>"+"\r\n"+
+@"		<gameuid>Console</gameuid>"+"\r\n"+
+@"	</pendinggamedownload>"+"\r\n"+
+@"	<pendinggamedownload>"+"\r\n"+
+@"		<status>Queued</status>"+"\r\n"+
+@"		<progress>0</progress>"+"\r\n"+
+@"		<total>1</total>"+"\r\n"+
+@"		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000001.mza</destinationfilename>"+"\r\n"+
+@"		<sourceurl>http://repo/downloads/game1.mza</sourceurl>"+"\r\n"+
+@"		<md5hash>3b9243337d3aa965fa38ad66bb547c42</md5hash>"+"\r\n"+
+@"		<gameuid>Console</gameuid>"+"\r\n"+
+@"	</pendinggamedownload>"+"\r\n"+
+@"</pendingoperationqueue>";
             Assert.AreEqual(expectedQueueFile, queueFileContents);
 
             //check the first partial download exists
@@ -753,21 +753,21 @@ namespace MGDF.GamesManager.Tests
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test1.dll").Exists);
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test.dll").Exists);
-            Assert.AreEqual(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").ReadText(), @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gameuid>Console</gameuid>
-  <gamename>Lua Console</gamename>
-  <description>A Lua command console for interacting with the MGDF system</description>
-  <version>1.1.0.0</version>
-  <interfaceversion>1</interfaceversion>
-  <developeruid>no-8</developeruid>
-  <developername>no8 interactive</developername>
-  <homepage>http://www.junkship.org</homepage>
-  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>
-  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice>
-  <statisticsprivacypolicy>We wont use ur informationz</statisticsprivacypolicy>
-  <supportemail>support@junkship.org</supportemail>
-</mgdf:game>");
+            Assert.AreEqual(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").ReadText(), @"<?xml version=""1.0"" encoding=""UTF-8""?>"+"\r\n"+
+@"<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">"+"\r\n"+
+@"  <gameuid>Console</gameuid>"+"\r\n"+
+@"  <gamename>Lua Console</gamename>"+"\r\n"+
+@"  <description>A Lua command console for interacting with the MGDF system</description>"+"\r\n"+
+@"  <version>1.1.0.0</version>"+"\r\n"+
+@"  <interfaceversion>1</interfaceversion>"+"\r\n"+
+@"  <developeruid>no-8</developeruid>"+"\r\n"+
+@"  <developername>no8 interactive</developername>"+"\r\n"+
+@"  <homepage>http://www.junkship.org</homepage>"+"\r\n"+
+@"  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>"+"\r\n"+
+@"  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice>"+"\r\n"+
+@"  <statisticsprivacypolicy>We wont use ur informationz</statisticsprivacypolicy>"+"\r\n"+
+@"  <supportemail>support@junkship.org</supportemail>"+"\r\n"+
+@"</mgdf:game>");
 
             //check the queue file was removed.
             Assert.IsFalse(FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Console\\pendingoperationqueue.xml").Exists);
@@ -937,27 +937,27 @@ namespace MGDF.GamesManager.Tests
             var queueFile = FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Console\\pendingoperationqueue.xml");
             string queueFileContents = queueFile.ReadText();
             string expectedQueueFile =
-                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>
-<pendingoperationqueue>
-	<pendinggamedownload>
-		<status>Paused</status>
-		<progress>16384</progress>
-		<total>35000</total>
-		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000000.mza</destinationfilename>
-		<sourceurl>http://repo/downloads/game.mza</sourceurl>
-		<md5hash>8f5936d96d62f0f093d2b947efcea284</md5hash>
-		<gameuid>Console</gameuid>
-	</pendinggamedownload>
-	<pendinggamedownload>
-		<status>Queued</status>
-		<progress>0</progress>
-		<total>1</total>
-		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000001.mza</destinationfilename>
-		<sourceurl>http://repo/downloads/game1.mza</sourceurl>
-		<md5hash>3b9243337d3aa965fa38ad66bb547c42</md5hash>
-		<gameuid>Console</gameuid>
-	</pendinggamedownload>
-</pendingoperationqueue>";
+                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
+"<pendingoperationqueue>"+"\r\n"+
+"	<pendinggamedownload>"+"\r\n"+
+"		<status>Paused</status>"+"\r\n"+
+"		<progress>16384</progress>"+"\r\n"+
+"		<total>35000</total>"+"\r\n"+
+@"		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000000.mza</destinationfilename>"+"\r\n"+
+"		<sourceurl>http://repo/downloads/game.mza</sourceurl>"+"\r\n"+
+"		<md5hash>8f5936d96d62f0f093d2b947efcea284</md5hash>"+"\r\n"+
+"		<gameuid>Console</gameuid>"+"\r\n"+
+"	</pendinggamedownload>"+"\r\n"+
+"	<pendinggamedownload>"+"\r\n"+
+"		<status>Queued</status>"+"\r\n"+
+"		<progress>0</progress>"+"\r\n"+
+"		<total>1</total>"+"\r\n"+
+@"		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000001.mza</destinationfilename>"+"\r\n"+
+"		<sourceurl>http://repo/downloads/game1.mza</sourceurl>"+"\r\n"+
+"		<md5hash>3b9243337d3aa965fa38ad66bb547c42</md5hash>"+"\r\n"+
+"		<gameuid>Console</gameuid>"+"\r\n"+
+"	</pendinggamedownload>"+"\r\n"+
+"</pendingoperationqueue>";
             Assert.AreEqual(expectedQueueFile, queueFileContents);
 
             //check the first partial download exists
@@ -1293,27 +1293,27 @@ namespace MGDF.GamesManager.Tests
             var queueFile = FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Console\\pendingoperationqueue.xml");
             string queueFileContents = queueFile.ReadText();
             string expectedQueueFile =
-                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>
-<pendingoperationqueue>
-	<pendinggamedownload>
-		<status>Paused</status>
-		<progress>16384</progress>
-		<total>35000</total>
-		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000000.mza</destinationfilename>
-		<sourceurl>http://repo/downloads/game.mza</sourceurl>
-		<md5hash>8f5936d96d62f0f093d2b947efcea284</md5hash>
-		<gameuid>Console</gameuid>
-	</pendinggamedownload>
-	<pendinggamedownload>
-		<status>Queued</status>
-		<progress>0</progress>
-		<total>1</total>
-		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000001.mza</destinationfilename>
-		<sourceurl>http://repo/downloads/game1.mza</sourceurl>
-		<md5hash>3b9243337d3aa965fa38ad66bb547c42</md5hash>
-		<gameuid>Console</gameuid>
-	</pendinggamedownload>
-</pendingoperationqueue>";
+                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
+@"<pendingoperationqueue>"+"\r\n"+
+@"	<pendinggamedownload>"+"\r\n"+
+@"		<status>Paused</status>"+"\r\n"+
+@"		<progress>16384</progress>"+"\r\n"+
+@"		<total>35000</total>"+"\r\n"+
+@"		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000000.mza</destinationfilename>"+"\r\n"+
+@"		<sourceurl>http://repo/downloads/game.mza</sourceurl>"+"\r\n"+
+@"		<md5hash>8f5936d96d62f0f093d2b947efcea284</md5hash>"+"\r\n"+
+@"		<gameuid>Console</gameuid>"+"\r\n"+
+@"	</pendinggamedownload>"+"\r\n"+
+@"	<pendinggamedownload>"+"\r\n"+
+@"		<status>Queued</status>"+"\r\n"+
+@"		<progress>0</progress>"+"\r\n"+
+@"		<total>1</total>"+"\r\n"+
+@"		<destinationfilename>c:\program files\MGDF\games\Downloads\00000000-0000-0000-0000-000000000001.mza</destinationfilename>"+"\r\n"+
+@"		<sourceurl>http://repo/downloads/game1.mza</sourceurl>"+"\r\n"+
+@"		<md5hash>3b9243337d3aa965fa38ad66bb547c42</md5hash>"+"\r\n"+
+@"		<gameuid>Console</gameuid>"+"\r\n"+
+@"	</pendinggamedownload>" + "\r\n" +
+@"</pendingoperationqueue>";
             Assert.AreEqual(expectedQueueFile, queueFileContents);
 
             //check the first partial download exists
@@ -1348,21 +1348,21 @@ namespace MGDF.GamesManager.Tests
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test1.dll").Exists);
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test.dll").Exists);
-            Assert.AreEqual(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").ReadText(), @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gameuid>Console</gameuid>
-  <gamename>Lua Console</gamename>
-  <description>A Lua command console for interacting with the MGDF system</description>
-  <version>1.1.0.0</version>
-  <interfaceversion>1</interfaceversion>
-  <developeruid>no-8</developeruid>
-  <developername>no8 interactive</developername>
-  <homepage>http://www.junkship.org</homepage>
-  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>
-  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice>
-  <statisticsprivacypolicy>We wont use ur informationz</statisticsprivacypolicy>
-  <supportemail>support@junkship.org</supportemail>
-</mgdf:game>");
+            Assert.AreEqual(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").ReadText(), @"<?xml version=""1.0"" encoding=""UTF-8""?>"+"\r\n"+
+@"<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">"+"\r\n"+
+@"  <gameuid>Console</gameuid>"+"\r\n"+
+@"  <gamename>Lua Console</gamename>"+"\r\n"+
+@"  <description>A Lua command console for interacting with the MGDF system</description>"+"\r\n"+
+@"  <version>1.1.0.0</version>"+"\r\n"+
+@"  <interfaceversion>1</interfaceversion>"+"\r\n"+
+@"  <developeruid>no-8</developeruid>"+"\r\n"+
+@"  <developername>no8 interactive</developername>"+"\r\n"+
+@"  <homepage>http://www.junkship.org</homepage>"+"\r\n"+
+@"  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>"+"\r\n"+
+@"  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice>"+"\r\n"+
+@"  <statisticsprivacypolicy>We wont use ur informationz</statisticsprivacypolicy>"+"\r\n"+
+@"  <supportemail>support@junkship.org</supportemail>"+"\r\n"+
+@"</mgdf:game>");
 
             //check the queue file was removed.
             Assert.IsFalse(FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Console\\pendingoperationqueue.xml").Exists);

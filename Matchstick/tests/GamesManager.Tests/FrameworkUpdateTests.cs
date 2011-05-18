@@ -142,15 +142,15 @@ namespace MGDF.GamesManager.Tests
             var queueFile = FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Downloads\\Framework\\pendingframeworkdownload.xml");
             string queueFileContents = queueFile.ReadText();
             string expectedQueueFile =
-                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>
-<pendingframeworkdownload>
-	<status>Paused</status>
-	<progress>16384</progress>
-	<total>55000</total>
-	<destinationfilename>c:\program files\MGDF\games\Downloads\Framework\1.1.2.4.part</destinationfilename>
-	<sourceurl>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</sourceurl>
-	<version>1.1.2.4</version>
-</pendingframeworkdownload>";
+                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
+"<pendingframeworkdownload>"+"\r\n"+
+"	<status>Paused</status>"+"\r\n"+
+"	<progress>16384</progress>"+"\r\n"+
+"	<total>55000</total>"+"\r\n"+
+@"	<destinationfilename>c:\program files\MGDF\games\Downloads\Framework\1.1.2.4.part</destinationfilename>"+"\r\n"+
+"	<sourceurl>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</sourceurl>"+"\r\n"+
+"	<version>1.1.2.4</version>"+"\r\n"+
+"</pendingframeworkdownload>";
             Assert.AreEqual(expectedQueueFile, queueFileContents);
 
             //service restarted
@@ -211,15 +211,15 @@ namespace MGDF.GamesManager.Tests
             var queueFile = FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Downloads\\Framework\\pendingframeworkdownload.xml");
             string queueFileContents = queueFile.ReadText();
             string expectedQueueFile =
-                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>
-<pendingframeworkdownload>
-	<status>Paused</status>
-	<progress>16384</progress>
-	<total>55000</total>
-	<destinationfilename>c:\program files\MGDF\games\Downloads\Framework\1.1.2.4.part</destinationfilename>
-	<sourceurl>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</sourceurl>
-	<version>1.1.2.4</version>
-</pendingframeworkdownload>";
+                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
+"<pendingframeworkdownload>"+"\r\n"+
+"	<status>Paused</status>"+"\r\n"+
+"	<progress>16384</progress>"+"\r\n"+
+"	<total>55000</total>"+"\r\n"+
+@"	<destinationfilename>c:\program files\MGDF\games\Downloads\Framework\1.1.2.4.part</destinationfilename>"+"\r\n"+
+"	<sourceurl>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</sourceurl>"+"\r\n"+
+"	<version>1.1.2.4</version>"+"\r\n"+
+"</pendingframeworkdownload>";
             Assert.AreEqual(expectedQueueFile, queueFileContents);
 
             //simulate a newer version coming available
