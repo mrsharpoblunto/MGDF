@@ -62,6 +62,7 @@
     <Compile Include="..\..\GamesManager\solutionInfo.cs">
       <Link>Properties\solutionInfo.cs</Link>
     </Compile>
+    <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LatestVersionController.cs" />
     <Compile Include="Default.aspx.cs">
       <DependentUpon>Default.aspx</DependentUpon>
@@ -77,6 +78,7 @@
   <ItemGroup>
     <Content Include="Default.aspx" />
     <Content Include="Global.asax" />
+    <Content Include="Views\Home\Index.aspx" />
     <Content Include="Views\LatestVersion\Index.aspx" />
     <Content Include="Web.config" />
     <Content Include="Views\Web.config" />
