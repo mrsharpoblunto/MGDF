@@ -236,10 +236,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\MGDF\MGDFParameterManager.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\include\MGDF\MGDFSound.hpp"
 				>
 			</File>

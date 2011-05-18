@@ -7,14 +7,6 @@
 			<xs:sequence>
 				<xs:element name="gameuid" type="xs:string" maxOccurs="1"/>
         <xs:element name="gameversion" type="xs:decimal" maxOccurs="1"/>
-				<xs:element name="module" maxOccurs="unbounded">
-					<xs:complexType>
-						<xs:all>
-							<xs:element name="parameters" type="xs:string" minOccurs="0"/>
-							<xs:element name="name" type="xs:string"/>
-						</xs:all>
-					</xs:complexType>
-				</xs:element>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>

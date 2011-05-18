@@ -177,9 +177,8 @@ namespace MGDF.GamesManager.Model.Entities.XmlEntities.FragmentEntities
             }
 
             IArchiveFile gameConfig = installer.GameContents.GetFile(Constants.GameConfig);
-            IArchiveFile bootDir = installer.GameContents.GetFile(Constants.BootDir);
             IArchiveFile contentDir = installer.GameContents.GetFile(Constants.ContentDir);
-            IArchiveFile modulesDir = installer.GameContents.GetFile(Constants.ModulesDir);
+            IArchiveFile binDir = installer.GameContents.GetFile(Constants.BinDir);
             IArchiveFile imageFile = null;
             if (installer.Game.GameIconData!=null)
             {
@@ -191,9 +190,8 @@ namespace MGDF.GamesManager.Model.Entities.XmlEntities.FragmentEntities
             var vfsUtils = new ArchiveFileHelper();
             
             var total = ArchiveFileHelper.GetSubTreeData(gameConfig).BytesCount;
-            total += ArchiveFileHelper.GetSubTreeData(bootDir).BytesCount;
             total += ArchiveFileHelper.GetSubTreeData(contentDir).BytesCount;
-            total += ArchiveFileHelper.GetSubTreeData(modulesDir).BytesCount;
+            total += ArchiveFileHelper.GetSubTreeData(binDir).BytesCount;
             total += ArchiveFileHelper.GetSubTreeData(imageFile).BytesCount;
             total += ArchiveFileHelper.GetSubTreeData(gdfFile).BytesCount;
             total += ArchiveFileHelper.GetSubTreeData(preferencesFile).BytesCount;
@@ -211,19 +209,14 @@ namespace MGDF.GamesManager.Model.Entities.XmlEntities.FragmentEntities
 
             vfsUtils.CopyVfsFile(gameConfig, FileSystem.Combine(Constants.GameDir(installer.Game.Uid), Constants.GameConfig));
 
-            if (!PausePending && bootDir!=null)
-            {
-                vfsUtils.CopyVfsSubtree(bootDir, Constants.GameDir(installer.Game.Uid), false);
-            }
-
             if (!PausePending && contentDir != null)
             {
                 vfsUtils.CopyVfsSubtree(contentDir, Constants.GameDir(installer.Game.Uid), false);
             }
 
-            if (!PausePending && modulesDir != null)
+            if (!PausePending && binDir != null)
             {
-                vfsUtils.CopyVfsSubtree(modulesDir, Constants.GameDir(installer.Game.Uid), false);
+                vfsUtils.CopyVfsSubtree(binDir, Constants.GameDir(installer.Game.Uid), false);
             }
 
             if (!PausePending && imageFile != null)
@@ -247,7 +240,7 @@ namespace MGDF.GamesManager.Model.Entities.XmlEntities.FragmentEntities
         {
             IDirectory gameDir = FileSystem.Current.GetDirectory(Constants.GameDir(_installer.Game.Uid));
             IDirectory gameContentDir = FileSystem.Current.GetDirectory(FileSystem.Combine(Constants.GameDir(_installer.Game.Uid), Constants.ContentDir));
-            IDirectory gameModulesDir = FileSystem.Current.GetDirectory(FileSystem.Combine(Constants.GameDir(_installer.Game.Uid), Constants.ModulesDir));
+            IDirectory gameModulesDir = FileSystem.Current.GetDirectory(FileSystem.Combine(Constants.GameDir(_installer.Game.Uid), Constants.BinDir));
 
             //only allow files/dirs inside the modules/content directories to be removed by the removal process.
             foreach (string s in installer.Update.RemoveFiles)

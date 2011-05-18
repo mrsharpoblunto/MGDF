@@ -72,7 +72,6 @@ std::string Resources::GetApplicationDirectory(HINSTANCE instance)
 	return appDir+"/";
 }
 
-const std::string Resources::VFS_MODULES = "modules/";
 const std::string Resources::VFS_CONTENT = "content/";
 
 const std::string Resources::GAME_SCHEMA_URI = "http://schemas.matchstickframework.org/2007/game";
@@ -121,19 +120,9 @@ std::string Resources::GameFile(std::string gameUid)
 	return GamesBaseDir() + gameUid +"/game.xml";
 }
 
-std::string Resources::BootDir(std::string gameUid)
-{
-	return GamesBaseDir()+gameUid+"/boot/";
-}
-
 std::string Resources::WorkingDir()
 {
 	return UserBaseDir() + "working/";
-}
-
-std::string Resources::GameStateBootFile(std::string gameUid)
-{
-	return BootDir(gameUid) + "gameState.xml";
 }
 
 std::string Resources::GameStateSaveFile(std::string gameUid,std::string saveName)
@@ -159,11 +148,6 @@ std::string Resources::SaveDir(std::string gameUid,std::string saveName)
 std::string Resources::SaveDataDir(std::string gameUid,std::string saveName)
 {
 	return SaveDir(gameUid,saveName)+"data/";
-}
-
-std::string Resources::BootDataDir(std::string gameUid)
-{
-	return BootDir(gameUid)+"data/";
 }
 
 void Resources::CreateRequiredDirectories(std::string gameUid)
@@ -213,14 +197,14 @@ std::string Resources::SchemaFile(std::string schemaFile)
 	return _applicationDirectory+"schemas/"+schemaFile;
 }
 
-std::string Resources::GlobalModule(std::string gameUid)
+std::string Resources::Module(std::string gameUid)
 {
-	return GamesBaseDir()+gameUid+"/modules/global.dll";
+	return BinDir(gameUid)+"module.dll";
 }
 
-std::string Resources::ModulesDir(std::string gameUid)
+std::string Resources::BinDir(std::string gameUid)
 {
-	return GamesBaseDir()+gameUid+"/modules/";
+	return GamesBaseDir()+gameUid+"/bin/";
 }
 
 }}

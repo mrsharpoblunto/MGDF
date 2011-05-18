@@ -30,23 +30,20 @@ public:
 	std::string UserBaseDir();
 	std::string UserDir(std::string configurationName);
 	std::string GameFile(std::string gameFile);
-	std::string BootDir(std::string gameName);
 	std::string WorkingDir();
-	std::string GameStateBootFile(std::string gameUid);
 	std::string GameStateSaveFile(std::string gameUid,std::string saveName);
 	std::string RelativeSaveFile();
 	std::string SaveFile(std::string gameUid,std::string saveName);
 	std::string SaveDir(std::string gameUid,std::string saveName);
 	std::string SaveDataDir(std::string gameUid,std::string saveName);
-	std::string BootDataDir(std::string gameName);
 	std::string CorePreferencesFile();
 	std::string GameDefaultPreferencesFile(std::string gameUid);
 	std::string GameUserPreferencesFile(std::string gameUid);
 	std::string GameUserStatisticsFile(std::string gameUid);
 	std::string ContentDir(std::string gameUid);
 	std::string SchemaFile(std::string schemaFile);
-	std::string GlobalModule(std::string gameUid);
-	std::string ModulesDir(std::string gameUid);
+	std::string Module(std::string gameUid);
+	std::string BinDir(std::string gameUid);
 	std::string LogFile();
 
 	static const std::string GAME_SCHEMA_URI;
@@ -57,7 +54,6 @@ public:
 	static const std::string GAME_STATE_SCHEMA;
 	static const std::string PREFERENCES_SCHEMA;
 
-	static const std::string VFS_MODULES;
 	static const std::string VFS_CONTENT;
 
 	static const unsigned int MIN_SCREEN_X;

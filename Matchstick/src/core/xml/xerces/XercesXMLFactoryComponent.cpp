@@ -17,10 +17,10 @@ using namespace XERCES_CPP_NAMESPACE;
 
 namespace MGDF { namespace core { namespace xml { namespace xercesImpl {
 
-IXMLFactoryComponent *CreateXercesXMLFactoryComponent(HINSTANCE instance,HWND window,bool doValidation)
+IXMLFactoryComponent *CreateXercesXMLFactoryComponent(HINSTANCE instance,HWND window)
 {
 	try {
-		return new XercesXMLFactoryComponent(instance,window,doValidation);
+		return new XercesXMLFactoryComponent(instance,window);
 	}
 	catch (...)
 	{
@@ -28,10 +28,10 @@ IXMLFactoryComponent *CreateXercesXMLFactoryComponent(HINSTANCE instance,HWND wi
 	}
 }
 
-XercesXMLFactoryComponent::XercesXMLFactoryComponent(HINSTANCE instance,HWND window,bool doValidation)
+XercesXMLFactoryComponent::XercesXMLFactoryComponent(HINSTANCE instance,HWND window)
 {
 	XMLPlatformUtils::Initialize();
-	new XercesXmlSchemaCache(doValidation);
+	new XercesXmlSchemaCache();
 }
 
 void XercesXMLFactoryComponent::Dispose()

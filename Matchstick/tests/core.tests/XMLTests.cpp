@@ -30,7 +30,7 @@ SETUP(XMLTestFixture)
 	_vfs = CreateVirtualFileSystemComponentImpl(NULL,NULL,(ILogger *)_logger);
 	_vfs->MapDirectory((Resources::Instance().RootDir()+"../../tests/content").c_str(),"",NULL,false);
 
-	_xml = CreateXMLFactoryComponentImpl(NULL,NULL,true);
+	_xml = CreateXMLFactoryComponentImpl(NULL,NULL);
 }
 
 TEARDOWN(XMLTestFixture)
@@ -80,14 +80,6 @@ BEGIN_TESTF(XMLGameStateHandlerTest,XMLTestFixture)
 
 	WIN_ASSERT_EQUAL("Console",handler->GetGameUid());
 	WIN_ASSERT_EQUAL(0,VersionHelper::Compare(handler->GetVersion(),&expected));
-	
-	IGameStateXMLHandler::iterator iter;
-	int count = 0;
-	for (iter = handler->Begin();iter!=handler->End();++iter) {
-		WIN_ASSERT_EQUAL("console.dll",(*iter).Name);
-		++count;
-	}
-	WIN_ASSERT_EQUAL(1,count);
 
 	std::string savePath = Resources::Instance().RootDir()+"../../tests/content/temp.xml";
 	handler->Save(savePath);
@@ -99,13 +91,6 @@ BEGIN_TESTF(XMLGameStateHandlerTest,XMLTestFixture)
 
 	WIN_ASSERT_EQUAL("Console",handler->GetGameUid());
 	WIN_ASSERT_EQUAL(0,VersionHelper::Compare(handler->GetVersion(),&expected));
-	
-	count = 0;
-	for (iter = handler->Begin();iter!=handler->End();++iter) {
-		WIN_ASSERT_EQUAL("console.dll",(*iter).Name);
-		++count;
-	}
-	WIN_ASSERT_EQUAL(1,count);
 
 	boost::filesystem::remove(boost::filesystem::path(savePath,boost::filesystem::native));//remove the temp file
 	delete handler;

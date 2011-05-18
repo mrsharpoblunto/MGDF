@@ -45,10 +45,7 @@ namespace MGDF.GamesManager.Tests
                 new MockArchiveFile(archive, "gdf.dll", "GAMES_EXPLORER_DEFINITION");
             }
             new MockArchiveFile(archive, "content");
-            new MockArchiveFile(archive, "modules");
-            //missing content
-            var boot = new MockArchiveFile(archive, "boot");
-            new MockArchiveFile(boot, "gameState.xml", ReadTextFile("gameState.xml"));
+            new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
 
             var gameInfo = GamesManagerService.Instance.GetGameInfo("Console");
@@ -73,10 +70,8 @@ namespace MGDF.GamesManager.Tests
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\preferences.xml").Exists);
-            Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console\\boot").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\boot\\gameState.xml").Exists);
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console\\content").Exists);
-            Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console\\modules").Exists);
+            Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console\\bin").Exists);
 
             //check the queue file was removed.
             Assert.IsFalse(FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Console\\pendingoperationqueue.xml").Exists);
@@ -141,10 +136,8 @@ namespace MGDF.GamesManager.Tests
             MockArchiveFile archive = new MockArchiveFile(null, "C:\\Documents and Settings\\user\\desktop\\game.mza");
             new MockArchiveFile(archive, "game.xml", ReadTextFile("console.xml"));
             new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
-            new MockArchiveFile(archive, "modules");
+            new MockArchiveFile(archive, "bin");
             //missing content
-            var boot = new MockArchiveFile(archive, "boot");
-            new MockArchiveFile(boot, "gameState.xml", ReadTextFile("gameState.xml"));
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
 
             var gameInfo = GamesManagerService.Instance.GetGameInfo("Console");
@@ -173,9 +166,7 @@ namespace MGDF.GamesManager.Tests
             new MockArchiveFile(archive, "game.xml", ReadTextFile("console.xml"));
             new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
             new MockArchiveFile(archive, "content");
-            new MockArchiveFile(archive, "modules");
-            var boot = new MockArchiveFile(archive, "boot");
-            new MockArchiveFile(boot, "gameState.xml", ReadTextFile("gameState.xml"));
+            new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
 
             List<string> errors = new List<string>();
@@ -201,7 +192,7 @@ namespace MGDF.GamesManager.Tests
 </mgdf:update>");
             new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
             new MockArchiveFile(archive, "content");
-            new MockArchiveFile(archive, "modules");
+            new MockArchiveFile(archive, "bin");
             var boot = new MockArchiveFile(archive, "boot");
             new MockArchiveFile(boot, "gameState.xml", ReadTextFile("gameState.xml"));
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
@@ -249,7 +240,7 @@ namespace MGDF.GamesManager.Tests
   <removefiles />
 </mgdf:update>");
             new MockArchiveFile(archive, "content");
-            new MockArchiveFile(archive, "modules");
+            new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
 
             List<string> errors = new List<string>();
@@ -303,7 +294,7 @@ namespace MGDF.GamesManager.Tests
   <updatemaxversion>0.9</updatemaxversion>
   <removefiles />
 </mgdf:update>");
-            var modules = new MockArchiveFile(archive, "modules");
+            var modules = new MockArchiveFile(archive, "bin");
             new MockArchiveFile(modules, "test.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000000.mza", archive);
 
@@ -330,10 +321,10 @@ namespace MGDF.GamesManager.Tests
   <updateminversion>1.0</updateminversion>
   <updatemaxversion>1.0</updatemaxversion>
   <removefiles>
-    <file>modules\test.dll</file>
+    <file>bin\test.dll</file>
   </removefiles>
 </mgdf:update>");
-            var modules2 = new MockArchiveFile(archive2, "modules");
+            var modules2 = new MockArchiveFile(archive2, "bin");
             new MockArchiveFile(modules2, "test1.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000001.mza", archive2);
 
@@ -390,8 +381,8 @@ namespace MGDF.GamesManager.Tests
             //check that all the games content was copied across
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\modules\\test1.dll").Exists);
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\modules\\test.dll").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test1.dll").Exists);
+            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test.dll").Exists);
             Assert.AreEqual(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").ReadText(), @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
   <gameuid>Console</gameuid>
@@ -475,7 +466,7 @@ namespace MGDF.GamesManager.Tests
   <updatemaxversion>0.9</updatemaxversion>
   <removefiles />
 </mgdf:update>");
-            var modules = new MockArchiveFile(archive, "modules");
+            var modules = new MockArchiveFile(archive, "bin");
             new MockArchiveFile(modules, "test.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000000.mza", archive);
 
@@ -505,7 +496,7 @@ namespace MGDF.GamesManager.Tests
     <file>modules\test.dll</file>
   </removefiles>
 </mgdf:update>");
-            var modules2 = new MockArchiveFile(archive2, "modules");
+            var modules2 = new MockArchiveFile(archive2, "bin");
             new MockArchiveFile(modules2, "test1.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000001.mza", archive2);
 
@@ -620,7 +611,7 @@ namespace MGDF.GamesManager.Tests
   <updatemaxversion>0.9</updatemaxversion>
   <removefiles />
 </mgdf:update>");
-            var modules = new MockArchiveFile(archive, "modules");
+            var modules = new MockArchiveFile(archive, "bin");
             new MockArchiveFile(modules, "test.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000000.mza", archive);
 
@@ -647,10 +638,10 @@ namespace MGDF.GamesManager.Tests
   <updateminversion>1.0</updateminversion>
   <updatemaxversion>1.0</updatemaxversion>
   <removefiles>
-    <file>modules\test.dll</file>
+    <file>bin\test.dll</file>
   </removefiles>
 </mgdf:update>");
-            var modules2 = new MockArchiveFile(archive2, "modules");
+            var modules2 = new MockArchiveFile(archive2, "bin");
             new MockArchiveFile(modules2, "test1.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000001.mza", archive2);
 
@@ -760,8 +751,8 @@ namespace MGDF.GamesManager.Tests
             //check that all the games content was copied across
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\modules\\test1.dll").Exists);
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\modules\\test.dll").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test1.dll").Exists);
+            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test.dll").Exists);
             Assert.AreEqual(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").ReadText(), @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
   <gameuid>Console</gameuid>
@@ -854,7 +845,7 @@ namespace MGDF.GamesManager.Tests
   <updatemaxversion>0.9</updatemaxversion>
   <removefiles />
 </mgdf:update>");
-            var modules = new MockArchiveFile(archive, "modules");
+            var modules = new MockArchiveFile(archive, "bin");
             new MockArchiveFile(modules, "test.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000000.mza", archive);
 
@@ -884,7 +875,7 @@ namespace MGDF.GamesManager.Tests
     <file>modules\test.dll</file>
   </removefiles>
 </mgdf:update>");
-            var modules2 = new MockArchiveFile(archive2, "modules");
+            var modules2 = new MockArchiveFile(archive2, "bin");
             new MockArchiveFile(modules2, "test1.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000001.mza", archive2);
 
@@ -1068,7 +1059,7 @@ namespace MGDF.GamesManager.Tests
   <updatemaxversion>0.9</updatemaxversion>
   <removefiles />
 </mgdf:update>");
-            var modules = new MockArchiveFile(archive, "modules");
+            var modules = new MockArchiveFile(archive, "bin");
             new MockArchiveFile(modules, "test.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000000.mza", archive);
 
@@ -1098,7 +1089,7 @@ namespace MGDF.GamesManager.Tests
     <file>modules\test.dll</file>
   </removefiles>
 </mgdf:update>");
-            var modules2 = new MockArchiveFile(archive2, "modules");
+            var modules2 = new MockArchiveFile(archive2, "bin");
             new MockArchiveFile(modules2, "test1.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000001.mza", archive2);
 
@@ -1221,7 +1212,7 @@ namespace MGDF.GamesManager.Tests
   <updatemaxversion>0.9</updatemaxversion>
   <removefiles />
 </mgdf:update>");
-            var modules = new MockArchiveFile(archive, "modules");
+            var modules = new MockArchiveFile(archive, "bin");
             new MockArchiveFile(modules, "test.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000000.mza", archive);
 
@@ -1248,10 +1239,10 @@ namespace MGDF.GamesManager.Tests
   <updateminversion>1.0</updateminversion>
   <updatemaxversion>1.0</updatemaxversion>
   <removefiles>
-    <file>modules\test.dll</file>
+    <file>bin\test.dll</file>
   </removefiles>
 </mgdf:update>");
-            var modules2 = new MockArchiveFile(archive2, "modules");
+            var modules2 = new MockArchiveFile(archive2, "bin");
             new MockArchiveFile(modules2, "test1.dll", "1337_CODEZ");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("c:\\program files\\MGDF\\games\\Downloads\\00000000-0000-0000-0000-000000000001.mza", archive2);
 
@@ -1355,8 +1346,8 @@ namespace MGDF.GamesManager.Tests
             //check that all the games content was copied across
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\modules\\test1.dll").Exists);
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\modules\\test.dll").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test1.dll").Exists);
+            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\bin\\test.dll").Exists);
             Assert.AreEqual(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").ReadText(), @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
   <gameuid>Console</gameuid>
@@ -1427,7 +1418,7 @@ namespace MGDF.GamesManager.Tests
 </mgdf:game>");
             new MockArchiveFile(archive, "update.xml", ReadTextFile("update.xml"));
             new MockArchiveFile(archive, "content");
-            new MockArchiveFile(archive, "modules");
+            new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
 
             List<string> errors = new List<string>();
@@ -1453,7 +1444,7 @@ namespace MGDF.GamesManager.Tests
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console").Exists);
             Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Console\\game.xml").Exists);
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console\\content").Exists);
-            Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console\\modules").Exists);
+            Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\games\\Console\\bin").Exists);
 
             //assert the shortcuts are in the right place
             var key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");

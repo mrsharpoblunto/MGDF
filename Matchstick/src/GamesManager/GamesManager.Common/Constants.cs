@@ -44,9 +44,8 @@ namespace MGDF.GamesManager.Common
         public const int DefaultPort = 2213;
 
         public const string CoreGame = "core";
-        public const string BootDir = @"boot";
         public const string ContentDir = @"content";
-        public const string ModulesDir = @"modules";
+        public const string BinDir = @"bin";
         public const string GamesDir = @"games";
         public const string SchemaDir = @"schemas";
 

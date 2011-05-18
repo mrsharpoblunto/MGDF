@@ -2,11 +2,10 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="testCommon"
-	ProjectGUID="{8B2601FE-BE04-4EC9-B703-48C106200470}"
-	RootNamespace="testCommon"
-	Keyword="ManagedCProj"
-	TargetFrameworkVersion="0"
+	Name="testModule"
+	ProjectGUID="{77B40DFE-E113-43EC-8059-099246687405}"
+	RootNamespace="testModule1"
+	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
 		<Platform
@@ -19,10 +18,9 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)\games\test\bin"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="bin\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="2"
-			ManagedExtensions="0"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -42,12 +40,13 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;TESTCOMMON_DLL_BUILDING"
+				AdditionalIncludeDirectories="../../../include, ../testCommon"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				DebugInformationFormat="3"
+				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -60,9 +59,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				LinkIncremental="2"
+				OutputFile="$(OutDir)\module.dll"
 				GenerateDebugInformation="true"
-				AssemblyDebug="1"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -85,16 +83,14 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="if exist app.config copy app.config &quot;$(OutDir)\app.config&quot;"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)\games\test\bin"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="bin\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="2"
-			ManagedExtensions="0"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -114,9 +110,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../include"
-				PreprocessorDefinitions="WIN32;NDEBUG;TESTCOMMON_DLL_BUILDING"
+				Optimization="2"
+				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="../../../include, ../testCommon"
 				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="3"
@@ -132,8 +130,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				LinkIncremental="1"
+				OutputFile="$(OutDir)\module.dll"
 				GenerateDebugInformation="true"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -156,34 +156,54 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="if exist app.config copy app.config &quot;$(OutDir)\app.config&quot;"
 			/>
 		</Configuration>
 	</Configurations>
 	<References>
-		<AssemblyReference
-			RelativePath="System.dll"
-			AssemblyName="System, Version=2.0.0.0, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL"
-			MinFrameworkVersion="131072"
-		/>
-		<AssemblyReference
-			RelativePath="System.Data.dll"
-			AssemblyName="System.Data, Version=2.0.0.0, PublicKeyToken=b77a5c561934e089, processorArchitecture=x86"
-			MinFrameworkVersion="131072"
-		/>
-		<AssemblyReference
-			RelativePath="System.XML.dll"
-			AssemblyName="System.Xml, Version=2.0.0.0, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL"
-			MinFrameworkVersion="131072"
-		/>
 	</References>
 	<Files>
 		<File
-			RelativePath=".\BufferedGameState.hpp"
+			RelativePath=".\CustomArchiveHandlersImpl.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Common.hpp"
+			RelativePath=".\CustomArchiveHandlersImpl.hpp"
+			>
+		</File>
+		<File
+			RelativePath=".\FakeArchiveHandler.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\FakeArchiveHandler.hpp"
+			>
+		</File>
+		<File
+			RelativePath=".\FakeFile.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\FakeFile.hpp"
+			>
+		</File>
+		<File
+			RelativePath=".\main.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\MigratorImpl.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\MigratorImpl.hpp"
+			>
+		</File>
+		<File
+			RelativePath=".\Module.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\Module.hpp"
 			>
 		</File>
 		<File
@@ -211,11 +231,27 @@
 			>
 		</File>
 		<File
-			RelativePath=".\TextManager.cpp"
+			RelativePath=".\test1.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\TextManager.hpp"
+			RelativePath=".\test1.hpp"
+			>
+		</File>
+		<File
+			RelativePath=".\test2.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\test2.hpp"
+			>
+		</File>
+		<File
+			RelativePath=".\test3.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\test3.hpp"
 			>
 		</File>
 	</Files>

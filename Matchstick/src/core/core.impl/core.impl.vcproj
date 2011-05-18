@@ -168,14 +168,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MGDFGlobalCallbacks.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\MGDFGlobalCallbacks.hpp"
-				>
-			</File>
-			<File
 				RelativePath=".\MGDFGraphicsManagerImpl.cpp"
 				>
 			</File>
@@ -184,11 +176,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MGDFModuleInitialiserImpl.cpp"
+				RelativePath=".\MGDFModuleFactory.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\MGDFModuleInitialiserImpl.hpp"
+				RelativePath=".\MGDFModuleFactory.hpp"
 				>
 			</File>
 			<File

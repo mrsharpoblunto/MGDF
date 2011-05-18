@@ -1,15 +1,10 @@
 mkdir bin\%1
 
 echo copying MGDF Debug library dll's to bin directory
-XCOPY  ..\vendor\lib\%1\lua.dll bin\%1 /E /Y /I
-XCOPY  ..\vendor\lib\%1\luabind.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\%1\zlib.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\%1\xerces-c_2_7.dll bin\%1 /E /Y /I
 
 echo copying MGDF precompiled dll's to bin directory
-XCOPY  ..\vendor\lib\Release\msvcp80.dll bin\%1 /E /Y /I
-XCOPY  ..\vendor\lib\Release\msvcr80.dll bin\%1 /E /Y /I
-XCOPY  ..\vendor\lib\Release\fmodex.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\Release\GameuxInstallHelper.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\Release\OpenAL32.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\Release\alut.dll bin\%1 /E /Y /I

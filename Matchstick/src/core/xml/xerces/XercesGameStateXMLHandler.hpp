@@ -18,10 +18,6 @@ public:
 	virtual ~XercesGameStateXMLHandler(){};
 
 	virtual void Dispose();
-	virtual void Add(std::string name);
-
-	virtual iterator Begin() const;
-	virtual iterator End() const;
 
 	virtual bool Load(std::string);
 	virtual void Save(std::string) const;
@@ -53,8 +49,6 @@ public:
 private:	
 	bool _requiresMigration;
 	std::string _currentNode;
-	bool _addingModule;
-	std::vector<ModuleState> _moduleStates;
 
 	std::string _gameUid;
 	Version _version;

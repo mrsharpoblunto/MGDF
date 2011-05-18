@@ -8,7 +8,7 @@ namespace MGDF { namespace core { namespace xml { namespace xercesImpl {
 class XercesXMLFactoryComponent: public DisposeImpl<IXMLFactoryComponent>
 {
 public:
-	XercesXMLFactoryComponent(HINSTANCE instance,HWND window,bool doValidation);
+	XercesXMLFactoryComponent(HINSTANCE instance,HWND window);
 	virtual ~XercesXMLFactoryComponent();
 
 	virtual void Dispose();
@@ -17,6 +17,6 @@ public:
 	virtual IPreferenceConfigXMLHandler *CreatePreferenceConfigXMLHandler() const;
 };
 
-MGDF_CORE_DLL IXMLFactoryComponent *CreateXercesXMLFactoryComponent(HINSTANCE instance,HWND window,bool doValidation);
+MGDF_CORE_DLL IXMLFactoryComponent *CreateXercesXMLFactoryComponent(HINSTANCE instance,HWND window);
 
 }}}}

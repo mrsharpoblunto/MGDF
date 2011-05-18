@@ -3,7 +3,4 @@
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <gameuid>Console</gameuid>
   <gameversion>0.1</gameversion>
-  <module>
-    <name>console.dll</name>
-  </module>
 </mgdf:gameState>

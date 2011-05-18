@@ -11,7 +11,7 @@ namespace MGDF {
 /**
 every game can have its own set of custom vfs archive handlers so that its own custom formats can be enumerated by the vfs as normal files.
 because the vfs is built before the game boots, this cannot be done when running in the normal module loop, so it has to be done by defining this 
-global callback in the games globalcallbacks.dll
+global callback in the games module.dll
 \author gcconner
 */
 class ICustomArchiveHandlers: public IDisposable

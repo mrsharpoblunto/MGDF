@@ -13,11 +13,8 @@ public:
 	MockSystemImpl();
 	virtual ~MockSystemImpl(void);
 
-	std::list<IModule *> *GetModules();
-	virtual IModule *GetTopModule();
-	virtual void QueuePushNewModule(const char *,IModuleInitialiser *init=NULL);
-	virtual void QueuePopModules(unsigned int );
-	virtual void QueueSwapTopModule(const char *,IModuleInitialiser *init=NULL);
+	IModule * _module;
+	virtual IModule *GetModule();
 	
 	virtual void FatalError(const char *,const char *);
 	virtual void SetLastError(const char *,int,const char *);
@@ -28,7 +25,6 @@ public:
 	//these functions are not required for the testing being performed
 	virtual void QueueSaveGameState(const char *) {}
 	virtual void QueueLoadGameState(const char *) {}
-	virtual IModuleInitialiser *CreateModuleInitialiser() const { return NULL; }
 	virtual ILogger *GetLogger() const { return NULL; }
 	virtual IParameterManager *GetParameters() const { return NULL; }
 	virtual IVirtualFileSystem *GetVFS() const { return NULL; }
@@ -43,7 +39,6 @@ public:
 private:
 	Error _lastError;
 	Version _version;
-	std::list<IModule *> _moduleStack;
 };
 
 }}}

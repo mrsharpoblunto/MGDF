@@ -31,33 +31,6 @@ DECLARE_LIST(IStringList,const char *)
 class ISystem
 {
 public:
-	/**
-	 pushes a module onto the top of the modulestack, 
-	 \param name the name of the module to push the name of the module is the name of the dll file relative to the modules root directory
-	 \param init the module initialiser to pass to the module (can be NULL)
-	*/
-	virtual void  QueuePushNewModule(const char *name,IModuleInitialiser *init)=0;
-
-	/**
-	 pops x modules off the stack, if this is more than the number of modules on the stack 
-	 an error is generated. The module that is on the top of the stack after the pop(s)
-	 is resumed
-	 \param popNum how many modules to pop off the stack
-	*/
-	virtual void  QueuePopModules(unsigned int popNum)=0;
-
-	/**
-	create a new moduleInitialiser object
-	\return a new moduleInitialiser object
-	*/
-	virtual IModuleInitialiser * CreateModuleInitialiser() const=0;
-
-	/**
-	 pops the top module off the stack and replaces it with the specified module
-	 \param name the name of the module to push the name of the module is the name of the dll file relative to the modules root directory
-	 \param init the module initialiser to pass to the module (can be NULL)
-	 */
-	virtual void  QueueSwapTopModule(const char *name,IModuleInitialiser *init)=0;
 
 	/**
 	 tells the manager to save the state of the modulestack and instructs all modules on the
@@ -112,12 +85,6 @@ public:
 	virtual IGame * GetGame() const=0;
 
 	/**
-	get the parameter manager
-	\return the parameter manager
-	*/
-	virtual IParameterManager * GetParameters() const=0;
-
-	/**
 	get the audio manager
 	\return the audio manager, NULL if the audio subsystem failed to initialize
 	*/
@@ -162,7 +129,7 @@ public:
 	virtual void  FatalError(const char *sender,const char *message)=0;
 
 	/**
-	tells the modulemanager to shut down the program
+	tells the system to shut down the game
 	*/
 	virtual void  ShutDown(void)=0;
 

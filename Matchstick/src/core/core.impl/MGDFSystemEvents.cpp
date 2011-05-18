@@ -13,24 +13,12 @@ ISystemEvent *EventFactory::CreateSaveEvent(std::string saveFile) {
 	return new SaveEvent(saveFile);
 }
 
-ISystemEvent *EventFactory::CreateLoadEvent(std::string loadFile,bool isBootLoad) {
-	return new LoadEvent(loadFile,isBootLoad);
+ISystemEvent *EventFactory::CreateLoadEvent(std::string loadFile) {
+	return new LoadEvent(loadFile);
 }
 
-ISystemEvent *EventFactory::CreatePushLoadEvent(std::string moduleName,IModuleInitialiser *moduleInitialiser,std::string loadDataDir) {
-	return new PushLoadEvent(moduleName,moduleInitialiser,loadDataDir);
-}
-
-ISystemEvent *EventFactory::CreatePushNewEvent(std::string moduleName,IModuleInitialiser *moduleInitialiser) {
-	return new PushNewEvent(moduleName,moduleInitialiser);
-}
-
-ISystemEvent *EventFactory::CreateSwapEvent(std::string moduleName,IModuleInitialiser *moduleInitialiser) {
-	return new SwapEvent(moduleName,moduleInitialiser);
-}
-
-ISystemEvent *EventFactory::CreatePopEvent(unsigned int popCount) {
-	return new PopEvent(popCount);
+ISystemEvent *EventFactory::CreateNewEvent() {
+	return new NewEvent();
 }
 
 }}}

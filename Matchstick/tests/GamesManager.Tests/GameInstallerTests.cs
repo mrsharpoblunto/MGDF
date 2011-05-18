@@ -32,9 +32,7 @@ namespace MGDF.GamesManager.Tests
             new MockArchiveFile(archive,"game.xml", ReadTextFile("console.xml"));
             new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
             new MockArchiveFile(archive, "content");
-            new MockArchiveFile(archive, "modules");
-            var boot = new MockArchiveFile(archive, "boot");
-            new MockArchiveFile(boot, "gameState.xml", ReadTextFile("gameState.xml"));
+            new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
 
             IGameInstall install = EntityFactory.Current.CreateGameInstall("C:\\Documents and Settings\\user\\desktop\\game.mza");

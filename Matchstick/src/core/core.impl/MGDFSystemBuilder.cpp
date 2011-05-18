@@ -33,8 +33,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 	InitResources();
 
 
-	bool doValidation = GetParameterManagerImpl()->HasParameter(ParameterConstants::DO_VALIDATION) && strcmp(ParameterConstants::VALUE_DO_VALIDATION_TRUE,GetParameterManagerImpl()->GetParameter(ParameterConstants::DO_VALIDATION))==0;
-	xml::IXMLFactoryComponent *xmlImpl = xml::CreateXMLFactoryComponentImpl(instance,window,doValidation);
+	xml::IXMLFactoryComponent *xmlImpl = xml::CreateXMLFactoryComponentImpl(instance,window);
 	if (xmlImpl!=NULL) {
 		Components::Instance().RegisterComponent<xml::IXMLFactoryComponent>(xmlImpl);
 	}
@@ -129,9 +128,12 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 
 void SystemBuilder::DisposeSystem(System *system)
 {
-	system->DisposeModules();
+	if (system!=NULL)
+	{
+		system->DisposeModule();
+	}
 	UnregisterComponents();
-	delete system;
+	SAFE_DELETE_ARRAY(system);
 }
 
 void SystemBuilder::InitParameterManager()

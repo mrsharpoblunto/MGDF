@@ -33,28 +33,10 @@ void XercesGameStateXMLHandler::error(const SAXParseException& e)
 	throw std::exception(XercesUtils::ToString(e.getMessage()).c_str()); 
 }
 
-void XercesGameStateXMLHandler::Add(std::string name)
-{
-	ModuleState ms;
-	ms.Name = name;
-
-	_moduleStates.push_back(ms);
-}
-
-IGameStateXMLHandler::iterator XercesGameStateXMLHandler::Begin() const
-{
-	return _moduleStates.rbegin();
-}
-
-IGameStateXMLHandler::iterator XercesGameStateXMLHandler::End() const
-{
-	return _moduleStates.rend();
-}
-
 bool XercesGameStateXMLHandler::Load(std::string filename)
 {
 	_requiresMigration = false;
-	//then reload all modules
+
     try
     {
 		SAX2XMLReader *loadParser = XercesXmlSchemaCache::Instance().CreateParser();
@@ -80,19 +62,12 @@ void XercesGameStateXMLHandler::Save(std::string filename) const
 	file << "<mgdf:gameState xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:mgdf=\"" << Resources::GAME_STATE_SCHEMA_URI << "\">\n";
 	file << "<gameuid>" << _gameUid << "</gameuid>\n";
 	file << "<gameversion>" << VersionHelper::Format(&_version) << "</gameversion>\n";
-
-	for (std::vector<ModuleState>::const_iterator iter = _moduleStates.begin();iter!=_moduleStates.end();++iter) {
-		file << " <module>\n";
-		file << "  <name>" << iter->Name << "</name>\n";
-		file << " </module>\n";
-	}
 	file << "</mgdf:gameState>\n";
 	file.close();
 }
 
 void XercesGameStateXMLHandler::startDocument() 
 {
-	_addingModule=false;
 	_currentNode="";
 }
 
@@ -104,15 +79,9 @@ void XercesGameStateXMLHandler::startElement(
 {
 	std::string localName = XercesUtils::ToString(localname);
 
-	if (localName=="module") {
-		_addingModule = true;
-		ModuleState ms;
-		_moduleStates.push_back(ms);
-	}
-	else if (localName == "gameuid" ||
-			 localName == "gameversion" || 
-			 localName == "parameters" ||
-			 localName == "name") {
+	if (localName == "gameuid" ||
+		localName == "gameversion") 
+	{
 		 _currentNode = localName;
 	}
 
@@ -143,14 +112,6 @@ void XercesGameStateXMLHandler::characters(
 		if (VersionHelper::Compare(&psVersion,&_version)!=0) {
 			_requiresMigration = true;
 			_version = psVersion;
-		}
-	}
-	else if (_addingModule) {
-		if (_currentNode=="parameters") {
-			_moduleStates[_moduleStates.size()-1].Parameters = ch;
-		}
-		else if (_currentNode=="name") {
-			_moduleStates[_moduleStates.size()-1].Name = ch;
 		}
 	}
 }

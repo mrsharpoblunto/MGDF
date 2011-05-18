@@ -68,21 +68,9 @@ namespace MGDF.GamesManager.Model.Entities
                 ErrorCollection.Add("No content directory found");
             }
 
-            if (!IsUpdate && GameContents.GetFile(Constants.ModulesDir) == null)
+            if (!IsUpdate && GameContents.GetFile(Constants.BinDir) == null)
             {
-                ErrorCollection.Add("No modules directory found");
-            }
-
-            if (GameContents.GetFile(Constants.BootDir) != null)
-            {
-                if (GameContents.GetFile(Constants.BootDir + "/" + Constants.GameStateConfig) == null)
-                {
-                    ErrorCollection.Add("No boot Game state found (expected \"/" + Constants.BootDir + "/" + Constants.GameStateConfig + "\")");
-                }
-            }
-            else if (!IsUpdate)
-            {
-                ErrorCollection.Add("No boot directory found");
+                ErrorCollection.Add("No bin directory found");
             }
         }
 
@@ -96,10 +84,6 @@ namespace MGDF.GamesManager.Model.Entities
             if (GameContents.GetFile(Constants.UpdateConfig) != null)
             {
                 validator.IsXmlFileValid(GameContents.GetFile(Constants.UpdateConfig), "update.xsd", ErrorCollection);
-            }
-            if (GameContents.GetFile(Constants.GameStateConfig) != null)
-            {
-                validator.IsXmlFileValid(GameContents.GetFile(Constants.GameConfig), "gameState.xsd", ErrorCollection);
             }
             if (GameContents.GetFile(Constants.PreferencesConfig) != null)
             {

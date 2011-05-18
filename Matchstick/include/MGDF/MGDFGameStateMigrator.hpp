@@ -18,7 +18,7 @@ public:
 	return true if the migration succeeds, false if it fails If any changes are required it is the responsibility of the migrator to change the
 	save file and save the changes.
 	*/
-	virtual bool Migrate(const char *moduleName,const char *saveDataDir,const Version *currentVersion,const Version *requiredVersion)=0;
+	virtual bool Migrate(const char *saveDataDir,const Version *currentVersion,const Version *requiredVersion)=0;
 };
 
 /**

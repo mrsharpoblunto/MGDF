@@ -23,9 +23,8 @@ namespace MGDF { namespace core { namespace xml { namespace xercesImpl {
 
 DEFINE_SINGLETON(XercesXmlSchemaCache)
 
-XercesXmlSchemaCache::XercesXmlSchemaCache(bool doValidation)
+XercesXmlSchemaCache::XercesXmlSchemaCache()
 {
-	_doValidation = doValidation;
 	_memMgr = new MemoryManagerImpl();// Create a memory manager instance for memory handling requests.
 	_pool = new XMLGrammarPoolImpl(_memMgr);	// Create a grammar ___pool that stores the cached grammars.
 
@@ -60,20 +59,13 @@ XercesXmlSchemaCache::~XercesXmlSchemaCache(void)
 SAX2XMLReader *XercesXmlSchemaCache::CreateParser() {
 	SAX2XMLReader* parser;
 
-	//if schema validation is diabled then create a normal parser
-	if (!_doValidation) {
-		parser = XMLReaderFactory::createXMLReader();
-		parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);
-	}
-	else {//otherwise create a parser that uses the ___pool of cached grammars
-		parser = XMLReaderFactory::createXMLReader(_memMgr,_pool);
-		parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);
-		parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
-		parser->setFeature(XMLUni::fgXercesDynamic, false);
-		parser->setFeature(XMLUni::fgXercesSchema, true);
-		parser->setFeature(XMLUni::fgXercesSchemaFullChecking, true);
-		parser->setFeature(XMLUni::fgXercesUseCachedGrammarInParse,true);//tell the parser to use the cached grammars
-	}
+	parser = XMLReaderFactory::createXMLReader(_memMgr,_pool);
+	parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);
+	parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+	parser->setFeature(XMLUni::fgXercesDynamic, false);
+	parser->setFeature(XMLUni::fgXercesSchema, true);
+	parser->setFeature(XMLUni::fgXercesSchemaFullChecking, true);
+	parser->setFeature(XMLUni::fgXercesUseCachedGrammarInParse,true);//tell the parser to use the cached grammars
 	return parser;
 }
 
@@ -89,7 +81,7 @@ void XercesXmlSchemaCache::Parse(XERCES_CPP_NAMESPACE::SAX2XMLReader *parser,IFi
 	try {
 		char *buffer = new char[file->GetSize()];
 		file->Read(buffer,file->GetSize());
-		MemBufInputSource *inputSource = new MemBufInputSource((const XMLByte*)buffer,file->GetSize(),"PlaylistXML",false,_memMgr);
+		MemBufInputSource *inputSource = new MemBufInputSource((const XMLByte*)buffer,file->GetSize(),"XmlData",false,_memMgr);
 
 		parser->parse(*inputSource);
 

@@ -60,7 +60,7 @@ private:
 	void DoSimulation();
 
 	boost::thread *_simThread;
-	bool _running;
+	bool _running,_startRendering;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc

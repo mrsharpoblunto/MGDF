@@ -16,7 +16,7 @@ in the engine, it also provides a means to create parser objects that can access
 class XercesXmlSchemaCache: public Singleton<XercesXmlSchemaCache>
 {
 public:
-	XercesXmlSchemaCache(bool doValidation);
+	XercesXmlSchemaCache();
 	~XercesXmlSchemaCache(void);
 
 	DECLARE_SINGLETON(XercesXmlSchemaCache)
@@ -26,7 +26,6 @@ public:
 private:
 	XERCES_CPP_NAMESPACE::MemoryManager *_memMgr;
 	XERCES_CPP_NAMESPACE::XMLGrammarPool *_pool;
-	bool _doValidation;
 };
 
 }}}}

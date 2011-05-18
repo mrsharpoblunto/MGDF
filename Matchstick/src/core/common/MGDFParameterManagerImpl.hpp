@@ -4,11 +4,10 @@
 #include <string>
 #include <hash_map>
 #include <MGDF/MGDF.hpp>
-#include <MGDF/MGDFParameterManager.hpp>
 
 namespace MGDF { namespace core {
 
-class IParameterManagerImpl: public IParameterManager
+class IParameterManagerImpl
 {
 public:
 	/**
@@ -20,6 +19,9 @@ public:
 	 NOTE: leading and trailing whitespace are stripped from values
     */
 	virtual void ParseParameters(std::string &,stdext::hash_map<std::string,std::string> &)=0;
+	virtual bool HasParameter(const char * param) const=0;
+	virtual const char *GetParameter(const char * param) const=0;
+	virtual bool AddParameterString(const char *  paramString)=0;
 };
 
 /**

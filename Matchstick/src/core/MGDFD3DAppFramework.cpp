@@ -211,7 +211,10 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 	memset(&_stats,0,sizeof(SystemStats));
 	_stats.ExpectedSimTime = 1/(double)simulationFps;
 
+	_startRendering = false;
 	_simThread = new boost::thread(boost::bind(&D3DAppFramework::DoSimulation,this));
+
+	while (!_startRendering) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
 
 	MSG  msg;
     msg.message = WM_NULL;
@@ -294,6 +297,8 @@ void D3DAppFramework::DoSimulation()
 		LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
 
 		UpdateScene(_stats.ExpectedSimTime);//run a frame of game logic
+		_startRendering = true;
+
 		//wait until the next frame to begin if we have any spare time left over
 		_frameLimiter->LimitFps();
 

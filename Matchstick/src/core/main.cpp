@@ -52,11 +52,11 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 		MGDFApp::Instance().Run(simulationFps);
 	}
 
-	GetLoggerImpl()->Add("MGDF::WinMain","shutting down...");
-	delete MGDFApp::InstancePtr();
-
 	//dispose of the system and related components
 	SystemBuilder::DisposeSystem(system);
+
+	GetLoggerImpl()->Add("MGDF::WinMain","shutting down...");
+	delete MGDFApp::InstancePtr();
 
 	GetLoggerImpl()->Add("MGDF::WinMain","shut down successfully");
 	return 0;

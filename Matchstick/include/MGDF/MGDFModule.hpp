@@ -4,32 +4,6 @@
 
 namespace MGDF {
 
-/**
-This class is passed to a module upon its initialisation and contains a set of key/value string
-pairs which can contain parameters of use to the module.
-\author gcconner
-*/
-class IModuleInitialiser: public IDisposable {
-public:
-	/**
-	add a key/value pair to the parameters map
-	*/
-	virtual void  AddParam(const char * key,const char * value)=0;
-
-	/**
-	remove a key/value pair
-	\param key the key in the map to remove along with its associated value
-	*/
-	virtual void  RemoveParam(const char * key)=0;
-
-	/**
-	get the value corresponding to a given key
-	\param key the key to find a value for
-	\return the value for the desired key
-	*/
-	virtual const char * GetParam(const char * key) const=0;
-};
-
 class ISystem;
 
 /**
@@ -49,12 +23,10 @@ public:
 	/**
 	 This method is required to setup the modulestate and manager callback aswell as do 
 	 any initialisation required by the module before it can be used
-	 \param workingFolder a folder that the module can read/write data to while its running. This space is shared between all modules
-	 running for the current game session so namespacing of files etc. is up to the modules to prevent conflicts
-	 \param init the initialiser object (can be NULL)
+	 \param workingFolder a folder that the module can read/write data to while its running
 	 \return false if the module experiences a fatal error on initialization
 	 */
-	virtual bool  NewModule(const char *workingFolder,const IModuleInitialiser *init)=0;
+	virtual bool  NewModule(const char *workingFolder)=0;
 
 	/**
 	 This method tells the module to load its state from a file
@@ -63,10 +35,9 @@ public:
 	 running for the current game session so namespacing of files etc. is up to the modules to prevent conflicts
 	 \param workingFolder a folder that the module can read/write data to while its running. This space is shared between all modules
 	 running for the current game session so namespacing of files etc. is up to the modules to prevent conflicts
-	 \param init the initialiser object (can be NULL)
 	 \return false if the module experiences a fatal error on loading
 	*/
-	virtual bool  LoadModule(const char *saveDataFolder,const char *workingFolder,const IModuleInitialiser *init)=0;
+	virtual bool  LoadModule(const char *saveDataFolder,const char *workingFolder)=0;
 
 	/**
 	 This method is called once per simulation timestep once the game is running and represents the 
@@ -84,7 +55,7 @@ public:
 
 	/**
 	 renders the current gamestate
-	 Will be called from the render thread.
+	 NOTE: Will be called from the render thread.
 	 \param alpha how far between the current and next simulation frame (0-1)
   	 \return false if the module experiences a fatal error drawing the scene
 	*/
@@ -93,8 +64,7 @@ public:
 	/**
 	if the d3d device has been lost this is called, it gives the module an opportunity to
 	free any D3DPOOL_DEFAULT resources allocated
-	NOTE: this method is called for suspended modules as well as the currently active module
-	NOTE: This can be called from either the render or simulation threads
+	 NOTE: Will be called from the render thread.
 	\return false if the module experiences a fatal error handling a lost device
 	*/
 	virtual bool  DeviceLost()=0;
@@ -102,8 +72,7 @@ public:
 	/**
 	if the device has been lost and then restored, if the module has just been resumed, or if the module has just been initialised. This function is
 	for allocating all D3DPOOL_DEFAULT resources
-	NOTE: this method is called for suspended modules as well as the currently active module when the device is lost and restored
-	NOTE: This can be called from either the render or simulation threads
+	 NOTE: Will be called from the render thread.
 	\return false if the module experiences a fatal error handling a reset device
 	*/
 	virtual bool  DeviceReset()=0;
@@ -111,7 +80,7 @@ public:
 	/**
 	this method is called immediately before a module is initialised, or  before it
 	is resumed and allows the module to set the renderer to a desired state before executing the module
-	NOTE: this is always called from the render thread
+	 NOTE: Will be called from the render thread.
 	\return false if the module experiences a fatal error handling a reset device
 	*/
 	virtual bool  SetDeviceState()=0;
@@ -119,23 +88,10 @@ public:
 	/**
 	this method is called before a module is initialised and checks if the d3d device has the capabilities to
 	run the module
-	NOTE: this is always called from the render thread
+	 NOTE: Will be called from the render thread.
 	\return true if the device is acceptable, false otherwise
 	*/
 	virtual bool  CheckDeviceCaps()=0;
-
-	/**
-	 This method tells the module that it has been suspended and will not be running
-	 on the next frame
-	 \return false if the module experiences a fatal error while suspending
-	*/
-	virtual bool  Suspend()=0;
-
-	/**
-	 This method tells the module that it has been resumed from a suspended state
-	 \return false if the module experiences a fatal error while resuming
-	 */
-	virtual bool  Resume()=0;
 
 	/**
 	 This method tells the module to save its entire state into a file, the information
@@ -172,7 +128,7 @@ extern "C" __declspec(dllexport) bool IsCompatibleInterfaceVersion(int);
 exports the getmodule function so the modulemanager can get access to instances
 of a module
 */
-extern "C" __declspec(dllexport) IModule * GetModule(const char *name,ISystem *);
+extern "C" __declspec(dllexport) IModule * GetModule(ISystem *);
 
 }
 

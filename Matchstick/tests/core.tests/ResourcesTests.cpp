@@ -26,25 +26,20 @@ BEGIN_TESTF(ResourcesTests,ResourcesTestFixture)
 	std::string root = Resources::Instance().RootDir();
 	WIN_ASSERT_EQUAL(root + "schemas/schema1.xsd",Resources::Instance().SchemaFile("schema1.xsd"));
 
-	WIN_ASSERT_EQUAL(root +"games/junkship/modules/global.dll",Resources::Instance().GlobalModule("junkship"));
+	WIN_ASSERT_EQUAL(root +"games/junkship/bin/module.dll",Resources::Instance().Module("junkship"));
 
 	WIN_ASSERT_EQUAL(root + "games/junkship/game.xml",Resources::Instance().GameFile("junkship"));
-	WIN_ASSERT_EQUAL(root + "games/junkship/boot/",Resources::Instance().BootDir("junkship"));
-	WIN_ASSERT_EQUAL(root + "games/junkship/boot/data/",Resources::Instance().BootDataDir("junkship"));
 	WIN_ASSERT_EQUAL(root + "games/junkship/preferences.xml",Resources::Instance().GameDefaultPreferencesFile("junkship"));
-	WIN_ASSERT_EQUAL(root + "games/junkship/modules/",Resources::Instance().ModulesDir("junkship"));
+	WIN_ASSERT_EQUAL(root + "games/junkship/bin/",Resources::Instance().BinDir("junkship"));
 	WIN_ASSERT_EQUAL(root + "games/junkship/content/",Resources::Instance().ContentDir("junkship"));
-	WIN_ASSERT_EQUAL(root + "games/junkship/boot/gameState.xml",Resources::Instance().GameStateBootFile("junkship"));
 	WIN_ASSERT_EQUAL(root + "games/core/preferences.xml", Resources::Instance().CorePreferencesFile());
 
 	//use the games directory override
 	Resources::Instance().SetGamesBaseDir("c:/MGDF/");
 	WIN_ASSERT_EQUAL("c:/MGDF/junkship/game.xml",Resources::Instance().GameFile("junkship"));
-	WIN_ASSERT_EQUAL("c:/MGDF/junkship/boot/",Resources::Instance().BootDir("junkship"));
 	WIN_ASSERT_EQUAL("c:/MGDF/junkship/preferences.xml",Resources::Instance().GameDefaultPreferencesFile("junkship"));
-	WIN_ASSERT_EQUAL("c:/MGDF/junkship/modules/",Resources::Instance().ModulesDir("junkship"));
+	WIN_ASSERT_EQUAL("c:/MGDF/junkship/bin/",Resources::Instance().BinDir("junkship"));
 	WIN_ASSERT_EQUAL("c:/MGDF/junkship/content/",Resources::Instance().ContentDir("junkship"));
-	WIN_ASSERT_EQUAL("c:/MGDF/junkship/boot/gameState.xml",Resources::Instance().GameStateBootFile("junkship"));
 	WIN_ASSERT_EQUAL(root + "games/core/preferences.xml", Resources::Instance().CorePreferencesFile());
 
 	WIN_ASSERT_EQUAL(root + "user/",Resources::Instance().UserBaseDir());
