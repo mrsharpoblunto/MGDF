@@ -50,13 +50,11 @@
 			<variable name="LIBPATH" value="C:\WINDOWS\Microsoft.NET\Framework\v3.5;C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727;${windows_sdk_path}\lib;${vc_install_path}\VC\ATLMFC\LIB;${vc_install_path}\VC\LIB;${directx_sdk_path}\Lib\x86;${boost_path}\lib" />
 		</setenv>
 		
-		<if test="${build_vendor_libs=='True'}">
-			<echo message="Building MGDF vendor libraries..."/>
-			<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
-				<property name="Configuration" value="${msbuild_target}"/>
-				<arg value="/p:VCBuildUseEnvironment=true" />
-			</msbuild>
-		</if>
+		<echo message="Building MGDF vendor libraries..."/>
+		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
+			<property name="Configuration" value="${msbuild_target}"/>
+			<arg value="/p:VCBuildUseEnvironment=true" />
+		</msbuild>
 		
 		<echo message="Building MGDF core..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
