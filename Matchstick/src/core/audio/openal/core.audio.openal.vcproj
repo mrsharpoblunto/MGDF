@@ -19,7 +19,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="../../../../bin/$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="bin\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="2"
 			ManagedExtensions="0"
@@ -93,7 +93,7 @@
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="../../../../bin/$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="bin\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="2"
 			ManagedExtensions="0"
