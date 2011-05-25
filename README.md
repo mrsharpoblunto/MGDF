@@ -1,12 +1,5 @@
- __  __  _____ _____  ______ 
-|  \/  |/ ____|  __ \|  ____|
-| \  / | |  __| |  | | |__   
-| |\/| | | |_ | |  | |  __|  
-| |  | | |__| | |__| | |     
-|_|  |_|\_____|_____/|_|     
-                             
-Matchstick game development framework
-=====================================
+MGDF - Matchstick game development framework
+============================================
 
 What is it
 ----------
@@ -57,6 +50,7 @@ all unmanaged code project use winunit which must first be compiled as part of t
     winunit -b test.dll
 
 To make running winunit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
+
     Title: Core tests
     Command: <path to winunit>\WinUnit.exe
     Arguments: -b "$(TargetDir)\core.tests.dll"
@@ -68,7 +62,7 @@ Running core.exe from command line
 core.exe can be invoked either via the GamesManager or directly via the command line. 
 
 ### Arguments
-*-boot: (REQUIRED) specifies the uid of the game you wish to boot up.
-*-logLevel: (OPTIONAL) allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
-*-userdiroverride: (OPTIONAL) allows you to specify a directory from which to load and save user specific data to (save games/preferences etc.) by default this will be stored in the users appData\Local\MGDF folder
-*-gamesdiroverride: (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application directory)
+* -boot: (REQUIRED) specifies the uid of the game you wish to boot up.
+* -logLevel: (OPTIONAL) allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
+* -userdiroverride: (OPTIONAL) allows you to specify a directory from which to load and save user specific data to (save games/preferences etc.) by default this will be stored in the users appData\Local\MGDF folder
+* -gamesdiroverride: (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application directory)
