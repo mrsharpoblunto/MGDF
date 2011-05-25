@@ -22,6 +22,8 @@ namespace MatchstickFramework.Web.Models
     {
         private static readonly object _lock = new object();
         private static readonly Dictionary<int, LatestVersion> _versions = new Dictionary<int, LatestVersion>();
+        private static readonly Dictionary<int, LatestVersion> _sdkVersions = new Dictionary<int, LatestVersion>();
+
         private static readonly Regex _vesionRegex = new Regex("[0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*",RegexOptions.Compiled);
         private static bool _initialized;
 
@@ -48,13 +50,63 @@ namespace MatchstickFramework.Web.Models
                                 if (!string.IsNullOrEmpty(mirror) && !mirror.StartsWith("http")) mirror += "http://";
                                 if (!string.IsNullOrEmpty(mirror) && !mirror.EndsWith("/")) mirror += "/";
                                 string filename = (!string.IsNullOrEmpty(mirror) ? mirror : "/Downloads/") + version + "/" + availableVersions[0].Name;
-                                _versions.Add(version, new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableVersions[0].ComputeMD5() });
+
+                                if (!_versions.ContainsKey(version))
+                                {
+                                    _versions.Add(version, new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableVersions[0].ComputeMD5() });
+                                }
+                                else
+                                {
+                                    _versions[version] = new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableVersions[0].ComputeMD5() };
+                                }
+                            }
+
+                            var availableSDKVersions = child.GetFiles("*.zip").ToList();
+                            availableSDKVersions.Sort((a, b) => b.Name.CompareTo(a.Name));
+
+                            if (availableSDKVersions.Count > 0)
+                            {
+                                string filename = "/Downloads/" + version + "/" + availableSDKVersions[0].Name;
+                                if (!_sdkVersions.ContainsKey(version))
+                                {
+                                    _sdkVersions.Add(version, new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableSDKVersions[0].ComputeMD5() });
+                                }
+                                else
+                                {
+                                    _sdkVersions[version] = new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableSDKVersions[0].ComputeMD5() };
+                                }
                             }
                         }
                     }
                     _initialized = true;
                 }
                 Thread.Sleep(600000);
+            }
+        }
+
+        public static LatestVersion GetLatestSDKVersion(int version)
+        {
+            if (!_initialized)
+            {
+                lock (_lock)
+                {
+                    if (!_initialized)
+                    {
+                        var vesionCheckerThread = new Thread(CheckVersions);
+                        vesionCheckerThread.Start();
+                    }
+                }
+
+                while (!_initialized) Thread.Sleep(100);
+            }
+
+            lock (_lock)
+            {
+                if (_sdkVersions.ContainsKey(version))
+                {
+                    return _sdkVersions[version];
+                }
+                return null;
             }
         }
 

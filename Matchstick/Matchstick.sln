@@ -168,7 +168,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{247EB7CC-25FB-47D1-9E65-9CBEF43BCD1A}"
 	ProjectSection(SolutionItems) = preProject
 		content\games\test\game.xml = content\games\test\game.xml
-		content\games\test\gameDesktopIcon.ico = content\games\test\gameDesktopIcon.ico
 		content\games\test\gameIcon.png = content\games\test\gameIcon.png
 		content\games\test\preferences.xml = content\games\test\preferences.xml
 	EndProjectSection

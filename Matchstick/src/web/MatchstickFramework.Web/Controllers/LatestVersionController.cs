@@ -17,5 +17,11 @@ namespace MatchstickFramework.Web.Controllers
             return View(viewData);
         }
 
+        public ActionResult SDK(int id)
+        {
+            LatestVersionViewData viewData = new LatestVersionViewData { Version = VersionManager.GetLatestSDKVersion(id) };
+            return View("Index",viewData);
+        }
+
     }
 }

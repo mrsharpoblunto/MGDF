@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mgdf:preferences  xmlns:mgdf="http://schemas.matchstickframework.org/2007/preferences"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <preference>
+    <name>simFps</name>
+    <value>120</value>
+  </preference>
+</mgdf:preferences>

@@ -18,12 +18,21 @@ namespace MatchstickFramework.Web
         public static void RegisterRoutes(RouteCollection routes)
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+            routes.IgnoreRoute("Content/{*pathInfo}");
+            routes.IgnoreRoute("Downloads/{*pathInfo}");
 
             routes.MapRoute(
-                "Default",
+                "Latest",
                 "LatestVersion/{id}",
                 new { controller = "LatestVersion", action = "Index", id = "" } 
             );
+            routes.MapRoute(
+                "SDK",
+                "LatestSDK/{id}",
+                new { controller = "LatestVersion", action = "SDK", id = "" }
+            );
+
+            routes.MapRoute("Content", "{controller}/{action}/{id}", new {controller="Home",action = "Index", id = ""});
 
         }
 

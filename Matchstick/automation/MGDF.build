@@ -211,6 +211,17 @@
         <include name="**/*.*" />
       </fileset>
     </copy>
+
+    <!-- copy SDK samples -->
+    <mkdir dir="Package/SDK/Src" />
+    <mkdir dir="Package/SDK/Src/Samples" />
+    <copy todir="Package/SDK/Src/Samples">
+      <fileset basedir="Src\Samples">
+        <exclude name=".svn" />
+        <include name="**/*.*" />
+      </fileset>
+    </copy>
+    
     <mkdir dir="Package/SDK/Server" />
 
     <!-- add gameSource service to the SDK package -->

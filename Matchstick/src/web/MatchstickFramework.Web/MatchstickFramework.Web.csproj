@@ -76,6 +76,8 @@
     <Compile Include="Views\LatestVersion\LatestVersionViewData.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Images\MGDF.jpg" />
+    <Content Include="Content\styles.css" />
     <Content Include="Default.aspx" />
     <Content Include="Global.asax" />
     <Content Include="Views\Home\Index.aspx" />

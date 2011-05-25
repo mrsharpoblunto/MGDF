@@ -32,7 +32,7 @@ Server
 GameSource
 ==========
 
-A c# implementation of an MGDF GameSource. In order to run this service you will need to have a SQL server database and IIS 6+ for hosting the service.
+A c# implementation of an MGDF GameSource. In order to run this service you will need to have a SQL server database and IIS 7+ for hosting the service.
 
 First you will have to create the database schema by running schema.sql
 
@@ -50,7 +50,7 @@ ${Description} - a description of the gamesource
 StatisticsService
 =================
 
-a c# implementation of an MGDF statistics service. In order to run this service you will need to have a SQL server database and IIS 6+ for hosting the service.
+a c# implementation of an MGDF statistics service. In order to run this service you will need to have a SQL server database and IIS 7+ for hosting the service.
 
 First you will have to create the database schema by running schema.sql
 
