@@ -29,16 +29,6 @@ namespace MGDF.GamesManager.GameSource.Tests.Mocks
             get { return "example.com"; }
         }
 
-        public string FeedName
-        {
-            get { return "game releases"; }
-        }
-
-        public string FeedDescription
-        {
-            get { return "games released"; }
-        }
-
         public string Name
         {
             get { return "gamesource"; }
@@ -47,11 +37,6 @@ namespace MGDF.GamesManager.GameSource.Tests.Mocks
         public string Description
         {
             get { return "gamesource"; }
-        }
-
-        public string FeedLink
-        {
-            get { return "http://www.example.com"; }
         }
 
         public string DownloadAuthenticationProviderAssembly

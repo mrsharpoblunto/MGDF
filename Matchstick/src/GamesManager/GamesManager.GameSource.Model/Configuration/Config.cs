@@ -62,16 +62,6 @@ namespace MGDF.GamesManager.GameSource.Model.Configuration
             get { return this["authenticationRealm"]; }
         }
 
-        public string FeedName
-        {
-            get { return this["feedName"]; }
-        }
-
-        public string FeedDescription
-        {
-            get { return this["feedDescription"]; }
-        }
-
         public string Name
         {
             get { return this["name"]; }
@@ -80,11 +70,6 @@ namespace MGDF.GamesManager.GameSource.Model.Configuration
         public string Description
         {
             get { return this["description"]; }
-        }
-
-        public string FeedLink
-        {
-            get { return this["feedLink"]; }
         }
 
         public string BaseUrl

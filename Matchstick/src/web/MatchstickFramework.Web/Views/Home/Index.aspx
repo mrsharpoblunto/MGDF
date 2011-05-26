@@ -8,6 +8,19 @@
 <head runat="server">
     <title>MGDF - Matchstick Game Development Framework</title>
     <link href="/Content/styles.css" type="text/css" rel="Stylesheet" />
+    
+    <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-3061240-13']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+
 </head>
 <body>
     <div id="container">
@@ -15,8 +28,11 @@
             <img src="/Content/Images/MGDF.jpg" alt="Matchstick Game Development Framework" />
         </div>
         <div id="content">
-            <h2><a href="<%=VersionManager.GetLatestVersion(1)!=null ? VersionManager.GetLatestVersion(1).FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host) : ""%>">Download Latest Version</a></h2>
-
+        <% var latestVersion = VersionManager.GetLatestVersion(1);
+           var latestSDKVersion = VersionManager.GetLatestSDKVersion(1);
+           if (latestVersion!=null) { %>
+            <h2><a onclick="javascript:_gaq.push(['_trackPageview','<%=latestVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host) %>']);" href="<%=latestVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host)%>">Download Latest Version</a></h2>
+        <%} %>
             <div id="content-inner">
                 <p>MGDF is a framework designed to make developing, installing, distributing, and updating games easier. The framework uses DirectX 9 for graphics, DirectInput/XInput for user input (has full support for the xbox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual filesystem which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).</p>
                 <ul>
@@ -26,7 +42,7 @@
                 </ul>
             </div>
            
-            <h3><a href="https://github.com/mrsharpoblunto/MGDF">View Source Code</a> | <a href="<%=VersionManager.GetLatestSDKVersion(1)!=null ? VersionManager.GetLatestSDKVersion(1).FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host) : ""%>">Download Latest SDK</a></h3>
+            <h3><a href="https://github.com/mrsharpoblunto/MGDF">View Source Code</a><% if (latestSDKVersion!=null) { %> | <a onclick="javascript:_gaq.push(['_trackPageview','<%=latestSDKVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host) %>']);" href="<%=latestSDKVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host)%>">Download Latest SDK</a> <%} %></h3>
         </div>
     </div>
 </body>
