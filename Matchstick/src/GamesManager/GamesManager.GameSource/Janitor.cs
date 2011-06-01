@@ -22,7 +22,8 @@ namespace MGDF.GamesManager.GameSource
         }
 
         private IServerContext _serverContext;
-        private Thread _cleanupThread;
+        private Thread _cleanupFragmentsThread;
+        private Thread _processPendingDeletionsThread;
 
         private Janitor()
         {
@@ -30,15 +31,18 @@ namespace MGDF.GamesManager.GameSource
 
         public void Start()
         {
-            if (_cleanupThread == null)
+            if (_cleanupFragmentsThread == null)
             {
                 _serverContext = new ServerContext(HttpContext.Current);
-                _cleanupThread = new Thread(DoCleanup);
-                _cleanupThread.Start();
+                _cleanupFragmentsThread = new Thread(DoCleanupExpiredFragments);
+                _cleanupFragmentsThread.Start();
+
+                _processPendingDeletionsThread = new Thread(DoProcessPendingDeletions);
+                _processPendingDeletionsThread.Start();
             }
         }
 
-        private void DoCleanup()
+        private static void DoCleanupExpiredFragments()
         {
             while (true)
             {
@@ -51,32 +55,19 @@ namespace MGDF.GamesManager.GameSource
                         var oldFragments = repository.Get<GameFragment>().Where(f => f.CreatedDate < expiryTime);
                         foreach (var fragment in oldFragments)
                         {
-                            GameFragment fragment1 = fragment;
-                            GameVersion gameVersion = (from g in GameSourceRepository.Current.Get<GameVersion>() where g.Id == fragment1.GameVersionId select g).SingleOrDefault();
+                            GameFragment frag = fragment;
+                            GameVersion gameVersion = (from g in GameSourceRepository.Current.Get<GameVersion>() where g.Id == frag.GameVersionId select g).SingleOrDefault();
 
-                            FileServer.Current.DeleteGameFragmentData(fragment, _serverContext,repository);
+                            var pending = new PendingDelete
+                            {
+                                Id = Guid.NewGuid(),
+                                GameDataId = fragment.GameDataId
+                            };
+                            repository.Insert(pending);
                             repository.Delete(fragment);
                             repository.Delete(gameVersion);
                         }
-
-                        //clean up any queued file deletions
-                        var results = repository.Get<QueuedFileDelete>();
-                        var remove = new List<QueuedFileDelete>();
-                        foreach (var result in results)
-                        {
-                            try
-                            {
-                                var file = FileSystem.Current.GetFile(result.FileName);
-                                if (file.Exists) file.Delete();
-                                remove.Add(result);
-                            }
-                            catch (Exception)
-                            {
-                            }
-                        }
-                        if (remove.Count > 0) repository.DeleteAll(remove);
-
-                        if (oldFragments.Count() > 0 || remove.Count > 0)
+                        if (oldFragments.Count() > 0)
                         {
                             repository.SubmitChanges();
                         }
@@ -84,10 +75,45 @@ namespace MGDF.GamesManager.GameSource
                 }
                 catch (Exception ex)
                 {
-                    Logger.Current.Write(ex,"Error cleaning up");
+                    Logger.Current.Write(ex,"Error cleaning up expired incomplete fragments");
                 }
-                Thread.Sleep(300000);//check once every 5 minutes
+                Thread.Sleep(1800000);//check once every 30 minutes
             }
+        }
+
+        private void DoProcessPendingDeletions()
+        {
+            while (true)
+            {
+                try
+                {
+                    using (var repository = new GameSourceRepository(Config.Current.ConnectionString))
+                    {
+                        //clean up any queued file deletions
+                        var pendingDeletes = repository.Get<PendingDelete>();
+                        bool submitChanges = false;
+                        foreach (var pending in pendingDeletes) 
+                        {
+                            try
+                            {
+                                FileServer.Current.DeleteGameData(pending.GameDataId, _serverContext, repository);
+                                repository.Delete(pending);
+                                submitChanges = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Current.Write(ex, "Unable to delete game data ID=" + pending.GameDataId);
+                            }
+                        }
+                        if (submitChanges) repository.SubmitChanges();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Current.Write(ex, "Error processing pending deletions");
+                }
+                Thread.Sleep(60000);//check once every minute
+            }            
         }
     }
 }

@@ -9,7 +9,7 @@ namespace MGDF.GamesManager.GameSource.Tests.Mocks
     class MockGameSourceRepository: MockRepositoryBase
     {
         public MockGameSourceRepository() : base(new[]{
-                                                          typeof(QueuedFileDelete),
+                                                          typeof(PendingDelete),
                                                           typeof (Game), 
                                                           typeof (Developer), 
                                                           typeof (User), 

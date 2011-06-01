@@ -19,6 +19,8 @@ namespace MGDF.GamesManager.GameSource.Caching
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
         private readonly Dictionary<string, CacheEntry<T>> _cache = new Dictionary<string, CacheEntry<T>>();
 
+        abstract protected int CacheExpiryMinutes { get; }
+
         public T Get(TU cacheRequest)
         {
             _lock.EnterUpgradeableReadLock();
@@ -35,7 +37,7 @@ namespace MGDF.GamesManager.GameSource.Caching
                 else
                 {
                     var entry = _cache[id];
-                    if (new TimeSpan(TimeService.Current.Now.Ticks - entry.TimeStamp.Ticks).TotalMinutes > 1)
+                    if (new TimeSpan(TimeService.Current.Now.Ticks - entry.TimeStamp.Ticks).TotalMinutes > CacheExpiryMinutes)
                     {
                         return UpdateCacheEntry(cacheRequest, entry).Entity;
                     }

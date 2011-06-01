@@ -299,35 +299,21 @@ namespace MGDF.GamesManager.GameSource
                 return false;
             }
 
-            if (request.NewGameVersion.IsUpdate)
-            {
-                GameVersion existingVersion =
-                (from g in GameSourceRepository.Current.Get<GameVersion>()
-                 where
-                     g.GameId == context.Context.Id && g.IsUpdate && g.Version == request.NewGameVersion.Version &&
-                     g.UpdateMinVersion == request.NewGameVersion.UpdateMinVersion &&
-                     g.UpdateMaxVersion == request.NewGameVersion.UpdateMaxVersion
-                 select g).SingleOrDefault();
+            string gameVersionUid = GenerateGameVersionUid(context.Context, request.NewGameVersion);
+            GameVersion existingVersion = (from g in GameSourceRepository.Current.Get<GameVersion>() where g.Uid == gameVersionUid select g).SingleOrDefault();
 
-                if (existingVersion != null)
-                {
-                    errors.Add(new Error { Code = Error.InvalidArguments, Message = "A GameVersion with the same version already exists." });
-                    return false;
-                }
-            }
-            else
+            if (existingVersion != null)
             {
-                GameVersion existingVersion = GameSourceRepository.Current.Get<GameVersion>().SingleOrDefault(
-                    g => g.GameId == context.Context.Id && (!g.IsUpdate && g.Version == request.NewGameVersion.Version));
-
-                if (existingVersion != null)
-                {
-                    errors.Add(new Error { Code = Error.InvalidArguments, Message = "A GameVersion with the same version already exists." });
-                    return false;
-                }
+                errors.Add(new Error { Code = Error.InvalidArguments, Message = "A GameVersion with the same version already exists." });
+                return false;
             }
 
             return true;
+        }
+
+        private static string GenerateGameVersionUid(Game context, GameVersionBase version)
+        {
+            return context.Id + (version.IsUpdate ? (version.Version + version.UpdateMinVersion + version.UpdateMaxVersion) : version.Version);
         }
 
         private static void AddGameVersionHandler(Developer developer, AddGameVersionRequest versionRequest, AddGameVersionResponse versionResponse,PassThroughContext<Game> context)
@@ -338,6 +324,7 @@ namespace MGDF.GamesManager.GameSource
                                                 CreatedDate = TimeService.Current.Now,
                                                 GameId = context.Context.Id,
                                                 Id = Guid.NewGuid(),
+                                                Uid = GenerateGameVersionUid(context.Context, versionRequest.NewGameVersion),
                                                 IsUpdate = versionRequest.NewGameVersion.IsUpdate,
                                                 Published = false,
                                                 Version = versionRequest.NewGameVersion.Version
@@ -355,26 +342,38 @@ namespace MGDF.GamesManager.GameSource
                 throw new ValidationException(errors.First().ErrorMessage);
             }
 
+            //ensure at the db level that the version is unique by committing before adding the fragment/data
             GameSourceRepository.Current.Insert(version);
-
-            GameFragment fragment = new GameFragment
-                                        {
-                                            Id = Guid.NewGuid(),
-                                            Md5Hash = versionRequest.NewGameVersion.Md5Hash,
-                                            Developer = developer,
-                                            PublishOnComplete = versionRequest.PublishOnUploadComplete,
-                                            GameVersionId = version.Id,
-                                            CreatedDate = TimeService.Current.Now
-                                        };
-            fragment.GameDataId = FileServer.Current.CreateGameData(developer,context.Context,version,ServerContext.Current,GameSourceRepository.Current);
-            GameSourceRepository.Current.Insert(fragment);
-
             GameSourceRepository.Current.SubmitChanges();
 
-            versionResponse.GameFragmentId = fragment.Id;
-            versionResponse.UploadHandler = Config.Current.BaseUrl+Config.Current.FragmentUploadHandler;
-            versionResponse.MaxUploadPartSize = Config.Current.MaxUploadPartSize;
+            GameFragment fragment;
+            try
+            {
+                //create game data before committing fragment to db in case the game data creation fails, this prevents invalid fragments entering the database
+                fragment = new GameFragment
+                {
+                    Id = Guid.NewGuid(),
+                    Md5Hash = versionRequest.NewGameVersion.Md5Hash,
+                    Developer = developer,
+                    PublishOnComplete = versionRequest.PublishOnUploadComplete,
+                    GameVersionId = version.Id,
+                    CreatedDate = TimeService.Current.Now,
+                    GameDataId = FileServer.Current.CreateGameData(developer, context.Context, version, ServerContext.Current, GameSourceRepository.Current)
+                };
+                GameSourceRepository.Current.Insert(fragment);
+                GameSourceRepository.Current.SubmitChanges();
+            }
+            catch (Exception ex)
+            {
+                //if there are any problems creating the fragment, delete the version so we aren't left with a version in the db with no associated fragment
+                GameSourceRepository.Current.Delete(version);
+                GameSourceRepository.Current.SubmitChanges();
+                throw ex;
+            }
 
+            versionResponse.GameFragmentId = fragment.Id;
+            versionResponse.UploadHandler = Config.Current.BaseUrl + Config.Current.FragmentUploadHandler;
+            versionResponse.MaxUploadPartSize = Config.Current.MaxUploadPartSize;
             GameVersionCache.Instance.Invalidate();
         }
 
@@ -819,13 +818,23 @@ namespace MGDF.GamesManager.GameSource
 
         private static void DeleteGameVersion(GameVersion domainEntity)
         {
-            FileServer.Current.DeleteGameData(domainEntity, ServerContext.Current, GameSourceRepository.Current);
+            var pending = new PendingDelete
+            {
+                Id = Guid.NewGuid(),
+                GameDataId = domainEntity.GameDataId
+            };
+            GameSourceRepository.Current.Insert(pending);
             GameSourceRepository.Current.Delete(domainEntity);
         }
 
         private static void DeleteGameFragment(GameFragment domainEntity)
         {
-            FileServer.Current.DeleteGameFragmentData(domainEntity, ServerContext.Current, GameSourceRepository.Current);
+            var pending = new PendingDelete
+            {
+                Id = Guid.NewGuid(),
+                GameDataId = domainEntity.GameDataId
+            };
+            GameSourceRepository.Current.Insert(pending);
             GameSourceRepository.Current.Delete(domainEntity);
         }
     }

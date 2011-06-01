@@ -73,6 +73,7 @@
       <Column Name="GameId" Type="System.Guid" CanBeNull="false" />
       <Column Name="Id" Type="System.Guid" IsPrimaryKey="true" CanBeNull="false" />
       <Column Name="Published" Type="System.Boolean" CanBeNull="false" />
+      <Column Name="Uid" Type="System.String" CanBeNull="false" />
       <Association Name="Game_GameVersion" Member="Game" ThisKey="GameId" OtherKey="Id" Type="Game" IsForeignKey="true" />
       <Association Name="GameFragment_GameVersion" Member="GameFragment" ThisKey="Id" OtherKey="GameVersionId" Type="GameFragment" IsForeignKey="true" />
     </Type>
@@ -107,9 +108,9 @@
       <Column Name="Expires" Type="System.DateTime" CanBeNull="false" />
     </Type>
   </Table>
-  <Table Name="dbo.mgdf_queuedfiledelete" Member="QueuedFileDeletes">
-    <Type Name="QueuedFileDelete">
-      <Column Member="FileName" Type="System.String" CanBeNull="false" />
+  <Table Name="dbo.mgdf_pendingdelete" Member="PendingDeletes">
+    <Type Name="PendingDelete">
+      <Column Name="FileName" Member="GameDataId" Storage="_FileName" Type="System.String" DbType="varchar(255)" CanBeNull="false" />
       <Column Name="Id" Type="System.Guid" IsPrimaryKey="true" CanBeNull="false" />
     </Type>
   </Table>

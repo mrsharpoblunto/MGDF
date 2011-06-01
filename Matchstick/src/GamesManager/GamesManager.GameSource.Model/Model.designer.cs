@@ -60,9 +60,9 @@ namespace MGDF.GamesManager.GameSource.Model
     partial void InsertCNonce(CNonce instance);
     partial void UpdateCNonce(CNonce instance);
     partial void DeleteCNonce(CNonce instance);
-    partial void InsertQueuedFileDelete(QueuedFileDelete instance);
-    partial void UpdateQueuedFileDelete(QueuedFileDelete instance);
-    partial void DeleteQueuedFileDelete(QueuedFileDelete instance);
+    partial void InsertPendingDelete(PendingDelete instance);
+    partial void UpdatePendingDelete(PendingDelete instance);
+    partial void DeletePendingDelete(PendingDelete instance);
     #endregion
 		
 		public GameSourceRepository() : 
@@ -175,11 +175,11 @@ namespace MGDF.GamesManager.GameSource.Model
 			}
 		}
 		
-		public System.Data.Linq.Table<QueuedFileDelete> QueuedFileDeletes
+		public System.Data.Linq.Table<PendingDelete> PendingDeletes
 		{
 			get
 			{
-				return this.GetTable<QueuedFileDelete>();
+				return this.GetTable<PendingDelete>();
 			}
 		}
 	}
@@ -1442,6 +1442,8 @@ namespace MGDF.GamesManager.GameSource.Model
 		
 		private bool _Published;
 		
+		private string _Uid;
+		
 		private EntityRef<Game> _Game;
 		
 		private EntityRef<GameFragment> _GameFragment;
@@ -1472,6 +1474,8 @@ namespace MGDF.GamesManager.GameSource.Model
     partial void OnIdChanged();
     partial void OnPublishedChanging(bool value);
     partial void OnPublishedChanged();
+    partial void OnUidChanging(string value);
+    partial void OnUidChanged();
     #endregion
 		
 		public GameVersion()
@@ -1705,6 +1709,26 @@ namespace MGDF.GamesManager.GameSource.Model
 					this._Published = value;
 					this.SendPropertyChanged("Published");
 					this.OnPublishedChanged();
+				}
+			}
+		}
+		
+		[Column(Storage="_Uid", CanBeNull=false)]
+		public string Uid
+		{
+			get
+			{
+				return this._Uid;
+			}
+			set
+			{
+				if ((this._Uid != value))
+				{
+					this.OnUidChanging(value);
+					this.SendPropertyChanging();
+					this._Uid = value;
+					this.SendPropertyChanged("Uid");
+					this.OnUidChanged();
 				}
 			}
 		}
@@ -2307,8 +2331,8 @@ namespace MGDF.GamesManager.GameSource.Model
 		}
 	}
 	
-	[Table(Name="dbo.mgdf_queuedfiledelete")]
-	public partial class QueuedFileDelete : INotifyPropertyChanging, INotifyPropertyChanged
+	[Table(Name="dbo.mgdf_pendingdelete")]
+	public partial class PendingDelete : INotifyPropertyChanging, INotifyPropertyChanged
 	{
 		
 		private static PropertyChangingEventArgs emptyChangingEventArgs = new PropertyChangingEventArgs(String.Empty);
@@ -2321,19 +2345,19 @@ namespace MGDF.GamesManager.GameSource.Model
     partial void OnLoaded();
     partial void OnValidate(System.Data.Linq.ChangeAction action);
     partial void OnCreated();
-    partial void OnFileNameChanging(string value);
-    partial void OnFileNameChanged();
+    partial void OnGameDataIdChanging(string value);
+    partial void OnGameDataIdChanged();
     partial void OnIdChanging(System.Guid value);
     partial void OnIdChanged();
     #endregion
 		
-		public QueuedFileDelete()
+		public PendingDelete()
 		{
 			OnCreated();
 		}
 		
-		[Column(Storage="_FileName", CanBeNull=false)]
-		public string FileName
+		[Column(Name="FileName", Storage="_FileName", DbType="varchar(255)", CanBeNull=false)]
+		public string GameDataId
 		{
 			get
 			{
@@ -2343,11 +2367,11 @@ namespace MGDF.GamesManager.GameSource.Model
 			{
 				if ((this._FileName != value))
 				{
-					this.OnFileNameChanging(value);
+					this.OnGameDataIdChanging(value);
 					this.SendPropertyChanging();
 					this._FileName = value;
-					this.SendPropertyChanged("FileName");
-					this.OnFileNameChanged();
+					this.SendPropertyChanged("GameDataId");
+					this.OnGameDataIdChanged();
 				}
 			}
 		}

@@ -15,11 +15,6 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
 {
     public class AmazonS3FileServer: IFileServer
     {
-        public bool StreamDownloadDirectly
-        {
-            get { return false; }
-        }
-
         public string CreateGameData(Developer developer, Game game, GameVersion version, IServerContext context,IRepository repository)
         {
             //initialize multipart upload.
@@ -40,47 +35,45 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
             return gameData.Id.ToString();
         }
 
-        public void DeleteGameData(GameVersion version, IServerContext context, IRepository repository)
+        public void DeleteGameData(string gameDataId, IServerContext serverContext, IRepository repository)
         {
-            if (!string.IsNullOrEmpty(version.GameDataId))
+            if (!string.IsNullOrEmpty(gameDataId))
             {
                 //delete object from s3
-                Guid versionId = new Guid(version.GameDataId);
+                Guid versionId = new Guid(gameDataId);
                 AmazonS3FileServerGameData data = repository.Get<AmazonS3FileServerGameData>().SingleOrDefault(d => d.Id == versionId);
 
-                HttpWebRequest amzRequest = GenerateAuthorizedRequest("DELETE", string.Empty, string.Empty, data.Key, string.Empty, null);
-                GetResponse(amzRequest);
-
-                repository.Delete(data);
-            }
-        }
-
-        public void DeleteGameFragmentData(GameFragment fragment, IServerContext context, IRepository repository)
-        {
-            //cancel multipart upload
-            Guid versionId = new Guid(fragment.GameDataId);
-            AmazonS3FileServerGameData data = repository.Get<AmazonS3FileServerGameData>().SingleOrDefault(d => d.Id == versionId);
-
-            HttpWebRequest amzRequest = GenerateAuthorizedRequest("DELETE", string.Empty, string.Empty,data.Key, "uploadId=" + data.UploadID, null);
-
-            try
-            {
-                GetResponse(amzRequest);
-            }
-            catch (WebException ex)
-            {
-                if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
+                if (data.NextPartIndex==-1)
                 {
-                    Logger.Current.Write(LogInfoLevel.Error, "Unable to delete partial upload data from s3, perhaps it has already been deleted or has completed uploading.");
+                    //completed uploads
+                    HttpWebRequest amzRequest = GenerateAuthorizedRequest("DELETE", string.Empty, string.Empty, data.Key, string.Empty, null);
+                    GetResponse(amzRequest);
                 }
                 else
                 {
-                    throw ex;
-                }
-            }
+                    //partial uploads
+                    HttpWebRequest amzRequest = GenerateAuthorizedRequest("DELETE", string.Empty, string.Empty, data.Key, "uploadId=" + data.UploadID, null);
 
-            repository.DeleteAll(GameSourceRepository.Current.Get<AmazonS3UploadPart>().Where(p => p.GameDataId == data.Id));
-            repository.Delete(data);
+                    try
+                    {
+                        GetResponse(amzRequest);
+                    }
+                    catch (WebException ex)
+                    {
+                        if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
+                        {
+                            throw new Exception("Unable to delete partial upload data from s3, perhaps it has already been deleted or has completed uploading.");
+                        }
+                        else
+                        {
+                            throw ex;
+                        }
+                    }
+
+                    repository.DeleteAll(GameSourceRepository.Current.Get<AmazonS3UploadPart>().Where(p => p.GameDataId == data.Id));
+                }
+                repository.Delete(data);
+            }
         }
 
         public bool UploadPart(IHttpRequest request, GameFragment fragment, string partMd5,IServerContext context, IRepository repository)
@@ -140,6 +133,7 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
 
             GetResponseContent(amzRequest);
 
+            data.NextPartIndex = -1;
             repository.DeleteAll(repository.Get<AmazonS3UploadPart>().Where(p => p.GameDataId == data.Id));
             return fragment.GameDataId;
         }
@@ -157,7 +151,7 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
             response.End();
         }
 
-        private string GetRedirectUrl(Game game, GameVersion version, IRepository repository)
+        private static string GetRedirectUrl(Game game, GameVersion version, IRepository repository)
         {
             Guid versionId = new Guid(version.GameDataId);
             AmazonS3FileServerGameData data = repository.Get<AmazonS3FileServerGameData>().SingleOrDefault(d => d.Id == versionId);

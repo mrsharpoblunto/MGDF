@@ -23,6 +23,11 @@ namespace MGDF.GamesManager.GameSource.Caching
         private static readonly GameVersionCache _instance = new GameVersionCache();
         public static GameVersionCache Instance { get { return _instance; } }
 
+        protected override int CacheExpiryMinutes
+        {
+            get { return 1; }
+        }
+
         protected override string GetCacheKey(GameVersionCacheRequest request)
         {
             return request.Game.Uid + request.Version;

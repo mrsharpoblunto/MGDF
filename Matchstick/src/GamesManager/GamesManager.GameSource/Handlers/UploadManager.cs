@@ -114,9 +114,11 @@ namespace MGDF.GamesManager.GameSource.Handlers
 
                     if (isLastFragment)
                     {
-                        if (ValidateGameFragment(fragment, serverContext, repository))
+                        if (FileServer.Current.ValidateCompletedFragment(fragment, serverContext, repository))
                         {
                             //update the gameversion to point to the completed file, then delete the fragment.
+                            //make sure we complete the upload before comitting the completed gameversion to the db so
+                            //in case it fails we aren't left with a completed gameversion with invalid data.
                             GameVersion gameVersion = repository.Get<GameVersion>().Single(gv => gv.Id == fragment.GameVersionId);
                             gameVersion.GameDataId = FileServer.Current.CompleteUpload(fragment, serverContext, repository);
                             gameVersion.Md5Hash = fragment.Md5Hash;
@@ -153,18 +155,6 @@ namespace MGDF.GamesManager.GameSource.Handlers
                 catch (Exception)
                 {
                 }
-            }
-        }
-
-        private static bool ValidateGameFragment(GameFragment fragment,IServerContext serverContext,IRepository repository)
-        {
-            try
-            {
-                return FileServer.Current.ValidateCompletedFragment(fragment, serverContext, repository);
-            }
-            catch (Exception)
-            {
-                return false;
             }
         }
     }

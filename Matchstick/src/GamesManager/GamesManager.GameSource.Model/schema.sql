@@ -56,7 +56,8 @@ CREATE TABLE dbo.mgdf_gameversions (
   "Md5Hash" varchar(255) default NULL,
   "GameId" uniqueidentifier default NULL,
   "CreatedDate" datetime NOT NULL,
-  "Description" varchar(255) NULL
+  "Description" varchar(255) NULL,
+  "Uid" varchar(255) NOT NULL
 );
 
 -- 
@@ -79,6 +80,9 @@ CREATE TABLE dbo.mgdf_users (
   "Custom" varchar(255) UNIQUE NULL,
   "PasswordHash" varchar(255) default NULL
 );
+
+ALTER TABLE dbo.mgdf_users ADD UNIQUE ("Name");
+
 
 CREATE TABLE dbo.mgdf_defaultfileservergamedata (
   "Id" uniqueidentifier NOT NULL PRIMARY KEY,
@@ -105,10 +109,18 @@ CREATE TABLE dbo.mgdf_cnonce (
   "Expires" datetime NOT NULL
 );
 
-CREATE TABLE dbo.mgdf_queuedfiledelete (
+CREATE TABLE dbo.mgdf_pendingdelete (
   "Id" uniqueidentifier NOT NULL PRIMARY KEY,
-  "FileName" VarChar(255) NOT NULL,
+  "GameDataId" VarChar(255) NOT NULL,
 );
+
+--
+-- Uniqueness constraints on entity UID's
+--
+
+ALTER TABLE dbo.mgdf_developers ADD UNIQUE (Uid);
+ALTER TABLE dbo.mgdf_games ADD UNIQUE (Uid);
+ALTER TABLE dbo.mgdf_gameversions ADD UNIQUE (Uid);
 
 --
 -- Constraints for amazon s3 upload parts

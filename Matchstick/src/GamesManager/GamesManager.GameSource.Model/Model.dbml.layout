@@ -53,27 +53,27 @@
         <classShapeMoniker Id="cf73c158-2095-45cf-b99d-fdf93eafd5d9" />
       </nodes>
     </associationConnector>
-    <associationConnector edgePoints="[(2.31120054166666 : 6.97280110677083); (2.31120054166666 : 7.70274733723958); (4.47916666666667 : 7.70274733723958 : JumpStart); (4.64583333333333 : 7.70274733723958 : JumpEnd); (6 : 7.70274733723958)]" fixedFrom="NotFixed" fixedTo="NotFixed">
+    <associationConnector edgePoints="[(2.32780213541666 : 6.97280110677083); (2.32780213541666 : 7.70274733723958); (4.47916666666667 : 7.70274733723958 : JumpStart); (4.64583333333333 : 7.70274733723958 : JumpEnd); (6 : 7.70274733723958)]" fixedFrom="Algorithm" fixedTo="Algorithm">
       <AssociationMoniker Name="/GameSourceRepository/Game/Game_UserGame" />
       <nodes>
         <classShapeMoniker Id="11115476-db35-4120-93e0-b6b4444d17a9" />
         <classShapeMoniker Id="cf73c158-2095-45cf-b99d-fdf93eafd5d9" />
       </nodes>
     </associationConnector>
-    <classShape Id="b62f20b4-d062-47c5-8df5-19e0b9d3e616" absoluteBounds="1, 8.375, 2, 2.9247054036458326">
+    <classShape Id="b62f20b4-d062-47c5-8df5-19e0b9d3e616" absoluteBounds="1, 8.375, 2, 3.1170068359375005">
       <DataClassMoniker Name="/GameSourceRepository/GameVersion" />
       <nestedChildShapes>
-        <elementListCompartment Id="d8253f64-5149-4d0e-b11b-76109094834c" absoluteBounds="1.015, 8.835, 1.9700000000000002, 2.364705403645833" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+        <elementListCompartment Id="d8253f64-5149-4d0e-b11b-76109094834c" absoluteBounds="1.015, 8.835, 1.9700000000000002, 2.5570068359375" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>
     </classShape>
-    <associationConnector edgePoints="[(1.59310027083333 : 6.97280110677083); (1.59310027083333 : 8.375)]" fixedFrom="NotFixed" fixedTo="NotFixed">
+    <associationConnector edgePoints="[(1.60140106770833 : 6.97280110677083); (1.60140106770833 : 8.375)]" fixedFrom="Algorithm" fixedTo="Algorithm">
       <AssociationMoniker Name="/GameSourceRepository/Game/Game_GameVersion" />
       <nodes>
         <classShapeMoniker Id="11115476-db35-4120-93e0-b6b4444d17a9" />
         <classShapeMoniker Id="b62f20b4-d062-47c5-8df5-19e0b9d3e616" />
       </nodes>
     </associationConnector>
-    <associationConnector edgePoints="[(3.625 : 9.45274983723958); (3 : 9.45274983723958)]" fixedFrom="NotFixed" fixedTo="NotFixed">
+    <associationConnector edgePoints="[(3.625 : 9.45274983723958); (3 : 9.45274983723958)]" fixedFrom="Algorithm" fixedTo="Algorithm">
       <AssociationMoniker Name="/GameSourceRepository/GameFragment/GameFragment_GameVersion" />
       <nodes>
         <classShapeMoniker Id="0cafd16e-38ff-4896-9d1b-ec16e2642dde" />
@@ -98,7 +98,7 @@
         <elementListCompartment Id="81a048da-5df5-424c-9a78-342fad8bc9a6" absoluteBounds="6.265, 11.585, 1.9700000000000002, 1.0185953776041665" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>
     </classShape>
-    <associationConnector edgePoints="[(7.25 : 10.8285953776042); (7.25 : 11.125)]" fixedFrom="NotFixed" fixedTo="NotFixed">
+    <associationConnector edgePoints="[(7.25 : 10.8285953776042); (7.25 : 11.125)]" fixedFrom="Algorithm" fixedTo="Algorithm">
       <AssociationMoniker Name="/GameSourceRepository/AmazonS3FileServerGameData/AmazonS3FileServerGameData_AmazonS3UploadPart" />
       <nodes>
         <classShapeMoniker Id="92417973-012b-44aa-a26f-f17074cff54c" />
@@ -112,7 +112,7 @@
       </nestedChildShapes>
     </classShape>
     <classShape Id="925178c1-aaf5-4549-bfc3-e5a77ee61d34" absoluteBounds="4.125, 13.125, 2, 1.1939925130208344">
-      <DataClassMoniker Name="/GameSourceRepository/QueuedFileDelete" />
+      <DataClassMoniker Name="/GameSourceRepository/PendingDelete" />
       <nestedChildShapes>
         <elementListCompartment Id="67336eb1-fb03-4007-8936-fce1eb9b77b6" absoluteBounds="4.14, 13.585, 1.9700000000000002, 0.63399251302083326" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>

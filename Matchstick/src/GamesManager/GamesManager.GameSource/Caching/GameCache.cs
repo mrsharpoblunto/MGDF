@@ -11,6 +11,11 @@ namespace MGDF.GamesManager.GameSource.Caching
         private static readonly GameCache _instance = new GameCache();
         public static GameCache Instance { get { return _instance; } }
 
+        protected override int CacheExpiryMinutes
+        {
+            get { return 1; }
+        }
+
         protected override string GetCacheKey(string request)
         {
             return request;

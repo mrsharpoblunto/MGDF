@@ -8,26 +8,17 @@ using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.GameSource.Model.Configuration;
 using MGDF.GamesManager.ServerCommon;
+using File=MGDF.GamesManager.Common.Framework.File;
 
 namespace MGDF.GamesManager.GameSource.Model.FileServers
 {
     public class DefaultFileServer: IFileServer
     {
-        private static void QueueDelete(IRepository repository,string filename)
+        public void DeleteGameData(string gameDataId, IServerContext serverContext, IRepository repository)
         {
-            QueuedFileDelete cleanup = new QueuedFileDelete
-                                            {
-                                                Id = Guid.NewGuid(),
-                                                FileName = filename
-                                            };
-            repository.Insert(cleanup);
-        }
-
-        public void DeleteGameData(GameVersion version, IServerContext serverContext, IRepository repository)
-        {
-            if (!string.IsNullOrEmpty(version.GameDataId))
+            if (!string.IsNullOrEmpty(gameDataId))
             {
-                Guid versionId = new Guid(version.GameDataId);
+                Guid versionId = new Guid(gameDataId);
                 DefaultFileServerGameData data = repository.Get<DefaultFileServerGameData>().SingleOrDefault(d => d.Id == versionId);
                 if (data != null)
                 {
@@ -36,23 +27,8 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
 
                 if (data != null && !string.IsNullOrEmpty(data.GameFile) && FileSystem.Current.FileExists(serverContext.MapPath(data.GameFile)))
                 {
-                    QueueDelete(repository, serverContext.MapPath(data.GameFile));
+                    FileSystem.Current.GetFile(serverContext.MapPath(data.GameFile)).Delete();
                 }
-            }
-        }
-
-        public void DeleteGameFragmentData(GameFragment fragment, IServerContext serverContext, IRepository repository)
-        {
-            Guid versionId = new Guid(fragment.GameDataId);
-            DefaultFileServerGameData data = repository.Get<DefaultFileServerGameData>().SingleOrDefault(d => d.Id == versionId);
-            if (data != null)
-            {
-                repository.Delete(data);
-            }
-
-            if (data != null && !string.IsNullOrEmpty(data.GameFile) && FileSystem.Current.FileExists(serverContext.MapPath(data.GameFile)))
-            {
-                QueueDelete(repository, serverContext.MapPath(data.GameFile));
             }
         }
 
