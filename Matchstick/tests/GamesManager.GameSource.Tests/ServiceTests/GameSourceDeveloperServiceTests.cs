@@ -309,13 +309,10 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
 
             var fragment = GameSourceRepository.Current.Get<GameFragment>().SingleOrDefault(gf => gf.Id == gameFragment.Id);
             var version = GameSourceRepository.Current.Get<GameVersion>().SingleOrDefault(gv => gv.Id == gameVersion.Id);
-            var data = GameSourceRepository.Current.Get<DefaultFileServerGameData>().SingleOrDefault(g => g.Id == fragmentDataEntity.Id);
+            var data = GameSourceRepository.Current.Get<PendingDelete>().SingleOrDefault(g => g.GameDataId == gameFragment.GameDataId);
             Assert.IsNull(fragment);
             Assert.IsNull(version);
-            Assert.IsNull(data);
-
-            var fragmentFile = FileSystem.Current.GetFile("C:\\gamesource\\dev\\gameversion1.fragment");
-            Assert.IsFalse(fragmentFile.Exists);
+            Assert.IsNotNull(data);
         }
 
         [Test]
