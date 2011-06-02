@@ -9,8 +9,10 @@ using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.GameSource.Contracts.Entities;
 using MGDF.GamesManager.GameSource.Model;
 using MGDF.GamesManager.GameSource.Model.Configuration;
+using MGDF.GamesManager.ServerCommon;
 using Constants=MGDF.GamesManager.GameSource.Model.Constants;
 using Developer=MGDF.GamesManager.GameSource.Contracts.Entities.Developer;
+using Game=MGDF.GamesManager.GameSource.Model.Game;
 using GameVersion=MGDF.GamesManager.GameSource.Contracts.Entities.GameVersion;
 using UserGame=MGDF.GamesManager.GameSource.Contracts.Entities.UserGame;
 
@@ -18,9 +20,14 @@ namespace MGDF.GamesManager.GameSource.Mapping
 {
     public static class GameMapper
     {
-        public static Model.GameVersion GetLatestVersion(Model.Game game)
+        public static Model.GameVersion GetLatestVersion(Game game)
         {
-            List<Model.GameVersion> versions = (from gv in GameSourceRepository.Current.Get<Model.GameVersion>()
+            return GetLatestVersion(game, GameSourceRepository.Current);
+        }
+
+        public static Model.GameVersion GetLatestVersion(Game game, IRepository repository)
+        {
+            List<Model.GameVersion> versions = (from gv in repository.Get<Model.GameVersion>()
                                                 where gv.GameId == game.Id && !gv.IsUpdate
                                                 select gv).ToList();
             versions.Sort((a, b) => b.Version.CompareTo(a.Version));

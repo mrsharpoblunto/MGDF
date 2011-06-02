@@ -36,10 +36,10 @@ namespace MGDF.GamesManager.GameSource.Handlers
                 {
                     //rewrite requests to /games/uid/latestVersion to the latest actual version.
                     string gameUid = requestComponents[requestComponents.Length - 2];
-                    Game game = GameCache.Instance.Get(gameUid);
+                    Game game = repository.Get<Game>().SingleOrDefault(g => g.Uid == gameUid);
                     if (game!=null)
                     {
-                        GameVersion latestVersion = GameMapper.GetLatestVersion(game);
+                        GameVersion latestVersion = GameMapper.GetLatestVersion(game,repository);
                         if (latestVersion != null)
                         {
                             response.StatusCode = 302;
