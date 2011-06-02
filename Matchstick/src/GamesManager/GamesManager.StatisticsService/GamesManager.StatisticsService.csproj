@@ -108,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="default-Web.config" />
+    <Content Include="error.htm" />
     <Content Include="Statistics.svc" />
   </ItemGroup>
   <ItemGroup>
