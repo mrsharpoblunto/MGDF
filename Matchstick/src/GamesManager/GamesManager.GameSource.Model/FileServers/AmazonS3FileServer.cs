@@ -243,7 +243,7 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
 
                 if (document.DocumentElement.Name == "Error")
                 {
-                    string message = "S3 Error - Code: " + document.DocumentElement.GetElementsByTagName("Code")[0].Value + " " + document.DocumentElement.GetElementsByTagName("Message")[0].Value + " - " + document.DocumentElement.GetElementsByTagName("Resource")[0].Value;
+                    string message = "S3 Error - Code: " + document.DocumentElement.GetElementsByTagName("Code")[0].InnerText + " " + document.DocumentElement.GetElementsByTagName("Message")[0].InnerText;
                     Logger.Current.Write(LogInfoLevel.Error, message);
                     throw new Exception(message);
                 }
