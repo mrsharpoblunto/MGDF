@@ -70,7 +70,7 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
                         }
                     }
 
-                    repository.DeleteAll(GameSourceRepository.Current.Get<AmazonS3UploadPart>().Where(p => p.GameDataId == data.Id));
+                    repository.DeleteAll(repository.Get<AmazonS3UploadPart>().Where(p => p.GameDataId == data.Id));
                 }
                 repository.Delete(data);
             }
