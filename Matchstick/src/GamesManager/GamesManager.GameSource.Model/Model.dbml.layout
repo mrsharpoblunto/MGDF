@@ -73,13 +73,6 @@
         <classShapeMoniker Id="b62f20b4-d062-47c5-8df5-19e0b9d3e616" />
       </nodes>
     </associationConnector>
-    <associationConnector edgePoints="[(3.625 : 9.45274983723958); (3 : 9.45274983723958)]" fixedFrom="Algorithm" fixedTo="Algorithm">
-      <AssociationMoniker Name="/GameSourceRepository/GameFragment/GameFragment_GameVersion" />
-      <nodes>
-        <classShapeMoniker Id="0cafd16e-38ff-4896-9d1b-ec16e2642dde" />
-        <classShapeMoniker Id="b62f20b4-d062-47c5-8df5-19e0b9d3e616" />
-      </nodes>
-    </associationConnector>
     <classShape Id="c8e4695d-5ecb-486b-92c6-8b233b052aa1" absoluteBounds="3.625, 10.875, 2, 1.1939925130208344">
       <DataClassMoniker Name="/GameSourceRepository/DefaultFileServerGameData" />
       <nestedChildShapes>
@@ -117,5 +110,12 @@
         <elementListCompartment Id="67336eb1-fb03-4007-8936-fce1eb9b77b6" absoluteBounds="4.14, 13.585, 1.9700000000000002, 0.63399251302083326" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>
     </classShape>
+    <associationConnector edgePoints="[(3 : 9.45274983723958); (3.625 : 9.45274983723958)]" fixedFrom="Algorithm" fixedTo="Algorithm">
+      <AssociationMoniker Name="/GameSourceRepository/GameVersion/GameVersion_GameFragment" />
+      <nodes>
+        <classShapeMoniker Id="b62f20b4-d062-47c5-8df5-19e0b9d3e616" />
+        <classShapeMoniker Id="0cafd16e-38ff-4896-9d1b-ec16e2642dde" />
+      </nodes>
+    </associationConnector>
   </nestedChildShapes>
 </ordesignerObjectsDiagram>

@@ -140,7 +140,6 @@ namespace MGDF.GamesManager.GameSource
 
             GameSourceRepository.Current.Delete(gameVersion);
             GameSourceRepository.Current.SubmitChanges();
-            GameCache.Instance.Invalidate();
             GameVersionCache.Instance.Invalidate();
         }
 
@@ -570,11 +569,6 @@ namespace MGDF.GamesManager.GameSource
 
         private static void DeleteGameVersionHandler(Developer developer, DeleteGameVersionRequest request, DeleteGameVersionResponse response, PassThroughContext<GameVersion> context)
         {
-            var gameFragments = GameSourceRepository.Current.Get<GameFragment>().Where(gf => gf.GameVersionId == context.Context.Id);
-            foreach (var fragment in gameFragments)
-            {
-                DeleteGameFragment(fragment);
-            }
             DeleteGameVersion(context.Context);
             GameSourceRepository.Current.SubmitChanges();
             GameVersionCache.Instance.Invalidate();
@@ -801,12 +795,7 @@ namespace MGDF.GamesManager.GameSource
         {
             var userGames = GameSourceRepository.Current.Get<UserGame>().Where(ug => ug.GameId == game.Id);
             var gameVersions = GameSourceRepository.Current.Get<GameVersion>().Where(gv => gv.GameId == game.Id);
-            var gameFragments = GameSourceRepository.Current.Get<GameFragment>().Where(gf => gameVersions.Select(gv => gv.Id).Contains(gf.Id));
 
-            foreach (var fragment in gameFragments)
-            {
-                DeleteGameFragment(fragment);
-            }
             foreach (var version in gameVersions)
             {
                 DeleteGameVersion(version);
@@ -818,23 +807,36 @@ namespace MGDF.GamesManager.GameSource
 
         private static void DeleteGameVersion(GameVersion domainEntity)
         {
-            var pending = new PendingDelete
+            var gameFragments = GameSourceRepository.Current.Get<GameFragment>().Where(gf => gf.GameVersionId == domainEntity.Id);
+            foreach (var fragment in gameFragments)
             {
-                Id = Guid.NewGuid(),
-                GameDataId = domainEntity.GameDataId
-            };
-            GameSourceRepository.Current.Insert(pending);
+                DeleteGameFragment(fragment);
+            }
+
+            if (!string.IsNullOrEmpty(domainEntity.GameDataId))
+            {
+                var pending = new PendingDelete
+                {
+                    Id = Guid.NewGuid(),
+                    GameDataId = domainEntity.GameDataId
+                };
+                GameSourceRepository.Current.Insert(pending);
+            }
+
             GameSourceRepository.Current.Delete(domainEntity);
         }
 
         private static void DeleteGameFragment(GameFragment domainEntity)
         {
-            var pending = new PendingDelete
+            if (!string.IsNullOrEmpty(domainEntity.GameDataId))
             {
-                Id = Guid.NewGuid(),
-                GameDataId = domainEntity.GameDataId
-            };
-            GameSourceRepository.Current.Insert(pending);
+                var pending = new PendingDelete
+                {
+                    Id = Guid.NewGuid(),
+                    GameDataId = domainEntity.GameDataId
+                };
+                GameSourceRepository.Current.Insert(pending);
+            }
             GameSourceRepository.Current.Delete(domainEntity);
         }
     }

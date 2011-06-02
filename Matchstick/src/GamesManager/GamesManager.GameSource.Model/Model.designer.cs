@@ -204,9 +204,9 @@ namespace MGDF.GamesManager.GameSource.Model
 		
 		private System.DateTime _CreatedDate;
 		
-		private EntityRef<GameVersion> _GameVersion;
-		
 		private EntityRef<Developer> _Developer;
+		
+		private EntityRef<GameVersion> _GameVersion;
 		
     #region Extensibility Method Definitions
     partial void OnLoaded();
@@ -230,8 +230,8 @@ namespace MGDF.GamesManager.GameSource.Model
 		
 		public GameFragment()
 		{
-			this._GameVersion = default(EntityRef<GameVersion>);
 			this._Developer = default(EntityRef<Developer>);
+			this._GameVersion = default(EntityRef<GameVersion>);
 			OnCreated();
 		}
 		
@@ -330,6 +330,10 @@ namespace MGDF.GamesManager.GameSource.Model
 			{
 				if ((this._GameVersionId != value))
 				{
+					if (this._GameVersion.HasLoadedOrAssignedValue)
+					{
+						throw new System.Data.Linq.ForeignKeyReferenceAlreadyHasValueException();
+					}
 					this.OnGameVersionIdChanging(value);
 					this.SendPropertyChanging();
 					this._GameVersionId = value;
@@ -379,35 +383,6 @@ namespace MGDF.GamesManager.GameSource.Model
 			}
 		}
 		
-		[Association(Name="GameFragment_GameVersion", Storage="_GameVersion", ThisKey="GameVersionId", OtherKey="Id", IsUnique=true, IsForeignKey=false)]
-		public GameVersion GameVersion
-		{
-			get
-			{
-				return this._GameVersion.Entity;
-			}
-			set
-			{
-				GameVersion previousValue = this._GameVersion.Entity;
-				if (((previousValue != value) 
-							|| (this._GameVersion.HasLoadedOrAssignedValue == false)))
-				{
-					this.SendPropertyChanging();
-					if ((previousValue != null))
-					{
-						this._GameVersion.Entity = null;
-						previousValue.GameFragment = null;
-					}
-					this._GameVersion.Entity = value;
-					if ((value != null))
-					{
-						value.GameFragment = this;
-					}
-					this.SendPropertyChanged("GameVersion");
-				}
-			}
-		}
-		
 		[Association(Name="Developer_GameFragment", Storage="_Developer", ThisKey="DeveloperId", OtherKey="Id", IsForeignKey=true)]
 		public Developer Developer
 		{
@@ -438,6 +413,40 @@ namespace MGDF.GamesManager.GameSource.Model
 						this._DeveloperId = default(System.Guid);
 					}
 					this.SendPropertyChanged("Developer");
+				}
+			}
+		}
+		
+		[Association(Name="GameVersion_GameFragment", Storage="_GameVersion", ThisKey="GameVersionId", OtherKey="Id", IsForeignKey=true)]
+		public GameVersion GameVersion
+		{
+			get
+			{
+				return this._GameVersion.Entity;
+			}
+			set
+			{
+				GameVersion previousValue = this._GameVersion.Entity;
+				if (((previousValue != value) 
+							|| (this._GameVersion.HasLoadedOrAssignedValue == false)))
+				{
+					this.SendPropertyChanging();
+					if ((previousValue != null))
+					{
+						this._GameVersion.Entity = null;
+						previousValue.GameFragments.Remove(this);
+					}
+					this._GameVersion.Entity = value;
+					if ((value != null))
+					{
+						value.GameFragments.Add(this);
+						this._GameVersionId = value.Id;
+					}
+					else
+					{
+						this._GameVersionId = default(System.Guid);
+					}
+					this.SendPropertyChanged("GameVersion");
 				}
 			}
 		}
@@ -1444,9 +1453,9 @@ namespace MGDF.GamesManager.GameSource.Model
 		
 		private string _Uid;
 		
-		private EntityRef<Game> _Game;
+		private EntitySet<GameFragment> _GameFragments;
 		
-		private EntityRef<GameFragment> _GameFragment;
+		private EntityRef<Game> _Game;
 		
     #region Extensibility Method Definitions
     partial void OnLoaded();
@@ -1480,8 +1489,8 @@ namespace MGDF.GamesManager.GameSource.Model
 		
 		public GameVersion()
 		{
+			this._GameFragments = new EntitySet<GameFragment>(new Action<GameFragment>(this.attach_GameFragments), new Action<GameFragment>(this.detach_GameFragments));
 			this._Game = default(EntityRef<Game>);
-			this._GameFragment = default(EntityRef<GameFragment>);
 			OnCreated();
 		}
 		
@@ -1680,10 +1689,6 @@ namespace MGDF.GamesManager.GameSource.Model
 			{
 				if ((this._Id != value))
 				{
-					if (this._GameFragment.HasLoadedOrAssignedValue)
-					{
-						throw new System.Data.Linq.ForeignKeyReferenceAlreadyHasValueException();
-					}
 					this.OnIdChanging(value);
 					this.SendPropertyChanging();
 					this._Id = value;
@@ -1733,6 +1738,19 @@ namespace MGDF.GamesManager.GameSource.Model
 			}
 		}
 		
+		[Association(Name="GameVersion_GameFragment", Storage="_GameFragments", ThisKey="Id", OtherKey="GameVersionId")]
+		public EntitySet<GameFragment> GameFragments
+		{
+			get
+			{
+				return this._GameFragments;
+			}
+			set
+			{
+				this._GameFragments.Assign(value);
+			}
+		}
+		
 		[Association(Name="Game_GameVersion", Storage="_Game", ThisKey="GameId", OtherKey="Id", IsForeignKey=true)]
 		public Game Game
 		{
@@ -1767,40 +1785,6 @@ namespace MGDF.GamesManager.GameSource.Model
 			}
 		}
 		
-		[Association(Name="GameFragment_GameVersion", Storage="_GameFragment", ThisKey="Id", OtherKey="GameVersionId", IsForeignKey=true)]
-		public GameFragment GameFragment
-		{
-			get
-			{
-				return this._GameFragment.Entity;
-			}
-			set
-			{
-				GameFragment previousValue = this._GameFragment.Entity;
-				if (((previousValue != value) 
-							|| (this._GameFragment.HasLoadedOrAssignedValue == false)))
-				{
-					this.SendPropertyChanging();
-					if ((previousValue != null))
-					{
-						this._GameFragment.Entity = null;
-						previousValue.GameVersion = null;
-					}
-					this._GameFragment.Entity = value;
-					if ((value != null))
-					{
-						value.GameVersion = this;
-						this._Id = value.GameVersionId;
-					}
-					else
-					{
-						this._Id = default(System.Guid);
-					}
-					this.SendPropertyChanged("GameFragment");
-				}
-			}
-		}
-		
 		public event PropertyChangingEventHandler PropertyChanging;
 		
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -1819,6 +1803,18 @@ namespace MGDF.GamesManager.GameSource.Model
 			{
 				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
 			}
+		}
+		
+		private void attach_GameFragments(GameFragment entity)
+		{
+			this.SendPropertyChanging();
+			entity.GameVersion = this;
+		}
+		
+		private void detach_GameFragments(GameFragment entity)
+		{
+			this.SendPropertyChanging();
+			entity.GameVersion = null;
 		}
 	}
 	
@@ -2356,7 +2352,7 @@ namespace MGDF.GamesManager.GameSource.Model
 			OnCreated();
 		}
 		
-		[Column(Name="FileName", Storage="_FileName", DbType="varchar(255)", CanBeNull=false)]
+		[Column(Storage="_FileName", DbType="varchar(255)", CanBeNull=false)]
 		public string GameDataId
 		{
 			get

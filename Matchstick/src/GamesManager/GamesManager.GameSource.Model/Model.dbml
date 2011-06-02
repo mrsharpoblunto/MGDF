@@ -10,8 +10,8 @@
       <Column Name="GameVersionId" Type="System.Guid" CanBeNull="false" />
       <Column Name="PublishOnComplete" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
       <Column Name="CreatedDate" Type="System.DateTime" CanBeNull="false" />
-      <Association Name="GameFragment_GameVersion" Member="GameVersion" ThisKey="GameVersionId" OtherKey="Id" Type="GameVersion" Cardinality="One" />
       <Association Name="Developer_GameFragment" Member="Developer" ThisKey="DeveloperId" OtherKey="Id" Type="Developer" IsForeignKey="true" />
+      <Association Name="GameVersion_GameFragment" Member="GameVersion" ThisKey="GameVersionId" OtherKey="Id" Type="GameVersion" IsForeignKey="true" />
     </Type>
   </Table>
   <Table Name="dbo.mgdf_developers" Member="Developers">
@@ -74,8 +74,8 @@
       <Column Name="Id" Type="System.Guid" IsPrimaryKey="true" CanBeNull="false" />
       <Column Name="Published" Type="System.Boolean" CanBeNull="false" />
       <Column Name="Uid" Type="System.String" CanBeNull="false" />
+      <Association Name="GameVersion_GameFragment" Member="GameFragments" ThisKey="Id" OtherKey="GameVersionId" Type="GameFragment" />
       <Association Name="Game_GameVersion" Member="Game" ThisKey="GameId" OtherKey="Id" Type="Game" IsForeignKey="true" />
-      <Association Name="GameFragment_GameVersion" Member="GameFragment" ThisKey="Id" OtherKey="GameVersionId" Type="GameFragment" IsForeignKey="true" />
     </Type>
   </Table>
   <Table Name="dbo.mgdf_defaultfileservergamedata" Member="DefaultFileServerGameDatas">
@@ -110,7 +110,7 @@
   </Table>
   <Table Name="dbo.mgdf_pendingdelete" Member="PendingDeletes">
     <Type Name="PendingDelete">
-      <Column Name="FileName" Member="GameDataId" Storage="_FileName" Type="System.String" DbType="varchar(255)" CanBeNull="false" />
+      <Column Name="GameDataId" Storage="_FileName" Type="System.String" DbType="varchar(255)" CanBeNull="false" />
       <Column Name="Id" Type="System.Guid" IsPrimaryKey="true" CanBeNull="false" />
     </Type>
   </Table>
