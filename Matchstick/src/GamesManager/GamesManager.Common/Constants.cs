@@ -28,7 +28,7 @@ namespace MGDF.GamesManager.Common
         }
 
         public const int InterfaceVersion = 1;
-        public const string SupportEmail = "support@junkship.org";
+        public const string SupportEmail = "support@matchstickframework.org";
 
         public const string ErrorFile = ".error";
         public const string GameStateConfig = @"gamestate.xml";
