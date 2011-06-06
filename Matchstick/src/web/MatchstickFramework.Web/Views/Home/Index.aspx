@@ -8,7 +8,7 @@
 <head>
     <title>MGDF - Matchstick Game Development Framework</title>
     <link href="/Content/styles.css" type="text/css" rel="Stylesheet" />
-    
+    <link rel="icon" href="/Content/favicon.ico" type="image/x-icon" /> 
     <script type="text/javascript">
       var _gaq = _gaq || [];
       _gaq.push(['_setAccount', 'UA-3061240-13']);

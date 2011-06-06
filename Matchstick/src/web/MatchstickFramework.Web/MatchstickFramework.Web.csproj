@@ -80,6 +80,7 @@
     <Content Include="Content\styles.css" />
     <Content Include="Default.aspx" />
     <Content Include="error.htm" />
+    <Content Include="Content\favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Views\Home\Index.aspx" />
     <Content Include="Views\LatestVersion\Index.aspx" />
