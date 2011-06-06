@@ -137,6 +137,15 @@
     </exec>
 
     <mkdir dir="Package" />
+
+    <!-- copy debugging symbols to the package directory -->
+    <mkdir dir="Package/Symbols" />
+    <copy todir="Package/Symbols">
+      <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}">
+        <include name="*.pdb" />
+      </fileset>
+    </copy>
+
     <!-- copy framework setup to package dir -->
     <copy file="installer\MGDF Setup.exe" tofile="Package\MGDF_${buildnumber}.exe" />
     

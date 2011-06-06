@@ -123,9 +123,13 @@ namespace MGDF.GamesManager.MVP.Presenters
                     }
                     else
                     {
-                        if (updates.Count > 0)
+                        if (updates.Count > 0 && ViewFactory.Current.ConfirmYesNo("Update available","An update is available, would you like to download it now?"))
                         {
                             new UpdateGamePresenter(_game, updates, View, UpdateGamePresenter_OnComplete);
+                        }
+                        else
+                        {
+                            DoLaunch(info);
                         }
                     }
                 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Forms;
 using MGDF.GamesManager.Common;
 
 namespace MGDF.GamesManager.Controls
@@ -54,6 +55,21 @@ namespace MGDF.GamesManager.Controls
             {
                 _registeredViews[typeof (TINTERFACETYPE)] = typeof (TCONCRETETYPE);
             }
+        }
+
+        public bool ConfirmYesNo(string title, string text)
+        {
+            return MessageBox.Show(text, title, MessageBoxButtons.YesNo) == DialogResult.Yes;
+        }
+
+        public bool ConfirmOkCancel(string title, string text)
+        {
+            return MessageBox.Show(text, title, MessageBoxButtons.OKCancel) == DialogResult.OK;
+        }
+
+        public void Message(string title, string text)
+        {
+            MessageBox.Show(text, title);
         }
     }
 }

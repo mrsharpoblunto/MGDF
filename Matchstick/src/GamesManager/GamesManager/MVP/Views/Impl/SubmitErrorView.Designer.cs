@@ -90,10 +90,10 @@
             // textBox1
             // 
             this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
-                                                                         | System.Windows.Forms.AnchorStyles.Right)));
+                        | System.Windows.Forms.AnchorStyles.Right)));
             this.textBox1.Location = new System.Drawing.Point(19, 99);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(455, 20);
+            this.textBox1.Size = new System.Drawing.Size(519, 20);
             this.textBox1.TabIndex = 7;
             // 
             // label10
@@ -110,7 +110,7 @@
             this.label9.AutoEllipsis = true;
             this.label9.Location = new System.Drawing.Point(51, 176);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(342, 13);
+            this.label9.Size = new System.Drawing.Size(406, 13);
             this.label9.TabIndex = 40;
             this.label9.Text = "Click \'create\' to create an email message to ############";
             // 
@@ -159,7 +159,7 @@
             // button1
             // 
             this.button1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.button1.Location = new System.Drawing.Point(399, 142);
+            this.button1.Location = new System.Drawing.Point(463, 142);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 43;
@@ -170,7 +170,7 @@
             // button2
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.button2.Location = new System.Drawing.Point(399, 171);
+            this.button2.Location = new System.Drawing.Point(463, 171);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 44;
@@ -181,7 +181,7 @@
             // button3
             // 
             this.button3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button3.Location = new System.Drawing.Point(399, 240);
+            this.button3.Location = new System.Drawing.Point(463, 240);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(75, 23);
             this.button3.TabIndex = 45;
@@ -193,7 +193,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(489, 278);
+            this.ClientSize = new System.Drawing.Size(553, 278);
             this.Controls.Add(this.DetailsLabel);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.pictureBox1);
