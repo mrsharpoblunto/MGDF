@@ -69,11 +69,11 @@ namespace MatchstickFramework.Web.Models
                                 string filename = "/Downloads/" + version + "/" + availableSDKVersions[0].Name;
                                 if (!_sdkVersions.ContainsKey(version))
                                 {
-                                    _sdkVersions.Add(version, new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableSDKVersions[0].ComputeMD5() });
+                                    _sdkVersions.Add(version, new LatestVersion { Version = new Version(_vesionRegex.Match(availableSDKVersions[0].Name).Value), FileName = filename, MD5 = availableSDKVersions[0].ComputeMD5() });
                                 }
                                 else
                                 {
-                                    _sdkVersions[version] = new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableSDKVersions[0].ComputeMD5() };
+                                    _sdkVersions[version] = new LatestVersion { Version = new Version(_vesionRegex.Match(availableSDKVersions[0].Name).Value), FileName = filename, MD5 = availableSDKVersions[0].ComputeMD5() };
                                 }
                             }
                         }
