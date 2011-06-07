@@ -48,6 +48,7 @@ System::System(Game *game)
 {
 	_game = game;
 	_saves = NULL;
+	_module = NULL;
 	_version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION);
 	_lastError.Description=NULL;
 	_lastError.Sender=NULL;
@@ -142,7 +143,8 @@ void System::DisposeModule()
 	ProcessQueuedEvents();
 
 	if (_module!=NULL && !_module->Dispose()) {
-		FatalError(THIS_NAME,"Error disposing module - "+std::string(_module->GetLastError()));
+		_module = NULL;
+		FatalError(THIS_NAME,"Error disposing module");
 	}
 	GetLoggerImpl()->Add(THIS_NAME,"Freed module successfully");
 }
@@ -247,7 +249,8 @@ void System::ClearWorkingDirectory()
 void System::LoadGameState(const events::LoadEvent *e)
 {
 	if (_module!=NULL && !_module->Dispose()) {
-		FatalError(THIS_NAME,"Error disposing module - "+std::string(_module->GetLastError()));
+		_module = NULL;
+		FatalError(THIS_NAME,"Error disposing module");
 	}
 
 	std::string loadFile = Resources::Instance().GameStateSaveFile(_game->GetUid(),e->Loadname);
@@ -489,15 +492,16 @@ void System::FatalError(const char *sender,const char *message)
 
 	std::string fullMessage = "FATAL ERROR: ";
 	GetLoggerImpl()->Add(sender,(fullMessage+message).c_str(),LOG_ERROR);
-	GetLoggerImpl()->Add(THIS_NAME,"notified of fatal error, telling modules to panic");
+	GetLoggerImpl()->Add(THIS_NAME,"notified of fatal error, telling module to panic");
 	GetLoggerImpl()->Flush();
-
-	_fatalErrorFunction(sender,message);//signal any callbacks to the fatal error event
 
 	if (_module!=NULL)
 	{
 		_module->Panic();
 	}
+
+	_fatalErrorFunction(sender,message);//signal any callbacks to the fatal error event
+
 
 	exit(1);
 }

@@ -68,13 +68,6 @@
 				<include name="*.dll" />
 			</fileset>
 		</copy>
-		<if test="${msbuild_target == 'debug'}">
-			<copy todir="bin\${msbuild_target}">
-				<fileset basedir="..\vendor\lib\Release">
-					<include name="*.dll" />
-				</fileset>
-			</copy>
-		</if>
 	</target>
 
 	<target name="test" description="Runs the MGDF core unit tests">
@@ -142,6 +135,11 @@
     <mkdir dir="Package/Symbols" />
     <copy todir="Package/Symbols">
       <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}">
+        <include name="*.pdb" />
+      </fileset>
+    </copy>
+    <copy todir="Package/Symbols">
+      <fileset basedir="..\vendor\lib\${msbuild_target}">
         <include name="*.pdb" />
       </fileset>
     </copy>

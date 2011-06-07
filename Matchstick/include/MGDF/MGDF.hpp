@@ -73,3 +73,4 @@
 //useful macro for specifying the name of the class calling the macro
 #include <typeinfo>
 #define THIS_NAME typeid(this).name()
+#define TYPE_NAME(x) typeid(x).name()

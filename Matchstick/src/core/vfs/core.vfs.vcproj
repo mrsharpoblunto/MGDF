@@ -135,6 +135,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\..\..\vendor\lib\$(configurationName)\zlib.lib ..\..\..\..\vendor\lib\$(configurationName)\minizip.lib"
+				GenerateDebugInformation="true"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
 			/>

@@ -38,7 +38,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 		Components::Instance().RegisterComponent<xml::IXMLFactoryComponent>(xmlImpl);
 	}
 	else {
-		GetLoggerImpl()->Add("SystemBuilder","FATAL ERROR: Unable to register XMLFactory",LOG_ERROR);
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to register XMLFactory",LOG_ERROR);
 		return false;
 	}
 
@@ -47,7 +47,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 		Components::Instance().RegisterComponent<input::IInputManagerComponent>(input);
 	}
 	else {
-		GetLoggerImpl()->Add("SystemBuilder","FATAL ERROR: Unable to register InputManager",LOG_ERROR);
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to register InputManager",LOG_ERROR);
 		return false;
 	}
 
@@ -56,7 +56,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 		Components::Instance().RegisterComponent<vfs::IVirtualFileSystemComponent>(vfs);
 	}
 	else {
-		GetLoggerImpl()->Add("SystemBuilder","FATAL ERROR: Unable to register VirtualFileSystem",LOG_ERROR);
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to register VirtualFileSystem",LOG_ERROR);
 		return false;
 	}
 
@@ -68,7 +68,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 	else 
 	{
 		//its a problem, but we can still probably run if the soundmanager failed to initialize
-		GetLoggerImpl()->Add("SystemBuilder","ERROR: Unable to register SoundManager",LOG_ERROR);
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"ERROR: Unable to register SoundManager",LOG_ERROR);
 	}
 
 	return true;
@@ -98,12 +98,12 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 		}
 		catch (...)
 		{
-			GetLoggerImpl()->Add("SystemBuilder","FATAL ERROR: Unable to load game boot configuration",LOG_ERROR);
+			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to load game boot configuration",LOG_ERROR);
 			return NULL;
 		}
 
 		if (MGDFVersionInfo::MGDF_INTERFACE_VERSION!=game->GetInterfaceVersion()) {
-			GetLoggerImpl()->Add("SystemBuilder","FATAL ERROR: Unsupported MGDF Interface version",LOG_ERROR);
+			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unsupported MGDF Interface version",LOG_ERROR);
 			delete game;
 			return NULL;
 		}
@@ -117,7 +117,7 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 		}
 		catch (...)
 		{
-			GetLoggerImpl()->Add("SystemBuilder","FATAL ERROR: Unable to create system",LOG_ERROR);
+			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to create system",LOG_ERROR);
 			return NULL;
 		}
 	}
