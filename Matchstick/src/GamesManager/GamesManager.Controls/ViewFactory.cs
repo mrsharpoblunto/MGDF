@@ -66,10 +66,5 @@ namespace MGDF.GamesManager.Controls
         {
             return MessageBox.Show(text, title, MessageBoxButtons.OKCancel) == DialogResult.OK;
         }
-
-        public void Message(string title, string text)
-        {
-            MessageBox.Show(text, title);
-        }
     }
 }

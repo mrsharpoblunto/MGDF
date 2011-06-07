@@ -15,6 +15,5 @@ namespace MGDF.GamesManager.Controls
 
         bool ConfirmYesNo(string title, string text);
         bool ConfirmOkCancel(string title, string text);
-        void Message(string title, string text);
     }
 }

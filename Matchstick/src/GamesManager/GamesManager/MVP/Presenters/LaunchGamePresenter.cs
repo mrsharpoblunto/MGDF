@@ -101,13 +101,13 @@ namespace MGDF.GamesManager.MVP.Presenters
                     View.Invoke(() =>
                                     {
                                         var controller = new SubmitErrorPresenter("Unexpected error in GamesManager", "Unable to contact the GamesManager Admin service");
-                                        controller.View.Closed += (s,e) => CloseView();
                                         controller.ShowView(View);
+                                        CloseView();
                                     });
                 }
-                else if (info.InstallState == InstallState.Installed &&_checkForUpdates && !string.IsNullOrEmpty(_game.GameSourceService))
+                else if (info.InstallState == InstallState.Installed && _checkForUpdates && !string.IsNullOrEmpty(_game.GameSourceService))
                 {
-                    View.Invoke(()=>
+                    View.Invoke(() =>
                                     {
                                         View.Title = "Checking for updates...";
                                         View.Details = "Checking for updates...";
@@ -123,7 +123,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                     }
                     else
                     {
-                        if (updates.Count > 0 && ViewFactory.Current.ConfirmYesNo("Update available","An update is available, would you like to download it now?"))
+                        if (updates.Count > 0 && ViewFactory.Current.ConfirmYesNo("Update available", "An update is available, would you like to download it now?"))
                         {
                             new UpdateGamePresenter(_game, updates, View, UpdateGamePresenter_OnComplete);
                         }
@@ -133,7 +133,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                         }
                     }
                 }
-                    //if we're already updating, just resume where we left off, or show the current progress.
+                //if we're already updating, just resume where we left off, or show the current progress.
                 else if (info.InstallState == InstallState.Updating)
                 {
                     if (info.PendingOperations[0].Name == "Uninstalling")
@@ -149,7 +149,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                         new UpdateGamePresenter(_game, info.PendingOperations, View, UpdateGamePresenter_OnComplete);
                     }
                 }
-                    //otherwise just launch the game
+                //otherwise just launch the game
                 else
                 {
                     DoLaunch(info);

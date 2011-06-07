@@ -125,6 +125,18 @@
 
   <target name="installer" description="Generates the MGDF runtime installer">
     <delete file="${project::get-base-directory()}\bin\${msbuild_target}\core.tests.dll" />
+
+    <!-- bundle up framework updater dependancies so the installer can update all dlls while the framework updater is still running -->
+    <exec program="${ilmerge_exe_path}">
+      <arg value="/out:${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Common.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Controls.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Model.dll" />
+    </exec>
+    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
+    <copy file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" tofile="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
+    
     <exec program="${nsis_path}" failonerror="false" workingdir="${project::get-base-directory()}\installer">
       <arg value="${project::get-base-directory()}\installer\installer.nsi" />
     </exec>
