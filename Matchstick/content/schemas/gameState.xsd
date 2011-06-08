@@ -6,7 +6,7 @@
 		<xs:complexType>
 			<xs:sequence>
 				<xs:element name="gameuid" type="xs:string" maxOccurs="1"/>
-        <xs:element name="gameversion" type="xs:decimal" maxOccurs="1"/>
+        <xs:element name="gameversion" type="xs:string" maxOccurs="1"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>

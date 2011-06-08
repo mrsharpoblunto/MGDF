@@ -143,16 +143,20 @@
 
     <mkdir dir="Package" />
 
-    <!-- copy debugging symbols to the package directory -->
+    <!-- copy debugging symbols + binaries to the package directory so that we can debug minidumps later -->
     <mkdir dir="Package/Symbols" />
     <copy todir="Package/Symbols">
       <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}">
         <include name="*.pdb" />
+        <include name="*.dll" />
+        <include name="*.exe" />
       </fileset>
     </copy>
     <copy todir="Package/Symbols">
       <fileset basedir="..\vendor\lib\${msbuild_target}">
         <include name="*.pdb" />
+        <include name="*.dll" />
+        <include name="*.exe" />
       </fileset>
     </copy>
 

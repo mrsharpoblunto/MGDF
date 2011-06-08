@@ -42,12 +42,13 @@
             this.serviceInstaller1.Description = "Provides services for downloading, installing and updating MGDF games.";
             this.serviceInstaller1.DisplayName = "MGDF GamesManager Service";
             this.serviceInstaller1.ServiceName = "MGDF.GamesManager.Service";
+            this.serviceInstaller1.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
             // 
             // ProjectInstaller
             // 
             this.Installers.AddRange(new System.Configuration.Install.Installer[] {
-                                                                                      this.serviceProcessInstaller1,
-                                                                                      this.serviceInstaller1});
+            this.serviceProcessInstaller1,
+            this.serviceInstaller1});
 
         }
 
