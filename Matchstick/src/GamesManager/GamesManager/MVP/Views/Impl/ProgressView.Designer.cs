@@ -62,7 +62,7 @@
             // Progress
             // 
             this.Progress.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
-                                                                         | System.Windows.Forms.AnchorStyles.Right)));
+                        | System.Windows.Forms.AnchorStyles.Right)));
             this.Progress.Location = new System.Drawing.Point(16, 82);
             this.Progress.Name = "Progress";
             this.Progress.Size = new System.Drawing.Size(207, 23);
@@ -102,12 +102,10 @@
             this.Controls.Add(this.Progress);
             this.Controls.Add(this.TitleLabel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.Location = new System.Drawing.Point(0, 0);
             this.MaximizeBox = false;
             this.Name = "ProgressView";
             this.ShowIcon = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Updating ##############";
             ((System.ComponentModel.ISupportInitialize)(this.GameIconPictureBox)).EndInit();
             this.ResumeLayout(false);

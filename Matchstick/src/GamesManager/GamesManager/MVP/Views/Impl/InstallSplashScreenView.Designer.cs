@@ -138,7 +138,6 @@
             this.Controls.Add(this.button1);
             this.Controls.Add(this.TitleLabel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Location = new System.Drawing.Point(0, 0);
             this.MaximizeBox = false;
             this.Name = "InstallSplashScreenView";
             this.ShowIcon = false;
