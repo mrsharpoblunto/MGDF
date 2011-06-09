@@ -87,8 +87,9 @@ namespace MGDF.GamesManager.GameSource
             return InvokeMethod<GetGamesRequest, GetGamesResponse>(request, GetGamesHandler, (r, e) => true);
         }
 
-        public GetGameUpdateResponse GetGameUpdate(string gameUid, string installedVersion)
+        public GetGameUpdateResponse GetGameUpdate(string interfaceVersion, string gameUid, string installedVersion)
         {
+            //interfaceVersion parameter unuseed at present
             GetGameUpdateReqest request = new GetGameUpdateReqest { GameUid = gameUid, InstalledVersion = installedVersion };
             return InvokeMethod<GetGameUpdateReqest, GetGameUpdateResponse,Game>(request, GetGameUpdateHandler, GetGameUpdateRequestValidator);
         }

@@ -5,6 +5,7 @@ using System.Text;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Factories;
 using MGDF.GamesManager.Model.ServiceModel;
+using MGDF.GamesManager.StatisticsService.Contracts;
 using MGDF.GamesManager.StatisticsService.Model;
 using MGDF.GamesManager.Tests.Common.Mocks;
 using NUnit.Framework;
@@ -38,7 +39,7 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
 ");
             StatisticsSession session = new StatisticsSession("game1","http://stats.junkship.org","c:\\stats.txt");
 
-            StatisticsServiceClient.ServiceFactory = uri => Service;
+            StatisticsServiceClient.ServiceFactory = uri => new MockWCFClient<IStatisticsService>(Service);
             StatisticsServiceClient client = new StatisticsServiceClient(session);
 
             List<string> errors = new List<string>();

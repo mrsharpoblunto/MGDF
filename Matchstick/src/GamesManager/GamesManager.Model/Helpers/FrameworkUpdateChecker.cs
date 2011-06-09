@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -8,6 +9,7 @@ using System.Xml;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
+using Newtonsoft.Json;
 
 namespace MGDF.GamesManager.Model.Helpers
 {
@@ -53,34 +55,23 @@ namespace MGDF.GamesManager.Model.Helpers
 
             try
             {
-                XmlDocument document = new XmlDocument();
+                var result = new
+                {
+                    Version = string.Empty,
+                    Url = string.Empty,
+                    MD5 = string.Empty
+                };
+
                 using (var responseStream = HttpRequestManager.Current.GetResponseStream(frameworkUpdateSite+"/latestVersion/"+Constants.InterfaceVersion))
                 {
-                    document.Load(responseStream);
-
-                    version = new AvailableVersion();
-                    var versionElements = document.GetElementsByTagName("version");
-                    if (versionElements.Count == 0)
+                    using (var reader = new StreamReader(responseStream))
                     {
-                        Logger.Current.Write(LogInfoLevel.Error, "Unable to read version from "+frameworkUpdateSite+"/latestVersion");
-                        version = null;
-                    }
-                    else
-                    {
-                        version.Version = new Version(versionElements[0].InnerText);
-                    }
-
-                    if (version != null)
-                    {
-                        var urlElements = document.GetElementsByTagName("url");
-                        if (urlElements.Count == 0)
+                        result = JsonConvert.DeserializeAnonymousType(reader.ReadToEnd(), result);
+                        version = new AvailableVersion
                         {
-                            Logger.Current.Write(LogInfoLevel.Error, "Unable to read url from " + frameworkUpdateSite + "/latestVersion");
-                        }
-                        else
-                        {
-                            version.Url = new Uri(urlElements[0].InnerText);
-                        }
+                            Version = new Version(result.Version),
+                            Url = new Uri(result.Url)
+                        };
                     }
                 }
             }

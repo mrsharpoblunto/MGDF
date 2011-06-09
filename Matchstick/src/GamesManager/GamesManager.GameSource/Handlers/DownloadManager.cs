@@ -43,7 +43,7 @@ namespace MGDF.GamesManager.GameSource.Handlers
                         if (latestVersion != null)
                         {
                             response.StatusCode = 302;
-                            response.AppendHeader(Headers.Location, Config.Current.BaseUrl + "/games/" + latestVersion.Id.Encode() + ".mza");
+                            response.AppendHeader(Headers.Location, Config.Current.BaseUrl + Constants.DownloadsFolder + "/" + latestVersion.Id.Encode() + ".mza");
                             response.End();
                             return;
                         }

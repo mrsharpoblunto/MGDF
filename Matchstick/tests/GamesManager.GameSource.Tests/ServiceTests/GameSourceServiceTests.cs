@@ -132,7 +132,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
         [Test]
         public void TestGetUpdate()
         {
-            var response = Service.GetGameUpdate(new GetGameUpdateReqest { GameUid = "game1", InstalledVersion = "1.0.0.0" });
+            var response = Service.GetGameUpdate("1","game1","1.0.0.0");
             Assert.AreEqual(0, response.Errors.Count);
             Assert.AreEqual(new Guid("341EEE93-41C5-48F0-A4D7-D4F234B9D107"), response.LatestVersion.Id);
             Assert.AreEqual("game1 version 1 update", response.LatestVersion.Description);
@@ -142,7 +142,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual("md51a", response.LatestVersion.Md5Hash);
             Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBw.mza", response.LatestVersion.DownloadURL);
 
-            response = Service.GetGameUpdate(new GetGameUpdateReqest { GameUid = "game1", InstalledVersion = "1.1.0.0" });
+            response = Service.GetGameUpdate("1","game1","1.1.0.0");
             Assert.AreEqual(0, response.Errors.Count);
             Assert.AreEqual(new Guid("341EEE93-41C5-48F0-A4D7-D4F234B9D108"), response.LatestVersion.Id);
             Assert.AreEqual("game1 version 1 update 2", response.LatestVersion.Description);
@@ -156,11 +156,11 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
         [Test]
         public void TestGetUpdateNoneAavailable()
         {
-            var response = Service.GetGameUpdate(new GetGameUpdateReqest { GameUid = "game1", InstalledVersion = "0.8.0.0" });
+            var response = Service.GetGameUpdate("1","game1","0.8.0.0");
             Assert.AreEqual(0, response.Errors.Count);
             Assert.IsNull(response.LatestVersion);
 
-            response = Service.GetGameUpdate(new GetGameUpdateReqest { GameUid = "game1", InstalledVersion = "1.0.5.0" });
+            response = Service.GetGameUpdate("1","game1","1.0.5.0");
             Assert.AreEqual(0, response.Errors.Count);
             Assert.IsNull(response.LatestVersion);
         }
@@ -168,9 +168,9 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
         [Test]
         public void TestGetGamesByInterfaceVersion()
         {
-            var response = Service.GetGames(new GetGamesRequest{InterfaceVersion = 1});
+            var response = Service.GetGames("developer1","1");
             Assert.AreEqual(0,response.Errors.Count);
-            Assert.AreEqual(2, response.Games.Count);
+            Assert.AreEqual(1, response.Games.Count);
             Assert.AreEqual("game1", response.Games[0].Uid);
             Assert.AreEqual("game1", response.Games[0].Name);
             Assert.AreEqual("Test game", response.Games[0].Description);
@@ -186,28 +186,19 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual(true, response.Games[0].LatestVersion.Published);
             Assert.AreEqual("1.0.0.0", response.Games[0].LatestVersion.Version);
             Assert.AreEqual("md51", response.Games[0].LatestVersion.Md5Hash);
-            Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBQ.mza", response.Games[0].LatestVersion.DownloadURL);
+            Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBQ.mza", response.Games[0].LatestVersion.DownloadURL);
 
             Assert.AreEqual("game2", response.Games[1].Uid);
 
-            response = Service.GetGames(new GetGamesRequest { InterfaceVersion = 2 });
+            response = Service.GetGames("developer1", "1");
             Assert.AreEqual(0, response.Errors.Count);
             Assert.AreEqual(0, response.Games.Count);
         }
 
         [Test]
-        public void TestGetGamesByDeveloper()
-        {
-            var response = Service.GetGames(new GetGamesRequest { InterfaceVersion = 1,DeveloperUid = "developer1"});
-            Assert.AreEqual(0, response.Errors.Count);
-            Assert.AreEqual(1, response.Games.Count);
-            Assert.AreEqual("game1", response.Games[0].Uid);
-        }
-
-        [Test]
         public void TestGetGamesByGameUid()
         {
-            var response = Service.GetGames(new GetGamesRequest { InterfaceVersion = 1, GameUid = "game1" });
+            var response = Service.GetGame("1","game1");
             Assert.AreEqual(0, response.Errors.Count);
             Assert.AreEqual(1, response.Games.Count);
             Assert.AreEqual("game1", response.Games[0].Uid);

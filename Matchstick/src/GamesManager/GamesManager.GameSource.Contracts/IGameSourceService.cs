@@ -10,15 +10,15 @@ namespace MGDF.GamesManager.GameSource.Contracts
     public interface IGameSourceService
     {
         [OperationContract]
-        [WebGet(ResponseFormat=WebMessageFormat.Json,BodyStyle = WebMessageBodyStyle.Bare,UriTemplate = "/games/{interfaceVersion}/{gameUid}")]
+        [WebGet(ResponseFormat=WebMessageFormat.Json,BodyStyle = WebMessageBodyStyle.Bare,UriTemplate = "/Games/{interfaceVersion}/{gameUid}")]
         GetGamesResponse GetGame(string interfaceVersion,string gameUid);
 
         [OperationContract]
-        [WebGet(ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, UriTemplate = "/developers/{developerUid}/games/{interfaceVersion}")]
+        [WebGet(ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, UriTemplate = "/Developers/{developerUid}/Games/{interfaceVersion}")]
         GetGamesResponse GetGames(string developerUid,string interfaceVersion);
 
         [OperationContract]
-        [WebGet(ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, UriTemplate = "/updates/{gameUid}/{installedVersion}")]
-        GetGameUpdateResponse GetGameUpdate(string gameUid,string installedVersion);
+        [WebGet(ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, UriTemplate = "/Updates/{interfaceVersion}/{gameUid}/{installedVersion}")]
+        GetGameUpdateResponse GetGameUpdate(string interfaceVersion,string gameUid,string installedVersion);
     }
 }

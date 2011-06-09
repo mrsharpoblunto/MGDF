@@ -38,7 +38,7 @@ namespace MGDF.GamesManager.GameSource.Model.FileServers
             var gameData = new DefaultFileServerGameData
                                {
                                    Id = id,
-                                   GameFile = string.Format("{0}/{1}.fragment", Constants.GameFolder, version.Id.Encode())
+                                   GameFile = string.Format("{0}/{1}.fragment", Constants.DownloadsFolder, version.Id.Encode())
                                };
             repository.Insert(gameData);
 

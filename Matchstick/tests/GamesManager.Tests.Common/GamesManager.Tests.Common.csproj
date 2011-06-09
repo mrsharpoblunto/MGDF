@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Mocks\MockWCFClient.cs" />
     <Compile Include="Mocks\MockDirectory.cs" />
     <Compile Include="Mocks\MockEnvironmentSettings.cs" />
     <Compile Include="Mocks\MockFile.cs" />

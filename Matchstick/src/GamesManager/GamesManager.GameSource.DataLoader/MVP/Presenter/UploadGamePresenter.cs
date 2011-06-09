@@ -14,6 +14,7 @@ using MGDF.GamesManager.GameSource.Contracts.Entities;
 using MGDF.GamesManager.GameSource.DataLoader.MVP.Model;
 using MGDF.GamesManager.GameSource.DataLoader.MVP.View;
 using MGDF.GamesManager.GameSource.DataLoader.MVP.View.Impl;
+using Newtonsoft.Json;
 
 namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
 {
@@ -114,30 +115,9 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
 
                                 try
                                 {
-                                    var response = request.GetResponse();
-
-                                    XmlDocument document = new XmlDocument();
-                                    using (var responseStream = response.GetResponseStream())
-                                    {
-                                        using (var reader = new StreamReader(responseStream))
-                                        {
-                                            document.Load(reader);
-
-                                            var documentElement = document.DocumentElement;
-                                            if (documentElement.Name == "error")
-                                            {
-                                                Logger.Current.Write(LogInfoLevel.Error, "Unable to upload Game file: " + documentElement.Attributes["message"].Value);
-                                                View.Invoke(() => Message.Show(documentElement.Attributes["message"].Value, "Unable to upload Game file"));
-                                                e.Result = false;
-                                                return;
-                                            }
-                                            else
-                                            {
-                                                succeeded = true;
-                                                _worker.ReportProgress(Convert.ToInt32((completed / (double)total) * 100));
-                                            }
-                                        }
-                                    }
+                                    request.GetResponse();
+                                    succeeded = true;
+                                    _worker.ReportProgress(Convert.ToInt32((completed / (double)total) * 100));
                                 }
                                 catch (WebException ex)
                                 {
@@ -153,15 +133,22 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
                                     {
                                         try
                                         {
-                                            using (var reader = XmlReader.Create(response.GetResponseStream()))
+                                            
+                                            using (var reader = new StreamReader(response.GetResponseStream()))
                                             {
-                                                XmlDocument document = new XmlDocument();
-                                                document.Load(reader);
-                                                var documentElement = document.DocumentElement;
-                                                //the server could give us the opportunity to try uploading this part again if it failed due to an invalid part hash.
-                                                if (documentElement.Attributes["retry"].Value != "True")
+                                                var resultType = new 
                                                 {
-                                                    View.Invoke(() => Message.Show("Unable to upload Game file: " + documentElement.Attributes["message"].Value, "Unable to upload Game file"));
+                                                    Success = false,
+                                                    Code = string.Empty,
+                                                    Message = string.Empty,
+                                                    ShouldRetry = false
+                                                };
+                                                var result = JsonConvert.DeserializeAnonymousType(reader.ReadToEnd(), resultType);
+
+                                                //the server could give us the opportunity to try uploading this part again if it failed due to an invalid part hash.
+                                                if (!result.ShouldRetry)
+                                                {
+                                                    View.Invoke(() => Message.Show("Unable to upload Game file: " + result.Code+" - " + result.Message, "Unable to upload Game file"));
                                                     e.Result = false;                                                   
                                                 }
                                             }

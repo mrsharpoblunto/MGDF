@@ -143,7 +143,7 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Games\" />
+    <Folder Include="Downloads\" />
     <Folder Include="Log\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

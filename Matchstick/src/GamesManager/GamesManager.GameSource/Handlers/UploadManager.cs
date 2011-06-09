@@ -14,19 +14,11 @@ using Newtonsoft.Json;
 
 namespace MGDF.GamesManager.GameSource.Handlers
 {
-    public class UploadError
-    {
-        public string Code;
-        public string Message;
-        public bool ShouldRetry;
-    }
-
     public static class UploadManager
     {
         private static void WriteErrorResponse(int statusCode,string errorCode,string errorMessage,bool shouldRetry,IHttpResponse response)
         {
-            var error = new UploadError {Code = errorCode, Message = errorMessage, ShouldRetry = shouldRetry};
-            response.Write(JsonConvert.SerializeObject(error));
+            response.Write(JsonConvert.SerializeObject(new { Success = false,Code = errorCode, Message = errorMessage, ShouldRetry = shouldRetry}));
             response.StatusCode = statusCode;
         }
 
@@ -133,10 +125,7 @@ namespace MGDF.GamesManager.GameSource.Handlers
                             repository.Delete(fragment);
                             repository.SubmitChanges();
 
-                            response.Write(@"{ 
-    Success:true, 
-    GameVersionId:""" + gameVersion.Id + @""" 
-}");
+                            response.Write(JsonConvert.SerializeObject(new { Success = true, GameVersionId = gameVersion.Id }));
                             response.StatusCode = 200;
                         }
                         else
@@ -146,9 +135,7 @@ namespace MGDF.GamesManager.GameSource.Handlers
                     }
                     else
                     {
-                        response.Write(@"{ 
-    Success:true, 
-}");
+                        response.Write(JsonConvert.SerializeObject(new { Success = true}));
                         response.StatusCode = 200;
                     }
                 }
@@ -162,7 +149,7 @@ namespace MGDF.GamesManager.GameSource.Handlers
                 Logger.Current.Write(ex, "Unexpected exception in upload handler");
                 try
                 {
-                    response.StatusCode = 500;
+                    WriteErrorResponse(500, Contracts.Messages.Error.UnknownError, "Unexpected exception in upload handler", false, response);
                 }
                 catch (Exception)
                 {

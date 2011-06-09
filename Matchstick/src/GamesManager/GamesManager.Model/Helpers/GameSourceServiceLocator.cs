@@ -52,7 +52,7 @@ namespace MGDF.GamesManager.Model.Helpers
             try
             {
 
-                using (var responseStream = HttpRequestManager.Current.GetResponseStream("/services".AbsoluteUri(baseUrl)))
+                using (var responseStream = HttpRequestManager.Current.GetResponseStream("/Services".AbsoluteUri(baseUrl)))
                 {
                     using (TextReader reader = new StreamReader(responseStream))
                     {

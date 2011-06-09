@@ -36,14 +36,14 @@ namespace MGDF.GamesManager.GameSource.Model
     {
         public const int WriteBufferSize = 16384;
 
-        public static string GameFolder
+        public static string DownloadsFolder
         {
-            get { return "/games"; }
+            get { return "/Downloads"; }
         }
 
         public static string GameVersionDownload(string baseUrl, Guid gameVersionId)
         {
-            return string.Format("{0}{1}/{2}.mza", baseUrl, GameFolder, gameVersionId.Encode());
+            return string.Format("{0}{1}/{2}.mza", baseUrl, DownloadsFolder, gameVersionId.Encode());
         }
     }
 }

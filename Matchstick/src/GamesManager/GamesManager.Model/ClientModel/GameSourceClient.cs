@@ -85,7 +85,7 @@ namespace MGDF.GamesManager.Model.ClientModel
                     //get a contiguous chain of updates for the currently installed version
                     do
                     {
-                        var response = gamesService.Use(s=>s.GetGameUpdate(game.Uid,version.ToString()));
+                        var response = gamesService.Use(s=>s.GetGameUpdate(Constants.InterfaceVersion.ToString(),game.Uid,version.ToString()));
                         if (response.Errors.Count != 0)
                         {
                             errors.AddRange(response.Errors.Map(e=>e.Code+": "+e.Message));

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MGDF.GamesManager.Common.Framework;
+using MGDF.GamesManager.GameSource.Contracts;
 using MGDF.GamesManager.GameSource.Model;
 using MGDF.GamesManager.Model.ClientModel;
 using MGDF.GamesManager.Model.Contracts.Entities;
@@ -173,15 +174,14 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             HttpRequestManager.Current = new MockHttpRequestManager();
 
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesourcemanifest.xml", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<mgdf:gamesourcemanifest xmlns:mgdf=""http://schemas.matchstickframework.org/2007/gamesourcemanifest""
-          xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gamesourceservice>/games.svc</gamesourceservice>
-  <developerservice>/developer.svc</developerservice>
-</mgdf:gamesourcemanifest>");
+{
+    ""GameSourceService"":""/games.svc"",
+    ""DeveloperService"":""/developer.svc""
+}");
 
-            GameSourceManifestHelper manifestHelper = new GameSourceManifestHelper("http://games.junkship.org");
-            Assert.AreEqual("http://games.junkship.org/games.svc", manifestHelper.GamesServiceUrl);
-            Assert.AreEqual("http://games.junkship.org/developer.svc", manifestHelper.DeveloperServiceUrl);
+            GameSourceServiceLocator serviceLocator = new GameSourceServiceLocator("http://games.junkship.org");
+            Assert.AreEqual("http://games.junkship.org/games.svc", serviceLocator.GamesServiceUrl);
+            Assert.AreEqual("http://games.junkship.org/developer.svc", serviceLocator.DeveloperServiceUrl);
         }
 
         [Test]
@@ -208,7 +208,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             IGame game = EntityFactory.Current.CreateGame("c:\\game.xml");
 
             List<string> errors = new List<string>();
-            GameSourceClient.ServiceFactory = source => Service;
+            GameSourceClient.ServiceFactory = source => new MockWCFClient<IGameSourceService>(Service);
             GameSourceClient client = new GameSourceClient();
             var updates = client.GetGameUpdates(game, args =>
                                                           {
@@ -273,7 +273,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             IGame game = EntityFactory.Current.CreateGame("c:\\game.xml");
 
             List<string> errors = new List<string>();
-            GameSourceClient.ServiceFactory = source => Service;
+            GameSourceClient.ServiceFactory = source => new MockWCFClient<IGameSourceService>(Service);
             GameSourceClient client = new GameSourceClient();
             var updates = client.GetGameUpdates(game, args => false, args=> false,errors);
 
@@ -314,7 +314,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             IGame game = EntityFactory.Current.CreateGame("c:\\game.xml");
 
             List<string> errors = new List<string>();
-            GameSourceClient.ServiceFactory = source => Service;
+            GameSourceClient.ServiceFactory = source => new MockWCFClient<IGameSourceService>(Service);
             GameSourceClient client = new GameSourceClient();
             bool first = true;
             var updates = client.GetGameUpdates(game, args =>
@@ -367,7 +367,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             IGame game = EntityFactory.Current.CreateGame("c:\\game.xml");
 
             List<string> errors = new List<string>();
-            GameSourceClient.ServiceFactory = source => Service;
+            GameSourceClient.ServiceFactory = source => new MockWCFClient<IGameSourceService>(Service);
             GameSourceClient client = new GameSourceClient();
 
             var updates = client.GetGameUpdates(game, 
