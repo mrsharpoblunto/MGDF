@@ -43,6 +43,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\vendor\lib\Release\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json.Net35, Version=4.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\vendor\lib\Release\Newtonsoft.Json.Net35.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -84,6 +88,8 @@
     <Compile Include="Caching\CNonceCache.cs" />
     <Compile Include="Caching\EntityCache.cs" />
     <Compile Include="Caching\GameCache.cs" />
+    <Compile Include="CommonService.cs" />
+    <Compile Include="Handlers\ServicesHandler.cs" />
     <Compile Include="Janitor.cs" />
     <Compile Include="Games.svc.cs">
       <DependentUpon>Games.svc</DependentUpon>
@@ -134,7 +140,6 @@
   <ItemGroup>
     <Content Include="Games.svc" />
     <Content Include="Developer.svc" />
-    <Content Include="gamesourcemanifest.xml" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>

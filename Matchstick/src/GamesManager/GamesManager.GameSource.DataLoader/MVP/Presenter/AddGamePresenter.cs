@@ -51,7 +51,11 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
 
         protected override bool AddGame(IGameInstall installer)
         {
-            Game existingGame = GamesService.GetGames(new GetGamesRequest { GameUid = installer.Game.Uid, InterfaceVersion = Constants.InterfaceVersion }).Games.SingleOrDefault();
+            var getGamesRequest = NewRequest<GetGamesRequest>();
+            getGamesRequest.GameUid = installer.Game.Uid;
+            getGamesRequest.InterfaceVersion = Constants.InterfaceVersion;
+
+            Game existingGame = DeveloperService(s=>s.GetGames(getGamesRequest).Games.SingleOrDefault());
             if (existingGame != null)
             {
                 Logger.Current.Write(LogInfoLevel.Error, "This game already exists");
@@ -60,7 +64,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             }
             else
             {
-                var addGameRequest = RequestBuilder.Build<AddGameRequest>();
+                var addGameRequest = NewRequest<AddGameRequest>();
                 addGameRequest.NewGame = new EditGame
                 {
                     Description = installer.Game.Description,
@@ -71,7 +75,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
                     RequiresAuthentication = View.RequiresAuthentication,
                     RequiresAuthenticationSpecified = true
                 };
-                var response = DeveloperService.AddGame(addGameRequest);
+                var response = DeveloperService(s=>s.AddGame(addGameRequest));
                 if (response.Errors.Count > 0)
                 {
                     Logger.Current.Write(LogInfoLevel.Error, "Unable to add game: " + response.Errors[0].Message);
@@ -86,7 +90,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
         {
             var deleteGameRequest = RequestBuilder.Build<DeleteGameRequest>();
             deleteGameRequest.GameUid = installer.Game.Uid;
-            DeveloperService.DeleteGame(deleteGameRequest);
+            DeveloperService(s=>s.DeleteGame(deleteGameRequest));
         }
 
         protected override SelectGameEventArgs GetCompletionEventArgs()

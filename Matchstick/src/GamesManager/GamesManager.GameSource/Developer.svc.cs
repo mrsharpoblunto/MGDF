@@ -33,7 +33,7 @@ namespace MGDF.GamesManager.GameSource
         }
     }
 
-    public class DeveloperService : GamesService, IGameSourceDeveloperService
+    public class DeveloperService : CommonService, IGameSourceDeveloperService
     {
         private delegate void AuthenticatedMethodHandler<REQUEST, RESPONSE>(Model.Developer authenticatedDeveloper, REQUEST request, RESPONSE response);
         private delegate bool ValidateRequestHandler<REQUEST>(Model.Developer authenticatedDeveloper, REQUEST request, List<Error> errors);
@@ -120,6 +120,26 @@ namespace MGDF.GamesManager.GameSource
         public CheckCredentialsResponse CheckCredentials(AuthenticatedRequestBase request)
         {
             return InvokeAuthenticatedMethod<AuthenticatedRequestBase, CheckCredentialsResponse>(request, CheckCredentialsHandler, (d, r, e) => true);
+        }
+
+        public GetGamesResponse GetGames(GetGamesRequest request)
+        {
+            return InvokeAuthenticatedMethod<GetGamesRequest, GetGamesResponse>(request, GetGamesHandler, GetGamesValidator);
+        }
+
+        private static bool GetGamesValidator(Developer authenticateddeveloper, GetGamesRequest request, List<Error> errors)
+        {
+            if (request.DeveloperUid != authenticateddeveloper.Uid)
+            {
+                errors.Add(new Error { Code = Error.AccessDenied, Message = "You are not authorized to view games for this developer" });
+                return false;
+            }
+            return true;
+        }
+
+        public static void GetGamesHandler(Developer d, GetGamesRequest request, GetGamesResponse response)
+        {
+            GetGamesHandler(request, response);
         }
 
         private static void CheckCredentialsHandler(Developer developer, AuthenticatedRequestBase request, CheckCredentialsResponse response)

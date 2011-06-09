@@ -108,7 +108,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
                     addGameVersionRequest.NewGameVersion.UpdateMaxVersion = _installer.Update.UpdateMaxVersion.ToString();
                 }
 
-                var addGameVersionResponse = DeveloperService.AddGameVersion(addGameVersionRequest);
+                var addGameVersionResponse = DeveloperService(s=>s.AddGameVersion(addGameVersionRequest));
                 if (addGameVersionResponse.Errors.Count > 0)
                 {
                     CleanupInvalidVersion(_installer,null);

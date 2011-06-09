@@ -1,6 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<mgdf:gamesourcemanifest xmlns:mgdf="http://schemas.matchstickframework.org/2007/gamesourcemanifest"
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <gamesourceservice>/games.svc</gamesourceservice>
-  <developerservice>/developer.svc</developerservice>
-</mgdf:gamesourcemanifest>

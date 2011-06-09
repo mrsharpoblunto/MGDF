@@ -18,7 +18,7 @@ using GameVersion=MGDF.GamesManager.GameSource.Model.GameVersion;
 
 namespace MGDF.GamesManager.GameSource
 {
-    public class GamesService : IGameSourceService
+    public class GamesService : CommonService, IGameSourceService
     {
         private delegate void MethodHandler<REQUEST, RESPONSE>(REQUEST request, RESPONSE response);
         private delegate bool ValidateRequestHandler<REQUEST>(REQUEST request, List<Error> errors);
@@ -71,33 +71,25 @@ namespace MGDF.GamesManager.GameSource
             return response;
         }
 
-        public GetGamesResponse GetGames(GetGamesRequest request)
+        public GetGamesResponse GetGame(string interfaceVersion,string gameUid)
         {
+            int version;
+            int.TryParse(interfaceVersion, out version);
+            GetGamesRequest request = new GetGamesRequest { InterfaceVersion = version, GameUid = gameUid };
             return InvokeMethod<GetGamesRequest, GetGamesResponse>(request, GetGamesHandler, (r,e) => true);
         }
 
-        private static void GetGamesHandler(GetGamesRequest request, GetGamesResponse response)
+        public GetGamesResponse GetGames(string developerUid, string interfaceVersion)
         {
-            Developer matchingDeveloper = string.IsNullOrEmpty(request.DeveloperUid) ? null : GameSourceRepository.Current.Get<Developer>().SingleOrDefault(d => d.Uid == request.DeveloperUid);
-
-            var predicate = PredicateBuilder.True<Game>();
-
-            if (matchingDeveloper!=null)
-            {
-                predicate = predicate.And(g => g.DeveloperId == matchingDeveloper.Id);
-            }
-            if (!string.IsNullOrEmpty(request.GameUid))
-            {
-                predicate = predicate.And(g => g.Uid == request.GameUid);
-            }
-            predicate = predicate.And(g => request.InterfaceVersion == g.InterfaceVersion);
-
-            var games = GameSourceRepository.Current.Get<Game>().Where(predicate).OrderBy(g => g.Name);
-            response.Games = GameMapper.MapToContractEntities(games);
+            int version;
+            int.TryParse(interfaceVersion, out version);
+            GetGamesRequest request = new GetGamesRequest { InterfaceVersion = version, DeveloperUid = developerUid };
+            return InvokeMethod<GetGamesRequest, GetGamesResponse>(request, GetGamesHandler, (r, e) => true);
         }
 
-        public GetGameUpdateResponse GetGameUpdate(GetGameUpdateReqest request)
+        public GetGameUpdateResponse GetGameUpdate(string gameUid, string installedVersion)
         {
+            GetGameUpdateReqest request = new GetGameUpdateReqest { GameUid = gameUid, InstalledVersion = installedVersion };
             return InvokeMethod<GetGameUpdateReqest, GetGameUpdateResponse,Game>(request, GetGameUpdateHandler, GetGameUpdateRequestValidator);
         }
 

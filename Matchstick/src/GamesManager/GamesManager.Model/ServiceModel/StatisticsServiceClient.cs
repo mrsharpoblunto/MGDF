@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.ServiceModel;
+using System.ServiceModel.Description;
 using System.Text;
-using ACorns.WCF.DynamicClientProxy;
+using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Contracts;
 using MGDF.GamesManager.StatisticsService.Contracts;
@@ -59,12 +60,18 @@ namespace MGDF.GamesManager.Model.ServiceModel
         }
     }
 
-    public class StatisticsServiceClient: IDisposable
+    public class StatisticsServiceClient
     {
-        private readonly IStatisticsService _service;
+        private readonly IWCFClient<IStatisticsService> _service;
         private readonly StatisticsSession _session;
 
-        public static Func<Uri, IStatisticsService> ServiceFactory = uri => WCFClientProxy<IStatisticsService>.GetReusableFaultUnwrappingInstance(new BasicHttpBinding(), new EndpointAddress(uri));
+        public static Func<Uri, IWCFClient<IStatisticsService>> ServiceFactory = uri =>
+                                                                         {
+                                                                            var factory = new ChannelFactory<IStatisticsService>(new WebHttpBinding(), new EndpointAddress(uri));
+                                                                            factory.Endpoint.Behaviors.Add(new WebHttpBehavior());
+
+                                                                            return new WCFClient<IStatisticsService>(factory);
+                                                                         };
 
         public StatisticsServiceClient(StatisticsSession session)
         {
@@ -85,7 +92,7 @@ namespace MGDF.GamesManager.Model.ServiceModel
                         request.Statistics.Add(statistic);
                     }
 
-                    var response = _service.AddStatistics(request);
+                    var response = _service.Use(s=>s.AddStatistics(request));
                     if (response.Errors.Count > 0)
                     {
                         errors.AddRange(response.Errors);

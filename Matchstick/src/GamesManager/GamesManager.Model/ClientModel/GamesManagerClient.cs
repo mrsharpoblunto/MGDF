@@ -6,7 +6,6 @@ using System.Linq;
 using System.ServiceModel;
 using System.ServiceProcess;
 using System.Threading;
-using ACorns.WCF.DynamicClientProxy;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.GameSource.Contracts.Entities;
@@ -48,17 +47,18 @@ namespace MGDF.GamesManager.Model.ClientModel
             }
         }
 
-        private readonly IGamesManagerAdminService _adminService;
+        private readonly IWCFClient<IGamesManagerAdminService> _adminService;
         private readonly Thread _servicePollThread;
 
 #if RELEASE
         private static IService _adminServiceController;
 #endif
 
-        public static Func<IGamesManagerAdminService> ServiceFactory = () =>
+        public static Func<IWCFClient<IGamesManagerAdminService>> ServiceFactory = () =>
                                                                            {
                                                                                EnsureServiceStarted();
-                                                                               return WCFClientProxy<IGamesManagerAdminService>.GetReusableFaultUnwrappingInstance(new NetNamedPipeBinding(), new EndpointAddress(GamesManagerAdminService.BaseAddress+"/"+ GamesManagerAdminService.EndPointAddress));
+                                                                               var factory = new ChannelFactory<IGamesManagerAdminService>(new NetNamedPipeBinding(), new EndpointAddress(GamesManagerAdminService.BaseAddress + "/" + GamesManagerAdminService.EndPointAddress));
+                                                                               return new WCFClient<IGamesManagerAdminService>(factory);
                                                                            };
 
         public GamesManagerClient()
@@ -90,7 +90,7 @@ namespace MGDF.GamesManager.Model.ClientModel
                 Thread.Sleep(10000);
 
                 //do a heartbeat ~10 seconds to keep the service alive.
-                InvokeService(() => _adminService.Heartbeat(new HearbeatRequest()));
+                InvokeService(s => s.Heartbeat(new HearbeatRequest()));
             }
         }
 
@@ -102,13 +102,12 @@ namespace MGDF.GamesManager.Model.ClientModel
                 _servicePollThread.Abort();
                 _servicePollThread.Join();
             }
-            (_adminService as IDisposable).Dispose();
         }
 
         public InstalledGameInfo GetInstalledGameInfo(string uid)
         {
             GetInstalledGameInfoResponse response=null;
-            if (InvokeService(() => response = _adminService.GetInstalledGameInfo(new GetInstalledGameInfoRequest { GameUid = uid })) && response != null)
+            if (InvokeService(s => response = s.GetInstalledGameInfo(new GetInstalledGameInfoRequest { GameUid = uid })) && response != null)
             {
                 return response.Info;
             }
@@ -118,43 +117,43 @@ namespace MGDF.GamesManager.Model.ClientModel
 
         public bool Update(IGame game, List<GameVersionUpdate> versions)
         {
-            return InvokeService(() => _adminService.UpdateGame(new UpdateGameRequest { GameUid = game.Uid, GameVersions = versions }));           
+            return InvokeService(s=>s.UpdateGame(new UpdateGameRequest { GameUid = game.Uid, GameVersions = versions }));           
         }
 
         public bool Install(string installSource)
         {
-            return InvokeService(() =>_adminService.InstallLocalGame(new InstallLocalGameRequest { InstallSource = installSource }));
+            return InvokeService(s=>s.InstallLocalGame(new InstallLocalGameRequest { InstallSource = installSource }));
         }
 
         public bool Uninstall(IGame game)
         {
-            return InvokeService(() => _adminService.UninstallGame(new UninstallGameRequest { GameUid = game.Uid}));
+            return InvokeService(s=>s.UninstallGame(new UninstallGameRequest { GameUid = game.Uid}));
         }
 
         public bool ResumePendingOperations(IGame game)
         {
-            return InvokeService(() => _adminService.ResumePendingOperations(new ResumePendingOperationsRequest() { GameUid = game.Uid }));
+            return InvokeService(s => s.ResumePendingOperations(new ResumePendingOperationsRequest() { GameUid = game.Uid }));
         }
 
         public bool PausePendingOperations(IGame game)
         {
-            return InvokeService(() => _adminService.PausePendingOperations(new PausePendingOperationsRequest { GameUid = game.Uid }));
+            return InvokeService(s => s.PausePendingOperations(new PausePendingOperationsRequest { GameUid = game.Uid }));
         }
 
         public bool SubmitStatistics(IGame game)
         {
-            return InvokeService(() => _adminService.SubmitStatistics(new SubmitStatisticsRequest { GameUid = game.Uid, StatisticsFile = Constants.UserStatistics(game.Uid) }));
+            return InvokeService(s => s.SubmitStatistics(new SubmitStatisticsRequest { GameUid = game.Uid, StatisticsFile = Constants.UserStatistics(game.Uid) }));
         }
 
         #region helpers
 
-        private bool InvokeService<RESPONSE>(Func<RESPONSE> serviceCallHandler) where RESPONSE : ResponseBase
+        private bool InvokeService<RESPONSE>(Func<IGamesManagerAdminService,RESPONSE> serviceCallHandler) where RESPONSE : ResponseBase
         {
             try
             {
                 //always ensure the admin service is running before calling out to it.
                 EnsureServiceStarted();
-                RESPONSE response = serviceCallHandler();
+                RESPONSE response = _adminService.Use(serviceCallHandler);
                 if (response.Errors.Count>0)
                 {
                     foreach (var error in response.Errors)

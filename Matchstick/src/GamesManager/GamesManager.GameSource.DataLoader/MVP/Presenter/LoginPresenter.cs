@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
+using System.ServiceModel.Description;
 using System.Text;
 using System.Threading;
-using ACorns.WCF.DynamicClientProxy;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Controls;
@@ -68,11 +68,10 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
         {
             try
             {
-                GameSourceManifestHelper manifestHelper = new GameSourceManifestHelper(Settings.Instance.GameSource);
-                IGameSourceDeveloperService developerService = WCFClientProxy<IGameSourceDeveloperService>.GetReusableFaultUnwrappingInstance(new BasicHttpBinding(), new EndpointAddress(manifestHelper.DeveloperServiceUrl));
-                IGameSourceService gamesService = WCFClientProxy<IGameSourceService>.GetReusableFaultUnwrappingInstance(new BasicHttpBinding(), new EndpointAddress(manifestHelper.GamesServiceUrl));
+                GameSourceServiceLocator serviceLocator = new GameSourceServiceLocator(Settings.Instance.GameSource);
+                SetDeveloperService(serviceLocator.DeveloperServiceUrl);
 
-                var response = developerService.CheckCredentials(RequestBuilder.Build<AuthenticatedRequestBase>());
+                var response = DeveloperService(s=> s.CheckCredentials(RequestBuilder.Build<AuthenticatedRequestBase>()));
                 if (response.Errors.Count > 0)
                 {
                     View.Invoke(()=>
@@ -84,8 +83,6 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
                 else
                 {
                     Settings.Instance.Credentials = response.Developer;
-                    ServiceLocator.Current.Register(developerService);
-                    ServiceLocator.Current.Register(gamesService);
                     View.Invoke(() =>
                                     {
                                         if (View.RememberMe)

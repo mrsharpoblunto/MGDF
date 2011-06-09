@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.ServiceModel;
+using System.ServiceModel.Channels;
+using System.ServiceModel.Description;
 using System.Text;
-using ACorns.WCF.DynamicClientProxy;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.GameSource.Contracts;
@@ -22,10 +23,15 @@ namespace MGDF.GamesManager.Model.ClientModel
 {
     public class GameSourceClient
     {
-        public static Func<string, IGameSourceService> ServiceFactory = gameSourceService =>
+        //exposed to allow injecting mock service during unit tests.
+        public static Func<string, IWCFClient<IGameSourceService>> ServiceFactory = gameSourceService =>
                                                                             {
-                                                                                GameSourceManifestHelper manifestHelper = new GameSourceManifestHelper(gameSourceService);
-                                                                                return WCFClientProxy<IGameSourceService>.GetReusableFaultUnwrappingInstance(new BasicHttpBinding(), new EndpointAddress(manifestHelper.GamesServiceUrl));
+                                                                                GameSourceServiceLocator serviceLocator = new GameSourceServiceLocator(gameSourceService);
+
+                                                                                var factory = new ChannelFactory<IGameSourceService>(new WebHttpBinding(), new EndpointAddress(serviceLocator.GamesServiceUrl));
+                                                                                factory.Endpoint.Behaviors.Add(new WebHttpBehavior());
+
+                                                                                return new WCFClient<IGameSourceService>(factory);
                                                                             };
 
         public static GameSettings GetStatisticsPermission(IGame game, GameSettings sourceSettings, Func<GetStatsPermissionEventArgs, bool> getStatsPermission)
@@ -72,42 +78,30 @@ namespace MGDF.GamesManager.Model.ClientModel
             {
                 try
                 {
-                    IGameSourceService gamesService = ServiceFactory(game.GameSourceService);
+                    var gamesService = ServiceFactory(game.GameSourceService);
                     Version version = game.Version;
-                    try
+
+                    GameVersionUpdate latestVersion;
+                    //get a contiguous chain of updates for the currently installed version
+                    do
                     {
-                        GameVersionUpdate latestVersion;
-                        //get a contiguous chain of updates for the currently installed version
-                        do
+                        var response = gamesService.Use(s=>s.GetGameUpdate(game.Uid,version.ToString()));
+                        if (response.Errors.Count != 0)
                         {
-                            var response = gamesService.GetGameUpdate(new GetGameUpdateReqest
-                                                                          {
-                                                                              GameUid = game.Uid,
-                                                                              InstalledVersion = version.ToString()
-                                                                          });
-                            if (response.Errors.Count != 0)
-                            {
-                                errors.AddRange(response.Errors.Map(e=>e.Code+": "+e.Message));
-                                latestVersion = null;
-                            }
-                            else
-                            {
-                                latestVersion = response.LatestVersion;
-                                if (latestVersion != null)
-                                {
-                                    version = new Version(response.LatestVersion.Version);
-                                    updates.Add(response.LatestVersion);
-                                }
-                            }
-                        } while (latestVersion != null);
-                    }
-                    finally
-                    {
-                        if (gamesService is IDisposable)
-                        {
-                            (gamesService as IDisposable).Dispose();
+                            errors.AddRange(response.Errors.Map(e=>e.Code+": "+e.Message));
+                            latestVersion = null;
                         }
-                    }
+                        else
+                        {
+                            latestVersion = response.LatestVersion;
+                            if (latestVersion != null)
+                            {
+                                version = new Version(response.LatestVersion.Version);
+                                updates.Add(response.LatestVersion);
+                            }
+                        }
+                    } while (latestVersion != null);
+
                 }
                 catch (Exception ex)
                 {

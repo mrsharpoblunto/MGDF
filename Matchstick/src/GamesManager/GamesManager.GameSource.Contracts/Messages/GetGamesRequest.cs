@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 namespace MGDF.GamesManager.GameSource.Contracts.Messages
 {
     [DataContract]
-    public class GetGamesRequest : RequestBase
+    public class GetGamesRequest : AuthenticatedRequestBase
     {
         [DataMember]
         public string GameUid { get; set; }

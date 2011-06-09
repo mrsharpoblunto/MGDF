@@ -10,15 +10,23 @@ using MGDF.GamesManager.GameSource.Model;
 using MGDF.GamesManager.GameSource.Model.Configuration;
 using MGDF.GamesManager.GameSource.Model.FileServers;
 using MGDF.GamesManager.ServerCommon;
-using Constants=MGDF.GamesManager.GameSource.Model.Constants;
+using Newtonsoft.Json;
 
 namespace MGDF.GamesManager.GameSource.Handlers
 {
+    public class UploadError
+    {
+        public string Code;
+        public string Message;
+        public bool ShouldRetry;
+    }
+
     public static class UploadManager
     {
         private static void WriteErrorResponse(int statusCode,string errorCode,string errorMessage,bool shouldRetry,IHttpResponse response)
         {
-            response.Write("<error code=\"" + errorCode + "\" message=\"" + errorMessage + "\" retry=\"" + shouldRetry + "\" />");
+            var error = new UploadError {Code = errorCode, Message = errorMessage, ShouldRetry = shouldRetry};
+            response.Write(JsonConvert.SerializeObject(error));
             response.StatusCode = statusCode;
         }
 
@@ -26,8 +34,7 @@ namespace MGDF.GamesManager.GameSource.Handlers
         {
             try
             {
-                response.ContentType = "text/xml";
-                response.Write("<?xml version=\"1.0\" ?>");
+                response.ContentType = "application/json";
 
                 string developerKey = request.Headers[Common.Constants.Headers.DeveloperKey];
                 string contentMd5 = request.Headers[Common.Constants.Headers.Md5];
@@ -126,7 +133,10 @@ namespace MGDF.GamesManager.GameSource.Handlers
                             repository.Delete(fragment);
                             repository.SubmitChanges();
 
-                            response.Write("<success gameVersionId=\"" + gameVersion.Id + "\" />");
+                            response.Write(@"{ 
+    Success:true, 
+    GameVersionId:""" + gameVersion.Id + @""" 
+}");
                             response.StatusCode = 200;
                         }
                         else
@@ -136,7 +146,9 @@ namespace MGDF.GamesManager.GameSource.Handlers
                     }
                     else
                     {
-                        response.Write("<success />");
+                        response.Write(@"{ 
+    Success:true, 
+}");
                         response.StatusCode = 200;
                     }
                 }

@@ -39,10 +39,6 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ACorns.WCF.DynamicClientProxy, Version=1.3.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\vendor\lib\Release\ACorns.WCF.DynamicClientProxy.dll</HintPath>
-    </Reference>
     <Reference Include="IconLib, Version=0.73.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\vendor\lib\Release\IconLib.dll</HintPath>
@@ -50,6 +46,10 @@
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\vendor\lib\Release\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json.Net35, Version=4.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\vendor\lib\Release\Newtonsoft.Json.Net35.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -64,6 +64,9 @@
     </Reference>
     <Reference Include="System.ServiceModel">
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.ServiceModel.Web">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Web.Services" />
@@ -141,7 +144,7 @@
     <Compile Include="Contracts\Entities\IPreference.cs" />
     <Compile Include="Contracts\Entities\IPreferences.cs" />
     <Compile Include="Contracts\Entities\IUpdate.cs" />
-    <Compile Include="Helpers\GameSourceManifestHelper.cs" />
+    <Compile Include="Helpers\GameSourceServiceLocator.cs" />
     <Compile Include="Services\GameExplorer.cs" />
     <Compile Include="Services\IconManager.cs" />
     <Compile Include="Helpers\InstalledProgramsHelper.cs" />

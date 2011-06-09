@@ -65,10 +65,14 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
 
         protected override bool AddGame(IGameInstall installer)
         {
-            Game existingGame = GamesService.GetGames(new GetGamesRequest { GameUid = installer.Game.Uid, InterfaceVersion = Constants.InterfaceVersion }).Games.SingleOrDefault();
+            var getGamesRequest = NewRequest<GetGamesRequest>();
+            getGamesRequest.GameUid = installer.Game.Uid;
+            getGamesRequest.InterfaceVersion = Constants.InterfaceVersion;
+
+            Game existingGame = DeveloperService(s=>s.GetGames(getGamesRequest).Games.SingleOrDefault());
             if (existingGame != null)
             {
-                var editGameRequest = RequestBuilder.Build<EditGameRequest>();
+                var editGameRequest = NewRequest<EditGameRequest>();
                 editGameRequest.EditGame = new EditGame
                 {
                     Description = installer.Game.Description,
@@ -79,7 +83,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
                     RequiresAuthentication = View.RequiresAuthentication,
                     RequiresAuthenticationSpecified = true
                 };
-                var response = DeveloperService.EditGame(editGameRequest);
+                var response = DeveloperService(s=>s.EditGame(editGameRequest));
                 if (response.Errors.Count > 0)
                 {
                     Logger.Current.Write(LogInfoLevel.Error, "Unable to edit game: " + response.Errors[0].Message);
@@ -107,7 +111,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             {
                 var request = RequestBuilder.Build<CleanupIncompleteGameVersionRequest>();
                 request.FragmentId = uploader.FragmentId;
-                DeveloperService.CleanupIncompleteGameVersion(request);
+                DeveloperService(s=>s.CleanupIncompleteGameVersion(request));
             }
         }
     }

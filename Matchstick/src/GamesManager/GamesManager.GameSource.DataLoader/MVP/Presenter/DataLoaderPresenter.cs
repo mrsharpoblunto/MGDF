@@ -35,8 +35,6 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             View.OnSelectGameVersion += View_OnSelectGameVersion;
             View.OnDeleteGameVersion += View_OnDeleteGameVersion;
             View.OnUpdateGameVersion += View_OnUpdateGameVersion;
-            
-            View.Closed += View_Closed;
         }
 
         void View_OnRefresh(object sender, EventArgs e)
@@ -50,7 +48,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             request.Id = e.GameVersion.Id;
             request.Published = View.Published;
 
-            var response = DeveloperService.EditGameVersion(request);
+            var response = DeveloperService(s=>s.EditGameVersion(request));
             if (response.Errors.Count() > 0)
             {
                 Logger.Current.Write(LogInfoLevel.Error, "Unable to edit game version: " + response.Errors[0].Message);
@@ -63,7 +61,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             var request = NewRequest<DeleteGameVersionRequest>();
             request.Id = e.GameVersion.Id;
 
-            var response = DeveloperService.DeleteGameVersion(request);
+            var response = DeveloperService(s=>s.DeleteGameVersion(request));
 
             if (response.Errors.Count() > 0)
             {
@@ -117,7 +115,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             var request = NewRequest<EditGameRequest>();
             request.EditGame = new EditGame { Uid = e.Game.Uid,RequiresAuthentication = View.RequiresAuthentication,RequiresAuthenticationSpecified = true};
 
-            var response = DeveloperService.EditGame(request);
+            var response = DeveloperService(s=>s.EditGame(request));
 
             if (response.Errors.Count() > 0)
             {
@@ -131,7 +129,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             var request = NewRequest<DeleteGameRequest>();
             request.GameUid = e.Game.Uid;
             
-            var response = DeveloperService.DeleteGame(request);
+            var response = DeveloperService(s=>s.DeleteGame(request));
 
             if (response.Errors.Count() > 0)
             {
@@ -178,18 +176,6 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             }
         }
 
-        private void View_Closed(object sender, EventArgs e)
-        {
-            if (DeveloperService!=null)
-            {
-                (DeveloperService as IDisposable).Dispose();
-            }
-            if (GamesService != null)
-            {
-                (GamesService as IDisposable).Dispose();
-            }
-        }
-
         private void InitializeView()
         {
             GetGames();
@@ -200,7 +186,11 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             View.ShowSelectedGame(false);
             View.ShowSelectedGameVersion(false);
 
-            var gamesResponse = GamesService.GetGames(new GetGamesRequest { DeveloperUid = Settings.Instance.Credentials.Uid, InterfaceVersion = Constants.InterfaceVersion});
+            var getGamesRequest = NewRequest<GetGamesRequest>();
+            getGamesRequest.DeveloperUid = Settings.Instance.Credentials.Uid;
+            getGamesRequest.InterfaceVersion = Constants.InterfaceVersion;
+
+            var gamesResponse = DeveloperService(s=>s.GetGames(getGamesRequest));
             if (gamesResponse.Errors.Count > 0)
             {
                 Logger.Current.Write(LogInfoLevel.Error, "Unable to load games: " + gamesResponse.Errors[0].Message);
@@ -219,7 +209,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
             var request = NewRequest<GetGameVersionsRequest>();
             request.GameUid = selectedGame.Uid;
 
-            var response = DeveloperService.GetGameVersions(request);
+            var response = DeveloperService(s=>s.GetGameVersions(request));
             if (response.Errors.Count > 0)
             {
                 Logger.Current.Write(LogInfoLevel.Error, "Unable to load game versions: " + response.Errors[0].Message);
