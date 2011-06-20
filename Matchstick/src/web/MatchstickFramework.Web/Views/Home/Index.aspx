@@ -40,7 +40,7 @@
                 <li>MGDF makes distributing games easier as you don't have to worry about creating an installer for your game, simply zip up your game into an archive and the framework will handle the installation of your game on the clients machine.</li>
                 <li>MGDF makes it easier to keep your game up to date by providing an open online distribution system for your games, which you can either self host or have someone else host for you.</li>
                 </ul>
-                <p>Once you have installed the framework you can download and try out the <a href="http://games.junkship.net/games/Test/latestVersion">MGDF test game package</a></p>
+                <p>Once you have installed the framework you can download and try out the <a href="http://games.junkship.net/Downloads/Test/latestVersion">MGDF test game package</a></p>
             </div>
            
             <h3><a href="https://github.com/mrsharpoblunto/MGDF">View Source Code</a><% if (latestSDKVersion!=null) { %> | <a onclick="javascript:_gaq.push(['_trackPageview','<%=latestSDKVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host) %>']);" href="<%=latestSDKVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host)%>">Download Latest SDK</a> <%} %></h3>

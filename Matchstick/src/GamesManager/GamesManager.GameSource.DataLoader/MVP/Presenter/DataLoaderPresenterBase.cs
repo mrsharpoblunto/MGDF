@@ -12,10 +12,13 @@ using MGDF.GamesManager.GameSource.DataLoader.MVP.Model;
 
 namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
 {
+    class DataLoaderServiceManager
+    {
+        public static WCFClient<IGameSourceDeveloperService> Client;
+    }
+
     class DataLoaderPresenterBase<T>: PresenterBase<T> where T:IView 
     {
-        private static WCFClient<IGameSourceDeveloperService> _client;
-
         protected DataLoaderPresenterBase()
         {
         }
@@ -24,12 +27,12 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
         {
             var factory = new ChannelFactory<IGameSourceDeveloperService>(new WebHttpBinding(), new EndpointAddress(developerServiceUrl));
             factory.Endpoint.Behaviors.Add(new WebHttpBehavior());
-            _client = new WCFClient<IGameSourceDeveloperService>(factory);
+            DataLoaderServiceManager.Client = new WCFClient<IGameSourceDeveloperService>(factory);
         }
 
         public static TReturn DeveloperService<TReturn>(Func<IGameSourceDeveloperService, TReturn> code)
         {
-            return _client.Use(code);
+            return DataLoaderServiceManager.Client.Use(code);
         }
 
         protected U NewRequest<U>() where U : AuthenticatedRequestBase, new()

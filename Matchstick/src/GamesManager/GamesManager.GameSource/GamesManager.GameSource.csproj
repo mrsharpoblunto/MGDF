@@ -89,7 +89,7 @@
     <Compile Include="Caching\EntityCache.cs" />
     <Compile Include="Caching\GameCache.cs" />
     <Compile Include="CommonService.cs" />
-    <Compile Include="Handlers\ServicesHandler.cs" />
+    <Compile Include="Handlers\ServicesModule.cs" />
     <Compile Include="Janitor.cs" />
     <Compile Include="Games.svc.cs">
       <DependentUpon>Games.svc</DependentUpon>

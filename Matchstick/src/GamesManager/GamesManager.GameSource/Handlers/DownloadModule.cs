@@ -65,7 +65,7 @@ namespace MGDF.GamesManager.GameSource.Handlers
 
             try
             {
-                if (_context.Request.Url.PathAndQuery.StartsWith("/games/", StringComparison.InvariantCultureIgnoreCase))
+                if (_context.Request.Url.PathAndQuery.StartsWith("/downloads/", StringComparison.InvariantCultureIgnoreCase))
                 {
                     //the gamesource context resolver won't find anything as httpcontext is null, so we'll just create our own repo for the async request.
                     using (var repository = new GameSourceRepository(Config.Current.ConnectionString))

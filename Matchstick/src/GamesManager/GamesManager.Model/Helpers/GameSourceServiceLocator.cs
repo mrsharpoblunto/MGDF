@@ -35,7 +35,7 @@ namespace MGDF.GamesManager.Model.Helpers
         {
             get
             {
-                return _services.GameSourceService.AbsoluteUri(_baseUrl);
+                return _services.DeveloperService.AbsoluteUri(_baseUrl);
             }
         }
 
