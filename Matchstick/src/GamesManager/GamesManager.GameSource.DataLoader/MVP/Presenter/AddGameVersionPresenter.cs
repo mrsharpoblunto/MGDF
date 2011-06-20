@@ -67,6 +67,7 @@ namespace MGDF.GamesManager.GameSource.DataLoader.MVP.Presenter
         {
             var getGamesRequest = NewRequest<GetGamesRequest>();
             getGamesRequest.GameUid = installer.Game.Uid;
+            getGamesRequest.DeveloperUid = installer.Game.DeveloperUid;
             getGamesRequest.InterfaceVersion = Constants.InterfaceVersion;
 
             Game existingGame = DeveloperService(s=>s.GetGames(getGamesRequest).Games.SingleOrDefault());
