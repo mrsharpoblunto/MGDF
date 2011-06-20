@@ -116,7 +116,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(401,response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"AuthorizationFailed\" message=\"No developer found with this Developer Key\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""AuthorizationFailed"",""Message"":""No developer found with this Developer Key"",""ShouldRetry"":false}", reader.ReadToEnd());
         }
 
         [Test]
@@ -145,7 +145,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(401, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"AuthorizationFailed\" message=\"Invalid HMac/Timestamp\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""AuthorizationFailed"",""Message"":""Invalid HMac/Timestamp"",""ShouldRetry"":false}", reader.ReadToEnd());
         }
 
         [Test]
@@ -175,7 +175,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(401, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"AuthorizationFailed\" message=\"Invalid HMac/Timestamp\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""AuthorizationFailed"",""Message"":""Invalid HMac/Timestamp"",""ShouldRetry"":false}", reader.ReadToEnd());
         }
 
         [Test]
@@ -205,7 +205,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(400, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"InvalidArguments\" message=\"Expected MGDF headers were not present or are invalid\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""InvalidArguments"",""Message"":""Expected MGDF headers were not present or are invalid"",""ShouldRetry"":false}", reader.ReadToEnd());
         }
 
         [Test]
@@ -237,7 +237,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(404, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"InvalidArguments\" message=\"No incomplete Game fragment with this id exists\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""InvalidArguments"",""Message"":""No incomplete Game fragment with this id exists"",""ShouldRetry"":false}", reader.ReadToEnd());
         }
 
         [Test]
@@ -275,7 +275,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(200, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><success />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":true}", reader.ReadToEnd());
 
             fragmentFile = FileSystem.Current.GetFile(ServerContext.Current.MapPath(_gameFragmentData.GameFile));
             Assert.IsTrue(fragmentFile.Exists);
@@ -315,7 +315,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(200, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><success gameVersionId=\"1a58f0ff-98a2-4381-ba6f-7d1cbefa6c9c\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":true,""GameVersionId"":""1a58f0ff-98a2-4381-ba6f-7d1cbefa6c9c""}", reader.ReadToEnd());
 
             //has the gameversion been updated
             version = GameSourceRepository.Current.Get<GameVersion>().Single(gv => gv.Id == new Guid("1a58f0ff-98a2-4381-ba6f-7d1cbefa6c9c"));
@@ -369,7 +369,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(200, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><success />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":true}", reader.ReadToEnd());
 
             fragmentFile = FileSystem.Current.GetFile(ServerContext.Current.MapPath(_gameFragmentData.GameFile));
             Assert.IsTrue(fragmentFile.Exists);
@@ -409,7 +409,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(400, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"InvalidArguments\" message=\"Invalid file hash\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""InvalidArguments"",""Message"":""Invalid file hash"",""ShouldRetry"":false}", reader.ReadToEnd());
 
             //has the gameversion not been updated
             version = GameSourceRepository.Current.Get<GameVersion>().Single(gv => gv.Id == new Guid("1a58f0ff-98a2-4381-ba6f-7d1cbefa6c9c"));
@@ -460,7 +460,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(400, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"InvalidArguments\" message=\"Invalid file part hash\" retry=\"True\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""InvalidArguments"",""Message"":""Invalid file part hash"",""ShouldRetry"":true}", reader.ReadToEnd());
 
             fragmentFile = FileSystem.Current.GetFile(ServerContext.Current.MapPath(_gameFragmentData.GameFile));
             Assert.IsFalse(fragmentFile.Exists);
@@ -500,7 +500,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(400, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"InvalidArguments\" message=\"Part content length exceeds the maximum size (" + ((MockConfig)Config.Current).MaxUploadPartSize + " bytes)\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""InvalidArguments"",""Message"":""Part content length exceeds the maximum size (" + ((MockConfig)Config.Current).MaxUploadPartSize + @" bytes)"",""ShouldRetry"":false}", reader.ReadToEnd());
 
             fragmentFile = FileSystem.Current.GetFile(ServerContext.Current.MapPath(_gameFragmentData.GameFile));
             Assert.IsFalse(fragmentFile.Exists);
@@ -538,7 +538,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
             Assert.AreEqual(400, response.StatusCode);
             response.Output.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(response.Output);
-            Assert.AreEqual("<?xml version=\"1.0\" ?><error code=\"InvalidArguments\" message=\"Part content MD5 checksum header missing or invalid\" retry=\"False\" />", reader.ReadToEnd());
+            Assert.AreEqual(@"{""Success"":false,""Code"":""InvalidArguments"",""Message"":""Part content MD5 checksum header missing or invalid"",""ShouldRetry"":false}", reader.ReadToEnd());
 
             fragmentFile = FileSystem.Current.GetFile(ServerContext.Current.MapPath(_gameFragmentData.GameFile));
             Assert.IsFalse(fragmentFile.Exists);

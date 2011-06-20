@@ -140,7 +140,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual(true, response.LatestVersion.Published);
             Assert.AreEqual("1.1.0.0", response.LatestVersion.Version);
             Assert.AreEqual("md51a", response.LatestVersion.Md5Hash);
-            Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBw.mza", response.LatestVersion.DownloadURL);
+            Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBw.mza", response.LatestVersion.DownloadURL);
 
             response = Service.GetGameUpdate("1","game1","1.1.0.0");
             Assert.AreEqual(0, response.Errors.Count);
@@ -150,7 +150,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual(true, response.LatestVersion.Published);
             Assert.AreEqual("1.2.0.0", response.LatestVersion.Version);
             Assert.AreEqual("md51b", response.LatestVersion.Md5Hash);
-            Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRCA.mza", response.LatestVersion.DownloadURL);
+            Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRCA.mza", response.LatestVersion.DownloadURL);
         }
 
         [Test]
@@ -188,9 +188,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual("md51", response.Games[0].LatestVersion.Md5Hash);
             Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBQ.mza", response.Games[0].LatestVersion.DownloadURL);
 
-            Assert.AreEqual("game2", response.Games[1].Uid);
-
-            response = Service.GetGames("developer1", "1");
+            response = Service.GetGames("developer1", "2");
             Assert.AreEqual(0, response.Errors.Count);
             Assert.AreEqual(0, response.Games.Count);
         }

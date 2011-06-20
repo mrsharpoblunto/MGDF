@@ -637,7 +637,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual("1.0.0.0",response.GameVersions[0].Version);
             Assert.AreEqual("game1 version 1", response.GameVersions[0].Description);
             Assert.AreEqual("md51", response.GameVersions[0].Md5Hash);
-            Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBQ.mza", response.GameVersions[0].DownloadURL);
+            Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBQ.mza", response.GameVersions[0].DownloadURL);
 
             Assert.IsTrue(response.GameVersions[1].IsUpdate);
             Assert.IsTrue(response.GameVersions[1].Published);
@@ -646,7 +646,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual("1.0.1.1", response.GameVersions[1].UpdateMaxVersion);
             Assert.AreEqual("game1 version 1 update", response.GameVersions[1].Description);
             Assert.AreEqual("md51a", response.GameVersions[1].Md5Hash);
-            Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBw.mza", response.GameVersions[1].DownloadURL);
+            Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBw.mza", response.GameVersions[1].DownloadURL);
 
             Assert.IsTrue(response.GameVersions[2].IsUpdate);
             Assert.IsTrue(response.GameVersions[2].Published);
@@ -655,7 +655,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual("1.1.0.0", response.GameVersions[2].UpdateMaxVersion);
             Assert.AreEqual("game1 version 1 update 2", response.GameVersions[2].Description);
             Assert.AreEqual("md51b", response.GameVersions[2].Md5Hash);
-            Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRCA.mza", response.GameVersions[2].DownloadURL);
+            Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRCA.mza", response.GameVersions[2].DownloadURL);
         }
 
         [Test]
@@ -1160,7 +1160,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
             Assert.AreEqual(0, getResponse.Errors.Count);
             Assert.AreEqual(1, getResponse.UserGames.Count);
             Assert.AreEqual("game1", getResponse.UserGames[0].Uid);
-            Assert.AreEqual("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBQ.mza?hmac=" + Cryptography.GenerateHMac(_developer1.SecretKey, new Guid("341EEE93-41C5-48F0-A4D7-D4F234B9D105").ToString().ToLowerInvariant(), "2009-10-10T00:00:00Z") + "&timestamp=2009-10-10T00:00:00Z", getResponse.UserGames[0].LatestVersion.AuthenticatedDownloadURL);
+            Assert.AreEqual("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBQ.mza?hmac=" + Cryptography.GenerateHMac(_developer1.SecretKey, new Guid("341EEE93-41C5-48F0-A4D7-D4F234B9D105").ToString().ToLowerInvariant(), "2009-10-10T00:00:00Z") + "&timestamp=2009-10-10T00:00:00Z", getResponse.UserGames[0].LatestVersion.AuthenticatedDownloadURL);
         
             //now revoke access to our game
             request = RequestBuilder.Build<EditUserGamesRequest>();

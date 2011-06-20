@@ -233,7 +233,7 @@ namespace MGDF.GamesManager.GameSource.Tests.HttpHandlerTests
 
             Assert.IsTrue(response.ResponseEnded);
             Assert.AreEqual(302,response.StatusCode);
-            Assert.AreEqual("http://games.junkship.org/games/" + new Guid("1A58F0FF-98A2-4381-BA6F-7D1CBEFA6C9C").Encode() + ".mza", response.Headers[Headers.Location]);
+            Assert.AreEqual("http://games.junkship.org/Downloads/" + new Guid("1A58F0FF-98A2-4381-BA6F-7D1CBEFA6C9C").Encode() + ".mza", response.Headers[Headers.Location]);
         }
 
         [Test]

@@ -32,11 +32,10 @@ namespace MGDF.GamesManager.Tests
             gamesManagerUpdaterFile.AssemblyVersion = new Version(1, 0, 0, 1);
 
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<latestversion>
-    <version>1.1.2.4</version>
-    <url>http://www.matchstickframework.org/downloads/MGDF-1.0.0.1.exe</url>
-</latestversion>");
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion", @"
+""Version"":""1.1.2.4"",
+""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.0.0.1.exe""
+}");
 
             FrameworkUpdateManager.Instance.Start();
 
@@ -51,11 +50,10 @@ namespace MGDF.GamesManager.Tests
             gamesManagerFile.WriteText("EXECUTABLE");
             gamesManagerFile.AssemblyVersion = new Version(1,0,0,1);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<latestversion>
-    <version>1.1.2.4</version>
-    <url>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</url>
-</latestversion>");
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
+""Version"":""1.1.2.4"",
+""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
+}");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000));
 
             bool finished = false;
@@ -76,11 +74,10 @@ namespace MGDF.GamesManager.Tests
             gamesManagerFile.WriteText("EXECUTABLE");
             gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 1);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<latestversion>
-    <version>1.1.2.4</version>
-    <url>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</url>
-</latestversion>");
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
+""Version"":""1.1.2.4"",
+""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
+}");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000),
                 (s,e)=>{ throw new Exception("Connection error");},null);
 
@@ -106,11 +103,10 @@ namespace MGDF.GamesManager.Tests
             gamesManagerFile.WriteText("EXECUTABLE");
             gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 1);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<latestversion>
-    <version>1.1.2.4</version>
-    <url>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</url>
-</latestversion>");
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
+""Version"":""1.1.2.4"",
+""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
+}");
 
             bool doExit=true;
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000),                (s, e) =>
@@ -175,11 +171,10 @@ namespace MGDF.GamesManager.Tests
             gamesManagerFile.WriteText("EXECUTABLE");
             gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 1);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<latestversion>
-    <version>1.1.2.4</version>
-    <url>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</url>
-</latestversion>");
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
+""Version"":""1.1.2.4"",
+""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
+}");
 
             bool doExit = true;
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000), (s, e) =>
@@ -223,11 +218,10 @@ namespace MGDF.GamesManager.Tests
             Assert.AreEqual(expectedQueueFile, queueFileContents);
 
             //simulate a newer version coming available
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<latestversion>
-    <version>1.2.0.0</version>
-    <url>http://www.matchstickframework.org/downloads/MGDF-1.2.0.0.exe</url>
-</latestversion>");
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
+""Version"":""1.2.0.0"",
+""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.2.0.0.exe""
+}");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.2.0.0.exe", GenerateDataBlock(155000));
 
             //now restart

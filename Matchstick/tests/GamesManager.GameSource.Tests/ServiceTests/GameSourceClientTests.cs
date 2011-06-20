@@ -173,22 +173,22 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
         {
             HttpRequestManager.Current = new MockHttpRequestManager();
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesourcemanifest.xml", @"<?xml version=""1.0"" encoding=""utf-8"" ?>
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/Services", @"
 {
-    ""GameSourceService"":""/games.svc"",
-    ""DeveloperService"":""/developer.svc""
+    ""GameSourceService"":""/games1.svc"",
+    ""DeveloperService"":""/developer1.svc""
 }");
 
             GameSourceServiceLocator serviceLocator = new GameSourceServiceLocator("http://games.junkship.org");
-            Assert.AreEqual("http://games.junkship.org/games.svc", serviceLocator.GamesServiceUrl);
-            Assert.AreEqual("http://games.junkship.org/developer.svc", serviceLocator.DeveloperServiceUrl);
+            Assert.AreEqual("http://games.junkship.org/games1.svc", serviceLocator.GamesServiceUrl);
+            Assert.AreEqual("http://games.junkship.org/developer1.svc", serviceLocator.DeveloperServiceUrl);
         }
 
         [Test]
         public void TestClientFindsAvailableContiguousUpdatesNoCachedCredentials()
         {
             HttpRequestManager.Current = new MockHttpRequestManager();
-            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
+            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
 
             FileSystem.Current.GetFile("c:\\game.xml").WriteText(@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
@@ -253,7 +253,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
                                                    });
 
             HttpRequestManager.Current = new MockHttpRequestManager();
-            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
+            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
 
             FileSystem.Current.GetFile("c:\\game.xml").WriteText(@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
@@ -294,7 +294,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
         public void TestClientFindsAvailableContiguousUpdatesInvalidCredentials()
         {
             HttpRequestManager.Current = new MockHttpRequestManager();
-            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
+            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
 
             FileSystem.Current.GetFile("c:\\game.xml").WriteText(@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
@@ -347,7 +347,7 @@ namespace MGDF.GamesManager.GameSource.Tests.ServiceTests
         public void TestClientFindsAvailableContiguousUpdatesNoCredentials()
         {
             HttpRequestManager.Current = new MockHttpRequestManager();
-            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/games/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
+            ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://games.junkship.org/Downloads/k-4eNMVB8Eik19TyNLnRBw.mza", "testuser", "Password1");
 
             FileSystem.Current.GetFile("c:\\game.xml").WriteText(@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
