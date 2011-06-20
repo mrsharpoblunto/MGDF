@@ -200,7 +200,7 @@
     <exec program="${ilmerge_exe_path}">
       <arg value="/out:Package\SDK\Bin\DataLoader.exe" />
       <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.GameSource.DataLoader.exe" />
-      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\ACorns.WCF.DynamicClientProxy.dll" />
+      <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
       <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.Common.dll" />
       <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.Controls.dll" />
       <arg value="Src\GamesManager\GamesManager.GameSource.DataLoader\bin\${msbuild_target}\GamesManager.GameSource.Contracts.dll" />
@@ -215,7 +215,6 @@
     <exec program="${ilmerge_exe_path}">
       <arg value="/out:Package\SDK\Bin\PackageGen.exe" />
       <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\ACorns.WCF.DynamicClientProxy.dll" />
       <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Common.dll" />
       <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.GameSource.Contracts.dll" />
       <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Model.dll" />
