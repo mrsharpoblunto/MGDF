@@ -157,9 +157,6 @@
     <EmbeddedResource Include="..\..\..\content\schemas\game.xsd">
       <Link>Schemas\game.xsd</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\..\..\content\schemas\gamesourcemanifest.xsd">
-      <Link>Schemas\gamesourcemanifest.xsd</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\..\..\content\schemas\gameState.xsd">
       <Link>Schemas\gameState.xsd</Link>
     </EmbeddedResource>

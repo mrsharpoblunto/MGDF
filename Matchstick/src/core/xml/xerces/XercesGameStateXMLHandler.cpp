@@ -46,9 +46,14 @@ bool XercesGameStateXMLHandler::Load(std::string filename)
 		loadParser->parse(filename.c_str());
 		delete loadParser;
 	}
-	catch (SAXParseException e) {
+	catch (SAXParseException e) 
+	{
 		throw MGDFException(XercesUtils::ToString(e.getMessage()));
 	}
+	catch(std::exception e)
+    {
+		throw MGDFException(e.what());
+    } 
 
 	return _requiresMigration;
 }

@@ -10,6 +10,7 @@
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManagerImpl.hpp"
 #include "../common/MGDFResources.hpp"
+#include "../common/MGDFExceptions.hpp"
 #include "MGDFParameterConstants.hpp"
 #include "../xml/MGDFXMLFactoryComponentImpl.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
@@ -96,6 +97,13 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 		{
 			game = GameBuilder::LoadGame(GetParameterManagerImpl()->GetParameter(ParameterConstants::BOOT_GAME));
 		}
+		catch (MGDFException ex)
+		{
+			std::string error = "FATAL ERROR: Unable to load game boot configuration - ";
+			error+=ex.what();
+			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),error,LOG_ERROR);
+			return NULL;
+		} 
 		catch (...)
 		{
 			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to load game boot configuration",LOG_ERROR);

@@ -6,7 +6,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "schemas", "schemas", "{88D35EB1-0966-4875-94C1-A8B8A7E9F875}"
 	ProjectSection(SolutionItems) = preProject
 		content\schemas\game.xsd = content\schemas\game.xsd
-		content\schemas\gamesourcemanifest.xsd = content\schemas\gamesourcemanifest.xsd
 		content\schemas\gameState.xsd = content\schemas\gameState.xsd
 		content\schemas\preferences.xsd = content\schemas\preferences.xsd
 		content\schemas\update.xsd = content\schemas\update.xsd

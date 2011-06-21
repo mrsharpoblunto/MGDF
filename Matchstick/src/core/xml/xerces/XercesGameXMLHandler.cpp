@@ -67,6 +67,10 @@ void XercesGameXMLHandler::Load(std::string filename)
 	catch (SAXParseException e) {
 		throw MGDFException(XercesUtils::ToString(e.getMessage()));
 	}
+	catch(std::exception e)
+    {
+		throw MGDFException(e.what());
+    } 
 }
 
 void XercesGameXMLHandler::startDocument()

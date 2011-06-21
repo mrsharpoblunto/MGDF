@@ -270,6 +270,10 @@ void System::LoadGameState(const events::LoadEvent *e)
 				MigrateGameState(handler.get(),loadFile,loadDir);
 			}
 		}
+		catch (MGDFException ex)
+		{
+			FatalError(THIS_NAME,"Unable to load game state data from "+loadDir+" - "+ex.what());
+		}
 		catch (...)
 		{
 			FatalError(THIS_NAME,"Unable to load game state data from "+loadDir);
