@@ -33,7 +33,7 @@ Resources::Resources(HINSTANCE instance,bool useRootDir) {
 void Resources::SetUserBaseDir(bool useRootDir)
 {
 	if (useRootDir) {
-		_userBaseDir = _applicationDirectory+"user/";
+		_userBaseDir = (_gamesBaseDir!="" ? _gamesBaseDir : _applicationDirectory)+"user/";
 	}
 	else 
 	{
@@ -49,7 +49,7 @@ void Resources::SetUserBaseDir(bool useRootDir)
 		}
 		else 
 		{
-			_userBaseDir = _applicationDirectory+"user/";
+			_userBaseDir = (_gamesBaseDir!="" ? _gamesBaseDir : _applicationDirectory)+"user/";
 		}
 	}
 }
@@ -161,8 +161,8 @@ void Resources::CreateRequiredDirectories(std::string gameUid)
 	boost::filesystem::path gameDir(UserDir(gameUid),boost::filesystem::native); 
 	if (!exists(gameDir))
 		create_directory(gameDir);
-	boost::filesystem::path workingDir(Resources::Instance().WorkingDir(),boost::filesystem::native); 
-	if (exists(workingDir)) {
+	boost::filesystem::path workingDir(WorkingDir(),boost::filesystem::native); 
+	if (!exists(workingDir)) {
 		create_directory(workingDir);
 	}
 }

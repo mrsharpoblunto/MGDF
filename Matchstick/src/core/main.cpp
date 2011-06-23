@@ -33,7 +33,6 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 	#endif
 
 	Resources::Instance(hInstance);	//initialise the core resource locator
-	GetLoggerImpl()->Add("MGDF::WinMain","starting up...");
 	SetUnhandledExceptionFilter(UnhandledExceptionCallBack);//logs and stackdumps when any unexpected errors occur
 
 	//create the application instance and initialise the window
@@ -42,6 +41,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 	//create the system object and related components
 	System *system = SystemBuilder::CreateSystem(MGDFApp::Instance().GetApplicationInstance(),MGDFApp::Instance().GetWindow());
 
+	GetLoggerImpl()->Add("MGDF::WinMain","starting up...");
 	if (system!=NULL) {
 		system->AddFatalErrorCallback(&FatalErrorCallBack);
 

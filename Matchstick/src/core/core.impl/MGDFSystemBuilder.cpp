@@ -30,8 +30,8 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 {
 	//init global common components
 	InitParameterManager();
-	InitLogger();
 	InitResources();
+	InitLogger();
 
 
 	xml::IXMLFactoryComponent *xmlImpl = xml::CreateXMLFactoryComponentImpl(instance,window);
@@ -196,11 +196,11 @@ void SystemBuilder::InitLogger()
 
 void SystemBuilder::InitResources()
 {
-	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::USER_DIR_OVERRIDE)) {
-		Resources::Instance().SetUserBaseDir(true);
-	}
 	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::GAMES_DIR_OVERRIDE)) {
 		Resources::Instance().SetGamesBaseDir(std::string(GetParameterManagerImpl()->GetParameter(ParameterConstants::GAMES_DIR_OVERRIDE)));
+	}
+	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::USER_DIR_OVERRIDE)) {
+		Resources::Instance().SetUserBaseDir(true);
 	}
 	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME)) {
 		Resources::Instance().CreateRequiredDirectories(std::string(GetParameterManagerImpl()->GetParameter(ParameterConstants::BOOT_GAME)));
