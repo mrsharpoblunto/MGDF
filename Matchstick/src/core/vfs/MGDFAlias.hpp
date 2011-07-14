@@ -10,11 +10,11 @@ class Alias
 public:
 	Alias(void);
 	~Alias(void);
-	void AddAlias(std::string alias,std::string value);//throws EAliasSyntaxException
-	void RemoveAlias(std::string alias);
-	std::string ResolveAliases(std::string text);//throws EAliasSyntaxException
+	void AddAlias(std::wstring alias,std::wstring value);//throws EAliasSyntaxException
+	void RemoveAlias(std::wstring alias);
+	std::wstring ResolveAliases(std::wstring text);//throws EAliasSyntaxException
 private:
-	stdext::hash_map<std::string,std::string> _aliases;
+	stdext::hash_map<std::wstring,std::wstring> _aliases;
 
 };
 

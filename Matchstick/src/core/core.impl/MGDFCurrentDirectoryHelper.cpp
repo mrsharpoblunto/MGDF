@@ -13,10 +13,10 @@ namespace MGDF { namespace core {
 
 CurrentDirectoryHelper::CurrentDirectoryHelper()
 {
-	char buffer[MAX_PATH];
+	wchar_t buffer[MAX_PATH];
 	DWORD ret;
 
-	ret = GetCurrentDirectory(MAX_PATH,buffer);
+	ret = GetCurrentDirectoryW(MAX_PATH,buffer);
 	if( ret == 0 )
 	{
 		GetLoggerImpl()->Add(THIS_NAME,"unable to get current directory");
@@ -30,7 +30,7 @@ CurrentDirectoryHelper::CurrentDirectoryHelper()
 	_currentDirectories.clear();
 }
 
-std::string CurrentDirectoryHelper::Get()
+std::wstring CurrentDirectoryHelper::Get()
 {
 	if (_currentDirectories.size()>0) {
 		return *(_currentDirectories.begin());
@@ -40,13 +40,13 @@ std::string CurrentDirectoryHelper::Get()
 	}
 }
 
-void CurrentDirectoryHelper::Set(std::string directory)
+void CurrentDirectoryHelper::Set(std::wstring directory)
 {
 	_currentDirectories.clear();
 	SetDirectory(directory);
 }
 
-void CurrentDirectoryHelper::Push(std::string directory)
+void CurrentDirectoryHelper::Push(std::wstring directory)
 {
 	_currentDirectories.push_front(directory);
 	SetDirectory(directory);
@@ -66,14 +66,14 @@ void CurrentDirectoryHelper::Pop()
 	}
 }
 
-void CurrentDirectoryHelper::SetDirectory(std::string directory)
+void CurrentDirectoryHelper::SetDirectory(std::wstring directory)
 {
 	if(directory.length() > MAX_PATH-1)
 	{
 		GetLoggerImpl()->Add(THIS_NAME,"cannot set directory with more than MAX_PATH characters");
 	}
 	else {
-		SetCurrentDirectory(directory.c_str());
+		SetCurrentDirectoryW(directory.c_str());
 		_currentDirectory = directory;
 	}
 }

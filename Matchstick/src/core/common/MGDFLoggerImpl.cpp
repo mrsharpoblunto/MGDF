@@ -67,7 +67,7 @@ Logger::Logger()
 	SetOutputFile(Resources::Instance().LogFile());
 }
 
-void Logger::SetOutputFile(std::string filename) 
+void Logger::SetOutputFile(std::wstring filename) 
 {
 	_filename = filename;
 	std::ofstream outFile;

@@ -8,7 +8,7 @@ namespace MGDF { namespace core { namespace vfs { namespace filters {
 class ExtensionFilter: public NameFilter
 {
 public:
-	ExtensionFilter(std::string extensionFilter,bool include);
+	ExtensionFilter(std::wstring extensionFilter,bool include);
 	virtual ~ExtensionFilter();
 };
 

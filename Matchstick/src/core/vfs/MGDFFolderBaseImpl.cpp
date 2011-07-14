@@ -12,9 +12,9 @@
 
 namespace MGDF { namespace core { namespace vfs {
 
-FolderBaseImpl::FolderBaseImpl(std::string folderName,std::string physicalPath)
+FolderBaseImpl::FolderBaseImpl(std::wstring folderName,std::wstring physicalPath)
 {
-	std::transform(folderName.begin(), folderName.end(), folderName.begin(), (int(*)(int)) std::tolower);
+	std::transform(folderName.begin(), folderName.end(), folderName.begin(),::towlower);
 	_name = folderName;
 	_path = physicalPath;
 }
@@ -71,17 +71,17 @@ bool FolderBaseImpl::IsArchive() const
 	return false;
 }
 
-const char *FolderBaseImpl::GetArchiveName() const
+const wchar_t *FolderBaseImpl::GetArchiveName() const
 {
 	return NULL;
 }
 
-const char *FolderBaseImpl::GetPhysicalPath() const
+const wchar_t *FolderBaseImpl::GetPhysicalPath() const
 {
 	return _path.c_str();
 }
 
-const char *FolderBaseImpl::GetName() const
+const wchar_t *FolderBaseImpl::GetName() const
 {
 	return _name.c_str();
 }

@@ -15,11 +15,11 @@ class ZipFolderImpl: public FolderBaseImpl
 public:
 	virtual ~ZipFolderImpl();
 	virtual bool IsArchive() const;
-	virtual const char *GetArchiveName() const;
+	virtual const wchar_t *GetArchiveName() const;
 private:
 	ZipArchive *_handler;
 
-	ZipFolderImpl(ZipArchive *handler,std::string name): FolderBaseImpl(name,handler->GetArchiveRoot()->GetPhysicalPath())
+	ZipFolderImpl(ZipArchive *handler,std::wstring name): FolderBaseImpl(name,handler->GetArchiveRoot()->GetPhysicalPath())
 	{
 		_handler = handler;
 		_handler->IncRefCount();

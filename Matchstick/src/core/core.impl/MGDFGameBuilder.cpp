@@ -17,12 +17,12 @@
 namespace MGDF { namespace core {
 
 //loads a boot configuration from a file in the boot folder
-Game *GameBuilder::LoadGame(std::string gameUid)
+Game *GameBuilder::LoadGame()
 {	
 	xml::IXMLFactoryComponent *xmlFactory = Components::Instance().Get<xml::IXMLFactoryComponent>();
 
 	std::auto_ptr<xml::IGameXMLHandler> handler(xmlFactory->CreateGameXMLHandler());
-	handler->Load(Resources::Instance().GameFile(gameUid));
+	handler->Load(Resources::Instance().GameFile());
 
 	//add this configurations parameters to the parameter manager
 	GetParameterManagerImpl()->AddParameterString(handler->GetParameterString().c_str());
@@ -41,15 +41,13 @@ Game *GameBuilder::CreateGame(std::string uid,std::string name,int interfaceVers
 	xml::IXMLFactoryComponent *xmlFactory = Components::Instance().Get<xml::IXMLFactoryComponent>();
 
 	Game *game = new Game(uid,name,interfaceVersion,version,xmlFactory);
-
-	Resources::Instance().CreateRequiredDirectories(game->GetUid());
 	
 	//load the defaults from the core settings and the game settings (REQUIRED)
 	game->LoadPreferences(Resources::Instance().CorePreferencesFile());
 	
 	//load the defaults for the game (OPTIONAL)
-	boost::filesystem::path bootDefaultPref(
-		Resources::Instance().GameDefaultPreferencesFile(game->GetUid()),boost::filesystem::native
+	boost::filesystem::wpath bootDefaultPref(
+		Resources::Instance().GameDefaultPreferencesFile(),boost::filesystem::native
 	);
 
 	if (exists(bootDefaultPref)) {
@@ -57,8 +55,8 @@ Game *GameBuilder::CreateGame(std::string uid,std::string name,int interfaceVers
 	}
 
 	//load customised preferences for this game (OPTIONAL)
-	boost::filesystem::path customPref(
-		Resources::Instance().GameUserPreferencesFile(game->GetUid()),boost::filesystem::native
+	boost::filesystem::wpath customPref(
+		Resources::Instance().GameUserPreferencesFile(),boost::filesystem::native
 	);
 
 	//then if a settings file exists, override these defaults where present

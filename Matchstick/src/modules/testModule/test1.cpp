@@ -20,11 +20,11 @@ Test1::Test1()
 	_testState = 0;
 }
 
-void Test1::LoadModule(const char *saveDataFolder,const char *workingFolder,TextManagerState *state)
+void Test1::LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder,TextManagerState *state)
 {
 }
 
-void Test1::SaveModule(const char *saveDataFolder,TextManagerState *state)
+void Test1::SaveModule(const wchar_t *saveDataFolder,TextManagerState *state)
 {
 }
 

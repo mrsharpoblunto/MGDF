@@ -17,7 +17,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)\games\test\bin"
+			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)\game\bin"
 			IntermediateDirectory="bin\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="2"
@@ -87,7 +87,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)\games\test\bin"
+			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)\game\bin"
 			IntermediateDirectory="bin\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="2"

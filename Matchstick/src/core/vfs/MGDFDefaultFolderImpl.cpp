@@ -12,7 +12,7 @@
 
 namespace MGDF { namespace core { namespace vfs {
 
-DefaultFolderImpl::DefaultFolderImpl(std::string foldername,std::string physicalPath,VirtualFileSystemComponent *vfs,IFileFilter *filter):FolderBaseImpl(foldername,physicalPath)
+DefaultFolderImpl::DefaultFolderImpl(std::wstring foldername,std::wstring physicalPath,VirtualFileSystemComponent *vfs,IFileFilter *filter):FolderBaseImpl(foldername,physicalPath)
 {
 	_mappedChildren = vfs==NULL;
 	_vfs = vfs;
@@ -38,7 +38,7 @@ IFileIterator *DefaultFolderImpl::GetIterator()
 	return FolderBaseImpl::GetIterator();
 }
 
-IFile *DefaultFolderImpl::GetDescendant(const char * query)
+IFile *DefaultFolderImpl::GetDescendant(const wchar_t * query)
 {
 	MapChildren();
 	return FolderBaseImpl::GetDescendant(query);
@@ -56,7 +56,7 @@ IFile *DefaultFolderImpl::GetLastChild()
 	return FolderBaseImpl::GetLastChild();
 }
 
-IFile *DefaultFolderImpl::GetChild(const char *name)
+IFile *DefaultFolderImpl::GetChild(const wchar_t *name)
 {
 	MapChildren();
 	return FolderBaseImpl::GetChild(name);

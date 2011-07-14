@@ -42,11 +42,11 @@ private:
 	Logger();
 	virtual ~Logger();
 
-	void SetOutputFile(std::string);
+	void SetOutputFile(std::wstring);
 
 	boost::mutex _mutex;
 	std::vector<std::string> _events;
-	std::string _filename;
+	std::wstring _filename;
 	LogLevel _level;
 };
 

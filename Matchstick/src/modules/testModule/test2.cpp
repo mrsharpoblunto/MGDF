@@ -19,11 +19,11 @@ Test2::Test2()
 	_testState = 0;
 }
 
-void Test2::LoadModule(const char *saveDataFolder,const char *workingFolder,TextManagerState *state)
+void Test2::LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder,TextManagerState *state)
 {
 }
 
-void Test2::SaveModule(const char *saveDataFolder,TextManagerState *state)
+void Test2::SaveModule(const wchar_t *saveDataFolder,TextManagerState *state)
 {
 }
 
@@ -67,7 +67,7 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	else if (_testState==1)
 	{
 		state->AddLine(WHITE,"Loading sound chimes.wav");
-		_sound = system->GetSound()->CreateSound(system->GetVFS()->GetFile("content/chimes.wav"),0);
+		_sound = system->GetSound()->CreateSound(system->GetVFS()->GetFile(L"content/chimes.wav"),0);
 		system->GetSound()->SetEnableAttenuation(true);
 		if (_sound==NULL)
 		{
@@ -141,7 +141,7 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	else if (_testState==5)
 	{
 		state->AddLine(WHITE,"Loading stream stream.ogg");
-		_stream = system->GetSound()->CreateSoundStream(system->GetVFS()->GetFile("content/stream.ogg"));
+		_stream = system->GetSound()->CreateSoundStream(system->GetVFS()->GetFile(L"content/stream.ogg"));
 		if (_stream==NULL)
 		{
 			_testState =999;

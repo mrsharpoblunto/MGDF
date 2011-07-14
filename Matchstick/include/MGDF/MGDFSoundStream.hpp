@@ -10,7 +10,7 @@ this class represents an audio stream
 */
 	class ISoundStream: public IDisposable {
 public:
-	virtual const char * GetName() const =0;
+	virtual const wchar_t * GetName() const =0;
 
 	virtual float  GetVolume() const =0;
 	virtual void  SetVolume(float volume)=0;

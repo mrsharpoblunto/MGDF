@@ -2,6 +2,7 @@
 
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFVersionHelper.hpp"
+#include "../common/MGDFResources.hpp"
 #include "MGDFGameImpl.hpp"
 #include "MGDFSystemImpl.hpp"
 
@@ -85,15 +86,15 @@ void Game::SavePreferences() const
 		handler->Add(iter->first,iter->second);
 	}
 	handler->Save(_preferencesFile);
-	GetLoggerImpl()->Add(THIS_NAME,"saved preferences to '"+_preferencesFile+"' successfully");
+	GetLoggerImpl()->Add(THIS_NAME,"saved preferences to '"+Resources::ToString(_preferencesFile)+"' successfully");
 }
 
-void Game::SavePreferences(std::string filename) {
+void Game::SavePreferences(std::wstring filename) {
 	_preferencesFile = filename;
 	SavePreferences();
 }
 
-void Game::LoadPreferences(std::string filename)
+void Game::LoadPreferences(std::wstring filename)
 {
 	std::auto_ptr<xml::IPreferenceConfigXMLHandler> handler(_xmlFactory->CreatePreferenceConfigXMLHandler());
 	handler->Load(filename);
@@ -101,7 +102,7 @@ void Game::LoadPreferences(std::string filename)
 	{
 		_preferences[iter->first] = iter->second;
 	}
-	GetLoggerImpl()->Add(THIS_NAME,"loaded preferences from '"+filename+"' successfully",LOG_MEDIUM);
+	GetLoggerImpl()->Add(THIS_NAME,"loaded preferences from '"+Resources::ToString(filename)+"' successfully",LOG_MEDIUM);
 }
 
 }

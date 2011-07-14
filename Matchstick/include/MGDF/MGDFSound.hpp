@@ -20,7 +20,7 @@ this class represents an audio source in 3d space
 */
 class ISound: public IDisposable {
 public:
-	virtual const char * GetName() const =0;
+	virtual const wchar_t * GetName() const =0;
 	virtual Vector * GetPosition() const =0;
 	virtual Vector * GetVelocity() const =0;
 

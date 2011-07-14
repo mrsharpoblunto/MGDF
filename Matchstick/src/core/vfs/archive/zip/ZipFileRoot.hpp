@@ -15,10 +15,10 @@ class ZipFileRoot: public DefaultFileImpl
 public:
 	virtual ~ZipFileRoot();
 	virtual bool IsArchive() const;
-	virtual const char *GetArchiveName() const;
+	virtual const wchar_t *GetArchiveName() const;
 private:
-	ZipFileRoot(std::string path,ILogger *logger,IErrorHandler *errorHandler);
-	std::string _archiveName;
+	ZipFileRoot(std::wstring path,ILogger *logger,IErrorHandler *errorHandler);
+	std::wstring _archiveName;
 };
 
 }}}}

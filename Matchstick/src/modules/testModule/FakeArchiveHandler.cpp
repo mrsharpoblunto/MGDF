@@ -16,19 +16,19 @@ FakeArchiveHandler::FakeArchiveHandler(MGDF::ILogger *logger,MGDF::IErrorHandler
 {
 	_logger = logger;
 	_errorHandler = errorHandler;
-	_fileExtensions.push_back(".fakearchive");
+	_fileExtensions.push_back(L".fakearchive");
 }
 
 FakeArchiveHandler::~FakeArchiveHandler()
 {
 }
 
-MGDF::IFile *FakeArchiveHandler::MapArchive(MGDF::IFile *parent,const char * archiveFile) 
+MGDF::IFile *FakeArchiveHandler::MapArchive(MGDF::IFile *parent,const wchar_t * archiveFile) 
 {
-	std::string physicalFile(archiveFile);
-	boost::filesystem::path physicalDirectoryPath(physicalFile,boost::filesystem::native);
-	std::string name = physicalDirectoryPath.leaf();
-	std::transform(name.begin(), name.end(), name.begin(), (int(*)(int)) std::tolower);
+	std::wstring physicalFile(archiveFile);
+	boost::filesystem::wpath physicalDirectoryPath(physicalFile,boost::filesystem::native);
+	std::wstring name = physicalDirectoryPath.leaf();
+	std::transform(name.begin(), name.end(), name.begin(),::towlower);
 
 	FakeFile *rootFile = new FakeFile(parent,archiveFile,name);
 
@@ -36,7 +36,7 @@ MGDF::IFile *FakeArchiveHandler::MapArchive(MGDF::IFile *parent,const char * arc
 	char *data = new char[dataString.size()];
 	memcpy(data,dataString.c_str(),dataString.size());
 
-	FakeFile *subFile = new FakeFile(rootFile,"testfile.txt",data,dataString.size());
+	FakeFile *subFile = new FakeFile(rootFile,L"testfile.txt",data,dataString.size());
 	rootFile->AddChild(subFile);
 
 	return rootFile;
@@ -47,10 +47,10 @@ void FakeArchiveHandler::Dispose()
 	delete this;
 }
 
-bool FakeArchiveHandler::IsArchive(const char *path) const 
+bool FakeArchiveHandler::IsArchive(const wchar_t *path) const 
 {
-	std::string extension = GetFileExtension(std::string(path));
-	for(std::vector<std::string>::const_iterator extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
+	std::wstring extension = GetFileExtension(std::wstring(path));
+	for(std::vector<std::wstring>::const_iterator extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
 		if ((*extIter) == extension) {
 			return true;
 		}
@@ -58,11 +58,11 @@ bool FakeArchiveHandler::IsArchive(const char *path) const
 	return false;
 }
 
-std::string FakeArchiveHandler::GetFileExtension(std::string filename) const
+std::wstring FakeArchiveHandler::GetFileExtension(std::wstring filename) const
 {
-	std::string::size_type pos = filename.rfind('.',filename.length()-1);
-	if (pos != std::string::npos) {
+	std::wstring::size_type pos = filename.rfind('.',filename.length()-1);
+	if (pos != std::wstring::npos) {
 		return filename.substr(pos);
 	}
-	return "";
+	return L"";
 }

@@ -118,7 +118,7 @@ private:
 	void LoadGameState(const events::LoadEvent *e);
 
 	void ClearWorkingDirectory();
-	void MigrateGameState(xml::IGameStateXMLHandler *handler,std::string gameStateFile,std::string saveDataDir);
+	void MigrateGameState(xml::IGameStateXMLHandler *handler,std::wstring gameStateFile,std::wstring saveDataDir);
 
 	xml::IXMLFactoryComponent *_xml;
 	input::IInputManagerComponent *_input;

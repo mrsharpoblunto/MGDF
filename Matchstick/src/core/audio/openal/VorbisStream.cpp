@@ -67,7 +67,7 @@ void VorbisStream::UninitStream()
 	_initLevel = 0;
 }
 
-const char * VorbisStream::GetName() const
+const wchar_t * VorbisStream::GetName() const
 {
 	return _dataSource->GetName();
 }

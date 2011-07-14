@@ -20,10 +20,10 @@ Test3::Test3()
 	_testState = 0;
 }
 
-void Test3::LoadModule(const char *saveDataFolder,const char *workingFolder,TextManagerState *state)
+void Test3::LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder,TextManagerState *state)
 {
-	std::string saveFile(saveDataFolder);
-	saveFile+="currentState.txt";
+	std::wstring saveFile(saveDataFolder);
+	saveFile+=L"currentState.txt";
 	std::ifstream in(saveFile.c_str(),std::ios::in);
 	if (in.fail()) 
 	{
@@ -44,11 +44,11 @@ void Test3::LoadModule(const char *saveDataFolder,const char *workingFolder,Text
 	state->AddLine(WHITE,"Load game state");
 }
 
-void Test3::SaveModule(const char *saveDataFolder,TextManagerState *state)
+void Test3::SaveModule(const wchar_t *saveDataFolder,TextManagerState *state)
 {
 	_testState = 1;
-	std::string saveFile(saveDataFolder);
-	saveFile+="currentState.txt";
+	std::wstring saveFile(saveDataFolder);
+	saveFile+=L"currentState.txt";
 	std::ofstream out(saveFile.c_str(),std::ios::out);
 	out << 2;
 	out.close();
@@ -106,7 +106,7 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		state->AddLine(WHITE,"Testing custom VFS archive handler registration");
 		
 		bool success = false;
-		IFile *file = system->GetVFS()->GetFile("/content/test.fakearchive/testfile.txt");
+		IFile *file = system->GetVFS()->GetFile(L"/content/test.fakearchive/testfile.txt");
 		if (file!=NULL)
 		{
 			file->OpenFile();

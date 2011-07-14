@@ -16,8 +16,8 @@ public:
 	virtual iterator Begin() const=0;
 	virtual iterator End() const=0;
 
-	virtual void Load(std::string)=0;
-	virtual void Save(std::string) const=0;
+	virtual void Load(std::wstring)=0;
+	virtual void Save(std::wstring) const=0;
 };
 
 }}}

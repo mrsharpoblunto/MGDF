@@ -16,14 +16,14 @@ FileBaseImpl::FileBaseImpl()
 {
 	_parent = NULL;
 	_children = NULL;
-	_logicalPath = "";
+	_logicalPath = L"";
 }
 
 FileBaseImpl::~FileBaseImpl()
 {
 	if (_children!=NULL) {
 		//delete all the children of this node
-		stdext::hash_map<std::string,IFile *>::iterator iter;
+		stdext::hash_map<std::wstring,IFile *>::iterator iter;
 		for (iter=_children->begin();iter!=_children->end();++iter) {
 			delete iter->second;
 		}
@@ -42,18 +42,18 @@ IFile *FileBaseImpl::GetParent() const
 }
 
 
-IFile *FileBaseImpl::GetDescendant(const char * query)
+IFile *FileBaseImpl::GetDescendant(const wchar_t * query)
 {
 	IFile *node=const_cast<IFile *>((const IFile *)this);
-	std::string q = query;
+	std::wstring q = query;
 	//get the query and convert it to lower case
-	std::transform(q.begin(), q.end(), q.begin(), (int(*)(int)) std::tolower);
+	std::transform(q.begin(), q.end(), q.begin(), ::towlower);
 	size_t dotPos = q.find(VFS_PATH_SEPARATOR);
 
 	//loop until no separators are found or a subnode is NULL
-	while (dotPos!=std::string::npos && node!=NULL) {
+	while (dotPos!=std::wstring::npos && node!=NULL) {
 		//get the first node namespace
-		std::string nodeName = q.substr(0,dotPos);
+		std::wstring nodeName = q.substr(0,dotPos);
 		q = q.substr(dotPos+1,q.length()-1);
 
 		node = node->GetChild(nodeName.c_str());
@@ -83,19 +83,19 @@ IFile *FileBaseImpl::GetLastChild()
 	return NULL;
 }
 
-IFile *FileBaseImpl::GetChild(const char * name)
+IFile *FileBaseImpl::GetChild(const wchar_t * name)
 {
-	std::string n = name;
-	std::transform(n.begin(), n.end(), n.begin(), (int(*)(int)) std::tolower);
+	std::wstring n = name;
+	std::transform(n.begin(), n.end(), n.begin(), ::towlower);
 	if (_children!=NULL && _children->find(n) != _children->end()) {
 		return (*_children)[n];
 	}
 	return NULL;
 }
 
-IFile *FileBaseImpl::GetChildInternal(const char *name)
+IFile *FileBaseImpl::GetChildInternal(const wchar_t *name)
 {
-	std::string n = name;
+	std::wstring n = name;
 	if (_children!=NULL && _children->find(n) != _children->end()) {
 		return (*_children)[n];
 	}
@@ -114,10 +114,10 @@ void FileBaseImpl::AddChild(IFile *file)
 {
 	//lazily initialise the child map
 	if (_children==NULL) {
-		_children = new stdext::hash_map<std::string,IFile *>();
+		_children = new stdext::hash_map<std::wstring,IFile *>();
 	}
 	//if an identical node already exists in the tree then remove it
-	std::string fileName = file->GetName();
+	std::wstring fileName = file->GetName();
 	(*_children)[fileName] = file; //then insert the new node
 }
 
@@ -137,9 +137,9 @@ void FileBaseImpl::SetParent(IFile *file)
 	this->_parent = file;
 }
 
-const char *FileBaseImpl::GetLogicalPath()
+const wchar_t *FileBaseImpl::GetLogicalPath()
 {
-	if (_logicalPath=="") {
+	if (_logicalPath.empty()) {
 		IFile *f = (IFile *)this;
 
 		while (f!=NULL) {
@@ -147,7 +147,7 @@ const char *FileBaseImpl::GetLogicalPath()
 				_logicalPath = f->GetName();
 			}
 			else {
-				std::string name = f->GetName();
+				std::wstring name = f->GetName();
 				_logicalPath = name + VFS_PATH_SEPARATOR + _logicalPath;
 			}
 			f = f->GetParent();

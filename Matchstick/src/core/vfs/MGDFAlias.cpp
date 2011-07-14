@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <boost/algorithm/string.hpp>
+#include "../common/MGDFResources.hpp"
 
 #include "MGDFAlias.hpp"
 
@@ -21,35 +22,35 @@ Alias::~Alias(void)
 {
 }
 
-void Alias::AddAlias(std::string alias,std::string value)
+void Alias::AddAlias(std::wstring alias,std::wstring value)
 {
-	std::transform(alias.begin(), alias.end(), alias.begin(), (int(*)(int)) std::tolower);
-	std::transform(value.begin(), value.end(), value.begin(), (int(*)(int)) std::tolower);
+	std::transform(alias.begin(), alias.end(), alias.begin(),::towlower);
+	std::transform(value.begin(), value.end(), value.begin(),::towlower);
 
 	if (!boost::find_first(alias, VFS_ALIAS_SEPARATOR)) {
 		_aliases[alias] = value;
 	}
 	else {
 		std::string message = "'";
-		message+=VFS_ALIAS_SEPARATOR;
+		message+=Resources::ToString(VFS_ALIAS_SEPARATOR);
 		message+="' character not allowed as part of an alias.";
 		throw new EAliasSyntaxException(message);
 	}
 }
 
-void Alias::RemoveAlias(std::string alias)
+void Alias::RemoveAlias(std::wstring alias)
 {
-	std::transform(alias.begin(), alias.end(), alias.begin(), (int(*)(int)) std::tolower);
-	stdext::hash_map<std::string,std::string>::iterator iter = _aliases.find(alias);
+	std::transform(alias.begin(), alias.end(), alias.begin(), ::towlower);
+	stdext::hash_map<std::wstring,std::wstring>::iterator iter = _aliases.find(alias);
 	if (iter!=_aliases.end()) {
 		_aliases.erase(iter);
 	}
 }
 
-std::string Alias::ResolveAliases(std::string text)
+std::wstring Alias::ResolveAliases(std::wstring text)
 {
-	std::transform(text.begin(), text.end(), text.begin(), (int(*)(int)) std::tolower);
-	std::vector<std::string> splitText;
+	std::transform(text.begin(), text.end(), text.begin(), ::towlower);
+	std::vector<std::wstring> splitText;
 	boost::split(splitText,text,boost::is_any_of(VFS_ALIAS_SEPARATOR));
 
 	if (splitText.size()==1) {
@@ -57,8 +58,8 @@ std::string Alias::ResolveAliases(std::string text)
 	}
 	//there should always be an odd number of splits in the string if the correct number of alias separator characters were used
 	else if (splitText.size() % 2 == 1) {
-		std::string result = "";
-		for (std::vector<std::string>::iterator it = splitText.begin();it!=splitText.end();++it) {
+		std::wstring result;
+		for (std::vector<std::wstring>::iterator it = splitText.begin();it!=splitText.end();++it) {
 			//if an alias was found, replace it with the alias value in the new string
 			if (_aliases.find(*it)!=_aliases.end()) {
 				result += _aliases[*it];
@@ -71,11 +72,11 @@ std::string Alias::ResolveAliases(std::string text)
 	}
 	else {
 		std::string message = "Invalid use of '";
-		message+=VFS_ALIAS_SEPARATOR;
+		message+=Resources::ToString(VFS_ALIAS_SEPARATOR);
 		message+="' character in text string.";
 		throw new EAliasSyntaxException(message);
 	}
-	return "";
+	return L"";
 }
 
 }}}

@@ -84,15 +84,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.GameSource.Mod
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Model", "src\GamesManager\GamesManager.Model\GamesManager.Model.csproj", "{A5292682-B9B4-45D4-A867-0DDCD09A97F1}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "games", "games", "{CF2D8D5F-BE16-4963-9E59-EBA0AF8081AD}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "core", "core", "{C2C71593-EA6B-4530-A396-A25158FA91FF}"
-	ProjectSection(SolutionItems) = preProject
-		content\games\core\gameIcon.png = content\games\core\gameIcon.png
-		content\games\core\gameSystemIcon.ico = content\games\core\gameSystemIcon.ico
-		content\games\core\preferences.xml = content\games\core\preferences.xml
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.StatisticsService", "src\GamesManager\GamesManager.StatisticsService\GamesManager.StatisticsService.csproj", "{B8D843B7-9EAC-410E-9131-57B33F27605A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.StatisticsService.Model", "src\GamesManager\GamesManager.StatisticsService.Model\GamesManager.StatisticsService.Model.csproj", "{FB9B2DE4-6E41-452B-B166-B1145A8E3ACD}"
@@ -132,8 +123,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Service", "src
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Web", "Web", "{B338F8A9-A30E-4464-832D-102678C88A6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.BootStrapper", "src\GamesManager\GamesManager.BootStrapper\GamesManager.BootStrapper.csproj", "{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatchstickFramework.Web", "src\web\MatchstickFramework.Web\MatchstickFramework.Web.csproj", "{391B7998-66A3-442C-B7CD-4761F3A069D6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.audio.openal", "src\core\audio\openal\core.audio.openal.vcproj", "{F3930F29-C621-41EA-892C-8B5D48C5D2BB}"
@@ -164,24 +153,36 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Service.Consol
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.PackageGen", "src\GamesManager\GamesManager.PackageGen\GamesManager.PackageGen.csproj", "{3AA4E4E3-9A41-43EF-868B-7830E848FD2C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{247EB7CC-25FB-47D1-9E65-9CBEF43BCD1A}"
-	ProjectSection(SolutionItems) = preProject
-		content\games\test\game.xml = content\games\test\game.xml
-		content\games\test\gameIcon.png = content\games\test\gameIcon.png
-		content\games\test\preferences.xml = content\games\test\preferences.xml
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{953E739B-C3B5-4505-B93C-B6ADC49A3912}"
-	ProjectSection(SolutionItems) = preProject
-		content\games\test\content\content.txt = content\games\test\content\content.txt
-		content\games\test\content\test.fakearchive = content\games\test\content\test.fakearchive
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testCommon", "src\modules\testCommon\testCommon.vcproj", "{8B2601FE-BE04-4EC9-B703-48C106200470}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testModule", "src\modules\testModule\testModule.vcproj", "{77B40DFE-E113-43EC-8059-099246687405}"
 	ProjectSection(ProjectDependencies) = postProject
 		{8B2601FE-BE04-4EC9-B703-48C106200470} = {8B2601FE-BE04-4EC9-B703-48C106200470}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Admin", "src\GamesManager\GamesManager.Admin\GamesManager.Admin.csproj", "{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "game", "game", "{46E01EE4-7FBE-4A1C-A5EF-B14FB01AAC5D}"
+	ProjectSection(SolutionItems) = preProject
+		content\game\game.xml = content\game\game.xml
+		content\game\gameIcon.png = content\game\gameIcon.png
+		content\game\preferences.xml = content\game\preferences.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resources", "resources", "{EDB71625-AF75-4DA5-BBA0-D85971251DD6}"
+	ProjectSection(SolutionItems) = preProject
+		content\resources\gameIcon.png = content\resources\gameIcon.png
+		content\resources\gameSystemIcon.ico = content\resources\gameSystemIcon.ico
+		content\resources\preferences.xml = content\resources\preferences.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{3464DE22-C75C-4826-B33B-7EB283CC060C}"
+	ProjectSection(SolutionItems) = preProject
+		content\game\content\chimes.sfk = content\game\content\chimes.sfk
+		content\game\content\chimes.wav = content\game\content\chimes.wav
+		content\game\content\content.txt = content\game\content\content.txt
+		content\game\content\Stream.ogg = content\game\content\Stream.ogg
+		content\game\content\test.fakearchive = content\game\content\test.fakearchive
 	EndProjectSection
 EndProject
 Global
@@ -462,18 +463,6 @@ Global
 		{25223D8F-FF08-4C8F-A4B5-0CD20482153F}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{25223D8F-FF08-4C8F-A4B5-0CD20482153F}.Release|Win32.ActiveCfg = Release|Any CPU
 		{25223D8F-FF08-4C8F-A4B5-0CD20482153F}.Release|Win32.Build.0 = Release|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Debug|Win32.Build.0 = Debug|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Release|Win32.ActiveCfg = Release|Any CPU
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C}.Release|Win32.Build.0 = Release|Any CPU
 		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
@@ -575,13 +564,24 @@ Global
 		{77B40DFE-E113-43EC-8059-099246687405}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{77B40DFE-E113-43EC-8059-099246687405}.Release|Win32.ActiveCfg = Release|Win32
 		{77B40DFE-E113-43EC-8059-099246687405}.Release|Win32.Build.0 = Release|Win32
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{88D35EB1-0966-4875-94C1-A8B8A7E9F875} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}
-		{CF2D8D5F-BE16-4963-9E59-EBA0AF8081AD} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}
+		{46E01EE4-7FBE-4A1C-A5EF-B14FB01AAC5D} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}
+		{EDB71625-AF75-4DA5-BBA0-D85971251DD6} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}
 		{0BCBC69E-3FA8-4722-BB95-3B706C65640E} = {3FAF788A-9BFB-413C-A85B-197BEE7F1321}
 		{CE698894-DA6C-44F6-ADE0-3512208932C0} = {3FAF788A-9BFB-413C-A85B-197BEE7F1321}
 		{23BDDADA-83DC-4980-B2B1-CBB0B678942F} = {3FAF788A-9BFB-413C-A85B-197BEE7F1321}
@@ -602,19 +602,17 @@ Global
 		{42A0D5BC-3918-467E-AC2B-5F2B344D1C1F} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{A5292682-B9B4-45D4-A867-0DDCD09A97F1} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{25223D8F-FF08-4C8F-A4B5-0CD20482153F} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
-		{117D5E2A-7400-4A5B-9F4C-0BA8F1BE397C} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{CF92A5AA-E52E-4E60-AC3A-25996E089B08} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{3EEDEF62-4AAD-43BF-B260-28F16A201AE7} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{EFA49EB3-095E-47FA-BAE5-04E8F86E7676} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{B820FEDF-2694-47A5-80E1-E7BB9ACB5133} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{3AA4E4E3-9A41-43EF-868B-7830E848FD2C} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
+		{CD98DEA5-1919-4176-BBB1-0BC00EA85C78} = {CE698894-DA6C-44F6-ADE0-3512208932C0}
 		{4A4C19D0-6E0A-4155-BD15-9CEF8FEC9EE7} = {23BDDADA-83DC-4980-B2B1-CBB0B678942F}
 		{B8D843B7-9EAC-410E-9131-57B33F27605A} = {23BDDADA-83DC-4980-B2B1-CBB0B678942F}
 		{FB9B2DE4-6E41-452B-B166-B1145A8E3ACD} = {23BDDADA-83DC-4980-B2B1-CBB0B678942F}
 		{740712A4-0B4B-4EEE-BFE8-A2E74F9C1CC7} = {23BDDADA-83DC-4980-B2B1-CBB0B678942F}
 		{E1383298-0A5C-42A6-8152-6D66E49BBD9D} = {23BDDADA-83DC-4980-B2B1-CBB0B678942F}
-		{C2C71593-EA6B-4530-A396-A25158FA91FF} = {CF2D8D5F-BE16-4963-9E59-EBA0AF8081AD}
-		{247EB7CC-25FB-47D1-9E65-9CBEF43BCD1A} = {CF2D8D5F-BE16-4963-9E59-EBA0AF8081AD}
 		{62406A47-C94A-4C76-B1EF-2AB3E6E175D5} = {B2911380-5E76-457A-AC80-A24B1EECA0BB}
 		{DB0DDAF0-9F7E-412E-9D15-327C832CFF00} = {B2911380-5E76-457A-AC80-A24B1EECA0BB}
 		{321FBA19-5BBD-44E5-BDA3-C5E6838DEBF6} = {B2911380-5E76-457A-AC80-A24B1EECA0BB}
@@ -623,6 +621,6 @@ Global
 		{391B7998-66A3-442C-B7CD-4761F3A069D6} = {B338F8A9-A30E-4464-832D-102678C88A6D}
 		{8B2601FE-BE04-4EC9-B703-48C106200470} = {92937010-1E2A-4928-A03A-49F6AD1C9927}
 		{77B40DFE-E113-43EC-8059-099246687405} = {92937010-1E2A-4928-A03A-49F6AD1C9927}
-		{953E739B-C3B5-4505-B93C-B6ADC49A3912} = {247EB7CC-25FB-47D1-9E65-9CBEF43BCD1A}
+		{3464DE22-C75C-4826-B33B-7EB283CC060C} = {46E01EE4-7FBE-4A1C-A5EF-B14FB01AAC5D}
 	EndGlobalSection
 EndGlobal

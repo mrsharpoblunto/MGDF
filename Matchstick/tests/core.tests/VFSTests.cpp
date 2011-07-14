@@ -24,8 +24,9 @@ using namespace VFSTests;
 SETUP(VFSTestFixture)
 {
 	HINSTANCE inst;
-	inst=(HINSTANCE)GetModuleHandle("core.tests.dll");
-	Resources::Instance(inst,true);
+	inst=(HINSTANCE)GetModuleHandleW(L"core.tests.dll");
+	Resources::Instance(inst);
+	Resources::Instance().SetUserBaseDir(true,"junkship");
 
 	_logger = new MGDF::core::tests::MockLogger();
 	_errorHandler = new MGDF::core::tests::MockErrorHandler();
@@ -46,18 +47,18 @@ check that zip archives are enumerated correctly by the vfs
 */
 BEGIN_TESTF(ZipArchiveTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+"../../tests/content/test.zip").c_str(),"",NULL,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content/test.zip").c_str(),L"",NULL,false);
 
-	WIN_ASSERT_STRING_EQUAL("test.zip",_vfs->GetRoot()->GetFirstChild()->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"test.zip",_vfs->GetRoot()->GetFirstChild()->GetName());
 	WIN_ASSERT_EQUAL(6,_vfs->GetRoot()->GetFirstChild()->GetChildCount());
-	WIN_ASSERT_STRING_EQUAL("game.xml",_vfs->GetFile("./test.zip/game.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("gameicon.png",_vfs->GetFile("./test.zip/gameIcon.png")->GetName());
-	WIN_ASSERT_STRING_EQUAL("preferences.xml",_vfs->GetFile("./test.zip/preferences.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("preferencetemplates.xml",_vfs->GetFile("test.zip/preferenceTemplates.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("gamestate.xml",_vfs->GetFile("test.zip/boot/gameState.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("persistency.xml",_vfs->GetFile("test.zip/boot/persistency.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("test.lua",_vfs->GetFile("test.zip/content/test.lua")->GetName());
-	WIN_ASSERT_TRUE(_vfs->GetFile("test.zip/content")->IsFolder());
+	WIN_ASSERT_STRING_EQUAL(L"game.xml",_vfs->GetFile(L"./test.zip/game.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"gameicon.png",_vfs->GetFile(L"./test.zip/gameIcon.png")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"preferences.xml",_vfs->GetFile(L"./test.zip/preferences.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"preferencetemplates.xml",_vfs->GetFile(L"test.zip/preferenceTemplates.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"gamestate.xml",_vfs->GetFile(L"test.zip/boot/gameState.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"persistency.xml",_vfs->GetFile(L"test.zip/boot/persistency.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"test.lua",_vfs->GetFile(L"test.zip/content/test.lua")->GetName());
+	WIN_ASSERT_TRUE(_vfs->GetFile(L"test.zip/content")->IsFolder());
 }
 END_TESTF
 
@@ -66,9 +67,9 @@ check that files inside enumeratoed archives can be read correctly
 */
 BEGIN_TESTF(ZipArchiveContentTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+"../../tests/content/test.zip").c_str(),"",NULL,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content/test.zip").c_str(),L"",NULL,false);
 
-	IFile *file = _vfs->GetFile("test.zip/content/test.lua");
+	IFile *file = _vfs->GetFile(L"test.zip/content/test.lua");
 	file->OpenFile();
 	char* data = new char[file->GetSize()];
 	file->Read((void *)data,file->GetSize());
@@ -94,12 +95,12 @@ check that vfs filters and aliases work as expected
 */
 BEGIN_TESTF(AliasAndFilterTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+"../../tests/content/test.zip").c_str(),"",NULL,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content/test.zip").c_str(),L"",NULL,false);
 
-	_vfs->AddAlias("testData","./test.zip");
-	WIN_ASSERT_STRING_EQUAL("game.xml",_vfs->GetFile("%Testdata%/game.xml")->GetName());
+	_vfs->AddAlias(L"testData",L"./test.zip");
+	WIN_ASSERT_STRING_EQUAL(L"game.xml",_vfs->GetFile(L"%Testdata%/game.xml")->GetName());
 
-	IFileIterator *files = _vfs->FindFiles(".",_vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter("xml"),true);
+	IFileIterator *files = _vfs->FindFiles(L".",_vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter(L"xml"),true);
 	unsigned int size=0;
 	while (files->HasNext()) 
 	{
@@ -109,7 +110,7 @@ BEGIN_TESTF(AliasAndFilterTests,VFSTestFixture)
 	WIN_ASSERT_EQUAL(5,size);
 	delete files;
 
-	files = _vfs->FindFiles("%testdata%",_vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter("xml"),false);
+	files = _vfs->FindFiles(L"%testdata%",_vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter(L"xml"),false);
 	size=0;
 	while (files->HasNext()) 
 	{
@@ -119,8 +120,8 @@ BEGIN_TESTF(AliasAndFilterTests,VFSTestFixture)
 	WIN_ASSERT_EQUAL(3,size);
 	delete files;
 
-	files = _vfs->FindFiles("%testdata%",_vfs->GetFilterFactory()->CreateFileExtensionExclusionFilter("xml")->ChainFilter(
-								 _vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter("png")),false);
+	files = _vfs->FindFiles(L"%testdata%",_vfs->GetFilterFactory()->CreateFileExtensionExclusionFilter(L"xml")->ChainFilter(
+								 _vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter(L"png")),false);
 	size=0;
 	while (files->HasNext()) 
 	{
@@ -130,7 +131,7 @@ BEGIN_TESTF(AliasAndFilterTests,VFSTestFixture)
 	WIN_ASSERT_EQUAL(1,size);
 	delete files;
 
-	files = _vfs->FindFiles("test.zip",NULL,false);
+	files = _vfs->FindFiles(L"test.zip",NULL,false);
 	size=0;
 	while (files->HasNext()) 
 	{
@@ -147,15 +148,15 @@ check that the standard filesystem is enumerated correctly by the vfs
 */
 BEGIN_TESTF(FileSystemTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+"../../tests/content").c_str(),"",NULL,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",NULL,false);
 
 	WIN_ASSERT_EQUAL(6,_vfs->GetRoot()->GetChildCount());
-	WIN_ASSERT_STRING_EQUAL("test.zip",_vfs->GetFile("./test.zip")->GetName());
-	WIN_ASSERT_EQUAL(true,_vfs->GetFile("./test.zip")->IsArchive());
-	WIN_ASSERT_STRING_EQUAL("console.xml",_vfs->GetFile("./console.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("preferences.xml",_vfs->GetFile("./preferences.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("gamestate.xml",_vfs->GetFile("gameState.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL("playlist.xml",_vfs->GetFile("playlist.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"test.zip",_vfs->GetFile(L"./test.zip")->GetName());
+	WIN_ASSERT_EQUAL(true,_vfs->GetFile(L"./test.zip")->IsArchive());
+	WIN_ASSERT_STRING_EQUAL(L"console.xml",_vfs->GetFile(L"./console.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"preferences.xml",_vfs->GetFile(L"./preferences.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"gamestate.xml",_vfs->GetFile(L"gameState.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"playlist.xml",_vfs->GetFile(L"playlist.xml")->GetName());
 }
 END_TESTF
 
@@ -164,9 +165,9 @@ check that files in the standard filesystem can be read from the vfs correctly
 */
 BEGIN_TESTF(FileSystemContentTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+"../../tests/content").c_str(),"",NULL,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",NULL,false);
 
-	IFile *file = _vfs->GetFile("console.xml");
+	IFile *file = _vfs->GetFile(L"console.xml");
 	file->OpenFile();
 	char *data = new char[file->GetSize()];
 	file->Read(data,file->GetSize());

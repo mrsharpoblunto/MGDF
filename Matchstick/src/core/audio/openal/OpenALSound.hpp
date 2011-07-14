@@ -19,7 +19,7 @@ public:
 	virtual ~OpenALSound();
 	OpenALSound(IFile *source,OpenALSoundManagerComponentImpl *manager,int priority);
 
-	virtual const char *GetName() const;	
+	virtual const wchar_t *GetName() const;	
 	virtual Vector *GetPosition() const;
 	virtual Vector *GetVelocity() const;
 	virtual float GetInnerRange() const;
@@ -52,7 +52,7 @@ private:
 	void SetGlobalVolume(float globalVolume);
 	void Update(float attenuationFactor);
 
-	std::string _name;
+	std::wstring _name;
 	OpenALSoundManagerComponentImpl *_soundManager;
 	ALuint _sourceId,_bufferId;
 	float _innerRange,_outerRange,_volume,_globalVolume,_attenuationFactor,_pitch;

@@ -11,57 +11,59 @@ class MGDF_CORE_COMMON_DLL Resources
 public:
 	virtual ~Resources(){}
 
-	static Resources *InstancePtr(HINSTANCE instance=NULL,bool useRootDir=NULL) {
-		static Resources r(instance,useRootDir);
+	static Resources *InstancePtr(HINSTANCE instance=NULL) {
+		static Resources r(instance);
 		return &r;
 	}
 
-	static Resources &Instance(HINSTANCE instance=NULL,bool useRootDir=NULL) {
-		return *Resources::InstancePtr(instance,useRootDir);
+	static Resources &Instance(HINSTANCE instance=NULL) {
+		return *Resources::InstancePtr(instance);
 	}
 
-	std::string RootDir();
+	std::wstring RootDir();
 
-	void CreateRequiredDirectories(std::string gameUid);
-	void SetUserBaseDir(bool useRootDir);
-	void SetGamesBaseDir(std::string gameDir);
+	void CreateRequiredDirectories();
+	void SetUserBaseDir(bool useRootDir,const std::string &gameUid);
+	void SetGameBaseDir(const std::wstring &gameDir);
 
-	std::string GamesBaseDir();
-	std::string UserBaseDir();
-	std::string UserDir(std::string configurationName);
-	std::string GameFile(std::string gameFile);
-	std::string WorkingDir();
-	std::string GameStateSaveFile(std::string gameUid,std::string saveName);
-	std::string RelativeSaveFile();
-	std::string SaveFile(std::string gameUid,std::string saveName);
-	std::string SaveDir(std::string gameUid,std::string saveName);
-	std::string SaveDataDir(std::string gameUid,std::string saveName);
-	std::string CorePreferencesFile();
-	std::string GameDefaultPreferencesFile(std::string gameUid);
-	std::string GameUserPreferencesFile(std::string gameUid);
-	std::string GameUserStatisticsFile(std::string gameUid);
-	std::string ContentDir(std::string gameUid);
-	std::string SchemaFile(std::string schemaFile);
-	std::string Module(std::string gameUid);
-	std::string BinDir(std::string gameUid);
-	std::string LogFile();
+	std::wstring GameBaseDir();
+	std::wstring UserBaseDir();
+
+	std::wstring GameFile();
+	std::wstring WorkingDir();
+	std::wstring SaveBaseDir();
+	std::wstring GameStateSaveFile(const std::string &saveName);
+	std::wstring SaveDir(const std::string& saveName);
+	std::wstring SaveDataDir(const std::string &saveName);
+	std::wstring CorePreferencesFile();
+	std::wstring GameDefaultPreferencesFile();
+	std::wstring GameUserPreferencesFile();
+	std::wstring GameUserStatisticsFile();
+	std::wstring ContentDir();
+	std::wstring SchemaFile(const std::wstring &schemaFile);
+	std::wstring Module();
+	std::wstring BinDir();
+	std::wstring LogFile();
 
 	static const std::string GAME_SCHEMA_URI;
 	static const std::string GAME_STATE_SCHEMA_URI;
 	static const std::string PREFERENCES_SCHEMA_URI;
 
-	static const std::string GAME_SCHEMA;
-	static const std::string GAME_STATE_SCHEMA;
-	static const std::string PREFERENCES_SCHEMA;
+	static const std::wstring GAME_SCHEMA;
+	static const std::wstring GAME_STATE_SCHEMA;
+	static const std::wstring PREFERENCES_SCHEMA;
 
-	static const std::string VFS_CONTENT;
+	static const std::wstring VFS_CONTENT;
 
 	static const unsigned int MIN_SCREEN_X;
 	static const unsigned int MIN_SCREEN_Y;
+
+	static std::wstring ToWString(const std::string &str);
+	static std::string ToString(const std::wstring &str);
 private: 
-	Resources(HINSTANCE instance,bool useAppRoot);
-	static std::string GetApplicationDirectory(HINSTANCE instance);
-	std::string _applicationDirectory,_userBaseDir,_gamesBaseDir;
+	Resources(HINSTANCE instance);
+	static std::wstring GetApplicationDirectory(HINSTANCE instance);
+	std::wstring _applicationDirectory,_userBaseDir,_gameBaseDir;
 };
 
 }}

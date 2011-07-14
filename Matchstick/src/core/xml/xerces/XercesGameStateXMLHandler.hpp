@@ -19,8 +19,8 @@ public:
 
 	virtual void Dispose();
 
-	virtual bool Load(std::string);
-	virtual void Save(std::string) const;
+	virtual bool Load(std::wstring);
+	virtual void Save(std::wstring) const;
 	
 	std::string GetGameUid() const { return _gameUid; };
 	void SetVersion(const Version *version) { _version =  VersionHelper::Copy(version); };

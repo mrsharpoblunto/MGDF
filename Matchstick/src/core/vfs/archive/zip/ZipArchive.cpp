@@ -6,6 +6,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "../../../common/MGDFExceptions.hpp"
+#include "../../../common/MGDFResources.hpp"
 #include "ZipFileRoot.hpp"
 #include "ZipFileImpl.hpp"
 #include "ZipFolderImpl.hpp"
@@ -65,7 +66,7 @@ unsigned int ZipArchive::GetRefCount()
 	return _refCount;
 }
 
-IFile *ZipArchive::MapArchive(IFile *parent,const char * archiveFile) 
+IFile *ZipArchive::MapArchive(IFile *parent,const wchar_t * archiveFile) 
 {
 	_zip = unzOpen(archiveFile);
 	
@@ -83,13 +84,13 @@ IFile *ZipArchive::MapArchive(IFile *parent,const char * archiveFile)
 
 			//get the name and convert it to lower case
 			name = fname;
-			std::transform(name.begin(), name.end(), name.begin(), (int(*)(int)) std::tolower);
+			std::transform(name.begin(), name.end(), name.begin(), std::tolower);
 
 			//if the path is for a folder the last element will be a "" element (because all path element names
 			//found using zlib include a trailing "/") this means that the entire folder tree will be created
 			//in the case of folders, and that the last element will be excluded for files which is the desired behaviour
-			std::string filename;
-			IFile *parentFile = CreateParentFile(name,_archiveRoot,&filename);
+			std::wstring filename;
+			IFile *parentFile = CreateParentFile(Resources::ToWString(name),_archiveRoot,&filename);
 
 			if (info.uncompressed_size > 0) {
 				ZipFileInformation *zfInfo = new ZipFileInformation();
@@ -106,28 +107,28 @@ IFile *ZipArchive::MapArchive(IFile *parent,const char * archiveFile)
 	}
 	else {
 		std::string message = "Could not open archive ";
-		_logger->Add(THIS_NAME,(message+archiveFile).c_str(),LOG_ERROR);
+		_logger->Add(THIS_NAME,(message+Resources::ToString(archiveFile)).c_str(),LOG_ERROR);
 		return NULL;
 	}
 
 	return _archiveRoot;
 }
 
-IFile *ZipArchive::CreateParentFile(std::string &path,IFile *rootNode,std::string *filename) {
+IFile *ZipArchive::CreateParentFile(std::wstring &path,IFile *rootNode,std::wstring *filename) {
 
 	IFile *currentFile = rootNode;
 
 	size_t startIndex=0;
-	char *p = new char[path.size()+1];
-	strncpy_s(p,path.size()+1,path.c_str(),path.size());
+	wchar_t *p = new wchar_t[path.size()+1];
+	wcsncpy_s(p,path.size()+1,path.c_str(),path.size());
 
 	for (size_t i = 0;i<path.size();++i) {
-		if (p[i]=='/')
+		if (p[i]==L'/')
 		{
-			p[i] = '\0';
+			p[i] = L'\0';
 			IFile *child = ((FileBaseImpl *)currentFile)->GetChildInternal(&(p[startIndex]));
 			if (child == NULL) {
-				std::string childName = &p[startIndex];
+				std::wstring childName = &p[startIndex];
 				child = new ZipFolderImpl(this,childName);
 				((FileBaseImpl *)child)->SetParent(currentFile);
 				((FileBaseImpl *)currentFile)->AddChild(child);
@@ -168,7 +169,7 @@ bool ZipArchive::OpenFile(unsigned int key)
 		}
 		catch (MGDFException e) {
 			std::string message = e.what();
-			_logger->Add(THIS_NAME,(message+" "+_archiveFiles[key]->name).c_str(),LOG_ERROR);
+			_logger->Add(THIS_NAME,(message+" "+Resources::ToString(_archiveFiles[key]->name)).c_str(),LOG_ERROR);
 			_errorHandler->SetLastError(THIS_NAME,MGDF_ERR_INVALID_ARCHIVE_FILE,e.what());
 			free(zfData->data);
 		}

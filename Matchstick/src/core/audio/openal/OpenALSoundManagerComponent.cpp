@@ -348,7 +348,7 @@ bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a,OpenALSound *b)
 
 ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer(IFile *dataSource)
 {
-	std::string dataSourceName = dataSource->GetLogicalPath();
+	std::wstring dataSourceName = dataSource->GetLogicalPath();
 	dataSourceName.append(VFS_PATH_SEPARATOR);
 	dataSourceName.append(dataSource->GetName());
 

@@ -19,20 +19,20 @@ public:
 	virtual void Dispose();
 	virtual IFile *GetParent() const;
 	virtual IFileIterator *GetIterator();
-	virtual IFile *GetDescendant(const char * query);
+	virtual IFile *GetDescendant(const wchar_t * query);
 	virtual IFile *GetFirstChild();
 	virtual IFile *GetLastChild();
-	virtual IFile *GetChild(const char *name);
+	virtual IFile *GetChild(const wchar_t *name);
 	virtual unsigned int GetChildCount();
-	virtual const char* GetLogicalPath();
+	virtual const wchar_t* GetLogicalPath();
 
-	IFile *GetChildInternal(const char *name);
+	IFile *GetChildInternal(const wchar_t *name);
 	void AddChild(IFile *newNode);
 	void SetParent(IFile *file); 
 protected:
-	stdext::hash_map<std::string,IFile *> *_children;
+	stdext::hash_map<std::wstring,IFile *> *_children;
 	IFile *_parent;
-	std::string _logicalPath;
+	std::wstring _logicalPath;
 };
 
 class FileBaseImplIterator: public DisposeImpl<IFileIterator>
@@ -46,11 +46,11 @@ public:
 	virtual void Dispose();
 private:
 	FileBaseImplIterator() : _isEmpty(true) {};
-	FileBaseImplIterator(stdext::hash_map<std::string,IFile *>::iterator mapIter,stdext::hash_map<std::string,IFile *>::iterator mapIterEnd): _mapIter(mapIter) , _mapIterEnd(mapIterEnd), _isEmpty(false) {};
+	FileBaseImplIterator(stdext::hash_map<std::wstring,IFile *>::iterator mapIter,stdext::hash_map<std::wstring,IFile *>::iterator mapIterEnd): _mapIter(mapIter) , _mapIterEnd(mapIterEnd), _isEmpty(false) {};
 
 	bool _isEmpty;
-	stdext::hash_map<std::string,IFile *>::iterator _mapIter;
-	stdext::hash_map<std::string,IFile *>::iterator _mapIterEnd;
+	stdext::hash_map<std::wstring,IFile *>::iterator _mapIter;
+	stdext::hash_map<std::wstring,IFile *>::iterator _mapIterEnd;
 };
 
 

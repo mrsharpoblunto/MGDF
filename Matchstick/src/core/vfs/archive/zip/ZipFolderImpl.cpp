@@ -25,7 +25,7 @@ bool ZipFolderImpl::IsArchive() const
 }
 
 
-const char * ZipFolderImpl::GetArchiveName() const
+const wchar_t * ZipFolderImpl::GetArchiveName() const
 {
 	return _handler->GetArchiveRoot()->GetName();
 }

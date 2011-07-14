@@ -106,7 +106,7 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 		}
 	}
 
-	const char *OpenALSound::GetName() const
+	const wchar_t *OpenALSound::GetName() const
 	{ 
 		return _name.c_str();
 	}

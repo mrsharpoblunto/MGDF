@@ -19,16 +19,16 @@ public:
 
 	virtual ~CurrentDirectoryHelper(){};
 
-	std::string Get();
-	void Set(std::string directory);
-	void Push(std::string directory);
+	std::wstring Get();
+	void Set(std::wstring directory);
+	void Push(std::wstring directory);
 	void Pop();
 private:
 	CurrentDirectoryHelper();
-	std::string _currentDirectory;
-	std::list<std::string> _currentDirectories;
+	std::wstring _currentDirectory;
+	std::list<std::wstring> _currentDirectories;
 
-	void SetDirectory(std::string directory);
+	void SetDirectory(std::wstring directory);
 };
 
 }}

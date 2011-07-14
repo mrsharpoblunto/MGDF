@@ -107,17 +107,17 @@ unsigned long ZipFileImpl::GetSize()
 	return _handler->GetFileInformation(_fileKey)->size;
 }
 
-const char * ZipFileImpl::GetArchiveName() const
+const wchar_t * ZipFileImpl::GetArchiveName() const
 {
 	return _handler->GetArchiveRoot()->GetName();
 }
 
-const char * ZipFileImpl::GetPhysicalPath() const
+const wchar_t * ZipFileImpl::GetPhysicalPath() const
 {
 	return _handler->GetArchiveRoot()->GetPhysicalPath();
 }
 
-const char * ZipFileImpl::GetName() const
+const wchar_t * ZipFileImpl::GetName() const
 {
 	return _handler->GetFileInformation(_fileKey)->name.c_str();
 }

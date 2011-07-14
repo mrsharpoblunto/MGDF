@@ -95,7 +95,7 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 
 		try 
 		{
-			game = GameBuilder::LoadGame(GetParameterManagerImpl()->GetParameter(ParameterConstants::BOOT_GAME));
+			game = GameBuilder::LoadGame();
 		}
 		catch (MGDFException ex)
 		{
@@ -176,6 +176,11 @@ void SystemBuilder::InitParameterManager()
 
 void SystemBuilder::InitLogger()
 {
+	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME))
+	{
+		//todo move log file
+	}
+
 	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::LOG_LEVEL)) {
 		const char *level = GetParameterManagerImpl()->GetParameter(ParameterConstants::LOG_LEVEL);
 
@@ -197,14 +202,15 @@ void SystemBuilder::InitLogger()
 void SystemBuilder::InitResources()
 {
 	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::GAMES_DIR_OVERRIDE)) {
-		Resources::Instance().SetGamesBaseDir(std::string(GetParameterManagerImpl()->GetParameter(ParameterConstants::GAMES_DIR_OVERRIDE)));
+		std::string gamesDirOverride(GetParameterManagerImpl()->GetParameter(ParameterConstants::GAMES_DIR_OVERRIDE));
+		Resources::Instance().SetGameBaseDir(Resources::ToWString(gamesDirOverride));
 	}
-	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::USER_DIR_OVERRIDE)) {
-		Resources::Instance().SetUserBaseDir(true);
-	}
-	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME)) {
-		Resources::Instance().CreateRequiredDirectories(std::string(GetParameterManagerImpl()->GetParameter(ParameterConstants::BOOT_GAME)));
-	}
+
+	bool userDirOverride = GetParameterManagerImpl()->HasParameter(ParameterConstants::USER_DIR_OVERRIDE);
+	std::string gameUid = GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME) ? GetParameterManagerImpl()->GetParameter(ParameterConstants::BOOT_GAME) : "";
+
+	Resources::Instance().SetUserBaseDir(userDirOverride,gameUid);
+	Resources::Instance().CreateRequiredDirectories();
 }
 
 

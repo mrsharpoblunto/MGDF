@@ -18,8 +18,8 @@ public:
 	virtual IPreferenceConfigXMLHandler::iterator Begin() const;
 	virtual IPreferenceConfigXMLHandler::iterator End() const;
 
-	virtual void Load(std::string);
-	virtual void Save(std::string) const;
+	virtual void Load(std::wstring);
+	virtual void Save(std::wstring) const;
 
 
 	virtual void startDocument();

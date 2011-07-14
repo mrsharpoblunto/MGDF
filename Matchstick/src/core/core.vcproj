@@ -204,7 +204,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\MGDFErrorHandler.hpp"
+				RelativePath="..\..\include\MGDF\MGDFErrorHandler.hpp"
 				>
 			</File>
 			<File

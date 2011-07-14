@@ -47,7 +47,7 @@ IPreferenceConfigXMLHandler::iterator XercesPreferenceConfigXMLHandler::End() co
 	return _preferences.end();
 }
 
-void XercesPreferenceConfigXMLHandler::Load(std::string filename)
+void XercesPreferenceConfigXMLHandler::Load(std::wstring filename)
 {
     try
     {
@@ -68,7 +68,7 @@ void XercesPreferenceConfigXMLHandler::Load(std::string filename)
     } 
 }
 
-void XercesPreferenceConfigXMLHandler::Save(std::string filename) const
+void XercesPreferenceConfigXMLHandler::Save(std::wstring filename) const
 {
 	std::ofstream file(filename.c_str(),std::ios::out);
 

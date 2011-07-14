@@ -26,9 +26,9 @@ public:
 	virtual bool EndOfFile() const;
 	virtual unsigned long GetSize();
 
-	virtual const char *GetArchiveName() const;
-	virtual const char *GetPhysicalPath() const;
-	virtual const char *GetName() const;
+	virtual const wchar_t *GetArchiveName() const;
+	virtual const wchar_t *GetPhysicalPath() const;
+	virtual const wchar_t *GetName() const;
 private:
 	ZipArchive *_handler;
 	unsigned int _fileKey;

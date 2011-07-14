@@ -5,8 +5,8 @@
 
 namespace MGDF {
 
-#define VFS_ALIAS_SEPARATOR "%"
-#define VFS_PATH_SEPARATOR "/"
+#define VFS_ALIAS_SEPARATOR L"%"
+#define VFS_PATH_SEPARATOR L"/"
 
 /**
  provides a means to filter searches and mappings into the virtual file system
@@ -25,7 +25,7 @@ public:
 	/**
 	\return true if the file is to be included in the filtered list of results otherwise returns false
 	*/
-	virtual bool  FilterFile(const char *file)=0;
+	virtual bool  FilterFile(const wchar_t *file)=0;
 };
 
 /**
@@ -40,25 +40,25 @@ public:
 	creates a filter which filters out all instances of files with a matching name
 	the name can include regexes
 	*/
-	virtual IFileFilter * CreateNameExclusionFilter(const char *name) const=0;
+	virtual IFileFilter * CreateNameExclusionFilter(const wchar_t *name) const=0;
 
 	/**
 	creates a filter which filters in all instances of files without a matching name
 	the name can include regexes
 	*/
-	virtual IFileFilter * CreateNameInclusionFilter(const char *name) const=0;
+	virtual IFileFilter * CreateNameInclusionFilter(const wchar_t *name) const=0;
 
 	/**
 	creates a filter which filters in all instance of files with a matching extension
 	\param extension the extension to filter (excluding the preceding '.')
 	*/
-	virtual IFileFilter * CreateFileExtensionExclusionFilter(const char *extension) const=0;
+	virtual IFileFilter * CreateFileExtensionExclusionFilter(const wchar_t *extension) const=0;
 
 	/**
 	creates a filter which filters out all instance of files with a matching extension
 	\param extension the extension to filter (excluding the preceding '.')
 	*/
-	virtual IFileFilter * CreateFileExtensionInclusionFilter(const char *extension) const=0;
+	virtual IFileFilter * CreateFileExtensionInclusionFilter(const wchar_t *extension) const=0;
 };
 
 class IFile;
@@ -80,13 +80,13 @@ containing the uncompressed archive data
 class IFile: public IDisposable
 {
 public:
-	virtual const char * GetName() const=0;
+	virtual const wchar_t * GetName() const=0;
 	virtual IFile * GetParent() const=0;
 	virtual IFileIterator * GetIterator() =0;
-	virtual IFile * GetDescendant(const char *path) =0;
+	virtual IFile * GetDescendant(const wchar_t *path) =0;
 	virtual IFile * GetFirstChild() =0;
 	virtual IFile * GetLastChild() =0;
-	virtual IFile * GetChild(const char *name) =0;
+	virtual IFile * GetChild(const wchar_t *name) =0;
 	virtual unsigned int  GetChildCount() =0;
 
 	/**
@@ -152,19 +152,19 @@ public:
 	gets the name of the archive the file belongs to (if any)
 	\returns the name of the archive file the entity belongs to, otherwise it returns ""
 	*/
-	virtual const char * GetArchiveName() const=0;
+	virtual const wchar_t * GetArchiveName() const=0;
 
 	/**
 	get the pyshical path to the IFile in the filesystem
 	\return the pyshical path to the IFile in the filesystem, in the case of an archive submember this will be the address to the containing archive
 	*/
-	virtual const char * GetPhysicalPath() const=0;
+	virtual const wchar_t * GetPhysicalPath() const=0;
 
 	/**
 	get the path to the IFile as expressed as a vfs logical file path
 	\return the path to the IFile as expressed as a vfs logical file path
 	*/
-	virtual const char * GetLogicalPath()=0;
+	virtual const wchar_t * GetLogicalPath()=0;
 };
 
 /**
@@ -177,12 +177,12 @@ public:
 	get the root node of the mapped vfs subtree
 	\return the root node of the mapped vfs subtree
 	*/
-	virtual IFile * MapArchive(IFile *parent,const char *archive)=0;
+	virtual IFile * MapArchive(IFile *parent,const wchar_t *archive)=0;
 
 	/**
 	whether this file/directory is recognised as an archive type
 	*/
-	virtual bool  IsArchive(const char *path) const=0;
+	virtual bool  IsArchive(const wchar_t *path) const=0;
 };
 
 /**
@@ -195,22 +195,22 @@ class IVirtualFileSystem
 		/**
 		sets a string alias to a logical directory
 		*/
-		virtual bool  AddAlias(const char *alias,const char *logicalDirectory)=0;
+		virtual bool  AddAlias(const wchar_t *alias,const wchar_t *logicalDirectory)=0;
 
 		/**
 		removes a string alias from a logical directory
 		*/
-		virtual void RemoveAlias(const char *alias)=0;
+		virtual void RemoveAlias(const wchar_t *alias)=0;
 
 		/**
 		return a list of File objects satisfying the filters provided in the specified logical directory
 		*/
-		virtual IFileIterator * FindFiles(const char *logicalDirectory,IFileFilter *filter,bool recursive) const=0;
+		virtual IFileIterator * FindFiles(const wchar_t *logicalDirectory,IFileFilter *filter,bool recursive) const=0;
 
 		/**
 		return the file/folder/archive in the denoted logical directory
 		*/
-		virtual IFile * GetFile(const char *logicalPath) const=0;
+		virtual IFile * GetFile(const wchar_t *logicalPath) const=0;
 
 		virtual IFile * GetRoot() const=0;
 

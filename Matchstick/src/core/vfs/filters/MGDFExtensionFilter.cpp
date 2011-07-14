@@ -9,7 +9,7 @@
 
 namespace MGDF { namespace core { namespace vfs { namespace filters {
 
-ExtensionFilter::ExtensionFilter(std::string extension,bool include):NameFilter("^.+\\.("+extension+")$",include) 
+ExtensionFilter::ExtensionFilter(std::wstring extension,bool include):NameFilter(L"^.+\\.("+extension+L")$",include) 
 {
 }
 

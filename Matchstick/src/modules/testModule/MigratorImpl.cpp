@@ -7,7 +7,7 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
-bool MigratorImpl::Migrate(const char *saveDataDir,const MGDF::Version *currentVersion,const MGDF::Version *requiredVersion)
+bool MigratorImpl::Migrate(const wchar_t *saveDataDir,const MGDF::Version *currentVersion,const MGDF::Version *requiredVersion)
 {
 	//doesn't do anything atm.
 	return true;

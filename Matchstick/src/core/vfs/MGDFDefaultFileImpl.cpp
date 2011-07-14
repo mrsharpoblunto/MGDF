@@ -12,7 +12,7 @@
 
 namespace MGDF { namespace core { namespace vfs {
 
-DefaultFileImpl::DefaultFileImpl(std::string path,ILogger *logger,IErrorHandler *handler)
+DefaultFileImpl::DefaultFileImpl(std::wstring path,ILogger *logger,IErrorHandler *handler)
 {
 	_logger = logger;
 	_errorHandler = handler;
@@ -21,13 +21,13 @@ DefaultFileImpl::DefaultFileImpl(std::string path,ILogger *logger,IErrorHandler 
 	_path = path;
 
 	size_t index=_path.size()-1;
-	const char *_pathStr = _path.c_str();
+	const wchar_t *_pathStr = _path.c_str();
 	while (index>0)
 	{
-		if (_pathStr[index]=='\\')
+		if (_pathStr[index]==L'\\')
 		{
 			_name = &_pathStr[index+1];
-			std::transform(_name.begin(), _name.end(), _name.begin(), (int(*)(int)) std::tolower);
+			std::transform(_name.begin(), _name.end(), _name.begin(), ::towlower);
 			break;
 		}
 		--index;
@@ -151,17 +151,17 @@ bool DefaultFileImpl::IsArchive() const
 	return false;
 }
 
-const char *DefaultFileImpl::GetArchiveName() const
+const wchar_t *DefaultFileImpl::GetArchiveName() const
 {
 	return NULL;
 }
 
-const char *DefaultFileImpl::GetPhysicalPath() const
+const wchar_t *DefaultFileImpl::GetPhysicalPath() const
 { 
 	return _path.c_str();
 }
 
-const char *DefaultFileImpl::GetName() const
+const wchar_t *DefaultFileImpl::GetName() const
 {
 	return _name.c_str();
 

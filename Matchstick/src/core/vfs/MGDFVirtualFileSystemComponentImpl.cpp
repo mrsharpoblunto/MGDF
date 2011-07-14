@@ -7,6 +7,7 @@
 #include <MGDF/MGDF.hpp>
 
 #include "../common/MGDFExceptions.hpp"
+#include "../common/MGDFResources.hpp"
 #include "MGDFVirtualFileSystemComponentImpl.hpp"
 #include "MGDFAlias.hpp"
 #include "MGDFDefaultFileImpl.hpp"
@@ -20,7 +21,7 @@
 
 namespace MGDF { namespace core { namespace vfs {
 
-#define ROOT_NODE_NAME "." 
+#define ROOT_NODE_NAME L"." 
 
 IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(HINSTANCE instance,HWND window,ILogger *logger)
 {
@@ -63,7 +64,7 @@ VirtualFileSystemComponent::~VirtualFileSystemComponent()
 }
 
 
-bool VirtualFileSystemComponent::MapDirectory(const char *physicalDirectory,const char *logicalDirectory,IFileFilter *filter,bool recursive)
+bool VirtualFileSystemComponent::MapDirectory(const wchar_t *physicalDirectory,const wchar_t *logicalDirectory,IFileFilter *filter,bool recursive)
 {
 	IFile *logicalDir = CreateLogicalDirectory(logicalDirectory);
 	if (logicalDir==NULL)
@@ -73,13 +74,13 @@ bool VirtualFileSystemComponent::MapDirectory(const char *physicalDirectory,cons
 		return false;
 	}
 
-	boost::filesystem::path physicalDirectoryPath(physicalDirectory,boost::filesystem::native);
+	boost::filesystem::wpath physicalDirectoryPath(physicalDirectory,boost::filesystem::native);
 
 	//if the physical object to be mapped is a directory then map the contents of the directory into the logical directory
 	//though the actual phsycial directory will not
 	if (boost::filesystem::is_directory(physicalDirectoryPath)) {
-		boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
-		for ( boost::filesystem::directory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
+		boost::filesystem::wdirectory_iterator end_itr; // default construction yields past-the-end
+		for ( boost::filesystem::wdirectory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
 			Map((*itr).path().native_file_string().c_str() ,logicalDir ,filter,recursive);
 		}		
 	}
@@ -97,13 +98,13 @@ bool VirtualFileSystemComponent::MapDirectory(const char *physicalDirectory,cons
 //used by folders to lazily enumerate thier children as needed.
 void VirtualFileSystemComponent::MapDirectory(IFile *parent,IFileFilter *filter)
 {
-	boost::filesystem::path physicalDirectoryPath(parent->GetPhysicalPath(),boost::filesystem::native);
+	boost::filesystem::wpath physicalDirectoryPath(parent->GetPhysicalPath(),boost::filesystem::native);
 
 	//if the physical object to be mapped is a directory then map the contents of the directory into the logical directory
 	//though the actual phsycial directory will not
 	if (boost::filesystem::is_directory(physicalDirectoryPath)) {
-		boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
-		for ( boost::filesystem::directory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
+		boost::filesystem::wdirectory_iterator end_itr; // default construction yields past-the-end
+		for ( boost::filesystem::wdirectory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
 			Map((*itr).path().native_file_string().c_str() ,parent ,filter,true);
 		}		
 	}
@@ -114,7 +115,7 @@ void VirtualFileSystemComponent::MapDirectory(IFile *parent,IFileFilter *filter)
 }
 
 
-void VirtualFileSystemComponent::Map(const char *currentPhysicalFile, IFile *parentFile,IFileFilter *filter,bool recursive)
+void VirtualFileSystemComponent::Map(const wchar_t *currentPhysicalFile, IFile *parentFile,IFileFilter *filter,bool recursive)
 {
 	//if the file passes the filter
 	if (filter == NULL || filter->FilterFile(currentPhysicalFile)) {
@@ -128,13 +129,13 @@ void VirtualFileSystemComponent::Map(const char *currentPhysicalFile, IFile *par
 			{
 				//if we can't map it as an archive, thenwe will revert to mapping it as a physical file or folder.
 				std::string message = "Unable to map archive ";
-				_logger->Add(THIS_NAME,(message+currentPhysicalFile).c_str(),LOG_ERROR);
+				_logger->Add(THIS_NAME,(message+Resources::ToString(std::wstring(currentPhysicalFile))).c_str(),LOG_ERROR);
 			}
 		}
 
 		if (currentFile==NULL)
 		{
-			boost::filesystem::path physicalDirectoryPath(currentPhysicalFile,boost::filesystem::native);
+			boost::filesystem::wpath physicalDirectoryPath(currentPhysicalFile,boost::filesystem::native);
 			//if its a folder then map it into the vfs tree (also note if we want this folder to lazily recusivly map its children)
 			if (boost::filesystem::is_directory(physicalDirectoryPath)) {
 				if (recursive)
@@ -157,7 +158,7 @@ void VirtualFileSystemComponent::Map(const char *currentPhysicalFile, IFile *par
 }
 
 
-IArchiveHandler *VirtualFileSystemComponent::GetArchiveHandler(const char *fullFilePath)
+IArchiveHandler *VirtualFileSystemComponent::GetArchiveHandler(const wchar_t *fullFilePath)
 {
 	for (std::vector<IArchiveHandler *>::iterator iter=_archiveHandlers.begin();iter!=_archiveHandlers.end();++iter) {
 		if ((*iter)->IsArchive(fullFilePath)) {
@@ -168,12 +169,12 @@ IArchiveHandler *VirtualFileSystemComponent::GetArchiveHandler(const char *fullF
 }
 
 
-IFile *VirtualFileSystemComponent::CreateLogicalDirectory(std::string logicalDirectory) {
-	std::string ldir = _aliases->ResolveAliases(logicalDirectory);//remove any aliases present
+IFile *VirtualFileSystemComponent::CreateLogicalDirectory(std::wstring logicalDirectory) {
+	std::wstring ldir = _aliases->ResolveAliases(logicalDirectory);//remove any aliases present
 	IFile *currentDirectory = _root;//start the search at the root node
 
 	//tokenize the path e.g a/file/path becomes a list with (a,file,path)
-	std::vector<std::string> splitPath;
+	std::vector<std::wstring> splitPath;
 	boost::split(splitPath,ldir,boost::is_any_of(VFS_PATH_SEPARATOR));
 
 	//remove the root node from the query string if present
@@ -181,9 +182,9 @@ IFile *VirtualFileSystemComponent::CreateLogicalDirectory(std::string logicalDir
 		splitPath.erase(splitPath.begin());
 	}
 
-	for (std::vector<std::string>::iterator it = splitPath.begin(); it != splitPath.end(); ++it)
+	for (std::vector<std::wstring>::iterator it = splitPath.begin(); it != splitPath.end(); ++it)
 	{
-		if (*it != "") {
+		if (*it != L"") {
 			if (!currentDirectory->IsFolder()) {
 				return NULL;
 			}
@@ -202,7 +203,7 @@ IFile *VirtualFileSystemComponent::CreateLogicalDirectory(std::string logicalDir
 	return currentDirectory;
 }
 
-bool VirtualFileSystemComponent::AddAlias(const char *alias,const char *logicalDirectory)
+bool VirtualFileSystemComponent::AddAlias(const wchar_t *alias,const wchar_t *logicalDirectory)
 {
 	try 
 	{
@@ -215,12 +216,12 @@ bool VirtualFileSystemComponent::AddAlias(const char *alias,const char *logicalD
 	}
 }
 
-void VirtualFileSystemComponent::RemoveAlias(const char *alias)
+void VirtualFileSystemComponent::RemoveAlias(const wchar_t *alias)
 {
 	_aliases->RemoveAlias(alias);
 }
 
-IFileIterator *VirtualFileSystemComponent::FindFiles(const char *logicalDirectory,IFileFilter *filter,bool recursive) const
+IFileIterator *VirtualFileSystemComponent::FindFiles(const wchar_t *logicalDirectory,IFileFilter *filter,bool recursive) const
 {
 	IFile *logicalDir = this->GetFile(logicalDirectory);
 	std::vector<IFile *> *files = new std::vector<IFile *>();
@@ -251,17 +252,17 @@ void VirtualFileSystemComponent::FindFilesRecursive(IFile *currentDirectory,IFil
 	}
 }
 
-IFile *VirtualFileSystemComponent::GetFile(const char *logicalPath) const
+IFile *VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath) const
 {
-	std::string lPath = logicalPath;
+	std::wstring lPath = logicalPath;
 
 	//if the root is requested
-	if (lPath==".") {
+	if (lPath==L".") {
 		return _root;
 	}
 
 	lPath = _aliases->ResolveAliases(lPath); //remove any aliases present
-	std::string rootNodeRef = ROOT_NODE_NAME;
+	std::wstring rootNodeRef = ROOT_NODE_NAME;
 	rootNodeRef+=VFS_PATH_SEPARATOR;
 	boost::algorithm::trim_left_if(lPath,boost::algorithm::is_any_of(rootNodeRef)); //trim off any reference to the root node if present
 	if (_root!=NULL) {

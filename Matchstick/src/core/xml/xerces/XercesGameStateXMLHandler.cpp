@@ -33,7 +33,7 @@ void XercesGameStateXMLHandler::error(const SAXParseException& e)
 	throw std::exception(XercesUtils::ToString(e.getMessage()).c_str()); 
 }
 
-bool XercesGameStateXMLHandler::Load(std::string filename)
+bool XercesGameStateXMLHandler::Load(std::wstring filename)
 {
 	_requiresMigration = false;
 
@@ -58,7 +58,7 @@ bool XercesGameStateXMLHandler::Load(std::string filename)
 	return _requiresMigration;
 }
 
-void XercesGameStateXMLHandler::Save(std::string filename) const
+void XercesGameStateXMLHandler::Save(std::wstring filename) const
 {
 	std::ofstream file(filename.c_str(),std::ios::out);
 

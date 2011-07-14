@@ -23,8 +23,8 @@ public:
 	virtual const Version * GetMGDFVersion() const;
 
 	//these functions are not required for the testing being performed
-	virtual void QueueSaveGameState(const char *) {}
-	virtual void QueueLoadGameState(const char *) {}
+	virtual void QueueSaveGameState(const wchar_t *) {}
+	virtual void QueueLoadGameState(const wchar_t *) {}
 	virtual ILogger *GetLogger() const { return NULL; }
 	virtual IParameterManager *GetParameters() const { return NULL; }
 	virtual IVirtualFileSystem *GetVFS() const { return NULL; }

@@ -10,7 +10,7 @@
 #pragma warning(disable:4291)
 #endif
 
-FakeFile::FakeFile(IFile *parent,std::string physicalFile,std::string name)
+FakeFile::FakeFile(IFile *parent,std::wstring physicalFile,std::wstring name)
 {
 	_parent = parent;
 	_children = NULL;
@@ -20,10 +20,10 @@ FakeFile::FakeFile(IFile *parent,std::string physicalFile,std::string name)
 	_dataLength = 0;
 	_isOpen = false;
 	_position = 0;
-	_logicalPath = "";
+	_logicalPath = L"";
 }
 
-FakeFile::FakeFile(FakeFile *parent,std::string name,void *data,int dataLength)//NULL data indicates a folder
+FakeFile::FakeFile(FakeFile *parent,std::wstring name,void *data,int dataLength)//NULL data indicates a folder
 {
 	_parent = parent;
 	_children = NULL;
@@ -33,14 +33,14 @@ FakeFile::FakeFile(FakeFile *parent,std::string name,void *data,int dataLength)/
 	_dataLength = dataLength;
 	_isOpen = false;
 	_position = 0;
-	_logicalPath = "";
+	_logicalPath = L"";
 }
 
 FakeFile::~FakeFile()
 {
 	if (_children!=NULL) {
 		//delete all the children of this node
-		stdext::hash_map<std::string,MGDF::IFile *>::iterator iter;
+		stdext::hash_map<std::wstring,MGDF::IFile *>::iterator iter;
 		for (iter=_children->begin();iter!=_children->end();++iter) {
 			delete iter->second;
 		}
@@ -61,18 +61,18 @@ MGDF::IFile *FakeFile::GetParent() const
 }
 
 
-MGDF::IFile *FakeFile::GetDescendant(const char * query)
+MGDF::IFile *FakeFile::GetDescendant(const wchar_t * query)
 {
 	MGDF::IFile *node=const_cast<MGDF::IFile *>((const MGDF::IFile *)this);
-	std::string q = query;
+	std::wstring q = query;
 	//get the query and convert it to lower case
-	std::transform(q.begin(), q.end(), q.begin(), (int(*)(int)) std::tolower);
+	std::transform(q.begin(), q.end(), q.begin(), ::towlower);
 	size_t dotPos = q.find(VFS_PATH_SEPARATOR);
 
 	//loop until no separators are found or a subnode is NULL
-	while (dotPos!=std::string::npos && node!=NULL) {
+	while (dotPos!=std::wstring::npos && node!=NULL) {
 		//get the first node namespace
-		std::string nodeName = q.substr(0,dotPos);
+		std::wstring nodeName = q.substr(0,dotPos);
 		q = q.substr(dotPos+1,q.length()-1);
 
 		node = node->GetChild(nodeName.c_str());
@@ -102,10 +102,10 @@ MGDF::IFile *FakeFile::GetLastChild()
 	return NULL;
 }
 
-MGDF::IFile *FakeFile::GetChild(const char * name)
+MGDF::IFile *FakeFile::GetChild(const wchar_t * name)
 {
-	std::string n = name;
-	std::transform(n.begin(), n.end(), n.begin(), (int(*)(int)) std::tolower);
+	std::wstring n = name;
+	std::transform(n.begin(), n.end(), n.begin(), ::towlower);
 	if (_children!=NULL && _children->find(n) != _children->end()) {
 		return (*_children)[n];
 	}
@@ -124,10 +124,10 @@ void FakeFile::AddChild(MGDF::IFile *file)
 {
 	//lazily initialise the child map
 	if (_children==NULL) {
-		_children = new stdext::hash_map<std::string,MGDF::IFile *>();
+		_children = new stdext::hash_map<std::wstring,MGDF::IFile *>();
 	}
 	//if an identical node already exists in the tree then remove it
-	std::string fileName = file->GetName();
+	std::wstring fileName = file->GetName();
 	(*_children)[fileName] = file; //then insert the new node
 }
 
@@ -142,9 +142,9 @@ MGDF::IFileIterator *FakeFile::GetIterator(void) {
 	return result;
 }
 
-const char *FakeFile::GetLogicalPath()
+const wchar_t *FakeFile::GetLogicalPath()
 {
-	if (_logicalPath=="") {
+	if (_logicalPath.empty()) {
 		MGDF::IFile *f = (MGDF::IFile *)this;
 
 		while (f!=NULL) {
@@ -152,7 +152,7 @@ const char *FakeFile::GetLogicalPath()
 				_logicalPath = f->GetName();
 			}
 			else {
-				std::string name = f->GetName();
+				std::wstring name = f->GetName();
 				_logicalPath = name + VFS_PATH_SEPARATOR + _logicalPath;
 			}
 			f = f->GetParent();
@@ -242,17 +242,17 @@ bool FakeFile::IsArchive() const
 	return true;
 }
 
-const char *FakeFile::GetArchiveName() const
+const wchar_t *FakeFile::GetArchiveName() const
 {
 	return _physicalPath.c_str();
 }
 
-const char *FakeFile::GetPhysicalPath() const
+const wchar_t *FakeFile::GetPhysicalPath() const
 { 
 	return _physicalPath.c_str();
 }
 
-const char *FakeFile::GetName() const
+const wchar_t *FakeFile::GetName() const
 {
 	return _name.c_str();
 }

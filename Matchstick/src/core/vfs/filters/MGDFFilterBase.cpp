@@ -27,9 +27,9 @@ IFileFilter *FilterBase::ChainFilter(IFileFilter *filter)
 	return filter;
 }
 
-bool FilterBase::FilterFile(const char *file)
+bool FilterBase::FilterFile(const wchar_t *file)
 {
-	std::string fileString(file);
+	std::wstring fileString(file);
 	bool result = DoFilterFile(file);
 	if (result && _chainedFilter!=NULL) {
 		result = _chainedFilter->FilterFile(file);

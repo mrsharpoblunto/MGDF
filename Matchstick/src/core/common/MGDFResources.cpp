@@ -6,6 +6,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #include "MGDFVersionInfo.hpp"
 #include "MGDFResources.hpp"
@@ -19,37 +20,32 @@
 
 namespace MGDF { namespace core {
 
-Resources::Resources(HINSTANCE instance,bool useRootDir) {
+Resources::Resources(HINSTANCE instance) {
 	if (instance!=NULL) {
 		_applicationDirectory = GetApplicationDirectory(instance);
 	}
 	else {
-		_applicationDirectory = ".";
+		_applicationDirectory = L".";
 	}
-
-	SetUserBaseDir(useRootDir);
 }
 
-void Resources::SetUserBaseDir(bool useRootDir)
+void Resources::SetUserBaseDir(bool useRootDir,const std::string &gameUid)
 {
 	if (useRootDir) {
-		_userBaseDir = (_gamesBaseDir!="" ? _gamesBaseDir : _applicationDirectory)+"user/";
+		_userBaseDir = (!_gameBaseDir.empty() ? _gameBaseDir : _applicationDirectory)+L"user/"+ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
 	}
 	else 
 	{
-		char strPath[MAX_PATH];
-		if(SUCCEEDED(SHGetFolderPath( NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, strPath ) ) )
+		wchar_t strPath[MAX_PATH];
+		if(SUCCEEDED(SHGetFolderPathW( NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, strPath ) ) )
 		{
 			_userBaseDir = strPath;
-			_userBaseDir +="/MGDF/";
-			boost::filesystem::path userBaseDir(_userBaseDir,boost::filesystem::native); 
-			if (!boost::filesystem::exists(_userBaseDir))
-				boost::filesystem::create_directory(_userBaseDir);
-			_userBaseDir +=boost::lexical_cast<std::string>(MGDFVersionInfo::MGDF_INTERFACE_VERSION)+"/";
+			_userBaseDir +=L"/MGDF/";
+			_userBaseDir +=boost::lexical_cast<std::wstring>(MGDFVersionInfo::MGDF_INTERFACE_VERSION)+L"/"+ ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
 		}
 		else 
 		{
-			_userBaseDir = (_gamesBaseDir!="" ? _gamesBaseDir : _applicationDirectory)+"user/";
+			_userBaseDir = (!_gameBaseDir.empty() ? _gameBaseDir : _applicationDirectory)+L"user/"+ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
 		}
 	}
 }
@@ -57,154 +53,164 @@ void Resources::SetUserBaseDir(bool useRootDir)
 /**
 get the directory the application is contained within
 */
-std::string Resources::GetApplicationDirectory(HINSTANCE instance) 
+std::wstring Resources::GetApplicationDirectory(HINSTANCE instance) 
 {
 	//get the application directory
-	char *pStr, szPath[MAX_PATH];
-	GetModuleFileName(instance, szPath, MAX_PATH);
-	pStr = strrchr(szPath, '\\')-1;
+	wchar_t *pStr, szPath[MAX_PATH];
+	GetModuleFileNameW(instance, szPath, MAX_PATH);
+	pStr = wcsrchr(szPath, L'\\')-1;
 	if (pStr != NULL)
-		*(++pStr)='\0';
+		*(++pStr)=L'\0';
 
-	std::string appDir = szPath;
-	boost::algorithm::replace_all(appDir,"\\","/");
+	std::wstring appDir = szPath;
+	boost::algorithm::replace_all(appDir,L"\\",L"/");
 
-	return appDir+"/";
+	return appDir+L"/";
 }
 
-const std::string Resources::VFS_CONTENT = "content/";
+const std::wstring Resources::VFS_CONTENT = L"content/";
 
 const std::string Resources::GAME_SCHEMA_URI = "http://schemas.matchstickframework.org/2007/game";
 const std::string Resources::GAME_STATE_SCHEMA_URI = "http://schemas.matchstickframework.org/2007/gameState";
 const std::string Resources::PREFERENCES_SCHEMA_URI   = "http://schemas.matchstickframework.org/2007/preferences";
 
-const std::string Resources::GAME_SCHEMA   = "game.xsd";
-const std::string Resources::GAME_STATE_SCHEMA = "gameState.xsd";
-const std::string Resources::PREFERENCES_SCHEMA   = "preferences.xsd";
+const std::wstring Resources::GAME_SCHEMA   = L"game.xsd";
+const std::wstring Resources::GAME_STATE_SCHEMA = L"gameState.xsd";
+const std::wstring Resources::PREFERENCES_SCHEMA   = L"preferences.xsd";
 
 const unsigned int Resources::MIN_SCREEN_X = 1024;
 const unsigned int Resources::MIN_SCREEN_Y =768;
 
-std::string Resources::LogFile()
+std::wstring Resources::LogFile()
 {
-	return UserBaseDir()+"coreLog.txt";
+	return UserBaseDir()+L"coreLog.txt";
 }
 
-std::string Resources::RootDir()
+std::wstring Resources::RootDir()
 {
 	return _applicationDirectory;
 }
 
-std::string Resources::UserBaseDir()
+std::wstring Resources::UserBaseDir()
 {
 	return _userBaseDir;
 }
 
-void Resources::SetGamesBaseDir(std::string gameDir)
+void Resources::SetGameBaseDir(const std::wstring &gameDir)
 {
-	_gamesBaseDir = gameDir;
+	_gameBaseDir = gameDir;
 }
 
-std::string Resources::GamesBaseDir()
+std::wstring Resources::GameBaseDir()
 {
-	return _gamesBaseDir!="" ? _gamesBaseDir : (_applicationDirectory+"games/");
+	return !_gameBaseDir.empty() ? _gameBaseDir : (_applicationDirectory+L"game/");
 }
 
-std::string Resources::UserDir(std::string gameUid)
+std::wstring Resources::GameFile()
 {
-	return UserBaseDir()+"games/"+gameUid+"/";
+	return GameBaseDir() +L"game.xml";
 }
 
-std::string Resources::GameFile(std::string gameUid)
+std::wstring Resources::WorkingDir()
 {
-	return GamesBaseDir() + gameUid +"/game.xml";
+	return UserBaseDir() + L"working/";
 }
 
-std::string Resources::WorkingDir()
+std::wstring Resources::SaveBaseDir()
 {
-	return UserBaseDir() + "working/";
+	return UserBaseDir()+L"saves/";
 }
 
-std::string Resources::GameStateSaveFile(std::string gameUid,std::string saveName)
+std::wstring Resources::GameStateSaveFile(const std::string &saveName)
 {
-	return SaveDir(gameUid,saveName) + "gameState.xml";
+	return SaveDir(saveName) + L"gameState.xml";
 }
 
-std::string Resources::RelativeSaveFile()
+std::wstring Resources::SaveDir(const std::string &saveName)
 {
-	return boost::lexical_cast<std::string>(UniqueIDAllocator::GetID())+".sav";
+	return SaveBaseDir() +ToWString(saveName)+L"/";
 }
 
-std::string Resources::SaveFile(std::string gameUid,std::string saveName)
+
+std::wstring Resources::SaveDataDir(const std::string &saveName)
 {
-	return SaveDir(gameUid,saveName)+boost::lexical_cast<std::string>(UniqueIDAllocator::GetID())+".sav";
+	return SaveDir(saveName)+L"data/";
 }
 
-std::string Resources::SaveDir(std::string gameUid,std::string saveName)
+void Resources::CreateRequiredDirectories()
 {
-	return UserDir(gameUid)+saveName+"/";
+	boost::filesystem::wpath userBaseDir(UserBaseDir(),boost::filesystem::native); 
+	boost::filesystem::create_directories(userBaseDir);
+
+	boost::filesystem::wpath gameDir(UserBaseDir(),boost::filesystem::native); 
+	boost::filesystem::create_directories(gameDir);
+
+	boost::filesystem::wpath saveBaseDir(SaveBaseDir(),boost::filesystem::native); 
+	boost::filesystem::create_directories(saveBaseDir);
+
+	boost::filesystem::wpath workingDir(WorkingDir(),boost::filesystem::native); 
+	boost::filesystem::create_directories(workingDir);
 }
 
-std::string Resources::SaveDataDir(std::string gameUid,std::string saveName)
+std::wstring Resources::CorePreferencesFile()
 {
-	return SaveDir(gameUid,saveName)+"data/";
+	return _applicationDirectory+L"resources/preferences.xml";
 }
 
-void Resources::CreateRequiredDirectories(std::string gameUid)
+std::wstring Resources::GameDefaultPreferencesFile()
 {
-	boost::filesystem::path userBaseDir(UserBaseDir(),boost::filesystem::native); 
-	if (!exists(userBaseDir))
-		create_directory(userBaseDir);
-	boost::filesystem::path userGamesBaseDir(UserBaseDir()+"games",boost::filesystem::native); 
-	if (!exists(userGamesBaseDir))
-		create_directory(userGamesBaseDir);
-	boost::filesystem::path gameDir(UserDir(gameUid),boost::filesystem::native); 
-	if (!exists(gameDir))
-		create_directory(gameDir);
-	boost::filesystem::path workingDir(WorkingDir(),boost::filesystem::native); 
-	if (!exists(workingDir)) {
-		create_directory(workingDir);
-	}
+	return GameBaseDir()+  L"preferences.xml";
 }
 
-std::string Resources::CorePreferencesFile()
+std::wstring Resources::GameUserPreferencesFile()
 {
-	return _applicationDirectory+"games/core/preferences.xml";
+	return UserBaseDir() + L"preferences.xml";
 }
 
-std::string Resources::GameDefaultPreferencesFile(std::string gameUid)
+std::wstring Resources::GameUserStatisticsFile() 
 {
-	return GamesBaseDir() + gameUid + "/preferences.xml";
+	return UserBaseDir() + L"statistics.txt";
 }
 
-std::string Resources::GameUserPreferencesFile(std::string gameUid)
+std::wstring Resources::ContentDir()
 {
-	return UserDir(gameUid) + "preferences.xml";
+	return GameBaseDir() + L"content/";
 }
 
-std::string Resources::GameUserStatisticsFile(std::string gameUid) 
+std::wstring Resources::SchemaFile(const std::wstring &schemaFile)
 {
-	return UserDir(gameUid) + "statistics.txt";
+	return _applicationDirectory+L"schemas/"+schemaFile;
 }
 
-std::string Resources::ContentDir(std::string gameUid)
+std::wstring Resources::Module()
 {
-	return GamesBaseDir() + gameUid + "/content/";
+	return BinDir()+L"module.dll";
 }
 
-std::string Resources::SchemaFile(std::string schemaFile)
+std::wstring Resources::BinDir()
 {
-	return _applicationDirectory+"schemas/"+schemaFile;
+	return GameBaseDir()+L"bin/";
 }
 
-std::string Resources::Module(std::string gameUid)
+std::string Resources::ToString(const std::wstring &wstr)
 {
-	return BinDir(gameUid)+"module.dll";
+    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), NULL, 0, NULL, NULL);
+	char *strTo = new char[sizeNeeded];
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), &strTo[0], sizeNeeded, NULL, NULL);
+	std::string result(&strTo[0],wstr.size());
+	delete[] strTo;
+	return result;
 }
 
-std::string Resources::BinDir(std::string gameUid)
+std::wstring Resources::ToWString(const std::string &str)
 {
-	return GamesBaseDir()+gameUid+"/bin/";
+    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), NULL, 0);
+    wchar_t *wstrTo = new wchar_t[sizeNeeded];
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstrTo[0], sizeNeeded);
+    std::wstring result(&wstrTo[0],str.size());
+	delete wstrTo;
+	return result;
 }
+
 
 }}

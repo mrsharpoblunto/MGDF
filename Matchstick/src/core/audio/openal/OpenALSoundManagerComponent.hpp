@@ -14,7 +14,7 @@
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 typedef struct {
-	std::string BufferSource;
+	std::wstring BufferSource;
 	int References;
 } SharedBuffer;
 

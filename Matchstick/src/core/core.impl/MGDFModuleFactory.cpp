@@ -32,12 +32,12 @@ ModuleFactory::ModuleFactory(IGame *game)
 	_getModule = NULL;
 	_isCompatibleInterfaceVersion = NULL;
 
-	boost::filesystem::path globalModule(Resources::Instance().Module(_game->GetUid()),boost::filesystem::native);
+	boost::filesystem::wpath globalModule(Resources::Instance().Module(),boost::filesystem::native);
 	if (boost::filesystem::exists(globalModule)) 
 	{
 		GetLoggerImpl()->Add(THIS_NAME,"Loading Module.dll");
-		CurrentDirectoryHelper::Instance().Push(Resources::Instance().BinDir(game->GetUid()));
-		_moduleInstance = LoadLibrary(Resources::Instance().Module(_game->GetUid()).c_str());
+		CurrentDirectoryHelper::Instance().Push(Resources::Instance().BinDir());
+		_moduleInstance = LoadLibraryW(Resources::Instance().Module().c_str());
 		CurrentDirectoryHelper::Instance().Pop();
 
 		if (_moduleInstance!=NULL) {

@@ -17,11 +17,11 @@ public:
 	ZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler);
 	virtual ~ZipArchiveHandlerImpl();
 	virtual void Dispose();
-	virtual bool IsArchive(const char *path) const; 
-	virtual IFile *MapArchive(IFile *parent,const char * archiveFile);
+	virtual bool IsArchive(const wchar_t *path) const; 
+	virtual IFile *MapArchive(IFile *parent,const wchar_t * archiveFile);
 
 private:
-	std::vector<std::string> _fileExtensions;
+	std::vector<std::wstring> _fileExtensions;
 	ILogger *_logger;
 	IErrorHandler *_errorHandler;
 
@@ -29,7 +29,7 @@ private:
 	get the extension of a file
 	\return the extension (excluding the preceding '.' if possible, otherwise returns "" if no extension could be found
 	*/
-	std::string GetFileExtension(std::string file) const;
+	std::wstring GetFileExtension(std::wstring file) const;
 };
 
 MGDF_CORE_DLL IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler);

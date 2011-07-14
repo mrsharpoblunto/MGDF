@@ -23,12 +23,13 @@ using namespace XMLTests;
 SETUP(XMLTestFixture)
 {
 	HINSTANCE inst;
-	inst=(HINSTANCE)GetModuleHandle("core.tests.dll");
-	Resources::Instance(inst,true);
+	inst=(HINSTANCE)GetModuleHandleW(L"core.tests.dll");
+	Resources::Instance(inst);
+	Resources::Instance().SetUserBaseDir(true,"junkship");
 
 	_logger = new MGDF::core::tests::MockLogger();
 	_vfs = CreateVirtualFileSystemComponentImpl(NULL,NULL,(ILogger *)_logger);
-	_vfs->MapDirectory((Resources::Instance().RootDir()+"../../tests/content").c_str(),"",NULL,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",NULL,false);
 
 	_xml = CreateXMLFactoryComponentImpl(NULL,NULL);
 }
@@ -48,7 +49,7 @@ BEGIN_TESTF(XMLGameHandlerTest,XMLTestFixture)
 
 	std::auto_ptr<IGameXMLHandler> handler(_xml->CreateGameXMLHandler());
 
-	std::string path = _vfs->GetFile("console.xml")->GetPhysicalPath();
+	std::wstring path = _vfs->GetFile(L"console.xml")->GetPhysicalPath();
 	handler->Load(path);
 
 	WIN_ASSERT_EQUAL("Console",handler->GetGameUid());
@@ -75,13 +76,13 @@ BEGIN_TESTF(XMLGameStateHandlerTest,XMLTestFixture)
 
 	IGameStateXMLHandler *handler = _xml->CreateGameStateXMLHandler("Console",&expected);
 
-	std::string path = _vfs->GetFile("gamestate.xml")->GetPhysicalPath();
+	std::wstring path = _vfs->GetFile(L"gamestate.xml")->GetPhysicalPath();
 	handler->Load(path);
 
 	WIN_ASSERT_EQUAL("Console",handler->GetGameUid());
 	WIN_ASSERT_EQUAL(0,VersionHelper::Compare(handler->GetVersion(),&expected));
 
-	std::string savePath = Resources::Instance().RootDir()+"../../tests/content/temp.xml";
+	std::wstring savePath = Resources::Instance().RootDir()+L"../../tests/content/temp.xml";
 	handler->Save(savePath);
 	delete handler;
 
@@ -92,7 +93,7 @@ BEGIN_TESTF(XMLGameStateHandlerTest,XMLTestFixture)
 	WIN_ASSERT_EQUAL("Console",handler->GetGameUid());
 	WIN_ASSERT_EQUAL(0,VersionHelper::Compare(handler->GetVersion(),&expected));
 
-	boost::filesystem::remove(boost::filesystem::path(savePath,boost::filesystem::native));//remove the temp file
+	boost::filesystem::remove(boost::filesystem::wpath(savePath,boost::filesystem::native));//remove the temp file
 	delete handler;
 }
 END_TESTF
@@ -104,7 +105,7 @@ BEGIN_TESTF(XMLPreferencesHandlerTest,XMLTestFixture)
 {
 	IPreferenceConfigXMLHandler *handler = _xml->CreatePreferenceConfigXMLHandler();
 
-	std::string path = _vfs->GetFile("preferences.xml")->GetPhysicalPath();
+	std::wstring path = _vfs->GetFile(L"preferences.xml")->GetPhysicalPath();
 	handler->Load(path);
 
 	IPreferenceConfigXMLHandler::iterator iter;
@@ -122,9 +123,9 @@ BEGIN_TESTF(XMLPreferencesHandlerTest,XMLTestFixture)
 	}
 	WIN_ASSERT_EQUAL(9,count);
 
-	std::string savePath = Resources::Instance().RootDir()+"../../tests/content/temp.xml";
-	if (boost::filesystem::exists(boost::filesystem::path(savePath,boost::filesystem::native))){
-		boost::filesystem::remove(boost::filesystem::path(savePath,boost::filesystem::native));//remove the temp file	
+	std::wstring savePath = Resources::Instance().RootDir()+L"../../tests/content/temp.xml";
+	if (boost::filesystem::exists(boost::filesystem::wpath(savePath,boost::filesystem::native))){
+		boost::filesystem::remove(boost::filesystem::wpath(savePath,boost::filesystem::native));//remove the temp file	
 	}
 	handler->Save(savePath);
 	delete handler;
@@ -147,7 +148,7 @@ BEGIN_TESTF(XMLPreferencesHandlerTest,XMLTestFixture)
 	}
 	WIN_ASSERT_EQUAL(9,count);
 
-	boost::filesystem::remove(boost::filesystem::path(savePath,boost::filesystem::native));//remove the temp file
+	boost::filesystem::remove(boost::filesystem::wpath(savePath,boost::filesystem::native));//remove the temp file
 	delete handler;
 }
 END_TESTF

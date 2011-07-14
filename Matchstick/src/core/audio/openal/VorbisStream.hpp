@@ -26,7 +26,7 @@ public:
 	virtual ~VorbisStream();
 	VorbisStream(IFile *source,OpenALSoundManagerComponentImpl *manager);
 
-	virtual const char * GetName() const;
+	virtual const wchar_t * GetName() const;
 	virtual float GetVolume() const;
 	virtual void SetVolume(float volume);
 	virtual void Stop();

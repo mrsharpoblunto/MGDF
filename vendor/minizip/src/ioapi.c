@@ -31,7 +31,7 @@
 
 voidpf ZCALLBACK fopen_file_func OF((
    voidpf opaque,
-   const char* filename,
+   const wchar_t* filename,
    int mode));
 
 uLong ZCALLBACK fread_file_func OF((
@@ -67,22 +67,22 @@ int ZCALLBACK ferror_file_func OF((
 
 voidpf ZCALLBACK fopen_file_func (opaque, filename, mode)
    voidpf opaque;
-   const char* filename;
+   const wchar_t* filename;
    int mode;
 {
     FILE* file = NULL;
-    const char* mode_fopen = NULL;
+    const wchar_t* mode_fopen = NULL;
     if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER)==ZLIB_FILEFUNC_MODE_READ)
-        mode_fopen = "rb";
+        mode_fopen = L"rb";
     else
     if (mode & ZLIB_FILEFUNC_MODE_EXISTING)
-        mode_fopen = "r+b";
+        mode_fopen = L"r+b";
     else
     if (mode & ZLIB_FILEFUNC_MODE_CREATE)
-        mode_fopen = "wb";
+        mode_fopen = L"wb";
 
     if ((filename!=NULL) && (mode_fopen != NULL))
-        file = fopen(filename, mode_fopen);
+        file = _wfopen(filename, mode_fopen);
     return file;
 }
 

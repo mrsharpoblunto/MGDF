@@ -20,8 +20,8 @@ public:
 	virtual ~TestModule(void){}
 
 	virtual void Update(ISystem *system,TextManagerState *state)=0;
-	virtual void LoadModule(const char *,const char *,TextManagerState *state)=0;
-	virtual void SaveModule(const char *,TextManagerState *state)=0;
+	virtual void LoadModule(const wchar_t *,const wchar_t *,TextManagerState *state)=0;
+	virtual void SaveModule(const wchar_t *,TextManagerState *state)=0;
 
 	virtual TestModule *NextTestModule()=0;
 };
@@ -32,9 +32,9 @@ public:
 	virtual ~Module(void);
 	Module(ISystem *);
 
-	virtual bool NewModule(const char *workingFolder);
-	virtual bool LoadModule(const char *,const char *);//file to load from
-	virtual bool SaveModule(const char *);//file to save to
+	virtual bool NewModule(const wchar_t *workingFolder);
+	virtual bool LoadModule(const wchar_t *,const wchar_t *);//file to load from
+	virtual bool SaveModule(const wchar_t *);//file to save to
 
 	virtual bool Dispose(void);
 
@@ -51,7 +51,8 @@ public:
 private:
 	MGDF::ISystem *_system;
 	bool _inited;
-	std::string _lastError,_workingFolder;
+	std::string _lastError;
+	std::wstring _workingFolder;
 
 	TestModule *_testModule;
 	BufferedGameState<TextManagerState> _stateBuffer;

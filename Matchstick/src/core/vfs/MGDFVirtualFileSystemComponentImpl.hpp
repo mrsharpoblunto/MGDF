@@ -14,7 +14,7 @@ namespace MGDF { namespace core { namespace vfs {
 
 class IVirtualFileSystemComponent: public ISystemComponent,public IVirtualFileSystem, public IDisposable {
 public:
-	virtual bool MapDirectory(const char * physicalDirectory,const char * logicalDirectory,IFileFilter *filter,bool recursive)=0;
+	virtual bool MapDirectory(const wchar_t * physicalDirectory,const wchar_t * logicalDirectory,IFileFilter *filter,bool recursive)=0;
 	virtual IVirtualFileSystem *RegisterArchiveHandler(IArchiveHandler *)=0;
 };
 
@@ -30,14 +30,14 @@ class VirtualFileSystemComponent: public DisposeImpl<IVirtualFileSystemComponent
 		virtual ~VirtualFileSystemComponent();
 		virtual void Dispose();
 
-		virtual bool AddAlias(const char *alias,const char *logicalDirectory);
-		virtual void RemoveAlias(const char *alias);
-		virtual IFileIterator *FindFiles(const char *logicalDirectory,IFileFilter *filter,bool recursive) const;
-		virtual IFile *GetFile(const char *logicalPath) const;
+		virtual bool AddAlias(const wchar_t *alias,const wchar_t *logicalDirectory);
+		virtual void RemoveAlias(const wchar_t *alias);
+		virtual IFileIterator *FindFiles(const wchar_t *logicalDirectory,IFileFilter *filter,bool recursive) const;
+		virtual IFile *GetFile(const wchar_t *logicalPath) const;
 		virtual IFile *GetRoot() const;
 		virtual IFileFilterFactory *GetFilterFactory() const;
 
-		virtual bool MapDirectory(const char * physicalDirectory,const char * logicalDirectory,IFileFilter *filter,bool recursive);
+		virtual bool MapDirectory(const wchar_t * physicalDirectory,const wchar_t * logicalDirectory,IFileFilter *filter,bool recursive);
 
 		virtual IVirtualFileSystem *RegisterArchiveHandler(IArchiveHandler *);
 
@@ -51,10 +51,10 @@ class VirtualFileSystemComponent: public DisposeImpl<IVirtualFileSystemComponent
 		filters::FileFilterFactory *_filterFactory;
 
 		void MapDirectory(IFile *parent,IFileFilter *filter);
-		void Map(const char *currentPhysicalFile, IFile *parentFile,IFileFilter *filter,bool recursive);
+		void Map(const wchar_t *currentPhysicalFile, IFile *parentFile,IFileFilter *filter,bool recursive);
 
-		IFile *CreateLogicalDirectory(std::string s);
-		IArchiveHandler *GetArchiveHandler(const char *filename);
+		IFile *CreateLogicalDirectory(std::wstring s);
+		IArchiveHandler *GetArchiveHandler(const wchar_t *filename);
 		void FindFilesRecursive(IFile *currentDirectory,IFileFilter *filter,bool recursive,std::vector<IFile *> *files) const; 
 };
 

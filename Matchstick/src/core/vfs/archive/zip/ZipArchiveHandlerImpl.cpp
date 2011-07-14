@@ -20,15 +20,14 @@ ZipArchiveHandlerImpl::ZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *erro
 {
 	_logger = logger;
 	_errorHandler = errorHandler;
-	_fileExtensions.push_back(".zip");
-	_fileExtensions.push_back(".mza");
+	_fileExtensions.push_back(L".zip");
 }
 
 ZipArchiveHandlerImpl::~ZipArchiveHandlerImpl()
 {
 }
 
-IFile *ZipArchiveHandlerImpl::MapArchive(IFile *parent,const char * archiveFile) 
+IFile *ZipArchiveHandlerImpl::MapArchive(IFile *parent,const wchar_t * archiveFile) 
 {
 	zip::ZipArchive *archive = new zip::ZipArchive(_logger,_errorHandler);
 	IFile *result = archive->MapArchive(parent,archiveFile);
@@ -44,10 +43,10 @@ void ZipArchiveHandlerImpl::Dispose()
 	delete this;
 }
 
-bool ZipArchiveHandlerImpl::IsArchive(const char *path) const 
+bool ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) const 
 {
-	std::string extension = GetFileExtension(std::string(path));
-	for(std::vector<std::string>::const_iterator extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
+	std::wstring extension = GetFileExtension(std::wstring(path));
+	for(std::vector<std::wstring>::const_iterator extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
 		if ((*extIter) == extension) {
 			return true;
 		}
@@ -55,13 +54,13 @@ bool ZipArchiveHandlerImpl::IsArchive(const char *path) const
 	return false;
 }
 
-std::string ZipArchiveHandlerImpl::GetFileExtension(std::string filename) const
+std::wstring ZipArchiveHandlerImpl::GetFileExtension(std::wstring filename) const
 {
-	std::string::size_type pos = filename.rfind('.',filename.length()-1);
-	if (pos != std::string::npos) {
+	std::wstring::size_type pos = filename.rfind('.',filename.length()-1);
+	if (pos != std::wstring::npos) {
 		return filename.substr(pos);
 	}
-	return "";
+	return L"";
 }
 
 }}}

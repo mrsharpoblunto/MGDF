@@ -11,10 +11,10 @@
 
 namespace MGDF { namespace core { namespace vfs { namespace filters {
 
-NameFilter::NameFilter(std::string nameFilter,bool include)
+NameFilter::NameFilter(std::wstring nameFilter,bool include)
 {
-	std::transform(nameFilter.begin(), nameFilter.end(), nameFilter.begin(), (int(*)(int)) std::tolower);
-	_regex = new boost::regex(nameFilter);
+	std::transform(nameFilter.begin(), nameFilter.end(), nameFilter.begin(),::towlower);
+	_regex = new boost::wregex(nameFilter);
 	this->_include = include;
 }
 
@@ -23,9 +23,9 @@ NameFilter::~NameFilter()
 	delete _regex;
 }
 
-bool NameFilter::DoFilterFile(std::string file)
+bool NameFilter::DoFilterFile(std::wstring file)
 {
-	std::transform(file.begin(), file.end(), file.begin(), (int(*)(int)) std::tolower);
+	std::transform(file.begin(), file.end(), file.begin(), ::towlower);
 	if (boost::regex_match(file.begin(),file.end(),*_regex)) {
 		return _include;
 	}

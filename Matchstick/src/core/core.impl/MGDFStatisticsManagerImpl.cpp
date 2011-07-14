@@ -21,7 +21,7 @@ namespace MGDF { namespace core {
 StatisticsManager::StatisticsManager(std::string gameUid)
 {
 	_saveBuffer = new std::vector<NameValuePair>();
-	_statisticsFile = Resources::Instance().GameUserStatisticsFile(gameUid);
+	_statisticsFile = Resources::Instance().GameUserStatisticsFile();
 
 	std::ofstream file(_statisticsFile.c_str(),std::ios_base::out|std::ios_base::trunc);
 	file.close();

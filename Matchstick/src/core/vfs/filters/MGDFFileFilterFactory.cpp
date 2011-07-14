@@ -12,24 +12,24 @@
 
 namespace MGDF { namespace core { namespace vfs { namespace filters {
 
-IFileFilter *FileFilterFactory::CreateNameExclusionFilter(const char * name) const
+IFileFilter *FileFilterFactory::CreateNameExclusionFilter(const wchar_t * name) const
 {
-	return new NameFilter(std::string(name),false);
+	return new NameFilter(std::wstring(name),false);
 }
 
-IFileFilter *FileFilterFactory::CreateNameInclusionFilter(const char * name) const
+IFileFilter *FileFilterFactory::CreateNameInclusionFilter(const wchar_t * name) const
 {
-	return new NameFilter(std::string(name),true);
+	return new NameFilter(std::wstring(name),true);
 }
 
-IFileFilter *FileFilterFactory::CreateFileExtensionExclusionFilter(const char * extension) const
+IFileFilter *FileFilterFactory::CreateFileExtensionExclusionFilter(const wchar_t * extension) const
 {
-	return new ExtensionFilter(std::string(extension),false);
+	return new ExtensionFilter(std::wstring(extension),false);
 }
 
-IFileFilter *FileFilterFactory::CreateFileExtensionInclusionFilter(const char * extension) const
+IFileFilter *FileFilterFactory::CreateFileExtensionInclusionFilter(const wchar_t * extension) const
 {
-	return new ExtensionFilter(std::string(extension),true); 
+	return new ExtensionFilter(std::wstring(extension),true); 
 }
 
 }}}}

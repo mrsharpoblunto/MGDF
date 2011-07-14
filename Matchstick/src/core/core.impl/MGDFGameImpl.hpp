@@ -29,12 +29,13 @@ public:
 	virtual void SavePreferences() const;
 	virtual void ResetPreferences();
 
-	void SavePreferences(std::string filename);
-	void LoadPreferences(std::string filename);
+	void SavePreferences(std::wstring filename);
+	void LoadPreferences(std::wstring filename);
 
 private:
 	xml::IXMLFactoryComponent *_xmlFactory;
-	std::string _uid,_name,_preferencesFile;
+	std::string _uid,_name;
+	std::wstring _preferencesFile;
 	Version _version;
 	int _interfaceVersion;
 	stdext::hash_map<std::string,std::string> _preferences;

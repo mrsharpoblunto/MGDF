@@ -111,7 +111,7 @@ typedef const char* zipcharpc;
 #define APPEND_STATUS_CREATEAFTER   (1)
 #define APPEND_STATUS_ADDINZIP      (2)
 
-extern zipFile ZEXPORT zipOpen OF((const char *pathname, int append));
+extern zipFile ZEXPORT zipOpen OF((const wchar_t *pathname, int append));
 /*
   Create a zipfile.
      pathname contain on Windows XP a filename like "c:\\zlib\\zlib113.zip" or on
@@ -131,7 +131,7 @@ extern zipFile ZEXPORT zipOpen OF((const char *pathname, int append));
    Of couse, you can use RAW reading and writing to copy the file you did not want delte
 */
 
-extern zipFile ZEXPORT zipOpen2 OF((const char *pathname,
+extern zipFile ZEXPORT zipOpen2 OF((const wchar_t *pathname,
                                    int append,
                                    zipcharpc* globalcomment,
                                    zlib_filefunc_def* pzlib_filefunc_def));

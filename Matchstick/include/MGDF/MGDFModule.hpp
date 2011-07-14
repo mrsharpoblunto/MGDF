@@ -26,7 +26,7 @@ public:
 	 \param workingFolder a folder that the module can read/write data to while its running
 	 \return false if the module experiences a fatal error on initialization
 	 */
-	virtual bool  NewModule(const char *workingFolder)=0;
+	virtual bool  NewModule(const wchar_t *workingFolder)=0;
 
 	/**
 	 This method tells the module to load its state from a file
@@ -37,7 +37,7 @@ public:
 	 running for the current game session so namespacing of files etc. is up to the modules to prevent conflicts
 	 \return false if the module experiences a fatal error on loading
 	*/
-	virtual bool  LoadModule(const char *saveDataFolder,const char *workingFolder)=0;
+	virtual bool  LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder)=0;
 
 	/**
 	 This method is called once per simulation timestep once the game is running and represents the 
@@ -103,7 +103,7 @@ public:
 	\return false if the module experiences a fatal error while resuming
 
 	*/
-	virtual bool  SaveModule(const char *saveDataFolder)=0;
+	virtual bool  SaveModule(const wchar_t *saveDataFolder)=0;
 
 	/**
 	this method is called for all active modules when the a system fatalError event occurs.

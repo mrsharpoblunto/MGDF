@@ -14,12 +14,12 @@ public:
 	http://www.boost.org/libs/regex/doc/syntax_perl.html
 	for details on the regex syntax
 	*/
-	NameFilter(std::string nameFilter,bool include);
+	NameFilter(std::wstring nameFilter,bool include);
 	virtual ~NameFilter();
 protected:
-	virtual bool DoFilterFile(std::string file);
+	virtual bool DoFilterFile(std::wstring file);
 private:
-	boost::regex *_regex;
+	boost::wregex *_regex;
 	bool _include;
 };
 

@@ -18,7 +18,7 @@ private:
 	} NameValuePair;
 
 	std::vector<NameValuePair> *_saveBuffer;
-	std::string _statisticsFile;
+	std::wstring _statisticsFile;
 
 	void SaveAll();
 	int GetSaveBufferSize();
