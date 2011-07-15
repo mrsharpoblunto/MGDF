@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -8,9 +9,8 @@ using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.ClientModel;
-using MGDF.GamesManager.Model.Factories;
-using MGDF.GamesManager.Model.Services;
+using MGDF.GamesManager.Model;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Presenters;
 using MGDF.GamesManager.MVP.Views.Impl;
 
@@ -27,21 +27,15 @@ namespace MGDF.GamesManager
             TimeService.Current = new TimeService();
             EnvironmentSettings.Current = new EnvironmentSettings();
             FileSystem.Current = new FileSystem();
-            Logger.Current = new Logger(Path.Combine(EnvironmentSettings.Current.UserDirectory, "GamesManagerLog.txt"));
-            EntityFactory.Current = new EntityFactory();
             ArchiveFactory.Current = new ArchiveFactory();
             HttpRequestManager.Current = new HttpRequestManager();
             ProcessManager.Current = new ProcessManager();
-            Constants.CreateRequiredUserDirectories();
 
             ViewImpl.RegisterViews();
 
             try
             {
-                using (new CleanupScope(Cleanup))
-                {
-                    return RunMain();
-                }
+                return RunMain();
             }
             catch (System.Security.SecurityException)
             {
@@ -56,56 +50,83 @@ namespace MGDF.GamesManager
 
         static int RunMain()
         {
-            Application.ThreadException += Application_ThreadException;
             var commandLine = new CommandLineParser(Environment.GetCommandLineArgs());
 
+            Application.ThreadException += Application_ThreadException;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            if (commandLine[Constants.GamesManagerArguments.BootArgument]!=null)
+            Game game = new Game(FileSystem.Combine(Resources.GameBaseDir,Resources.GameConfig));
+            if (game.ErrorCollection.Count>0)
             {
-                string uid = commandLine[Constants.GamesManagerArguments.BootArgument];
-                var presenter = new LaunchGamePresenter(uid, commandLine[Constants.GamesManagerArguments.NoUpdateCheckArgument] == null, false);
-                Application.Run(presenter.View as Form);
+                ViewFactory.Current.CreateView<IMessage>().Show("Game configuration invalid " + game.ErrorCollection[0], "Game configuration invalid");
+                return -1;
             }
-            else if (commandLine[Constants.GamesManagerArguments.InstallArgument] != null)
+            Game.Current = game;
+
+            Resources.InitUserDirectory(Game.Current.Uid, commandLine[Resources.GamesManagerArguments.UserDirOverrideArgument]!=null);
+            Logger.Current = new Logger(Path.Combine(Resources.GameUserDir, "GamesManagerLog.txt"));
+
+
+            if (commandLine[Resources.GamesManagerArguments.InstallArgument] != null)
             {
-                var splashPresenter = new InstallSplashScreenPresenter(commandLine[Constants.GamesManagerArguments.InstallArgument]);
-                if (splashPresenter.Installer != null)
+                if (!UACControl.IsAdmin())
                 {
-                    Application.Run(splashPresenter.View as Form);
-                    if (splashPresenter.DoInstall)
-                    {
-                        var installPresenter = new InstallLocalGamePresenter(splashPresenter.Installer);
-                        Application.Run(installPresenter.View as Form);
-                    }
+                    ViewFactory.Current.CreateView<IMessage>().Show("Installing requires administrator access", "Administrator accesss required");
+                    return -1;
                 }
+
+                var installer = new GameInstaller(true, Game.Current);
+                installer.Start();
             }
-            else if (commandLine[Constants.GamesManagerArguments.UninstallArgument] != null)
+            else if (commandLine[Resources.GamesManagerArguments.UninstallArgument] != null)
             {
-                var presenter = new UninstallGamePresenter(commandLine[Constants.GamesManagerArguments.UninstallArgument]);
-                Application.Run(presenter.View as Form);
+                if (!UACControl.IsAdmin())
+                {
+                    ViewFactory.Current.CreateView<IMessage>().Show("Uninstalling requires administrator access", "Administrator accesss required");
+                    return -1;
+                }
+
+                var uninstaller = new GameInstaller(false, Game.Current);
+                uninstaller.Start();
             }
-            else if (commandLine[Constants.GamesManagerArguments.CheckUpdatesArgument] != null)
+            else if (commandLine[Resources.GamesManagerArguments.UpdateFrameworkArgument] != null || commandLine[Resources.GamesManagerArguments.UpdateGameArgument] != null)
             {
-                var presenter = new LaunchGamePresenter(commandLine[Constants.GamesManagerArguments.CheckUpdatesArgument],true,true);
+                if (commandLine[Resources.GamesManagerArguments.UpdateFrameworkArgument] != null &&
+                    commandLine[Resources.GamesManagerArguments.FrameworkUpdateHashArgument]==null)
+                {
+                    ViewFactory.Current.CreateView<IMessage>().Show("Framework update MD5 hash argument missing", "Missing argument");
+                    return -1;
+                }
+
+                if (commandLine[Resources.GamesManagerArguments.UpdateGameArgument] != null &&
+                    commandLine[Resources.GamesManagerArguments.GameUpdateHashArgument] == null)
+                {
+                    ViewFactory.Current.CreateView<IMessage>().Show("Game update MD5 hash argument missing", "Missing argument");
+                    return -1;
+                }
+
+                if (!UACControl.IsAdmin())
+                {
+                    ViewFactory.Current.CreateView<IMessage>().Show("Updating requires administrator access", "Administrator accesss required");
+                    return -1;
+                }
+
+                var presenter = new UpdateGamePresenter(
+                    commandLine[Resources.GamesManagerArguments.UpdateGameArgument],
+                    commandLine[Resources.GamesManagerArguments.GameUpdateHashArgument],
+                    commandLine[Resources.GamesManagerArguments.UpdateFrameworkArgument], 
+                    commandLine[Resources.GamesManagerArguments.FrameworkUpdateHashArgument]);
                 presenter.ShowView();
                 Application.Run(presenter.View as Form);
-            }
-            else if (commandLine[Constants.GamesManagerArguments.CheckUninstallArgument] != null)
-            {
-                IDirectory gamesDirectory = FileSystem.Current.GetDirectory(Constants.GamesBaseDir);
-                var games = gamesDirectory.GetSubDirectories("*")
-                    .Where(d =>!d.Name.Equals("core",StringComparison.InvariantCultureIgnoreCase) && !d.Name.Equals("Downloads",StringComparison.InvariantCultureIgnoreCase))
-                    .Map(d => d.Name);
 
-                if (games.Count > 0)
-                {
-                    var presenter = new CheckUninstallPresenter(games);
-                    presenter.ShowView();
-                    Application.Run(presenter.View as Form);
-                    return presenter.Uninstall ? 0 : -1;
-                }
+                Process.Start(Resources.FrameworkUpdaterExecutable, Resources.GamesManagerBootArguments(string.Empty,string.Empty,string.Empty,string.Empty));
+            }
+            else if (commandLine[Resources.GamesManagerArguments.BootArgument] != null)
+            {
+                var presenter = new LaunchGamePresenter(commandLine[Resources.GamesManagerArguments.NoUpdateCheckArgument] == null);
+                presenter.ShowView();
+                Application.Run(presenter.View as Form);
             }
             else
             {
@@ -123,12 +144,10 @@ namespace MGDF.GamesManager
 
         public static void ShowUnhandledError(Exception e)
         {
-            Cleanup();
-
             try
             {
                 IView latestView = ViewFactory.Current.LatestView;
-                Logger.Current.Write(e, "Unexpected error in GamesManager");
+                if (Logger.Current!=null) Logger.Current.Write(e, "Unexpected error in GamesManager");
                 var controller = new SubmitErrorPresenter("Unexpected error in GamesManager", e.ToString());
                 controller.View.Closed += (s, args) => Application.Exit();
                 controller.ShowView(latestView);
@@ -137,35 +156,6 @@ namespace MGDF.GamesManager
             {
                 Application.Exit();
             }
-        }
-
-        private static void Cleanup()
-        {
-            try
-            {
-                if (GamesManagerClient.HasInstance())
-                {
-                    GamesManagerClient.Instance.Dispose();
-                }
-            }
-            catch (Exception)
-            {
-            }
-        }
-    }
-
-    class CleanupScope: IDisposable
-    {
-        private readonly Action _cleanupHandler;
-
-        public CleanupScope(Action cleanupHandler)
-        {
-            _cleanupHandler = cleanupHandler;
-        }
-
-        public void Dispose()
-        {
-            _cleanupHandler();
         }
     }
 }

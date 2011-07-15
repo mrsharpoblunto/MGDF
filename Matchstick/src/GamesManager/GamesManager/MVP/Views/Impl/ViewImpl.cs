@@ -10,9 +10,8 @@ namespace MGDF.GamesManager.MVP.Views.Impl
     {
         public static void RegisterViews()
         {
-            ViewFactory.Current.RegisterView<ICheckUninstallView, CheckUninstallView>();
             ViewFactory.Current.RegisterView<IGetCredentialsView,GetCredentialsView>();
-            ViewFactory.Current.RegisterView<ISplashScreenView, InstallSplashScreenView>();
+            ViewFactory.Current.RegisterView<IGetUpdatePermissionView, GetUpdatePermissionView>();
             ViewFactory.Current.RegisterView<IProgressView, ProgressView>();
             ViewFactory.Current.RegisterView<ISendStatisticsView, SendStatisticsView>();
             ViewFactory.Current.RegisterView<ISubmitErrorView, SubmitErrorView>();

@@ -6,8 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.Contracts.Entities;
+using MGDF.GamesManager.Model.Entities;
 
 namespace MGDF.GamesManager.MVP.Views.Impl
 {
@@ -25,7 +24,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
 
         public event EventHandler OnOK;
 
-        public IGame Game
+        public Game Game
         {
             set
             {

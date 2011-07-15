@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows.Forms;
 using MGDF.GamesManager.Common;
+using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Helpers;
 
@@ -19,17 +20,26 @@ namespace MGDF.GamesManager.FrameworkUpdater
             TimeService.Current = new TimeService();
             EnvironmentSettings.Current = new EnvironmentSettings();
             FileSystem.Current = new FileSystem();
-            CommandLineRepeater commandLine = new CommandLineRepeater(Environment.GetCommandLineArgs());
+            var commandLineRepeater = new CommandLineRepeater(Environment.GetCommandLineArgs());
 
-            string updateFile = string.Empty;
-            if (FrameworkUpdateChecker.RequiresUpdate(out updateFile))
+            if (FileSystem.Current.FileExists(Resources.GamesManagerNewExecutable))
             {
-                Application.Run(new UpdatingForm(commandLine, updateFile));
+                //continunally tries to delete the gamesmanager exe and replace it with the newly downloaded version
+                while (true)
+                {
+                    try
+                    {
+                        FileSystem.Current.GetFile(Resources.GamesManagerExecutable).DeleteWithTimeout();
+                        FileSystem.Current.GetFile(Resources.GamesManagerNewExecutable).MoveTo(Resources.GamesManagerExecutable);
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
             }
-            else
-            {
-                Process.Start(Constants.GamesManagerExecutable, commandLine.ToString());
-            }
+
+            Process.Start(Resources.GamesManagerExecutable, commandLineRepeater.ToString());
         }
     }
 }

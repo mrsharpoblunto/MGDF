@@ -9,13 +9,11 @@ namespace MGDF.GamesManager.MVP.Views
 {
     public interface IProgressView: IView
     {
-        event EventHandler OnPause;
-        event EventHandler OnResume;
+        event EventHandler OnCancel;
 
-        bool AllowPauseOrResume { set; }
+        bool AllowCancel { set; }
         void Hide();
         void HideProgress();
-        bool Paused { set; }
         string Title { set; }
         string Details { set; }
         void ShowProgress(long progress, long total);

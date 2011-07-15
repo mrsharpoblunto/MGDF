@@ -12,8 +12,5 @@ namespace MGDF.GamesManager.Controls
         void RegisterView<TINTERFACETYPE, TCONCRETETYPE>()
             where TINTERFACETYPE : IView
             where TCONCRETETYPE : IView;
-
-        bool ConfirmYesNo(string title, string text);
-        bool ConfirmOkCancel(string title, string text);
     }
 }

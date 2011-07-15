@@ -6,8 +6,8 @@ using System.Text;
 using System.Xml;
 using ICSharpCode.SharpZipLib.Zip;
 using MGDF.GamesManager.Common.Framework;
-using MGDF.GamesManager.Model.Contracts.Entities;
-using MGDF.GamesManager.Model.Factories;
+using MGDF.GamesManager.Model;
+using MGDF.GamesManager.Model.Entities;
 using Directory=System.IO.Directory;
 using File=System.IO.File;
 
@@ -27,7 +27,6 @@ namespace MGDF.GamesManager.PackageGen
         {
             FileSystem.Current = new FileSystem();
             TimeService.Current = new TimeService();
-            EntityFactory.Current = new EntityFactory();
             ArchiveFactory.Current = new ArchiveFactory();
 
             if (args.Length==3 && args[1]=="-o")
@@ -66,7 +65,7 @@ namespace MGDF.GamesManager.PackageGen
                         return 1;
                     }
 
-                    IGameInstall oldInstall;
+                    GameInstall oldInstall;
                     if (!ValidateNonUpdateInstaller(args[1],out oldInstall)) return 1;
 
                     if (!File.Exists(args[2]))
@@ -75,7 +74,7 @@ namespace MGDF.GamesManager.PackageGen
                         return 1;
                     }
 
-                    IGameInstall newInstall;
+                    GameInstall newInstall;
                     if (!ValidateNonUpdateInstaller(args[2],out newInstall)) return 1;
 
                     var details = new UpdateDetails
@@ -110,14 +109,14 @@ namespace MGDF.GamesManager.PackageGen
         private static bool ValidateInstaller(string installerFile)
         {
             Console.WriteLine("Validating installer package "+installerFile+"...");
-            IGameInstall install = EntityFactory.Current.CreateGameInstall(installerFile);
+            GameInstall install = new GameInstall(installerFile);
             return ValidateInstaller(install);
         }
 
-        private static bool ValidateNonUpdateInstaller(string installerFile,out IGameInstall install)
+        private static bool ValidateNonUpdateInstaller(string installerFile,out GameInstall install)
         {
             Console.WriteLine("Validating installer package " + installerFile + "...");
-            install = EntityFactory.Current.CreateGameInstall(installerFile);
+            install = new GameInstall(installerFile);
             if (ValidateInstaller(install))
             {
                 if (install.IsUpdate)
@@ -130,7 +129,7 @@ namespace MGDF.GamesManager.PackageGen
             return false;
         }
 
-        private static bool ValidateInstaller(IGameInstall install)
+        private static bool ValidateInstaller(GameInstall install)
         {
             if (install.ErrorCollection.Count > 0)
             {

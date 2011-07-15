@@ -12,6 +12,7 @@ namespace MGDF.GamesManager.Common
         public CommandLineRepeater(string[] args)
         {
             _arguments = new List<string>(args);
+            _arguments.RemoveAt(0);//get rid of the original program name
         }
 
         public override string ToString()

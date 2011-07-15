@@ -9,10 +9,16 @@ using MGDF.GamesManager.Common;
 
 namespace MGDF.GamesManager.Common.Framework
 {
+    public class GetCredentialsEventArgs : EventArgs
+    {
+        public string UserName { get; set; }
+        public string Password { get; set; }
+    }
+
     public interface IHttpRequestManager
     {
         Stream GetResponseStream(string uri);
-        Stream GetResponseStream(string uri,long progress, out long contentLength);
+        Stream GetResponseStream(string uri,long progress, Func<GetCredentialsEventArgs,bool> getCredentials, out long contentLength);
 
         bool HasValidCredentials(string uri, string username, string password);
     }
@@ -35,11 +41,14 @@ namespace MGDF.GamesManager.Common.Framework
         public Stream GetResponseStream(string uri)
         {
             long contentLength;
-            return GetResponseStream(uri, 0, out contentLength);
+            return GetResponseStream(uri, 0, null,out contentLength);
         }
 
-        public Stream GetResponseStream(string uri,long progress, out long contentLength)
+        public Stream GetResponseStream(string uri,long progress, Func<GetCredentialsEventArgs,bool> getCredentials,out long contentLength)
         {
+            var credentials = new GetCredentialsEventArgs();
+            bool requiresAuthentication = false;
+
             const int maxRedirects = 5;
             int redirects = 0;
             do
@@ -47,19 +56,49 @@ namespace MGDF.GamesManager.Common.Framework
                 var request = (HttpWebRequest)WebRequest.Create(uri);
                 request.AllowAutoRedirect = false;
 
+                if (requiresAuthentication)
+                {
+                    var cache = new CredentialCache { 
+                        { new Uri(uri, UriKind.Absolute), "Basic", new NetworkCredential(credentials.UserName, credentials.Password) },
+                        { new Uri(uri, UriKind.Absolute), "Digest", new NetworkCredential(credentials.UserName, credentials.Password) } 
+                    };
+                    request.Credentials = cache;
+                }
+
                 if (progress>0) AddRange(progress, request);
                 request.Credentials = CredentialCache.DefaultCredentials;
 
-                var response = (HttpWebResponse)request.GetResponse();
+                try
+                {
+                    var response = (HttpWebResponse) request.GetResponse();
 
-                if (response.StatusCode==HttpStatusCode.Found)
-                {
-                    uri = response.Headers["Location"];
+                    if (response.StatusCode == HttpStatusCode.Found)
+                    {
+                        uri = response.Headers["Location"];
+                    }
+                    else
+                    {
+                        contentLength = response.ContentLength;
+                        return response.GetResponseStream();
+                    }
                 }
-                else
+                catch (WebException ex)
                 {
-                    contentLength = response.ContentLength;
-                    return response.GetResponseStream();
+                    bool rethrow = true;
+
+                    if (ex.Response!=null)
+                    {
+                        HttpWebResponse errorResponse = (HttpWebResponse) ex.Response;
+                        if (errorResponse.StatusCode == HttpStatusCode.Unauthorized && getCredentials!=null && getCredentials(credentials))
+                        {
+                            //retry the request with the credentials supplied from the user, for all other errors
+                            //just rethrow the exception.
+                            requiresAuthentication = true;
+                            rethrow = false;
+                        }
+                    }
+
+                    if (rethrow) throw ex;
                 }
             } 
             while (redirects++<maxRedirects);

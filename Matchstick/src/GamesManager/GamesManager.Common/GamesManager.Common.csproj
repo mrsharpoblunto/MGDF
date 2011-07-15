@@ -56,7 +56,7 @@
     </Compile>
     <Compile Include="CommandLineParser.cs" />
     <Compile Include="CommandLineRepeater.cs" />
-    <Compile Include="Constants.cs" />
+    <Compile Include="Resources.cs" />
     <Compile Include="Cryptography.cs" />
     <Compile Include="DPAPI.cs" />
     <Compile Include="Extensions\FileSystemExtensions.cs" />

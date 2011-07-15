@@ -39,6 +39,18 @@ namespace MGDF.GamesManager.Common
         public Logger(string logFile)
         {
             _logFile = new FileInfo(logFile);
+
+            //clear out the log file before we begin this session.
+            try
+            {
+                using (new FileStream(_logFile.FullName, FileMode.Create, FileAccess.Write))
+                {
+                }
+            }
+            catch (Exception)
+            {
+
+            }
         }
 
 

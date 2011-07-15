@@ -70,6 +70,7 @@
     </Reference>
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Web.Services" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="WindowsBase, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
   </ItemGroup>
@@ -77,81 +78,29 @@
     <Compile Include="..\solutionInfo.cs">
       <Link>Properties\solutionInfo.cs</Link>
     </Compile>
-    <Compile Include="Contracts\Entities\InstalledGameInfo.cs" />
-    <Compile Include="Contracts\Entities\PendingOperation.cs" />
-    <Compile Include="Contracts\Messages\GetInstalledGameInfoRequest.cs" />
-    <Compile Include="Contracts\Messages\GetInstalledGameInfoResponse.cs" />
-    <Compile Include="Contracts\Messages\HearbeatRequest.cs" />
-    <Compile Include="Contracts\Messages\HearbeatResponse.cs" />
-    <Compile Include="Contracts\IGamesManagerAdminService.cs" />
-    <Compile Include="Contracts\Entities\IPendingOperation.cs" />
-    <Compile Include="Contracts\Messages\InstallLocalGameRequest.cs" />
-    <Compile Include="Contracts\Messages\InstallGameResponse.cs" />
-    <Compile Include="Contracts\Entities\IXmlWritable.cs" />
-    <Compile Include="Contracts\Messages\RequestBase.cs" />
-    <Compile Include="Contracts\Messages\ResponseBase.cs" />
-    <Compile Include="Contracts\Messages\PausePendingOperationsRequest.cs" />
-    <Compile Include="Contracts\Messages\PausePendingOperationsResponse.cs" />
-    <Compile Include="Contracts\Messages\ResumePendingOperationsRequest.cs" />
-    <Compile Include="Contracts\Messages\ResumePendingOperationsResponse.cs" />
-    <Compile Include="Contracts\Messages\SubmitStatisticsRequest.cs" />
-    <Compile Include="Contracts\Messages\SubmitStatisticsResponse.cs" />
-    <Compile Include="Contracts\Messages\UninstallGameRequest.cs" />
-    <Compile Include="Contracts\Messages\UninstallGameResponse.cs" />
-    <Compile Include="Contracts\Messages\UpdateGameRequest.cs" />
-    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingDownloadBase.cs" />
-    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingFrameworkDownload.cs" />
-    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingGameUninstall.cs" />
-    <Compile Include="Entities\XmlEntities\PendingOperationQueue.cs" />
-    <Compile Include="Events\CopyProgressEventArgs.cs" />
-    <Compile Include="Events\GetCredentialsEventArgs.cs" />
-    <Compile Include="Events\GetStatsPermissionEventArgs.cs" />
-    <Compile Include="Events\ProgressEventArgs.cs" />
-    <Compile Include="Events\ReloadGameEventArgs.cs" />
-    <Compile Include="Events\StatusChangeEventArgs.cs" />
-    <Compile Include="Factories\Archive.cs" />
-    <Compile Include="ServiceModel\FrameworkUpdateManager.cs" />
-    <Compile Include="ServiceModel\GamesManagerService.cs" />
-    <Compile Include="Helpers\FrameworkUpdateChecker.cs" />
-    <Compile Include="ServiceModel\InstalledGamesList.cs" />
-    <Compile Include="ServiceModel\InstalledGame.cs" />
-    <Compile Include="ServiceModel\PendingOperationRunner.cs" />
-    <Compile Include="ServiceModel\StatisticsManager.cs" />
-    <Compile Include="Services\GamesManagerAdminService.cs" />
-    <Compile Include="Services\ServiceManager.cs" />
-    <Compile Include="Entities\XmlEntities\SettingsManager.cs" />
-    <Compile Include="ClientModel\GamesManagerClient.cs" />
-    <Compile Include="ClientModel\GameSourceClient.cs" />
-    <Compile Include="ServiceModel\StatisticsServiceClient.cs" />
-    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingGameDownload.cs">
-    </Compile>
-    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingGameInstall.cs">
-    </Compile>
-    <Compile Include="Entities\XmlEntities\FragmentEntities\PendingOperationBase.cs" />
-    <Compile Include="Entities\XmlEntities\FragmentEntities\Preference.cs" />
-    <Compile Include="Entities\XmlEntities\FragmentEntities\XmlFragmentEntity.cs" />
-    <Compile Include="Entities\XmlEntities\Game.cs" />
-    <Compile Include="Entities\XmlEntities\Preferences.cs" />
-    <Compile Include="Entities\XmlEntities\Update.cs" />
-    <Compile Include="Entities\XmlEntities\XmlEntity.cs" />
-    <Compile Include="Exceptions\GameException.cs" />
+    <Compile Include="Archive.cs" />
+    <Compile Include="LongRunningTask.cs" />
+    <Compile Include="Entities\Game.cs" />
     <Compile Include="Entities\GameInstall.cs" />
-    <Compile Include="Factories\EntityFactory.cs" />
-    <Compile Include="Entities\XmlEntities\XMLValidator.cs" />
-    <Compile Include="Contracts\Entities\IEntity.cs" />
-    <Compile Include="Contracts\Entities\IGameInstall.cs" />
-    <Compile Include="Contracts\Entities\IGame.cs" />
-    <Compile Include="Contracts\Entities\IPreference.cs" />
-    <Compile Include="Contracts\Entities\IPreferences.cs" />
-    <Compile Include="Contracts\Entities\IUpdate.cs" />
-    <Compile Include="Helpers\GameSourceServiceLocator.cs" />
-    <Compile Include="Services\GameExplorer.cs" />
-    <Compile Include="Services\IconManager.cs" />
-    <Compile Include="Helpers\InstalledProgramsHelper.cs" />
-    <Compile Include="Services\ProcessManager.cs" />
-    <Compile Include="Services\ShortcutManager.cs" />
+    <Compile Include="Entities\Update.cs" />
+    <Compile Include="Entities\XmlEntity.cs" />
+    <Compile Include="Entities\XMLValidator.cs" />
+    <Compile Include="FileDownloader.cs" />
+    <Compile Include="FrameworkUpdater.cs" />
+    <Compile Include="GameDownloader.cs" />
+    <Compile Include="GameExplorer.cs" />
+    <Compile Include="GameUpdater.cs" />
+    <Compile Include="GameInstaller.cs" />
     <Compile Include="Helpers\ArchiveFileHelper.cs" />
+    <Compile Include="Helpers\InstalledProgramsHelper.cs" />
+    <Compile Include="IconManager.cs" />
+    <Compile Include="Entities\SettingsManager.cs" />
+    <Compile Include="ProcessManager.cs" />
+    <Compile Include="ShortcutManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StatisticsServiceClient.cs" />
+    <Compile Include="UACControl.cs" />
+    <Compile Include="UpdateChecker.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\..\content\schemas\game.xsd">
@@ -171,10 +120,6 @@
     <ProjectReference Include="..\GamesManager.Common\GamesManager.Common.csproj">
       <Project>{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}</Project>
       <Name>GamesManager.Common</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GamesManager.GameSource.Contracts\GamesManager.GameSource.Contracts.csproj">
-      <Project>{1A4A7F0A-D75E-4571-9FF4-DD4A73733AE0}</Project>
-      <Name>GamesManager.GameSource.Contracts</Name>
     </ProjectReference>
     <ProjectReference Include="..\GamesManager.StatisticsService.Contracts\GamesManager.StatisticsService.Contracts.csproj">
       <Project>{54EABEB3-4FF1-43DD-AEC2-5CBD566E3942}</Project>

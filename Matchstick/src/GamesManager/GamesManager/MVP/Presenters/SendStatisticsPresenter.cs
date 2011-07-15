@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.Contracts.Entities;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
     class SendStatisticsPresenter: PresenterBase<ISendStatisticsView>
     {
-        public SendStatisticsPresenter(IGame game)
+        public SendStatisticsPresenter(Game game)
         {
             UserPermissionGranted = false;
             View.Game = game;

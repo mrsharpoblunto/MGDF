@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -9,41 +10,32 @@ using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.ClientModel;
-using MGDF.GamesManager.Model.Contracts.Entities;
-using MGDF.GamesManager.Model.Entities.XmlEntities;
-using MGDF.GamesManager.Model.Events;
-using MGDF.GamesManager.Model.Factories;
-using MGDF.GamesManager.Model.Services;
+using MGDF.GamesManager.Model;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
     public class LaunchGamePresenter: PresenterBase<IProgressView>
     {
-        private readonly IGame _game;
-        private bool _sendStatistics;
         private readonly bool _checkForUpdates;
-        private readonly bool _updateCheckOnly;
         private Thread _workerThread;
 
-        public LaunchGamePresenter(string uid,bool checkForUpdates,bool updateCheckOnly)
+        public LaunchGamePresenter(bool checkForUpdates)
         {
             View.Shown+=View_Shown;
             View.Closing += View_Closing;
             _checkForUpdates = checkForUpdates;
-            _updateCheckOnly = updateCheckOnly;
 
             try 
             {
-                _game = EntityFactory.Current.CreateGame(FileSystem.Combine(Constants.GameDir(uid),Constants.GameConfig));
-                if (_game.GameIconData != null)
+                if (Game.Current.GameIconData != null)
                 {
-                    View.GameIcon = Image.FromStream(new MemoryStream(_game.GameIconData));
+                    View.GameIcon = Image.FromStream(new MemoryStream(Game.Current.GameIconData));
                 }
 
                 //only check for updates once a day
-                IFile lastUpdate = FileSystem.Current.GetFile(Constants.UserGameLastUpdateFile(_game.Uid));
+                IFile lastUpdate = FileSystem.Current.GetFile(Resources.UserGameLastUpdateFile(Game.Current.Uid));
                 if (lastUpdate.Exists && lastUpdate.LastWriteTimeUtc.DayOfYear == TimeService.Current.Now.DayOfYear && lastUpdate.LastWriteTimeUtc.Year == TimeService.Current.Now.Year)
                 {
                     _checkForUpdates = false;
@@ -51,8 +43,7 @@ namespace MGDF.GamesManager.MVP.Presenters
             }
             catch (Exception ex)
             {
-                Logger.Current.Write(ex,"Unexpected error loading game information for '"+uid+"'");
-                _game = null;
+                Logger.Current.Write(ex, "Unexpected error loading game information for '" + Game.Current.Uid + "'");
             }
 
             View.HideProgress();
@@ -65,95 +56,51 @@ namespace MGDF.GamesManager.MVP.Presenters
 
         void View_Shown(object sender, EventArgs e)
         {
-            IFile gameLock = FileSystem.Current.GetFile(Constants.UserGameLockFile(_game.Uid));
-            if (gameLock.Exists)
-            {
-                Message.Show("This game is already running", "Game already running");
-                CloseView();
-            }
-            else if (_game==null)
-            {
-                Message.Show("This game is not installed", "Game not installed");
-                CloseView();
-            }
-            else if (_game.ErrorCollection.Count > 0)
-            {
-                Message.Show("This game is invalid", "Game invalid");
-                CloseView();
-            }
-            else
-            {
-                View.Title = "Launching " + _game.Name;
-                View.Details = "Launching " + _game.Name+ ", please wait...";
-                _workerThread = new Thread(DoWork);
-                _workerThread.Start();
-            }
+            View.Title = "Launching " + Game.Current.Name;
+            View.Details = "Launching " + Game.Current.Name + ", please wait...";
+            _workerThread = new Thread(DoWork);
+            _workerThread.Start();
         }
 
         private void DoWork()
         {
             try
             {
-                var info = GamesManagerClient.Instance.GetInstalledGameInfo(_game.Uid);
-
-                if (info == null)
+                if (_checkForUpdates)
                 {
                     View.Invoke(() =>
-                                    {
-                                        var controller = new SubmitErrorPresenter("Unexpected error in GamesManager", "Unable to contact the GamesManager Admin service");
-                                        controller.ShowView(View);
-                                        CloseView();
-                                    });
-                }
-                else if (info.InstallState == InstallState.Installed && _checkForUpdates && !string.IsNullOrEmpty(_game.GameSourceService))
-                {
-                    View.Invoke(() =>
-                                    {
-                                        View.Title = "Checking for updates...";
-                                        View.Details = "Checking for updates...";
-                                    });
-                    var gameSourceClient = new GameSourceClient();
-                    var errors = new List<string>();
-                    var updates = gameSourceClient.GetGameUpdates(_game, GetCredentials, GetStatisticsPermission, errors);
+                    {
+                        View.Title = "Checking for updates...";
+                        View.Details = "Checking for updates...";
+                    });
 
-                    if (errors.Count != 0)
+                    UpdateDownload frameworkUpdate=null;
+                    if (bool.Parse(ConfigurationManager.AppSettings["autoUpdateFramework"]))
                     {
-                        Logger.Current.Write(LogInfoLevel.Error, errors[0]);
-                        DoLaunch(info);
+                        frameworkUpdate = UpdateChecker.CheckForFrameworkUpdate();
                     }
-                    else
+                    UpdateDownload gameUpdate = UpdateChecker.CheckForGameUpdate(Game.Current);
+
+                    if ((frameworkUpdate != null || gameUpdate != null) && GetUpdatePermission())
                     {
-                        if (updates.Count > 0 && ViewFactory.Current.ConfirmYesNo("Update available", "An update is available, would you like to download it now?"))
+                        if (!UACControl.IsVistaOrHigher() && !UACControl.IsAdmin())
                         {
-                            new UpdateGamePresenter(_game, updates, View, UpdateGamePresenter_OnComplete);
+                            ViewFactory.Current.CreateView<IMessage>().Show("Updating requires administrator access", "Administrator accesss required");
+                            _workerThread = null;
+                            View.Invoke(CloseView);
+                            return;
                         }
-                        else
-                        {
-                            DoLaunch(info);
-                        }
+
+                        UACControl.RestartElevated(Resources.GamesManagerBootArguments(
+                            gameUpdate!=null ? gameUpdate.Url : string.Empty, 
+                            gameUpdate!=null ? gameUpdate.MD5 : string.Empty, 
+                            frameworkUpdate!=null ? frameworkUpdate.Url : string.Empty,
+                            frameworkUpdate != null ? frameworkUpdate.MD5 : string.Empty));
                     }
+
                 }
-                //if we're already updating, just resume where we left off, or show the current progress.
-                else if (info.InstallState == InstallState.Updating)
-                {
-                    if (info.PendingOperations[0].Name == "Uninstalling")
-                    {
-                        View.Invoke(() =>
-                                        {
-                                            Message.Show("This game cannot be run as it is being uninstalled", "Game is being uninstalled");
-                                            CloseView();
-                                        });
-                    }
-                    else
-                    {
-                        new UpdateGamePresenter(_game, info.PendingOperations, View, UpdateGamePresenter_OnComplete);
-                    }
-                }
-                //otherwise just launch the game
-                else
-                {
-                    DoLaunch(info);
-                }
+
+                Launch();
             }
             catch (ThreadAbortException)
             {
@@ -161,132 +108,80 @@ namespace MGDF.GamesManager.MVP.Presenters
             }
             catch (Exception ex)
             {
+                _workerThread = null;
                 View.Invoke(() =>Program.ShowUnhandledError(ex));
             }
         }
 
-        private void UpdateGamePresenter_OnComplete(object sender, EventArgs e)
+        private bool GetUpdatePermission()
         {
-            ShortcutManager.RefreshDesktop();
-
-            //update the last updated file.
-            IFile lastUpdate = FileSystem.Current.GetFile(Constants.UserGameLastUpdateFile(_game.Uid));
-            lastUpdate.WriteText(TimeService.Current.Now.ToString());
-
-            var info = GamesManagerClient.Instance.GetInstalledGameInfo(_game.Uid);
-            if (info == null)
-            {
-                View.Invoke(() =>
-                                {
-                                    var controller = new SubmitErrorPresenter("Unexpected error in GamesManager", "Unable to contact the GamesManager Admin service");
-                                    controller.View.Closed += (s, ev) => CloseView();
-                                    controller.ShowView(View);
-                                });
-            }
-
-            DoLaunch(info);
-        }
-
-        private void DoLaunch(InstalledGameInfo info)
-        {
-            if (_updateCheckOnly)
-            {
-                View.Invoke(CloseView);
-                return;
-            }
-
-            View.Invoke(()=>
-                            {
-                                View.Title = "Launching " + _game.Name;
-                                View.Details = "Launching " + _game.Name + ", please wait...";
-                            });
-            switch (info.InstallState)
-            {
-                case InstallState.NotInstalled:
-                    View.Invoke(() =>
-                                    {
-                                        Message.Show("This game cannot be run as it is not installed", "Game not installed");
-                                        CloseView();
-                                    });
-                    break;
-                case InstallState.Error:
-                    View.Invoke(() =>
-                                    {
-                                        Message.Show("This game cannot be run as it is not installed correctly, uninstalling and reinstalling the game may fix the problem.", "Game not installed correctly");
-                                        CloseView();
-                                    });
-                    break;
-                case InstallState.Updating:
-                    View.Invoke(() =>
-                                    {
-                                        Message.Show("This game cannot be run as it is currently being updated, please wait for the update to finish.", "Game being updated");
-                                        CloseView();
-                                    });
-                    break;
-                default:
-                    var settings = SettingsManager.Instance.Games.Find(g => g.GameUid == _game.Uid);
-                    _sendStatistics = GameSourceClient.GetStatisticsPermission(_game, settings, GetStatisticsPermission).StatisticsServiceEnabled.Value;
-                    Launch(_game);
-                    break;
-            }
+            var presenter = new GetUpdatePermissionPresenter();
+            View.Invoke(() => presenter.ShowView(View));
+            return presenter.Update;
         }
 
         private bool GetStatisticsPermission(GetStatsPermissionEventArgs arg)
         {
-            var presenter = new SendStatisticsPresenter(_game);
+            var presenter = new SendStatisticsPresenter(Game.Current);
             View.Invoke(()=>presenter.ShowView(View));
             return presenter.UserPermissionGranted;
         }
 
-        public bool GetCredentials(GetCredentialsEventArgs args)
+        public void Launch()
         {
-            var presenter = new GetCredentialsPresenter(_game,args);
-            View.Invoke(()=>presenter.ShowView(View));
-            return presenter.OK;
-        }
-
-        public void Launch(IGame game)
-        {
-            //lock the game so that it cannot be launched more than once at a time.
-            IFile gameLock = FileSystem.Current.GetFile(Constants.UserGameLockFile(_game.Uid));
-            gameLock.WriteText(TimeService.Current.Now.ToString());
-
-            ProcessManager.Current.StartProcess(Constants.MGDFExecutable, Constants.MGDFBootArguments(game.Uid), GameExited, game);
+            ProcessManager.Current.StartProcess(Resources.MGDFExecutable, Resources.CoreBootArguments(Game.Current.Uid), GameExited, Game.Current);
             View.Invoke(()=>View.Hide());
         }
 
         private void GameExited(object context, int exitCode)
         {
-            IGame game = (IGame) context;
-
-            try
-            {
-                IFile gameLock = FileSystem.Current.GetFile(Constants.UserGameLockFile(game.Uid));
-                gameLock.DeleteWithTimeout();
-            }
-            catch(Exception ex)
-            {
-                Logger.Current.Write(ex,"Unable to delete lock file");
-            }
+            Game game = (Game) context;
 
             if (exitCode != 0)
             {
                 View.Invoke(() =>
-                                {
-                                    SubmitCoreErrorPresenter presenter = new SubmitCoreErrorPresenter(game,game.Name + " has ended unexpectedly",
-                                                                                                      "An unhandled exception or fatal MGDF error has occurred");
-                                    presenter.ShowView(View);
-                                    CloseView();
-                                });
-            }
-            else
-            {
-                if (_sendStatistics)
                 {
-                    GamesManagerClient.Instance.SubmitStatistics(game);
-                }
-                View.Invoke(CloseView);
+                    SubmitCoreErrorPresenter presenter = new SubmitCoreErrorPresenter(game,game.Name + " has ended unexpectedly",
+                                                                                      "An unhandled exception or fatal MGDF error has occurred");
+                    presenter.ShowView(View);
+                });
             }
+            else if (StatisticsSession.CanSendStatistics(Game.Current))
+            {
+                IFile statisticsFile = FileSystem.Current.GetFile(Resources.UserStatistics(Game.Current.Uid));
+                if (statisticsFile.Exists)
+                {
+                    try
+                    {
+                        if (StatisticsSession.GetStatisticsPermission(Game.Current, GetStatisticsPermission))
+                        {
+                            StatisticsSession session = new StatisticsSession(Game.Current.Uid, Game.Current.StatisticsService, statisticsFile.FullName);
+                            StatisticsServiceClient client = new StatisticsServiceClient(session);
+
+                            List<String> errors = new List<string>();
+                            client.SendStatistics(errors);
+                            foreach (var error in errors)
+                            {
+                                Logger.Current.Write(LogInfoLevel.Error, error);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Current.Write(ex,"Unable to send statistics");
+                    }
+                    finally
+                    {
+                        statisticsFile.DeleteWithTimeout();
+                    }
+                }
+            }
+
+            View.Invoke(() =>
+            {
+                _workerThread = null;
+                View.CloseView();
+            });
         }
     }
 }

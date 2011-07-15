@@ -7,12 +7,9 @@ using MGDF.GamesManager.Model.Entities;
 
 namespace MGDF.GamesManager.MVP.Views
 {
-    interface IGetCredentialsView: IView
+    interface IGetUpdatePermissionView:IView 
     {
-        event EventHandler OnOK;
-
+        event EventHandler OnUpdate;
         Game Game { set; }
-        string Password { get; }
-        string Username { get; }
     }
 }

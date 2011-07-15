@@ -13,7 +13,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
     partial class ProgressView : GamesManagerViewBase,IProgressView
     {
         private bool _userClosed=true;
-        private bool _allowPauseOrResume=true;
+        private bool _allowCancel=true;
 
         public ProgressView()
         {
@@ -24,11 +24,11 @@ namespace MGDF.GamesManager.MVP.Views.Impl
 
         void ProgressView_OnClosing(object sender, CancelEventArgs e)
         {
-            if (_userClosed && OnPause!=null)
+            if (_userClosed && OnCancel!=null)
             {
-                if (_allowPauseOrResume)
+                if (_allowCancel)
                 {
-                    OnPause(this,new EventArgs()); 
+                    OnCancel(this, new EventArgs()); 
                 }
                 else
                 {
@@ -43,16 +43,15 @@ namespace MGDF.GamesManager.MVP.Views.Impl
             base.CloseView();
         }
 
-        public event EventHandler OnPause;
-        public event EventHandler OnResume;
+        public event EventHandler OnCancel;
 
-        public bool AllowPauseOrResume
+        public bool AllowCancel
         {
             set
             {
-                _allowPauseOrResume = value;
-                PauseOrResumeButton.Visible = value;
-                Progress.Width = value ? (PauseOrResumeButton.Left - Progress.Left - DpiScaleX(8)) : (PauseOrResumeButton.Right - Progress.Left);
+                _allowCancel = value;
+                cancelButton.Visible = value;
+                Progress.Width = value ? (cancelButton.Left - Progress.Left - DpiScaleX(8)) : (cancelButton.Right - Progress.Left);
             }
         }
 
@@ -61,12 +60,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
         {
             ClientSize = new Size(ClientSize.Width, DpiScaleY(64));
             Progress.Visible = false;
-            PauseOrResumeButton.Visible = false;
-        }
-
-        public bool Paused
-        {
-            set { PauseOrResumeButton.Text = value ? "Resume" : "Pause"; }
+            cancelButton.Visible = false;
         }
 
         public string Title
@@ -89,7 +83,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
             {
                 ClientSize = new Size(ClientSize.Width,DpiScaleY(128));
                 Progress.Visible = true;
-                PauseOrResumeButton.Visible = _allowPauseOrResume;
+                cancelButton.Visible = _allowCancel;
             }
             Progress.Value = (int)((progress/(double)total)*100);
         }
@@ -101,19 +95,9 @@ namespace MGDF.GamesManager.MVP.Views.Impl
 
         private void PauseOrResumeButton_Click(object sender, EventArgs e)
         {
-            if (PauseOrResumeButton.Text =="Resume")
+            if (OnCancel!=null)
             {
-                if (OnResume!=null)
-                {
-                    OnResume(this,new EventArgs());
-                }
-            }
-            else
-            {
-                if (OnPause != null)
-                {
-                    OnPause(this, new EventArgs());
-                }
+                OnCancel(this, new EventArgs());
             }
         }
     }

@@ -179,11 +179,11 @@ namespace MGDF.GamesManager.Common.Framework
                 {
                     System.IO.Directory.CreateDirectory(Path.Combine(localAppData, "MGDF"));
                 }
-                if (!System.IO.Directory.Exists(Path.Combine(localAppData,"MGDF\\"+Constants.InterfaceVersion)))
+                if (!System.IO.Directory.Exists(Path.Combine(localAppData,"MGDF\\"+Resources.InterfaceVersion)))
                 {
-                    System.IO.Directory.CreateDirectory(Path.Combine(localAppData, "MGDF\\"+Constants.InterfaceVersion));
+                    System.IO.Directory.CreateDirectory(Path.Combine(localAppData, "MGDF\\"+Resources.InterfaceVersion));
                 }
-                return Path.Combine(localAppData, "MGDF\\" + Constants.InterfaceVersion);
+                return Path.Combine(localAppData, "MGDF\\" + Resources.InterfaceVersion);
             }
         }
 

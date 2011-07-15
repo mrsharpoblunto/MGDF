@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.Contracts.Entities;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
@@ -16,14 +17,14 @@ namespace MGDF.GamesManager.MVP.Presenters
     class SubmitCoreErrorPresenter: PresenterBase<ISubmitErrorView>
     {
         private readonly string _detail;
-        private readonly IGame _game;
+        private readonly Game _game;
 
-        public SubmitCoreErrorPresenter(IGame game, string message, string detail)
+        public SubmitCoreErrorPresenter(Game game, string message, string detail)
         {
             _game = game;
             _detail = detail;
             View.Message = message;
-            View.SupportEmail = string.IsNullOrEmpty(game.SupportEmail) ? Constants.SupportEmail : game.SupportEmail;
+            View.SupportEmail = string.IsNullOrEmpty(game.SupportEmail) ? Resources.SupportEmail : game.SupportEmail;
             View.CopyLogOutput += View_CopyLogOutput;
             View.EmailLogOutput += View_EmailLogOutput;
         }
@@ -32,7 +33,7 @@ namespace MGDF.GamesManager.MVP.Presenters
         {
             try
             {
-                Process.Start("mailto:" + (string.IsNullOrEmpty(_game.SupportEmail) ? Constants.SupportEmail : _game.SupportEmail) + "?subject=Core Error Report (" + _game.Uid + ")");
+                Process.Start("mailto:" + (string.IsNullOrEmpty(_game.SupportEmail) ? Resources.SupportEmail : _game.SupportEmail) + "?subject=Core Error Report (" + _game.Uid + ")");
             }
             catch (Exception ex)
             {
@@ -55,6 +56,7 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine();
             sb.AppendLine("System Information");
             sb.AppendLine("==================");
+            sb.AppendLine("MGDF Version: " + Assembly.GetExecutingAssembly().GetName().Version);
             sb.AppendLine("OS: " + EnvironmentSettings.Current.OSName);
             sb.AppendLine("OS Architecture: " + EnvironmentSettings.Current.OSArchitecture + " bit");
             sb.AppendLine("RAM: " + EnvironmentSettings.Current.TotalMemory);

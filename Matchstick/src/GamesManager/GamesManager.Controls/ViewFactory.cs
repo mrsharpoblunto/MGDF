@@ -56,15 +56,5 @@ namespace MGDF.GamesManager.Controls
                 _registeredViews[typeof (TINTERFACETYPE)] = typeof (TCONCRETETYPE);
             }
         }
-
-        public bool ConfirmYesNo(string title, string text)
-        {
-            return MessageBox.Show(text, title, MessageBoxButtons.YesNo) == DialogResult.Yes;
-        }
-
-        public bool ConfirmOkCancel(string title, string text)
-        {
-            return MessageBox.Show(text, title, MessageBoxButtons.OKCancel) == DialogResult.OK;
-        }
     }
 }

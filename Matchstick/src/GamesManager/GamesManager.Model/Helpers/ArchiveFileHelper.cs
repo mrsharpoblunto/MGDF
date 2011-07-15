@@ -5,16 +5,22 @@ using System.Linq;
 using System.Text;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
-using MGDF.GamesManager.Model.Events;
-using IArchiveFile=MGDF.GamesManager.Model.Factories.IArchiveFile;
 
 namespace MGDF.GamesManager.Model.Helpers
 {
-	class SubTreeData {
-		public int FileCount{ get; set;}
-		public long BytesCount{ get; set;}
-	}
+    class CopyProgressEventArgs : EventArgs
+    {
+        public long BytesCopied { get; set; }
+        public long TotalBytesCopied { get; set; }
+        public string CurrentFile { get; set; }
+        public long CurrentFileSize { get; set; }
+        public bool Cancel { get; set; }
+    }
 
+    class SubTreeData {
+        public int FileCount{ get; set;}
+        public long BytesCount{ get; set;}
+    }
 
     class ArchiveFileHelper
     {
@@ -40,7 +46,7 @@ namespace MGDF.GamesManager.Model.Helpers
             if (vfsSubtree.IsFolder) {
                 foreach (var file in vfsSubtree.Children.Values) {
                     GetSubTreeDataRecursive(file, data);
-	            }
+                }
             }
             else {
                 data.FileCount++;
@@ -52,22 +58,22 @@ namespace MGDF.GamesManager.Model.Helpers
         {
             if (subTree == null) return;
 
-	        if (FileSystem.Current.DirectoryExists(baseDirectory)) {
-		        if (excludeRootNode) {
+            if (FileSystem.Current.DirectoryExists(baseDirectory)) {
+                if (excludeRootNode) {
                     foreach (var file in subTree.Children.Values)
                     {
                         bool cancel = CopyVfsSubtreeRecursive(file,baseDirectory);
                         if (cancel) break;
                     }
-		        }
-		        else 
-		        {
+                }
+                else 
+                {
                     CopyVfsSubtreeRecursive(subTree, baseDirectory);
-		        }
-	        }
-	        else {
-		        throw new Exception("base directory does not exist");
-	        }
+                }
+            }
+            else {
+                throw new Exception("base directory does not exist");
+            }
         }
 
         private bool CopyVfsSubtreeRecursive(IArchiveFile vfsSubtree, string baseDirectory)
@@ -102,12 +108,12 @@ namespace MGDF.GamesManager.Model.Helpers
         private bool CopyVfsFileInternal(IArchiveFile vfsFile, string filename)
         {
             CopyProgressEventArgs args = new CopyProgressEventArgs
-            {
-                CurrentFileSize = vfsFile.Size,
-                CurrentFile = vfsFile.Name,
-                BytesCopied = 0,
-                TotalBytesCopied = 0
-            };
+                                             {
+                                                 CurrentFileSize = vfsFile.Size,
+                                                 CurrentFile = vfsFile.Name,
+                                                 BytesCopied = 0,
+                                                 TotalBytesCopied = 0
+                                             };
 
             using (Stream inStream = vfsFile.OpenStream())
             {

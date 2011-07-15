@@ -31,8 +31,8 @@
             this.TitleLabel = new System.Windows.Forms.Label();
             this.DetailsLabel = new System.Windows.Forms.Label();
             this.Progress = new System.Windows.Forms.ProgressBar();
-            this.PauseOrResumeButton = new System.Windows.Forms.Button();
             this.GameIconPictureBox = new System.Windows.Forms.PictureBox();
+            this.cancelButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.GameIconPictureBox)).BeginInit();
             this.SuspendLayout();
             // 
@@ -65,19 +65,8 @@
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.Progress.Location = new System.Drawing.Point(16, 82);
             this.Progress.Name = "Progress";
-            this.Progress.Size = new System.Drawing.Size(207, 23);
+            this.Progress.Size = new System.Drawing.Size(210, 23);
             this.Progress.TabIndex = 8;
-            // 
-            // PauseOrResumeButton
-            // 
-            this.PauseOrResumeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.PauseOrResumeButton.Location = new System.Drawing.Point(229, 82);
-            this.PauseOrResumeButton.Name = "PauseOrResumeButton";
-            this.PauseOrResumeButton.Size = new System.Drawing.Size(75, 23);
-            this.PauseOrResumeButton.TabIndex = 9;
-            this.PauseOrResumeButton.Text = "Pause";
-            this.PauseOrResumeButton.UseVisualStyleBackColor = true;
-            this.PauseOrResumeButton.Click += new System.EventHandler(this.PauseOrResumeButton_Click);
             // 
             // GameIconPictureBox
             // 
@@ -91,17 +80,28 @@
             this.GameIconPictureBox.TabIndex = 1;
             this.GameIconPictureBox.TabStop = false;
             // 
+            // cancelButton
+            // 
+            this.cancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.cancelButton.Location = new System.Drawing.Point(232, 82);
+            this.cancelButton.Name = "cancelButton";
+            this.cancelButton.Size = new System.Drawing.Size(75, 23);
+            this.cancelButton.TabIndex = 9;
+            this.cancelButton.Text = "Cancel";
+            this.cancelButton.UseVisualStyleBackColor = true;
+            // 
             // ProgressView
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(319, 123);
+            this.Controls.Add(this.cancelButton);
             this.Controls.Add(this.GameIconPictureBox);
-            this.Controls.Add(this.PauseOrResumeButton);
             this.Controls.Add(this.DetailsLabel);
             this.Controls.Add(this.Progress);
             this.Controls.Add(this.TitleLabel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.Location = new System.Drawing.Point(0, 0);
             this.MaximizeBox = false;
             this.Name = "ProgressView";
             this.ShowIcon = false;
@@ -118,6 +118,6 @@
         private System.Windows.Forms.Label TitleLabel;
         private System.Windows.Forms.Label DetailsLabel;
         private System.Windows.Forms.ProgressBar Progress;
-        private System.Windows.Forms.Button PauseOrResumeButton;
+        private System.Windows.Forms.Button cancelButton;
     }
 }

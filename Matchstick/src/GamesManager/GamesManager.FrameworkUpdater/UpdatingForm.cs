@@ -51,7 +51,7 @@ namespace MGDF.GamesManager.FrameworkUpdater
 
             Invoke(() =>
                        {
-                           Process.Start(Constants.GamesManagerExecutable, _repeater.ToString());
+                           Process.Start(Resources.GamesManagerExecutable, _repeater.ToString());
                            overrideClose = false;
                            Close();
                        });

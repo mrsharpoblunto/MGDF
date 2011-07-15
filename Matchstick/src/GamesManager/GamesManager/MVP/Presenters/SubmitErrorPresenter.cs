@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.Contracts.Entities;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
@@ -21,7 +22,7 @@ namespace MGDF.GamesManager.MVP.Presenters
         {
             _detail = detail;
             View.Message = message;
-            View.SupportEmail = Constants.SupportEmail;
+            View.SupportEmail = Resources.SupportEmail;
             View.CopyLogOutput += View_CopyLogOutput;
             View.EmailLogOutput += View_EmailLogOutput;
         }
@@ -30,12 +31,12 @@ namespace MGDF.GamesManager.MVP.Presenters
         {
             try 
             {
-                Process.Start("mailto:" + Constants.SupportEmail + "?subject=GamesManager Error Report");
+                Process.Start("mailto:" + Resources.SupportEmail + "?subject=GamesManager Error Report");
             }
             catch (Exception ex)
             {
                 Message.Show("No email client installed");
-                Logger.Current.Write(ex, "No program configured to open mailto: links");
+                if (Logger.Current!=null) Logger.Current.Write(ex, "No program configured to open mailto: links");
             }
         }
 
@@ -47,6 +48,8 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine();
             sb.AppendLine("System Information");
             sb.AppendLine("==================");
+
+            sb.AppendLine("MGDF Version: " + Assembly.GetExecutingAssembly().GetName().Version);
             sb.AppendLine("OS: " + EnvironmentSettings.Current.OSName);
             sb.AppendLine("OS Architecture: " + EnvironmentSettings.Current.OSArchitecture + " bit");
             sb.AppendLine("RAM: " + EnvironmentSettings.Current.TotalMemory);
@@ -55,32 +58,21 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine("=======");
             sb.AppendLine(_detail);
             sb.AppendLine();
-            sb.AppendLine("GamesManager Client Log output");
-            sb.AppendLine("==============================");
 
-            IFile gamesManagerLog = FileSystem.Current.GetFile(Path.Combine(EnvironmentSettings.Current.UserDirectory, "GamesManagerLog.txt"));
-            if (gamesManagerLog.Exists)
+            if (Game.Current != null)
             {
-                using (var stream = gamesManagerLog.OpenStream(FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    using (TextReader reader = new StreamReader(stream))
-                    {
-                        sb.Append(reader.ReadToEnd());
-                    }
-                }
-            }
+                sb.AppendLine("GamesManager Log output");
+                sb.AppendLine("=======================");
 
-            sb.AppendLine();
-            sb.AppendLine("GamesManager Service Log output");
-            sb.AppendLine("==============================");
-            IFile gamesServiceLog = FileSystem.Current.GetFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GamesManagerServiceLog.txt"));
-            if (gamesServiceLog.Exists)
-            {
-                using (var stream = gamesServiceLog.OpenStream(FileMode.Open, FileAccess.Read, FileShare.Read))
+                IFile gamesManagerLog = FileSystem.Current.GetFile(Path.Combine(Resources.GameUserDir, "GamesManagerLog.txt"));
+                if (gamesManagerLog.Exists)
                 {
-                    using (TextReader reader = new StreamReader(stream))
+                    using (var stream = gamesManagerLog.OpenStream(FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        sb.Append(reader.ReadToEnd());
+                        using (TextReader reader = new StreamReader(stream))
+                        {
+                            sb.Append(reader.ReadToEnd());
+                        }
                     }
                 }
             }

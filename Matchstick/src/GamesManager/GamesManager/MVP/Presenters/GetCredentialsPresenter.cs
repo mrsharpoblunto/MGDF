@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.Contracts.Entities;
-using MGDF.GamesManager.Model.Events;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
@@ -15,7 +15,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
         public bool OK { get; private set; }
 
-        public GetCredentialsPresenter(IGame game, GetCredentialsEventArgs args)
+        public GetCredentialsPresenter(Game game, GetCredentialsEventArgs args)
         {
             OK = false;
             _args = args;

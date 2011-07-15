@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.Contracts.Entities;
+using MGDF.GamesManager.Model.Entities;
 
 namespace MGDF.GamesManager.MVP.Views
 {
@@ -12,6 +12,6 @@ namespace MGDF.GamesManager.MVP.Views
         event EventHandler OnAllow;
         event EventHandler OnDeny;
 
-        IGame Game { set; }
+        Game Game { set; }
     }
 }

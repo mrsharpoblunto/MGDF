@@ -24,8 +24,9 @@ namespace MGDF.GamesManager.Common
             // Valid parameters forms:
             // {-,/,--}param{ ,=,:}((",')value(",'))
             // Examples: -param1 value1 --param2 /param3:"Test-:-work" /param4=happy -param5 '--=nice=--'
-            foreach (string arg in args)
+            for (int i=1;i<args.Length;++i)
             {
+                string arg = args[i];
                 // Look for new parameters (-,/ or --) and a possible enclosed value (=,:)
                 parts = splitter.Split(arg, 3);
                 switch (parts.Length)

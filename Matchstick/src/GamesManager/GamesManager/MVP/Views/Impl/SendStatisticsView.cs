@@ -7,14 +7,13 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.Model.Contracts.Entities;
+using MGDF.GamesManager.Model.Entities;
 
 namespace MGDF.GamesManager.MVP.Views.Impl
 {
     partial class SendStatisticsView : GamesManagerViewBase,ISendStatisticsView
     {
-        private IGame _game;
+        private Game _game;
 
         public SendStatisticsView()
         {
@@ -29,7 +28,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
         public event EventHandler OnAllow;
         public event EventHandler OnDeny;
 
-        public IGame Game
+        public Game Game
         {
             set
             { 

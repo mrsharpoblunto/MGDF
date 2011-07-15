@@ -1,151 +1,190 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using MGDF.GamesManager.Common;
+using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Controls;
-using MGDF.GamesManager.GameSource.Contracts.Entities;
-using MGDF.GamesManager.Model.ClientModel;
-using MGDF.GamesManager.Model.Contracts.Entities;
-using MGDF.GamesManager.Model.Factories;
+using MGDF.GamesManager.Model;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
     class UpdateGamePresenter: PresenterBase<IProgressView>
     {
-        private event EventHandler OnComplete;
+        private string _gameUpdate;
+        private string _gameUpdateHash;
+        private string _frameworkUpdate;
+        private string _frameworkUpdateHash;
 
-        private readonly IGame _game;
-        private readonly int _pendingOperationCount;
-        private readonly Thread _workerThread;
+        private Thread _workerThread;
 
-        private UpdateGamePresenter(IGame game, IProgressView view, EventHandler handler): base(view)
+        private object _lock = new object();
+        private FileDownloader _currentDownloader;
+        private LongRunningTask _currentTask;
+        private Timer _progressTimer;
+
+        public UpdateGamePresenter(string gameUpdate,string gameUpdateHash,string frameworkUpdate,string frameworkUpdateHash)
+            : base(ViewFactory.Current.CreateView<IProgressView>())
         {
-            OnComplete += handler;
-            _game = game;
+            _gameUpdate = gameUpdate;
+            _gameUpdateHash = gameUpdateHash;
+            _frameworkUpdate = frameworkUpdate;
+            _frameworkUpdateHash = frameworkUpdateHash;
 
-            View.Invoke(() =>
-                            {
-                                View.Closed += View_Closed;
-                                View.OnPause += View_OnPause;
-                                View.OnResume += View_OnResume;
-                                View.AllowPauseOrResume = true;
-                                View.Title = "Updating " + _game.Name;
-                                View.Details = "Updating " + _game.Name + ", please wait...";
-                                View.ShowProgress(0, 100);
-                            });
+            View.Closed += View_Closed;
+            View.OnCancel += View_OnCancel;
+
+            View.AllowCancel = false;
+            View.Title = "Updating " + Game.Current.Name;
+            View.Details = "Updating " + Game.Current.Name + ", please wait...";
+            View.ShowProgress(0, 500);
+
+            _workerThread = new Thread(DoWork);
+            _workerThread.Start();
+
+            _progressTimer = new Timer(OnProgressUpdate,null,0,1000);
+        }
+
+        private void OnProgressUpdate(object state)
+        {
+            lock (_lock)
+            {
+                View.Invoke(()=>View.ShowProgress(_currentTask.Progress,_currentTask.Total));
+            }
+        }
+
+        void View_OnCancel(object sender, EventArgs e)
+        {
+            lock (_lock)
+            {
+                if (_currentDownloader!=null) _currentDownloader.Cancel();
+            }
         }
 
         private void View_Closed(object sender, EventArgs e)
         {
+            _progressTimer.Dispose();
             if (_workerThread != null && _workerThread.ThreadState == ThreadState.Running) _workerThread.Abort();
-            View.OnPause -= View_OnPause;
-            View.OnResume -= View_OnResume;
-            View.Closed -= View_Closed;
-        }
-
-        public UpdateGamePresenter(IGame game, List<PendingOperation> pendingOperations, IProgressView view, EventHandler handler) : this(game,view,handler)
-        {
-            _pendingOperationCount = pendingOperations.Count;
-            _workerThread = new Thread(ResumeUpdate);
-            _workerThread.Start(pendingOperations);
-        }
-
-        public UpdateGamePresenter(IGame game, List<GameVersionUpdate> updates, IProgressView view, EventHandler handler)
-            : this(game, view, handler)
-        {
-            _pendingOperationCount = updates.Count;
-            _workerThread = new Thread(StartUpdate);
-            _workerThread.Start(updates);
-        }
-
-        private void View_OnPause(object sender, EventArgs e)
-        {
-            GamesManagerClient.Instance.PausePendingOperations(_game);
-        }
-
-        private void View_OnResume(object sender, EventArgs e)
-        {
-            GamesManagerClient.Instance.ResumePendingOperations(_game);
-        }
-
-        private void StartUpdate(object args)
-        {
-            var updates = (List<GameVersionUpdate>) args;
-            if (GamesManagerClient.Instance.Update(_game, updates))
-            {
-                DoWork();
-            }
-            else
-            {
-                if (OnComplete != null)
-                {
-                    OnComplete(this, new EventArgs());
-                }
-            }
-        }
-
-        private void ResumeUpdate(object args)
-        {
-            var pendingOperations = (List<PendingOperation>)args;
-
-            //if it was pausing, wait until it has actually paused before resuming.
-            while (pendingOperations.Count>0 && pendingOperations[0].Status == PendingOperationStatus.Pausing)
-            {
-                pendingOperations = GamesManagerClient.Instance.GetInstalledGameInfo(_game.Uid).PendingOperations;
-                Thread.Sleep(500);
-            }
-
-            if (pendingOperations.Count > 0 && pendingOperations[0].Status == PendingOperationStatus.Paused)
-            {
-                GamesManagerClient.Instance.ResumePendingOperations(_game);
-            }
-            DoWork();
         }
 
         private void DoWork()
         {
-            View.Invoke(() => View.Paused = false);
-            try 
+            try
             {
-                var info = GamesManagerClient.Instance.GetInstalledGameInfo(_game.Uid);
+                Resources.InitUpdaterDirectories();
 
-                while (info!=null && info.PendingOperations.Count>0)
+                if (_frameworkUpdate!=null)
                 {
-                    InstalledGameInfo gameInfo = info;
-                    View.Invoke(() =>
-                                    {
-                                        View.Paused = gameInfo.PendingOperations[0].Status==PendingOperationStatus.Paused;
-                                        View.Details = gameInfo.PendingOperations[0].Name + " " + (_pendingOperationCount - gameInfo.PendingOperations.Count + 1) + " of " + _pendingOperationCount + "...";
-                                        View.ShowProgress(gameInfo.PendingOperations[0].Progress,gameInfo.PendingOperations[0].Total);
-                                    });
-                    Thread.Sleep(500);
-                    info = GamesManagerClient.Instance.GetInstalledGameInfo(_game.Uid);
-                }
-
-
-                if (info==null || info.InstallState!=InstallState.Installed)
-                {
-                    Message.Show("This game failed to update, please check the logs for details.", "Update failed");
-                }
-                else
-                {
-                    //if the version after the update is the same as the version before, then no updates got applied properly.
-                    if (_game.Version == new Version(info.Version))
+                    string frameworkFile = Path.Combine(Resources.DownloadsDir, "framework.zip");
+                    try
                     {
-                        Message.Show("This game failed to update, please check the logs for details.", "Update failed");                        
+                        lock (_lock)
+                        {
+                            _currentDownloader = new FileDownloader(_frameworkUpdate, frameworkFile, _frameworkUpdateHash, null);
+                            _currentTask = _currentDownloader;
+                            View.Invoke(()=>
+                            {
+                                View.Details = "Downloading MGDF framework update...";
+                                View.AllowCancel = true;
+                            });
+                        }
+                        var result = _currentDownloader.Start();
+
+                        lock (_lock)
+                        {
+                            _currentDownloader = null;
+                            View.Invoke(()=>View.AllowCancel = false);
+                        }
+
+                        if (result==LongRunningTaskResult.Cancelled)
+                        {
+                            _workerThread = null;
+                            View.Invoke(CloseView);
+                            return;
+                        }
+                        else if (result==LongRunningTaskResult.Error)
+                        {
+                            //show an error message, though we may still be able to download a game update, so don't bail out yet.
+                            ViewFactory.Current.CreateView<IMessage>().Show("Failed to download MGDF framework update", "Download failed");
+                        }
+                        else
+                        {
+                            //success, now try to install the downloaded update
+                            View.Invoke(() => View.Details = "Installing MGDF framework update...");
+                            _currentTask = new FrameworkUpdater(frameworkFile);
+                            _currentTask.Start();
+                        }
+                    }
+                    finally
+                    {
+                        var file = FileSystem.Current.GetFile(frameworkFile);
+                        if (file.Exists) file.DeleteWithTimeout();
                     }
                 }
 
-
-                View.Invoke(() => View.HideProgress());
-
-                if (OnComplete!=null)
+                if (_gameUpdate != null)
                 {
-                    OnComplete(this,new EventArgs());
+                    string gameUpdateFile = Path.Combine(Resources.DownloadsDir, "update.zip");
+                    try
+                    {
+                        lock (_lock)
+                        {
+                            _currentDownloader = new GameDownloader(Game.Current, _gameUpdate, gameUpdateFile, _gameUpdateHash, GetUpdateCredentials);
+                            _currentTask = _currentDownloader;
+                            View.Invoke(() =>
+                            {
+                                View.Details = "Downloading "+Game.Current.Name+" update...";
+                                View.AllowCancel = true;
+                            });
+                        }
+                        var result = _currentDownloader.Start();
+
+                        lock (_lock)
+                        {
+                            _currentDownloader = null;
+                            View.Invoke(() => View.AllowCancel = false);
+                        }
+
+                        if (result == LongRunningTaskResult.Cancelled)
+                        {
+                            _workerThread = null;
+                            View.Invoke(CloseView);
+                            return;
+                        }
+                        else if (result == LongRunningTaskResult.Error)
+                        {
+                            ViewFactory.Current.CreateView<IMessage>().Show("Failed to download " + Game.Current.Name + " update", "Download failed");
+                            _workerThread = null;
+                            View.Invoke(CloseView);
+                            return;
+                        }
+                        else
+                        {
+                            //success, now try to apply the downloaded update
+                            View.Invoke(() => View.Details = "Installing " + Game.Current.Name + " update...");
+                            var gameInstall = new GameInstall(gameUpdateFile);
+                            _currentTask = new GameUpdater(gameInstall);
+                            _currentTask.Start();
+
+                            //now if we're auto installing on update, update the registry/desktop icons etc..
+                            if (bool.Parse(ConfigurationManager.AppSettings["autoInstallOnUpdate"]))
+                            {
+                                _currentTask = new GameInstaller(true, Game.Current);
+                                _currentTask.Start();
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        var file = FileSystem.Current.GetFile(gameUpdateFile);
+                        if (file.Exists) file.DeleteWithTimeout();
+                    }
                 }
             }
             catch (ThreadAbortException)
@@ -156,6 +195,16 @@ namespace MGDF.GamesManager.MVP.Presenters
             {
                 View.Invoke(() => Program.ShowUnhandledError(ex));
             }
+
+            _workerThread = null;
+            View.Invoke(CloseView);
+        }
+
+        private bool GetUpdateCredentials(GetCredentialsEventArgs args)
+        {
+            var presenter = new GetCredentialsPresenter(Game.Current,args);
+            View.Invoke(() => presenter.ShowView(View));
+            return presenter.OK;
         }
     }
 }
