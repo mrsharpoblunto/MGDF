@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using MGDF.GamesManager.Common.Framework;
 
@@ -12,6 +13,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
         public EventHandler OnRead;
         public EventHandler OnWrite;
         public byte[] Data;
+        public int Status;
     }
 
     public class MockHttpRequestManager: IHttpRequestManager 
@@ -21,7 +23,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
 
         public void ExpectResponse(string uri, byte[] content)
         {
-            ExpectResponse(uri, content, null, null);
+            ExpectResponse(uri,content, null, null);
         }
 
         public void SetCredentials(string uri,string username,string password)
@@ -31,7 +33,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
 
         public void ExpectResponse(string uri, string content)
         {
-            ExpectResponse(uri, Encoding.UTF8.GetBytes(content), null, null);
+            ExpectResponse(uri,Encoding.UTF8.GetBytes(content), null, null);
         }
 
         public void ExpectResponse(string uri,byte[] content,EventHandler read,EventHandler write)
@@ -58,10 +60,36 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
             return GetResponseStream(uri, 0, out contentLength);
         }
 
-
-        public Stream GetResponseStream(string uri, long progress, out long contentLength)
+        public Stream GetResponseStream(string uri, long progress, Func<GetCredentialsEventArgs, bool> getCredentials, out long contentLength)
         {
             var response = _responses[uri];
+
+            if (response==null)
+            {
+                throw new WebException("404 File not found");
+            }
+
+            if (_credentials.ContainsKey(uri))
+            {
+                bool hasValidCredentials = false;
+                if (getCredentials != null)
+                {
+                    var args = new GetCredentialsEventArgs();
+                    while (getCredentials(args))
+                    {
+                        if (_credentials[uri].Key==args.UserName && _credentials[uri].Value==args.Password)
+                        {
+                            hasValidCredentials = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasValidCredentials)
+                {
+                    throw new WebException("401 Unauthorized");
+                }
+            }
             contentLength = response.Data.Length;
             var stream = new MockStream(response.Data);
             if (response.OnRead != null) stream.OnRead += response.OnRead;
@@ -71,16 +99,10 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
             return stream;
         }
 
-        public bool HasValidCredentials(string uri, string username, string password)
+
+        public Stream GetResponseStream(string uri, long progress, out long contentLength)
         {
-            if (_credentials.ContainsKey(uri))
-            {
-                return _credentials[uri].Key == username && _credentials[uri].Value == password;
-            }
-            else
-            {
-                return false;
-            }
+            return GetResponseStream(uri, progress, null, out contentLength);
         }
 
         public void ClearResponses()

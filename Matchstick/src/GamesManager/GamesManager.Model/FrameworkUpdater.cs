@@ -55,7 +55,7 @@ namespace MGDF.GamesManager.Model
                     vfsUtils.CopyVfsSubtree(child.Value, EnvironmentSettings.Current.AppDirectory, false);
                 }
                 //can't overwrite the currently executing file
-                else if (child.Key=="GamesManager.exe")
+                else if (child.Key.Equals("GamesManager.exe",StringComparison.InvariantCultureIgnoreCase))
                 {
                     vfsUtils.CopyVfsFile(child.Value, FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, "GamesManager.New.exe"));
                 }

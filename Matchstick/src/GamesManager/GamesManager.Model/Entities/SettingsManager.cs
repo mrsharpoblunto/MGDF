@@ -51,6 +51,11 @@ namespace MGDF.GamesManager.Model.Entities
             }
         }
 
+        public static void Dispose()
+        {
+            _instance = null;
+        }
+
         public GameSettings Settings { get; set; }
 
         protected override void Load(XmlReader reader)

@@ -51,21 +51,12 @@
     <Compile Include="..\solutionInfo.cs">
       <Link>Properties\solutionInfo.cs</Link>
     </Compile>
-    <Compile Include="UpdatingForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="UpdatingForm.Designer.cs">
-      <DependentUpon>UpdatingForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="UpdatingForm.resx">
-      <DependentUpon>UpdatingForm.cs</DependentUpon>
     </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -99,7 +90,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ajax-loader.gif" />
     <Content Include="MGDF.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

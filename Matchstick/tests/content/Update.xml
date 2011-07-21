@@ -3,5 +3,7 @@
   <updatedescription>An update</updatedescription>
   <updateminversion>0.1</updateminversion>
   <updatemaxversion>0.2</updatemaxversion>
-  <removefiles />
+  <removefiles>
+    <file>content/test.xml</file>
+  </removefiles>
 </mgdf:update>

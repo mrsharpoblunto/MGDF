@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MGDF.GamesManager.Common.Framework;
-using MGDF.GamesManager.Model.Services;
+using MGDF.GamesManager.Model;
 
 namespace MGDF.GamesManager.Tests.Common.Mocks
 {

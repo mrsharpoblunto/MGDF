@@ -19,8 +19,6 @@ namespace MGDF.GamesManager.Common.Framework
     {
         Stream GetResponseStream(string uri);
         Stream GetResponseStream(string uri,long progress, Func<GetCredentialsEventArgs,bool> getCredentials, out long contentLength);
-
-        bool HasValidCredentials(string uri, string username, string password);
     }
 
     public class HttpRequestManager:IHttpRequestManager
@@ -104,28 +102,6 @@ namespace MGDF.GamesManager.Common.Framework
             while (redirects++<maxRedirects);
 
             throw new Exception("Maximum redirect count exceeded");
-        }
-
-        public bool HasValidCredentials(string uri, string username, string password)
-        {
-            var cache = new CredentialCache{{new Uri(uri, UriKind.Absolute), "Digest", new NetworkCredential(username, password)}};
-            var request = (HttpWebRequest)WebRequest.Create(uri);
-            request.Credentials = cache;
-
-            try
-            {
-                using (var response = (HttpWebResponse)request.GetResponse())
-                {
-                    return response.StatusCode != HttpStatusCode.Unauthorized;
-                }
-            }
-            catch (WebException ex)
-            {
-                using (var response = (HttpWebResponse)ex.Response)
-                {
-                    return response.StatusCode != HttpStatusCode.Unauthorized;
-                }
-            }
         }
 
         //hack that gets around the standard framework method addRange only accepting an int32, 

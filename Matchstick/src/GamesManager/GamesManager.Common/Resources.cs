@@ -9,9 +9,8 @@ namespace MGDF.GamesManager.Common
     {
         public static class GamesManagerArguments
         {
-            public const string InstallArgument = "install";
-            public const string BootArgument = "boot";
-            public const string UninstallArgument = "uninstall";
+            public const string RegisterArgument = "register";
+            public const string DeregisterArgument = "deregister";
             public const string NoUpdateCheckArgument = "noupdatecheck";
             public const string UpdateFrameworkArgument = "updateframework";
             public const string UpdateGameArgument = "updategame";
@@ -81,8 +80,7 @@ namespace MGDF.GamesManager.Common
         {
             return (!string.IsNullOrEmpty(gameUpdate) ? (" -updategame:\"" + gameUpdate + "\" -gameupdatehash:\"" + gameUpdateHash + "\"") : string.Empty) +
                    (!string.IsNullOrEmpty(gameUpdate) ? (" -updateframework:\"" + frameworkUpdate + "\" -frameworkupdatehash:\"" + frameworkUpdateHash + "\"") : string.Empty) +
-                   (_userDirOverridden ? "-userdiroverride" : string.Empty) +
-                   " -boot";
+                   (_userDirOverridden ? "-userdiroverride" : string.Empty);
         }
 
         public static string GameDefinitionFileBin()

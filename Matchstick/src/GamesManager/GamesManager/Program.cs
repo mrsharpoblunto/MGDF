@@ -30,6 +30,7 @@ namespace MGDF.GamesManager
             ArchiveFactory.Current = new ArchiveFactory();
             HttpRequestManager.Current = new HttpRequestManager();
             ProcessManager.Current = new ProcessManager();
+            Config.Current = new Config();
 
             ViewImpl.RegisterViews();
 
@@ -68,26 +69,26 @@ namespace MGDF.GamesManager
             Logger.Current = new Logger(Path.Combine(Resources.GameUserDir, "GamesManagerLog.txt"));
 
 
-            if (commandLine[Resources.GamesManagerArguments.InstallArgument] != null)
+            if (commandLine[Resources.GamesManagerArguments.RegisterArgument] != null)
             {
                 if (!UACControl.IsAdmin())
                 {
-                    ViewFactory.Current.CreateView<IMessage>().Show("Installing requires administrator access", "Administrator accesss required");
+                    ViewFactory.Current.CreateView<IMessage>().Show("Registering requires administrator access", "Administrator accesss required");
                     return -1;
                 }
 
-                var installer = new GameInstaller(true, Game.Current);
+                var installer = new GameRegistrar(true, Game.Current);
                 installer.Start();
             }
-            else if (commandLine[Resources.GamesManagerArguments.UninstallArgument] != null)
+            else if (commandLine[Resources.GamesManagerArguments.DeregisterArgument] != null)
             {
                 if (!UACControl.IsAdmin())
                 {
-                    ViewFactory.Current.CreateView<IMessage>().Show("Uninstalling requires administrator access", "Administrator accesss required");
+                    ViewFactory.Current.CreateView<IMessage>().Show("Deregistering requires administrator access", "Administrator accesss required");
                     return -1;
                 }
 
-                var uninstaller = new GameInstaller(false, Game.Current);
+                var uninstaller = new GameRegistrar(false, Game.Current);
                 uninstaller.Start();
             }
             else if (commandLine[Resources.GamesManagerArguments.UpdateFrameworkArgument] != null || commandLine[Resources.GamesManagerArguments.UpdateGameArgument] != null)
@@ -122,16 +123,11 @@ namespace MGDF.GamesManager
 
                 Process.Start(Resources.FrameworkUpdaterExecutable, Resources.GamesManagerBootArguments(string.Empty,string.Empty,string.Empty,string.Empty));
             }
-            else if (commandLine[Resources.GamesManagerArguments.BootArgument] != null)
+            else
             {
                 var presenter = new LaunchGamePresenter(commandLine[Resources.GamesManagerArguments.NoUpdateCheckArgument] == null);
                 presenter.ShowView();
                 Application.Run(presenter.View as Form);
-            }
-            else
-            {
-                ViewFactory.Current.CreateView<IMessage>().Show("Unknown arguments", "Unknown arguments");
-                return -1;
             }
 
             return 0;

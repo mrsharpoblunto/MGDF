@@ -46,6 +46,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Mocks\MockRepositoryBase.cs" />
+    <Compile Include="Mocks\MockStatisticsServiceRepository.cs" />
+    <Compile Include="Mocks\MockConfig.cs" />
     <Compile Include="Mocks\MockWCFClient.cs" />
     <Compile Include="Mocks\MockDirectory.cs" />
     <Compile Include="Mocks\MockEnvironmentSettings.cs" />
@@ -59,7 +62,6 @@
     <Compile Include="Mocks\MockLogger.cs" />
     <Compile Include="Mocks\MockProcessManager.cs" />
     <Compile Include="Mocks\MockRegistry.cs" />
-    <Compile Include="Mocks\MockServiceManager.cs" />
     <Compile Include="Mocks\MockShortcutManager.cs" />
     <Compile Include="Mocks\MockTimeService.cs" />
     <Compile Include="Mocks\MockArchiveFactory.cs" />
@@ -73,6 +75,14 @@
     <ProjectReference Include="..\..\src\GamesManager\GamesManager.Model\GamesManager.Model.csproj">
       <Project>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</Project>
       <Name>GamesManager.Model</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\GamesManager\GamesManager.ServerCommon\GamesManager.ServerCommon.csproj">
+      <Project>{740712A4-0B4B-4EEE-BFE8-A2E74F9C1CC7}</Project>
+      <Name>GamesManager.ServerCommon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\GamesManager\GamesManager.StatisticsService.Model\GamesManager.StatisticsService.Model.csproj">
+      <Project>{FB9B2DE4-6E41-452B-B166-B1145A8E3ACD}</Project>
+      <Name>GamesManager.StatisticsService.Model</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

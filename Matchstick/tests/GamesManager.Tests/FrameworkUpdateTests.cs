@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using MGDF.GamesManager.Common.Framework;
-using MGDF.GamesManager.Model.ServiceModel;
+using MGDF.GamesManager.Model;
 using MGDF.GamesManager.Tests.Common.Mocks;
 using NUnit.Framework;
 
@@ -16,229 +16,102 @@ namespace MGDF.GamesManager.Tests
         [TearDown]
         public override void TearDown()
         {
-            FrameworkUpdateManager.Instance.Dispose();
             base.TearDown();
         }
 
         [Test]
-        public void TestFrameworkUpdaterExeGetsUpdated()
+        public void TestCheckForUpdateAndDownloadUpdate()
         {
             MockFile gamesManagerFile = (MockFile)FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.exe");
             gamesManagerFile.WriteText("EXECUTABLE");
-            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 1);
+            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 0);
 
-            MockFile gamesManagerUpdaterFile = (MockFile)FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.FrameworkUpdater.exe");
-            gamesManagerUpdaterFile.WriteText("EXECUTABLE");
-            gamesManagerUpdaterFile.AssemblyVersion = new Version(1, 0, 0, 1);
+            var newFrameworkData = GenerateDataBlock(65536);
+            var frameworkMd5 = GenerateMd5Hash(newFrameworkData);
 
-
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion", @"
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/1/MGDF.zip",newFrameworkData);
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/1/latest.json", @"{
 ""Version"":""1.1.2.4"",
-""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.0.0.1.exe""
+""Url"":""http://www.matchstickframework.org/downloads/1/MGDF.zip"",
+""MD5"":""" + frameworkMd5 + @"""
 }");
 
-            FrameworkUpdateManager.Instance.Start();
+            UpdateDownload update = UpdateChecker.CheckForFrameworkUpdate();
 
-            Assert.IsFalse(FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.FrameworkUpdater.exe").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.FrameworkUpdater.Current.exe").Exists);
+            Assert.IsNotNull(update);
+            Assert.AreEqual("http://www.matchstickframework.org/downloads/1/MGDF.zip",update.Url);
+            Assert.AreEqual(frameworkMd5, update.MD5);
+            Assert.AreEqual("1.1.2.4", update.Version);
+
+            Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
+
+            //now download the actual update.
+            FileDownloader downloader = new FileDownloader("http://www.matchstickframework.org/downloads/1/MGDF.zip","c:\\temp.zip",frameworkMd5,null);
+            downloader.Start();
+
+            Assert.IsTrue(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
+            Assert.AreEqual(65536,FileSystem.Current.GetFile("c:\\temp.zip").Length);
         }
 
         [Test]
-        public void TestFrameworkUpdater()
+        public void TestCheckForUpdateNoUpdateAvailable()
         {
             MockFile gamesManagerFile = (MockFile)FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.exe");
             gamesManagerFile.WriteText("EXECUTABLE");
-            gamesManagerFile.AssemblyVersion = new Version(1,0,0,1);
+            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 0);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
-}");
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000));
+            UpdateDownload update = UpdateChecker.CheckForFrameworkUpdate();
 
-            bool finished = false;
-            FrameworkUpdateManager.Instance.OnComplete += (s, e) => finished = true;
-            FrameworkUpdateManager.Instance.Start();
-            while (!finished)
-            {
-                Thread.Sleep(0);
-            }
-
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.1.2.4.exe").Exists);
+            Assert.IsNull(update);
         }
 
         [Test]
-        public void TestFrameworkUpdaterError()
+        public void TestCheckForUpdateEqualToCurrentVersionAvailable()
         {
             MockFile gamesManagerFile = (MockFile)FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.exe");
             gamesManagerFile.WriteText("EXECUTABLE");
-            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 1);
+            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 0);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
+            var newFrameworkData = GenerateDataBlock(65536);
+            var frameworkMd5 = GenerateMd5Hash(newFrameworkData);
+
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/1/MGDF.zip", newFrameworkData);
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/1/latest.json", @"{
+""Version"":""1.0.0.0"",
+""Url"":""http://www.matchstickframework.org/downloads/1/MGDF.zip"",
+""MD5"":""" + frameworkMd5 + @"""
 }");
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000),
-                (s,e)=>{ throw new Exception("Connection error");},null);
 
-            bool finished = false;
-            FrameworkUpdateManager.Instance.OnComplete += (s, e) => finished = true;
-            FrameworkUpdateManager.Instance.Start();
-            while (!finished)
-            {
-                Thread.Sleep(0);
-            }
+            UpdateDownload update = UpdateChecker.CheckForFrameworkUpdate();
 
-
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.1.2.4.exe").Exists);
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.1.2.4.part").Exists);
-            Assert.IsFalse(FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Downloads\\Framework\\pendingframeworkdownload.xml").Exists);
-
+            Assert.IsNull(update);
         }
 
         [Test]
-        public void TestFrameworkUpdaterShutDownAndRestart()
+        public void TestInstallFrameworkUpdate()
         {
+            MockArchiveFile archive = new MockArchiveFile(null, "C:\\temp.zip");
+            new MockArchiveFile(archive, "GamesManager.exe.config", "GamesManagerConfig");
+            new MockArchiveFile(archive, "GamesManager.exe", "GamesManager");
+            new MockArchiveFile(archive, "GamesManager.Common.dll","GamesManagerCommon");
+            var schemas = new MockArchiveFile(archive, "schemas");
+            new MockArchiveFile(schemas, "game.xsd", "GameSchema");
+            ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\temp.zip", archive);
+
+
             MockFile gamesManagerFile = (MockFile)FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.exe");
             gamesManagerFile.WriteText("EXECUTABLE");
-            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 1);
+            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 0);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
-}");
+            FrameworkUpdater updater = new FrameworkUpdater("C:\\temp.zip");
+            updater.Start();
 
-            bool doExit=true;
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000),                (s, e) =>
-                {
-                    if (doExit)
-                    {
-                        FrameworkUpdateManager.Instance.Pause();
-                        doExit = false;
-                    }
-                }, null);
+            Assert.IsTrue(FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.New.exe").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.exe.config").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.Common.dll").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("C:\\program files\\MGDF\\schemas\\game.xsd").Exists);
 
-            //service started
-            bool started = false;
-            FrameworkUpdateManager.Instance.OnStarted += (s, e) => started = true;
-            FrameworkUpdateManager.Instance.Start();
-            while (!started)
-            {
-                Thread.Sleep(0);
-            }
-
-            //service stopped
-            while (doExit)
-            {
-                Thread.Sleep(0);
-            }
-            FrameworkUpdateManager.Instance.Dispose();
-
-            //check that the queue file was persisted
-            var queueFile = FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Downloads\\Framework\\pendingframeworkdownload.xml");
-            string queueFileContents = queueFile.ReadText();
-            string expectedQueueFile =
-                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
-"<pendingframeworkdownload>"+"\r\n"+
-"	<status>Paused</status>"+"\r\n"+
-"	<progress>16384</progress>"+"\r\n"+
-"	<total>55000</total>"+"\r\n"+
-@"	<destinationfilename>c:\program files\MGDF\games\Downloads\Framework\1.1.2.4.part</destinationfilename>"+"\r\n"+
-"	<sourceurl>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</sourceurl>"+"\r\n"+
-"	<version>1.1.2.4</version>"+"\r\n"+
-"</pendingframeworkdownload>";
-            Assert.AreEqual(expectedQueueFile, queueFileContents);
-
-            //service restarted
-            bool finished = false;
-            FrameworkUpdateManager.Instance.OnComplete += (s, e) => finished = true;
-            FrameworkUpdateManager.Instance.Start();
-
-            while (!finished)
-            {
-                Thread.Sleep(0);
-            }
-
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.1.2.4.exe").Exists);
-            Assert.AreEqual(55000, FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.1.2.4.exe").Length);
-            Assert.IsFalse(FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Downloads\\Framework\\pendingframeworkdownload.xml").Exists);
-        }
-
-        [Test]
-        public void TestFrameworkUpdaterShutDownAndRestartWithLaterVersionAvailable()
-        {
-            MockFile gamesManagerFile = (MockFile)FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.exe");
-            gamesManagerFile.WriteText("EXECUTABLE");
-            gamesManagerFile.AssemblyVersion = new Version(1, 0, 0, 1);
-
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe""
-}");
-
-            bool doExit = true;
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe", GenerateDataBlock(55000), (s, e) =>
-            {
-                if (doExit)
-                {
-                    FrameworkUpdateManager.Instance.Pause();
-                    doExit = false;
-                }
-            }, null);
-
-            //service started
-            bool started = false;
-            FrameworkUpdateManager.Instance.OnStarted += (s, e) => started = true;
-            FrameworkUpdateManager.Instance.Start();
-            while (!started)
-            {
-                Thread.Sleep(0);
-            }
-
-            //service stopped
-            while (doExit)
-            {
-                Thread.Sleep(0);
-            }
-            FrameworkUpdateManager.Instance.Dispose();
-
-            //check that the queue file was persisted
-            var queueFile = FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Downloads\\Framework\\pendingframeworkdownload.xml");
-            string queueFileContents = queueFile.ReadText();
-            string expectedQueueFile =
-                @"﻿<?xml version=""1.0"" encoding=""utf-8""?>"+"\r\n"+
-"<pendingframeworkdownload>"+"\r\n"+
-"	<status>Paused</status>"+"\r\n"+
-"	<progress>16384</progress>"+"\r\n"+
-"	<total>55000</total>"+"\r\n"+
-@"	<destinationfilename>c:\program files\MGDF\games\Downloads\Framework\1.1.2.4.part</destinationfilename>"+"\r\n"+
-"	<sourceurl>http://www.matchstickframework.org/downloads/MGDF-1.1.2.4.exe</sourceurl>"+"\r\n"+
-"	<version>1.1.2.4</version>"+"\r\n"+
-"</pendingframeworkdownload>";
-            Assert.AreEqual(expectedQueueFile, queueFileContents);
-
-            //simulate a newer version coming available
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/latestVersion/1", @"{
-""Version"":""1.2.0.0"",
-""Url"":""http://www.matchstickframework.org/downloads/MGDF-1.2.0.0.exe""
-}");
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/MGDF-1.2.0.0.exe", GenerateDataBlock(155000));
-
-            //now restart
-            bool finished = false;
-            FrameworkUpdateManager.Instance.OnComplete += (s, e) => finished = true;
-            FrameworkUpdateManager.Instance.Start();
-            while (!finished)
-            {
-                Thread.Sleep(0);
-            }
-
-            //should have ditched the incomplete vesion and started on the newer one.
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.1.2.4.exe").Exists);
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.1.2.4.part").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.2.0.0.exe").Exists);
-            Assert.AreEqual(155000, FileSystem.Current.GetFile("c:\\program files\\MGDF\\games\\Downloads\\Framework\\1.2.0.0.exe").Length);
-            Assert.IsFalse(FileSystem.Current.GetFile("C:\\program files\\MGDF\\games\\Downloads\\Framework\\pendingframeworkdownload.xml").Exists);
+            Assert.AreEqual(new Version(1, 0, 0, 0),FileSystem.Current.GetFile("C:\\program files\\MGDF\\GamesManager.exe").AssemblyVersion);
         }
     }
 }

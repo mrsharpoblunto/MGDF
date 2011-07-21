@@ -45,6 +45,9 @@
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Data" />
+    <Reference Include="System.Data.Linq">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="WindowsBase">
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
@@ -54,8 +57,9 @@
     <Compile Include="BaseTest.cs" />
     <Compile Include="FrameworkUpdateTests.cs" />
     <Compile Include="GameInstallerTests.cs" />
-    <Compile Include="GamesManagerServiceTests.cs" />
+    <Compile Include="GamesUpdaterTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StatisticsTests.cs" />
     <Compile Include="XmlEntityTests.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -63,13 +67,25 @@
       <Project>{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}</Project>
       <Name>GamesManager.Common</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\GamesManager\GamesManager.GameSource.Contracts\GamesManager.GameSource.Contracts.csproj">
-      <Project>{1A4A7F0A-D75E-4571-9FF4-DD4A73733AE0}</Project>
-      <Name>GamesManager.GameSource.Contracts</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\GamesManager\GamesManager.Model\GamesManager.Model.csproj">
       <Project>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</Project>
       <Name>GamesManager.Model</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\GamesManager\GamesManager.ServerCommon\GamesManager.ServerCommon.csproj">
+      <Project>{740712A4-0B4B-4EEE-BFE8-A2E74F9C1CC7}</Project>
+      <Name>GamesManager.ServerCommon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\GamesManager\GamesManager.StatisticsService.Contracts\GamesManager.StatisticsService.Contracts.csproj">
+      <Project>{54EABEB3-4FF1-43DD-AEC2-5CBD566E3942}</Project>
+      <Name>GamesManager.StatisticsService.Contracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\GamesManager\GamesManager.StatisticsService.Model\GamesManager.StatisticsService.Model.csproj">
+      <Project>{FB9B2DE4-6E41-452B-B166-B1145A8E3ACD}</Project>
+      <Name>GamesManager.StatisticsService.Model</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\GamesManager\GamesManager.StatisticsService\GamesManager.StatisticsService.csproj">
+      <Project>{B8D843B7-9EAC-410E-9131-57B33F27605A}</Project>
+      <Name>GamesManager.StatisticsService</Name>
     </ProjectReference>
     <ProjectReference Include="..\GamesManager.Tests.Common\GamesManager.Tests.Common.csproj">
       <Project>{73C28FE8-F8A1-440A-8160-57DA7E318CD3}</Project>

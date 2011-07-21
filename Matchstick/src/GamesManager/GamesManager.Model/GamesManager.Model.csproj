@@ -79,6 +79,7 @@
       <Link>Properties\solutionInfo.cs</Link>
     </Compile>
     <Compile Include="Archive.cs" />
+    <Compile Include="Config.cs" />
     <Compile Include="LongRunningTask.cs" />
     <Compile Include="Entities\Game.cs" />
     <Compile Include="Entities\GameInstall.cs" />
@@ -90,7 +91,7 @@
     <Compile Include="GameDownloader.cs" />
     <Compile Include="GameExplorer.cs" />
     <Compile Include="GameUpdater.cs" />
-    <Compile Include="GameInstaller.cs" />
+    <Compile Include="GameRegistrar.cs" />
     <Compile Include="Helpers\ArchiveFileHelper.cs" />
     <Compile Include="Helpers\InstalledProgramsHelper.cs" />
     <Compile Include="IconManager.cs" />

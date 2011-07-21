@@ -173,9 +173,9 @@ namespace MGDF.GamesManager.MVP.Presenters
                             _currentTask.Start();
 
                             //now if we're auto installing on update, update the registry/desktop icons etc..
-                            if (bool.Parse(ConfigurationManager.AppSettings["autoInstallOnUpdate"]))
+                            if (Config.Current.AutoRegisterOnUpdate)
                             {
-                                _currentTask = new GameInstaller(true, Game.Current);
+                                _currentTask = new GameRegistrar(true, Game.Current);
                                 _currentTask.Start();
                             }
                         }

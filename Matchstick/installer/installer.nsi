@@ -5,12 +5,11 @@
 ;--------------------------------
 
 ; The name of the installer
-	Name "Matchstick Game Development Framework"
-	OutFile "MGDF Setup.exe"
+	Name "MGDF Game"
+	OutFile "Setup.exe"
 
 ; The default installation directory
-	InstallDir "$PROGRAMFILES\MGDF v1.0"
-	InstallDirRegKey HKLM "Software\MGDF1" ""
+	InstallDir "$PROGRAMFILES\MGDF Game"
 
 	RequestExecutionLevel admin
 
@@ -67,7 +66,7 @@ Installdotnet:
 	Pop $0
 	
 	IntCmp $0 0 Ignoredotnetsetup
-	MessageBox MB_OK "The .NET Framework 3.5 was not installed, MGDF installation cannot continue."
+	MessageBox MB_OK "The .NET Framework 3.5 was not installed, installation cannot continue."
 	Quit
 
 Ignoredotnetsetup:

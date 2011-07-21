@@ -39,7 +39,7 @@ namespace MGDF.GamesManager.Model
         public static UpdateDownload CheckForFrameworkUpdate() 
         {
             UpdateDownload result;
-            string frameworkUpdateSite = ConfigurationManager.AppSettings["frameworkUpdateSite"] ?? "http://www.matchstickframework.org";
+            string frameworkUpdateSite = Config.Current.FrameworkUpdateSite ?? "http://www.matchstickframework.org";
 
             try
             {
@@ -86,17 +86,20 @@ namespace MGDF.GamesManager.Model
                     //if the available version isn't newer than what we have already, then don't bother updating.
                     if (new Version(availableUpdates.Latest.Version) > game.Version)
                     {
-                        //try to find a partial update for this version if possible
-                        foreach (var olderVersion in availableUpdates.UpdateOlderVersions)
+                        if (availableUpdates.UpdateOlderVersions != null)
                         {
-                            if (new Version(olderVersion.FromVersion) == game.Version)
+                            //try to find a partial update for this version if possible
+                            foreach (var olderVersion in availableUpdates.UpdateOlderVersions)
                             {
-                                return new UpdateDownload
-                                           {
-                                               Url = olderVersion.Url,
-                                               Version = availableUpdates.Latest.Version,
-                                               MD5 = olderVersion.MD5
-                                           };
+                                if (new Version(olderVersion.FromVersion) == game.Version)
+                                {
+                                    return new UpdateDownload
+                                               {
+                                                   Url = olderVersion.Url,
+                                                   Version = availableUpdates.Latest.Version,
+                                                   MD5 = olderVersion.MD5
+                                               };
+                                }
                             }
                         }
 

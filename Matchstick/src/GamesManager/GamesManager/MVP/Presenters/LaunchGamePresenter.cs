@@ -75,7 +75,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                     });
 
                     UpdateDownload frameworkUpdate=null;
-                    if (bool.Parse(ConfigurationManager.AppSettings["autoUpdateFramework"]))
+                    if (Config.Current.AutoUpdateFramework)
                     {
                         frameworkUpdate = UpdateChecker.CheckForFrameworkUpdate();
                     }

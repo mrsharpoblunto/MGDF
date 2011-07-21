@@ -35,19 +35,16 @@ namespace MGDF.GamesManager.Model
                     SettingsManager.Instance.Settings = new GameSettings { GameUid = _game.Uid, };
                 }
 
-                GetCredentialsEventArgs credentials = new GetCredentialsEventArgs
-                                                          {
-                                                              UserName = SettingsManager.Instance.Settings.UserName,
-                                                              Password = SettingsManager.Instance.Settings.Password
-                                                          };
+                args.UserName = SettingsManager.Instance.Settings.UserName;
+                args.Password = SettingsManager.Instance.Settings.Password;
 
                 //if we have no credentials or we have incorrect stored credentials
-                if (string.IsNullOrEmpty(credentials.UserName) || _requiresManualIntervention)
+                if (string.IsNullOrEmpty(args.UserName) || _requiresManualIntervention)
                 {
-                    if (_newCredentials(credentials))
+                    if (_newCredentials(args))
                     {
-                        SettingsManager.Instance.Settings.UserName = credentials.UserName;
-                        SettingsManager.Instance.Settings.Password = credentials.Password;
+                        SettingsManager.Instance.Settings.UserName = args.UserName;
+                        SettingsManager.Instance.Settings.Password = args.Password;
                         SettingsManager.Instance.Save();
                         return true;
                     }
@@ -61,8 +58,6 @@ namespace MGDF.GamesManager.Model
                 }
                 else
                 {
-                    credentials.UserName = SettingsManager.Instance.Settings.UserName;
-                    credentials.Password = SettingsManager.Instance.Settings.Password;
                     return true;
                 }
             }

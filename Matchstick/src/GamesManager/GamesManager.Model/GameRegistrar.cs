@@ -8,12 +8,12 @@ using InstalledProgramsHelper=MGDF.GamesManager.Model.Helpers.InstalledProgramsH
 
 namespace MGDF.GamesManager.Model
 {
-    public class GameInstaller: LongRunningTask
+    public class GameRegistrar: LongRunningTask
     {
         private bool _register;
         private Game _game;
 
-        public GameInstaller(bool register,Game game)
+        public GameRegistrar(bool register,Game game)
         {
             _register = register;
             _game = game;

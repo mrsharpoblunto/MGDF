@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MGDF.GamesManager.Common.Framework;
-using MGDF.GamesManager.Model.Contracts.Entities;
-using MGDF.GamesManager.Model.Factories;
+using MGDF.GamesManager.Model;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.Tests.Common.Mocks;
 using NUnit.Framework;
 
@@ -25,7 +25,7 @@ namespace MGDF.GamesManager.Tests
         public void LoadGameInstaller()
         {
             MockDirectory desktopDir = (MockDirectory)MockFileSystem.GetDirectory("C:\\Documents and Settings\\user\\desktop");
-            desktopDir.AddFile("game.mza","data");
+            desktopDir.AddFile("game.zip","data");
 
 
             MockArchiveFile archive = new MockArchiveFile(null,"C:\\Documents and Settings\\user\\desktop\\game.mza");
@@ -35,7 +35,7 @@ namespace MGDF.GamesManager.Tests
             new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
 
-            IGameInstall install = EntityFactory.Current.CreateGameInstall("C:\\Documents and Settings\\user\\desktop\\game.mza");
+            GameInstall install = new GameInstall("C:\\Documents and Settings\\user\\desktop\\game.mza");
             Assert.IsNotNull(install);
             Assert.IsTrue(install.IsValid);
 
@@ -56,6 +56,21 @@ namespace MGDF.GamesManager.Tests
             Assert.IsFalse(install.IsUpdate);
 
             Assert.AreEqual("C:\\Documents and Settings\\user\\desktop\\game.mza",install.InstallerFile);
+        }
+
+
+        [Test]
+        public void TestLoadInvalidGame()
+        {
+            MockArchiveFile archive = new MockArchiveFile(null, "C:\\Documents and Settings\\user\\desktop\\game.zip");
+            new MockArchiveFile(archive, "game.xml", ReadTextFile("console.xml"));
+            new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
+            new MockArchiveFile(archive, "bin");
+            //missing content
+            ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.zip", archive);
+
+            GameInstall install = new GameInstall("C:\\Documents and Settings\\user\\desktop\\game.zip");
+            Assert.IsFalse(install.IsValid);
         }
     }
 }

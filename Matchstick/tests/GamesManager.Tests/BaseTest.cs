@@ -7,8 +7,7 @@ using System.Text;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
-using MGDF.GamesManager.Model.Factories;
-using MGDF.GamesManager.Model.Services;
+using MGDF.GamesManager.Model;
 using MGDF.GamesManager.Tests.Common.Mocks;
 using NUnit.Framework;
 using File=MGDF.GamesManager.Common.Framework.File;
@@ -20,8 +19,6 @@ namespace MGDF.GamesManager.Tests
         [SetUp]
         public virtual void Setup()
         {
-            //use the mock entity & view implementations
-            EntityFactory.Current = new EntityFactory();
             //ViewFactory.Current = new MockViewFactory();
             Logger.Current = new MockLogger();
             FileSystem.Current = new MockFileSystem();
@@ -30,12 +27,13 @@ namespace MGDF.GamesManager.Tests
             Registry.Current = new MockRegistry();
             IdentityGenerator.Current = new MockIdentityGenerator();
             HttpRequestManager.Current = new MockHttpRequestManager();
+            Config.Current = new MockConfig();
+            ArchiveFactory.Current = new MockArchiveFactory();
 
             //managers relevant to installing and installing games.
             GameExplorer.Current = new MockGameExplorer();
             IconManager.Current = new MockIconManager();
             ProcessManager.Current = new MockProcessManager();
-            ServiceManager.Current = new MockServiceManager();
             ShortcutManager.Current = new MockShortcutManager();
 
             ((MockRegistry)Registry.Current).AddFakeKey(BaseRegistryKey.LocalMachine, new MockRegistryKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"));
@@ -50,13 +48,15 @@ namespace MGDF.GamesManager.Tests
             userDir.AddDirectory("start menu");
             volumeRoot.AddDirectory("Documents and Settings").AddDirectory("All Users").AddDirectory("Application Data");
 
-            MockDirectory schemasDir = volumeRoot.AddDirectory("program files").AddDirectory("MGDF").AddDirectory("schemas");
+            MockDirectory mgdfDirectory = volumeRoot.AddDirectory("program files").AddDirectory("MGDF");
+            mgdfDirectory.AddDirectory("game");
+            MockDirectory schemasDir = mgdfDirectory.AddDirectory("schemas");
             schemasDir.AddFile("game.xsd", ReadTextFile("Schemas\\game.xsd"));
             schemasDir.AddFile("gameState.xsd", ReadTextFile("Schemas\\gameState.xsd"));
             schemasDir.AddFile("preferences.xsd", ReadTextFile("Schemas\\preferences.xsd"));
             schemasDir.AddFile("update.xsd", ReadTextFile("Schemas\\update.xsd"));
 
-            Constants.CreateRequiredCommonDirectories();
+            Resources.InitUpdaterDirectories();
         }
 
         protected static MockFileSystem MockFileSystem
