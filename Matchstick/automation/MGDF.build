@@ -120,7 +120,7 @@
     <mkdir dir="Package" />
     <mkdir dir="Package/Distro" />
     <copy todir="Package/Distro">
-      <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}\games\test">
+      <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}">
         <exclude name=".svn" />
         <exclude name="*.exp"/>
         <exclude name="*.lib"/>
@@ -142,7 +142,7 @@
     <!-- generate the latest.json file to use on the update website -->
     <generateupdatescript output="${project::get-base-directory()}\Package\latest.json"
                           version="${buildnumber}" 
-                          url="http://http://s3.amazonaws.com/matchstickframework.org/${buildnumber}.zip" 
+                          url="http://s3.amazonaws.com/matchstickframework.org/${buildnumber}.zip" 
                           file="${project::get-base-directory()}\Package\MGDF_${buildnumber}.zip" />
 
     <!-- copy debugging symbols + binaries to the package directory so that we can debug minidumps later -->
