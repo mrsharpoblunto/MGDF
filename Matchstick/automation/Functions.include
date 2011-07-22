@@ -95,6 +95,9 @@
 
   
   <script language="C#">
+    <imports>
+      <import namespace="System.Security.Cryptography" />
+    </imports>
     <code>
       <![CDATA[
         [TaskName("generateupdatescript")]
