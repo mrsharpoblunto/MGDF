@@ -165,7 +165,7 @@
     <mkdir dir="Package/SDK" />
     
     <!-- copy distro to SDK-->
-    <copy file="Package/MGDF_distributable.zip" todir="Package/SDK" overwrite="true"/>
+    <copy file="Package/MGDF_${buildnumber}.zip" todir="Package/SDK" overwrite="true"/>
 
 
     <!-- copy MGDF headers to SDK dir-->
