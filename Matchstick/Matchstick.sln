@@ -132,11 +132,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{CE6988
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{0BCBC69E-3FA8-4722-BB95-3B706C65640E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Installer", "Installer", "{C7C5F103-3519-401F-9748-95B39EFBA011}"
-	ProjectSection(SolutionItems) = preProject
-		installer\installer.nsi = installer\installer.nsi
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.PackageGen", "src\GamesManager\GamesManager.PackageGen\GamesManager.PackageGen.csproj", "{3AA4E4E3-9A41-43EF-868B-7830E848FD2C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testCommon", "src\modules\testCommon\testCommon.vcproj", "{8B2601FE-BE04-4EC9-B703-48C106200470}"
