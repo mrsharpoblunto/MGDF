@@ -28,11 +28,7 @@
             <img src="/Content/Images/MGDF.jpg" alt="Matchstick Game Development Framework" />
         </div>
         <div id="content">
-        <% var latestVersion = VersionManager.GetLatestVersion(1);
-           var latestSDKVersion = VersionManager.GetLatestSDKVersion(1);
-           if (latestVersion!=null) { %>
-            <h2><a onclick="javascript:_gaq.push(['_trackPageview','<%=latestVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host) %>']);" href="<%=latestVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host)%>">Download Latest Version</a></h2>
-        <%} %>
+        <% var latestSDKVersion = VersionManager.GetLatestSDKVersion(1); %>
             <div id="content-inner">
                 <p>MGDF is an open source framework designed to make developing, installing, distributing, and updating games easier. The framework uses DirectX 9 for graphics, DirectInput/XInput for user input (has full support for the xbox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual filesystem which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).</p>
                 <ul>

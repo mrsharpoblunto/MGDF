@@ -80,10 +80,6 @@
       <Project>{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}</Project>
       <Name>GamesManager.Common</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GamesManager.Controls\GamesManager.Controls.csproj">
-      <Project>{EFA49EB3-095E-47FA-BAE5-04E8F86E7676}</Project>
-      <Name>GamesManager.Controls</Name>
-    </ProjectReference>
     <ProjectReference Include="..\GamesManager.Model\GamesManager.Model.csproj">
       <Project>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</Project>
       <Name>GamesManager.Model</Name>

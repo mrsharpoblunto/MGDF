@@ -93,73 +93,56 @@
     </code>
   </script>
 
+  
   <script language="C#">
     <code>
       <![CDATA[
-        [TaskName("installerversion")]
-        public class InstallerVersionTask: Task
+        [TaskName("generateupdatescript")]
+        public class GenerateUpdateScript: Task
         {
           [TaskAttribute("version", Required=true)]
           public string Version { get { return _version; } set { _version=value; } }
           private string _version;
           
-          [TaskAttribute("installerFile", Required=true)]
-          public string InstallerFile { get { return _installerFile; } set { _installerFile=value; } }
-          private string _installerFile;
+          [TaskAttribute("file", Required=true)]
+          public string File { get { return _file; } set { _file=value; } }
+          private string _file; 
+                    
+          [TaskAttribute("url", Required=true)]
+          public string Url { get { return _url; } set { _url=value; } }
+          private string _url;
+          
+          [TaskAttribute("output", Required=true)]
+          public string Output { get { return _output; } set { _output=value; } }
+          private string _output;
           
           protected override void ExecuteTask()
           {
-            string installerFile;
-            using (StreamReader reader = new StreamReader(InstallerFile))
+            using (Stream fileStream = new FileStream(_output, FileMode.Create, FileAccess.Write, FileShare.Write))
             {
-                installerFile = reader.ReadToEnd();
-            }
-            
-            //"DisplayVersion" "1.0.0.0"
-            Regex versionRegex = new Regex(@"""DisplayVersion""\s"".+""");
-            
-            installerFile = versionRegex.Replace(installerFile,@"""DisplayVersion"" """+ Version +@"""");
-            
-            using (StreamWriter writer = new StreamWriter(InstallerFile))
-            {
-                writer.Write(installerFile);
-            }
-          }
-        }
-      ]]>
-    </code>
-  </script>
+                using (StreamWriter writer = new StreamWriter(fileStream))
+                {
+                    using (Stream stream = new FileStream(_file, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        using (HashAlgorithm hashAlg = MD5.Create())
+                        {
+                            byte[] hash = hashAlg.ComputeHash(stream);
+                            StringBuilder result = new StringBuilder();
+                            foreach (byte b in hash)
+                            {
+                                result.Append(b.ToString("x2"));
+                            }
 
-  <script language="C#">
-    <code>
-      <![CDATA[
-        [TaskName("testgameversion")]
-        public class TestGameVersionTask: Task
-        {
- [TaskAttribute("version", Required=true)]
-          public string Version { get { return _version; } set { _version=value; } }
-          private string _version;
-          
-          [TaskAttribute("versionFile", Required=true)]
-          public string VersionFile { get { return _versionFile; } set { _versionFile=value; } }
-          private string _versionFile;
-          
-          protected override void ExecuteTask()
-          {
-            string versionFile;
-            using (StreamReader reader = new StreamReader(VersionFile))
-            {
-                versionFile = reader.ReadToEnd();
-            }
-            
-            //<version>0.1</version>
-            Regex versionRegex = new Regex(@"\<version\>.*\</version\>");
-            
-            versionFile = versionRegex.Replace(versionFile,@"<version>"+ Version +@"</version>");
-            
-            using (StreamWriter writer = new StreamWriter(VersionFile))
-            {
-                writer.Write(versionFile);
+                            string md5 = result.ToString();
+
+                            writer.WriteLine("{");
+                            writer.WriteLine(@"""Version"":""" + _version + @""",");
+                            writer.WriteLine(@"""Url"":""" + _url + @""",");
+                            writer.WriteLine(@"""MD5"":""" + md5 + @"""");
+                            writer.WriteLine("}");
+                        }
+                    }
+                }
             }
           }
         }

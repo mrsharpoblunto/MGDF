@@ -41,26 +41,6 @@ namespace MatchstickFramework.Web.Models
                         int version;
                         if (int.TryParse(child.Name, out version))
                         {
-                            var availableVersions = child.GetFiles("*.exe").ToList();
-                            availableVersions.Sort((a,b)=>b.Name.CompareTo(a.Name));
-
-                            if (availableVersions.Count > 0)
-                            {
-                                string mirror = ConfigurationManager.AppSettings["MirrorBaseUrl"];
-                                if (!string.IsNullOrEmpty(mirror) && !mirror.StartsWith("http")) mirror += "http://";
-                                if (!string.IsNullOrEmpty(mirror) && !mirror.EndsWith("/")) mirror += "/";
-                                string filename = (!string.IsNullOrEmpty(mirror) ? mirror : "/Downloads/") + version + "/" + availableVersions[0].Name;
-
-                                if (!_versions.ContainsKey(version))
-                                {
-                                    _versions.Add(version, new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableVersions[0].ComputeMD5() });
-                                }
-                                else
-                                {
-                                    _versions[version] = new LatestVersion { Version = new Version(_vesionRegex.Match(availableVersions[0].Name).Value), FileName = filename, MD5 = availableVersions[0].ComputeMD5() };
-                                }
-                            }
-
                             var availableSDKVersions = child.GetFiles("*.zip").ToList();
                             availableSDKVersions.Sort((a, b) => b.Name.CompareTo(a.Name));
 
@@ -105,32 +85,6 @@ namespace MatchstickFramework.Web.Models
                 if (_sdkVersions.ContainsKey(version))
                 {
                     return _sdkVersions[version];
-                }
-                return null;
-            }
-        }
-
-        public static LatestVersion GetLatestVersion(int version)
-        {
-            if (!_initialized)
-            {
-                lock (_lock)
-                {
-                    if (!_initialized)
-                    {
-                        var vesionCheckerThread = new Thread(CheckVersions);
-                        vesionCheckerThread.Start();
-                    }
-                }
-
-                while (!_initialized) Thread.Sleep(100);
-            }
-
-            lock (_lock)
-            {
-                if (_versions.ContainsKey(version))
-                {
-                    return _versions[version];
                 }
                 return null;
             }
