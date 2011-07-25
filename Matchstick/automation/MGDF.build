@@ -105,7 +105,8 @@
 
   <target name="distro" description="Generates the MGDF distributable package">
     <delete file="${project::get-base-directory()}\bin\${msbuild_target}\core.tests.dll" />
-
+    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\nunit.framework.dll" />
+    
     <!-- bundle up gamesmanager dependancies so the installer can update all dlls while the framework updater is still running -->
     <exec program="${ilmerge_exe_path}">
       <arg value="/out:${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
@@ -125,8 +126,8 @@
         <exclude name="*.exp"/>
         <exclude name="*.lib"/>
         <exclude name="*.pdb"/>
-        <exclude name="game" />
-        <exclude name="user" />
+        <exclude name="**/game/*" />
+        <exclude name="**/user/*" />
         <include name="**/*.*" />
       </fileset>
     </copy>
@@ -138,13 +139,22 @@
       <arg value="MGDF_${buildnumber}.zip" />
       <arg value="${project::get-base-directory()}\Package\Distro\*" />
     </exec>
-    <delete dir="Package\Distro"/>
+
     <!-- generate the latest.json file to use on the update website -->
     <generateupdatescript output="${project::get-base-directory()}\Package\latest.json"
                           version="${buildnumber}" 
-                          url="http://s3.amazonaws.com/matchstickframework.org/${buildnumber}.zip" 
+                          url="http://s3.amazonaws.com/matchstickframework.org/MGDF_${buildnumber}.zip" 
                           file="${project::get-base-directory()}\Package\MGDF_${buildnumber}.zip" />
 
+    <mkdir dir="Package/Prereqs" />
+    <copy todir="Package/Prereqs">
+      <fileset basedir="${project::get-base-directory()}\..\Installers">
+        <include name="**/dxredist/*" />
+        <include name="vcredist_x86.exe" />
+        <include name="DotNetFx35ClientSetup.exe" />
+      </fileset>
+    </copy>
+    
     <!-- copy debugging symbols + binaries to the package directory so that we can debug minidumps later -->
     <mkdir dir="Package/Symbols" />
     <copy todir="Package/Symbols">
