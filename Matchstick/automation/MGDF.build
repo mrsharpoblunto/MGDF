@@ -126,8 +126,8 @@
         <exclude name="*.exp"/>
         <exclude name="*.lib"/>
         <exclude name="*.pdb"/>
-        <exclude name="**/game/*" />
-        <exclude name="**/user/*" />
+        <exclude name="**/game/**" />
+        <exclude name="**/user/**" />
         <include name="**/*.*" />
       </fileset>
     </copy>
@@ -145,15 +145,6 @@
                           version="${buildnumber}" 
                           url="http://s3.amazonaws.com/matchstickframework.org/MGDF_${buildnumber}.zip" 
                           file="${project::get-base-directory()}\Package\MGDF_${buildnumber}.zip" />
-
-    <mkdir dir="Package/Prereqs" />
-    <copy todir="Package/Prereqs">
-      <fileset basedir="${project::get-base-directory()}\..\Installers">
-        <include name="**/dxredist/*" />
-        <include name="vcredist_x86.exe" />
-        <include name="DotNetFx35ClientSetup.exe" />
-      </fileset>
-    </copy>
     
     <!-- copy debugging symbols + binaries to the package directory so that we can debug minidumps later -->
     <mkdir dir="Package/Symbols" />
@@ -173,6 +164,15 @@
     </copy>
     
     <mkdir dir="Package/SDK" />
+
+    <mkdir dir="Package/SDK/Prereqs" />
+    <copy todir="Package/SDK/Prereqs">
+      <fileset basedir="..\Installers">
+        <include name="**/dxredist/**" />
+        <include name="vcredist_x86.exe" />
+        <include name="DotNetFx35ClientSetup.exe" />
+      </fileset>
+    </copy>
     
     <!-- copy distro to SDK-->
     <copy file="Package/MGDF_${buildnumber}.zip" todir="Package/SDK" overwrite="true"/>
