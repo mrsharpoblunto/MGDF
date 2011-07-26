@@ -69,13 +69,13 @@ void OpenALSoundManagerComponentImpl::Dispose()
 
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
 {
-	for (std::vector<ISound *>::iterator iter = _sounds.begin();iter!=_sounds.end();++iter)
+	for (int i=_sounds.size()-1;i>=0;--i)
 	{
-		delete *iter;
+		delete _sounds[i];
 	}
-	for (std::vector<ISoundStream *>::iterator iter = _soundStreams.begin();iter!=_soundStreams.end();++iter)
+	for (int i=_soundStreams.size()-1;i>=0;--i)
 	{
-		delete *iter;
+		delete _soundStreams[i];
 	}
 	for (stdext::hash_map<ALuint,SharedBuffer *>::iterator iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
 	{

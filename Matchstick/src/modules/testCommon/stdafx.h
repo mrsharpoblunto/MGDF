@@ -33,7 +33,7 @@
 
 #define AUTOLIB //to automatically include the libs needed for d3d
 #ifdef AUTOLIB
-#pragma comment( lib, "dxerr9.lib" )
+#pragma comment( lib, "dxerr.lib" )
 #pragma comment( lib, "dxguid.lib" )
 #if defined(DEBUG) | defined(_DEBUG)
 #pragma comment( lib, "d3dx9d.lib" )
@@ -47,7 +47,7 @@
 // Direct3D includes
 #include <d3d9.h>
 #include <d3dx9.h>
-#include <dxerr9.h>
+#include <dxerr.h>
 
 //some useful macro's to make deleting pointers easier
 #ifndef SAFE_DELETE
