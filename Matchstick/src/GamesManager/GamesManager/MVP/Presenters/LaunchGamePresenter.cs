@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
@@ -96,6 +97,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                             gameUpdate!=null ? gameUpdate.MD5 : string.Empty, 
                             frameworkUpdate!=null ? frameworkUpdate.Url : string.Empty,
                             frameworkUpdate != null ? frameworkUpdate.MD5 : string.Empty));
+                        return;
                     }
 
                 }
@@ -115,15 +117,23 @@ namespace MGDF.GamesManager.MVP.Presenters
 
         private bool GetUpdatePermission()
         {
-            var presenter = new GetUpdatePermissionPresenter();
-            View.Invoke(() => presenter.ShowView(View));
+            GetUpdatePermissionPresenter presenter = null;
+            View.Invoke(() =>
+            {
+                presenter = new GetUpdatePermissionPresenter();
+                presenter.ShowView(View);
+            });
             return presenter.Update;
         }
 
         private bool GetStatisticsPermission(GetStatsPermissionEventArgs arg)
         {
-            var presenter = new SendStatisticsPresenter(Game.Current);
-            View.Invoke(()=>presenter.ShowView(View));
+            SendStatisticsPresenter presenter = null;
+            View.Invoke(() =>
+            {
+                presenter = new SendStatisticsPresenter(Game.Current);
+                presenter.ShowView(View);
+            });
             return presenter.UserPermissionGranted;
         }
 

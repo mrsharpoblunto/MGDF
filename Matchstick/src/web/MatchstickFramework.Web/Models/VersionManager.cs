@@ -21,7 +21,6 @@ namespace MatchstickFramework.Web.Models
     public static class VersionManager
     {
         private static readonly object _lock = new object();
-        private static readonly Dictionary<int, LatestVersion> _versions = new Dictionary<int, LatestVersion>();
         private static readonly Dictionary<int, LatestVersion> _sdkVersions = new Dictionary<int, LatestVersion>();
 
         private static readonly Regex _vesionRegex = new Regex("[0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*",RegexOptions.Compiled);
@@ -35,7 +34,7 @@ namespace MatchstickFramework.Web.Models
 
                 lock (_lock)
                 {
-                    _versions.Clear();
+                    _sdkVersions.Clear();
                     foreach (var child in directory.GetSubDirectories("*"))
                     {
                         int version;

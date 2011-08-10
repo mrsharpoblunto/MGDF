@@ -39,29 +39,30 @@ namespace MGDF.GamesManager.Model
 
         private void UpdateFramework()
         {
-            IArchiveFile archive = ArchiveFactory.Current.OpenArchive(_installer);
-
-            long total = ArchiveFileHelper.GetSubTreeData(archive).BytesCount;
-            uint uTotal = total > uint.MaxValue ? uint.MaxValue : (uint)total;
-            Total = uTotal;
-
-            var vfsUtils = new ArchiveFileHelper();
-            vfsUtils.OnCopyProgress += (sender, e) => Progress += (uint)e.BytesCopied;
-
-            foreach (var child in archive.Children)
+            using (var archive = ArchiveFactory.Current.OpenArchive(_installer))
             {
-                if (child.Value.IsFolder)
+                long total = ArchiveFileHelper.GetSubTreeData(archive).BytesCount;
+                uint uTotal = total > uint.MaxValue ? uint.MaxValue : (uint)total;
+                Total = uTotal;
+
+                var vfsUtils = new ArchiveFileHelper();
+                vfsUtils.OnCopyProgress += (sender, e) => Progress += (uint)e.BytesCopied;
+
+                foreach (var child in archive.Children)
                 {
-                    vfsUtils.CopyVfsSubtree(child.Value, EnvironmentSettings.Current.AppDirectory, false);
-                }
-                //can't overwrite the currently executing file
-                else if (child.Key.Equals("GamesManager.exe",StringComparison.InvariantCultureIgnoreCase))
-                {
-                    vfsUtils.CopyVfsFile(child.Value, FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, "GamesManager.New.exe"));
-                }
-                else
-                {
-                    vfsUtils.CopyVfsFile(child.Value, FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, child.Value.Name));
+                    if (child.Value.IsFolder)
+                    {
+                        vfsUtils.CopyVfsSubtree(child.Value, EnvironmentSettings.Current.AppDirectory, false);
+                    }
+                    //can't overwrite the currently executing file
+                    else if (child.Key.Equals("GamesManager.exe", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        vfsUtils.CopyVfsFile(child.Value, FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, "GamesManager.New.exe"));
+                    }
+                    else
+                    {
+                        vfsUtils.CopyVfsFile(child.Value, FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, child.Value.Name));
+                    }
                 }
             }
         }

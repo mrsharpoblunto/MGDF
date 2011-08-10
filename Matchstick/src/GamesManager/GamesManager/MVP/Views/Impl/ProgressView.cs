@@ -85,7 +85,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
                 Progress.Visible = true;
                 cancelButton.Visible = _allowCancel;
             }
-            Progress.Value = (int)((progress/(double)total)*100);
+            Progress.Value = total == 0 ? 0 : (int)((progress/(double)total)*100);
         }
 
         public Image GameIcon

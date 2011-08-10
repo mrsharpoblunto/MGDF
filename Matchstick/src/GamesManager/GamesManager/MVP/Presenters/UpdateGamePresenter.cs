@@ -55,7 +55,10 @@ namespace MGDF.GamesManager.MVP.Presenters
         {
             lock (_lock)
             {
-                View.Invoke(()=>View.ShowProgress(_currentTask.Progress,_currentTask.Total));
+                if (_currentTask != null)
+                {
+                    View.Invoke(() => View.ShowProgress(_currentTask.Progress, _currentTask.Total));
+                }
             }
         }
 
@@ -115,9 +118,13 @@ namespace MGDF.GamesManager.MVP.Presenters
                         }
                         else
                         {
-                            //success, now try to install the downloaded update
-                            View.Invoke(() => View.Details = "Installing MGDF framework update...");
-                            _currentTask = new FrameworkUpdater(frameworkFile);
+
+                            lock (_lock)
+                            {
+                                //success, now try to install the downloaded update
+                                View.Invoke(() => View.Details = "Installing MGDF framework update...");
+                                _currentTask = new FrameworkUpdater(frameworkFile);
+                            }
                             _currentTask.Start();
                         }
                     }
@@ -166,16 +173,23 @@ namespace MGDF.GamesManager.MVP.Presenters
                         }
                         else
                         {
-                            //success, now try to apply the downloaded update
-                            View.Invoke(() => View.Details = "Installing " + Game.Current.Name + " update...");
                             var gameInstall = new GameInstall(gameUpdateFile);
-                            _currentTask = new GameUpdater(gameInstall);
+
+                            lock (_lock)
+                            {
+                                //success, now try to apply the downloaded update
+                                View.Invoke(() => View.Details = "Installing " + Game.Current.Name + " update...");
+                                _currentTask = new GameUpdater(gameInstall);
+                            }
                             _currentTask.Start();
 
                             //now if we're auto installing on update, update the registry/desktop icons etc..
                             if (Config.Current.AutoRegisterOnUpdate)
                             {
-                                _currentTask = new GameRegistrar(true, Game.Current);
+                                lock (_lock)
+                                {
+                                    _currentTask = new GameRegistrar(true, Game.Current);
+                                }
                                 _currentTask.Start();
                             }
                         }

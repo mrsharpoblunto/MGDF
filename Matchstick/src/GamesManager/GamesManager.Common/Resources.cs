@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using MGDF.GamesManager.Common.Framework;
 
@@ -79,7 +80,7 @@ namespace MGDF.GamesManager.Common
         public static string GamesManagerBootArguments(string gameUpdate,string gameUpdateHash,string frameworkUpdate,string frameworkUpdateHash)
         {
             return (!string.IsNullOrEmpty(gameUpdate) ? (" -updategame:\"" + gameUpdate + "\" -gameupdatehash:\"" + gameUpdateHash + "\"") : string.Empty) +
-                   (!string.IsNullOrEmpty(gameUpdate) ? (" -updateframework:\"" + frameworkUpdate + "\" -frameworkupdatehash:\"" + frameworkUpdateHash + "\"") : string.Empty) +
+                   (!string.IsNullOrEmpty(frameworkUpdate) ? (" -updateframework:\"" + frameworkUpdate + "\" -frameworkupdatehash:\"" + frameworkUpdateHash + "\"") : string.Empty) +
                    (_userDirOverridden ? "-userdiroverride" : string.Empty);
         }
 
@@ -180,7 +181,7 @@ namespace MGDF.GamesManager.Common
                 userGamesBaseDir.Create();
             }
 
-            _gameUserDir += gameUid;
+            _gameUserDir = Path.Combine(_gameUserDir, gameUid);
             var userGamesDir = FileSystem.Current.GetDirectory(_gameUserDir);
             if (!userGamesDir.Exists)
             {

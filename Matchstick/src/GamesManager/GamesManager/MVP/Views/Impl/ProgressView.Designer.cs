@@ -101,7 +101,6 @@
             this.Controls.Add(this.Progress);
             this.Controls.Add(this.TitleLabel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.Location = new System.Drawing.Point(0, 0);
             this.MaximizeBox = false;
             this.Name = "ProgressView";
             this.ShowIcon = false;
