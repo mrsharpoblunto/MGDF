@@ -12,7 +12,7 @@ namespace MGDF.GamesManager.Model.Helpers
     {
         public static void AddToInstalledPrograms(Game game)
         {
-            var key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF" + Resources.InterfaceVersion + "_" + game.Uid);
+            var key = Registry.Current.CreateSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF" + Resources.InterfaceVersion + "_" + game.Uid);
             key.CreateValue("DisplayIcon", Resources.GameSystemIconFile());
             key.CreateValue("DisplayName", game.Name);
             key.CreateValue("URLInfoAbout", game.Homepage);
@@ -25,18 +25,7 @@ namespace MGDF.GamesManager.Model.Helpers
 
         public static void RemoveFromInstalledPrograms(string uid)
         {
-            var key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF" + Resources.InterfaceVersion + "_" + uid);
-            if (key != null)
-            {
-                key.DeleteValue("DisplayIcon");
-                key.DeleteValue("DisplayName");
-                key.DeleteValue("URLInfoAbout");
-                key.DeleteValue("NoModify");
-                key.DeleteValue("NoRepair");
-                key.DeleteValue("Publisher");
-                key.DeleteValue("InstallLocation");
-                key.DeleteValue("DisplayVersion");
-            }
+            Registry.Current.DeleteKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF" + Resources.InterfaceVersion + "_" + uid);
         }
     }
 }

@@ -348,7 +348,7 @@ namespace MGDF.GamesManager.Common.Framework
                     new UIntPtr((uint)baseKey),
                     name,
                     0,
-                    (int)RegWow64Options.KeyWow6464Key | (int)RegistryRights.ReadKey,
+                    (int)RegWow64Options.KeyWow6464Key | (int)RegistryRights.ReadKey | (int)RegistryRights.WriteKey,
                     out subKey);
 
             if (retValue == 0)

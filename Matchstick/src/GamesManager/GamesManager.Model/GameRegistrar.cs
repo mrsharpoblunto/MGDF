@@ -108,14 +108,24 @@ namespace MGDF.GamesManager.Model
             {
                 ShortcutManager.Current.CreateShortcut(shortcutPath, Resources.GamesManagerExecutable, Resources.GamesManagerBootArguments(string.Empty, string.Empty, string.Empty, string.Empty), Resources.GameSystemIconFile());
             }
+            else
+            {
+                if (startMenuFolder.GetFiles("*.*").Count==0)
+                {
+                    startMenuFolder.Delete();
+                }
+            }
         }
 
         private void AddToInstalledPrograms()
         {
-            InstalledProgramsHelper.RemoveFromInstalledPrograms(_game.Uid);
             if (_register)
             {
                 InstalledProgramsHelper.AddToInstalledPrograms(_game);
+            }
+            else
+            {
+                InstalledProgramsHelper.RemoveFromInstalledPrograms(_game.Uid);
             }
         }
     }

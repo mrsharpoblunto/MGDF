@@ -30,6 +30,8 @@ namespace MGDF.GamesManager
             ArchiveFactory.Current = new ArchiveFactory();
             HttpRequestManager.Current = new HttpRequestManager();
             ProcessManager.Current = new ProcessManager();
+            Registry.Current = new Registry();
+            ShortcutManager.Current = new ShortcutManager();
             Config.Current = new Config();
 
             ViewImpl.RegisterViews();
@@ -78,7 +80,7 @@ namespace MGDF.GamesManager
                 }
 
                 var installer = new GameRegistrar(true, Game.Current);
-                installer.Start();
+                return installer.Start()==LongRunningTaskResult.Completed ? 0: -1;
             }
             else if (commandLine[Resources.GamesManagerArguments.DeregisterArgument] != null)
             {
@@ -89,7 +91,7 @@ namespace MGDF.GamesManager
                 }
 
                 var uninstaller = new GameRegistrar(false, Game.Current);
-                uninstaller.Start();
+                return uninstaller.Start() == LongRunningTaskResult.Completed ? 0 : -1;
             }
             else if (commandLine[Resources.GamesManagerArguments.UpdateFrameworkArgument] != null || commandLine[Resources.GamesManagerArguments.UpdateGameArgument] != null)
             {
