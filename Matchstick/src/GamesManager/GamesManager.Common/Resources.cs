@@ -156,6 +156,12 @@ namespace MGDF.GamesManager.Common
             return FileSystem.Combine(GameUserDir, Statistics);
         }
 
+        public static void UninitUserDirectory()
+        {
+            _userDirOverridden = false;
+            _gameUserDir = null;
+        }
+
         public static void InitUserDirectory(string gameUid,bool useApplicationRoot)
         {
             if (useApplicationRoot) _gameUserDir = EnvironmentSettings.Current.AppDirectory;

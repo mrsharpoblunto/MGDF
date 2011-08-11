@@ -27,6 +27,7 @@ namespace MGDF.GamesManager.Tests
             FileSystem.Current = new MockFileSystem();
             Logger.Current = new MockLogger();
             SettingsManager.Dispose();
+            Resources.UninitUserDirectory();
 
             StatisticsServiceRepository.Context = new RepositoryContext(() => new MockStatisticsServiceRepository());
 

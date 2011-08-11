@@ -21,6 +21,7 @@ namespace MGDF.GamesManager.Tests
         {
             ArchiveFactory.Current = new MockArchiveFactory();
             SettingsManager.Dispose();
+            Resources.UninitUserDirectory();
             base.Setup();
         }
 
@@ -402,17 +403,9 @@ namespace MGDF.GamesManager.Tests
             registrar = new GameRegistrar(false, game);
             registrar.Start();
 
-            //assert the shortcuts have been removed
+            //assert the shortcut has been removed
             key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
-            Assert.IsNotNull(key);
-            Assert.IsNull(key.TryGetValue("DisplayIcon"));
-            Assert.IsNull(key.TryGetValue("DisplayName"));
-            Assert.IsNull(key.TryGetValue("URLInfoAbout"));
-            Assert.IsNull(key.TryGetValue("NoModify"));
-            Assert.IsNull(key.TryGetValue("NoRepair"));
-            Assert.IsNull(key.TryGetValue("Publisher"));
-            Assert.IsNull(key.TryGetValue("InstallLocation"));
-            Assert.IsNull(key.TryGetValue("DisplayVersion"));
+            Assert.IsNull(key);
 
             //shortcuts should have been removed
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\Documents and Settings\\user\\desktop\\Lua Console.lnk").Exists);
@@ -496,17 +489,9 @@ namespace MGDF.GamesManager.Tests
             registrar = new GameRegistrar(false, game);
             registrar.Start();
 
-            //assert the registry key values have been removed
+            //assert the registry key has been removed
             key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
-            Assert.IsNotNull(key);
-            Assert.IsNull(key.TryGetValue("DisplayIcon"));
-            Assert.IsNull(key.TryGetValue("DisplayName"));
-            Assert.IsNull(key.TryGetValue("URLInfoAbout"));
-            Assert.IsNull(key.TryGetValue("NoModify"));
-            Assert.IsNull(key.TryGetValue("NoRepair"));
-            Assert.IsNull(key.TryGetValue("Publisher"));
-            Assert.IsNull(key.TryGetValue("InstallLocation"));
-            Assert.IsNull(key.TryGetValue("DisplayVersion"));
+            Assert.IsNull(key);
 
             //shortcuts should have been removed
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\Documents and Settings\\user\\desktop\\Lua Console.lnk").Exists);
