@@ -46,7 +46,7 @@ namespace MGDF.GamesManager.Model
                 {
                     uint uTotal = total > uint.MaxValue ? uint.MaxValue : (uint)total;
                     Total = uTotal;
-                    using (Stream saveFileStream = FileSystem.Current.GetFile(_destinationFileName).OpenStream(FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
+                    using (Stream saveFileStream = FileSystem.Current.GetFile(_destinationFileName).OpenStream(FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                     {
                         int bytesRead;
                         byte[] downloadBuffer = new byte[DownloadBufferSize];

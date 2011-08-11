@@ -32,6 +32,7 @@ namespace MGDF.GamesManager
             ProcessManager.Current = new ProcessManager();
             Registry.Current = new Registry();
             ShortcutManager.Current = new ShortcutManager();
+            IconManager.Current = new IconManager();
             Config.Current = new Config();
 
             ViewImpl.RegisterViews();

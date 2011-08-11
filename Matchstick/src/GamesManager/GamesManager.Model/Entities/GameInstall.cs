@@ -4,7 +4,7 @@ using MGDF.GamesManager.Common;
 
 namespace MGDF.GamesManager.Model.Entities
 {
-    public class GameInstall
+    public class GameInstall: IDisposable
     {
         public GameInstall(string installerFile)
         {
@@ -91,6 +91,11 @@ namespace MGDF.GamesManager.Model.Entities
                 Update = new Update(Game,GameContents.GetFile(Resources.UpdateConfig));
                 ErrorCollection.AddRange(Update.ErrorCollection);
             }
+        }
+
+        public void Dispose()
+        {
+            if (GameContents!=null) GameContents.Dispose();
         }
     }
 }

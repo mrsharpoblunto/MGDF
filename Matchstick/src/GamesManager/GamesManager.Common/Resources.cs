@@ -129,25 +129,12 @@ namespace MGDF.GamesManager.Common
             }
         }
 
-        public static string FrameworkUpdatesDir
-        {
-            get
-            {
-                return FileSystem.Combine(DownloadsDir, "Framework");
-            }
-        }
-
         public static void InitUpdaterDirectories()
         {
             var downloadsDir = FileSystem.Current.GetDirectory(DownloadsDir);
             if (!downloadsDir.Exists)
             {
                 downloadsDir.Create();
-            }
-            var frameworkUpdatesDir = FileSystem.Current.GetDirectory(FrameworkUpdatesDir);
-            if (!frameworkUpdatesDir.Exists)
-            {
-                frameworkUpdatesDir.Create();
             }
         }
 

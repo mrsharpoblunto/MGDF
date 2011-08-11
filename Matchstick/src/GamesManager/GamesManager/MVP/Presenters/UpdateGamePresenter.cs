@@ -173,15 +173,16 @@ namespace MGDF.GamesManager.MVP.Presenters
                         }
                         else
                         {
-                            var gameInstall = new GameInstall(gameUpdateFile);
-
-                            lock (_lock)
+                            using (var gameInstall = new GameInstall(gameUpdateFile))
                             {
-                                //success, now try to apply the downloaded update
-                                View.Invoke(() => View.Details = "Installing " + Game.Current.Name + " update...");
-                                _currentTask = new GameUpdater(gameInstall);
+                                lock (_lock)
+                                {
+                                    //success, now try to apply the downloaded update
+                                    View.Invoke(() => View.Details = "Installing " + Game.Current.Name + " update...");
+                                    _currentTask = new GameUpdater(gameInstall);
+                                }
+                                _currentTask.Start();
                             }
-                            _currentTask.Start();
 
                             //now if we're auto installing on update, update the registry/desktop icons etc..
                             if (Config.Current.AutoRegisterOnUpdate)
