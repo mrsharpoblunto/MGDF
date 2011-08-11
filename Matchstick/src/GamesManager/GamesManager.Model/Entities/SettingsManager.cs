@@ -94,7 +94,7 @@ namespace MGDF.GamesManager.Model.Entities
                                                  IndentChars = "\t"
                                              };
 
-            using (var stream = FileSystem.Current.GetFile(FileSystem.Combine(EnvironmentSettings.Current.UserDirectory, SettingsFile)).OpenStream(FileMode.Create))
+            using (var stream = FileSystem.Current.GetFile(FileSystem.Combine(Resources.GameUserDir, SettingsFile)).OpenStream(FileMode.Create))
             {
                 XmlWriter writer = XmlWriter.Create(stream, settings);
 

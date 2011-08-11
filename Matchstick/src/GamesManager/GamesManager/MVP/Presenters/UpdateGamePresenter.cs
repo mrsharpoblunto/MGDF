@@ -217,8 +217,12 @@ namespace MGDF.GamesManager.MVP.Presenters
 
         private bool GetUpdateCredentials(GetCredentialsEventArgs args)
         {
-            var presenter = new GetCredentialsPresenter(Game.Current,args);
-            View.Invoke(() => presenter.ShowView(View));
+            GetCredentialsPresenter presenter = null;
+            View.Invoke(() =>
+            {
+                presenter = new GetCredentialsPresenter(Game.Current, args);
+                presenter.ShowView(View);
+            });
             return presenter.OK;
         }
     }

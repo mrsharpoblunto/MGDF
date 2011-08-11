@@ -65,7 +65,7 @@
             this.cancelButton.Location = new System.Drawing.Point(306, 140);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(97, 23);
-            this.cancelButton.TabIndex = 15;
+            this.cancelButton.TabIndex = 17;
             this.cancelButton.Text = "Don\'t update";
             this.cancelButton.UseVisualStyleBackColor = true;
             this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click);

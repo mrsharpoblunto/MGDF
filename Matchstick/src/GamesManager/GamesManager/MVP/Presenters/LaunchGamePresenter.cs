@@ -41,6 +41,10 @@ namespace MGDF.GamesManager.MVP.Presenters
                 {
                     _checkForUpdates = false;
                 }
+                else
+                {
+                    lastUpdate.WriteText("Last checked for updates on "+TimeService.Current.Now.ToShortDateString());
+                }
             }
             catch (Exception ex)
             {

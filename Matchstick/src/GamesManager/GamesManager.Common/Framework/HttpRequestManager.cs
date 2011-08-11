@@ -62,9 +62,12 @@ namespace MGDF.GamesManager.Common.Framework
                     };
                     request.Credentials = cache;
                 }
+                else
+                {
+                    request.Credentials = CredentialCache.DefaultCredentials;
+                }
 
                 if (progress>0) AddRange(progress, request);
-                request.Credentials = CredentialCache.DefaultCredentials;
 
                 try
                 {

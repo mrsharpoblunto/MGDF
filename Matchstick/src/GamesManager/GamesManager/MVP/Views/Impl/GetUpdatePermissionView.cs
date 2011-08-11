@@ -24,6 +24,8 @@ namespace MGDF.GamesManager.MVP.Views.Impl
         public GetUpdatePermissionView()
         {
             InitializeComponent();
+            AcceptButton = updateButton;
+            CancelButton = cancelButton;
             Shown += GetUpgradePermissionView_Shown;
         }
 

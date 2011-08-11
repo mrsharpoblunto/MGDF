@@ -18,6 +18,8 @@ namespace MGDF.GamesManager.MVP.Views.Impl
         public SendStatisticsView()
         {
             InitializeComponent();
+            AcceptButton = button2;
+            CancelButton = button1;
         }
 
         protected override void ShowView(IWin32Window owner)

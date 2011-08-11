@@ -15,6 +15,8 @@ namespace MGDF.GamesManager.MVP.Views.Impl
         public GetCredentialsView()
         {
             InitializeComponent();
+            AcceptButton = button2;
+            CancelButton = button1;
         }
 
         protected override void ShowView(IWin32Window owner)
@@ -29,7 +31,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
             set
             {
                 Uri gameSourceUri = new Uri(value.GameSourceService);
-                label1.Text = "Please enter your credentials to download " + value.Name + " from " + gameSourceUri.Host;
+                label3.Text = "Please enter your credentials to download " + value.Name + " from " + gameSourceUri.Host;
             }
         }
 
