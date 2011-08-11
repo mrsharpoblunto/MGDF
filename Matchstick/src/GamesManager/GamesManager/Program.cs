@@ -74,8 +74,10 @@ namespace MGDF.GamesManager
 
             if (commandLine[Resources.GamesManagerArguments.RegisterArgument] != null)
             {
+                Logger.Current.Write(LogInfoLevel.Info,"Registering game...");
                 if (!UACControl.IsAdmin())
                 {
+                    Logger.Current.Write(LogInfoLevel.Error, "Registering requires administrator access");
                     ViewFactory.Current.CreateView<IMessage>().Show("Registering requires administrator access", "Administrator accesss required");
                     return -1;
                 }
@@ -85,8 +87,10 @@ namespace MGDF.GamesManager
             }
             else if (commandLine[Resources.GamesManagerArguments.DeregisterArgument] != null)
             {
+                Logger.Current.Write(LogInfoLevel.Info, "Dregistering game...");
                 if (!UACControl.IsAdmin())
                 {
+                    Logger.Current.Write(LogInfoLevel.Error, "Deregistering requires administrator access");
                     ViewFactory.Current.CreateView<IMessage>().Show("Deregistering requires administrator access", "Administrator accesss required");
                     return -1;
                 }
@@ -96,9 +100,12 @@ namespace MGDF.GamesManager
             }
             else if (commandLine[Resources.GamesManagerArguments.UpdateFrameworkArgument] != null || commandLine[Resources.GamesManagerArguments.UpdateGameArgument] != null)
             {
+                Logger.Current.Write(LogInfoLevel.Info, "Updating game/framework...");
+
                 if (commandLine[Resources.GamesManagerArguments.UpdateFrameworkArgument] != null &&
                     commandLine[Resources.GamesManagerArguments.FrameworkUpdateHashArgument]==null)
                 {
+                    Logger.Current.Write(LogInfoLevel.Error, "Framework update MD5 hash argument missing");
                     ViewFactory.Current.CreateView<IMessage>().Show("Framework update MD5 hash argument missing", "Missing argument");
                     return -1;
                 }
@@ -106,12 +113,14 @@ namespace MGDF.GamesManager
                 if (commandLine[Resources.GamesManagerArguments.UpdateGameArgument] != null &&
                     commandLine[Resources.GamesManagerArguments.GameUpdateHashArgument] == null)
                 {
+                    Logger.Current.Write(LogInfoLevel.Error, "Game update MD5 hash argument missing");
                     ViewFactory.Current.CreateView<IMessage>().Show("Game update MD5 hash argument missing", "Missing argument");
                     return -1;
                 }
 
                 if (!UACControl.IsAdmin())
                 {
+                    Logger.Current.Write(LogInfoLevel.Error, "Updating requires administrator access");
                     ViewFactory.Current.CreateView<IMessage>().Show("Updating requires administrator access", "Administrator accesss required");
                     return -1;
                 }
@@ -128,6 +137,7 @@ namespace MGDF.GamesManager
             }
             else
             {
+                Logger.Current.Write(LogInfoLevel.Info, "Launching game...");
                 var presenter = new LaunchGamePresenter(commandLine[Resources.GamesManagerArguments.NoUpdateCheckArgument] == null);
                 presenter.ShowView();
                 Application.Run(presenter.View as Form);

@@ -146,12 +146,12 @@ namespace MGDF.GamesManager.Common
             }
         }
 
-        public static string UserGameLastUpdateFile(string gameUid)
+        public static string UserGameLastUpdateFile()
         {
             return FileSystem.Combine(GameUserDir, ".lastupdate");
         }
 
-        public static string UserStatistics(string gameUid)
+        public static string UserStatistics()
         {
             return FileSystem.Combine(GameUserDir, Statistics);
         }

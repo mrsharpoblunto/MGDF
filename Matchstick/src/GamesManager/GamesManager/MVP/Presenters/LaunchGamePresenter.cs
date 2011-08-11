@@ -34,21 +34,22 @@ namespace MGDF.GamesManager.MVP.Presenters
                 {
                     View.GameIcon = Image.FromStream(new MemoryStream(Game.Current.GameIconData));
                 }
-
-                //only check for updates once a day
-                IFile lastUpdate = FileSystem.Current.GetFile(Resources.UserGameLastUpdateFile(Game.Current.Uid));
-                if (lastUpdate.Exists && lastUpdate.LastWriteTimeUtc.DayOfYear == TimeService.Current.Now.DayOfYear && lastUpdate.LastWriteTimeUtc.Year == TimeService.Current.Now.Year)
-                {
-                    _checkForUpdates = false;
-                }
-                else
-                {
-                    lastUpdate.WriteText("Last checked for updates on "+TimeService.Current.Now.ToShortDateString());
-                }
             }
             catch (Exception ex)
             {
-                Logger.Current.Write(ex, "Unexpected error loading game information for '" + Game.Current.Uid + "'");
+                Logger.Current.Write(ex, "Unexpected error loading game icon data for '" + Game.Current.Uid + "'");
+            }
+
+            //only check for updates once a day
+            IFile lastUpdate = FileSystem.Current.GetFile(Resources.UserGameLastUpdateFile());
+            if (lastUpdate.Exists && lastUpdate.LastWriteTimeUtc.DayOfYear == TimeService.Current.Now.DayOfYear && lastUpdate.LastWriteTimeUtc.Year == TimeService.Current.Now.Year)
+            {
+                Logger.Current.Write(LogInfoLevel.Info, "Update check skipped...");
+                _checkForUpdates = false;
+            }
+            else
+            {
+                lastUpdate.WriteText("Last checked for updates on " + TimeService.Current.Now.ToShortDateString());
             }
 
             View.HideProgress();
@@ -73,6 +74,7 @@ namespace MGDF.GamesManager.MVP.Presenters
             {
                 if (_checkForUpdates)
                 {
+                    Logger.Current.Write(LogInfoLevel.Info, "Checking for updates...");
                     View.Invoke(() =>
                     {
                         View.Title = "Checking for updates...";
@@ -88,6 +90,8 @@ namespace MGDF.GamesManager.MVP.Presenters
 
                     if ((frameworkUpdate != null || gameUpdate != null) && GetUpdatePermission())
                     {
+                        Logger.Current.Write(LogInfoLevel.Info, "Updates found, restarting elevated...");
+
                         if (!UACControl.IsVistaOrHigher() && !UACControl.IsAdmin())
                         {
                             ViewFactory.Current.CreateView<IMessage>().Show("Updating requires administrator access", "Administrator accesss required");
@@ -162,21 +166,25 @@ namespace MGDF.GamesManager.MVP.Presenters
             }
             else if (StatisticsSession.CanSendStatistics(Game.Current))
             {
-                IFile statisticsFile = FileSystem.Current.GetFile(Resources.UserStatistics(Game.Current.Uid));
+                IFile statisticsFile = FileSystem.Current.GetFile(Resources.UserStatistics());
                 if (statisticsFile.Exists)
                 {
                     try
                     {
                         if (StatisticsSession.GetStatisticsPermission(Game.Current, GetStatisticsPermission))
                         {
+                            Logger.Current.Write(LogInfoLevel.Info, "Sending statistics...");
                             StatisticsSession session = new StatisticsSession(Game.Current.Uid, Game.Current.StatisticsService, statisticsFile.FullName);
-                            StatisticsServiceClient client = new StatisticsServiceClient(session);
-
-                            List<String> errors = new List<string>();
-                            client.SendStatistics(errors);
-                            foreach (var error in errors)
+                            if (session.Bundles.Count > 0)
                             {
-                                Logger.Current.Write(LogInfoLevel.Error, error);
+                                StatisticsServiceClient client = new StatisticsServiceClient(session);
+
+                                List<String> errors = new List<string>();
+                                client.SendStatistics(errors);
+                                foreach (var error in errors)
+                                {
+                                    Logger.Current.Write(LogInfoLevel.Error, error);
+                                }
                             }
                         }
                     }

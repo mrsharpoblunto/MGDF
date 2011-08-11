@@ -89,6 +89,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                     {
                         lock (_lock)
                         {
+                            Logger.Current.Write(LogInfoLevel.Info, "Downloading framework update...");
                             _currentDownloader = new FileDownloader(_frameworkUpdate, frameworkFile, _frameworkUpdateHash, null);
                             _currentTask = _currentDownloader;
                             View.Invoke(()=>
@@ -121,6 +122,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
                             lock (_lock)
                             {
+                                Logger.Current.Write(LogInfoLevel.Info, "Installing framework update...");
                                 //success, now try to install the downloaded update
                                 View.Invoke(() => View.Details = "Installing MGDF framework update...");
                                 _currentTask = new FrameworkUpdater(frameworkFile);
@@ -142,6 +144,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                     {
                         lock (_lock)
                         {
+                            Logger.Current.Write(LogInfoLevel.Info, "Downloading game update...");
                             _currentDownloader = new GameDownloader(Game.Current, _gameUpdate, gameUpdateFile, _gameUpdateHash, GetUpdateCredentials);
                             _currentTask = _currentDownloader;
                             View.Invoke(() =>
@@ -177,6 +180,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                             {
                                 lock (_lock)
                                 {
+                                    Logger.Current.Write(LogInfoLevel.Info, "Installing framework update...");
                                     //success, now try to apply the downloaded update
                                     View.Invoke(() => View.Details = "Installing " + Game.Current.Name + " update...");
                                     _currentTask = new GameUpdater(gameInstall);
@@ -189,6 +193,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                             {
                                 lock (_lock)
                                 {
+                                    Logger.Current.Write(LogInfoLevel.Info, "Registering game update...");
                                     _currentTask = new GameRegistrar(true, Game.Current);
                                 }
                                 _currentTask.Start();
