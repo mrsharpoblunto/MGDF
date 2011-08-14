@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -39,6 +40,18 @@ namespace MGDF.GamesManager.MVP.Presenters
 
             View.Closed += View_Closed;
             View.OnCancel += View_OnCancel;
+
+            try
+            {
+                if (Game.Current.GameIconData != null)
+                {
+                    View.GameIcon = Image.FromStream(new MemoryStream(Game.Current.GameIconData));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Current.Write(ex, "Unexpected error loading game icon data for '" + Game.Current.Uid + "'");
+            }
 
             View.AllowCancel = false;
             View.Title = "Updating " + Game.Current.Name;
