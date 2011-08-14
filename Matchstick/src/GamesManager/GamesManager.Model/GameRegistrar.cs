@@ -4,6 +4,7 @@ using System.IO;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Entities;
+using File=MGDF.GamesManager.Common.Framework.File;
 using InstalledProgramsHelper=MGDF.GamesManager.Model.Helpers.InstalledProgramsHelper;
 
 namespace MGDF.GamesManager.Model
@@ -106,6 +107,11 @@ namespace MGDF.GamesManager.Model
 
             if (_register)
             {
+                //make sure to create the games icon file if it hasn't been created already.
+                if (FileSystem.Current.FileExists(FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon)))
+                {
+                    IconManager.Current.CreateIcon(_game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
+                }
                 ShortcutManager.Current.CreateShortcut(shortcutPath, Resources.GamesManagerExecutable, Resources.GamesManagerBootArguments(string.Empty, string.Empty, string.Empty, string.Empty), Resources.GameSystemIconFile());
             }
             else
