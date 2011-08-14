@@ -107,16 +107,21 @@
     <delete file="${project::get-base-directory()}\bin\${msbuild_target}\core.tests.dll" />
     <delete file="${project::get-base-directory()}\bin\${msbuild_target}\nunit.framework.dll" />
     
-    <!-- bundle up gamesmanager dependancies so the installer can update all dlls while the framework updater is still running -->
+    <!-- bundle up gamesmanager dependancies so the gamesmanager can update all dlls while running -->
     <exec program="${ilmerge_exe_path}">
-      <arg value="/out:${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
+      <arg value="/out:${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
       <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Common.dll" />
       <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Model.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\IconLib.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
     </exec>
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-    <copy file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" tofile="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
+    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
+    <copy file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" tofile="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
+    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" />
     
     <!-- create the main distribution file which will be put on the auto update site -->
     <mkdir dir="Package" />
