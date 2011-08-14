@@ -123,6 +123,7 @@
     <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
     <copy file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" tofile="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
     <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" />
+    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Controls.dll" />
     
     <!-- create the main distribution file which will be put on the auto update site -->
     <mkdir dir="Package" />
