@@ -94,6 +94,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
                         if (!UACControl.IsVistaOrHigher() && !UACControl.IsAdmin())
                         {
+                            //pre vista you can't elevate, so we have to bail out with an error here.
                             ViewFactory.Current.CreateView<IMessage>().Show("Updating requires administrator access", "Administrator accesss required");
                             _workerThread = null;
                             View.Invoke(CloseView);

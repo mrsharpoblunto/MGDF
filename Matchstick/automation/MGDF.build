@@ -116,7 +116,8 @@
     </exec>
     <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
     <copy file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" tofile="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-
+    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
+    
     <!-- create the main distribution file which will be put on the auto update site -->
     <mkdir dir="Package" />
     <mkdir dir="Package/Distro" />
