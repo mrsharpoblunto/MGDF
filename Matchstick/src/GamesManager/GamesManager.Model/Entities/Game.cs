@@ -20,10 +20,6 @@ namespace MGDF.GamesManager.Model.Entities
         public Game(string gameFile)
             : base(gameFile, "game.xsd")
         {
-            if (ErrorCollection.Count == 0)
-            {
-                LoadImageFromFileSystem();
-            }
         }
 
         //when loaded from an install package
@@ -37,15 +33,6 @@ namespace MGDF.GamesManager.Model.Entities
         }
 
         #region image loading methods
-
-        private void LoadImageFromFileSystem()
-        {
-            if (FileSystem.Current.FileExists(Resources.GameIconFile()))
-            {
-                var file = FileSystem.Current.GetFile(Resources.GameIconFile());
-                _gameIconData = file.ReadBinary();
-            }
-        }
 
         private void LoadImageFromArchive(IArchiveFile GameFile)
         {
@@ -90,6 +77,14 @@ namespace MGDF.GamesManager.Model.Entities
         {
             get
             {
+                if (_gameIconData == null)
+                {
+                    var file = FileSystem.Current.GetFile(Resources.GameIconFile());
+                    if (file.Exists)
+                    {
+                        _gameIconData = file.ReadBinary();
+                    }
+                }
                 return _gameIconData;
             }
         }
