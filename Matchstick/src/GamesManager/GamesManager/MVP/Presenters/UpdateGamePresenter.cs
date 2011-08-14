@@ -128,7 +128,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                         else if (result==LongRunningTaskResult.Error)
                         {
                             //show an error message, though we may still be able to download a game update, so don't bail out yet.
-                            ViewFactory.Current.CreateView<IMessage>().Show("Failed to download MGDF framework update", "Download failed");
+                            ShowError("Download failed", "Failed to download MGDF framework update");
                         }
                         else
                         {
@@ -140,7 +140,13 @@ namespace MGDF.GamesManager.MVP.Presenters
                                 View.Invoke(() => View.Details = "Installing MGDF framework update...");
                                 _currentTask = new FrameworkUpdater(frameworkFile);
                             }
-                            _currentTask.Start();
+                            result =  _currentTask.Start();
+
+                            if (result == LongRunningTaskResult.Error)
+                            {
+                                //show an error message, though we may still be able to download a game update, so don't bail out yet.
+                                ShowError("Install failed", "Failed to install MGDF framework update");
+                            }
                         }
                     }
                     finally
@@ -182,7 +188,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                         }
                         else if (result == LongRunningTaskResult.Error)
                         {
-                            ViewFactory.Current.CreateView<IMessage>().Show("Failed to download " + Game.Current.Name + " update", "Download failed");
+                            ShowError("Download failed", "Failed to download " + Game.Current.Name + " update");
                             _workerThread = null;
                             View.Invoke(CloseView);
                             return;
@@ -193,12 +199,17 @@ namespace MGDF.GamesManager.MVP.Presenters
                             {
                                 lock (_lock)
                                 {
-                                    Logger.Current.Write(LogInfoLevel.Info, "Installing framework update...");
+                                    Logger.Current.Write(LogInfoLevel.Info, "Installing " + Game.Current.Name + " update...");
                                     //success, now try to apply the downloaded update
                                     View.Invoke(() => View.Details = "Installing " + Game.Current.Name + " update...");
                                     _currentTask = new GameUpdater(gameInstall);
                                 }
-                                _currentTask.Start();
+                                result = _currentTask.Start();
+
+                                if (result == LongRunningTaskResult.Error)
+                                {
+                                    ShowError("Install failed", "Failed to install " + Game.Current.Name + " update");
+                                }
                             }
 
                             //now if we're auto installing on update, update the registry/desktop icons etc..
@@ -209,7 +220,11 @@ namespace MGDF.GamesManager.MVP.Presenters
                                     Logger.Current.Write(LogInfoLevel.Info, "Registering game update...");
                                     _currentTask = new GameRegistrar(true, Game.Current);
                                 }
-                                _currentTask.Start();
+                                result = _currentTask.Start();
+                                if (result == LongRunningTaskResult.Error)
+                                {
+                                    ShowError("Registration failed", "Failed to register " + Game.Current.Name + " update");
+                                }
                             }
                         }
                     }
@@ -231,6 +246,15 @@ namespace MGDF.GamesManager.MVP.Presenters
 
             _workerThread = null;
             View.Invoke(CloseView);
+        }
+
+        private void ShowError(string title,string errorMessage)
+        {
+            View.Invoke(()=>
+            {
+                var controller = new SubmitErrorPresenter(title, errorMessage);
+                controller.ShowView(View);
+            });
         }
 
         private bool GetUpdateCredentials(GetCredentialsEventArgs args)
