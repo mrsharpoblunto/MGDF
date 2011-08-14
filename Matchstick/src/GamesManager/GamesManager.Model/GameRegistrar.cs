@@ -26,6 +26,7 @@ namespace MGDF.GamesManager.Model
             LongRunningTaskResult result = LongRunningTaskResult.Completed;
             try
             {
+                CreateSystemIcon();
                 AddToInstalledPrograms();
                 AddToGamesExplorer();
                 AddToStartMenu();
@@ -38,6 +39,18 @@ namespace MGDF.GamesManager.Model
             }
 
             return result;
+        }
+
+        private void CreateSystemIcon()
+        {
+            if (_register)
+            {
+                //make sure to create the games icon file if it hasn't been created already.
+                if (FileSystem.Current.FileExists(FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon)))
+                {
+                    IconManager.Current.CreateIcon(_game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
+                }
+            }
         }
 
         private void AddToGamesExplorer()
@@ -107,11 +120,6 @@ namespace MGDF.GamesManager.Model
 
             if (_register)
             {
-                //make sure to create the games icon file if it hasn't been created already.
-                if (FileSystem.Current.FileExists(FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon)))
-                {
-                    IconManager.Current.CreateIcon(_game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
-                }
                 ShortcutManager.Current.CreateShortcut(shortcutPath, Resources.GamesManagerExecutable, Resources.GamesManagerBootArguments(string.Empty, string.Empty, string.Empty, string.Empty), Resources.GameSystemIconFile());
             }
             else
