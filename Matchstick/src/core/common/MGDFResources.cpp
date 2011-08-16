@@ -32,7 +32,15 @@ Resources::Resources(HINSTANCE instance) {
 void Resources::SetUserBaseDir(bool useRootDir,const std::string &gameUid)
 {
 	if (useRootDir) {
-		_userBaseDir = (!_gameBaseDir.empty() ? _gameBaseDir : _applicationDirectory)+L"user/"+ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
+		if (!_gameBaseDir.empty())
+		{
+			boost::filesystem::wpath gamesDirPath(_gameBaseDir,boost::filesystem::native);
+			_userBaseDir = gamesDirPath.branch_path().branch_path().native_directory_string()+L"/user/"+ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
+		}
+		else
+		{
+			_userBaseDir = _applicationDirectory+L"user/"+ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
+		}
 	}
 	else 
 	{
