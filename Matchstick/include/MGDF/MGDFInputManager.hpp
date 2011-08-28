@@ -227,25 +227,25 @@ public:
 
 	/**
 	returns the state of the left thumbstick on the X axis
-	\return -3768 for far left to +3768 for far right
+	\return -32768 for far left to +32767 for far right
 	*/
 	virtual int  GetLeftThumbX() const=0;
 
 	/**
 	returns the state of the left thumbstick on the Y axis
-	\return -3768 for top to +3768 for bottom
+	\return -32768 for top to +32767 for bottom
 	*/
 	virtual int  GetLeftThumbY() const=0;
 
 	/**
 	returns the state of the right thumbstick on the X axis
-	\return -3768 for far left to +3768 for far right
+	\return -32768 for far left to +32767 for far right
 	*/
 	virtual int  GetRightThumbX() const=0;
 
 	/**
 	returns the state of the right thumbstick on the Y axis
-	\return -3768 for top to +3768 for bottom
+	\return -32768 for top to +32767 for bottom
 	*/
 	virtual int  GetRightThumbY() const=0;
 

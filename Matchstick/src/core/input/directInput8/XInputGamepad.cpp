@@ -87,22 +87,26 @@ int XInputGamepad::GetRightTrigger() const{
 
 
 int XInputGamepad::GetLeftThumbX() const{
-	return _state.Gamepad.sThumbLX> XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLX : 0;
+	int absX = abs(_state.Gamepad.sThumbLX);
+	return absX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLX : 0;
 }
 
 
 int XInputGamepad::GetLeftThumbY() const{
-	return _state.Gamepad.sThumbLY> XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLY : 0;
+	int absY = abs(_state.Gamepad.sThumbLY);
+	return absY> XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLY : 0;
 }
 
 
 int XInputGamepad::GetRightThumbX() const{
-	return _state.Gamepad.sThumbRX> XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRX : 0;
+	int absX = abs(_state.Gamepad.sThumbRX);
+	return absX> XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRX : 0;
 }
 
 
 int XInputGamepad::GetRightThumbY() const{
-	return _state.Gamepad.sThumbRY> XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRY : 0;
+	int absY = abs(_state.Gamepad.sThumbRY);
+	return absY> XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRY : 0;
 }
 
 
