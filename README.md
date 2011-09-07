@@ -39,7 +39,7 @@ MGDF can be built with Microsoft Visual Studio 2008 on windows (VS2010 will prob
 
 Running unit tests
 ------------------
-All managed code projects use nunit 2.4.8 and providing nunit is installed (use testdriven.net for integration into the visual studio UI) they should work once the solution is compiled
+All managed code projects use nunit 2.5.2 and providing nunit is installed (use testdriven.net for integration into the visual studio UI) they should work once the solution is compiled
 
 all unmanaged code project use winunit which must first be compiled as part of the vendor\libs.sln project Once built, winunit can be invoked to run a unit test dll with the following command 
 
