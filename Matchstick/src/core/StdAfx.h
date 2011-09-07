@@ -31,6 +31,16 @@
 #endif
 #endif
 
+//enable easier shader debugging
+#if defined(DEBUG) | defined(_DEBUG)
+#ifndef D3DXSHADER_DEBUG
+#define D3DXSHADER_DEBUG
+#endif
+#ifndef D3DXSHADER_SKIPOPTIMIZATION
+#define D3DXSHADER_SKIPOPTIMIZATION
+#endif
+#endif
+
 //#define AUTOLIB //to automatically include the libs needed for d3d
 #ifdef AUTOLIB
 #pragma comment( lib, "dxerr.lib" )
