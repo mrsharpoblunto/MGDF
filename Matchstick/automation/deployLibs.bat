@@ -11,13 +11,5 @@ XCOPY  ..\vendor\lib\Release\alut.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\Release\ogg.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\Release\vorbis.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\Release\vorbisfile.dll bin\%1 /E /Y /I
-XCOPY  ..\vendor\lib\Release\XInput9_1_0.dll bin\%1 /E /Y /I
-
-if not %1 == Debug goto else
-XCOPY  ..\vendor\lib\%1\d3dx9d_27.dll bin\%1 /E /Y /I
-goto endif
-:else
-XCOPY  ..\vendor\lib\%1\d3dx9_27.dll bin\%1 /E /Y /I
-:endif
 
 echo DEPLOY COMPLETED
