@@ -116,7 +116,7 @@ void MGDFApp::UpdateScene(double simulationTime)
 	LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
 
 	boost::mutex::scoped_lock lock(_statsMutex);
-	_stats.ActiveSimTime = _timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart) - _stats.SimInputTime - _stats.SimAudioTime;
+	_stats.AppendActiveSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart) - _stats.SimInputTime() - _stats.SimAudioTime());
 }
 
 void MGDFApp::OnInitPresentParameters(D3DPRESENT_PARAMETERS *d3dPP,IDirect3D9* d3d9)
@@ -149,13 +149,12 @@ void MGDFApp::DrawSystemOverlay()
 	RECT font_rect;
 	SetRect(&font_rect,0,0,100,100);
 
-	SystemStats stats;
+	std::string information;
 	{
 		boost::mutex::scoped_lock lock(_statsMutex);
-		stats = _stats;
+		information =_system->GetSystemInformation(&_stats);
+		//TODO create vertex buffers for graph here too.
 	}
-
-	std::string information =_system->GetSystemInformation(&stats);
 
 	_font->DrawText(NULL,        //pSprite
 		information.c_str(),  //pString

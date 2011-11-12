@@ -253,6 +253,10 @@
 			>
 		</File>
 		<File
+			RelativePath=".\MGDFSystemStats.cpp"
+			>
+		</File>
+		<File
 			RelativePath=".\MGDFSystemStats.hpp"
 			>
 		</File>

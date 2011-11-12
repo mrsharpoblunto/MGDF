@@ -21,7 +21,7 @@ namespace MGDF { namespace core {
 #define STARTING_X 100
 #define STARTING_Y 100
 
-D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
+	D3DAppFramework::D3DAppFramework(HINSTANCE hInstance): _stats(60)
 {
 	this->_drawSystemOverlay = false;
 	this->_applicationInstance = hInstance;
@@ -207,9 +207,7 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 		FatalError(ex.what());
 	}
 
-	//init stats struct
-	memset(&_stats,0,sizeof(SystemStats));
-	_stats.ExpectedSimTime = 1/(double)simulationFps;
+	_stats.SetExpectedSimTime(1/(double)simulationFps);
 
 	_startRendering = false;
 	_simThread = new boost::thread(boost::bind(&D3DAppFramework::DoSimulation,this));
@@ -249,11 +247,11 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 					{
 						double alpha = _frameLimiter->ProgressThroughCurrentFrame();
 						DrawScene(alpha);//render as per the current active module
-						activeRenderEnd = _timer.GetCurrentTimeTicks();
 
 						if(FAILED(_d3dDevice->EndScene())){
 							FatalError("Direct3d EndScene() failed");
 						}
+						activeRenderEnd = _timer.GetCurrentTimeTicks();
 					}
 					else {
 						FatalError("Direct3d BeginScene() failed");
@@ -270,8 +268,8 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 					}			
 
 					boost::mutex::scoped_lock lock(_statsMutex);
-					_stats.RenderTime = _timer.ConvertDifferenceToSeconds(renderEnd,renderStart);
-					_stats.ActiveRenderTime = _timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart);
+					_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
+					_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
 				}
 				
 			}
@@ -296,7 +294,7 @@ void D3DAppFramework::DoSimulation()
 	{
 		LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
 
-		UpdateScene(_stats.ExpectedSimTime);//run a frame of game logic
+		UpdateScene(_stats.ExpectedSimTime());//run a frame of game logic
 		_startRendering = true;
 
 		//wait until the next frame to begin if we have any spare time left over
@@ -305,7 +303,7 @@ void D3DAppFramework::DoSimulation()
 		LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
 
 		boost::mutex::scoped_lock lock(_statsMutex);
-		_stats.SimTime = _timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart);
+		_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
 	}
 }
 

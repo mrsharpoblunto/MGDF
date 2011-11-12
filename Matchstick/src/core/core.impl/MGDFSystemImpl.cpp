@@ -110,29 +110,35 @@ std::string System::GetSystemInformation(SystemStats *stats)
 	ss << "\r\nPerformance Statistics:\r\n";
 
 	ss << "Renderer FPS: ";
-	if (stats->RenderTime==0)
+	double avgRenderTime = stats->AvgRenderTime();
+	if (avgRenderTime==0)
 		ss << "N/A\r\n";
 	else 
-		ss << 1/stats->RenderTime << "\r\n";
-	ss << "  Render: " << stats->ActiveRenderTime << "\r\n";
-	ss << "  Idle: " << stats->RenderTime-stats->ActiveRenderTime << "\r\n";
+		ss << 1/avgRenderTime << "\r\n";
+	double activeRenderTime = stats->AvgActiveRenderTime();
+	ss << "  Render: " << activeRenderTime << "\r\n";
+	ss << "  Idle: " << avgRenderTime-activeRenderTime << "\r\n";
 
 	ss << "Expected Sim FPS: ";
-	if (stats->ExpectedSimTime==0)
+	if (stats->ExpectedSimTime()==0)
 		ss << "N/A\r\n";
 	else 
-		ss << 1/stats->ExpectedSimTime << "\r\n";
+		ss << 1/stats->ExpectedSimTime() << "\r\n";
 
 	ss << "Actual Sim FPS: ";
-	if (stats->SimTime==0)
+	double simTime = stats->SimTime();
+	if (simTime==0)
 		ss << "N/A\r\n";
 	else 
-		ss << 1/stats->SimTime << "\r\n";
+		ss << 1/simTime << "\r\n";
 
-	ss << "  Input: " << stats->SimInputTime << "\r\n";
-	ss << "  Audio: " << stats->SimAudioTime << "\r\n";
-	ss << "  Other: " << stats->ActiveSimTime << "\r\n";
-	ss << "  Idle: " << stats->SimTime - (stats->ActiveSimTime+stats->SimInputTime+stats->SimAudioTime) << "\r\n";
+	double simInputTime = stats->AvgSimInputTime();
+	double simAudioTime = stats->AvgSimAudioTime();
+	double activeSimTime = stats->AvgActiveSimTime();
+	ss << "  Input: " << simInputTime << "\r\n";
+	ss << "  Audio: " << simAudioTime << "\r\n";
+	ss << "  Other: " << activeSimTime << "\r\n";
+	ss << "  Idle: " << simTime - (activeSimTime+simInputTime+simAudioTime) << "\r\n";
 
 	return ss.str();
 }
@@ -426,8 +432,8 @@ void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &
 
 	{
 		boost::mutex::scoped_lock lock(statsMutex);
-		stats->SimInputTime = _timer.ConvertDifferenceToSeconds(inputEnd,inputStart);
-		stats->SimAudioTime = _timer.ConvertDifferenceToSeconds(audioEnd,audioStart);
+		stats->AppendSimInputTime(_timer.ConvertDifferenceToSeconds(inputEnd,inputStart));
+		stats->AppendSimAudioTime(_timer.ConvertDifferenceToSeconds(audioEnd,audioStart));
 	}
 
 	if (_module!=NULL) {
