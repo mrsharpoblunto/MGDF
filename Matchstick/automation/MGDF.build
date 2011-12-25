@@ -14,16 +14,17 @@
 	<property name="build_vendor_libs" value="False" />
 	
 	<property name="msbuild_target" value="debug"/>
-	<property name="nunit_exe_path" value="C:\Program Files\NUnit 2.4.8\bin\nunit-console.exe"/>
-	<property name="nantcontrib_path" value="C:\Program Files\NantContrib-0.85\bin"/>
-	<property name="boost_path" value="C:\Program Files\boost\boost_1_35_0" />
-	<property name="vc_install_path" value="C:\Program Files\Microsoft Visual Studio 9.0" />
-	<property name="windows_sdk_path" value="C:\Program Files\Microsoft SDKs\Windows\v6.0A" />
-	<property name="directx_sdk_path" value="C:\Program Files\Microsoft DirectX SDK (June 2010)" />
-	<property name="doxygen_path" value="C:\Program Files\doxygen\bin\doxygen.exe" />
-  <property name="sevenzip_path" value="C:\Program Files\7zip\7za.exe" />
+  <property name="program_files_path" value="${environment::get-variable('ProgramFiles')}" />
+	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.4.8\bin\nunit-console.exe"/>
+	<property name="nantcontrib_path" value="${program_files_path}\NantContrib-0.85\bin"/>
+	<property name="boost_path" value="${program_files_path}\boost\boost_1_35_0" />
+	<property name="vc_install_path" value="${program_files_path}\Microsoft Visual Studio 9.0" />
+	<property name="windows_sdk_path" value="${program_files_path}\Microsoft SDKs\Windows\v6.0A" />
+	<property name="directx_sdk_path" value="${program_files_path}\Microsoft DirectX SDK (June 2010)" />
+	<property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
+  <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
   <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>
-  <property name="ilmerge_exe_path" value="C:\Program Files\Microsoft\Ilmerge\Ilmerge.exe"/>
+  <property name="ilmerge_exe_path" value="${program_files_path}\Microsoft\Ilmerge\Ilmerge.exe"/>
   
 	<!-- default target  -->
 	<target name="all" depends="build, test, documentation, distro" description="build, test, and create distro"/>
