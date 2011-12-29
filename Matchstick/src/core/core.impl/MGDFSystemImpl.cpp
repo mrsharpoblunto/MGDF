@@ -613,6 +613,11 @@ ILogger *System::GetLogger() const
 	return GetLoggerImpl();
 }
 
+ITimer * System::GetTimer() const
+{
+	return (ITimer *)&_timer;
+}
+
 IInputManager *System::GetInput() const
 {
 	return _input;

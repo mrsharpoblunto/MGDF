@@ -256,6 +256,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\MGDF\MGDFTimer.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\MGDF\MGDFVersion.hpp"
 				>
 			</File>

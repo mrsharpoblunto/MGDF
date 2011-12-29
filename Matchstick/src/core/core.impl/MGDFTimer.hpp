@@ -1,20 +1,22 @@
 #pragma once
 
+#include <MGDF/MGDFTimer.hpp>
+
 namespace MGDF { namespace core {
 
 /**
-this class is used for timing and frame limiting
+this class is used for timing
 */
-class Timer
+class Timer: public ITimer
 {
 public:
 	Timer();
 	virtual ~Timer(void);
 
 
-	LARGE_INTEGER GetCurrentTimeTicks();
-	LARGE_INTEGER GetTimerFrequency();
-	double ConvertDifferenceToSeconds(LARGE_INTEGER newTime,LARGE_INTEGER oldTime);
+	virtual LARGE_INTEGER GetCurrentTimeTicks();
+	virtual LARGE_INTEGER GetTimerFrequency();
+	virtual double ConvertDifferenceToSeconds(LARGE_INTEGER newTime,LARGE_INTEGER oldTime);
 
 private:
 	LARGE_INTEGER _freq;

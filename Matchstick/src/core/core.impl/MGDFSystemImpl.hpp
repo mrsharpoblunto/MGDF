@@ -86,6 +86,7 @@ public:
 	virtual void SetLastError(const char *sender, int code,const char *description);
 
 	virtual ILogger *GetLogger() const;
+	virtual ITimer * GetTimer() const;
 	virtual IVirtualFileSystem *GetVFS() const;
 	virtual ISoundManager *GetSound() const;
 	virtual IGraphicsManager *GetGraphics() const;

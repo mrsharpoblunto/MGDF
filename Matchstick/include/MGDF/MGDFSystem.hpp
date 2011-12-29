@@ -14,6 +14,7 @@
 #include <MGDF/MGDFGameStateMigrator.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>
 #include <MGDF/MGDFGraphicsManager.hpp>
+#include <MGDF/MGDFTimer.hpp>
 
 namespace MGDF {
 
@@ -71,6 +72,13 @@ public:
 	\return the system logger
 	*/
 	virtual ILogger * GetLogger() const=0;
+
+	/**
+	get the system timer
+	NOTE: Can safely be called from the render thread.
+	\return the system timer
+	*/
+	virtual ITimer * GetTimer() const=0;
 
 	/**
 	get the virtual file system

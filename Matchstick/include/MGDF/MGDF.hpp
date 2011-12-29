@@ -18,6 +18,7 @@
 #include <MGDF/MGDFGraphicsManager.hpp>
 #include <MGDF/MGDFError.hpp>
 #include <MGDF/MGDFErrorHandler.hpp>
+#include <MGDF/MGDFTimer.hpp>
 
 //defines the dll calling conventions used
 #define MGDF_DLL_EXPORT_CALLING_CONVENTION __declspec(dllexport)
