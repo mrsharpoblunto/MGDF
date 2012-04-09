@@ -11,7 +11,6 @@
 #include <MGDF/MGDFModule.hpp>
 #include <MGDF/MGDFParameterManager.hpp>
 #include <MGDF/MGDFSystem.hpp>
-#include <MGDF/MGDFGameStateMigrator.hpp>
 #include <MGDF/MGDFCustomArchiveHandlers.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>

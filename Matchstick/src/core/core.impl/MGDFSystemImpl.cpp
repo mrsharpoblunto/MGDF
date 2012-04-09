@@ -59,7 +59,7 @@ System::System(Game *game)
 	_vfs = Components::Instance().Get<vfs::IVirtualFileSystemComponent>();
 	_graphics = NULL;
 
-	_stats = new StatisticsManager(_game->GetUid());
+	_stats = new StatisticsManager();
 	_d3dDevice = NULL;
 
 	_moduleFactory = new ModuleFactory(_game);
@@ -94,9 +94,6 @@ System::System(Game *game)
 	}
 
 	GetLogger()->Add(THIS_NAME,"Initialised system components successfully",LOG_LOW);
-	
-	//queue up a bootstrapping event
-	_eventQueue.push_back(new events::NewEvent());
 }
 
 std::string System::GetSystemInformation(SystemStats *stats)
@@ -145,9 +142,6 @@ std::string System::GetSystemInformation(SystemStats *stats)
 
 void System::DisposeModule()
 {
-	//finish up any events to be processed
-	ProcessQueuedEvents();
-
 	if (_module!=NULL && !_module->Dispose()) {
 		_module = NULL;
 		FatalError(THIS_NAME,"Error disposing module");
@@ -202,42 +196,102 @@ const Version *System::GetMGDFVersion() const
 	return &_version;
 }
 
-bool System::HasQueuedEvents()
+int System::Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version)
 {
-	return _eventQueue.size()>0;
-}
+	std::string loadName(saveName);
+	std::wstring loadDataDir = Resources::Instance().SaveDataDir(loadName);
+	std::wstring loadFile = Resources::Instance().GameStateSaveFile(loadName);
+	std::wstring loadDir = Resources::Instance().SaveDir(loadName);
 
-/**
-process any events that have been queued by the modules
-*/
-void System::ProcessQueuedEvents()
-{
-	while (_eventQueue.size()>0) {//go until all queued events have been executed
-		events::ISystemEvent *e = *(_eventQueue.begin());
-		_eventQueue.pop_front();
-
-		if (dynamic_cast<events::SaveEvent *>(e)) {
-			SaveGameState(static_cast<events::SaveEvent *>(e));
+	if (loadDataDir.size()+1>*size || loadBuffer==NULL)
+	{
+		*size = loadDataDir.size()+1;
+		return *size;
+	}
+	else
+	{
+		*size = loadDataDir.size()+1;
+		memcpy(loadBuffer,loadDataDir.c_str(),sizeof(wchar_t) * (*size));
+		try
+		{
+			std::auto_ptr<xml::IGameStateXMLHandler> handler(_xml->CreateGameStateXMLHandler(_game->GetUid(),_game->GetVersion()));
+			try 
+			{
+				handler->Load(loadFile);
+				version = *handler->GetVersion();
+				return 0;
+			}
+			catch (MGDFException ex)
+			{
+				FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(loadDir)+" - "+ex.what());
+			}
+			catch (...)
+			{
+				FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(loadDir));
+			}
 		}
-		else if (dynamic_cast<events::LoadEvent *>(e)) {
-			LoadGameState(static_cast<events::LoadEvent *>(e));
+		catch (MGDFException e) {
+			FatalError(THIS_NAME,e.what());	
 		}
-		else if (dynamic_cast<events::NewEvent *>(e)) {
-			NewGameState(static_cast<events::NewEvent *>(e));
-		}
-
-		delete e;
+		return -1;
 	}
 }
 
-void System::QueueSaveGameState(const char *name)
+int System::Save(const char *save, wchar_t *saveBuffer, unsigned int *size)
 {
-	_eventQueue.push_back(events::EventFactory::CreateSaveEvent(std::string(name)));
-}
+	std::string saveName(save);
+	std::wstring saveBufferContent(Resources::Instance().SaveDataDir(saveName));
 
-void System::QueueLoadGameState(const char *name)
-{
-	_eventQueue.push_back(events::EventFactory::CreateLoadEvent(std::string(name)));
+	if (saveBufferContent.size()+1>*size  || saveBuffer==NULL)
+	{
+		*size = saveBufferContent.size()+1;
+		return *size;
+	}
+	else
+	{
+		*size = saveBufferContent.size()+1;
+		memcpy(saveBuffer,saveBufferContent.c_str(),sizeof(wchar_t) * (*size));
+	}
+
+	try 
+	{
+		//create the subdir for the names save files
+		boost::filesystem::wpath saveDir(Resources::Instance().SaveDir(saveName),boost::filesystem::native); 
+		if (!exists(saveDir))
+			create_directory(saveDir);
+		else {
+			remove_all(saveDir);//clear the dir
+			create_directory(saveDir);//recreate it
+		}
+		//create the save data sub-folder
+		boost::filesystem::wpath saveDataDir(saveBufferContent,boost::filesystem::native); 
+		create_directory(saveDataDir);
+
+		std::auto_ptr<xml::IGameStateXMLHandler> handler(_xml->CreateGameStateXMLHandler(_game->GetUid(),_game->GetVersion()));
+		handler->Save(Resources::Instance().GameStateSaveFile(saveName));
+
+		GetSaves();
+		bool exists = false;
+		for (unsigned int i=0;i<_saves->Size();++i)
+		{
+			if (strcmp(saveName.c_str(),_saves->Get(i))==0)
+			{
+				exists = true;
+				break;
+			}
+		}
+		if (!exists) {
+			char *copy = new char[saveName.size()+1];
+			strcpy_s(copy,saveName.size()+1,saveName.c_str());
+			_saves->Add(copy);
+		}
+		return 0;
+	}
+	catch (...)
+	{
+		FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(saveBufferContent));
+		return -1;
+	}
 }
 
 void System::ClearWorkingDirectory()
@@ -251,98 +305,22 @@ void System::ClearWorkingDirectory()
 	}
 }
 
-//folder to load from
-void System::LoadGameState(const events::LoadEvent *e)
-{
-	if (_module!=NULL && !_module->Dispose()) {
-		_module = NULL;
-		FatalError(THIS_NAME,"Error disposing module");
-	}
-
-	std::wstring loadFile = Resources::Instance().GameStateSaveFile(e->Loadname);
-	std::wstring loadDir = Resources::Instance().SaveDir(e->Loadname);
-	std::wstring loadDataDir = Resources::Instance().SaveDataDir(e->Loadname);
-
-    try
-    {
-		//clear out the working directory
-		ClearWorkingDirectory();
-
-		std::auto_ptr<xml::IGameStateXMLHandler> handler(_xml->CreateGameStateXMLHandler(_game->GetUid(),_game->GetVersion()));
-		//if the game state requires a migration up to the current version then perform the required changes to the game state schema
-		try 
-		{
-			if (handler->Load(loadFile)) {
-				MigrateGameState(handler.get(),loadFile,loadDir);
-			}
-		}
-		catch (MGDFException ex)
-		{
-			FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(loadDir)+" - "+ex.what());
-		}
-		catch (...)
-		{
-			FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(loadDir));
-		}
-
+/**
+create and initialize a new module
+*/
+void System::Initialize() {
+	if (_module==NULL)
+	{
 		_module = CreateModule();
 		_moduleMetaData.IsDeviceReset =false;
 		_moduleMetaData.IsDeviceStateSet=false;
 		_moduleMetaData.DeviceCapsChecked = false;
 
-		if (!_module->LoadModule(loadDataDir.c_str(),Resources::Instance().WorkingDir().c_str()))
+		//init the module
+		if (!_module->New(Resources::Instance().WorkingDir().c_str()))
 		{
-			FatalError(THIS_NAME,"Error loading module from '"+Resources::ToString(loadDataDir)+"' - "+ _module->GetLastError());
+			FatalError(THIS_NAME,"Error initialising module - "+std::string(_module->GetLastError()));
 		}
-	}
-	catch (MGDFException e) {
-		FatalError(THIS_NAME,e.what());	
-	}
-
-	GetLoggerImpl()->Add(THIS_NAME,"loaded state from '"+Resources::ToString(loadDataDir)+"' successfully");
-}
-
-/**
-migrate a game state forward to the current version
-*/
-void System::MigrateGameState(xml::IGameStateXMLHandler *handler,std::wstring gameStateFile,std::wstring saveDataDir) {
-	
-	IGameStateMigrator *migrator = _moduleFactory->GetGameStateMigrator();
-	if (migrator==NULL) {
-		std::string warning = "WARNING: Mismatched save file cannot be migrated as no GameStateMigrator for game uid '";
-		GetLoggerImpl()->Add(THIS_NAME,warning+_game->GetUid()+"' is defined");
-	}
-	else 
-	{
-		//migrate all module save files
-		if (!migrator->Migrate(saveDataDir.c_str(),handler->GetVersion(),_game->GetVersion())) {
-			FatalError(THIS_NAME,"unable to migrate save data in '"+Resources::ToString(saveDataDir)+"' from version '" + VersionHelper::Format(handler->GetVersion())+"' to version '" + VersionHelper::Format(_game->GetVersion())+"'");
-		}
-
-		//save the updated module config
-		handler->SetVersion(_game->GetVersion());
-		handler->Save(gameStateFile);
-
-		//clean up
-		delete migrator;
-
-		GetLoggerImpl()->Add(THIS_NAME,"migrated to version '"+VersionHelper::Format(_game->GetVersion())+"' successfully");
-	}
-}
-
-/**
-create and initialize a new module
-*/
-void System::NewGameState(const events::NewEvent *e) {
-	_module = CreateModule();
-	_moduleMetaData.IsDeviceReset =false;
-	_moduleMetaData.IsDeviceStateSet=false;
-	_moduleMetaData.DeviceCapsChecked = false;
-
-	//init the module
-	if (!_module->NewModule(Resources::Instance().WorkingDir().c_str()))
-	{
-		FatalError(THIS_NAME,"Error initialising module - "+std::string(_module->GetLastError()));
 	}
 }
 
@@ -372,52 +350,6 @@ returns the module on the top of the stack
 */
 IModule *System::GetModule() {
 	return _module;
-}
-
-/**
- this saves a list of all the modules in the stack and instructs all the modules to save thier
- internal states, also saves the persistency tree data.
-*/
-void System::SaveGameState(const events::SaveEvent *e)
-{
-	//create the subdir for the names save files
-	boost::filesystem::wpath saveDir(Resources::Instance().SaveDir(e->Savename),boost::filesystem::native); 
-	if (!exists(saveDir))
-		create_directory(saveDir);
-	else {
-		remove_all(saveDir);//clear the dir
-		create_directory(saveDir);//recreate it
-	}
-	//create the save data sub-folder
-	boost::filesystem::wpath saveDataDir(Resources::Instance().SaveDataDir(e->Savename),boost::filesystem::native); 
-	create_directory(saveDataDir);
-
-	std::auto_ptr<xml::IGameStateXMLHandler> handler(_xml->CreateGameStateXMLHandler(_game->GetUid(),_game->GetVersion()));
-
-	std::wstring saveDataDirName = Resources::Instance().SaveDataDir(e->Savename);
-
-	if (!_module->SaveModule(saveDataDirName.c_str())) {
-		FatalError(THIS_NAME,"Error saving module state - "+std::string(_module->GetLastError()));
-	}
-	handler->Save(Resources::Instance().GameStateSaveFile(e->Savename));
-
-	GetSaves();
-	bool exists = false;
-	for (unsigned int i=0;i<_saves->Size();++i)
-	{
-		if (strcmp(e->Savename.c_str(),_saves->Get(i))==0)
-		{
-			exists = true;
-			break;
-		}
-	}
-	if (!exists) {
-		char *copy = new char[e->Savename.size()+1];
-		strcpy_s(copy,e->Savename.size()+1,e->Savename.c_str());
-		_saves->Add(copy);
-	}
-
-	GetLoggerImpl()->Add(THIS_NAME,"saved game state to '"+Resources::ToString(Resources::Instance().SaveDir(e->Savename))+"' successfully!");
 }
 
 void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex)
@@ -540,6 +472,12 @@ void System::SetLastError(const char *sender, int code,const char *description)
 	}
 }
 
+void System::QueueShutDown()
+{
+	if (_module!=NULL) {
+		_module->ShutDown();
+	}
+}
 
 void System::ShutDown()
 {
@@ -554,11 +492,12 @@ const IStringList *System::GetSaves() const
 
 		boost::filesystem::wpath savePath(Resources::Instance().SaveBaseDir(),boost::filesystem::native);
 
-		boost::filesystem::wdirectory_iterator end_itr; // default construction yields past-the-end
-		for ( boost::filesystem::wdirectory_iterator itr(savePath); itr != end_itr; ++itr ) {
+		boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
+		for ( boost::filesystem::directory_iterator itr(savePath); itr != end_itr; ++itr ) {
 			if ( is_directory( *itr )) {
-				char *copy = new char[itr->leaf().size()+1];
-				strcpy_s(copy,itr->leaf().size()+1,Resources::ToString(itr->leaf()).c_str());
+				std::string saveName(itr->path().filename().string());
+				char *copy = new char[saveName.size()+1];
+				strcpy_s(copy,saveName.size()+1,saveName.c_str());
 				_saves->Add(copy);//add the save folder to the list
 			}
 		}

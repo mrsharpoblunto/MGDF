@@ -21,7 +21,6 @@
 #include "MGDFGameImpl.hpp"
 #include "MGDFStatisticsManagerImpl.hpp"
 #include "MGDFGraphicsManagerImpl.hpp"
-#include "MGDFSystemEvents.hpp"
 #include "MGDFModuleFactory.hpp"
 #include "MGDFSystemStats.hpp"
 #include "MGDFTimer.hpp"
@@ -42,6 +41,7 @@ public:
 	typedef boost::signal<void (std::string,std::string)> FatalErrorFunction;//fatal error callback function signature
 
 	virtual IModule *GetModule()=0;
+	virtual void QueueShutDown()=0;
 
 	void AddShutDownCallback(const ShutDownFunction::slot_type& callback);
 	void AddFatalErrorCallback(const FatalErrorFunction::slot_type& callback);
@@ -61,12 +61,11 @@ class System:public ISystemImpl
 {
 public:
 	System(Game *game);
+	void Initialize();
 	virtual ~System(void);
 
 	void UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex);
 	void DrawScene(double alpha);
-	bool HasQueuedEvents();
-	void ProcessQueuedEvents();
 	void DeviceLost();
 	void DeviceReset();
 	void SetD3DDevice(IDirect3DDevice9 *d3dDevice);
@@ -76,10 +75,10 @@ public:
 	void DisposeModule();
 
 	virtual IModule *GetModule();
+	virtual void QueueShutDown();
 
-	//queueable events in the System interface
-	virtual void QueueSaveGameState(const char *);
-	virtual void QueueLoadGameState(const char *);
+	virtual int Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version);
+	virtual int Save(const char *saveName, wchar_t *saveBuffer, unsigned int *size);
 
 	//error handling functions
 	virtual void FatalError(const char *,const char *);
@@ -112,14 +111,9 @@ private:
 		bool DeviceCapsChecked;
 	} ModuleMetaData;
 
-	//implement the events queueable in the interface
 	IModule *CreateModule();
-	void NewGameState(const events::NewEvent *e);
-	void SaveGameState(const events::SaveEvent *e);
-	void LoadGameState(const events::LoadEvent *e);
 
 	void ClearWorkingDirectory();
-	void MigrateGameState(xml::IGameStateXMLHandler *handler,std::wstring gameStateFile,std::wstring saveDataDir);
 
 	xml::IXMLFactoryComponent *_xml;
 	input::IInputManagerComponent *_input;
@@ -135,7 +129,6 @@ private:
 	boost::mutex _mutex;
 	Timer _timer;
 
-	std::list<events::ISystemEvent *> _eventQueue; //the event queue
 	IModule * _module; //the currently executing module
 	ModuleMetaData _moduleMetaData; //records metadata for the current module
 	ModuleFactory *_moduleFactory;

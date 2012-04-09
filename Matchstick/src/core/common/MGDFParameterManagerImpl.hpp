@@ -2,7 +2,7 @@
 
 #include <exception>
 #include <string>
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <MGDF/MGDF.hpp>
 
 namespace MGDF { namespace core {
@@ -18,7 +18,7 @@ public:
 	 NOTE: flags and values are case sensitive 
 	 NOTE: leading and trailing whitespace are stripped from values
     */
-	virtual void ParseParameters(std::string &,stdext::hash_map<std::string,std::string> &)=0;
+	virtual void ParseParameters(const std::string &,boost::unordered_map<std::string,std::string> &)=0;
 	virtual bool HasParameter(const char * param) const=0;
 	virtual const char *GetParameter(const char * param) const=0;
 	virtual bool AddParameterString(const char *  paramString)=0;
@@ -37,7 +37,7 @@ public:
 		return &pm;
 	}
 
-	virtual void ParseParameters(std::string &,stdext::hash_map<std::string,std::string> &);
+	virtual void ParseParameters(const std::string &,boost::unordered_map<std::string,std::string> &);
 
 	virtual bool HasParameter(const char * param) const;
 	virtual const char *GetParameter(const char * param) const;
@@ -45,7 +45,7 @@ public:
 
 private:
 	virtual ~ParameterManager(){}
-	stdext::hash_map<std::string,std::string> _parameters;
+	boost::unordered_map<std::string,std::string> _parameters;
 
 };
 

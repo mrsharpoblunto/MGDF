@@ -19,7 +19,7 @@ TextManagerState::TextManagerState(const TextManagerState *state)
 	}
 }
 
-void TextManagerState::AddLine(unsigned int color,std::string line)
+void TextManagerState::AddLine(unsigned int color,const std::string &line)
 {
 	Line l;
 	l.Color = color;
@@ -32,7 +32,7 @@ void TextManagerState::AddLine(unsigned int color,std::string line)
 	_lines.insert(_lines.begin(),l);
 }
 
-void TextManagerState::SetStatus(unsigned int color,std::string text)
+void TextManagerState::SetStatus(unsigned int color,const std::string &text)
 {
 	_lines[0].StatusText = text;
 	_lines[0].StatusColor = color;

@@ -26,8 +26,9 @@ public:
 	virtual void OnLostDevice()=0;
 	virtual void OnResetDevice()=0;
 	virtual bool IsResetDevicePending()=0;
-	virtual void FatalError(std::string errorMessage)=0;
-	virtual void InitDirect3D(std::string caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
+	virtual void FatalError(const std::string &errorMessage)=0;
+	virtual void ExternalClose()=0;
+	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
 
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -48,9 +49,10 @@ protected:
 
 	boost::mutex _statsMutex;
 	SystemStats _stats;
-
+protected:
+	bool _internalShutDown;
 private:
-	void InitMainWindow(std::string caption,WNDPROC windowProcedure);
+	void InitMainWindow(const std::string &caption,WNDPROC windowProcedure);
 	void InitD3D(D3DDEVTYPE devType, DWORD requestedVP);
 	void ToggleFullScreenMode();
 	bool _minimized;

@@ -2,7 +2,7 @@
 
 #include "al.h"
 #include "alc.h"
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <vector>
 #include <string>
 
@@ -27,10 +27,10 @@ public:
 	virtual void Update();
 	virtual void Dispose();
 
-	virtual Vector *GetListenerPosition() const;
-	virtual Vector *GetListenerVelocity() const;
-	virtual Vector *GetListenerOrientationForward() const;
-	virtual Vector *GetListenerOrientationUp() const;
+	virtual D3DXVECTOR3 *GetListenerPosition();
+	virtual D3DXVECTOR3 *GetListenerVelocity();
+	virtual D3DXVECTOR3 *GetListenerOrientationForward();
+	virtual D3DXVECTOR3 *GetListenerOrientationUp();
 
 	virtual float GetSoundVolume() const;
 	virtual void SetSoundVolume(float volume);
@@ -61,14 +61,14 @@ private:
 
 	static bool Sort(OpenALSound *a,OpenALSound *b);
 
-	Vector *_position;
-	Vector *_velocity;
-	Vector *_orientationForward;
-	Vector *_orientationUp;
+	D3DXVECTOR3 _position;
+	D3DXVECTOR3 _velocity;
+	D3DXVECTOR3 _orientationForward;
+	D3DXVECTOR3 _orientationUp;
 	ALCcontext *_context;
 	float _soundVolume,_streamVolume;
 	bool _enableAttenuation;
-	stdext::hash_map<ALuint,SharedBuffer *> _sharedBuffers;
+	boost::unordered_map<ALuint,SharedBuffer *> _sharedBuffers;
 	std::vector<ISound *> _sounds;
 	std::vector<ISoundStream *> _soundStreams;
 	IVirtualFileSystem *_vfs;

@@ -3,7 +3,6 @@
 #include <MGDF/MGDF.hpp>
 #include "Module.hpp"
 #include "CustomArchiveHandlersImpl.hpp"
-#include "MigratorImpl.hpp"
 
 //this snippet ensures that the location of memory leaks is reported correctly in debug mode
 #if defined(_DEBUG)
@@ -32,10 +31,4 @@ MGDF::IModule *MGDF::GetModule(MGDF::ISystem *system) {
 MGDF::ICustomArchiveHandlers * MGDF::GetCustomArchiveHandlers(void)
 {
 	return new CustomArchiveHandlersImpl();
-}
-
-//provide gamestate migrator
-MGDF::IGameStateMigrator * MGDF::GetGameStateMigrator(void)
-{
-	return new MigratorImpl();
 }

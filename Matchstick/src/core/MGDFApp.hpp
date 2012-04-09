@@ -25,15 +25,17 @@ public:
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
 	virtual bool IsResetDevicePending();
-	virtual void FatalError(std::string message);
-	virtual void InitDirect3D(std::string caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
+	virtual void FatalError(const std::string &message);
+	virtual void ExternalClose();
+	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
 
 	void SetSystem(System *system);
 private:
-	static void ShutDownCallBack();
+	void ShutDownCallBack();
 
 	void DrawSystemOverlay();
 
+	bool _initialized;
 	double _alpha;
 
 	System *_system;

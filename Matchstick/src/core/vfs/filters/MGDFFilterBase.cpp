@@ -30,6 +30,7 @@ IFileFilter *FilterBase::ChainFilter(IFileFilter *filter)
 bool FilterBase::FilterFile(const wchar_t *file)
 {
 	std::wstring fileString(file);
+	std::transform(fileString.begin(), fileString.end(), fileString.begin(), ::towlower);
 	bool result = DoFilterFile(file);
 	if (result && _chainedFilter!=NULL) {
 		result = _chainedFilter->FilterFile(file);

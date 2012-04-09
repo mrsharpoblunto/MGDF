@@ -13,7 +13,7 @@ public:
 
 	virtual void Dispose();
 	virtual IGameXMLHandler *CreateGameXMLHandler() const;
-	virtual IGameStateXMLHandler *CreateGameStateXMLHandler(std::string,const Version *) const;
+	virtual IGameStateXMLHandler *CreateGameStateXMLHandler(const std::string &,const Version *) const;
 	virtual IPreferenceConfigXMLHandler *CreatePreferenceConfigXMLHandler() const;
 };
 

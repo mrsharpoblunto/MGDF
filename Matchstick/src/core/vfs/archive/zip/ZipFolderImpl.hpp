@@ -19,7 +19,7 @@ public:
 private:
 	ZipArchive *_handler;
 
-	ZipFolderImpl(ZipArchive *handler,std::wstring name): FolderBaseImpl(name,handler->GetArchiveRoot()->GetPhysicalPath())
+	ZipFolderImpl(ZipArchive *handler,const std::wstring &name): FolderBaseImpl(name,handler->GetArchiveRoot()->GetPhysicalPath())
 	{
 		_handler = handler;
 		_handler->IncRefCount();

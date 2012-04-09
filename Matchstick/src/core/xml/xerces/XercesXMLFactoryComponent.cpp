@@ -50,7 +50,7 @@ IGameXMLHandler *XercesXMLFactoryComponent::CreateGameXMLHandler() const
 	return new XercesGameXMLHandler();
 }
 
-IGameStateXMLHandler *XercesXMLFactoryComponent::CreateGameStateXMLHandler(std::string game,const Version *version) const
+IGameStateXMLHandler *XercesXMLFactoryComponent::CreateGameStateXMLHandler(const std::string &game,const Version *version) const
 {
 	return new XercesGameStateXMLHandler(game,version);
 }

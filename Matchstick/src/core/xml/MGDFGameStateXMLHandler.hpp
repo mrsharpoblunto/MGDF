@@ -12,8 +12,8 @@ namespace MGDF { namespace core { namespace xml {
 class IGameStateXMLHandler: public IDisposable
 {
 public:
-	virtual bool Load(std::wstring)=0;
-	virtual void Save(std::wstring) const=0;
+	virtual void Load(const std::wstring &load)=0;
+	virtual void Save(const std::wstring &save) const=0;
 
 	virtual std::string GetGameUid() const=0;
 	virtual void SetVersion(const Version *version)=0;

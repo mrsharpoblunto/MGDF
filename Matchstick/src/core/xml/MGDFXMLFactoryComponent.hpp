@@ -12,7 +12,7 @@ class IXMLFactoryComponent: public ISystemComponent,public IDisposable
 {
 public:
 	virtual IGameXMLHandler *CreateGameXMLHandler() const=0;
-	virtual IGameStateXMLHandler *CreateGameStateXMLHandler(std::string game,const Version *version) const=0;
+	virtual IGameStateXMLHandler *CreateGameStateXMLHandler(const std::string &game,const Version *version) const=0;
 	virtual IPreferenceConfigXMLHandler *CreatePreferenceConfigXMLHandler() const=0;
 };
 

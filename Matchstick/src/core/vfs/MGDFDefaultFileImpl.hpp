@@ -10,7 +10,7 @@ namespace MGDF { namespace core { namespace vfs {
 class DefaultFileImpl : public FileBaseImpl
 {
 public:
-	DefaultFileImpl(std::wstring path,ILogger *logger,IErrorHandler *handler);
+	DefaultFileImpl(const std::wstring &path,ILogger *logger,IErrorHandler *handler);
 	virtual ~DefaultFileImpl(void);
 
 	virtual bool IsOpen() const;

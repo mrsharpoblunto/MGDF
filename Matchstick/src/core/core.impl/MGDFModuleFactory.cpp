@@ -28,7 +28,6 @@ ModuleFactory::ModuleFactory(IGame *game)
 
 	_moduleInstance = NULL;
 	_getCustomArchiveHandlers = NULL;
-	_getGameStateMigrator = NULL;
 	_getModule = NULL;
 	_isCompatibleInterfaceVersion = NULL;
 
@@ -41,13 +40,8 @@ ModuleFactory::ModuleFactory(IGame *game)
 		CurrentDirectoryHelper::Instance().Pop();
 
 		if (_moduleInstance!=NULL) {
-			_getGameStateMigrator = (GetGameStateMigratorPtr)GetProcAddress(_moduleInstance, "GetGameStateMigrator");
-			if (_getGameStateMigrator!=NULL) {
-				GetLoggerImpl()->Add(THIS_NAME,"Loaded GameStateMigrator from Module.dll");
-			}
-
 			_getCustomArchiveHandlers = (GetCustomArchiveHandlersPtr)GetProcAddress(_moduleInstance, "GetCustomArchiveHandlers");
-			if (_getGameStateMigrator!=NULL) {
+			if (_getCustomArchiveHandlers!=NULL) {
 				GetLoggerImpl()->Add(THIS_NAME,"Loaded CustomArchiveHandlers from Module.dll");
 			}
 
@@ -71,16 +65,6 @@ ICustomArchiveHandlers *ModuleFactory::GetCustomArchiveHandlers()
 {
 	if (_getCustomArchiveHandlers!=NULL) {
 		return _getCustomArchiveHandlers();
-	}
-	else {
-		return NULL;
-	}
-}
-
-IGameStateMigrator *ModuleFactory::GetGameStateMigrator()
-{
-	if (_getGameStateMigrator!=NULL) {
-		return _getGameStateMigrator();
 	}
 	else {
 		return NULL;

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <hash_map>
+#include <vector>
+#include <boost/unordered_map.hpp>
 #include <unzip.h>
 
 #include <MGDF/MGDFVirtualFileSystem.hpp>
@@ -46,10 +47,10 @@ private:
 	ILogger *_logger;
 	IErrorHandler *_errorHandler;
 	std::vector<ZipFileInformation *> _archiveFiles;//information is loaded for all files in the archive as soon as it is mapped
-	stdext::hash_map<unsigned int,ZipFileData *> _archiveData;//the data however is loaded lazily and can be removed as necessary to save memory
+	boost::unordered_map<unsigned int,ZipFileData *> _archiveData;//the data however is loaded lazily and can be removed as necessary to save memory
 															//the integer key corresponds to the location in teh archiveFiles vector
 	ZipArchive(ILogger *logger,IErrorHandler *errorHandler);
-	IFile *CreateParentFile(std::wstring &path,IFile *rootNode,std::wstring *filename);
+	IFile *CreateParentFile(const std::wstring &path,IFile *rootNode,std::wstring *filename);
 };
 
 }}}}

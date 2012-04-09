@@ -24,16 +24,7 @@ Module::Module(ISystem *system)
 	_stateBuffer.Pending()->AddLine(WHITE,"MGDF functional test suite started");
 }
 
-bool Module::LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder)
-{
-	_workingFolder = workingFolder;
-	_testModule = new Test3();
-	_testModule->LoadModule(saveDataFolder,workingFolder,_stateBuffer.Pending());
-
-	return true;
-}
-
-bool Module::NewModule(const wchar_t *workingFolder)
+bool Module::New(const wchar_t *workingFolder)
 {
 	_workingFolder = workingFolder;
 	_testModule = new Test1();
@@ -94,10 +85,9 @@ bool Module::CheckDeviceCaps() {
 	return true;
 }
 
-bool Module::SaveModule(const wchar_t *saveDataFolder)
+void Module::ShutDown()
 {
-	_testModule->SaveModule(saveDataFolder,_stateBuffer.Pending());
-	return true;
+	_system->ShutDown();
 }
 
 void Module::Panic()

@@ -27,7 +27,7 @@ MGDF::IFile *FakeArchiveHandler::MapArchive(MGDF::IFile *parent,const wchar_t * 
 {
 	std::wstring physicalFile(archiveFile);
 	boost::filesystem::wpath physicalDirectoryPath(physicalFile,boost::filesystem::native);
-	std::wstring name = physicalDirectoryPath.leaf();
+	std::wstring name = physicalDirectoryPath.filename().native();
 	std::transform(name.begin(), name.end(), name.begin(),::towlower);
 
 	FakeFile *rootFile = new FakeFile(parent,archiveFile,name);

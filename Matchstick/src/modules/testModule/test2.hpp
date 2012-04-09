@@ -20,8 +20,6 @@ public:
 	Test2();
 
 	virtual void Update(ISystem *system,TextManagerState *state);
-	virtual void LoadModule(const wchar_t *,const wchar_t *,TextManagerState *state);
-	virtual void SaveModule(const wchar_t *,TextManagerState *state);
 
 	virtual TestModule *NextTestModule();
 private:

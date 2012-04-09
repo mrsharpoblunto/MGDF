@@ -53,7 +53,7 @@ class VirtualFileSystemComponent: public DisposeImpl<IVirtualFileSystemComponent
 		void MapDirectory(IFile *parent,IFileFilter *filter);
 		void Map(const wchar_t *currentPhysicalFile, IFile *parentFile,IFileFilter *filter,bool recursive);
 
-		IFile *CreateLogicalDirectory(std::wstring s);
+		IFile *CreateLogicalDirectory(const std::wstring &s);
 		IArchiveHandler *GetArchiveHandler(const wchar_t *filename);
 		void FindFilesRecursive(IFile *currentDirectory,IFileFilter *filter,bool recursive,std::vector<IFile *> *files) const; 
 };

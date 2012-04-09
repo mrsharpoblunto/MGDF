@@ -26,7 +26,7 @@ std::string VersionHelper::Format(const Version *version)
 	return result;
 }
 
-Version VersionHelper::Create(std::string version)
+Version VersionHelper::Create(const std::string &version)
 {
 		std::vector<std::string> versionSplit;
 		boost::split(versionSplit,version,boost::is_any_of("."));

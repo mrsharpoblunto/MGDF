@@ -50,7 +50,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 
 	//create the system object and related components
 	System *system = SystemBuilder::CreateSystem(MGDFApp::Instance().GetApplicationInstance(),MGDFApp::Instance().GetWindow());
-
+	
 	GetLoggerImpl()->Add("MGDF::WinMain","starting up...");
 	if (system!=NULL) {
 		system->AddFatalErrorCallback(&FatalErrorCallBack);

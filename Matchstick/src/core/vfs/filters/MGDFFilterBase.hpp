@@ -14,7 +14,7 @@ public:
 	virtual IFileFilter *ChainFilter(IFileFilter *filter);
 	virtual bool FilterFile(const wchar_t *);
 protected:
-	virtual bool DoFilterFile(std::wstring file)=0;
+	virtual bool DoFilterFile(const std::wstring &file)=0;
 private:
 	IFileFilter *_chainedFilter;
 };

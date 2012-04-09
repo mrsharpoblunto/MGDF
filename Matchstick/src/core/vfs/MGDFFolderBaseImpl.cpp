@@ -12,10 +12,10 @@
 
 namespace MGDF { namespace core { namespace vfs {
 
-FolderBaseImpl::FolderBaseImpl(std::wstring folderName,std::wstring physicalPath)
+FolderBaseImpl::FolderBaseImpl(const std::wstring &folderName,const std::wstring &physicalPath)
 {
-	std::transform(folderName.begin(), folderName.end(), folderName.begin(),::towlower);
 	_name = folderName;
+	std::transform(_name.begin(), _name.end(), _name.begin(),::towlower);
 	_path = physicalPath;
 }
 

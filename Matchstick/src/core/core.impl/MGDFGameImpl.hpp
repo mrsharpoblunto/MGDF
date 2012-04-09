@@ -1,5 +1,5 @@
 #pragma once
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
 #include <MGDF/MGDFSystem.hpp>
 #include <MGDF/MGDFGame.hpp>
@@ -15,7 +15,7 @@ this class is the concrete implementation of the configuration interface
 class Game : public IGame
 {
 public:
-	Game(std::string uid,std::string name,int interfaceVersion,const Version *version,xml::IXMLFactoryComponent *xmlFactory);
+	Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,xml::IXMLFactoryComponent *xmlFactory);
 	virtual ~Game(void);
 
 	virtual const char *GetUid() const;
@@ -29,8 +29,8 @@ public:
 	virtual void SavePreferences() const;
 	virtual void ResetPreferences();
 
-	void SavePreferences(std::wstring filename);
-	void LoadPreferences(std::wstring filename);
+	void SavePreferences(const std::wstring &filename);
+	void LoadPreferences(const std::wstring &filename);
 
 private:
 	xml::IXMLFactoryComponent *_xmlFactory;
@@ -38,7 +38,7 @@ private:
 	std::wstring _preferencesFile;
 	Version _version;
 	int _interfaceVersion;
-	stdext::hash_map<std::string,std::string> _preferences;
+	boost::unordered_map<std::string,std::string> _preferences;
 
 };
 

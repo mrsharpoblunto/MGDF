@@ -1,18 +1,9 @@
 #pragma once
 
+#include "d3dx9.h"
 #include <MGDF/MGDFDisposable.hpp>
 
 namespace MGDF {
-
-/** 
-this struct represents a vector in 3d space
-*/
-typedef struct
-{
-	float X;
-	float Y;
-	float Z;
-} Vector;
 
 /**
 this class represents an audio source in 3d space
@@ -21,8 +12,8 @@ this class represents an audio source in 3d space
 class ISound: public IDisposable {
 public:
 	virtual const wchar_t * GetName() const =0;
-	virtual Vector * GetPosition() const =0;
-	virtual Vector * GetVelocity() const =0;
+	virtual D3DXVECTOR3 * GetPosition()=0;
+	virtual D3DXVECTOR3 * GetVelocity()=0;
 
 	virtual float  GetInnerRange() const =0;
 	virtual void  SetInnerRange(float sourceRelative)=0;

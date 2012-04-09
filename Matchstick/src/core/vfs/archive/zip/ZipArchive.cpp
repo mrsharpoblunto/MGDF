@@ -36,7 +36,7 @@ ZipArchive::~ZipArchive(){
 		delete (*iter);
 	}
 
-	for (stdext::hash_map<unsigned int,ZipFileData *>::iterator iter = _archiveData.begin();iter!=_archiveData.end();++iter) {
+	for (boost::unordered_map<unsigned int,ZipFileData *>::iterator iter = _archiveData.begin();iter!=_archiveData.end();++iter) {
 		delete iter->second;
 	}
 
@@ -114,7 +114,7 @@ IFile *ZipArchive::MapArchive(IFile *parent,const wchar_t * archiveFile)
 	return _archiveRoot;
 }
 
-IFile *ZipArchive::CreateParentFile(std::wstring &path,IFile *rootNode,std::wstring *filename) {
+IFile *ZipArchive::CreateParentFile(const std::wstring &path,IFile *rootNode,std::wstring *filename) {
 
 	IFile *currentFile = rootNode;
 
@@ -179,7 +179,7 @@ bool ZipArchive::OpenFile(unsigned int key)
 
 void ZipArchive::CloseFile(unsigned int key)
 {
-	stdext::hash_map<unsigned int,ZipFileData *>::iterator iter = _archiveData.find(key);
+	boost::unordered_map<unsigned int,ZipFileData *>::iterator iter = _archiveData.find(key);
 	//if the entry is in the hashmap then the file is already open, so it needs to be closed and removed from the data cache
 	if (iter!=_archiveData.end()) {
 		free(iter->second->data);

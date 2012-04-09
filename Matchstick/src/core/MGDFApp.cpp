@@ -20,6 +20,7 @@ MGDFApp::MGDFApp(HINSTANCE hInstance) : D3DAppFramework(hInstance)
 	_font=NULL;
 	_vBuffer=NULL;
 	_system = NULL;
+	_initialized = false;
 }
 
 MGDFApp::~MGDFApp() 
@@ -38,10 +39,10 @@ MGDFApp::~MGDFApp()
 void MGDFApp::SetSystem(System *system)
 {
 	_system = system;
-	_system->AddShutDownCallback(&MGDFApp::ShutDownCallBack);
+	_system->AddShutDownCallback(boost::bind(&MGDFApp::ShutDownCallBack,this));
 }
 
-void MGDFApp::InitDirect3D(std::string caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen)
+void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen)
 {
 	D3DAppFramework::InitDirect3D(caption,windowProcedure,devType,requestedVP,canToggleFullScreen);
 	_system->SetD3DDevice(_d3dDevice);//allow the system to pass the d3d object to the modules
@@ -102,12 +103,10 @@ void MGDFApp::UpdateScene(double simulationTime)
 {
 	LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
 
-	//process any events that have been scheduled by the modules
-	if (_system->HasQueuedEvents())
-	{
-		//ensure the render thread can't do anything while the list of active modules is being altered.
-		boost::mutex::scoped_lock lock(_renderMutex);
-		_system->ProcessQueuedEvents();
+	if (!_initialized)
+	{	
+		_system->Initialize();
+		_initialized = true;
 	}
 
 	//execute one frame of game logic as per the current module
@@ -190,15 +189,21 @@ void MGDFApp::DrawSystemOverlay()
         0xFFFFFFFF); //Color
 }
 
-void MGDFApp::FatalError(std::string message)
+void MGDFApp::FatalError(const std::string &message)
 {
 	_system->FatalError("MGDF",message);
+}
+
+void MGDFApp::ExternalClose()
+{
+	_system->QueueShutDown();
 }
 
 /**
 shut down the application
 */
 void MGDFApp::ShutDownCallBack() {
+	_internalShutDown = true;
 	PostMessage(MGDFApp::Instance()._window,WM_CLOSE,NULL,NULL);
 }
 

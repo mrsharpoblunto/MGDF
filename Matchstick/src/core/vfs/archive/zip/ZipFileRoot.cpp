@@ -11,10 +11,10 @@
 
 namespace MGDF { namespace core { namespace vfs { namespace zip {
 
-ZipFileRoot::ZipFileRoot(std::wstring path,ILogger *logger,IErrorHandler *errorHandler): DefaultFileImpl(path,logger,errorHandler)
+ZipFileRoot::ZipFileRoot(const std::wstring &path,ILogger *logger,IErrorHandler *errorHandler): DefaultFileImpl(path,logger,errorHandler)
 {
 	boost::filesystem::wpath physicalDirectoryPath(path,boost::filesystem::native);
-	_archiveName = physicalDirectoryPath.leaf();
+	_archiveName = physicalDirectoryPath.filename().native();
 	std::transform(_archiveName.begin(), _archiveName.end(), _archiveName.begin(),::towlower);
 }	
 

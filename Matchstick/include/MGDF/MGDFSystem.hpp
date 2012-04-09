@@ -11,7 +11,6 @@
 #include <MGDF/MGDFSoundManager.hpp>
 #include <MGDF/MGDFParameterManager.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
-#include <MGDF/MGDFGameStateMigrator.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>
 #include <MGDF/MGDFGraphicsManager.hpp>
 #include <MGDF/MGDFTimer.hpp>
@@ -34,13 +33,14 @@ class ISystem
 public:
 
 	/**
-	 tells the manager to save the state of the modulestack and instructs all modules on the
-	 stack to save themselves to a file. This also saves the name of the current boot configuration
-	 meaning the save file can only be opened again when the modulemanager is running the same
-	 configuration (see below). All this information is saved in the save\<some name> folder
-	 \param saveName the name of the module save file
+	 tells the system to provide a location on disk to save the current game data.
+	 \param saveName the name of the module save file. Only alphanumeric characters andspace are valid characters.
+	 \param saveBuffer the buffer to fill in the supplied save directory
+	 \param size the size of saveBuffer, if saveBuffer is too small, size will be changed to the size required.
+	 \return 0 if saveBuffer is large enough to fit the supplied save directory, otherwise returns the size required. If the saveName
+		is invalid, the function returns -1
 	*/
-	virtual void  QueueSaveGameState(const char *saveName)=0;
+	virtual int Save(const char *saveName, wchar_t *saveBuffer, unsigned int *size)=0;
 
 	/**
 	 populates the supplied vector with the names of all saved instances of this configuration
@@ -56,15 +56,15 @@ public:
 	virtual void RemoveSave(const char *saveName)=0;
 
 	/**
-	 tells the manager to load the state of the modulestack and instructs all modules on the
-	 stack to load themselves from a file. All this information is loaded from the save\<some name>
-	 folder
-	 This method also checks if the configuration loaded was specified to run with this boot configuration
-	 and if possible invokes a save game migrator if the saved boot configuration is an older vesion
-	 than the currently executnig version.
-	 \param loadName the name of the module load file
+	 tells the system to find the location on disk for the specified save game
+	 \param saveName the name of the module save file
+	 \param loadBuffer the buffer to fill in the supplied save directory
+	 \param size the size of saveBuffer, if saveBuffer is too small, size will be changed to the size required.
+	 \param version the version number of the save game. can be useful for migrating save games.
+	 \return 0 if saveBuffer is large enough to fit the supplied load directory, otherwise returns the size required. If the saveName
+		is invalid, the function returns -1
 	*/
-	virtual void  QueueLoadGameState(const char *loadName)=0;
+	virtual int Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version)=0;
 
 	/**
 	get the system logger

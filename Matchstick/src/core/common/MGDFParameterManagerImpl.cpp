@@ -25,7 +25,7 @@ bool ParameterManager::HasParameter(const char * param) const
 const char *ParameterManager::GetParameter(const char * param) const
 {
 	std::string p = param;
-	stdext::hash_map<std::string,std::string>::const_iterator iter = _parameters.find(p);
+	boost::unordered_map<std::string,std::string>::const_iterator iter = _parameters.find(p);
 	if (iter!=_parameters.end()) {
 		return iter->second.c_str();
 	}
@@ -44,15 +44,15 @@ bool ParameterManager::AddParameterString(const char * paramString)
 	}
 }
 
-void ParameterManager::ParseParameters(std::string &paramString, stdext::hash_map<std::string,std::string> &paramMap) 
+void ParameterManager::ParseParameters(const std::string &paramString, boost::unordered_map<std::string,std::string> &paramMap) 
 {
-	std::string::iterator iter = paramString.begin();
+	std::string::const_iterator iter = paramString.begin();
 
 	std::string key,value;
 	for (;;)
 	{
-		key="";
-		value="";
+		key.clear();
+		value.clear();
 
 		// Skip past any white space preceding the next token
 		while (iter!=paramString.end() && *iter <= ' ')

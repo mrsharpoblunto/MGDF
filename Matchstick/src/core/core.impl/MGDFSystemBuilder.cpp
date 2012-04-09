@@ -203,6 +203,10 @@ void SystemBuilder::InitResources()
 {
 	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::GAMES_DIR_OVERRIDE)) {
 		std::string gamesDirOverride(GetParameterManagerImpl()->GetParameter(ParameterConstants::GAMES_DIR_OVERRIDE));
+		if (gamesDirOverride[gamesDirOverride.length()-1]!='\\' && gamesDirOverride[gamesDirOverride.length()-1]!='/')
+		{
+			gamesDirOverride.append("\\");
+		}
 		Resources::Instance().SetGameBaseDir(Resources::ToWString(gamesDirOverride));
 	}
 

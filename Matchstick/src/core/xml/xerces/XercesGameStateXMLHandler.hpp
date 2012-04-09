@@ -10,7 +10,7 @@ class XercesGameStateXMLHandler: public XERCES_CPP_NAMESPACE::DefaultHandler, pu
 {
 public:
 	
-	XercesGameStateXMLHandler(std::string gameUid,const Version *version){
+	XercesGameStateXMLHandler(const std::string &gameUid,const Version *version){
 		this->_gameUid = gameUid;
 		this->_version = VersionHelper::Copy(version);
 	};
@@ -19,8 +19,8 @@ public:
 
 	virtual void Dispose();
 
-	virtual bool Load(std::wstring);
-	virtual void Save(std::wstring) const;
+	virtual void Load(const std::wstring &);
+	virtual void Save(const std::wstring &) const;
 	
 	std::string GetGameUid() const { return _gameUid; };
 	void SetVersion(const Version *version) { _version =  VersionHelper::Copy(version); };
@@ -47,7 +47,6 @@ public:
 	virtual void error(const XERCES_CPP_NAMESPACE::SAXParseException& e);
 
 private:	
-	bool _requiresMigration;
 	std::string _currentNode;
 
 	std::string _gameUid;

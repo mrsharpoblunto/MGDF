@@ -54,7 +54,7 @@ const Version *XercesGameXMLHandler::GetVersion() const
 	return &_version;
 }
 
-void XercesGameXMLHandler::Load(std::wstring filename)
+void XercesGameXMLHandler::Load(const std::wstring &filename)
 {
 	try {
 		SAX2XMLReader *bootParser = XercesXmlSchemaCache::Instance().CreateParser();

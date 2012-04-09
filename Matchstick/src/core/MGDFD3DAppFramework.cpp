@@ -31,6 +31,7 @@ namespace MGDF { namespace core {
 	this->_minimized = false;
 	this->_running = false;
 	this->_simThread = NULL;
+	this->_internalShutDown = false;
 	ZeroMemory(&_d3dPP, sizeof(_d3dPP));
 }
 
@@ -64,13 +65,13 @@ IDirect3DDevice9 *D3DAppFramework::GetD3dDevice()
 	return _d3dDevice;
 }
 
-void D3DAppFramework::InitDirect3D(std::string caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen) {
+void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen) {
 	_canToggleFullScreen = canToggleFullScreen;
 	InitMainWindow(caption,windowProcedure);
 	InitD3D(devType,requestedVP);
 }
 
-void D3DAppFramework::InitMainWindow(std::string caption,WNDPROC windowProcedure)
+void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowProcedure)
 {
 	//if the window has not already been created
 	if (_window == NULL) {
@@ -395,7 +396,17 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	// WM_CLOSE is sent when the user presses the 'X' button in the
 	// caption bar menu.
 	case WM_CLOSE:
-		DestroyWindow(_window);
+		if (_internalShutDown)
+		{
+			//if we triggered this, then shut down
+			DestroyWindow(_window);
+		}
+		else
+		{
+			//otherwise just inform the rest of the system that
+			//it should shut down ASAP, but give it time to shut down cleanly
+			ExternalClose();
+		}
 		return 0;
 
 	// WM_DESTROY is sent when the window is being destroyed.

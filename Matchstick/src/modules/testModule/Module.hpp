@@ -20,8 +20,6 @@ public:
 	virtual ~TestModule(void){}
 
 	virtual void Update(ISystem *system,TextManagerState *state)=0;
-	virtual void LoadModule(const wchar_t *,const wchar_t *,TextManagerState *state)=0;
-	virtual void SaveModule(const wchar_t *,TextManagerState *state)=0;
 
 	virtual TestModule *NextTestModule()=0;
 };
@@ -32,9 +30,7 @@ public:
 	virtual ~Module(void);
 	Module(ISystem *);
 
-	virtual bool NewModule(const wchar_t *workingFolder);
-	virtual bool LoadModule(const wchar_t *,const wchar_t *);//file to load from
-	virtual bool SaveModule(const wchar_t *);//file to save to
+	virtual bool New(const wchar_t *workingFolder);
 
 	virtual bool Dispose(void);
 
@@ -46,6 +42,7 @@ public:
 
 	virtual bool UpdateScene(double elapsedTime);
 	virtual void Panic();
+	virtual void ShutDown();
 
 	const char *GetLastError();
 private:

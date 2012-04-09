@@ -20,12 +20,12 @@ ILoggerImpl *GetLoggerImpl()
 
 #define LOG_BUFFER_SIZE 10
 
-void Logger::Add(std::string sender,std::string message)
+void Logger::Add(const std::string &sender,const std::string &message)
 {
 	Add(sender,message,LOG_MEDIUM);
 }
 
-void Logger::Add(std::string sender,std::string message,LogLevel level)
+void Logger::Add(const std::string &sender,const std::string &message,LogLevel level)
 {
 	boost::mutex::scoped_lock l(_mutex);
 	if (level<=_level) {
@@ -67,7 +67,7 @@ Logger::Logger()
 	SetOutputFile(Resources::Instance().LogFile());
 }
 
-void Logger::SetOutputFile(std::wstring filename) 
+void Logger::SetOutputFile(const std::wstring &filename) 
 {
 	_filename = filename;
 	std::ofstream outFile;

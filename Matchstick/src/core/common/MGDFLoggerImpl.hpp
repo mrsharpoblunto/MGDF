@@ -14,8 +14,8 @@ class ILoggerImpl: public ILogger
 {
 public:
 	virtual void Flush()=0;
-	virtual void Add(std::string sender,std::string message,LogLevel level)=0;
-	virtual void Add(std::string sender,std::string message)=0;
+	virtual void Add(const std::string &sender,const std::string &message,LogLevel level)=0;
+	virtual void Add(const std::string &sender,const std::string &message)=0;
 };
 
 /**
@@ -34,15 +34,15 @@ public:
 	virtual void SetLoggingLevel(LogLevel level);
 	virtual LogLevel GetLoggingLevel() const;
 	virtual void Add(const char * sender,const char * message,LogLevel level);
-	virtual void Add(std::string sender,std::string message,LogLevel level);
-	virtual void Add(std::string sender,std::string message);
+	virtual void Add(const std::string &sender,const std::string &message,LogLevel level);
+	virtual void Add(const std::string &sender,const std::string &message);
 
 	virtual void Flush();
 private:
 	Logger();
 	virtual ~Logger();
 
-	void SetOutputFile(std::wstring);
+	void SetOutputFile(const std::wstring &);
 
 	boost::mutex _mutex;
 	std::vector<std::string> _events;

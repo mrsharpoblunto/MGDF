@@ -12,7 +12,7 @@
 
 namespace MGDF { namespace core { namespace vfs {
 
-DefaultFileImpl::DefaultFileImpl(std::wstring path,ILogger *logger,IErrorHandler *handler)
+DefaultFileImpl::DefaultFileImpl(const std::wstring &path,ILogger *logger,IErrorHandler *handler)
 {
 	_logger = logger;
 	_errorHandler = handler;
@@ -24,7 +24,7 @@ DefaultFileImpl::DefaultFileImpl(std::wstring path,ILogger *logger,IErrorHandler
 	const wchar_t *_pathStr = _path.c_str();
 	while (index>0)
 	{
-		if (_pathStr[index]==L'\\')
+		if (_pathStr[index]==L'\\' || _pathStr[index]==L'/')
 		{
 			_name = &_pathStr[index+1];
 			std::transform(_name.begin(), _name.end(), _name.begin(), ::towlower);

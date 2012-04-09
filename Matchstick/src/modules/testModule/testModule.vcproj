@@ -191,14 +191,6 @@
 			>
 		</File>
 		<File
-			RelativePath=".\MigratorImpl.cpp"
-			>
-		</File>
-		<File
-			RelativePath=".\MigratorImpl.hpp"
-			>
-		</File>
-		<File
 			RelativePath=".\Module.cpp"
 			>
 		</File>

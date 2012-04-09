@@ -1,5 +1,6 @@
 #pragma once
 
+#include "d3dx9.h"
 #include <MGDF/MGDFSound.hpp>
 #include <MGDF/MGDFSoundStream.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
@@ -16,10 +17,10 @@ public:
 	/**
 	determine the position/velocity of the observe of the sound
 	*/
-	virtual Vector * GetListenerPosition() const =0;
-	virtual Vector * GetListenerVelocity() const =0;
-	virtual Vector * GetListenerOrientationForward() const =0;
-	virtual Vector * GetListenerOrientationUp() const =0;
+	virtual D3DXVECTOR3 * GetListenerPosition()=0;
+	virtual D3DXVECTOR3 * GetListenerVelocity()=0;
+	virtual D3DXVECTOR3 * GetListenerOrientationForward()=0;
+	virtual D3DXVECTOR3 * GetListenerOrientationUp()=0;
 
 	virtual float  GetSoundVolume() const=0;
 	virtual void  SetSoundVolume(float volume)=0;

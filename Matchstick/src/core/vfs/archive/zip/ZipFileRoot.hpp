@@ -17,7 +17,7 @@ public:
 	virtual bool IsArchive() const;
 	virtual const wchar_t *GetArchiveName() const;
 private:
-	ZipFileRoot(std::wstring path,ILogger *logger,IErrorHandler *errorHandler);
+	ZipFileRoot(const std::wstring &path,ILogger *logger,IErrorHandler *errorHandler);
 	std::wstring _archiveName;
 };
 

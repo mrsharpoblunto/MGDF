@@ -20,40 +20,6 @@ Test3::Test3()
 	_testState = 0;
 }
 
-void Test3::LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder,TextManagerState *state)
-{
-	std::wstring saveFile(saveDataFolder);
-	saveFile+=L"currentState.txt";
-	std::ifstream in(saveFile.c_str(),std::ios::in);
-	if (in.fail()) 
-	{
-		_testState = 3;
-	}
-	else
-	{
-		in >> _testState;
-		in.close();
-		if (_testState!=2) _testState = 3;
-	}
-
-	state->AddLine(WHITE,"Load/Save Tests");
-	state->AddLine(WHITE,"");
-
-	state->AddLine(WHITE,"Save game state");
-	state->SetStatus(GREEN,"[Test Passed]");
-	state->AddLine(WHITE,"Load game state");
-}
-
-void Test3::SaveModule(const wchar_t *saveDataFolder,TextManagerState *state)
-{
-	_testState = 1;
-	std::wstring saveFile(saveDataFolder);
-	saveFile+=L"currentState.txt";
-	std::ofstream out(saveFile.c_str(),std::ios::out);
-	out << 2;
-	out.close();
-}
-
 TestModule *Test3::NextTestModule()
 {
 	return NULL;
@@ -68,12 +34,34 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 
 	if (_testState==0)
 	{
+		state->AddLine(WHITE,"");
 		state->AddLine(WHITE,"Load/Save Tests");
 		state->AddLine(WHITE,"");
 
 		system->RemoveSave("testsave");
 		state->AddLine(WHITE,"Save game state");
-		system->QueueSaveGameState("testsave");
+
+		unsigned int size=0;
+		system->Save("testsave",NULL,&size);
+		wchar_t *saveDir = new wchar_t[size];
+		if (system->Save("testsave",saveDir,&size)==0)
+		{
+			std::wstring saveFile(saveDir);
+			saveFile+=L"currentState.txt";
+			std::ofstream out(saveFile.c_str(),std::ios::out);
+			out << 2;
+			out.close();
+			state->SetStatus(GREEN,"[Test Passed]");
+			state->AddLine(WHITE,"Search saved game state");
+			_testState = 1;
+		}
+		else
+		{
+			state->SetStatus(RED,"[Test Failed]");
+			_testState = 999;
+			state->AddLine(WHITE,"Press the [ENTER] key");
+		}
+		delete[] saveDir;
 	}
 	else if (_testState==1)
 	{
@@ -81,7 +69,44 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		{
 			state->SetStatus(GREEN,"[Test Passed]");
 			state->AddLine(WHITE,"Load game state");
-			system->QueueLoadGameState("testsave");
+
+			unsigned size=0;
+			MGDF::Version version;
+			system->Load("testsave",NULL,&size,version);
+			wchar_t *saveDir = new wchar_t[size];
+			if (system->Load("testsave",saveDir,&size,version)==0)
+			{
+				//make sure the version we loaded is the same that we saved.
+				if (version.Major!=0 || version.Minor != 1) 
+				{
+					state->SetStatus(RED,"[Test Failed - Invalid version]");
+					_testState = 999;
+					state->AddLine(WHITE,"Press the [ENTER] key");
+				}
+				else
+				{
+					std::wstring saveFile(saveDir);
+					saveFile+=L"currentState.txt";
+					std::ifstream in(saveFile.c_str(),std::ios::in);
+					if (in.fail()) 
+					{
+						_testState = 3;
+					}
+					else
+					{
+						in >> _testState;
+						in.close();
+						if (_testState!=2) _testState = 3;
+					}
+				}
+			}
+			else 
+			{
+				state->SetStatus(RED,"[Test Failed - Unable to load]");
+				_testState = 999;
+				state->AddLine(WHITE,"Press the [ENTER] key");
+			}
+			delete[] saveDir;
 		}
 		else 
 		{
@@ -149,7 +174,7 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 	{
 		_testState =999;
 		state->SetStatus(GREEN,"[Test Passed]");
-		state->AddLine(WHITE,"Press the [ENTER] key");	}
+	}
 	else if (_testState==7 && system->GetInput()->IsKeyPress(KEY_N))
 	{
 		_testState =999;

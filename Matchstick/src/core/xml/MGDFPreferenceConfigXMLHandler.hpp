@@ -2,7 +2,7 @@
 
 #include <MGDF/MGDFDisposable.hpp>
 #include <xutility>
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <string>
 
 namespace MGDF { namespace core { namespace xml {
@@ -10,14 +10,14 @@ namespace MGDF { namespace core { namespace xml {
 class IPreferenceConfigXMLHandler: public IDisposable
 {
 public:
-	typedef stdext::hash_map<std::string,std::string>::const_iterator iterator;
+	typedef boost::unordered_map<std::string,std::string>::const_iterator iterator;
 
-	virtual void Add(std::string name,std::string value)=0;
+	virtual void Add(const std::string &name,const std::string &value)=0;
 	virtual iterator Begin() const=0;
 	virtual iterator End() const=0;
 
-	virtual void Load(std::wstring)=0;
-	virtual void Save(std::wstring) const=0;
+	virtual void Load(const std::wstring &load)=0;
+	virtual void Save(const std::wstring &save) const=0;
 };
 
 }}}

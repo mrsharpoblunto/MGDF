@@ -35,7 +35,7 @@ void Resources::SetUserBaseDir(bool useRootDir,const std::string &gameUid)
 		if (!_gameBaseDir.empty())
 		{
 			boost::filesystem::wpath gamesDirPath(_gameBaseDir,boost::filesystem::native);
-			_userBaseDir = gamesDirPath.branch_path().branch_path().native_directory_string()+L"/user/"+ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
+			_userBaseDir = gamesDirPath.parent_path().parent_path().native()+L"/user/"+ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
 		}
 		else
 		{

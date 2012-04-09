@@ -2,7 +2,7 @@
 
 #include "al.h"
 #include "alc.h"
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <stack>
 
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
@@ -26,7 +26,7 @@ public:
 	bool AcquireSource(ALuint *source);
 	void ReleaseSource(ALuint source);
 private:
-	stdext::hash_map<ALuint,bool> _allocatedSources;
+	boost::unordered_map<ALuint,bool> _allocatedSources;
 	std::stack<ALuint> _freeSources;
 
 	ALCcontext *_context;

@@ -29,7 +29,7 @@ private:
 	get the extension of a file
 	\return the extension (excluding the preceding '.' if possible, otherwise returns "" if no extension could be found
 	*/
-	std::wstring GetFileExtension(std::wstring file) const;
+	std::wstring GetFileExtension(const std::wstring &file) const;
 };
 
 MGDF_CORE_DLL IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler);

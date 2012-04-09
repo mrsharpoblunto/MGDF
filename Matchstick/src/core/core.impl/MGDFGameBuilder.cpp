@@ -36,7 +36,7 @@ Game *GameBuilder::LoadGame()
 
 //loads the configuration preferences from the core preferences directory as well as the 
 //particular configuration defaults, and synchs them up with any customized user preferences
-Game *GameBuilder::CreateGame(std::string uid,std::string name,int interfaceVersion,const Version *version)
+Game *GameBuilder::CreateGame(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version)
 {
 	xml::IXMLFactoryComponent *xmlFactory = Components::Instance().Get<xml::IXMLFactoryComponent>();
 
@@ -51,7 +51,7 @@ Game *GameBuilder::CreateGame(std::string uid,std::string name,int interfaceVers
 	);
 
 	if (exists(bootDefaultPref)) {
-		game->LoadPreferences(bootDefaultPref.native_file_string());
+		game->LoadPreferences(bootDefaultPref.native());
 	}
 
 	//load customised preferences for this game (OPTIONAL)
@@ -63,12 +63,12 @@ Game *GameBuilder::CreateGame(std::string uid,std::string name,int interfaceVers
 	//this creates a prefs file with the union of all preferences included but only the 
 	//most recent values kept (this means it auto updates the preferences listing to include newly added prefs) 
 	if (exists(customPref)) {
-		game->LoadPreferences(customPref.native_file_string());
+		game->LoadPreferences(customPref.native());
 	}
 
 	//then save the current preferences as a custom preference file
 	//any subsequent changes made by modules will be saved to this file
-	game->SavePreferences(customPref.native_file_string());
+	game->SavePreferences(customPref.native());
 
 	return game;
 }

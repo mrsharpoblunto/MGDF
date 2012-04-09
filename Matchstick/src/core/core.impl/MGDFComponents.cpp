@@ -18,7 +18,7 @@ Components::Components()
 Components::~Components()
 {
 	//warnings output for components that have not been properly cleaned up
-	stdext::hash_map<std::string,void *>::iterator iter;
+	boost::unordered_map<std::string,void *>::iterator iter;
 	for (iter=_components.begin();iter!=_components.end();++iter) {
 		GetLoggerImpl()->Add(THIS_NAME,"component "+iter->first+" has not been unregistered on shutdown");
 	}

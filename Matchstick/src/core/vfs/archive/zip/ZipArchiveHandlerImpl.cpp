@@ -54,7 +54,7 @@ bool ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) const
 	return false;
 }
 
-std::wstring ZipArchiveHandlerImpl::GetFileExtension(std::wstring filename) const
+std::wstring ZipArchiveHandlerImpl::GetFileExtension(const std::wstring &filename) const
 {
 	std::wstring::size_type pos = filename.rfind('.',filename.length()-1);
 	if (pos != std::wstring::npos) {

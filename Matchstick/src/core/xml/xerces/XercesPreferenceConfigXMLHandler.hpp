@@ -14,12 +14,12 @@ public:
 
 	virtual void Dispose();
 
-	virtual void Add(std::string name,std::string value);
+	virtual void Add(const std::string &name,const std::string &value);
 	virtual IPreferenceConfigXMLHandler::iterator Begin() const;
 	virtual IPreferenceConfigXMLHandler::iterator End() const;
 
-	virtual void Load(std::wstring);
-	virtual void Save(std::wstring) const;
+	virtual void Load(const std::wstring &);
+	virtual void Save(const std::wstring &) const;
 
 
 	virtual void startDocument();
@@ -41,7 +41,7 @@ public:
 	virtual void warning(const XERCES_CPP_NAMESPACE::SAXParseException& e);
 	virtual void error(const XERCES_CPP_NAMESPACE::SAXParseException& e);
 private:
-	stdext::hash_map<std::string,std::string> _preferences;
+	boost::unordered_map<std::string,std::string> _preferences;
 	std::string _name;
 	bool _addingName;
 	bool _addingValue;

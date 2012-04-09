@@ -18,8 +18,6 @@
 #pragma warning(disable:4291)
 #endif
 
-#pragma warning(disable:4345) //disable irrelevant warning about initializing POD types via new() syntax.
-
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 ISoundManagerComponent *CreateOpenALSoundManagerComponent(HINSTANCE instance,IVirtualFileSystem *vfs,HWND window)
@@ -39,25 +37,10 @@ OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(HINSTANCE insta
 	_enableAttenuation = false;
 	this->_context = OpenALSoundSystem::SafeNew()->GetContext();
 
-	_orientationForward = new Vector();		
-	_orientationForward->X = 0;
-	_orientationForward->Y = 0;
-	_orientationForward->Z = 1;
-
-	_orientationUp = new Vector();
-	_orientationUp->X = 0;
-	_orientationUp->Y = 1;
-	_orientationUp->Z = 0;
-
-	_position = new Vector();
-	_position->X = 0;
-	_position->Y = 0;
-	_position->Z = 0;
-
-	_velocity= new Vector();
-	_velocity->X = 0;
-	_velocity->Y = 0;
-	_velocity->Z = 0;
+	_orientationForward = D3DXVECTOR3(0.0f,0.0f,1.0f);
+	_orientationUp		= D3DXVECTOR3(0.0f,1.0f,0.0f);
+	_position			= D3DXVECTOR3(0.0f,0.0f,0.0f);
+	_velocity			= D3DXVECTOR3(0.0f,0.0f,0.0f);
 
 	alDistanceModel(AL_NONE);
 }
@@ -77,31 +60,27 @@ OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
 	{
 		delete _soundStreams[i];
 	}
-	for (stdext::hash_map<ALuint,SharedBuffer *>::iterator iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
+	for (boost::unordered_map<ALuint,SharedBuffer *>::iterator iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
 	{
 		alDeleteBuffers(1,&(iter->first));
 		delete iter->second;
 	}
 
 	OpenALSoundSystem::SafeDelete();
-	delete _orientationForward;
-	delete _orientationUp;
-	delete _position;
-	delete _velocity;
 }
 
 void OpenALSoundManagerComponentImpl::Update()
 {
-	alListener3f(AL_POSITION,_position->X,_position->Y,_position->Z);
-	alListener3f(AL_VELOCITY,_velocity->X,_velocity->Y,_velocity->Z);
+	alListener3f(AL_POSITION,_position.x,_position.y,_position.z);
+	alListener3f(AL_VELOCITY,_velocity.x,_velocity.y,_velocity.z);
 
 	float orientation[6];
-	orientation[0] = _orientationForward->X; //forward vector x value
-	orientation[1] = _orientationForward->Y; //forward vector y value
-	orientation[2] = _orientationForward->Z; //forward vector z value
-	orientation[3] = _orientationUp->X; //up vector x value
-	orientation[4] = _orientationUp->Y; //up vector y value
-	orientation[5] = _orientationUp->Z; //up vector z value
+	orientation[0] = _orientationForward.x; //forward vector x value
+	orientation[1] = _orientationForward.y; //forward vector y value
+	orientation[2] = _orientationForward.z; //forward vector z value
+	orientation[3] = _orientationUp.x; //up vector x value
+	orientation[4] = _orientationUp.y; //up vector y value
+	orientation[5] = _orientationUp.z; //up vector z value
 	alListenerfv(AL_ORIENTATION, orientation);
 
 	int deactivatedSoundsCount=0;
@@ -117,10 +96,10 @@ void OpenALSoundManagerComponentImpl::Update()
 		if (_enableAttenuation)
 		{
 			//work out the sounds attenuation due to distance
-			float dx = pow(_position->X-sound->GetPosition()->X,2);
-			float dy = pow(_position->Y-sound->GetPosition()->Y,2);
-			float dz = pow(_position->Z-sound->GetPosition()->Z,2); 
-			float distance = sqrt(dx+dy+dz);
+			D3DXVECTOR3 distanceVector;
+			D3DXVec3Subtract(&distanceVector,&_position,sound->GetPosition());
+			float distance = D3DXVec3Length(&distanceVector);
+
 			if (distance<=sound->GetInnerRange()) 
 			{
 				attenuation = 1;
@@ -148,24 +127,24 @@ void OpenALSoundManagerComponentImpl::Update()
 	}
 }
 
-Vector *OpenALSoundManagerComponentImpl::GetListenerOrientationForward() const
+D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerOrientationForward()
 {
-	return _orientationForward;
+	return &_orientationForward;
 }
 
-Vector *OpenALSoundManagerComponentImpl::GetListenerOrientationUp() const
+D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerOrientationUp()
 {
-	return _orientationUp;
+	return &_orientationUp;
 }
 
-Vector *OpenALSoundManagerComponentImpl::GetListenerPosition() const
+D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerPosition()
 {
-	return _position;
+	return &_position;
 }
 
-Vector *OpenALSoundManagerComponentImpl::GetListenerVelocity() const
+D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerVelocity()
 {
-	return _velocity;
+	return &_velocity;
 }
 
 bool OpenALSoundManagerComponentImpl::GetEnableAttenuation() const
@@ -353,7 +332,7 @@ ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer(IFile *dataSource)
 	dataSourceName.append(dataSource->GetName());
 
 	//see if the buffer already exists in memory before trying to create it
-	for (stdext::hash_map<ALuint,SharedBuffer *>::iterator iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
+	for (boost::unordered_map<ALuint,SharedBuffer *>::iterator iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
 	{
 		if (iter->second->BufferSource==dataSourceName) {
 			++iter->second->References;

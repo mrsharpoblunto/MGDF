@@ -28,6 +28,9 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 		_name = source->GetName();
 		_priority=priority;
 
+		_position = D3DXVECTOR3(0.0f,0.0f,0.0f);
+		_velocity = D3DXVECTOR3(0.0f,0.0f,0.0f);
+
 		_innerRange=0;
 		_outerRange=1;
 		_volume=1;
@@ -40,24 +43,11 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 		_wasPlaying = false;
 		_startPlaying = false;
 
-		_position=new Vector();
-		_position->X = 0;
-		_position->Y = 0;
-		_position->Z = 0;
-
-		_velocity=new Vector();
-		_velocity->X = 0;
-		_velocity->Y = 0;
-		_velocity->Z = 0;
-
 		Reactivate();
 	}
 
 	OpenALSound::~OpenALSound()
 	{
-		delete _position;
-		delete _velocity;
-
 		_soundManager->DoRemoveSound(this);
 		_soundManager->RemoveSoundBuffer(_bufferId);
 		Deactivate();
@@ -111,13 +101,14 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 		return _name.c_str();
 	}
 
-	Vector *OpenALSound::GetPosition() const
+	D3DXVECTOR3 *OpenALSound::GetPosition()
 	{
-		return _position;
+		return &_position;
 	}
 
-	Vector *OpenALSound::GetVelocity() const{
-		return _velocity;
+	D3DXVECTOR3 *OpenALSound::GetVelocity()
+	{
+		return &_velocity;
 	}
 
 	float OpenALSound::GetInnerRange() const{
@@ -151,8 +142,8 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 			}
 			else {
 				alSourcei(_sourceId, AL_SOURCE_RELATIVE, AL_FALSE);
-				alSource3f(_sourceId,AL_POSITION,_position->X,_position->Y,_position->Z);
-				alSource3f(_sourceId,AL_VELOCITY,_velocity->X,_velocity->Y,_velocity->Z);
+				alSource3f(_sourceId,AL_POSITION,_position.x,_position.y,_position.z);
+				alSource3f(_sourceId,AL_VELOCITY,_velocity.x,_velocity.y,_velocity.z);
 			}
 		}
 	}
@@ -187,8 +178,8 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 		if (_isActive) {
 			SetVolume(_volume);
-			alSource3f(_sourceId,AL_POSITION,_position->X,_position->Y,_position->Z);
-			alSource3f(_sourceId,AL_VELOCITY,_velocity->X,_velocity->Y,_velocity->Z);
+			alSource3f(_sourceId,AL_POSITION,_position.x,_position.y,_position.z);
+			alSource3f(_sourceId,AL_VELOCITY,_velocity.x,_velocity.y,_velocity.z);
 			if (_startPlaying) {
 				_startPlaying = false;
 				alSourcePlay(_sourceId);

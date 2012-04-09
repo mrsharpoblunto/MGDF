@@ -26,18 +26,7 @@ public:
 	 \param workingFolder a folder that the module can read/write data to while its running
 	 \return false if the module experiences a fatal error on initialization
 	 */
-	virtual bool  NewModule(const wchar_t *workingFolder)=0;
-
-	/**
-	 This method tells the module to load its state from a file
-	 \param loadFile the file to load the state from
-	 \param saveDataFolder a directory to load any save data additional to that stored in the main save file. This space is shared between all modules
-	 running for the current game session so namespacing of files etc. is up to the modules to prevent conflicts
-	 \param workingFolder a folder that the module can read/write data to while its running. This space is shared between all modules
-	 running for the current game session so namespacing of files etc. is up to the modules to prevent conflicts
-	 \return false if the module experiences a fatal error on loading
-	*/
-	virtual bool  LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder)=0;
+	virtual bool  New(const wchar_t *workingFolder)=0;
 
 	/**
 	 This method is called once per simulation timestep once the game is running and represents the 
@@ -83,31 +72,26 @@ public:
 	 NOTE: Will be called from the render thread.
 	\return false if the module experiences a fatal error handling a reset device
 	*/
-	virtual bool  SetDeviceState()=0;
+	virtual bool SetDeviceState()=0;
 
 	/**
-	this method is called before a module is initialised and checks if the d3d device has the capabilities to
+	this method is called before the module is initialised and checks if the d3d device has the capabilities to
 	run the module
 	 NOTE: Will be called from the render thread.
 	\return true if the device is acceptable, false otherwise
 	*/
-	virtual bool  CheckDeviceCaps()=0;
+	virtual bool CheckDeviceCaps()=0;
 
 	/**
-	 This method tells the module to save its entire state into a file, the information
-	 in this file should be sufficient to restore the exact same state that it was in
-	 when it was saved
-	 NOTE Access to the renderer, audio and music managers is prevented as they may be under the control
-	 of another module and hence in a state unexpected to the current module
-	\param saveDataFolder a directory to save any save data additional to that stored in the main save file
-	\return false if the module experiences a fatal error while resuming
-
-	*/
-	virtual bool  SaveModule(const wchar_t *saveDataFolder)=0;
+	 This method instructs the module to cleanup and shutdown as soon as possible. This is invoked when external events
+	 such as clicking the windows close button try to close the application
+	 NOTE: will be called from the render thread.
+	 */
+	virtual void ShutDown()=0;
 
 	/**
-	this method is called for all active modules when the a system fatalError event occurs.
-	This method gives any modules a chance to clean up any memory/open files etc. as best they can
+	this method is called for the active module when the a system fatalError event occurs.
+	This method gives the module a chance to clean up any memory/open files etc. as best it can
 	before the system crashes
 	NOTE: can be called from either the simulation or render threads.
 	*/

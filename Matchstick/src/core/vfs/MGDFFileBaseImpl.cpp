@@ -23,7 +23,7 @@ FileBaseImpl::~FileBaseImpl()
 {
 	if (_children!=NULL) {
 		//delete all the children of this node
-		stdext::hash_map<std::wstring,IFile *>::iterator iter;
+		boost::unordered_map<std::wstring,IFile *>::iterator iter;
 		for (iter=_children->begin();iter!=_children->end();++iter) {
 			delete iter->second;
 		}
@@ -40,7 +40,6 @@ IFile *FileBaseImpl::GetParent() const
 {
 	return _parent;
 }
-
 
 IFile *FileBaseImpl::GetDescendant(const wchar_t * query)
 {
@@ -114,7 +113,7 @@ void FileBaseImpl::AddChild(IFile *file)
 {
 	//lazily initialise the child map
 	if (_children==NULL) {
-		_children = new stdext::hash_map<std::wstring,IFile *>();
+		_children = new boost::unordered_map<std::wstring,IFile *>();
 	}
 	//if an identical node already exists in the tree then remove it
 	std::wstring fileName = file->GetName();

@@ -8,7 +8,7 @@ namespace MGDF { namespace core {
 class StatisticsManager: public IStatisticsManager
 {
 public:
-	StatisticsManager(std::string gameUid);
+	StatisticsManager();
 	virtual ~StatisticsManager();
 	virtual void SaveStatistic(const char * name,const char *  value);
 private:

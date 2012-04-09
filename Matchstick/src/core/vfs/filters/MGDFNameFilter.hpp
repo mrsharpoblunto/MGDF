@@ -17,7 +17,7 @@ public:
 	NameFilter(std::wstring nameFilter,bool include);
 	virtual ~NameFilter();
 protected:
-	virtual bool DoFilterFile(std::wstring file);
+	virtual bool DoFilterFile(const std::wstring &file);
 private:
 	boost::wregex *_regex;
 	bool _include;

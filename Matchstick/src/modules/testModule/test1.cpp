@@ -20,14 +20,6 @@ Test1::Test1()
 	_testState = 0;
 }
 
-void Test1::LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder,TextManagerState *state)
-{
-}
-
-void Test1::SaveModule(const wchar_t *saveDataFolder,TextManagerState *state)
-{
-}
-
 TestModule *Test1::NextTestModule()
 {
 	if (_testState==11) 

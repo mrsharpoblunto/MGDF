@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
 /**
@@ -11,8 +11,8 @@
 class FakeFile : public MGDF::DisposeImpl<MGDF::IFile>
 {
 public:
-	FakeFile(IFile *parent,std::wstring physicalFile,std::wstring name);
-	FakeFile(FakeFile *parent,std::wstring name,void *data,int dataLength);//NULL data indicates a folder
+	FakeFile(IFile *parent,const std::wstring &physicalFile,const std::wstring &name);
+	FakeFile(FakeFile *parent,const std::wstring &name,void *data,int dataLength);//NULL data indicates a folder
 	void AddChild(MGDF::IFile *file);
 	virtual ~FakeFile(void);
 
@@ -41,7 +41,7 @@ public:
 	virtual const wchar_t *GetPhysicalPath() const;
 	virtual const wchar_t *GetName() const;
 protected:
-	stdext::hash_map<std::wstring,MGDF::IFile *> *_children;
+	boost::unordered_map<std::wstring,MGDF::IFile *> *_children;
 	MGDF::IFile *_parent;
 	std::wstring _logicalPath;
 	std::wstring _name;
@@ -64,9 +64,9 @@ public:
 	virtual void Dispose();
 private:
 	FakeFileIterator() : _isEmpty(true) {};
-	FakeFileIterator(stdext::hash_map<std::wstring,MGDF::IFile *>::iterator mapIter,stdext::hash_map<std::wstring,MGDF::IFile *>::iterator mapIterEnd): _mapIter(mapIter) , _mapIterEnd(mapIterEnd), _isEmpty(false) {};
+	FakeFileIterator(boost::unordered_map<std::wstring,MGDF::IFile *>::iterator mapIter,boost::unordered_map<std::wstring,MGDF::IFile *>::iterator mapIterEnd): _mapIter(mapIter) , _mapIterEnd(mapIterEnd), _isEmpty(false) {};
 
 	bool _isEmpty;
-	stdext::hash_map<std::wstring,MGDF::IFile *>::iterator _mapIter;
-	stdext::hash_map<std::wstring,MGDF::IFile *>::iterator _mapIterEnd;
+	boost::unordered_map<std::wstring,MGDF::IFile *>::iterator _mapIter;
+	boost::unordered_map<std::wstring,MGDF::IFile *>::iterator _mapIterEnd;
 };

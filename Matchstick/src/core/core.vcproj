@@ -212,10 +212,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\MGDF\MGDFGameStateMigrator.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\include\MGDF\MGDFGraphicsManager.hpp"
 				>
 			</File>

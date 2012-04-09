@@ -29,8 +29,8 @@ namespace MGDF {
 			virtual ~TextManagerState(){};
 			TextManagerState(){};
 			TextManagerState(const TextManagerState *state);
-			void AddLine(unsigned int color,std::string line);
-			void SetStatus(unsigned int color,std::string text);
+			void AddLine(unsigned int color,const std::string &line);
+			void SetStatus(unsigned int color,const std::string &text);
 			boost::shared_ptr<TextManagerState> Interpolate(const TextManagerState *state,double alpha);
 		private:
 			std::vector<Line> _lines;

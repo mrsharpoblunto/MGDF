@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.hpp>
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <typeinfo>
 #include "../common/MGDFSystemComponent.hpp"
 
@@ -55,7 +55,7 @@ public:
 	template<class T>
 	void UnregisterComponent() {
 		std::string t = typeid(T).name();
-		stdext::hash_map<std::string,void *>::iterator iter = _components.find(t);
+		boost::unordered_map<std::string,void *>::iterator iter = _components.find(t);
 		if (iter!=_components.end()) {
 			T *temp = (T *)_components[t];
 			_components.erase(iter);
@@ -64,14 +64,14 @@ public:
 	}
 
 	void RegisterComponentErrorHandler(IErrorHandler *errorHandler) {
-		for (stdext::hash_map<std::string,void *>::iterator iter = _components.begin();iter!=_components.end();++iter) {
+		for (boost::unordered_map<std::string,void *>::iterator iter = _components.begin();iter!=_components.end();++iter) {
 			((ISystemComponent *)iter->second)->SetComponentErrorHandler(errorHandler);
 		}
 	}
 
 private:
 	Components();
-	stdext::hash_map<std::string,void *> _components;
+	boost::unordered_map<std::string,void *> _components;
 };
 
 }}

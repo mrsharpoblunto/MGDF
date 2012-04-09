@@ -1,7 +1,7 @@
 #pragma once
 
 #include <exception>
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 
 namespace MGDF { namespace core { namespace vfs {
 
@@ -14,7 +14,7 @@ public:
 	void RemoveAlias(std::wstring alias);
 	std::wstring ResolveAliases(std::wstring text);//throws EAliasSyntaxException
 private:
-	stdext::hash_map<std::wstring,std::wstring> _aliases;
+	boost::unordered_map<std::wstring,std::wstring> _aliases;
 
 };
 

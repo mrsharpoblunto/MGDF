@@ -18,7 +18,7 @@ namespace MGDF { namespace core {
 
 #define SEND_THRESHOLD 10
 
-StatisticsManager::StatisticsManager(std::string gameUid)
+StatisticsManager::StatisticsManager()
 {
 	_saveBuffer = new std::vector<NameValuePair>();
 	_statisticsFile = Resources::Instance().GameUserStatisticsFile();

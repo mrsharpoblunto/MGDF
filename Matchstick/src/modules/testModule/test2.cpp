@@ -19,14 +19,6 @@ Test2::Test2()
 	_testState = 0;
 }
 
-void Test2::LoadModule(const wchar_t *saveDataFolder,const wchar_t *workingFolder,TextManagerState *state)
-{
-}
-
-void Test2::SaveModule(const wchar_t *saveDataFolder,TextManagerState *state)
-{
-}
-
 TestModule *Test2::NextTestModule()
 {
 	if (_testState==1000)
@@ -48,6 +40,7 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 
 	if (_testState==0)
 	{
+		state->AddLine(WHITE,"");
 		state->AddLine(WHITE,"SoundManager Tests");
 		state->AddLine(WHITE,"");
 
@@ -107,19 +100,19 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	{
 		if (system->GetInput()->IsKeyDown(KEY_UP))
 		{
-			_sound->GetPosition()->Y +=1;
+			_sound->GetPosition()->y +=1;
 		}
 		if (system->GetInput()->IsKeyDown(KEY_DOWN))
 		{
-			_sound->GetPosition()->Y -=1;
+			_sound->GetPosition()->y -=1;
 		}
 		if (system->GetInput()->IsKeyDown(KEY_LEFT))
 		{
-			_sound->GetPosition()->X -=1;
+			_sound->GetPosition()->x -=1;
 		}
 		if (system->GetInput()->IsKeyDown(KEY_RIGHT))
 		{
-			_sound->GetPosition()->X +=1;
+			_sound->GetPosition()->x +=1;
 		}
 
 		if (system->GetInput()->IsKeyPress(KEY_Y))
@@ -178,27 +171,21 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	{
 		if (system->GetInput()->IsKeyPress(KEY_Y))
 		{
-			_testState =999;
+			_testState =1000;
 			system->GetSound()->RemoveSoundStream(_stream);
 			state->SetStatus(GREEN,"[Test Passed]");
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 		else if (system->GetInput()->IsKeyPress(KEY_N))
 		{
 			_testState =999;
 			system->GetSound()->RemoveSoundStream(_stream);
 			state->SetStatus(RED,"[Test Failed]");
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 		else if (system->GetInput()->IsKeyPress(KEY_P))
 		{
 			if (_stream->IsPaused()) _stream->Play();
 			else _stream->Pause();
 		}
-	}
-	else if (_testState==999 && system->GetInput()->IsKeyPress(KEY_RETURN))
-	{
-		_testState = 1000;
 	}
 }
 

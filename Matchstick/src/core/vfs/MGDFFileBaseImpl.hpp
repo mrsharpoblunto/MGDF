@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <hash_map>
+#include <boost/unordered_map.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
 namespace MGDF { namespace core { namespace vfs {
@@ -30,7 +30,7 @@ public:
 	void AddChild(IFile *newNode);
 	void SetParent(IFile *file); 
 protected:
-	stdext::hash_map<std::wstring,IFile *> *_children;
+	boost::unordered_map<std::wstring,IFile *> *_children;
 	IFile *_parent;
 	std::wstring _logicalPath;
 };
@@ -46,11 +46,11 @@ public:
 	virtual void Dispose();
 private:
 	FileBaseImplIterator() : _isEmpty(true) {};
-	FileBaseImplIterator(stdext::hash_map<std::wstring,IFile *>::iterator mapIter,stdext::hash_map<std::wstring,IFile *>::iterator mapIterEnd): _mapIter(mapIter) , _mapIterEnd(mapIterEnd), _isEmpty(false) {};
+	FileBaseImplIterator(boost::unordered_map<std::wstring,IFile *>::iterator mapIter,boost::unordered_map<std::wstring,IFile *>::iterator mapIterEnd): _mapIter(mapIter) , _mapIterEnd(mapIterEnd), _isEmpty(false) {};
 
 	bool _isEmpty;
-	stdext::hash_map<std::wstring,IFile *>::iterator _mapIter;
-	stdext::hash_map<std::wstring,IFile *>::iterator _mapIterEnd;
+	boost::unordered_map<std::wstring,IFile *>::iterator _mapIter;
+	boost::unordered_map<std::wstring,IFile *>::iterator _mapIterEnd;
 };
 
 

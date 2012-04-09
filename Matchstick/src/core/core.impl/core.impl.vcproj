@@ -200,14 +200,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MGDFSystemEvents.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\MGDFSystemEvents.hpp"
-				>
-			</File>
-			<File
 				RelativePath=".\MGDFSystemImpl.cpp"
 				>
 			</File>

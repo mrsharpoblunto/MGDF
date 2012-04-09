@@ -20,7 +20,7 @@ public:
 	virtual const Version *GetVersion() const;
 	virtual std::string GetParameterString() const;
 
-	virtual void Load(std::wstring);
+	virtual void Load(const std::wstring &);
 
 	virtual void startDocument();
 

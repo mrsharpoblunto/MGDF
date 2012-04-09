@@ -14,7 +14,7 @@
 
 namespace MGDF { namespace core {
 
-Game::Game(std::string uid,std::string name,int interfaceVersion,const Version *version,xml::IXMLFactoryComponent *xmlFactory)
+Game::Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,xml::IXMLFactoryComponent *xmlFactory)
 {
 	_uid = uid;
 	_name = name;
@@ -89,12 +89,12 @@ void Game::SavePreferences() const
 	GetLoggerImpl()->Add(THIS_NAME,"saved preferences to '"+Resources::ToString(_preferencesFile)+"' successfully");
 }
 
-void Game::SavePreferences(std::wstring filename) {
+void Game::SavePreferences(const std::wstring &filename) {
 	_preferencesFile = filename;
 	SavePreferences();
 }
 
-void Game::LoadPreferences(std::wstring filename)
+void Game::LoadPreferences(const std::wstring &filename)
 {
 	std::auto_ptr<xml::IPreferenceConfigXMLHandler> handler(_xmlFactory->CreatePreferenceConfigXMLHandler());
 	handler->Load(filename);

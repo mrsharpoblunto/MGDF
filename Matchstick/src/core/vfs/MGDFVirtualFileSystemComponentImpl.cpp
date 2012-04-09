@@ -79,14 +79,14 @@ bool VirtualFileSystemComponent::MapDirectory(const wchar_t *physicalDirectory,c
 	//if the physical object to be mapped is a directory then map the contents of the directory into the logical directory
 	//though the actual phsycial directory will not
 	if (boost::filesystem::is_directory(physicalDirectoryPath)) {
-		boost::filesystem::wdirectory_iterator end_itr; // default construction yields past-the-end
-		for ( boost::filesystem::wdirectory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
-			Map((*itr).path().native_file_string().c_str() ,logicalDir ,filter,recursive);
+		boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
+		for ( boost::filesystem::directory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
+			Map((*itr).path().native().c_str() ,logicalDir ,filter,recursive);
 		}		
 	}
 	//else the phsycial object is a file and will be mapped into the logical directory directly
 	else {
-		Map(physicalDirectoryPath.native_file_string().c_str(),logicalDir,filter,recursive);
+		Map(physicalDirectoryPath.native().c_str(),logicalDir,filter,recursive);
 	}
 
 	//store the filter so that we can use it for later lazy mappings.
@@ -103,14 +103,14 @@ void VirtualFileSystemComponent::MapDirectory(IFile *parent,IFileFilter *filter)
 	//if the physical object to be mapped is a directory then map the contents of the directory into the logical directory
 	//though the actual phsycial directory will not
 	if (boost::filesystem::is_directory(physicalDirectoryPath)) {
-		boost::filesystem::wdirectory_iterator end_itr; // default construction yields past-the-end
-		for ( boost::filesystem::wdirectory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
-			Map((*itr).path().native_file_string().c_str() ,parent ,filter,true);
+		boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
+		for ( boost::filesystem::directory_iterator itr( physicalDirectoryPath ); itr != end_itr; ++itr ) {
+			Map((*itr).path().native().c_str() ,parent ,filter,true);
 		}		
 	}
 	//else the phsycial object is a file and will be mapped into the logical directory directly
 	else {
-		Map(physicalDirectoryPath.native_file_string().c_str(),parent,filter,true);
+		Map(physicalDirectoryPath.native().c_str(),parent,filter,true);
 	}
 }
 
@@ -140,7 +140,7 @@ void VirtualFileSystemComponent::Map(const wchar_t *currentPhysicalFile, IFile *
 			if (boost::filesystem::is_directory(physicalDirectoryPath)) {
 				if (recursive)
 				{
-					currentFile = new DefaultFolderImpl(physicalDirectoryPath.leaf(),physicalDirectoryPath.native_file_string(), this,filter);
+					currentFile = new DefaultFolderImpl(physicalDirectoryPath.filename().native(),physicalDirectoryPath.native(), this,filter);
 					((FileBaseImpl *)currentFile)->SetParent(parentFile);
 				}
 			}
@@ -169,7 +169,7 @@ IArchiveHandler *VirtualFileSystemComponent::GetArchiveHandler(const wchar_t *fu
 }
 
 
-IFile *VirtualFileSystemComponent::CreateLogicalDirectory(std::wstring logicalDirectory) {
+IFile *VirtualFileSystemComponent::CreateLogicalDirectory(const std::wstring &logicalDirectory) {
 	std::wstring ldir = _aliases->ResolveAliases(logicalDirectory);//remove any aliases present
 	IFile *currentDirectory = _root;//start the search at the root node
 

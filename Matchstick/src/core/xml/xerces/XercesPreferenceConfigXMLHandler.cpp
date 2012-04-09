@@ -32,7 +32,7 @@ void XercesPreferenceConfigXMLHandler::error(const SAXParseException& e)
 	throw new std::exception(XercesUtils::ToString(e.getMessage()).c_str()); 
 }
 
-void XercesPreferenceConfigXMLHandler::Add(std::string name,std::string value)
+void XercesPreferenceConfigXMLHandler::Add(const std::string &name,const std::string &value)
 {
 	_preferences[name] = value;
 }
@@ -47,7 +47,7 @@ IPreferenceConfigXMLHandler::iterator XercesPreferenceConfigXMLHandler::End() co
 	return _preferences.end();
 }
 
-void XercesPreferenceConfigXMLHandler::Load(std::wstring filename)
+void XercesPreferenceConfigXMLHandler::Load(const std::wstring &filename)
 {
     try
     {
@@ -68,7 +68,7 @@ void XercesPreferenceConfigXMLHandler::Load(std::wstring filename)
     } 
 }
 
-void XercesPreferenceConfigXMLHandler::Save(std::wstring filename) const
+void XercesPreferenceConfigXMLHandler::Save(const std::wstring &filename) const
 {
 	std::ofstream file(filename.c_str(),std::ios::out);
 
@@ -133,7 +133,7 @@ void XercesPreferenceConfigXMLHandler::characters(
 	if (_addingName) {
 		_name = ch;
 	}
-	else if (_addingValue && _name!="") {
+	else if (_addingValue && !_name.empty()) {
 		_preferences[_name] = ch;
 	}
 }

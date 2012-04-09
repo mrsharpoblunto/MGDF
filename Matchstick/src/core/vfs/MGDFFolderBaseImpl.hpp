@@ -7,7 +7,7 @@ namespace MGDF { namespace core { namespace vfs {
 class FolderBaseImpl : public FileBaseImpl
 {
 public:
-	FolderBaseImpl(std::wstring foldername,std::wstring physicalPath=L"");
+	FolderBaseImpl(const std::wstring &foldername,const std::wstring &physicalPath=L"");
 	virtual ~FolderBaseImpl(void);
 
 	virtual bool IsOpen() const;

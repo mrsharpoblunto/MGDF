@@ -10,7 +10,7 @@
 #pragma warning(disable:4291)
 #endif
 
-FakeFile::FakeFile(IFile *parent,std::wstring physicalFile,std::wstring name)
+FakeFile::FakeFile(IFile *parent,const std::wstring &physicalFile,const std::wstring &name)
 {
 	_parent = parent;
 	_children = NULL;
@@ -23,7 +23,7 @@ FakeFile::FakeFile(IFile *parent,std::wstring physicalFile,std::wstring name)
 	_logicalPath = L"";
 }
 
-FakeFile::FakeFile(FakeFile *parent,std::wstring name,void *data,int dataLength)//NULL data indicates a folder
+FakeFile::FakeFile(FakeFile *parent,const std::wstring &name,void *data,int dataLength)//NULL data indicates a folder
 {
 	_parent = parent;
 	_children = NULL;
@@ -40,7 +40,7 @@ FakeFile::~FakeFile()
 {
 	if (_children!=NULL) {
 		//delete all the children of this node
-		stdext::hash_map<std::wstring,MGDF::IFile *>::iterator iter;
+		boost::unordered_map<std::wstring,MGDF::IFile *>::iterator iter;
 		for (iter=_children->begin();iter!=_children->end();++iter) {
 			delete iter->second;
 		}
@@ -124,7 +124,7 @@ void FakeFile::AddChild(MGDF::IFile *file)
 {
 	//lazily initialise the child map
 	if (_children==NULL) {
-		_children = new stdext::hash_map<std::wstring,MGDF::IFile *>();
+		_children = new boost::unordered_map<std::wstring,MGDF::IFile *>();
 	}
 	//if an identical node already exists in the tree then remove it
 	std::wstring fileName = file->GetName();

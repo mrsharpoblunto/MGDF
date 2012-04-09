@@ -40,13 +40,13 @@ std::wstring CurrentDirectoryHelper::Get()
 	}
 }
 
-void CurrentDirectoryHelper::Set(std::wstring directory)
+void CurrentDirectoryHelper::Set(const std::wstring &directory)
 {
 	_currentDirectories.clear();
 	SetDirectory(directory);
 }
 
-void CurrentDirectoryHelper::Push(std::wstring directory)
+void CurrentDirectoryHelper::Push(const std::wstring &directory)
 {
 	_currentDirectories.push_front(directory);
 	SetDirectory(directory);
@@ -66,7 +66,7 @@ void CurrentDirectoryHelper::Pop()
 	}
 }
 
-void CurrentDirectoryHelper::SetDirectory(std::wstring directory)
+void CurrentDirectoryHelper::SetDirectory(const std::wstring &directory)
 {
 	if(directory.length() > MAX_PATH-1)
 	{

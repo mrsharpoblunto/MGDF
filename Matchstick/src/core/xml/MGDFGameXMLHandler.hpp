@@ -17,7 +17,7 @@ public:
 	virtual const Version *GetVersion() const=0;
 	virtual int GetInterfaceVersion() const=0;
 	virtual std::string GetParameterString() const=0;
-	virtual void Load(std::wstring)=0;
+	virtual void Load(const std::wstring &load)=0;
 };
 
 }}}

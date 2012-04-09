@@ -12,7 +12,8 @@
 
 namespace MGDF { namespace core { namespace vfs {
 
-DefaultFolderImpl::DefaultFolderImpl(std::wstring foldername,std::wstring physicalPath,VirtualFileSystemComponent *vfs,IFileFilter *filter):FolderBaseImpl(foldername,physicalPath)
+DefaultFolderImpl::DefaultFolderImpl(const std::wstring &foldername,const std::wstring &physicalPath,VirtualFileSystemComponent *vfs,IFileFilter *filter)
+	:FolderBaseImpl(foldername,physicalPath)
 {
 	_mappedChildren = vfs==NULL;
 	_vfs = vfs;

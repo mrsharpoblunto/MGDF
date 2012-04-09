@@ -110,17 +110,21 @@ BEGIN_TESTF(XMLPreferencesHandlerTest,XMLTestFixture)
 
 	IPreferenceConfigXMLHandler::iterator iter;
 	int count=0;
+	bool foundResolution=false;
+	bool foundScreenX=false;
 	for (iter=handler->Begin();iter!=handler->End();++iter) {
-		if (count==0) {
-			WIN_ASSERT_EQUAL("resolution",iter->first);
+		if (iter->first=="resolution") {
 			WIN_ASSERT_EQUAL("800*600",iter->second);
+			foundResolution = true;
 		}
-		else if (count==6) {
-			WIN_ASSERT_EQUAL("screenX",iter->first);
+		else if (iter->first=="screenX") {
 			WIN_ASSERT_EQUAL("800",iter->second);
+			foundScreenX = true;
 		}
 		++count;
 	}
+	WIN_ASSERT_TRUE(foundResolution);
+	WIN_ASSERT_TRUE(foundScreenX);
 	WIN_ASSERT_EQUAL(9,count);
 
 	std::wstring savePath = Resources::Instance().RootDir()+L"../../tests/content/temp.xml";
@@ -135,17 +139,21 @@ BEGIN_TESTF(XMLPreferencesHandlerTest,XMLTestFixture)
 	handler->Load(path);
 
 	count=0;
+	foundResolution=false;
+	foundScreenX=false;
 	for (iter=handler->Begin();iter!=handler->End();++iter) {
-		if (count==0) {
-			WIN_ASSERT_EQUAL("resolution",iter->first);
+		if (iter->first=="resolution") {
 			WIN_ASSERT_EQUAL("800*600",iter->second);
+			foundResolution = true;
 		}
-		else if (count==6) {
-			WIN_ASSERT_EQUAL("screenX",iter->first);
+		else if (iter->first=="screenX") {
 			WIN_ASSERT_EQUAL("800",iter->second);
+			foundScreenX = true;
 		}
 		++count;
 	}
+	WIN_ASSERT_TRUE(foundResolution);
+	WIN_ASSERT_TRUE(foundScreenX);
 	WIN_ASSERT_EQUAL(9,count);
 
 	boost::filesystem::remove(boost::filesystem::wpath(savePath,boost::filesystem::native));//remove the temp file

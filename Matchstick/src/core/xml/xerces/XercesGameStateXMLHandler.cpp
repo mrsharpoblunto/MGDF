@@ -33,10 +33,8 @@ void XercesGameStateXMLHandler::error(const SAXParseException& e)
 	throw std::exception(XercesUtils::ToString(e.getMessage()).c_str()); 
 }
 
-bool XercesGameStateXMLHandler::Load(std::wstring filename)
+void XercesGameStateXMLHandler::Load(const std::wstring &filename)
 {
-	_requiresMigration = false;
-
     try
     {
 		SAX2XMLReader *loadParser = XercesXmlSchemaCache::Instance().CreateParser();
@@ -54,11 +52,9 @@ bool XercesGameStateXMLHandler::Load(std::wstring filename)
     {
 		throw MGDFException(e.what());
     } 
-
-	return _requiresMigration;
 }
 
-void XercesGameStateXMLHandler::Save(std::wstring filename) const
+void XercesGameStateXMLHandler::Save(const std::wstring &filename) const
 {
 	std::ofstream file(filename.c_str(),std::ios::out);
 
@@ -113,11 +109,7 @@ void XercesGameStateXMLHandler::characters(
 	}
 	else if (_currentNode=="gameversion") {
 		Version psVersion = VersionHelper::Create(ch);
-		//inform the system that the versions don't match up and that this file may have to be migrated forward
-		if (VersionHelper::Compare(&psVersion,&_version)!=0) {
-			_requiresMigration = true;
-			_version = psVersion;
-		}
+		_version = psVersion;
 	}
 }
 

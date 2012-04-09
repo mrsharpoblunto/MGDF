@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+#include <vector>
 #include <cctype>
 #include <boost/algorithm/string.hpp>
 #include "../common/MGDFResources.hpp"
@@ -41,7 +42,7 @@ void Alias::AddAlias(std::wstring alias,std::wstring value)
 void Alias::RemoveAlias(std::wstring alias)
 {
 	std::transform(alias.begin(), alias.end(), alias.begin(), ::towlower);
-	stdext::hash_map<std::wstring,std::wstring>::iterator iter = _aliases.find(alias);
+	boost::unordered_map<std::wstring,std::wstring>::iterator iter = _aliases.find(alias);
 	if (iter!=_aliases.end()) {
 		_aliases.erase(iter);
 	}
