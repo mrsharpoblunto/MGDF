@@ -33,7 +33,10 @@ namespace MGDF {
 			void SetStatus(unsigned int color,const std::string &text);
 			boost::shared_ptr<TextManagerState> Interpolate(const TextManagerState *state,double alpha);
 		private:
+#pragma warning(push)
+#pragma warning(disable: 4251)
 			std::vector<Line> _lines;
+#pragma warning(pop)
 		};
 
 		class TESTCOMMON_DLL TextManager
@@ -46,7 +49,10 @@ namespace MGDF {
 			void OnResetDevice();
 			void OnLostDevice();
 		private:
+#pragma warning(push)
+#pragma warning(disable: 4251)
 			boost::shared_ptr<TextManagerState> _state;
+#pragma warning(pop)
 			ISystem *_system;
 			ID3DXFont *_font;
 		};

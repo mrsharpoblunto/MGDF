@@ -2,7 +2,12 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
+
+#pragma warning( push )
+#pragma warning( disable:4996 )
 #include <boost/algorithm/string.hpp>
+#pragma warning( pop )
+
 #include "MGDFVersionHelper.hpp"
 
 //this snippet ensures that the location of memory leaks is reported correctly in debug mode

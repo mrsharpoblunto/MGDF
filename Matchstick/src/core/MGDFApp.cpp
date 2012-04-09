@@ -164,12 +164,12 @@ void MGDFApp::DrawSystemOverlay()
 
 	if (_vertices[1].X != font_rect.right || _vertices[2].Y != font_rect.bottom)
 	{
-		_vertices[1].X = font_rect.right;
-		_vertices[2].X = font_rect.right;
-		_vertices[3].X = font_rect.right;
-		_vertices[2].Y = font_rect.bottom;
-		_vertices[3].Y = font_rect.bottom;
-		_vertices[4].Y = font_rect.bottom;
+		_vertices[1].X = static_cast<float>(font_rect.right);
+		_vertices[2].X = static_cast<float>(font_rect.right);
+		_vertices[3].X = static_cast<float>(font_rect.right);
+		_vertices[2].Y = static_cast<float>(font_rect.bottom);
+		_vertices[3].Y = static_cast<float>(font_rect.bottom);
+		_vertices[4].Y = static_cast<float>(font_rect.bottom);
 
 		void * pVoid;
 		_vBuffer->Lock(0, 0, (void**)&pVoid, 0);

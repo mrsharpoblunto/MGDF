@@ -49,6 +49,16 @@
 #include <d3dx9.h>
 #include <dxerr.h>
 
+//enable easier shader debugging
+#if defined(DEBUG) | defined(_DEBUG)
+#ifndef D3DXSHADER_DEBUG
+#define D3DXSHADER_DEBUG
+#endif
+#ifndef D3DXSHADER_SKIPOPTIMIZATION
+#define D3DXSHADER_SKIPOPTIMIZATION
+#endif
+#endif
+
 //some useful macro's to make deleting pointers easier
 #ifndef SAFE_DELETE
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
@@ -65,4 +75,3 @@
 #include <string>
 #include <vector>
 #include <list>
-#include <hash_map>

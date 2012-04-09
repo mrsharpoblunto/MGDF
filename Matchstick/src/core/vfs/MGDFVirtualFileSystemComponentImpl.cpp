@@ -2,7 +2,11 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
+
+#pragma warning( push )
+#pragma warning( disable:4996 )
 #include <boost/algorithm/string.hpp>
+#pragma warning( pop )
 
 #include <MGDF/MGDF.hpp>
 

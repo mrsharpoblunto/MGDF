@@ -49,7 +49,7 @@ double FrameLimiter::ProgressThroughCurrentFrame()
 
     LONGLONG timePassed = _frameTime - (currentTime.QuadPart - _previousFrameEnd.QuadPart);
 
-	double progress = timePassed/_frameTime;
+	double progress = static_cast<double>(timePassed/_frameTime);
 	if (progress<0) progress = 0;
 
 	return 1-progress;

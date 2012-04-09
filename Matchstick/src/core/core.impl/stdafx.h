@@ -49,5 +49,15 @@
 #include <d3dx9.h>
 #include <dxerr.h>
 
+//enable easier shader debugging
+#if defined(DEBUG) | defined(_DEBUG)
+#ifndef D3DXSHADER_DEBUG
+#define D3DXSHADER_DEBUG
+#endif
+#ifndef D3DXSHADER_SKIPOPTIMIZATION
+#define D3DXSHADER_SKIPOPTIMIZATION
+#endif
+#endif
+
 #include <MGDF/MGDF.hpp>
 

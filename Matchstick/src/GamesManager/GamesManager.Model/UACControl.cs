@@ -148,7 +148,7 @@ namespace MGDF.GamesManager.Model
             {
                 Process p = Process.Start(startInfo);
             }
-            catch (System.ComponentModel.Win32Exception ex)
+            catch (System.ComponentModel.Win32Exception)
             {
                 return; //If cancelled, do nothing
             }

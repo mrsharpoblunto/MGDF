@@ -10,7 +10,13 @@ namespace MGDF.GamesManager.Controls
     class Message: IMessage
     {
         public event EventHandler Shown;
-        public event CancelEventHandler Closing;
+
+        public event CancelEventHandler Closing
+        {
+            add { throw new NotSupportedException(); }
+            remove { }
+        }
+
         public event EventHandler Closed;
 
         public bool Enabled

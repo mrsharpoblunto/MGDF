@@ -4,7 +4,7 @@
 
 namespace MGDF { namespace core {
 
-	SystemStats::SystemStats(int maxSamples)
+	SystemStats::SystemStats(unsigned int maxSamples)
 	{
 		_maxSamples = maxSamples;
 	}
