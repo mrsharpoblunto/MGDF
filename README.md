@@ -28,9 +28,9 @@ To download everything you will need in order to begin building your own MGDF ba
 
 Building Source
 ---------------
-MGDF can be built with Microsoft Visual Studio 2008 on windows (VS2010 will probably work too, but this is untested). To build MGDF you will need to have installed and built the following prerequisites.
+MGDF can be built with Microsoft Visual Studio 2008 on windows (VS2010/VS2011 will probably work too, but this is untested). To build MGDF you will need to have installed and built the following prerequisites.
 
-* [boost 1.35](http://www.boost.org/users/history/version_1_35_0.html) (For a prebuilt installer go [here](http://www.boostpro.com/download/))
+* [boost 1.47](http://www.boost.org/users/history/version_1_47_0.html) (For a prebuilt installer go [here](http://www.boostpro.com/download/))
 * Directx 9 SDK (october 2005 or later. Note the official build uses the [June 2010 version](http://www.microsoft.com/download/en/details.aspx?id=6812)).
 * ensure boost and directX libs and headers are on visual studio's lib/include path.
 * build vendor/libs.sln in debug win32 and release win32 configurations.
