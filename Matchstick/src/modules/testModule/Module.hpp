@@ -47,13 +47,14 @@ public:
 	const char *GetLastError();
 private:
 	MGDF::ISystem *_system;
-	bool _inited;
 	std::string _lastError;
 	std::wstring _workingFolder;
 
 	TestModule *_testModule;
 	BufferedGameState<TextManagerState> _stateBuffer;
 	TextManager *_textManager;
+	MGDF::IPerformanceCounter *_textManagerCounter;
+	MGDF::IPerformanceCounter *_testModuleCounter;
 };
 
 }}

@@ -232,6 +232,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\MGDF\MGDFPerformanceCounter.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\MGDF\MGDFSound.hpp"
 				>
 			</File>

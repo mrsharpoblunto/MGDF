@@ -79,3 +79,5 @@
 
 #include <MGDF/MGDF.hpp>
 
+#define TIMER_SAMPLES 60
+

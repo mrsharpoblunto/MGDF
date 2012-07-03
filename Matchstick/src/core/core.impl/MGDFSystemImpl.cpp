@@ -102,41 +102,72 @@ std::string System::GetSystemInformation(SystemStats *stats)
 	ss.setf(std::ios::fixed);
 	ss.precision(4);
 
-	ss << "MGDF Version: " << MGDFVersionInfo::MGDF_VERSION << "\r\nMGDF Interface version: " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
+	std::vector<std::pair<const char *,double> > cpuCounters;
+	std::vector<std::pair<const char *,double> > gpuCounters;
 
-	ss << "\r\nPerformance Statistics:\r\n";
+	//lock as this method is called from the render thread and we
+	//dont want the sim thread modifying the cpu counters while we
+	//enumerate them
+	{
+		boost::mutex::scoped_lock lock(_timer.Mutex());
 
-	ss << "Renderer FPS: ";
-	double avgRenderTime = stats->AvgRenderTime();
-	if (avgRenderTime==0)
-		ss << "N/A\r\n";
-	else 
-		ss << 1/avgRenderTime << "\r\n";
-	double activeRenderTime = stats->AvgActiveRenderTime();
-	ss << "  Render: " << activeRenderTime << "\r\n";
-	ss << "  Idle: " << avgRenderTime-activeRenderTime << "\r\n";
+		_timer.GetCounterAverages(cpuCounters,gpuCounters);
 
-	ss << "Expected Sim FPS: ";
-	if (stats->ExpectedSimTime()==0)
-		ss << "N/A\r\n";
-	else 
-		ss << 1/stats->ExpectedSimTime() << "\r\n";
+		ss << "MGDF Version: " << MGDFVersionInfo::MGDF_VERSION << "\r\nMGDF Interface version: " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
 
-	ss << "Actual Sim FPS: ";
-	double simTime = stats->SimTime();
-	if (simTime==0)
-		ss << "N/A\r\n";
-	else 
-		ss << 1/simTime << "\r\n";
+		ss << "\r\nPerformance Statistics:\r\n";
 
-	double simInputTime = stats->AvgSimInputTime();
-	double simAudioTime = stats->AvgSimAudioTime();
-	double activeSimTime = stats->AvgActiveSimTime();
-	ss << "  Input: " << simInputTime << "\r\n";
-	ss << "  Audio: " << simAudioTime << "\r\n";
-	ss << "  Other: " << activeSimTime << "\r\n";
-	ss << "  Idle: " << simTime - (activeSimTime+simInputTime+simAudioTime) << "\r\n";
+		ss << "Render Thread\r\n";
+		ss << " FPS : ";
+		double avgRenderTime = stats->AvgRenderTime();
+		if (avgRenderTime==0)
+			ss << "N/A\r\n";
+		else 
+			ss << 1/avgRenderTime << "\r\n";
+		double activeRenderTime = stats->AvgActiveRenderTime();
+		ss << " Render CPU : " << activeRenderTime << "\r\n";
+		ss << " Idle CPU : " << avgRenderTime-activeRenderTime << "\r\n";
 
+		ss << "\r\nSim Thread\r\n";
+		ss << " Expected FPS : ";
+		if (stats->ExpectedSimTime()==0)
+			ss << "N/A\r\n";
+		else 
+			ss << 1/stats->ExpectedSimTime() << "\r\n";
+
+		ss << " Actual FPS : ";
+		double simTime = stats->SimTime();
+		if (simTime==0)
+			ss << "N/A\r\n";
+		else 
+			ss << 1/simTime << "\r\n";
+
+		double simInputTime = stats->AvgSimInputTime();
+		double simAudioTime = stats->AvgSimAudioTime();
+		double activeSimTime = stats->AvgActiveSimTime();
+		ss << " Input CPU : " << simInputTime << "\r\n";
+		ss << " Audio CPU : " << simAudioTime << "\r\n";
+		ss << " Other CPU : " << activeSimTime << "\r\n";
+		ss << " Idle CPU : " << simTime - (activeSimTime+simInputTime+simAudioTime) << "\r\n";
+
+		if (gpuCounters.size()>0)
+		{
+			ss << "\r\nGPU\r\n";
+			for (std::vector<std::pair<const char *,double> >::iterator iter = gpuCounters.begin();iter!=gpuCounters.end();++iter)
+			{
+				ss << " " << iter->first << " : " << iter->second << "\r\n";
+			}
+		}
+
+		if (cpuCounters.size()>0)
+		{
+			ss << "\r\nCPU\r\n";
+			for (std::vector<std::pair<const char *,double> >::iterator iter = cpuCounters.begin();iter!=cpuCounters.end();++iter)
+			{
+				ss << " " << iter->first << " : " << iter->second << "\r\n";
+			}
+		}
+	}
 	return ss.str();
 }
 
@@ -180,6 +211,7 @@ System::~System(void)
 void System::SetD3DDevice(IDirect3DDevice9 *d3dDevice)
 {
 	_d3dDevice = d3dDevice;
+	_timer.InitGPUTimer(_d3dDevice,GPU_TIMER_BUFFER,TIMER_SAMPLES);
 }
 
 void System::CreateGraphicsImpl(IDirect3D9 *d3d9)
@@ -377,6 +409,7 @@ void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &
 
 void System::DrawScene(double alpha)
 {
+	_timer.Begin();
 	if (_module!=NULL) 
 	{
 		//check that the d3d device satisfies the device capabilities required for this module.
@@ -412,10 +445,13 @@ void System::DrawScene(double alpha)
 			FatalError(THIS_NAME,"Error drawing scene in module - "+std::string(_module->GetLastError()));		
 		}
 	}
+	_timer.End();
 }
 
 void System::DeviceLost()
 {
+	_timer.OnLostDevice();
+
 	if (_module!=NULL) {
 		if (!_module->DeviceLost()) {
 			FatalError(THIS_NAME,"Error handling lost device in module - "+std::string(_module->GetLastError()));
@@ -426,6 +462,7 @@ void System::DeviceLost()
 
 void System::DeviceReset()
 {
+	_timer.OnResetDevice();
 }
 
 void System::FatalError(const char *sender,const char *message)

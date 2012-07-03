@@ -15,9 +15,14 @@ Module::~Module(void)
 {
 	delete _textManager;
 	if (_testModule!=NULL) delete _testModule;
+
+	if (_textManagerCounter) _system->GetTimer()->RemoveCounter(_textManagerCounter);
+	if (_testModuleCounter) _system->GetTimer()->RemoveCounter(_testModuleCounter);
 }
 
 Module::Module(ISystem *system)
+: _textManagerCounter(NULL)
+, _testModuleCounter(NULL)
 {
 	_system = system;
 	_textManager = new TextManager(system);
@@ -40,14 +45,21 @@ bool Module::Dispose(void)
 
 bool Module::UpdateScene(double elapsedTime)
 {
-	_testModule->Update(_system,_stateBuffer.Pending());
-
-	TestModule *next = _testModule->NextTestModule();
-	if (next!=NULL)
+	if (!_testModuleCounter)
 	{
-		delete _testModule;
-		_testModule = next;
+		_testModuleCounter = _system->GetTimer()->CreateCPUCounter("Test Module");
 	}
+
+	_testModuleCounter->Begin();
+		_testModule->Update(_system,_stateBuffer.Pending());
+
+		TestModule *next = _testModule->NextTestModule();
+		if (next!=NULL)
+		{
+			delete _testModule;
+			_testModule = next;
+		}
+	_testModuleCounter->End();
 
 	_stateBuffer.Flip();
 	return true;
@@ -58,8 +70,14 @@ bool Module::DrawScene(double alpha)
 	boost::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate(alpha);
 	if (state)
 	{
-		_textManager->SetState(state);
-		_textManager->DrawText();
+		if (!_textManagerCounter)
+		{
+			_textManagerCounter = _system->GetTimer()->CreateGPUCounter("Text Rendering");
+		}
+		_textManagerCounter->Begin();
+			_textManager->SetState(state);
+			_textManager->DrawText();
+		_textManagerCounter->End();
 	}
    return true;
 }

@@ -61,3 +61,6 @@
 
 #include <MGDF/MGDF.hpp>
 
+#define TIMER_SAMPLES 60
+#define GPU_TIMER_BUFFER 3
+

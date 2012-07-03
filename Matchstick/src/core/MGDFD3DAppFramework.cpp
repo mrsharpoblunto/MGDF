@@ -21,7 +21,7 @@ namespace MGDF { namespace core {
 #define STARTING_X 100
 #define STARTING_Y 100
 
-	D3DAppFramework::D3DAppFramework(HINSTANCE hInstance): _stats(60)
+	D3DAppFramework::D3DAppFramework(HINSTANCE hInstance): _stats(TIMER_SAMPLES)
 {
 	this->_drawSystemOverlay = false;
 	this->_applicationInstance = hInstance;

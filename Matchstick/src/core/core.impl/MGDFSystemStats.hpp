@@ -42,6 +42,7 @@ public:
 private:
 	unsigned int _maxSamples;
 	double _expectedSimTime;
+
 	std::list<double> _activeRenderTime;
 	std::list<double> _renderTime;
 	std::list<double> _activeSimTime;
@@ -49,8 +50,14 @@ private:
 	std::list<double> _simInputTime;
 	std::list<double> _simAudioTime;	
 
-	void Append(double value,std::list<double> &list);
-	double GetAverage(std::list<double> &list);
+	double _avgActiveRenderTime;
+	double _avgRenderTime;
+	double _avgActiveSimTime;
+	double _avgSimTime;
+	double _avgSimInputTime;
+	double _avgSimAudioTime;
+
+	void Append(double value,double &average,std::list<double> &list);
 };
 
 }}

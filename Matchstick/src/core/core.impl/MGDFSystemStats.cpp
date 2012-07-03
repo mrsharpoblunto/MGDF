@@ -5,38 +5,44 @@
 namespace MGDF { namespace core {
 
 	SystemStats::SystemStats(unsigned int maxSamples)
+		: _avgActiveRenderTime(0)
+		, _avgRenderTime(0)
+		, _avgActiveSimTime(0)
+		, _avgSimTime(0)
+		, _avgSimInputTime(0)
+		, _avgSimAudioTime(0)
 	{
 		_maxSamples = maxSamples;
 	}
 
 	double SystemStats::AvgActiveRenderTime()
 	{
-		return GetAverage(_activeRenderTime);
+		return _avgActiveRenderTime;
 	}
 
 	double SystemStats::AvgRenderTime()
 	{
-		return GetAverage(_renderTime);
+		return _avgRenderTime;
 	}
 
 	double SystemStats::AvgActiveSimTime()
 	{
-		return GetAverage(_activeSimTime);
+		return _avgActiveSimTime;
 	}
 
 	double SystemStats::AvgSimTime()
 	{
-		return GetAverage(_simTime);
+		return _avgSimTime;
 	}
 
 	double SystemStats::AvgSimInputTime()
 	{
-		return GetAverage(_simInputTime);
+		return _avgSimInputTime;
 	}
 
 	double SystemStats::AvgSimAudioTime()
 	{
-		return GetAverage(_simAudioTime);
+		return _avgSimAudioTime;
 	}
 
 	double SystemStats::ActiveRenderTime()
@@ -106,12 +112,12 @@ namespace MGDF { namespace core {
 
 	void SystemStats::AppendActiveRenderTime(double value)
 	{
-		Append(value,_activeRenderTime);
+		Append(value,_avgActiveRenderTime,_activeRenderTime);
 	}
 
 	void SystemStats::AppendRenderTime(double value)
 	{
-		Append(value,_renderTime);
+		Append(value,_avgRenderTime,_renderTime);
 	}
 
 	void SystemStats::SetExpectedSimTime(double value)
@@ -121,43 +127,33 @@ namespace MGDF { namespace core {
 
 	void SystemStats::AppendActiveSimTime(double value)
 	{
-		Append(value,_activeSimTime);
+		Append(value,_avgActiveSimTime,_activeSimTime);
 	}
 
 	void SystemStats::AppendSimTime(double value)
 	{
-		Append(value,_simTime);
+		Append(value,_avgSimTime,_simTime);
 	}
 
 	void SystemStats::AppendSimInputTime(double value)
 	{
-		Append(value,_simInputTime);
+		Append(value,_avgSimInputTime,_simInputTime);
 	}
 
 	void SystemStats::AppendSimAudioTime(double value)
 	{
-		Append(value,_simAudioTime);
+		Append(value,_avgSimAudioTime,_simAudioTime);
 	}
 
-	void SystemStats::Append(double value,std::list<double> &list)
+	void SystemStats::Append(double value,double &averageValue,std::list<double> &list)
 	{
 		list.push_front(value);
+		averageValue += (value/_maxSamples);
 		if (list.size()>=_maxSamples)
 		{
+			averageValue -= (list.back()/_maxSamples);
 			list.pop_back();
 		}
-	}
-
-	double SystemStats::GetAverage(std::list<double> &list)
-	{
-		if (list.size()==0) return 0;
-
-		double total=0;
-		for (std::list<double>::iterator iter=list.begin();iter!=list.end();++iter)
-		{
-			total += (*iter);
-		}
-		return total/list.size();
 	}
 
 }}
