@@ -16,6 +16,7 @@ public:
 };
 
 DECLARE_LIST(IGraphicsAdaptorModeList,IGraphicsAdaptorMode *)
+DECLARE_LIST(IUIntList,unsigned int)
 
 /**
 this class allows you to get and set the engines various display settings
@@ -37,13 +38,13 @@ virtual void SetVSync(bool vsync)=0;
 /**
 returns the available multisample levels supported by the display adaptor
 */
-virtual unsigned int  GetMultiSampleLevels() const=0;
+virtual IUIntList *GetMultiSampleLevels() const=0;
 
 /**
 set the display adaptors current multisample level, this changed setting is not applied until Queue	ResetDevice is called.
 \return returns false if the desired multisample level cannot be set.
 */
-virtual void  SetCurrentMultiSampleLevel(unsigned int multisampleLevel)=0;
+virtual bool SetCurrentMultiSampleLevel(unsigned int multisampleLevel)=0;
 
 /**
 get the current multisample level in use by the adaptor
@@ -81,9 +82,21 @@ get the current screen height, based on the current adaptor mode
 virtual unsigned int  GetScreenY() const=0;
 
 /**
-Queues the device to be reset on the beginning of the next frame. This applies any changed adaptor mode or multisample settings.
+Queues the swap chain to be reset on the beginning of the next frame. This applies any changed adaptor mode or multisample settings.
+After the changes are applied, the modules OnReset event will be fired.
 */
 virtual void  QueueResetDevice()=0;
+
+/**
+get the direct3d device object from the system
+\return the direct3d device object from the system
+*/
+virtual ID3D11Device * GetD3DDevice() const=0;
+
+/**
+Gets the current back buffer texture. The pointer returned by this method becomes invalid when the modules OnReset event is fired
+*/
+virtual ID3DTexture2D * GetBackBuffer() const=0;
 };
 
 }

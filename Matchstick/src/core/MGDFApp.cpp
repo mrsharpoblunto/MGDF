@@ -118,9 +118,9 @@ void MGDFApp::UpdateScene(double simulationTime)
 	_stats.AppendActiveSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart) - _stats.SimInputTime() - _stats.SimAudioTime());
 }
 
-void MGDFApp::OnInitPresentParameters(D3DPRESENT_PARAMETERS *d3dPP,IDirect3D9* d3d9)
+void MGDFApp::OnInitPresentParameters(D3DPRESENT_PARAMETERS *d3dPP,IDXGIAdapter1 *adapter)
 {
-	_system->CreateGraphicsImpl(d3d9);
+	_system->CreateGraphicsImpl(adapter);
 	_system->GetGraphicsImpl()->OnResetDevice(d3dPP,false);
 }
 

@@ -68,8 +68,8 @@ public:
 	void DrawScene(double alpha);
 	void DeviceLost();
 	void DeviceReset();
-	void SetD3DDevice(IDirect3DDevice9 *d3dDevice);
-	void CreateGraphicsImpl(IDirect3D9 *d3d9);
+	void SetD3DDevice(ID3D11Device *d3dDevice);
+	void CreateGraphicsImpl(IDXGIAdapter1 *adapter,ID3D11Device *device);
 	GraphicsManager *GetGraphicsImpl();
 	std::string GetSystemInformation(SystemStats *stats);
 	void DisposeModule();
@@ -92,7 +92,7 @@ public:
 	virtual IStatisticsManager *GetStatistics() const;
 	virtual IGame *GetGame() const;
 	virtual IInputManager *GetInput() const;
-	virtual IDirect3DDevice9 *GetD3DDevice() const;
+	virtual ID3D11Device *GetD3DDevice() const;
 	virtual void ShutDown();
 	virtual const IStringList *GetSaves() const;
 	virtual void RemoveSave(const char *saveName);
@@ -123,7 +123,7 @@ private:
 	StringList *_saves;
 	GraphicsManager *_graphics;
 	StatisticsManager *_stats;
-	IDirect3DDevice9 *_d3dDevice;
+	ID3D11Device *_d3dDevice;
 	Version _version;
 	Error _lastError;
 	boost::mutex _mutex;

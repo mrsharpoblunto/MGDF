@@ -19,7 +19,7 @@ public:
 	IDirect3DDevice9 *GetD3dDevice();
 
 	virtual bool CheckDeviceCaps() =0;
-	virtual void OnInitPresentParameters(D3DPRESENT_PARAMETERS *,IDirect3D9* d3d9)=0;
+	virtual void OnInitPresentParameters(D3DPRESENT_PARAMETERS *,IDXGIAdapter1 *adapter)=0;
 	virtual void OnResetPresentParameters(D3DPRESENT_PARAMETERS *,bool toggleFullScreen)=0;
 	virtual void UpdateScene(double elapsedTime) =0;
 	virtual void DrawScene(double alpha) =0;
@@ -36,9 +36,12 @@ public:
 protected:	
 
 	// Application, Windows, and Direct3D data members.
-	IDirect3D9*				_d3dObject;
-	IDirect3DDevice9*		_d3dDevice;
-	D3DPRESENT_PARAMETERS _d3dPP;
+	ID3D11Device*			_d3dDevice;
+	ID3D11DeviceContext*	_immediateContext;
+	IDXGISwapChain*			_swapChain;
+	IDXGIFactory*			_factory;
+
+	DXGI_SWAP_CHAIN_DESC	_swapDesc;
 	HINSTANCE				_applicationInstance;
 	HWND					_window;
 

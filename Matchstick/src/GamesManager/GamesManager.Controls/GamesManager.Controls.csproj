@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
+    <ProductVersion>9.0.21022</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{EFA49EB3-095E-47FA-BAE5-04E8F86E7676}</ProjectGuid>
     <OutputType>library</OutputType>
@@ -83,6 +83,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ViewBase.resx">
       <DependentUpon>ViewBase.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

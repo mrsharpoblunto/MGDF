@@ -208,15 +208,15 @@ System::~System(void)
 	GetLogger()->Add(THIS_NAME,"Uninitialised system successfully",LOG_LOW);
 }
 
-void System::SetD3DDevice(IDirect3DDevice9 *d3dDevice)
+void System::SetD3DDevice(ID3D11Device *d3dDevice)
 {
 	_d3dDevice = d3dDevice;
 	_timer.InitGPUTimer(_d3dDevice,GPU_TIMER_BUFFER,TIMER_SAMPLES);
 }
 
-void System::CreateGraphicsImpl(IDirect3D9 *d3d9)
+void System::CreateGraphicsImpl(IDXGIAdapter1 *adapter,ID3D11Device *device)
 {
-	_graphics = new GraphicsManager(d3d9);
+	_graphics = new GraphicsManager(adapter,device);
 	if (_graphics->GetAdaptorModes()->Size()==0) {
 		FatalError(THIS_NAME,"No compatible adaptor modes found");
 	}
@@ -604,7 +604,7 @@ ISoundManager *System::GetSound() const
 	return _sound;
 }
 
-IDirect3DDevice9 *System::GetD3DDevice() const
+ID3D11Device *System::GetD3DDevice() const
 {
 	return _d3dDevice;
 }

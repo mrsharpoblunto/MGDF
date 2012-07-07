@@ -1,6 +1,6 @@
 #pragma once
 
-#include "d3d9.h"
+#include "d3d11.h"
 
 #include <MGDF/MGDFVersion.hpp>
 #include <MGDF/MGDFError.hpp>
@@ -116,13 +116,6 @@ public:
 	\return the graphics manager
 	*/
 	virtual IGraphicsManager * GetGraphics() const=0;
-
-	/**
-	get the direct3d device object from the system
-	NOTE: Can safely be called from the render thread.
-	\return the direct3d device object from the system
-	*/
-	virtual IDirect3DDevice9 * GetD3DDevice() const=0;
 
 	/**
 	gets the current version of the framework

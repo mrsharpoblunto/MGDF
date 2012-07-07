@@ -111,57 +111,76 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 
 void D3DAppFramework::InitD3D(D3DDEVTYPE devType, DWORD requestedVP)
 {
-	if (_window !=NULL && _d3dObject==NULL) {
-		//create Direct3D object
-		if((_d3dObject = Direct3DCreate9(D3D_SDK_VERSION)) == NULL)
+	if (_window !=NULL) {
+		UINT createDeviceFlags = 0;
+		#if defined(DEBUG) || defined(_DEBUG)  
+			createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+		#endif
+
+		IDXGIFactory1* factory = NULL;
+
+		if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory1), (void**)&_factory)))
 		{
-			FatalError("Direct3d Direct3DCreate9() failed!");
+			FatalError("Failed to create IDXGIFactory.");
 		}
 
-		//Verify hardware support for specified formats in windowed and full screen modes.	
-		D3DDISPLAYMODE mode;
-		_d3dObject->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &mode);
-		
-		if (FAILED(_d3dObject->CheckDeviceType(D3DADAPTER_DEFAULT, devType, mode.Format, mode.Format, true))) {
-			FatalError("Direct3d checkDeviceType() failed for windowed mode");
-		}
-		if (FAILED(_d3dObject->CheckDeviceType(D3DADAPTER_DEFAULT, devType, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8, false))) {
-			FatalError("Direct3d checkDeviceType() failed for fullscreen mode");
+		IDXGIAdapter1 *adapter;
+		char videoCardDescription[128];
+		DXGI_ADAPTER_DESC1 adapterDesc;
+		unsigned int stringLength;
+
+		// step through the adapters until we find a compatible adapter and successfully create a device
+		for(int i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++)
+		{
+			adapter->GetDesc1(&adapterDesc);
+			int error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, 128);		
+			std::string message(videoCardDescription,videoCardDescription+128);
+			message.insert(0,"Attempting to create device for adapter ");
+			message.append("...");
+			GetLoggerImpl()->Add("MGDF",message,LOG_LOW);
+
+			driverType = D3D_DRIVER_TYPE_UNKNOWN;// as we're specifying an adapter to use, we must specify that the driver type is unknown!!!
+
+			D3D_FEATURE_LEVEL featureLevel;
+			if (FAILED(D3D11CreateDevice(
+						adapter,
+						driverType,
+						0, // no software device
+						createDeviceFlags, 
+						0, 0,  // default feature level array
+						D3D11_SDK_VERSION,
+						&_d3dDevice,
+						&featureLevel,
+						&_immediateContext) || 
+				featureLevel != D3D_FEATURE_LEVEL_11_0)
+			{
+				//if we couldn't create the device, or it doesn't support the dx11 feature set
+				SAFE_RELEASE(_d3dDevice);
+				SAFE_RELEASE(_immediateContext);
+			}
 		}
 
-		// Check for requested vertex processing and pure device.
-		D3DCAPS9 caps;
-		if (FAILED(_d3dObject->GetDeviceCaps(D3DADAPTER_DEFAULT, devType, &caps))) {
-			FatalError("Direct3d getDevicecaps() failed");
+		if( !_d3dDevice )
+		{
+			FatalError("No adapters found supporting Direct3D Feature Level 11.");
 		}
 
-		DWORD devBehaviorFlags = 0;
-		if( caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT ) {
-			devBehaviorFlags |= requestedVP;
-		}
-		else {
-			devBehaviorFlags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
-		}
+		_d3dDevice->
 
-		// If pure device and HW T&L supported
-		if( caps.DevCaps & D3DDEVCAPS_PUREDEVICE && devBehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING) {
-				devBehaviorFlags |= D3DCREATE_PUREDEVICE;
-		}
-
-		OnInitPresentParameters(&_d3dPP,_d3dObject);
+		OnInitSwapChainDescription(&_d3dPP,_d3dObject);
 		_d3dPP.hDeviceWindow = _window;
 
-		//Create the device.
-		if (FAILED(_d3dObject->CreateDevice(
-			D3DADAPTER_DEFAULT, // primary adapter
-			devType,           // device type
-			_window,          // window associated with device
-			devBehaviorFlags,   // vertex processing
-			&_d3dPP,            // present parameters
-			&_d3dDevice))) // return created device
-		{ 
-			FatalError("Direct3d createDevice() failed");
-		}
+		////Create the device.
+		//if (FAILED(_d3dObject->CreateDevice(
+		//	D3DADAPTER_DEFAULT, // primary adapter
+		//	devType,           // device type
+		//	_window,          // window associated with device
+		//	devBehaviorFlags,   // vertex processing
+		//	&_d3dPP,            // present parameters
+		//	&_d3dDevice))) // return created device
+		//{ 
+		//	FatalError("Direct3d createDevice() failed");
+		//}
 	}
 }
 

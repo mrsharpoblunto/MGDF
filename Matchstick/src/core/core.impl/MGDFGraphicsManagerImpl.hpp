@@ -4,7 +4,7 @@
 #include <boost/thread.hpp>
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFGraphicsManager.hpp>
-#include "d3d9.h"
+#include "d3d11.h"
 
 #include "../common/MGDFListImpl.hpp"
 
@@ -29,17 +29,17 @@ private:
 };
 
 typedef ListImpl<IGraphicsAdaptorModeList,IGraphicsAdaptorMode *> GraphicsAdaptorModeList;
-
+typedef ListImpl<IUIntList,unsigned int> UIntList;
 
 //this class is accessed by the sim and render threads, so setting values and doing device resets must be synced up with a mutex
 class GraphicsManager: public IGraphicsManager {
 public:
-	GraphicsManager(IDirect3D9 *d3d);
+	GraphicsManager(IDXGIAdapter1 *adapter,ID3D11Device *device);
 	virtual ~GraphicsManager(void);
 	virtual bool GetVSync() const;
 	virtual void SetVSync(bool vsync);
-	virtual unsigned int GetMultiSampleLevels() const;
-	virtual void SetCurrentMultiSampleLevel(unsigned int multisampleLevel);
+	virtual IUIntList *GetMultiSampleLevels() const;
+	virtual bool SetCurrentMultiSampleLevel(unsigned int multisampleLevel);
 	virtual unsigned int GetCurrentMultiSampleLevel() const;
 	virtual const IGraphicsAdaptorModeList *GetAdaptorModes() const;
 	virtual IGraphicsAdaptorMode *GetAdaptorMode(unsigned int width,unsigned int height) const;
@@ -47,22 +47,23 @@ public:
 	virtual unsigned int GetScreenX() const;
 	virtual unsigned int GetScreenY() const;
 	virtual void SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode);
-	virtual void QueueResetDevice();
+	virtual void QueueResetSwapChain();
 
 	void LoadPreferences(IGame *game);
-	bool IsResetDevicePending();
-	void OnResetDevice(D3DPRESENT_PARAMETERS *d3dPP,bool toggleFullScreen);
+	bool IsResetPending();
+	void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc);
 
 private:
-	IDirect3D9 *_d3d;
-	bool _initialized,_resetDevicePending;
+	bool _initialized,_resetPending;
+	ID3D11dEVICE *_device;
 
 	GraphicsAdaptorModeList _adaptorModes;
-	DWORD _multiSampleLevelFullScreen;
-	DWORD _multiSampleLevelWindowed;
-
 	IGraphicsAdaptorMode *_currentAdaptorMode;
+
+	UIntList _multiSampleLevels;
+	std::map<unsigned int,unsigned int> _multiSampleQuality;
 	unsigned int _currentMultiSampleLevel;
+
 	bool _vsync;
 	bool _fullScreen;
 

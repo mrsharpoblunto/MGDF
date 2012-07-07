@@ -14,39 +14,57 @@
 
 namespace MGDF { namespace core {
 
-GraphicsManager::GraphicsManager(IDirect3D9 *d3d)
+GraphicsManager::GraphicsManager(IDXGIAdapter1 *adapter,ID3D11Device *device)
 {
-	_d3d = d3d;
+	IDXGIOutput *output;
+	if (FAILED(adapter->EnumOutputs(0, &output)))
+	{
+		return;
+	}
+
+	_device = device;
 	_currentAdaptorMode = NULL;
-	_currentMultiSampleLevel = 0;
+	_currentMultiSampleLevel = 1;
 	_vsync = true;
 
-	int maxAdaptorModes = _d3d->GetAdapterModeCount(D3DADAPTER_DEFAULT,D3DFMT_X8R8G8B8);
-	D3DDISPLAYMODE d3ddm;
+	UINT maxAdaptorModes;
+	if (FAILED(output->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,NULL)))
+	{
+		return;
+	}
+
+	DXGI_MODE_DESC *modes = new DXGI_MODE_DESC[maxAdaptorModes];
+	if (FAILED(output->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,modes)))
+	{
+		delete[] modes;
+		return;
+	}
 
 	for(int mode = 0; mode < maxAdaptorModes; ++mode)
 	{
-		if( FAILED( _d3d->EnumAdapterModes(D3DADAPTER_DEFAULT,D3DFMT_X8R8G8B8,mode, &d3ddm )))
-		{
-			break;
-		}
+		DXGI_MODE_DESC *displayMode	= modes[mode];
 
 		// Does this adaptor mode support  the desired format and is it above the minimum required resolution
-		if( d3ddm.Format == D3DFMT_X8R8G8B8 && d3ddm.Width>=Resources::MIN_SCREEN_X && d3ddm.Height >=Resources::MIN_SCREEN_Y)
+		if( displayMode->Format == DXGI_FORMAT_R8G8B8A8_UNORM && displayMode->Width>=Resources::MIN_SCREEN_X && displayMode->Height >=Resources::MIN_SCREEN_Y)
 		{
-			GraphicsAdaptorMode *adaptorMode = new GraphicsAdaptorMode(d3ddm.Width,d3ddm.Height,d3ddm.RefreshRate);
+			GraphicsAdaptorMode *adaptorMode = new GraphicsAdaptorMode(displayMode->Width,displayMode->Height,displayMode->RefreshRate);
 			_adaptorModes.Add(adaptorMode);
 		}
 	}
 
-	if(FAILED(_d3d->CheckDeviceMultiSampleType(D3DADAPTER_DEFAULT,D3DDEVTYPE_HAL,D3DFMT_X8R8G8B8,true,D3DMULTISAMPLE_NONMASKABLE,&_multiSampleLevelWindowed)))
-	{
-		_multiSampleLevelWindowed = 0;
-	}
+	delete[] modes;
 
-	if(FAILED(_d3d->CheckDeviceMultiSampleType(D3DADAPTER_DEFAULT,D3DDEVTYPE_HAL,D3DFMT_X8R8G8B8,true,D3DMULTISAMPLE_NONMASKABLE,&_multiSampleLevelFullScreen)))
+	//determine the supported multisampling settings for this device
+	for (int i=1;i<D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT;++i)
 	{
-		_multiSampleLevelFullScreen = 0;
+		unsigned int quality=0;
+		if (FAILED(_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, i, &quality)) || quality==0)
+		{
+			continue;
+		}
+
+		_multiSampleLevels.Add(i);
+		_multiSampleQuality[i] = quality;
 	}
 }
 
@@ -57,16 +75,22 @@ GraphicsManager::~GraphicsManager(void)
 	}
 }
 
-unsigned int GraphicsManager::GetMultiSampleLevels() const
+IUIntList *GraphicsManager::GetMultiSampleLevels() const
 {
-	return _multiSampleLevelFullScreen;
+	return &_multiSampleLevels;
 }
 
-void GraphicsManager::SetCurrentMultiSampleLevel(unsigned int multisampleLevel)
+bool GraphicsManager::SetCurrentMultiSampleLevel(unsigned int multisampleLevel)
 {
 	boost::mutex::scoped_lock lock(_mutex);
-	if (multisampleLevel <= _multiSampleLevelFullScreen) {
+	if (_multiSampleQuality.find(multisampleLevel)!=_multiSampleQuality.end()) 
+	{
 		_currentMultiSampleLevel = multisampleLevel;
+		return true;
+	}
+	else
+	{
+		return false;
 	}
 }
 
@@ -128,15 +152,15 @@ void GraphicsManager::SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode)
 	_currentAdaptorMode = mode;
 }
 
-void GraphicsManager::QueueResetDevice()
+void GraphicsManager::QueueResetSwapChain()
 {
 	boost::mutex::scoped_lock lock(_mutex);
-	_resetDevicePending = true;
+	_resetPending = true;
 }
 
-bool GraphicsManager::IsResetDevicePending()
+bool GraphicsManager::IsResetPending()
 {
-	return _resetDevicePending;
+	return _resetPending;
 }
 
 void GraphicsManager::LoadPreferences(IGame *game) 
@@ -181,7 +205,7 @@ void GraphicsManager::LoadPreferences(IGame *game)
 	}
 }
 
-void GraphicsManager::OnResetDevice(D3DPRESENT_PARAMETERS *d3dPP,bool toggleFullScreen)
+void GraphicsManager::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc)
 {
 	boost::mutex::scoped_lock lock(_mutex);
 	if (toggleFullScreen) _fullScreen = !_fullScreen;

@@ -18,7 +18,7 @@ public:
 	MGDFApp(HINSTANCE hInstance);
 	~MGDFApp();
 	virtual bool CheckDeviceCaps();
-	virtual void OnInitPresentParameters(D3DPRESENT_PARAMETERS *,IDirect3D9* d3d9);
+	virtual void OnInitPresentParameters(D3DPRESENT_PARAMETERS *,IDXGIAdapter1 *adapter);
 	virtual void OnResetPresentParameters(D3DPRESENT_PARAMETERS *,bool toggleFullScreen);
 	virtual void UpdateScene(double elapsedTime);
 	virtual void DrawScene(double alpha);
