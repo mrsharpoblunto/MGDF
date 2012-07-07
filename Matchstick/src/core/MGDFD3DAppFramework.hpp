@@ -19,13 +19,13 @@ public:
 	IDirect3DDevice9 *GetD3dDevice();
 
 	virtual bool CheckDeviceCaps() =0;
-	virtual void OnInitPresentParameters(D3DPRESENT_PARAMETERS *,IDXGIAdapter1 *adapter)=0;
-	virtual void OnResetPresentParameters(D3DPRESENT_PARAMETERS *,bool toggleFullScreen)=0;
+	virtual void OnInitD3D(DXGI_SWAP_CHAIN_DESC *,IDXGIAdapter1 *adapter)=0;
+	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *)=0;
 	virtual void UpdateScene(double elapsedTime) =0;
 	virtual void DrawScene(double alpha) =0;
 	virtual void OnLostDevice()=0;
 	virtual void OnResetDevice()=0;
-	virtual bool IsResetDevicePending()=0;
+	virtual bool IsResetSwapChainPending()=0;
 	virtual void FatalError(const std::string &errorMessage)=0;
 	virtual void ExternalClose()=0;
 	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
@@ -49,15 +49,18 @@ protected:
 	FrameLimiter *_frameLimiter;
 	unsigned int _width,_height,_canToggleFullScreen,_drawSystemOverlay;
 	boost::mutex _renderMutex;
-
+	bool _internalShutDown;
+	
 	boost::mutex _statsMutex;
 	SystemStats _stats;
-protected:
-	bool _internalShutDown;
+
 private:
 	void InitMainWindow(const std::string &caption,WNDPROC windowProcedure);
 	void InitD3D(D3DDEVTYPE devType, DWORD requestedVP);
 	void ToggleFullScreenMode();
+	void CreateSwapChain();
+	void OnResize();
+
 	bool _minimized;
 
 	bool IsDeviceLost();

@@ -165,23 +165,102 @@ void D3DAppFramework::InitD3D(D3DDEVTYPE devType, DWORD requestedVP)
 			FatalError("No adapters found supporting Direct3D Feature Level 11.");
 		}
 
-		_d3dDevice->
+		_d3dDevice->GetImmediateContext(&_immediateContext);
 
-		OnInitSwapChainDescription(&_d3dPP,_d3dObject);
-		_d3dPP.hDeviceWindow = _window;
+		OnInitD3D(device,adapter);
+		OnResetSwapChain(&_swapDesc);
+		_swapDesc.OutputWindow = _window;
 
-		////Create the device.
-		//if (FAILED(_d3dObject->CreateDevice(
-		//	D3DADAPTER_DEFAULT, // primary adapter
-		//	devType,           // device type
-		//	_window,          // window associated with device
-		//	devBehaviorFlags,   // vertex processing
-		//	&_d3dPP,            // present parameters
-		//	&_d3dDevice))) // return created device
-		//{ 
-		//	FatalError("Direct3d createDevice() failed");
-		//}
+		CreateSwapChain();
+		OnResize();
 	}
+}
+
+void D3DAppFramework::CreateSwapChain()
+{
+	IDXGIDevice* dxgiDevice = 0;
+	HR(_d3dDevice->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice));
+	      
+	IDXGIAdapter* dxgiAdapter = 0;
+	HR(dxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&dxgiAdapter));
+
+	IDXGIFactory* dxgiFactory = 0;
+	HR(dxgiAdapter->GetParent(__uuidof(IDXGIFactory), (void**)&dxgiFactory));
+
+	HR(dxgiFactory->CreateSwapChain(_d3dDevice, &_swapDesc, &_swapChain));
+	
+	ReleaseCOM(dxgiDevice);
+	ReleaseCOM(dxgiAdapter);
+	ReleaseCOM(dxgiFactory);
+}
+
+void D3DAppFramework::OnResize()
+{
+	// Release the old views, as they hold references to the buffers we
+	// will be destroying.  Also release the old depth/stencil buffer.
+	ReleaseCOM(_renderTargetView);
+	ReleaseCOM(_depthStencilView);
+	ReleaseCOM(_depthStencilBuffer);
+
+
+	// Resize the swap chain and recreate the render target view.
+
+	if (FAILED(_swapChain->ResizeBuffers(1, mClientWidth, mClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, 0)))
+	{
+	}
+
+	ID3D11Texture2D* backBuffer;
+	HR(mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
+	HR(md3dDevice->CreateRenderTargetView(backBuffer, 0, &mRenderTargetView));
+	ReleaseCOM(backBuffer);
+
+	// Create the depth/stencil buffer and view.
+
+	D3D11_TEXTURE2D_DESC depthStencilDesc;
+	
+	depthStencilDesc.Width     = mClientWidth;
+	depthStencilDesc.Height    = mClientHeight;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.ArraySize = 1;
+	depthStencilDesc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+	// Use 4X MSAA? --must match swap chain MSAA values.
+	if( mEnable4xMsaa )
+	{
+		depthStencilDesc.SampleDesc.Count   = 4;
+		depthStencilDesc.SampleDesc.Quality = m4xMsaaQuality-1;
+	}
+	// No MSAA
+	else
+	{
+		depthStencilDesc.SampleDesc.Count   = 1;
+		depthStencilDesc.SampleDesc.Quality = 0;
+	}
+
+	depthStencilDesc.Usage          = D3D11_USAGE_DEFAULT;
+	depthStencilDesc.BindFlags      = D3D11_BIND_DEPTH_STENCIL;
+	depthStencilDesc.CPUAccessFlags = 0; 
+	depthStencilDesc.MiscFlags      = 0;
+
+	HR(md3dDevice->CreateTexture2D(&depthStencilDesc, 0, &mDepthStencilBuffer));
+	HR(md3dDevice->CreateDepthStencilView(mDepthStencilBuffer, 0, &mDepthStencilView));
+
+
+	// Bind the render target view and depth/stencil view to the pipeline.
+
+	md3dImmediateContext->OMSetRenderTargets(1, &mRenderTargetView, mDepthStencilView);
+	
+
+	// Set the viewport transform.
+
+	mScreenViewport.TopLeftX = 0;
+	mScreenViewport.TopLeftY = 0;
+	mScreenViewport.Width    = static_cast<float>(mClientWidth);
+	mScreenViewport.Height   = static_cast<float>(mClientHeight);
+	mScreenViewport.MinDepth = 0.0f;
+	mScreenViewport.MaxDepth = 1.0f;
+
+	md3dImmediateContext->RSSetViewports(1, &mScreenViewport);
 }
 
 void D3DAppFramework::ResetDevice() {
@@ -248,8 +327,8 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 			if(!IsDeviceLost())
 			{
 				//the game logic step may force the device to reset, so lets check
-				if (IsResetDevicePending()) {
-					OnResetPresentParameters(&_d3dPP,false);
+				if (IsResetSwapChainPending()) {
+					OnResetSwapChain(&_swapDesc);
 					ResetDevice();
 				}
 
@@ -432,6 +511,10 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+
+	case WM_MENUCHAR:
+        // Don't beep when we alt-enter.
+        return MAKELRESULT(0, MNC_CLOSE);
 
 	case WM_SYSKEYDOWN:
 		switch( wParam )

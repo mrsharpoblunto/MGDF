@@ -118,20 +118,19 @@ void MGDFApp::UpdateScene(double simulationTime)
 	_stats.AppendActiveSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart) - _stats.SimInputTime() - _stats.SimAudioTime());
 }
 
-void MGDFApp::OnInitPresentParameters(D3DPRESENT_PARAMETERS *d3dPP,IDXGIAdapter1 *adapter)
+void MGDFApp::OnInitD3D(ID3D11Device *device,IDXGIAdapter1 *adapter)
 {
-	_system->CreateGraphicsImpl(adapter);
-	_system->GetGraphicsImpl()->OnResetDevice(d3dPP,false);
+	_system->CreateGraphicsImpl(device,adapter);
 }
 
-bool MGDFApp::IsResetDevicePending()
+bool MGDFApp::IsResetSwapChainPending()
 {
-	return _system->GetGraphicsImpl()->IsResetDevicePending();
+	return _system->GetGraphicsImpl()->IsResetSwapChainPending();
 }
 
-void MGDFApp::OnResetPresentParameters(D3DPRESENT_PARAMETERS *d3dPP,bool toggleFullScreen) 
+void MGDFApp::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *swapDesc) 
 {
-	_system->GetGraphicsImpl()->OnResetDevice(d3dPP,toggleFullScreen);
+	_system->GetGraphicsImpl()->OnResetSwapChain(swapDesc);
 }
 
 void MGDFApp::DrawScene(double alpha) 

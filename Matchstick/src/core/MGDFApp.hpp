@@ -18,13 +18,13 @@ public:
 	MGDFApp(HINSTANCE hInstance);
 	~MGDFApp();
 	virtual bool CheckDeviceCaps();
-	virtual void OnInitPresentParameters(D3DPRESENT_PARAMETERS *,IDXGIAdapter1 *adapter);
-	virtual void OnResetPresentParameters(D3DPRESENT_PARAMETERS *,bool toggleFullScreen);
+	virtual void OnInitD3D(ID3D11Device *device,IDXGIAdapter1 *adapter);
+	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *,bool toggleFullScreen);
+	virtual bool IsResetSwapChainPending();	
 	virtual void UpdateScene(double elapsedTime);
 	virtual void DrawScene(double alpha);
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
-	virtual bool IsResetDevicePending();
 	virtual void FatalError(const std::string &message);
 	virtual void ExternalClose();
 	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
@@ -39,6 +39,7 @@ private:
 	double _alpha;
 
 	System *_system;
+	IDXGISwapChain* _swapChain;
 	ID3DXFont *_font;
 	CUSTOMVERTEX _vertices[6];
 	LPDIRECT3DVERTEXBUFFER9 _vBuffer;
