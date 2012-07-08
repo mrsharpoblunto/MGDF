@@ -46,29 +46,29 @@ boost::shared_ptr<TextManagerState> TextManagerState::Interpolate(const TextMana
 
 TextManager::~TextManager()
 {
-	if(_font){
+	/*if(_font){
       _font->Release();
       _font=NULL;
-   }
+   }*/
 }
 
 TextManager::TextManager(ISystem *system)
 {
 	_system = system;
-	_font=NULL;
+	//_font=NULL;
 
-	HRESULT hr=D3DXCreateFont(_system->GetD3DDevice(),     //D3D Device
-                     22,               //Font height
-                     0,                //Font width
-                     FW_NORMAL,        //Font Weight
-                     1,                //MipLevels
-                     false,            //Italic
-                     DEFAULT_CHARSET,  //CharSet
-                     OUT_DEFAULT_PRECIS, //OutputPrecision
-                     ANTIALIASED_QUALITY, //Quality
-                     DEFAULT_PITCH|FF_DONTCARE,//PitchAndFamily
-                     "Arial",          //pFacename,
-                     &_font);         //ppFont
+	//HRESULT hr=D3DXCreateFont(_system->GetD3DDevice(),     //D3D Device
+ //                    22,               //Font height
+ //                    0,                //Font width
+ //                    FW_NORMAL,        //Font Weight
+ //                    1,                //MipLevels
+ //                    false,            //Italic
+ //                    DEFAULT_CHARSET,  //CharSet
+ //                    OUT_DEFAULT_PRECIS, //OutputPrecision
+ //                    ANTIALIASED_QUALITY, //Quality
+ //                    DEFAULT_PITCH|FF_DONTCARE,//PitchAndFamily
+ //                    "Arial",          //pFacename,
+ //                    &_font);         //ppFont
 }
 
 void TextManager::SetState(boost::shared_ptr<TextManagerState> state)
@@ -97,39 +97,29 @@ void TextManager::DrawText()
 		{
 			  SetRect(&font_rect,0,starty,_system->GetGraphics()->GetScreenX(),starty+25);
 
-			_font->DrawText(NULL,        //pSprite
-										iter->Content.c_str(),  //pString
-										-1,          //Count
-										&font_rect,  //pRect
-										DT_LEFT|DT_NOCLIP,//Format,
-										iter->Color); //Color
+			//_font->DrawText(NULL,        //pSprite
+			//							iter->Content.c_str(),  //pString
+			//							-1,          //Count
+			//							&font_rect,  //pRect
+			//							DT_LEFT|DT_NOCLIP,//Format,
+			//							iter->Color); //Color
 
 			if (iter->StatusText!="")
 			{
 				SetRect(&font_rect,_system->GetGraphics()->GetScreenX()-200,starty,_system->GetGraphics()->GetScreenX(),starty+25);
 
-				_font->DrawText(NULL,        //pSprite
-										iter->StatusText.c_str(),  //pString
-										-1,          //Count
-										&font_rect,  //pRect
-										DT_LEFT|DT_NOCLIP,//Format,
-										iter->StatusColor); //Color
+				//_font->DrawText(NULL,        //pSprite
+				//						iter->StatusText.c_str(),  //pString
+				//						-1,          //Count
+				//						&font_rect,  //pRect
+				//						DT_LEFT|DT_NOCLIP,//Format,
+				//						iter->StatusColor); //Color
 			}
 
 			starty-=25;
 			if (starty<=-25) break;
 		}
 	}
-}
-
-void TextManager::OnResetDevice()
-{
-	_font->OnResetDevice();
-}
-
-void TextManager::OnLostDevice()
-{
-	_font->OnLostDevice();
 }
 
 }}

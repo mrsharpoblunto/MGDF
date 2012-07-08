@@ -13,19 +13,25 @@ namespace MGDF { namespace core {
 class GraphicsAdaptorMode: public IGraphicsAdaptorMode
 {
 public:
-	GraphicsAdaptorMode(unsigned int width,unsigned int height,unsigned int refreshRate)
+	GraphicsAdaptorMode(
+		unsigned int width,
+		unsigned int height,
+		unsigned int refreshRateNumerator,
+		unsigned int refreshRateDenominator)
 	{
 		_width = width;
 		_height = height;
-		_refreshRate = refreshRate;
+		_refreshRateNumerator = refreshRateNumerator;
+		_refreshRateDenominator = refreshRateDenominator;
 	}
 
 	virtual ~GraphicsAdaptorMode(void){};
 	virtual unsigned int GetWidth() const{ return _width; }
 	virtual unsigned int GetHeight() const{ return _height; }
-	virtual unsigned int GetRefreshRate() const { return _refreshRate; }
+	virtual unsigned int GetRefreshRateNumerator() const { return _refreshRateNumerator; }
+	virtual unsigned int GetRefreshRateDenominator() const { return _refreshRateDenominator; }
 private:
-	unsigned int _width,_height,_refreshRate;
+	unsigned int _width,_height,_refreshRateNumerator,_refreshRateDenominator;
 };
 
 typedef ListImpl<IGraphicsAdaptorModeList,IGraphicsAdaptorMode *> GraphicsAdaptorModeList;
@@ -47,15 +53,18 @@ public:
 	virtual unsigned int GetScreenX() const;
 	virtual unsigned int GetScreenY() const;
 	virtual void SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode);
-	virtual void QueueResetSwapChain();
+	virtual void ApplyChanges();
+	virtual ID3D11Texture2D *GetBackBuffer();
+	virtual ID3D11Device *GetD3DDevice();
 
 	void LoadPreferences(IGame *game);
-	bool IsResetPending();
+	bool IsChangePending();
 	void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc);
-
+	void SetBackBuffer(ID3D11Texture2D *backBuffer);
 private:
-	bool _initialized,_resetPending;
-	ID3D11dEVICE *_device;
+	bool _initialized,_changePending;
+	ID3D11Device *_device;
+	ID3D11Texture2D *_backBuffer;
 
 	GraphicsAdaptorModeList _adaptorModes;
 	IGraphicsAdaptorMode *_currentAdaptorMode;

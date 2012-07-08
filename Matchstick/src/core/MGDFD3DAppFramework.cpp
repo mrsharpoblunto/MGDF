@@ -21,7 +21,7 @@ namespace MGDF { namespace core {
 #define STARTING_X 100
 #define STARTING_Y 100
 
-	D3DAppFramework::D3DAppFramework(HINSTANCE hInstance): _stats(TIMER_SAMPLES)
+D3DAppFramework::D3DAppFramework(HINSTANCE hInstance): _stats(TIMER_SAMPLES)
 {
 	this->_drawSystemOverlay = false;
 	this->_applicationInstance = hInstance;
@@ -32,7 +32,7 @@ namespace MGDF { namespace core {
 	this->_running = false;
 	this->_simThread = NULL;
 	this->_internalShutDown = false;
-	ZeroMemory(&_d3dPP, sizeof(_d3dPP));
+	this->_fullScreen = false;
 }
 
 D3DAppFramework::~D3DAppFramework()
@@ -178,116 +178,76 @@ void D3DAppFramework::InitD3D(D3DDEVTYPE devType, DWORD requestedVP)
 
 void D3DAppFramework::CreateSwapChain()
 {
-	IDXGIDevice* dxgiDevice = 0;
-	HR(_d3dDevice->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice));
-	      
-	IDXGIAdapter* dxgiAdapter = 0;
-	HR(dxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&dxgiAdapter));
-
-	IDXGIFactory* dxgiFactory = 0;
-	HR(dxgiAdapter->GetParent(__uuidof(IDXGIFactory), (void**)&dxgiFactory));
-
-	HR(dxgiFactory->CreateSwapChain(_d3dDevice, &_swapDesc, &_swapChain));
-	
-	ReleaseCOM(dxgiDevice);
-	ReleaseCOM(dxgiAdapter);
-	ReleaseCOM(dxgiFactory);
+	if (FAILED(_factory->CreateSwapChain(_d3dDevice, &_swapDesc, &_swapChain)))
+	{
+		FatalError("Failed to create swap chain");
+	}
 }
 
 void D3DAppFramework::OnResize()
 {
 	// Release the old views, as they hold references to the buffers we
 	// will be destroying.  Also release the old depth/stencil buffer.
-	ReleaseCOM(_renderTargetView);
-	ReleaseCOM(_depthStencilView);
-	ReleaseCOM(_depthStencilBuffer);
-
+	SAFE_RELEASE(_backBuffer);
+	SAFE_RELEASE(_renderTargetView);
+	SAFE_RELEASE(_depthStencilView);
+	SAFE_RELEASE(_depthStencilBuffer);
 
 	// Resize the swap chain and recreate the render target view.
 
-	if (FAILED(_swapChain->ResizeBuffers(1, mClientWidth, mClientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, 0)))
+	if (FAILED(_swapChain->ResizeBuffers(1, _swapDesc.BufferDesc.Width, _swapDesc.BufferDesc.Height, DXGI_FORMAT_R8G8B8A8_UNORM, 0)))
 	{
+		FatalError("Failed to resize swapchain buffers");
 	}
 
-	ID3D11Texture2D* backBuffer;
-	HR(mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
-	HR(md3dDevice->CreateRenderTargetView(backBuffer, 0, &mRenderTargetView));
-	ReleaseCOM(backBuffer);
+	if (FAILED(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&_backBuffer))))
+	{
+		FatalError("Failed to get swapchain buffer");
+	}
+	if (FAILED(_d3dDevice->CreateRenderTargetView(_backBuffer, 0, &_renderTargetView)))
+	{
+		FatalError("Failed to create render target view from backbuffer");
+	}
 
 	// Create the depth/stencil buffer and view.
-
 	D3D11_TEXTURE2D_DESC depthStencilDesc;
-	
-	depthStencilDesc.Width     = mClientWidth;
-	depthStencilDesc.Height    = mClientHeight;
+	depthStencilDesc.Width     = _swapDesc.BufferDesc.Width;
+	depthStencilDesc.Height    = _swapDesc.BufferDesc.Height;
 	depthStencilDesc.MipLevels = 1;
 	depthStencilDesc.ArraySize = 1;
 	depthStencilDesc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-	// Use 4X MSAA? --must match swap chain MSAA values.
-	if( mEnable4xMsaa )
-	{
-		depthStencilDesc.SampleDesc.Count   = 4;
-		depthStencilDesc.SampleDesc.Quality = m4xMsaaQuality-1;
-	}
-	// No MSAA
-	else
-	{
-		depthStencilDesc.SampleDesc.Count   = 1;
-		depthStencilDesc.SampleDesc.Quality = 0;
-	}
-
+	depthStencilDesc.SampleDesc.Count = _swapDesc.SampleDesc.Count;
+	depthStencilDesc.SampleDesc.Quality= _swapDesc.SampleDesc.Quality;
 	depthStencilDesc.Usage          = D3D11_USAGE_DEFAULT;
 	depthStencilDesc.BindFlags      = D3D11_BIND_DEPTH_STENCIL;
 	depthStencilDesc.CPUAccessFlags = 0; 
 	depthStencilDesc.MiscFlags      = 0;
 
-	HR(md3dDevice->CreateTexture2D(&depthStencilDesc, 0, &mDepthStencilBuffer));
-	HR(md3dDevice->CreateDepthStencilView(mDepthStencilBuffer, 0, &mDepthStencilView));
+	if (FAILED(_d3dDevice->CreateTexture2D(&_depthStencilDesc, 0, &_depthStencilBuffer)))
+	{
+		FatalError("Failed to create texture from depth stencil description");
+	}
 
+	if (FAILED(_d3dDevice->CreateDepthStencilView(_depthStencilBuffer, 0, &_depthStencilView)))
+	{
+		FatalError("Failed to create depthStencilView from depth stencil buffer");
+	}
 
 	// Bind the render target view and depth/stencil view to the pipeline.
-
-	md3dImmediateContext->OMSetRenderTargets(1, &mRenderTargetView, mDepthStencilView);
+	_immediateContext->OMSetRenderTargets(1, &_renderTargetView, _depthStencilView);
 	
-
 	// Set the viewport transform.
+	D3D11_VIEWPORT viewPort;
+	viewPort.TopLeftX = 0;
+	viewPort.TopLeftY = 0;
+	viewPort.Width    = static_cast<float>(_swapDesc.BufferDesc.Width);
+	viewPort.Height   = static_cast<float>(_swapDesc.BufferDesc.Height);
+	viewPort.MinDepth = 0.0f;
+	viewPort.MaxDepth = 1.0f;
 
-	mScreenViewport.TopLeftX = 0;
-	mScreenViewport.TopLeftY = 0;
-	mScreenViewport.Width    = static_cast<float>(mClientWidth);
-	mScreenViewport.Height   = static_cast<float>(mClientHeight);
-	mScreenViewport.MinDepth = 0.0f;
-	mScreenViewport.MaxDepth = 1.0f;
-
-	md3dImmediateContext->RSSetViewports(1, &mScreenViewport);
-}
-
-void D3DAppFramework::ResetDevice() {
-	OnLostDevice();
-	if (FAILED(_d3dDevice->Reset(&_d3dPP))) {
-		FatalError("Direct3D Reset() failed");
-	}
-	OnResetDevice();
-}
-
-bool D3DAppFramework::IsDeviceLost()
-{
-	HRESULT hr = _d3dDevice->TestCooperativeLevel();
-	switch(hr)
-	{
-		case D3DERR_DEVICELOST: 
-			return true;
-		case D3DERR_DEVICENOTRESET:
-			{
-				ResetDevice();
-				return false;
-			}
-		case D3DERR_DRIVERINTERNALERROR:
-			FatalError("Internal Driver Error");
-			return true;
-	}
-	return false;
+	_immediateContext->RSSetViewports(1, &viewPort);
+	
+	OnResize(_backBuffer);
 }
 
 int D3DAppFramework::Run(unsigned int simulationFps)
@@ -324,53 +284,53 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 		}
 		else {
 			boost::mutex::scoped_lock lock(_renderMutex);
-			if(!IsDeviceLost())
+			//the game logic step may force the device to reset, so lets check
+			if (IsResetSwapChainPending()) {
+				SAFE_RELEASE(_swapChain);
+				CreateSwapChain();
+				OnResize();
+			}
+
+			if (!_minimized)//don't bother rendering if the window is minimzed
 			{
-				//the game logic step may force the device to reset, so lets check
-				if (IsResetSwapChainPending()) {
-					OnResetSwapChain(&_swapDesc);
-					ResetDevice();
-				}
+				//
+				//if(FAILED(_d3dDevice->Clear(0,NULL,D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_ARGB(255,0,0,0),1.0f,0))){
+				//	FatalError("Direct3d Clear() failed");
+				//}
+				//TODO clear backbuffer
 
-				if (!_minimized)//don't bother rendering if the window is minimzed
-				{
-					if(FAILED(_d3dDevice->Clear(0,NULL,D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_ARGB(255,0,0,0),1.0f,0))){
-						FatalError("Direct3d Clear() failed");
-					}
+				LARGE_INTEGER renderStart = _timer.GetCurrentTimeTicks();
+				LARGE_INTEGER activeRenderEnd;
 
-					LARGE_INTEGER renderStart = _timer.GetCurrentTimeTicks();
-					LARGE_INTEGER activeRenderEnd;
+				// Render the scene
+				//if( SUCCEEDED(_d3dDevice->BeginScene() ) )
+				//{
+					double alpha = _frameLimiter->ProgressThroughCurrentFrame();
+					DrawScene(alpha);//render as per the current active module
 
-					// Render the scene
-					if( SUCCEEDED(_d3dDevice->BeginScene() ) )
-					{
-						double alpha = _frameLimiter->ProgressThroughCurrentFrame();
-						DrawScene(alpha);//render as per the current active module
+					//if(FAILED(_d3dDevice->EndScene())){
+					//	FatalError("Direct3d EndScene() failed");
+					//}
+					activeRenderEnd = _timer.GetCurrentTimeTicks();
+				//}
+				//else {
+				//	FatalError("Direct3d BeginScene() failed");
+				//}
 
-						if(FAILED(_d3dDevice->EndScene())){
-							FatalError("Direct3d EndScene() failed");
-						}
-						activeRenderEnd = _timer.GetCurrentTimeTicks();
-					}
-					else {
-						FatalError("Direct3d BeginScene() failed");
-					}
+				//TODO present swapchain. 
+//				HRESULT hr = _d3dDevice->Present(NULL,NULL,NULL,NULL);
+				LARGE_INTEGER renderEnd = _timer.GetCurrentTimeTicks();
 
-					HRESULT hr = _d3dDevice->Present(NULL,NULL,NULL,NULL);
-					LARGE_INTEGER renderEnd = _timer.GetCurrentTimeTicks();
+//				if(hr == D3DERR_DEVICELOST) {
+//					//do nothing, the device will be restored elsewhere
+//				}
+				else if (FAILED(hr)) {
+					FatalError("Direct3d Present() failed");
+				}			
 
-					if(hr == D3DERR_DEVICELOST) {
-						//do nothing, the device will be restored elsewhere
-					}
-					else if (FAILED(hr)) {
-						FatalError("Direct3d Present() failed");
-					}			
-
-					boost::mutex::scoped_lock lock(_statsMutex);
-					_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
-					_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
-				}
-				
+				boost::mutex::scoped_lock lock(_statsMutex);
+				_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
+				_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
 			}
 		}
 	}
@@ -418,9 +378,9 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	case WM_SIZE:
 		if(_d3dDevice)
 		{
-			if (_d3dPP.Windowed) {
-				_d3dPP.BackBufferWidth  = LOWORD(lParam) < Resources::MIN_SCREEN_X ? Resources::MIN_SCREEN_X :LOWORD(lParam);
-				_d3dPP.BackBufferHeight = HIWORD(lParam)< Resources::MIN_SCREEN_Y ? Resources::MIN_SCREEN_Y :HIWORD(lParam);
+			if (!_fullScreen) {
+				_swapDesc.BufferDesc.Width  = LOWORD(lParam) < Resources::MIN_SCREEN_X ? Resources::MIN_SCREEN_X :LOWORD(lParam);
+				_swapDesc.BufferDesc.Height = HIWORD(lParam)< Resources::MIN_SCREEN_Y ? Resources::MIN_SCREEN_Y :HIWORD(lParam);
 			}
 
 			if( wParam == SIZE_MINIMIZED )
@@ -433,7 +393,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				minOrMaxed = true;
 				_minimized = false;
 				boost::mutex::scoped_lock lock(_renderMutex);
-				ResetDevice();
+				OnResize();
 			}
 			// Restored is any resize that is not a minimize or maximize.
 			// For example, restoring the window to its default size
@@ -442,11 +402,11 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			else if( wParam == SIZE_RESTORED )
 			{
 				// Are we restoring from a mimimized or maximized state, 
-				if( minOrMaxed && _d3dPP.Windowed)
+				if( minOrMaxed && !_fullScreen)
 				{
 					_minimized = false;
 					boost::mutex::scoped_lock lock(_renderMutex);
-					ResetDevice();
+					OnResize();
 				}
 				else
 				{
@@ -471,23 +431,23 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	// Here we reset everything based on the new window dimensions.
 	case WM_EXITSIZEMOVE:
 		GetClientRect(_window, &clientRect);
-		if (_d3dPP.Windowed) {
+		if (!_fullScreen) {
 			if (clientRect.right<=0) {
-				_d3dPP.BackBufferWidth = Resources::MIN_SCREEN_X;
+				_swapDesc.BufferDesc.Width = Resources::MIN_SCREEN_X;
 			}
 			else {
-				_d3dPP.BackBufferWidth  = (unsigned int)clientRect.right < Resources::MIN_SCREEN_X ? Resources::MIN_SCREEN_X :clientRect.right;
+				_swapDesc.BufferDesc.Width  = (unsigned int)clientRect.right < Resources::MIN_SCREEN_X ? Resources::MIN_SCREEN_X :clientRect.right;
 			}
 			if (clientRect.bottom<=0) {
-				_d3dPP.BackBufferHeight = Resources::MIN_SCREEN_Y;
+				_swapDesc.BufferDesc.Height = Resources::MIN_SCREEN_Y;
 			}
 			else {
-				_d3dPP.BackBufferHeight  = (unsigned int)clientRect.bottom < Resources::MIN_SCREEN_Y ? Resources::MIN_SCREEN_Y :clientRect.bottom;
+				_swapDesc.BufferDesc.Height  = (unsigned int)clientRect.bottom < Resources::MIN_SCREEN_Y ? Resources::MIN_SCREEN_Y :clientRect.bottom;
 			}
 		}
 		{
 			boost::mutex::scoped_lock lock(_renderMutex);
-			ResetDevice();
+			OnResize();
 		}
 		return 0;
 
@@ -544,42 +504,43 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 void D3DAppFramework::ToggleFullScreenMode()
 {
+	//TODO is all this window styling shit necessary anymore?
 	//switch to fullscreen
-	if(_d3dPP.Windowed ) { 
-		//switch to fullscreen present parameters
-		OnResetPresentParameters(&_d3dPP,true);
+	if(_swapDesc.Windowed ) { 
+	//	//switch to fullscreen present parameters
+	//	OnResetPresentParameters(&_d3dPP,true);
 
-		// Change the window style to a more fullscreen friendly style.
-		SetWindowLongPtr(_window, GWL_STYLE, WS_POPUP);
+	//	// Change the window style to a more fullscreen friendly style.
+	//	SetWindowLongPtr(_window, GWL_STYLE, WS_POPUP);
 
-		// If we call SetWindowLongPtr, MSDN states that we need to call
-		// SetWindowPos for the change to take effect.  In addition, we 
-		// need to call this function anyway to update the window dimensions.
-		SetWindowPos(_window, HWND_TOP, 0, 0, _d3dPP.BackBufferWidth , _d3dPP.BackBufferHeight , SWP_NOZORDER | SWP_SHOWWINDOW);	
+	//	// If we call SetWindowLongPtr, MSDN states that we need to call
+	//	// SetWindowPos for the change to take effect.  In addition, we 
+	//	// need to call this function anyway to update the window dimensions.
+	//	SetWindowPos(_window, HWND_TOP, 0, 0, _d3dPP.BackBufferWidth , _d3dPP.BackBufferHeight , SWP_NOZORDER | SWP_SHOWWINDOW);	
 	}
 	// Switch to windowed mode.
 	else
 	{
-		RECT R = {0, 0, Resources::MIN_SCREEN_X,Resources::MIN_SCREEN_Y};
-		AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
+		//RECT R = {0, 0, Resources::MIN_SCREEN_X,Resources::MIN_SCREEN_Y};
+		//AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
 
-		//switch to windowed present parameters
-		OnResetPresentParameters(&_d3dPP,true);
-		_d3dPP.BackBufferWidth  = Resources::MIN_SCREEN_X;
-		_d3dPP.BackBufferHeight = Resources::MIN_SCREEN_Y;
-
+		_swapDesc.BufferDesc.BackBufferWidth  = Resources::MIN_SCREEN_X;
+		_swapDesc.BufferDesc.BackBufferHeight = Resources::MIN_SCREEN_Y;
+		{
+			boost::mutex::scoped_lock lock(_renderMutex);
+			OnResize();
+		}
 		// Change the window style to a more windowed friendly style.
-		SetWindowLongPtr(_window, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+		//SetWindowLongPtr(_window, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 
 		// If we call SetWindowLongPtr, MSDN states that we need to call
 		// SetWindowPos for the change to take effect.  In addition, we 
 		// need to call this function anyway to update the window dimensions.
-		SetWindowPos(_window, HWND_TOP, STARTING_X, STARTING_Y, R.right, R.bottom, SWP_NOZORDER | SWP_SHOWWINDOW);
+		//SetWindowPos(_window, HWND_TOP, STARTING_X, STARTING_Y, R.right, R.bottom, SWP_NOZORDER | SWP_SHOWWINDOW);
 	}
-
-	// Reset the device with the changes.
-	boost::mutex::scoped_lock lock(_renderMutex);
-	ResetDevice();
+	_swapDesc.Windowed = !_swapDesc.Windowed;
+	//TODO can we just pass NULL here for the output?
+	_swapChain->SetFullscreenState(!_swapDesc.Windowed,NULL);
 }
 
 }}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "d3d9.h"
+#include "d3d11.h"
 #include <vector>
 #include <MGDF/MGDFTimer.hpp>
 #include <boost/thread/thread.hpp>
@@ -42,14 +42,12 @@ public:
 	virtual void Begin();
 	virtual void End();
 
-	void OnLostDevice();
-	void OnResetDevice();
 	double GetAvgValue();
 	void SetSample(unsigned int previousFrame, UINT64 frequency);
 private:
 	std::string _name;
-	std::vector<IDirect3DQuery9 *> _beginQueries;
-	std::vector<IDirect3DQuery9 *> _endQueries;
+	std::vector<ID3D11Query *> _beginQueries;
+	std::vector<ID3D11Query *> _endQueries;
 	std::list<double> _samples;
 	double _avg;
 	unsigned int _initialized;
@@ -78,9 +76,7 @@ public:
 	virtual IPerformanceCounter *CreateGPUCounter(const char *name);
 	virtual void RemoveCounter(IPerformanceCounter *counter);
 
-	void InitGPUTimer(IDirect3DDevice9 *device,unsigned int bufferSize,int frameSamples);
-	void OnLostDevice();
-	void OnResetDevice();
+	void InitGPUTimer(ID3D11Device *device,unsigned int bufferSize,int frameSamples);
 
 	void Begin();
 	void End();
@@ -91,10 +87,11 @@ public:
 	boost::mutex &Mutex() { return _mutex; }
 
 private:
-	IDirect3DDevice9 *_device;
+	ID3D11Device *_device;
+	ID3D11DeviceContext *_context;
 	LARGE_INTEGER _freq;
-	std::vector<IDirect3DQuery9 *> _disjointQueries;
-	std::vector<IDirect3DQuery9 *> _frequencyQueries;
+	std::vector<ID3D11Query *> _disjointQueries;
+
 	unsigned int _currentFrame;
 	unsigned int _bufferSize;
 	unsigned int _maxSamples;

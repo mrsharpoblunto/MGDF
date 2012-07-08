@@ -12,7 +12,8 @@ class IGraphicsAdaptorMode {
 public:
 	virtual unsigned int  GetWidth() const=0;
 	virtual unsigned int  GetHeight() const=0;
-	virtual unsigned int GetRefreshRate() const=0;
+	virtual unsigned int GetRefreshRateNumerator() const=0;
+	virtual unsigned int GetRefreshRateDenominator() const=0;
 };
 
 DECLARE_LIST(IGraphicsAdaptorModeList,IGraphicsAdaptorMode *)
@@ -85,7 +86,7 @@ virtual unsigned int  GetScreenY() const=0;
 Queues the swap chain to be reset on the beginning of the next frame. This applies any changed adaptor mode or multisample settings.
 After the changes are applied, the modules OnReset event will be fired.
 */
-virtual void  QueueResetDevice()=0;
+virtual void  ApplyChanges()=0;
 
 /**
 get the direct3d device object from the system
@@ -96,7 +97,7 @@ virtual ID3D11Device * GetD3DDevice() const=0;
 /**
 Gets the current back buffer texture. The pointer returned by this method becomes invalid when the modules OnReset event is fired
 */
-virtual ID3DTexture2D * GetBackBuffer() const=0;
+virtual ID3D11Texture2D * GetBackBuffer() const=0;
 };
 
 }

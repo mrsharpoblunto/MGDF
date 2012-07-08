@@ -82,24 +82,9 @@ bool Module::DrawScene(double alpha)
    return true;
 }
 
-bool Module::DeviceReset()
+bool Module::BackBufferChanged()
 {
-	_textManager->OnResetDevice();
-	return true;
-}
-
-bool Module::SetDeviceState()
-{
-	return true;
-}
-
-bool Module::DeviceLost()
-{
-	_textManager->OnLostDevice();
-	return true;
-}
-
-bool Module::CheckDeviceCaps() {
+	//_textManager->OnLostDevice();
 	return true;
 }
 

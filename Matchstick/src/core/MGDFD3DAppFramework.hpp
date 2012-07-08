@@ -18,14 +18,12 @@ public:
 	HWND GetWindow();
 	IDirect3DDevice9 *GetD3dDevice();
 
-	virtual bool CheckDeviceCaps() =0;
 	virtual void OnInitD3D(DXGI_SWAP_CHAIN_DESC *,IDXGIAdapter1 *adapter)=0;
 	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *)=0;
-	virtual void UpdateScene(double elapsedTime) =0;
-	virtual void DrawScene(double alpha) =0;
-	virtual void OnLostDevice()=0;
-	virtual void OnResetDevice()=0;
 	virtual bool IsResetSwapChainPending()=0;
+	virtual void OnResize(ID3D11Texture2D *backBuffer)=0;
+	virtual void UpdateScene(double elapsedTime) =0;
+	virtual void DrawScene(double alpha) =0
 	virtual void FatalError(const std::string &errorMessage)=0;
 	virtual void ExternalClose()=0;
 	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
@@ -40,6 +38,9 @@ protected:
 	ID3D11DeviceContext*	_immediateContext;
 	IDXGISwapChain*			_swapChain;
 	IDXGIFactory*			_factory;
+	ID3D11RenderTargetView *_renderTargetView;
+	ID3D11DepthStencilView *_depthStencilView;
+	ID3D11Texture2D		   *_depthStencilBuffer;
 
 	DXGI_SWAP_CHAIN_DESC	_swapDesc;
 	HINSTANCE				_applicationInstance;

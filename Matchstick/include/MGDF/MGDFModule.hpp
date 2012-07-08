@@ -51,36 +51,11 @@ public:
 	virtual bool  DrawScene(double alpha)=0;
 
 	/**
-	if the d3d device has been lost this is called, it gives the module an opportunity to
-	free any D3DPOOL_DEFAULT resources allocated
-	 NOTE: Will be called from the render thread.
-	\return false if the module experiences a fatal error handling a lost device
+	If the swap chain options have been changed, or the display window has been resized. The module should
+	clear out all references to the previous back buffer and resize any backbuffer size dependent resources
+	\return false if the module experiences a fatal error
 	*/
-	virtual bool  DeviceLost()=0;
-
-	/**
-	if the device has been lost and then restored, if the module has just been resumed, or if the module has just been initialised. This function is
-	for allocating all D3DPOOL_DEFAULT resources
-	 NOTE: Will be called from the render thread.
-	\return false if the module experiences a fatal error handling a reset device
-	*/
-	virtual bool  DeviceReset()=0;
-
-	/**
-	this method is called immediately before a module is initialised, or  before it
-	is resumed and allows the module to set the renderer to a desired state before executing the module
-	 NOTE: Will be called from the render thread.
-	\return false if the module experiences a fatal error handling a reset device
-	*/
-	virtual bool SetDeviceState()=0;
-
-	/**
-	this method is called before the module is initialised and checks if the d3d device has the capabilities to
-	run the module
-	 NOTE: Will be called from the render thread.
-	\return true if the device is acceptable, false otherwise
-	*/
-	virtual bool CheckDeviceCaps()=0;
+	virtual bool  BackBufferChanged()=0;
 
 	/**
 	 This method instructs the module to cleanup and shutdown as soon as possible. This is invoked when external events

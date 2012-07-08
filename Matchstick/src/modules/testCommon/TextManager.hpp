@@ -1,6 +1,6 @@
 #pragma once
 
-#include "d3d9.h"
+#include "d3d11.h"
 #include "Common.hpp"
 #include <boost/shared_ptr.hpp>
 #include <MGDF/MGDF.hpp>
@@ -46,15 +46,14 @@ namespace MGDF {
 			TextManager(ISystem *system);
 			void SetState(boost::shared_ptr<TextManagerState> state);
 			void DrawText();
-			void OnResetDevice();
-			void OnLostDevice();
 		private:
 #pragma warning(push)
 #pragma warning(disable: 4251)
 			boost::shared_ptr<TextManagerState> _state;
 #pragma warning(pop)
 			ISystem *_system;
-			ID3DXFont *_font;
+			//TODO find a suitable text rendering system
+			//ID3DXFont *_font;
 		};
 	}
 }

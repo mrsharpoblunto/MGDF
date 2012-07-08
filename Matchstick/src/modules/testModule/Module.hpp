@@ -35,11 +35,7 @@ public:
 	virtual bool Dispose(void);
 
 	virtual bool DrawScene(double alpha);
-	virtual bool DeviceLost();
-	virtual bool DeviceReset();
-	virtual bool SetDeviceState();
-	virtual bool CheckDeviceCaps();
-
+	virtual bool BackBufferChanged();
 	virtual bool UpdateScene(double elapsedTime);
 	virtual void Panic();
 	virtual void ShutDown();

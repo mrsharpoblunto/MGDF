@@ -42,12 +42,12 @@ GraphicsManager::GraphicsManager(IDXGIAdapter1 *adapter,ID3D11Device *device)
 
 	for(int mode = 0; mode < maxAdaptorModes; ++mode)
 	{
-		DXGI_MODE_DESC *displayMode	= modes[mode];
+		DXGI_MODE_DESC *displayMode	= &modes[mode];
 
 		// Does this adaptor mode support  the desired format and is it above the minimum required resolution
 		if( displayMode->Format == DXGI_FORMAT_R8G8B8A8_UNORM && displayMode->Width>=Resources::MIN_SCREEN_X && displayMode->Height >=Resources::MIN_SCREEN_Y)
 		{
-			GraphicsAdaptorMode *adaptorMode = new GraphicsAdaptorMode(displayMode->Width,displayMode->Height,displayMode->RefreshRate);
+			GraphicsAdaptorMode *adaptorMode = new GraphicsAdaptorMode(displayMode->Width,displayMode->Height,displayMode->RefreshRate.Numerator,displayMode->RefreshRate.Denominator);
 			_adaptorModes.Add(adaptorMode);
 		}
 	}
@@ -77,7 +77,7 @@ GraphicsManager::~GraphicsManager(void)
 
 IUIntList *GraphicsManager::GetMultiSampleLevels() const
 {
-	return &_multiSampleLevels;
+	return (IUIntList *)&_multiSampleLevels;
 }
 
 bool GraphicsManager::SetCurrentMultiSampleLevel(unsigned int multisampleLevel)
@@ -123,7 +123,9 @@ IGraphicsAdaptorMode *GraphicsManager::GetAdaptorMode(unsigned int width,unsigne
 			if (mode==NULL) {
 				mode = (*iter);
 			}
-			else if ((*iter)->GetRefreshRate()>mode->GetRefreshRate()) {
+			else if (
+				(*iter)->GetRefreshRateNumerator()>=mode->GetRefreshRateNumerator() && 
+				(*iter)->GetRefreshRateDenominator()<=mode->GetRefreshRateDenominator()) {
 				mode = (*iter);
 			}
 		}
@@ -152,15 +154,30 @@ void GraphicsManager::SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode)
 	_currentAdaptorMode = mode;
 }
 
-void GraphicsManager::QueueResetSwapChain()
+void GraphicsManager::ApplyChanges()
 {
 	boost::mutex::scoped_lock lock(_mutex);
-	_resetPending = true;
+	_changePending = true;
 }
 
-bool GraphicsManager::IsResetPending()
+bool GraphicsManager::IsChangePending()
 {
-	return _resetPending;
+	return _changePending;
+}
+
+void GraphicsManager::SetBackBuffer(ID3D11Texture2D *backBuffer)
+{
+	_backBuffer = backBuffer;
+}
+
+ID3D11Texture2D *GraphicsManager::GetBackBuffer()
+{
+	return _backBuffer;
+}
+
+ID3D11Device *GraphicsManager::GetD3DDevice()
+{
+	return _device;
 }
 
 void GraphicsManager::LoadPreferences(IGame *game) 
@@ -194,8 +211,8 @@ void GraphicsManager::LoadPreferences(IGame *game)
 	}
 
 	_currentMultiSampleLevel = atoi(game->GetPreference(PreferenceConstants::MULTISAMPLE_LEVEL));
-	if (_currentMultiSampleLevel>_multiSampleLevelFullScreen) {
-		_currentMultiSampleLevel=_multiSampleLevelFullScreen;
+	if (_currentMultiSampleLevel>_multiSampleLevels.Get(_multiSampleLevels.Size())) {
+		_currentMultiSampleLevel=_multiSampleLevels.Get(_multiSampleLevels.Size());
 		game->SetPreference(PreferenceConstants::MULTISAMPLE_LEVEL,boost::lexical_cast<std::string>(_currentMultiSampleLevel).c_str());
 		savePreferences = true;
 	}
@@ -212,22 +229,16 @@ void GraphicsManager::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc)
 
 	//set up in fullscreen or windowed mode (MGDF will set the res for windowed mode, so don't bother setting it here)
 	if (_fullScreen) {
-		d3dPP->BackBufferWidth  = _currentAdaptorMode->GetWidth(); 
-		d3dPP->BackBufferHeight = _currentAdaptorMode->GetHeight();
-		d3dPP->FullScreen_RefreshRateInHz = _currentAdaptorMode->GetRefreshRate();
-		d3dPP->BackBufferFormat = D3DFMT_X8R8G8B8;
-		d3dPP->Windowed = false;
+		desc->BufferDesc.Width  = _currentAdaptorMode->GetWidth(); 
+		desc->BufferDesc.Height = _currentAdaptorMode->GetHeight();
+		desc->BufferDesc.RefreshRate.Numerator = _currentAdaptorMode->GetRefreshRateNumerator();
+		desc->BufferDesc.RefreshRate.Denominator = _currentAdaptorMode->GetRefreshRateDenominator();
 
-		//enable multisampling if it was enabled via settings.
-		int cmsl = _currentMultiSampleLevel>_multiSampleLevelFullScreen ? _multiSampleLevelFullScreen : _currentMultiSampleLevel;
-		if (cmsl>0) {
-			d3dPP->MultiSampleType	      = D3DMULTISAMPLE_NONMASKABLE;
-			d3dPP->MultiSampleQuality	  =	cmsl - 1;
-		}
-		else {
-			d3dPP->MultiSampleType        = D3DMULTISAMPLE_NONE;
-			d3dPP->MultiSampleQuality     = 0;
-		}
+		//desc->BufferDesc.Format = //TODO;
+		desc->Windowed = false;
+
+		desc->SampleDesc.Count	      = _currentMultiSampleLevel;
+		desc->SampleDesc.Quality	  =	_multiSampleQuality[_currentMultiSampleLevel] - 1;
 	}
 	else {
 		d3dPP->BackBufferFormat = D3DFMT_UNKNOWN;
@@ -253,7 +264,7 @@ void GraphicsManager::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc)
 	d3dPP->Flags                      = 0;
 	d3dPP->PresentationInterval       = _vsync ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE;
 
-	_resetDevicePending = false;
+	_pendingChanges = false;
 }
 
 }}
