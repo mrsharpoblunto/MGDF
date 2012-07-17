@@ -94,12 +94,12 @@ const char *GPUPerformanceCounter::GetName() const
 
 void GPUPerformanceCounter::Begin()
 {
-	_beginQueries[_timer->_currentFrame]->Issue(D3DISSUE_END);
+	_timer->_context->End(_beginQueries[_timer->_currentFrame]);
 }
 
 void GPUPerformanceCounter::End()
 {
-	_endQueries[_timer->_currentFrame]->Issue(D3DISSUE_END);
+	_timer->_context->End(_endQueries[_timer->_currentFrame]);
 	if (_initialized<_timer->_bufferSize)
 	{
 		_initialized++;
@@ -110,10 +110,14 @@ void GPUPerformanceCounter::Init()
 {
 	for (unsigned int i=0;i<_timer->_bufferSize;++i)
 	{
+		D3D11_QUERY_DESC desc;
+		desc.Query = D3D11_QUERY_TIMESTAMP;
+		desc.MiscFlags = 0;
+
 		ID3D11Query* query;
-		_timer->_device->GetImmediateContext();(D3DQUERYTYPE_TIMESTAMP, &query);
+		_timer->_device->CreateQuery(&desc, &query);
 		_beginQueries.push_back(query);
-		_timer->_device->CreateQuery(D3DQUERYTYPE_TIMESTAMP, &query);
+		_timer->_device->CreateQuery(&desc, &query);
 		_endQueries.push_back(query);
 	}
 }
@@ -142,13 +146,13 @@ void GPUPerformanceCounter::SetSample(unsigned int frame, UINT64 frequency)
 	if (_initialized==_timer->_bufferSize)
 	{
 		UINT64 timeStampBegin;
-		if (_beginQueries[frame]->GetData(&timeStampBegin,sizeof(UINT64),0) != S_OK)
+		if (_timer->_context->GetData(_beginQueries[frame],&timeStampBegin,sizeof(UINT64),0) != S_OK)
 		{
 			return;
 		}	
 
 		UINT64 timeStampEnd;
-		if (_endQueries[frame]->GetData(&timeStampEnd,sizeof(UINT64),0) != S_OK)
+		if (_timer->_context->GetData(_endQueries[frame],&timeStampEnd,sizeof(UINT64),0) != S_OK)
 		{
 			return;
 		}	
@@ -170,6 +174,7 @@ void GPUPerformanceCounter::SetSample(unsigned int frame, UINT64 frequency)
 Timer::Timer()
 : _currentFrame(0)
 , _device(NULL)
+, _context(NULL)
 , _bufferSize(0)
 , _maxSamples(0)
 , _initialized(0)
@@ -186,48 +191,32 @@ Timer::Timer()
 Timer::~Timer(void)
 {
 	timeEndPeriod(1);
-	Uninit();
-}
 
-void Timer::InitGPUTimer(ID3D11Device *device,unsigned int bufferSize,int frameSamples)
-{
-	//determine if the queries we need for timing are supported
-	HRESULT tsHr = device->CreateQuery(D3DQUERYTYPE_TIMESTAMP, NULL);
-	HRESULT tsdHr = device->CreateQuery(D3DQUERYTYPE_TIMESTAMPDISJOINT, NULL);
-	HRESULT tsfHr = device->CreateQuery(D3DQUERYTYPE_TIMESTAMPFREQ, NULL);
-
-	if (tsHr || tsdHr || tsfHr)
-	{
-		GetLoggerImpl()->Add(THIS_NAME,"GPU timestamp queries unsupported",LOG_LOW);
-	}
-	else
-	{
-		_device = device;
-		_bufferSize = bufferSize;
-		_maxSamples = frameSamples;
-		Init();
-	}
-}
-
-void Timer::Init()
-{
-	for (unsigned int i=0;i<_bufferSize;++i)
-	{
-		ID3D11Query* query;
-		_device->CreateQuery(D3D11_QUERY_TIMESTAMP_DISJOINT, &query);
-		_disjointQueries.push_back(query);
-	}
-}
-
-void Timer::Uninit()
-{
 	for (std::vector<ID3D11Query *>::iterator iter = _disjointQueries.begin();iter!=_disjointQueries.end();++iter)
 	{
 		SAFE_RELEASE(*iter);
 	}
-	_disjointQueries.clear();
+	SAFE_RELEASE(_context);
 }
 
+void Timer::InitGPUTimer(ID3D11Device *device,unsigned int bufferSize,int frameSamples)
+{
+	_device = device;
+	device->GetImmediateContext(&_context);
+	_bufferSize = bufferSize;
+	_maxSamples = frameSamples;
+
+	for (unsigned int i=0;i<_bufferSize;++i)
+	{
+		D3D11_QUERY_DESC desc;
+		desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+		desc.MiscFlags = 0;
+
+		ID3D11Query* query;
+		_device->CreateQuery(&desc, &query);
+		_disjointQueries.push_back(query);
+	}
+}
 
 LARGE_INTEGER Timer::GetCurrentTimeTicks() const
 {
@@ -258,13 +247,9 @@ IPerformanceCounter *Timer::CreateCPUCounter(const char *name)
 
 IPerformanceCounter *Timer::CreateGPUCounter(const char *name)
 {
-	if (_device)
-	{
-		GPUPerformanceCounter *counter = new GPUPerformanceCounter(name,this);
-		_gpuCounters.push_back(counter);
-		return counter;
-	}
-	return NULL;
+	GPUPerformanceCounter *counter = new GPUPerformanceCounter(name,this);
+	_gpuCounters.push_back(counter);
+	return counter;
 }
 
 void Timer::RemoveCounter(IPerformanceCounter *counter)
@@ -299,40 +284,34 @@ void Timer::DoRemoveCounter(IPerformanceCounter *counter)
 
 void Timer::Begin()
 {
-	if (_device)
-	{
-		int previousFrame = _currentFrame; 
-		_currentFrame = (_currentFrame+1) % _bufferSize;
+	_currentFrame = (_currentFrame+1) % _bufferSize;
 
-		if (_initialized == _bufferSize)
+	if (_initialized == _bufferSize)
+	{
+		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint;
+		
+		if (_context->GetData(_disjointQueries[_currentFrame],&disjoint,sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT),0) == S_OK)
 		{
-			D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint;
-			if (_disjointQueries[previousFrame]->GetData(&disjoint,sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT),0) == S_OK)
+			if (!disjoint.Disjoint)
 			{
-				if (!disjoint.Disjoint)
+				for (std::vector<GPUPerformanceCounter *>::iterator iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
 				{
-					for (std::vector<GPUPerformanceCounter *>::iterator iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
-					{
-						(*iter)->SetSample(previousFrame,disjoint.Frequency);
-					}
+					(*iter)->SetSample(_currentFrame,disjoint.Frequency);
 				}
 			}
 		}
-		else
-		{
-			++_initialized;
-		}
-
-		_disjointQueries[_currentFrame]->Issue(D3DISSUE_BEGIN);
 	}
+	else
+	{
+		++_initialized;
+	}
+
+	_context->Begin(_disjointQueries[_currentFrame]);
 }
 
 void Timer::End()
 {
-	if (_device)
-	{
-		_disjointQueries[_currentFrame]->Issue(D3DISSUE_END);
-	}
+	_context->End(_disjointQueries[_currentFrame]);
 }
 
 void Timer::GetCounterAverages(

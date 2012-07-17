@@ -214,9 +214,9 @@ void System::SetD3DDevice(ID3D11Device *d3dDevice)
 	_timer.InitGPUTimer(_d3dDevice,GPU_TIMER_BUFFER,TIMER_SAMPLES);
 }
 
-void System::CreateGraphicsImpl(IDXGIAdapter1 *adapter,ID3D11Device *device)
+void System::CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter)
 {
-	_graphics = new GraphicsManager(adapter,device);
+	_graphics = new GraphicsManager(device,adapter);
 	if (_graphics->GetAdaptorModes()->Size()==0) {
 		FatalError(THIS_NAME,"No compatible adaptor modes found");
 	}
@@ -344,9 +344,6 @@ void System::Initialize() {
 	if (_module==NULL)
 	{
 		_module = CreateModule();
-		_moduleMetaData.IsDeviceReset =false;
-		_moduleMetaData.IsDeviceStateSet=false;
-		_moduleMetaData.DeviceCapsChecked = false;
 
 		//init the module
 		if (!_module->New(Resources::Instance().WorkingDir().c_str()))
@@ -412,34 +409,6 @@ void System::DrawScene(double alpha)
 	_timer.Begin();
 	if (_module!=NULL) 
 	{
-		//check that the d3d device satisfies the device capabilities required for this module.
-		if (!_moduleMetaData.DeviceCapsChecked) 
-		{
-			if (!_module->CheckDeviceCaps())
-			{
-				FatalError(THIS_NAME,"Device capabilities not met for module - "+std::string(_module->GetLastError()));
-			}
-			_moduleMetaData.DeviceCapsChecked = true;
-		}
-
-		//set up the renderer state
-		if (!_moduleMetaData.IsDeviceStateSet) 
-		{
-			if (!_module->SetDeviceState()) {
-				FatalError(THIS_NAME,"Unable to set device state for for module - "+std::string(_module->GetLastError()));
-			}
-			_moduleMetaData.IsDeviceStateSet = true;
-		}
-
-		//reset the D3DPOOL_DEFAULT resources if needed
-		if (!_moduleMetaData.IsDeviceReset) {
-			if (!_module->DeviceReset())
-			{
-				FatalError(THIS_NAME,"Unable to reset device for for module - "+std::string(_module->GetLastError()));
-			}
-			_moduleMetaData.IsDeviceReset = true;
-		}
-
 		if (!_module->DrawScene(alpha))
 		{
 			FatalError(THIS_NAME,"Error drawing scene in module - "+std::string(_module->GetLastError()));		
@@ -448,21 +417,13 @@ void System::DrawScene(double alpha)
 	_timer.End();
 }
 
-void System::DeviceLost()
+void System::BackBufferChanged()
 {
-	_timer.OnLostDevice();
-
 	if (_module!=NULL) {
-		if (!_module->DeviceLost()) {
-			FatalError(THIS_NAME,"Error handling lost device in module - "+std::string(_module->GetLastError()));
+		if (!_module->BackBufferChanged()) {
+			FatalError(THIS_NAME,"Error handling back buffer change in module - "+std::string(_module->GetLastError()));
 		}
-		_moduleMetaData.IsDeviceReset = false;
 	}
-}
-
-void System::DeviceReset()
-{
-	_timer.OnResetDevice();
 }
 
 void System::FatalError(const char *sender,const char *message)

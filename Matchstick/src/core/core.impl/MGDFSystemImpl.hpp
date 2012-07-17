@@ -66,10 +66,9 @@ public:
 
 	void UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex);
 	void DrawScene(double alpha);
-	void DeviceLost();
-	void DeviceReset();
+	void BackBufferChanged();
 	void SetD3DDevice(ID3D11Device *d3dDevice);
-	void CreateGraphicsImpl(IDXGIAdapter1 *adapter,ID3D11Device *device);
+	void CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter);
 	GraphicsManager *GetGraphicsImpl();
 	std::string GetSystemInformation(SystemStats *stats);
 	void DisposeModule();
@@ -104,13 +103,6 @@ public:
 		FatalError(sender.c_str(),message.c_str());
 	}
 private:
-	//useful metadata that is attatched to the loaded module
-	typedef struct {
-		bool IsDeviceReset;
-		bool IsDeviceStateSet;
-		bool DeviceCapsChecked;
-	} ModuleMetaData;
-
 	IModule *CreateModule();
 
 	void ClearWorkingDirectory();
@@ -130,7 +122,6 @@ private:
 	Timer _timer;
 
 	IModule * _module; //the currently executing module
-	ModuleMetaData _moduleMetaData; //records metadata for the current module
 	ModuleFactory *_moduleFactory;
 };
 

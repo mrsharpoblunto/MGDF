@@ -16,17 +16,17 @@ public:
 
 	HINSTANCE GetApplicationInstance();
 	HWND GetWindow();
-	IDirect3DDevice9 *GetD3dDevice();
+	ID3D11Device *GetD3DDevice() const;
 
-	virtual void OnInitD3D(DXGI_SWAP_CHAIN_DESC *,IDXGIAdapter1 *adapter)=0;
-	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *)=0;
-	virtual bool IsResetSwapChainPending()=0;
-	virtual void OnResize(ID3D11Texture2D *backBuffer)=0;
+	virtual void OnInitD3D(ID3D11Device *device,IDXGIAdapter1 *adapter)=0;
+	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *,BOOL *fullScreen)=0;
+	virtual bool IsBackBufferChangePending()=0;
+	virtual void OnBackBufferChanged(ID3D11Texture2D *backBuffer)=0;
 	virtual void UpdateScene(double elapsedTime) =0;
-	virtual void DrawScene(double alpha) =0
+	virtual void DrawScene(double alpha) =0;
 	virtual void FatalError(const std::string &errorMessage)=0;
 	virtual void ExternalClose()=0;
-	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
+	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP);
 
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -36,11 +36,14 @@ protected:
 	// Application, Windows, and Direct3D data members.
 	ID3D11Device*			_d3dDevice;
 	ID3D11DeviceContext*	_immediateContext;
+
 	IDXGISwapChain*			_swapChain;
-	IDXGIFactory*			_factory;
+	IDXGIFactory1*			_factory;
+
 	ID3D11RenderTargetView *_renderTargetView;
 	ID3D11DepthStencilView *_depthStencilView;
 	ID3D11Texture2D		   *_depthStencilBuffer;
+	ID3D11Texture2D		   *_backBuffer;
 
 	DXGI_SWAP_CHAIN_DESC	_swapDesc;
 	HINSTANCE				_applicationInstance;
@@ -48,7 +51,7 @@ protected:
 
 	Timer _timer;
 	FrameLimiter *_frameLimiter;
-	unsigned int _width,_height,_canToggleFullScreen,_drawSystemOverlay;
+	bool _drawSystemOverlay;
 	boost::mutex _renderMutex;
 	bool _internalShutDown;
 	
@@ -62,10 +65,8 @@ private:
 	void CreateSwapChain();
 	void OnResize();
 
-	bool _minimized;
+	bool _minimized,_maximized,_resizing,_fullScreen;
 
-	bool IsDeviceLost();
-	void ResetDevice();
 	void DoSimulation();
 
 	boost::thread *_simThread;

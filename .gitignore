@@ -21,3 +21,5 @@
 /vendor/zlib/msvc/Release
 /vendor/xerces-c-src_2_7_0/Projects/Win32/VC8/xerces-all/XercesLib/Debug
 /vendor/xerces-c-src_2_7_0/Projects/Win32/VC8/xerces-all/XercesLib/Release
+/vendor/FW1FontWrapper/Debug
+/vendor/FW1FontWrapper/Release

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "FW1FontWrapper/FW1FontWrapper.h"
+
 #include "MGDFD3DAppFramework.hpp"
 #include "core.impl/MGDFSystemImpl.hpp"
 
@@ -16,17 +18,17 @@ public:
 	DECLARE_SINGLETON(MGDFApp);
 
 	MGDFApp(HINSTANCE hInstance);
-	~MGDFApp();
+	virtual ~MGDFApp();
 	
-	virtual void OnInitD3D(ID3D11Device *device,IDXGIAdapter1 *adapter);
-	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *,bool toggleFullScreen);
-	virtual bool IsResetSwapChainPending();	
-	virtual void OnResetBackBuffer(ID3D11Texture2D *backBuffer);
+	virtual void OnInitD3D(ID3D11Device *device, IDXGIAdapter1 *adapter);
+	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *,BOOL *);
+	virtual bool IsBackBufferChangePending();	
+	virtual void OnBackBufferChanged(ID3D11Texture2D *backBuffer);
 	virtual void UpdateScene(double elapsedTime);
 	virtual void DrawScene(double alpha);
 	virtual void FatalError(const std::string &message);
 	virtual void ExternalClose();
-	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen = true);
+	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP);
 
 	void SetSystem(System *system);
 private:
@@ -38,6 +40,7 @@ private:
 	double _alpha;
 
 	System *_system;
+	IFW1FontWrapper *_font;
 	//IDXGISwapChain* _swapChain;
 	//ID3DXFont *_font;
 	//CUSTOMVERTEX _vertices[6];

@@ -100,8 +100,6 @@ private:
 	std::vector<CPUPerformanceCounter *> _cpuCounters;
 	std::vector<GPUPerformanceCounter *> _gpuCounters;
 
-	void Init();
-	void Uninit();
 	void DoRemoveCounter(IPerformanceCounter *counter);
 };
 

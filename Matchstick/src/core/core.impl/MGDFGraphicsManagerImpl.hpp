@@ -40,7 +40,7 @@ typedef ListImpl<IUIntList,unsigned int> UIntList;
 //this class is accessed by the sim and render threads, so setting values and doing device resets must be synced up with a mutex
 class GraphicsManager: public IGraphicsManager {
 public:
-	GraphicsManager(IDXGIAdapter1 *adapter,ID3D11Device *device);
+	GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter);
 	virtual ~GraphicsManager(void);
 	virtual bool GetVSync() const;
 	virtual void SetVSync(bool vsync);
@@ -54,12 +54,12 @@ public:
 	virtual unsigned int GetScreenY() const;
 	virtual void SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode);
 	virtual void ApplyChanges();
-	virtual ID3D11Texture2D *GetBackBuffer();
-	virtual ID3D11Device *GetD3DDevice();
+	virtual ID3D11Texture2D *GetBackBuffer() const;
+	virtual ID3D11Device *GetD3DDevice() const;
 
 	void LoadPreferences(IGame *game);
-	bool IsChangePending();
-	void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc);
+	bool IsBackBufferChangePending();
+	void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc,BOOL *fullScreen);
 	void SetBackBuffer(ID3D11Texture2D *backBuffer);
 private:
 	bool _initialized,_changePending;

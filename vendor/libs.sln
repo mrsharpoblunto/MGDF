@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICSharpCode.SharpZLib", "IC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Newtonsoft.Json.Net35", "Newtonsoft.Json\Newtonsoft.Json.Net35.csproj", "{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FW1FontWrapper", "FW1FontWrapper\FW1FontWrapper.vcproj", "{27023E90-F9FA-4224-B6C3-7B3340871F5E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -181,6 +183,16 @@ Global
 		{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}.Release|Win32.ActiveCfg = Release|Any CPU
 		{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}.Release|Win32.Build.0 = Release|Any CPU
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Debug|Win32.Build.0 = Debug|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Release|Any CPU.ActiveCfg = Release|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Release|Win32.ActiveCfg = Release|Win32
+		{27023E90-F9FA-4224-B6C3-7B3340871F5E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

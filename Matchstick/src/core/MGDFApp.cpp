@@ -17,22 +17,14 @@ DEFINE_SINGLETON(MGDFApp)
 
 MGDFApp::MGDFApp(HINSTANCE hInstance) : D3DAppFramework(hInstance) 
 {
-	//_font=NULL;
-	//_vBuffer=NULL;
+	_font=NULL;
 	_system = NULL;
 	_initialized = false;
 }
 
 MGDFApp::~MGDFApp() 
 {
-	/*if(_font!=NULL){
-      _font->Release();
-      _font=NULL;
-   }
-	if(_vBuffer!=NULL){
-      _vBuffer->Release();
-      _vBuffer=NULL;
-   }*/
+	SAFE_RELEASE(_font);
 }
 
 //allows the app to read from system configuration preferences when setting up d3d
@@ -42,43 +34,23 @@ void MGDFApp::SetSystem(System *system)
 	_system->AddShutDownCallback(boost::bind(&MGDFApp::ShutDownCallBack,this));
 }
 
-void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP,bool canToggleFullScreen)
+void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP)
 {
-	D3DAppFramework::InitDirect3D(caption,windowProcedure,devType,requestedVP,canToggleFullScreen);
+	D3DAppFramework::InitDirect3D(caption,windowProcedure,devType,requestedVP);
 	_system->SetD3DDevice(_d3dDevice);//allow the system to pass the d3d object to the modules
 
-	//HRESULT hr=D3DXCreateFont(_d3dDevice,//D3D Device
- //                    16,               //Font height
- //                    0,                //Font width
- //                    FW_NORMAL,        //Font Weight
- //                    1,                //MipLevels
- //                    false,            //Italic
- //                    DEFAULT_CHARSET,  //CharSet
- //                    OUT_DEFAULT_PRECIS, //OutputPrecision
- //                    ANTIALIASED_QUALITY, //Quality
- //                    DEFAULT_PITCH|FF_DONTCARE,//PitchAndFamily
- //                    "Arial",          //pFacename,
- //                    &_font);         //ppFont
+	IFW1Factory *factory;
+	if (FAILED(FW1CreateFactory(FW1_VERSION, &factory)))
+	{
+		FatalError("unable to create MGDF system font factory");
+	}
+	
+	if (FAILED(factory->CreateFontWrapper(_d3dDevice, L"Arial", &_font)))
+	{
+		FatalError("unable to create MGDF system font");
+	}
 
-	//if (FAILED(hr)) {
-	//	FatalError("unable to create MGDF system font");
-	//}
-
-	//for (int i=0;i<6;++i) 
-	//{
-	//	_vertices[i].X = 0.0f;
-	//	_vertices[i].Y = 0.0f;
-	//	_vertices[i].Z = 0.0f;
-	//	_vertices[i].RHW = 1.0f;
-	//	_vertices[i].COLOR = D3DCOLOR_XRGB(0,0,0);
-	//}
-
-	//_d3dDevice->CreateVertexBuffer(6*sizeof(CUSTOMVERTEX),
- //                              0,
- //                              CUSTOMFVF,
- //                              D3DPOOL_MANAGED,
- //                              &_vBuffer,
- //                              NULL);
+	SAFE_RELEASE(factory);
 }
 
 void MGDFApp::UpdateScene(double simulationTime) 
@@ -105,19 +77,20 @@ void MGDFApp::OnInitD3D(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	_system->CreateGraphicsImpl(device,adapter);
 }
 
-bool MGDFApp::IsResetSwapChainPending()
+bool MGDFApp::IsBackBufferChangePending()
 {
-	return _system->GetGraphicsImpl()->IsResetSwapChainPending();
+	return _system->GetGraphicsImpl()->IsBackBufferChangePending();
 }
 
-void MGDFApp::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *swapDesc) 
+void MGDFApp::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *swapDesc,BOOL *doFullScreen) 
 {
-	_system->GetGraphicsImpl()->OnResetSwapChain(swapDesc);
+	_system->GetGraphicsImpl()->OnResetSwapChain(swapDesc,doFullScreen);
 }
 
-void MGDFApp::OnResetBackBuffer(ID3D11Texture2D *backBuffer)
+void MGDFApp::OnBackBufferChanged(ID3D11Texture2D *backBuffer)
 {
 	_system->GetGraphicsImpl()->SetBackBuffer(backBuffer);
+	_system->BackBufferChanged();
 }
 
 void MGDFApp::DrawScene(double alpha) 
@@ -131,48 +104,22 @@ void MGDFApp::DrawScene(double alpha)
 
 void MGDFApp::DrawSystemOverlay()
 {
-	RECT font_rect;
-	SetRect(&font_rect,0,0,100,100);
-
-	std::string information;
+	std::wstring information;
 	{
 		boost::mutex::scoped_lock lock(_statsMutex);
-		information =_system->GetSystemInformation(&_stats);
-		//TODO create vertex buffers for graph here too.
+		std::string info =_system->GetSystemInformation(&_stats);
+		information.assign(info.begin(),info.end());
 	}
 
-	//_font->DrawText(NULL,        //pSprite
-	//	information.c_str(),  //pString
- //       -1,          //Count
- //       &font_rect,  //pRect
- //       DT_CALCRECT,//Format,
- //       0xFFFFFFFF); //Color
-
-	//if (_vertices[1].X != font_rect.right || _vertices[2].Y != font_rect.bottom)
-	//{
-	//	_vertices[1].X = static_cast<float>(font_rect.right);
-	//	_vertices[2].X = static_cast<float>(font_rect.right);
-	//	_vertices[3].X = static_cast<float>(font_rect.right);
-	//	_vertices[2].Y = static_cast<float>(font_rect.bottom);
-	//	_vertices[3].Y = static_cast<float>(font_rect.bottom);
-	//	_vertices[4].Y = static_cast<float>(font_rect.bottom);
-
-	//	void * pVoid;
-	//	_vBuffer->Lock(0, 0, (void**)&pVoid, 0);
-	//	memcpy(pVoid,_vertices,sizeof(_vertices));
-	//	_vBuffer->Unlock();
-	//}
-
- //   _d3dDevice->SetFVF(CUSTOMFVF);
- //   _d3dDevice->SetStreamSource(0, _vBuffer, 0, sizeof(CUSTOMVERTEX));
- //   _d3dDevice->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2);
-
-	//_font->DrawText(NULL,        //pSprite
-	//	information.c_str(),  //pString
- //       -1,          //Count
- //       &font_rect,  //pRect
- //       DT_LEFT|DT_NOCLIP,//Format,
- //       0xFFFFFFFF); //Color
+	_font->DrawString(
+		_immediateContext,
+		information.c_str(),// String
+		14.0f,// Font size
+		0.0f,// X position
+		0.0f,// Y position
+		0xFFFFFFFF,// Text color
+		0// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
+	);
 }
 
 void MGDFApp::FatalError(const std::string &message)
