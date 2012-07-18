@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d11.h"
+#include "FW1FontWrapper/FW1FontWrapper.h"
 #include "Common.hpp"
 #include <boost/shared_ptr.hpp>
 #include <MGDF/MGDF.hpp>
@@ -52,8 +53,8 @@ namespace MGDF {
 			boost::shared_ptr<TextManagerState> _state;
 #pragma warning(pop)
 			ISystem *_system;
-			//TODO find a suitable text rendering system
-			//ID3DXFont *_font;
+			IFW1FontWrapper *_font;
+			ID3D11DeviceContext *_immediateContext;
 		};
 	}
 }

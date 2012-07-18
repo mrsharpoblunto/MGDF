@@ -46,29 +46,22 @@ boost::shared_ptr<TextManagerState> TextManagerState::Interpolate(const TextMana
 
 TextManager::~TextManager()
 {
-	/*if(_font){
-      _font->Release();
-      _font=NULL;
-   }*/
+	SAFE_RELEASE(_font);
+	SAFE_RELEASE(_immediateContext);
 }
 
 TextManager::TextManager(ISystem *system)
+	: _system(system)
+	, _font(NULL)
 {
-	_system = system;
-	//_font=NULL;
+	system->GetGraphics()->GetD3DDevice()->GetImmediateContext(&_immediateContext);
 
-	//HRESULT hr=D3DXCreateFont(_system->GetD3DDevice(),     //D3D Device
- //                    22,               //Font height
- //                    0,                //Font width
- //                    FW_NORMAL,        //Font Weight
- //                    1,                //MipLevels
- //                    false,            //Italic
- //                    DEFAULT_CHARSET,  //CharSet
- //                    OUT_DEFAULT_PRECIS, //OutputPrecision
- //                    ANTIALIASED_QUALITY, //Quality
- //                    DEFAULT_PITCH|FF_DONTCARE,//PitchAndFamily
- //                    "Arial",          //pFacename,
- //                    &_font);         //ppFont
+	IFW1Factory *factory;
+	if (!FAILED(FW1CreateFactory(FW1_VERSION,&factory)))
+	{
+		factory->CreateFontWrapper(system->GetGraphics()->GetD3DDevice(), L"Arial", &_font);
+		SAFE_RELEASE(factory);
+	}
 }
 
 void TextManager::SetState(boost::shared_ptr<TextManagerState> state)
@@ -78,12 +71,8 @@ void TextManager::SetState(boost::shared_ptr<TextManagerState> state)
 
 void TextManager::DrawText()
 {
-	if (_state)
+	if (_state && _font)
 	{
-		RECT font_rect;
-
-		SetRect(&font_rect,0,0,_system->GetGraphics()->GetScreenX(),_system->GetGraphics()->GetScreenY());
-
 		int starty;
 		if (_state.get()->_lines.size()*25 < _system->GetGraphics()->GetScreenY())
 		{
@@ -95,25 +84,33 @@ void TextManager::DrawText()
 
 		for (std::vector<Line>::iterator iter = _state.get()->_lines.begin();iter!=_state.get()->_lines.end();++iter)
 		{
-			  SetRect(&font_rect,0,starty,_system->GetGraphics()->GetScreenX(),starty+25);
+			std::wstring content;
+			content.assign(iter->Content.begin(),iter->Content.end());
 
-			//_font->DrawText(NULL,        //pSprite
-			//							iter->Content.c_str(),  //pString
-			//							-1,          //Count
-			//							&font_rect,  //pRect
-			//							DT_LEFT|DT_NOCLIP,//Format,
-			//							iter->Color); //Color
+			_font->DrawString(
+				_immediateContext,
+				content.c_str(),// String
+				22.0f,// Font size
+				0.0f,// X position
+				static_cast<float>(starty),// Y position
+				iter->Color,// Text color
+				0// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
+			);
 
 			if (iter->StatusText!="")
 			{
-				SetRect(&font_rect,_system->GetGraphics()->GetScreenX()-200,starty,_system->GetGraphics()->GetScreenX(),starty+25);
+				std::wstring statusText;
+				statusText.assign(iter->StatusText.begin(),iter->StatusText.end());
 
-				//_font->DrawText(NULL,        //pSprite
-				//						iter->StatusText.c_str(),  //pString
-				//						-1,          //Count
-				//						&font_rect,  //pRect
-				//						DT_LEFT|DT_NOCLIP,//Format,
-				//						iter->StatusColor); //Color
+				_font->DrawString(
+					_immediateContext,
+					statusText.c_str(),
+					22.0f,// Font size
+					static_cast<float>(_system->GetGraphics()->GetScreenX())-200.0f,// X position
+					static_cast<float>(starty),// Y position
+					iter->StatusColor,// Text color
+					0// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
+				);
 			}
 
 			starty-=25;
