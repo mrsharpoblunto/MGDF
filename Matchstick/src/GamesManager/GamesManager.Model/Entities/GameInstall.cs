@@ -14,7 +14,6 @@ namespace MGDF.GamesManager.Model.Entities
                 InstallerFile = installerFile;
                 LoadContent(installerFile);
                 ValidateGameStructure();
-                ValidateGameContents();
 
                 if (ErrorCollection.Count == 0)
                 {
@@ -61,23 +60,6 @@ namespace MGDF.GamesManager.Model.Entities
             if (!IsUpdate && GameContents.GetFile(Resources.BinDir) == null)
             {
                 ErrorCollection.Add("No bin directory found");
-            }
-        }
-
-        private void ValidateGameContents()
-        {
-            XmlValidator validator = new XmlValidator();
-            if (GameContents.GetFile(Resources.GameConfig) != null)
-            {
-                validator.IsXmlFileValid(GameContents.GetFile(Resources.GameConfig), "game.xsd", ErrorCollection);
-            }
-            if (GameContents.GetFile(Resources.UpdateConfig) != null)
-            {
-                validator.IsXmlFileValid(GameContents.GetFile(Resources.UpdateConfig), "update.xsd", ErrorCollection);
-            }
-            if (GameContents.GetFile(Resources.PreferencesConfig) != null)
-            {
-                validator.IsXmlFileValid(GameContents.GetFile(Resources.PreferencesConfig), "preferences.xsd", ErrorCollection);
             }
         }
 

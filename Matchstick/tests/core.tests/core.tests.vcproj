@@ -214,11 +214,11 @@
 			>
 		</File>
 		<File
-			RelativePath=".\VFSTests.cpp"
+			RelativePath=".\StorageTests.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\XMLTests.cpp"
+			RelativePath=".\VFSTests.cpp"
 			>
 		</File>
 	</Files>

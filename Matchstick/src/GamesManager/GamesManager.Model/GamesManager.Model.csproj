@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
+    <ProductVersion>9.0.21022</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -84,8 +84,7 @@
     <Compile Include="Entities\Game.cs" />
     <Compile Include="Entities\GameInstall.cs" />
     <Compile Include="Entities\Update.cs" />
-    <Compile Include="Entities\XmlEntity.cs" />
-    <Compile Include="Entities\XMLValidator.cs" />
+    <Compile Include="Entities\JsonEntity.cs" />
     <Compile Include="FileDownloader.cs" />
     <Compile Include="FrameworkUpdater.cs" />
     <Compile Include="GameDownloader.cs" />
@@ -102,20 +101,6 @@
     <Compile Include="StatisticsServiceClient.cs" />
     <Compile Include="UACControl.cs" />
     <Compile Include="UpdateChecker.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\..\content\schemas\game.xsd">
-      <Link>Schemas\game.xsd</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\..\content\schemas\gameState.xsd">
-      <Link>Schemas\gameState.xsd</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\..\content\schemas\preferences.xsd">
-      <Link>Schemas\preferences.xsd</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\..\content\schemas\update.xsd">
-      <Link>Schemas\update.xsd</Link>
-    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GamesManager.Common\GamesManager.Common.csproj">

@@ -16,14 +16,7 @@ Module::Module(MGDF::ISystem *system)
 	_system = system;
 }
 
-bool Module::LoadModule(const char *saveDataFolder,const char *workingFolder)
-{
-	_workingFolder = workingFolder;
-
-	return true;
-}
-
-bool Module::NewModule(const char *workingFolder)
+bool Module::New(const wchar_t *workingFolder)
 {
 	_workingFolder = workingFolder;
 
@@ -46,31 +39,16 @@ bool Module::DrawScene(double alpha)
    return true;
 }
 
-bool Module::DeviceReset()
-{
-	return true;
-}
-
-bool Module::SetDeviceState()
-{
-	return true;
-}
-
-bool Module::DeviceLost()
-{
-	return true;
-}
-
-bool Module::CheckDeviceCaps() {
-	return true;
-}
-
-bool Module::SaveModule(const char *saveDataFolder)
+bool Module::BackBufferChanged()
 {
 	return true;
 }
 
 void Module::Panic()
+{
+}
+
+void Module::ShutDown()
 {
 }
 

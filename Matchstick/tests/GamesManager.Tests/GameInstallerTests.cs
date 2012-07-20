@@ -29,8 +29,8 @@ namespace MGDF.GamesManager.Tests
 
 
             MockArchiveFile archive = new MockArchiveFile(null,"C:\\Documents and Settings\\user\\desktop\\game.mza");
-            new MockArchiveFile(archive,"game.xml", ReadTextFile("console.xml"));
-            new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
+            new MockArchiveFile(archive,"game.json", ReadTextFile("console.json"));
+            new MockArchiveFile(archive, "preferences.json", ReadTextFile("preferences.json"));
             new MockArchiveFile(archive, "content");
             new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.mza", archive);
@@ -63,8 +63,8 @@ namespace MGDF.GamesManager.Tests
         public void TestLoadInvalidGame()
         {
             MockArchiveFile archive = new MockArchiveFile(null, "C:\\Documents and Settings\\user\\desktop\\game.zip");
-            new MockArchiveFile(archive, "game.xml", ReadTextFile("console.xml"));
-            new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
+            new MockArchiveFile(archive, "game.json", ReadTextFile("console.json"));
+            new MockArchiveFile(archive, "preferences.json", ReadTextFile("preferences.json"));
             new MockArchiveFile(archive, "bin");
             //missing content
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.zip", archive);

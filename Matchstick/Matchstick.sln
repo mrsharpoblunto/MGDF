@@ -3,14 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{7DB53567-CA6D-4F58-A2AB-337764CAFF55}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "schemas", "schemas", "{88D35EB1-0966-4875-94C1-A8B8A7E9F875}"
-	ProjectSection(SolutionItems) = preProject
-		content\schemas\game.xsd = content\schemas\game.xsd
-		content\schemas\gameState.xsd = content\schemas\gameState.xsd
-		content\schemas\preferences.xsd = content\schemas\preferences.xsd
-		content\schemas\update.xsd = content\schemas\update.xsd
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GamesManager", "GamesManager", "{3FAF788A-9BFB-413C-A85B-197BEE7F1321}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core", "src\core\core.vcproj", "{762B44B2-4615-4C7D-9418-DC604A6D930A}"
@@ -19,18 +11,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core", "src\core\core.vcpro
 		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6} = {3544CC4C-ABD8-4820-88C7-B93FA53A78E6}
 		{84289E70-D37A-482E-A1D5-72E6773826DC} = {84289E70-D37A-482E-A1D5-72E6773826DC}
 		{608DC682-E676-4AA0-8886-FB8177C3A9B6} = {608DC682-E676-4AA0-8886-FB8177C3A9B6}
-		{CF3866DE-2A6E-4AFD-A434-58E149751728} = {CF3866DE-2A6E-4AFD-A434-58E149751728}
-		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7} = {60A53EEC-B17E-4BB8-9626-064ADA85CFC7}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.xml", "src\core\xml\core.xml.vcproj", "{73411C9C-846A-4A20-AA05-EF4716F96EB1}"
-	ProjectSection(ProjectDependencies) = postProject
-		{CF3866DE-2A6E-4AFD-A434-58E149751728} = {CF3866DE-2A6E-4AFD-A434-58E149751728}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.xml.xerces", "src\core\xml\xerces\core.xml.xerces.vcproj", "{CF3866DE-2A6E-4AFD-A434-58E149751728}"
-	ProjectSection(ProjectDependencies) = postProject
-		{608DC682-E676-4AA0-8886-FB8177C3A9B6} = {608DC682-E676-4AA0-8886-FB8177C3A9B6}
+		{CD45229C-C675-473F-8AA1-2F8A782D754B} = {CD45229C-C675-473F-8AA1-2F8A782D754B}
 		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7} = {60A53EEC-B17E-4BB8-9626-064ADA85CFC7}
 	EndProjectSection
 EndProject
@@ -57,7 +38,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.impl", "src\core\core.
 	ProjectSection(ProjectDependencies) = postProject
 		{F3930F29-C621-41EA-892C-8B5D48C5D2BB} = {F3930F29-C621-41EA-892C-8B5D48C5D2BB}
 		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6} = {3544CC4C-ABD8-4820-88C7-B93FA53A78E6}
-		{CF3866DE-2A6E-4AFD-A434-58E149751728} = {CF3866DE-2A6E-4AFD-A434-58E149751728}
+		{CD45229C-C675-473F-8AA1-2F8A782D754B} = {CD45229C-C675-473F-8AA1-2F8A782D754B}
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Automation", "Automation", "{54B32E7E-A90E-4043-A9FB-12219CF42108}"
@@ -91,7 +72,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.tests", "tests\core.te
 		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6} = {3544CC4C-ABD8-4820-88C7-B93FA53A78E6}
 		{84289E70-D37A-482E-A1D5-72E6773826DC} = {84289E70-D37A-482E-A1D5-72E6773826DC}
 		{608DC682-E676-4AA0-8886-FB8177C3A9B6} = {608DC682-E676-4AA0-8886-FB8177C3A9B6}
-		{CF3866DE-2A6E-4AFD-A434-58E149751728} = {CF3866DE-2A6E-4AFD-A434-58E149751728}
+		{CD45229C-C675-473F-8AA1-2F8A782D754B} = {CD45229C-C675-473F-8AA1-2F8A782D754B}
 		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7} = {60A53EEC-B17E-4BB8-9626-064ADA85CFC7}
 	EndProjectSection
 EndProject
@@ -101,11 +82,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Src", "Src", "{5656FE26-299
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{321FBA19-5BBD-44E5-BDA3-C5E6838DEBF6}"
 	ProjectSection(SolutionItems) = preProject
-		tests\content\console.xml = tests\content\console.xml
-		tests\content\gameState.xml = tests\content\gameState.xml
-		tests\content\playlist.xml = tests\content\playlist.xml
-		tests\content\preferences.xml = tests\content\preferences.xml
-		tests\content\Update.xml = tests\content\Update.xml
+		tests\content\console.json = tests\content\console.json
+		tests\content\gameState.json = tests\content\gameState.json
+		tests\content\preferences.json = tests\content\preferences.json
+		tests\content\Update.json = tests\content\Update.json
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Tests.Common", "tests\GamesManager.Tests.Common\GamesManager.Tests.Common.csproj", "{73C28FE8-F8A1-440A-8160-57DA7E318CD3}"
@@ -144,16 +124,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testModule", "src\modules\t
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "game", "game", "{46E01EE4-7FBE-4A1C-A5EF-B14FB01AAC5D}"
 	ProjectSection(SolutionItems) = preProject
-		content\game\game.xml = content\game\game.xml
+		content\game\game.json = content\game\game.json
 		content\game\gameIcon.png = content\game\gameIcon.png
-		content\game\preferences.xml = content\game\preferences.xml
+		content\game\preferences.json = content\game\preferences.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resources", "resources", "{EDB71625-AF75-4DA5-BBA0-D85971251DD6}"
 	ProjectSection(SolutionItems) = preProject
 		content\resources\gameIcon.png = content\resources\gameIcon.png
 		content\resources\gameSystemIcon.ico = content\resources\gameSystemIcon.ico
-		content\resources\preferences.xml = content\resources\preferences.xml
+		content\resources\preferences.json = content\resources\preferences.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{3464DE22-C75C-4826-B33B-7EB283CC060C}"
@@ -163,6 +143,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{3464
 		content\game\content\content.txt = content\game\content\content.txt
 		content\game\content\Stream.ogg = content\game\content\Stream.ogg
 		content\game\content\test.fakearchive = content\game\content\test.fakearchive
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.storage", "src\core\storage\core.storage.vcproj", "{6247D689-9B0F-4FCB-817D-2258739B5AAE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.storage.jsoncpp", "src\core\storage\jsoncpp\core.storage.jsoncpp.vcproj", "{CD45229C-C675-473F-8AA1-2F8A782D754B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{608DC682-E676-4AA0-8886-FB8177C3A9B6} = {608DC682-E676-4AA0-8886-FB8177C3A9B6}
 	EndProjectSection
 EndProject
 Global
@@ -185,26 +172,6 @@ Global
 		{762B44B2-4615-4C7D-9418-DC604A6D930A}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{762B44B2-4615-4C7D-9418-DC604A6D930A}.Release|Win32.ActiveCfg = Release|Win32
 		{762B44B2-4615-4C7D-9418-DC604A6D930A}.Release|Win32.Build.0 = Release|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Debug|Win32.ActiveCfg = Debug|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Debug|Win32.Build.0 = Debug|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Release|Any CPU.ActiveCfg = Release|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Release|Win32.ActiveCfg = Release|Win32
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1}.Release|Win32.Build.0 = Release|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Debug|Win32.ActiveCfg = Debug|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Debug|Win32.Build.0 = Debug|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Release|Any CPU.ActiveCfg = Release|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Release|Win32.ActiveCfg = Release|Win32
-		{CF3866DE-2A6E-4AFD-A434-58E149751728}.Release|Win32.Build.0 = Release|Win32
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}.Debug|Mixed Platforms.Build.0 = Debug|Win32
@@ -461,19 +428,36 @@ Global
 		{77B40DFE-E113-43EC-8059-099246687405}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{77B40DFE-E113-43EC-8059-099246687405}.Release|Win32.ActiveCfg = Release|Win32
 		{77B40DFE-E113-43EC-8059-099246687405}.Release|Win32.Build.0 = Release|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Debug|Win32.Build.0 = Debug|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Release|Any CPU.ActiveCfg = Release|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Release|Win32.ActiveCfg = Release|Win32
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE}.Release|Win32.Build.0 = Release|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Debug|Win32.Build.0 = Debug|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Any CPU.ActiveCfg = Release|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Win32.ActiveCfg = Release|Win32
+		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{88D35EB1-0966-4875-94C1-A8B8A7E9F875} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}
 		{46E01EE4-7FBE-4A1C-A5EF-B14FB01AAC5D} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}
 		{EDB71625-AF75-4DA5-BBA0-D85971251DD6} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}
 		{0BCBC69E-3FA8-4722-BB95-3B706C65640E} = {3FAF788A-9BFB-413C-A85B-197BEE7F1321}
 		{CE698894-DA6C-44F6-ADE0-3512208932C0} = {3FAF788A-9BFB-413C-A85B-197BEE7F1321}
 		{23BDDADA-83DC-4980-B2B1-CBB0B678942F} = {3FAF788A-9BFB-413C-A85B-197BEE7F1321}
-		{73411C9C-846A-4A20-AA05-EF4716F96EB1} = {5656FE26-2995-4842-B088-D8E29338C13E}
-		{CF3866DE-2A6E-4AFD-A434-58E149751728} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7} = {5656FE26-2995-4842-B088-D8E29338C13E}
@@ -483,6 +467,8 @@ Global
 		{762B44B2-4615-4C7D-9418-DC604A6D930A} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{F3930F29-C621-41EA-892C-8B5D48C5D2BB} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{92937010-1E2A-4928-A03A-49F6AD1C9927} = {5656FE26-2995-4842-B088-D8E29338C13E}
+		{6247D689-9B0F-4FCB-817D-2258739B5AAE} = {5656FE26-2995-4842-B088-D8E29338C13E}
+		{CD45229C-C675-473F-8AA1-2F8A782D754B} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{54EABEB3-4FF1-43DD-AEC2-5CBD566E3942} = {0BCBC69E-3FA8-4722-BB95-3B706C65640E}
 		{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940} = {0BCBC69E-3FA8-4722-BB95-3B706C65640E}
 		{A5292682-B9B4-45D4-A867-0DDCD09A97F1} = {CE698894-DA6C-44F6-ADE0-3512208932C0}

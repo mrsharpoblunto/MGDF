@@ -4,7 +4,7 @@ MGDF - Matchstick game development framework
 What is it
 ----------
 
-MGDF is a framework designed to make developing, installing, distributing, and updating games easier. The framework uses DirectX 9 for graphics, DirectInput/XInput for user input (has full support for the xbox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual filesystem which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
+MGDF is a framework designed to make developing, installing, distributing, and updating games easier. The framework uses DirectX 11 for graphics, DirectInput/XInput for user input (has full support for the xbox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual filesystem which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
 
 * MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game.
 * MGDF makes distributing games easier as it includes an auto update mechanism withfull versioning support.
@@ -31,7 +31,7 @@ Building Source
 MGDF can be built with Microsoft Visual Studio 2008 on windows (VS2010/VS2011 will probably work too, but this is untested). To build MGDF you will need to have installed and built the following prerequisites.
 
 * [boost 1.47](http://www.boost.org/users/history/version_1_47_0.html) (For a prebuilt installer go [here](http://www.boostpro.com/download/))
-* Directx 9 SDK (october 2005 or later. Note the official build uses the [June 2010 version](http://www.microsoft.com/download/en/details.aspx?id=6812)).
+* Directx SDK [June 2010 version](http://www.microsoft.com/download/en/details.aspx?id=6812)).
 * ensure boost and directX libs and headers are on visual studio's lib/include path.
 * build vendor/libs.sln in debug win32 and release win32 configurations.
 * cd into %installdir%/Matchstick and run 'automation/deploy.bat' to copy the vendor libraries and default data into the Matchstick bin/Debug folder.

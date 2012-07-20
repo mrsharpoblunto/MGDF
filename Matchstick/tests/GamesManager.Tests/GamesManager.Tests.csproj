@@ -60,7 +60,7 @@
     <Compile Include="GamesUpdaterTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StatisticsTests.cs" />
-    <Compile Include="XmlEntityTests.cs" />
+    <Compile Include="StorageEntityTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\GamesManager\GamesManager.Common\GamesManager.Common.csproj">
@@ -93,38 +93,22 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\content\schemas\game.xsd">
-      <Link>GamesManager.Tests.Content\Schemas\game.xsd</Link>
+    <None Include="..\content\console.json">
+      <Link>GamesManager.Tests.Content\console.json</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\content\schemas\gameState.xsd">
-      <Link>GamesManager.Tests.Content\Schemas\gameState.xsd</Link>
+    </None>
+    <None Include="..\content\gameState.json">
+      <Link>GamesManager.Tests.Content\gameState.json</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\content\schemas\preferences.xsd">
-      <Link>GamesManager.Tests.Content\Schemas\preferences.xsd</Link>
+    </None>
+    <None Include="..\content\preferences.json">
+      <Link>GamesManager.Tests.Content\preferences.json</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\content\schemas\update.xsd">
-      <Link>GamesManager.Tests.Content\Schemas\update.xsd</Link>
+    </None>
+    <None Include="..\content\Update.json">
+      <Link>GamesManager.Tests.Content\Update.json</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\content\console.xml">
-      <Link>GamesManager.Tests.Content\console.xml</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\content\gameState.xml">
-      <Link>GamesManager.Tests.Content\gameState.xml</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\content\preferences.xml">
-      <Link>GamesManager.Tests.Content\preferences.xml</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\content\Update.xml">
-      <Link>GamesManager.Tests.Content\Update.xml</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    </None>
     <None Include="App.Config" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

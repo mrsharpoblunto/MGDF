@@ -1,0 +1,8 @@
+﻿{
+  "updatedescription":"An update",
+  "updateminversion":"0.1",
+  "updatemaxversion":"0.2",
+  "removefiles":[
+    "content/test.json"
+   ]
+}

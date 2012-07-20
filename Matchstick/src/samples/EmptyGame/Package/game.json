@@ -1,0 +1,10 @@
+{
+"gameuid":"EmptyGame",
+"gamename":"Empty Game",
+"description":"A stub game implementation",
+"version":"1.0",
+"interfaceversion":"1",
+"developeruid":"Unknown",
+"developername":"Unknown",
+"homepage":"http://www.matchstickframework.org"
+}

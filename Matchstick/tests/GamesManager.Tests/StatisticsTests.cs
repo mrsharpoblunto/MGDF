@@ -68,22 +68,23 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
         [Test]
         public void TestCanSendStatisticsDeniedNoPrivacyPolicy()
         {
-            const string gameContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gamename>Lua Console</gamename>
-  <gameuid>Console</gameuid>
-  <description>A Lua command console for interacting with the MGDF system</description>
-  <version>0.1</version>
-  <interfaceversion>1</interfaceversion>
-  <developer>no.8 Interactive</developer>
-  <homepage>http://www.junkship.org</homepage>
-  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>
-  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice> 
-</mgdf:game>";
+            const string gameContent = @"{
+  ""gameuid"":""Console"",
+  ""gamename"":""Lua Console"",
+  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""version"":""0.1"",
+  ""interfaceversion"":""1"",
+  ""developeruid"":""no-8"",
+  ""developername"":""no8 interactive"",
+  ""homepage"":""http://www.junkship.org"",
+  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""supportemail"":""support@junkship.org""
+}";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.xml", gameContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.xml"));
+            gameDirectory.AddFile("game.json", gameContent);
+            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
             Assert.IsFalse(StatisticsSession.CanSendStatistics(game));        
         }
@@ -91,23 +92,24 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
         [Test]
         public void TestCanSendStatistics()
         {
-            const string gmeContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gamename>Lua Console</gamename>
-  <gameuid>Console</gameuid>
-  <description>A Lua command console for interacting with the MGDF system</description>
-  <version>0.1</version>
-  <interfaceversion>1</interfaceversion>
-  <developer>no.8 Interactive</developer>
-  <homepage>http://www.junkship.org</homepage>
-  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>
-  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice> 
-  <statisticsprivacypolicy>http://www.junkship.org/privacy</statisticsprivacypolicy>
-</mgdf:game>";
+            const string gmeContent = @"{
+  ""gameuid"":""Console"",
+  ""gamename"":""Lua Console"",
+  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""version"":""0.1"",
+  ""interfaceversion"":""1"",
+  ""developeruid"":""no-8"",
+  ""developername"":""no8 interactive"",
+  ""homepage"":""http://www.junkship.org"",
+  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""statisticsprivacypolicy"":""We wont use ur informationz"",
+  ""supportemail"":""support@junkship.org""
+}";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.xml", gmeContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.xml"));
+            gameDirectory.AddFile("game.json", gmeContent);
+            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
             Assert.IsTrue(StatisticsSession.CanSendStatistics(game));
         }
@@ -115,23 +117,24 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
         [Test]
         public void TestGetStatisticsPermissionCachedPermission()
         {
-            const string gmeContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gamename>Lua Console</gamename>
-  <gameuid>Console</gameuid>
-  <description>A Lua command console for interacting with the MGDF system</description>
-  <version>0.1</version>
-  <interfaceversion>1</interfaceversion>
-  <developer>no.8 Interactive</developer>
-  <homepage>http://www.junkship.org</homepage>
-  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>
-  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice> 
-  <statisticsprivacypolicy>http://www.junkship.org/privacy</statisticsprivacypolicy>
-</mgdf:game>";
+            const string gmeContent = @"{
+  ""gameuid"":""Console"",
+  ""gamename"":""Lua Console"",
+  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""version"":""0.1"",
+  ""interfaceversion"":""1"",
+  ""developeruid"":""no-8"",
+  ""developername"":""no8 interactive"",
+  ""homepage"":""http://www.junkship.org"",
+  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""statisticsprivacypolicy"":""http://www.junkship.org/privacy"",
+  ""supportemail"":""support@junkship.org""
+}";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.xml", gmeContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.xml"));
+            gameDirectory.AddFile("game.json", gmeContent);
+            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
             Resources.InitUserDirectory("Console", false);
             SettingsManager.Instance.Settings = new GameSettings();
@@ -151,23 +154,24 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
         [TestCase(true)]
         public void TestGetStatisticsPermissionNoCachedPermission(bool allow)
         {
-            const string gmeContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gamename>Lua Console</gamename>
-  <gameuid>Console</gameuid>
-  <description>A Lua command console for interacting with the MGDF system</description>
-  <version>0.1</version>
-  <interfaceversion>1</interfaceversion>
-  <developer>no.8 Interactive</developer>
-  <homepage>http://www.junkship.org</homepage>
-  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>
-  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice> 
-  <statisticsprivacypolicy>http://www.junkship.org/privacy</statisticsprivacypolicy>
-</mgdf:game>";
+            const string gmeContent = @"{
+  ""gameuid"":""Console"",
+  ""gamename"":""Lua Console"",
+  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""version"":""0.1"",
+  ""interfaceversion"":""1"",
+  ""developeruid"":""no-8"",
+  ""developername"":""no8 interactive"",
+  ""homepage"":""http://www.junkship.org"",
+  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""statisticsprivacypolicy"":""http://www.junkship.org/privacy"",
+  ""supportemail"":""support@junkship.org""
+}";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.xml", gmeContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.xml"));
+            gameDirectory.AddFile("game.json", gmeContent);
+            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
             Resources.InitUserDirectory("Console", false);
 

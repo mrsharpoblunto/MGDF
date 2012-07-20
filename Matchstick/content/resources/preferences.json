@@ -1,0 +1,37 @@
+{
+"preferences":
+  [
+    {
+    "name":"simFps",
+    "value":"60"
+    },
+    {
+    "name":"vsync",
+    "value":"1"
+    },
+    {
+    "name":"fullScreen",
+    "value":"0"
+    },
+    {
+    "name":"screenX",
+    "value":"1024"
+    },
+    {
+    "name":"screenY",
+    "value":"768"
+    },
+    {
+    "name":"multiSampleLevel",
+    "value":"1"
+    },
+    {
+    "name":"musicVolume",
+    "value":"1.0"
+    },
+    {
+    "name":"soundVolume",
+    "value":"1.0"
+    }
+  ]
+}

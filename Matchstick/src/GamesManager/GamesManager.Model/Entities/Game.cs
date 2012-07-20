@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Mime;
-using System.Xml;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace MGDF.GamesManager.Model.Entities
 {
-    public class Game: XmlEntity
+    public class Game: JsonEntity
     {
         private byte[] _gameIconData;
 
@@ -18,13 +19,13 @@ namespace MGDF.GamesManager.Model.Entities
 
         //when installed and loaded from the filesystem
         public Game(string gameFile)
-            : base(gameFile, "game.xsd")
+            : base(gameFile)
         {
         }
 
         //when loaded from an install package
         public Game(IArchiveFile gameFile)
-            : base(gameFile, "game.xsd")
+            : base(gameFile)
         {
             if (ErrorCollection.Count == 0)
             {
@@ -91,68 +92,21 @@ namespace MGDF.GamesManager.Model.Entities
 
         #endregion
 
-        protected override void Load(XmlReader reader)
+        protected override void Load(JObject json)
         {
-            while (reader.Read())
-            {
-                // parse based on NodeType
-                switch (reader.NodeType)
-                {
-                    case XmlNodeType.Element:
-                        switch (reader.Name)
-                        {
-                            case "description":
-                                Description = reader.ReadString();
-                                break;
+            Description = json.ReadRequiredValue("description");
+            DeveloperUid = json.ReadRequiredValue("developeruid");
+            DeveloperName = json.ReadRequiredValue("developername");
+            Version = new Version(json.ReadRequiredValue("version"));
+            Name = json.ReadRequiredValue("gamename");
+            Uid = json.ReadRequiredValue("gameuid");
+            InterfaceVersion = int.Parse(json.ReadRequiredValue("interfaceversion"));
 
-                            case "developeruid":
-                                DeveloperUid = reader.ReadString();
-                                break;
-
-                            case "developername":
-                                DeveloperName = reader.ReadString();
-                                break;
-
-                            case "homepage":
-                                Homepage = reader.ReadString();
-                                break;
-
-                            case "version":
-                                Version = new Version(reader.ReadString());
-                                break;
-
-                            case "gamename":
-                                Name = reader.ReadString();
-                                break;
-
-                            case "gameuid":
-                                Uid = reader.ReadString();
-                                break;
-
-                            case "gamesourceservice":
-                                GameSourceService = reader.ReadString();
-                                break;
-
-                            case "statisticsservice":
-                                StatisticsService = reader.ReadString();
-                                break;
-
-                            case "statisticsprivacypolicy":
-                                StatisticsPrivacyPolicy = reader.ReadString();
-                                break;
-
-                            case "supportemail":
-                                SupportEmail = reader.ReadString();
-                                break;
-
-                            case "interfaceversion":
-                                InterfaceVersion = int.Parse(reader.ReadString());
-                                break;
-                        }
-                        break;
-                }
-            }
-            reader.Close();
+            Homepage = json.ReadOptionalValue("homepage");
+            GameSourceService = json.ReadOptionalValue("gamesourceservice");
+            StatisticsService = json.ReadOptionalValue("statisticsservice");
+            StatisticsPrivacyPolicy = json.ReadOptionalValue("statisticsprivacypolicy");
+            SupportEmail = json.ReadOptionalValue("supportemail");
         }
 
         public bool Equals(Game other)
@@ -179,39 +133,31 @@ namespace MGDF.GamesManager.Model.Entities
                 }
             }
 
-            XmlWriterSettings settings = new XmlWriterSettings
-                                             {
-                                                 OmitXmlDeclaration = false,
-                                                 Indent = true,
-                                                 NewLineChars = "\r\n",
-                                                 IndentChars = "\t"
-                                             };
-
             using (var stream = FileSystem.Current.GetFile(filename).OpenStream(FileMode.Create))
             {
-                XmlWriter writer = XmlWriter.Create(stream, settings);
+                using (var textWriter = new StreamWriter(stream))
+                {
+                    using (JsonWriter writer = new JsonTextWriter(textWriter))
+                    {
+                        writer.Formatting = Formatting.Indented;
+                        writer.WriteStartObject();
 
-                writer.WriteStartDocument();
-                writer.WriteStartElement("mgdf", "game", "http://schemas.matchstickframework.org/2007/game");
-                writer.WriteAttributeString("xmlns", "xsi", null, "http://www.w3.org/2001/XMLSchema-instance");
+                        writer.WriteRequiredValue("gameuid",Uid);
+                        writer.WriteRequiredValue("gamename",Name);
+                        writer.WriteRequiredValue("description",Description);
+                        writer.WriteRequiredValue("version",Version.ToString());
+                        writer.WriteRequiredValue("interfaceversion",InterfaceVersion.ToString());
+                        writer.WriteRequiredValue("developeruid",DeveloperUid);
+                        writer.WriteRequiredValue("developername",DeveloperName);
+                        writer.WriteOptionalValue("supportemail", SupportEmail);
+                        writer.WriteOptionalValue("homepage", Homepage);
+                        writer.WriteOptionalValue("gamesourceservice", GameSourceService);
+                        writer.WriteOptionalValue("statisticsservice", StatisticsService);
+                        writer.WriteOptionalValue("statisticsprivacypolicy", StatisticsPrivacyPolicy);
 
-                writer.WriteElementString("gameuid",Uid);
-                writer.WriteElementString("gamename",Name);
-                writer.WriteElementString("description",Description);
-                writer.WriteElementString("version",Version.ToString());
-                writer.WriteElementString("interfaceversion",InterfaceVersion.ToString());
-                writer.WriteElementString("developeruid",DeveloperUid);
-                writer.WriteElementString("developername", DeveloperName);
-
-                writer.AddNonDefaultElementString("supportemail",SupportEmail);
-                writer.AddNonDefaultElementString("homepage",Homepage);
-                writer.AddNonDefaultElementString("gamesourceservice",GameSourceService);
-                writer.AddNonDefaultElementString("statisticsservice",StatisticsService);
-                writer.AddNonDefaultElementString("statisticsprivacypolicy",StatisticsPrivacyPolicy);
-
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
-                writer.Close();
+                        writer.WriteEndObject();
+                    }
+                }
             }
         }
 

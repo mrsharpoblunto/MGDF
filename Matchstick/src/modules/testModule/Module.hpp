@@ -1,7 +1,6 @@
 #pragma once
 
 #include <time.h>
-#include "d3d9.h"
 #include <MGDF/MGDF.hpp>
 
 #include "BufferedGameState.hpp"

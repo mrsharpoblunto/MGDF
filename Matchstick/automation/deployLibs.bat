@@ -2,7 +2,6 @@ mkdir bin\%1
 
 echo copying MGDF library dll's to bin directory
 XCOPY  ..\vendor\lib\%1\zlib.dll bin\%1 /E /Y /I
-XCOPY  ..\vendor\lib\%1\xerces-c_2_7.dll bin\%1 /E /Y /I
 XCOPY  ..\vendor\lib\%1\fw1FontWrapper.dll bin\%1 /E /Y /I
 
 echo copying MGDF precompiled dll's to bin directory

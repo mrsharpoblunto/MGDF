@@ -78,14 +78,6 @@ std::wstring Resources::GetApplicationDirectory(HINSTANCE instance)
 
 const std::wstring Resources::VFS_CONTENT = L"content/";
 
-const std::string Resources::GAME_SCHEMA_URI = "http://schemas.matchstickframework.org/2007/game";
-const std::string Resources::GAME_STATE_SCHEMA_URI = "http://schemas.matchstickframework.org/2007/gameState";
-const std::string Resources::PREFERENCES_SCHEMA_URI   = "http://schemas.matchstickframework.org/2007/preferences";
-
-const std::wstring Resources::GAME_SCHEMA   = L"game.xsd";
-const std::wstring Resources::GAME_STATE_SCHEMA = L"gameState.xsd";
-const std::wstring Resources::PREFERENCES_SCHEMA   = L"preferences.xsd";
-
 const unsigned int Resources::MIN_SCREEN_X = 1024;
 const unsigned int Resources::MIN_SCREEN_Y =768;
 
@@ -116,7 +108,7 @@ std::wstring Resources::GameBaseDir()
 
 std::wstring Resources::GameFile()
 {
-	return GameBaseDir() +L"game.xml";
+	return GameBaseDir() +L"game.json";
 }
 
 std::wstring Resources::WorkingDir()
@@ -131,7 +123,7 @@ std::wstring Resources::SaveBaseDir()
 
 std::wstring Resources::GameStateSaveFile(const std::string &saveName)
 {
-	return SaveDir(saveName) + L"gameState.xml";
+	return SaveDir(saveName) + L"gameState.json";
 }
 
 std::wstring Resources::SaveDir(const std::string &saveName)
@@ -162,17 +154,17 @@ void Resources::CreateRequiredDirectories()
 
 std::wstring Resources::CorePreferencesFile()
 {
-	return _applicationDirectory+L"resources/preferences.xml";
+	return _applicationDirectory+L"resources/preferences.json";
 }
 
 std::wstring Resources::GameDefaultPreferencesFile()
 {
-	return GameBaseDir()+  L"preferences.xml";
+	return GameBaseDir()+  L"preferences.json";
 }
 
 std::wstring Resources::GameUserPreferencesFile()
 {
-	return UserBaseDir() + L"preferences.xml";
+	return UserBaseDir() + L"preferences.json";
 }
 
 std::wstring Resources::GameUserStatisticsFile() 
@@ -183,11 +175,6 @@ std::wstring Resources::GameUserStatisticsFile()
 std::wstring Resources::ContentDir()
 {
 	return GameBaseDir() + L"content/";
-}
-
-std::wstring Resources::SchemaFile(const std::wstring &schemaFile)
-{
-	return _applicationDirectory+L"schemas/"+schemaFile;
 }
 
 std::wstring Resources::Module()

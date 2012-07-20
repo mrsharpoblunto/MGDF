@@ -153,13 +153,13 @@ BEGIN_TESTF(FileSystemTests,VFSTestFixture)
 {
 	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",NULL,false);
 
-	WIN_ASSERT_EQUAL(6,_vfs->GetRoot()->GetChildCount());
+	WIN_ASSERT_EQUAL(5,_vfs->GetRoot()->GetChildCount());
 	WIN_ASSERT_STRING_EQUAL(L"test.zip",_vfs->GetFile(L"./test.zip")->GetName());
 	WIN_ASSERT_EQUAL(true,_vfs->GetFile(L"./test.zip")->IsArchive());
-	WIN_ASSERT_STRING_EQUAL(L"console.xml",_vfs->GetFile(L"./console.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL(L"preferences.xml",_vfs->GetFile(L"./preferences.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL(L"gamestate.xml",_vfs->GetFile(L"gameState.xml")->GetName());
-	WIN_ASSERT_STRING_EQUAL(L"playlist.xml",_vfs->GetFile(L"playlist.xml")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"console.json",_vfs->GetFile(L"./console.json")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"preferences.json",_vfs->GetFile(L"./preferences.json")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"gamestate.json",_vfs->GetFile(L"gameState.json")->GetName());
+	WIN_ASSERT_STRING_EQUAL(L"update.json",_vfs->GetFile(L"Update.json")->GetName());
 }
 END_TESTF
 
@@ -170,7 +170,7 @@ BEGIN_TESTF(FileSystemContentTests,VFSTestFixture)
 {
 	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",NULL,false);
 
-	IFile *file = _vfs->GetFile(L"console.xml");
+	IFile *file = _vfs->GetFile(L"console.json");
 	file->OpenFile();
 	char *data = new char[file->GetSize()];
 	file->Read(data,file->GetSize());
@@ -184,9 +184,9 @@ BEGIN_TESTF(FileSystemContentTests,VFSTestFixture)
 	boost::split(list,contents,boost::is_any_of("\n"));
 
 	//see if the file has as many lines as we expect
-	WIN_ASSERT_EQUAL(15,list.size());
+	WIN_ASSERT_EQUAL(14,list.size());
 	//check to see the first and last lines are as expected
-	WIN_ASSERT_EQUAL("<?xml version=\"1.0\" encoding=\"UTF-8\"?>",list[0]);
-	WIN_ASSERT_EQUAL("</mgdf:game>",list[14]);
+	WIN_ASSERT_EQUAL("{",list[0]);
+	WIN_ASSERT_EQUAL("}",list[13]);
 }
 END_TESTF

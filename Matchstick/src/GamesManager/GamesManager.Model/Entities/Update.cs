@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Xml;
+using Newtonsoft.Json.Linq;
 
 namespace MGDF.GamesManager.Model.Entities
 {
-    public class Update: XmlEntity
+    public class Update: JsonEntity
     {
         public Version UpdateMinVersion { get; private set; }
         public Version UpdateMaxVersion { get; private set; }
@@ -20,7 +20,7 @@ namespace MGDF.GamesManager.Model.Entities
         private readonly Game _updateTarget;
 
         public Update(Game upgadeTarget, IArchiveFile updateFile)
-            : base(updateFile, "update.xsd")
+            : base(updateFile)
         {
             _updateTarget = upgadeTarget;
 
@@ -34,30 +34,14 @@ namespace MGDF.GamesManager.Model.Entities
             }
         }
 
-        protected override void Load(XmlReader reader)
+        protected override void Load(JObject json)
         {
-            while (reader.Read())
+            UpdateMinVersion = new Version(json.ReadRequiredValue("updateminversion"));
+            UpdateMaxVersion = new Version(json.ReadRequiredValue("updatemaxversion"));
+             
+            foreach (var child in json["removefiles"].Values<string>())
             {
-                // parse based on NodeType
-                switch (reader.NodeType)
-                {
-                    case XmlNodeType.Element:
-                        switch (reader.Name)
-                        {
-                            case "updateminversion":
-                                UpdateMinVersion = new Version(reader.ReadString());
-                                break;
-
-                            case "updatemaxversion":
-                                UpdateMaxVersion = new Version(reader.ReadString());
-                                break;
-
-                            case "file":
-                                RemoveFiles.Add(reader.ReadString());
-                                break;
-                        }
-                        break;
-                }
+                RemoveFiles.Add(child);
             }
         }
     }

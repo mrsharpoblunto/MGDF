@@ -13,7 +13,7 @@
 #include "../common/MGDFSystemComponent.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManagerImpl.hpp"
-#include "../xml/MGDFXMLFactoryComponentImpl.hpp"
+#include "../storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
 #include "../audio/MGDFSoundManagerComponentImpl.hpp"
 #include "../vfs/MGDFVirtualFileSystemComponentImpl.hpp"
@@ -107,7 +107,7 @@ private:
 
 	void ClearWorkingDirectory();
 
-	xml::IXMLFactoryComponent *_xml;
+	storage::IStorageFactoryComponent *_storage;
 	input::IInputManagerComponent *_input;
 	audio::ISoundManagerComponent *_sound;
 	vfs::IVirtualFileSystemComponent *_vfs;

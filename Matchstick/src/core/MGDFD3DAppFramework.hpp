@@ -4,7 +4,6 @@
 #include "core.impl/MGDFSystemStats.hpp"
 #include "MGDFFrameLimiter.hpp"
 #include <boost/thread.hpp>
-#include "d3d9.h"
 
 namespace MGDF { namespace core {
 

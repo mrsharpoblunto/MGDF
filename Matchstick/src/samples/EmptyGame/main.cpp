@@ -31,9 +31,3 @@ MGDF::ICustomArchiveHandlers * MGDF::GetCustomArchiveHandlers(void)
 {
 	return NULL;
 }
-
-//provide gamestate migrator
-MGDF::IGameStateMigrator * MGDF::GetGameStateMigrator(void)
-{
-	return NULL;
-}

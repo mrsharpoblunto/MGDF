@@ -2,7 +2,6 @@
 
 #include <MGDF/MGDF.hpp>
 
-#include "d3d9.h"
 #include "MGDFSystemBuilder.hpp"
 #include "MGDFGameBuilder.hpp"
 #include "MGDFSystemImpl.hpp"
@@ -12,7 +11,7 @@
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFExceptions.hpp"
 #include "MGDFParameterConstants.hpp"
-#include "../xml/MGDFXMLFactoryComponentImpl.hpp"
+#include "../storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
 #include "../audio/MGDFSoundManagerComponentImpl.hpp"
 #include "../vfs/MGDFVirtualFileSystemComponentImpl.hpp"
@@ -34,12 +33,12 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 	InitLogger();
 
 
-	xml::IXMLFactoryComponent *xmlImpl = xml::CreateXMLFactoryComponentImpl(instance,window);
-	if (xmlImpl!=NULL) {
-		Components::Instance().RegisterComponent<xml::IXMLFactoryComponent>(xmlImpl);
+	storage::IStorageFactoryComponent *storageImpl = storage::CreateStorageFactoryComponentImpl(instance,window);
+	if (storageImpl!=NULL) {
+		Components::Instance().RegisterComponent<storage::IStorageFactoryComponent>(storageImpl);
 	}
 	else {
-		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to register XMLFactory",LOG_ERROR);
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to register StorageFactory",LOG_ERROR);
 		return false;
 	}
 
@@ -77,7 +76,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 
 void SystemBuilder::UnregisterComponents()
 {
-	Components::Instance().UnregisterComponent<xml::IXMLFactoryComponent>();
+	Components::Instance().UnregisterComponent<storage::IStorageFactoryComponent>();
 	Components::Instance().UnregisterComponent<input::IInputManagerComponent>();
 	Components::Instance().UnregisterComponent<audio::ISoundManagerComponent>();
 	Components::Instance().UnregisterComponent<vfs::IVirtualFileSystemComponent>();
@@ -176,11 +175,6 @@ void SystemBuilder::InitParameterManager()
 
 void SystemBuilder::InitLogger()
 {
-	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME))
-	{
-		//todo move log file
-	}
-
 	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::LOG_LEVEL)) {
 		const char *level = GetParameterManagerImpl()->GetParameter(ParameterConstants::LOG_LEVEL);
 

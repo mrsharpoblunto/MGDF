@@ -36,7 +36,7 @@ namespace MGDF.GamesManager.Tests
         {
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
@@ -50,7 +50,7 @@ namespace MGDF.GamesManager.Tests
 }
 }");
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNotNull(update);
@@ -75,7 +75,7 @@ namespace MGDF.GamesManager.Tests
 
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
             SettingsManager.Instance.Settings = new GameSettings();
             SettingsManager.Instance.Settings.GameUid = "Console";
@@ -96,7 +96,7 @@ namespace MGDF.GamesManager.Tests
 }
 }");
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNotNull(update);
@@ -125,7 +125,7 @@ namespace MGDF.GamesManager.Tests
 
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
@@ -140,7 +140,7 @@ namespace MGDF.GamesManager.Tests
 }
 }");
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNotNull(update);
@@ -175,7 +175,7 @@ namespace MGDF.GamesManager.Tests
 
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
@@ -196,7 +196,7 @@ namespace MGDF.GamesManager.Tests
 }
 }");
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNotNull(update);
@@ -229,7 +229,7 @@ namespace MGDF.GamesManager.Tests
         {
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
@@ -254,7 +254,7 @@ namespace MGDF.GamesManager.Tests
 ]
 }");
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNotNull(update);
@@ -268,7 +268,7 @@ namespace MGDF.GamesManager.Tests
         {
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
@@ -288,7 +288,7 @@ namespace MGDF.GamesManager.Tests
 ]
 }");
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNull(update);
@@ -299,7 +299,7 @@ namespace MGDF.GamesManager.Tests
         {
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
@@ -319,7 +319,7 @@ namespace MGDF.GamesManager.Tests
 ]
 }");
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNotNull(update);
@@ -333,10 +333,10 @@ namespace MGDF.GamesManager.Tests
         {
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             var update = UpdateChecker.CheckForGameUpdate(game);
 
             Assert.IsNull(update);
@@ -348,8 +348,8 @@ namespace MGDF.GamesManager.Tests
         public void TestUpdateLocalGameWithFullInstaller(bool includeGdfDll)
         {
             MockArchiveFile archive = new MockArchiveFile(null, "C:\\Documents and Settings\\user\\desktop\\game.zip");
-            new MockArchiveFile(archive, "game.xml", ReadTextFile("console.xml"));
-            new MockArchiveFile(archive, "preferences.xml", ReadTextFile("preferences.xml"));
+            new MockArchiveFile(archive, "game.json", ReadTextFile("console.json"));
+            new MockArchiveFile(archive, "preferences.json", ReadTextFile("preferences.json"));
             if (includeGdfDll)
             {
                 new MockArchiveFile(archive, "gdf.dll", "GAMES_EXPLORER_DEFINITION");
@@ -366,12 +366,12 @@ namespace MGDF.GamesManager.Tests
 
             //check that all the games content was copied across
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\preferences.xml").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\preferences.json").Exists);
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game\\content").Exists);
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game\\bin").Exists);
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             Assert.IsTrue(game.IsValid);
 
             var key = Registry.Current.CreateSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
@@ -423,28 +423,27 @@ namespace MGDF.GamesManager.Tests
         {
             //lets pretend that this game is already installed.
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").WriteText(ReadTextFile("console.xml"));
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
             FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game\\content").Create();
-            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\content\\test.xml").WriteText("blah");
+            FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\content\\test.json").WriteText("blah");
             Registry.Current.CreateSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
 
             MockArchiveFile archive = new MockArchiveFile(null, "C:\\Documents and Settings\\user\\desktop\\game.zip");
-            new MockArchiveFile(archive, "game.xml", @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<mgdf:game xmlns:mgdf=""http://schemas.matchstickframework.org/2007/game"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
-  <gameuid>Console</gameuid>
-  <gamename>Lua Console</gamename>
-  <description>A Lua command console for interacting with the MGDF system</description>
-  <version>1.0.0.0</version>
-  <interfaceversion>1</interfaceversion>
-  <developeruid>no-8</developeruid>
-  <developername>no8 interactive</developername>
-  <homepage>http://www.junkship.org</homepage>
-  <gamesourceservice>http://games.junkship.org/gamesource.asmx</gamesourceservice>
-  <statisticsservice>http://statistics.junkship.org/statisticsservice.asmx</statisticsservice>
-  <statisticsprivacypolicy>We wont use ur informationz</statisticsprivacypolicy>
-  <supportemail>support@junkship.org</supportemail>
-</mgdf:game>");
-            new MockArchiveFile(archive, "update.xml", ReadTextFile("update.xml"));
+            new MockArchiveFile(archive, "game.json", @"{
+  ""gameuid"":""Console"",
+  ""gamename"":""Lua Console"",
+  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""version"":""1.0.0.0"",
+  ""interfaceversion"":""1"",
+  ""developeruid"":""no-8"",
+  ""developername"":""no8 interactive"",
+  ""homepage"":""http://www.junkship.org"",
+  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""statisticsprivacypolicy"":""We wont use ur informationz"",
+  ""supportemail"":""support@junkship.org""
+}");
+            new MockArchiveFile(archive, "update.json", ReadTextFile("update.json"));
             new MockArchiveFile(archive, "content");
             new MockArchiveFile(archive, "bin");
             ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.zip", archive);
@@ -457,13 +456,13 @@ namespace MGDF.GamesManager.Tests
 
             //check that all the games content was copied across
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Exists);
-            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.xml").Exists);
+            Assert.IsTrue(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").Exists);
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game\\content").Exists);
             Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game\\bin").Exists);
             //did the update remove the file specified
-            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\content\\test.xml").Exists);
+            Assert.IsFalse(FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\content\\test.json").Exists);
 
-            Game game = new Game("c:\\program files\\MGDF\\game\\game.xml");
+            Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
             Assert.IsTrue(game.IsValid);
 
             GameRegistrar registrar = new GameRegistrar(true, game);

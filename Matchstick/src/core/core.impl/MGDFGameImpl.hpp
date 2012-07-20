@@ -4,7 +4,7 @@
 #include <MGDF/MGDFSystem.hpp>
 #include <MGDF/MGDFGame.hpp>
 #include "../common/MGDFLoggerImpl.hpp"
-#include "../xml/MGDFXMLFactoryComponent.hpp"
+#include "../storage/MGDFStorageFactoryComponent.hpp"
 
 namespace MGDF { namespace core {
 
@@ -15,7 +15,7 @@ this class is the concrete implementation of the configuration interface
 class Game : public IGame
 {
 public:
-	Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,xml::IXMLFactoryComponent *xmlFactory);
+	Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,storage::IStorageFactoryComponent *xmlFactory);
 	virtual ~Game(void);
 
 	virtual const char *GetUid() const;
@@ -33,7 +33,7 @@ public:
 	void LoadPreferences(const std::wstring &filename);
 
 private:
-	xml::IXMLFactoryComponent *_xmlFactory;
+	storage::IStorageFactoryComponent *_storageFactory;
 	std::string _uid,_name;
 	std::wstring _preferencesFile;
 	Version _version;

@@ -23,9 +23,9 @@ namespace MGDF.GamesManager.Common
         public const int InterfaceVersion = 1;
         public const string SupportEmail = "support@matchstickframework.org";
 
-        public const string UpdateConfig = @"update.xml";
-        public const string GameConfig = @"game.xml";
-        public const string PreferencesConfig = @"preferences.xml";
+        public const string UpdateConfig = @"update.json";
+        public const string GameConfig = @"game.json";
+        public const string PreferencesConfig = @"preferences.json";
         public const string Statistics = @"statistics.txt";
         public const string GameIcon = "gameicon.png";
         public const string GameSystemIcon = "gamesystemicon.ico";

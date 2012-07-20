@@ -14,13 +14,13 @@
 
 namespace MGDF { namespace core {
 
-Game::Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,xml::IXMLFactoryComponent *xmlFactory)
+Game::Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,storage::IStorageFactoryComponent *storageFactory)
 {
 	_uid = uid;
 	_name = name;
 	_interfaceVersion = interfaceVersion;
 	_version = VersionHelper::Copy(version);
-	_xmlFactory = xmlFactory;
+	_storageFactory = storageFactory;
 }
 
 Game::~Game(void)
@@ -56,7 +56,7 @@ bool Game::HasPreference(const char *name) const
 const char *Game::GetPreference(const char *name) const
 {
 	std::string n(name);
-	xml::IPreferenceConfigXMLHandler::iterator iter = _preferences.find(n);
+	storage::IPreferenceConfigStorageHandler::iterator iter = _preferences.find(n);
 	if (iter!=_preferences.end()) {
 		return iter->second.c_str();
 	}
@@ -81,8 +81,8 @@ void Game::ResetPreferences()
 
 void Game::SavePreferences() const
 {
-	std::auto_ptr<xml::IPreferenceConfigXMLHandler> handler(_xmlFactory->CreatePreferenceConfigXMLHandler());
-	for (xml::IPreferenceConfigXMLHandler::iterator iter = _preferences.begin();iter!=_preferences.end();++iter) {
+	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler(_storageFactory->CreatePreferenceConfigStorageHandler());
+	for (storage::IPreferenceConfigStorageHandler::iterator iter = _preferences.begin();iter!=_preferences.end();++iter) {
 		handler->Add(iter->first,iter->second);
 	}
 	handler->Save(_preferencesFile);
@@ -96,9 +96,9 @@ void Game::SavePreferences(const std::wstring &filename) {
 
 void Game::LoadPreferences(const std::wstring &filename)
 {
-	std::auto_ptr<xml::IPreferenceConfigXMLHandler> handler(_xmlFactory->CreatePreferenceConfigXMLHandler());
+	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler(_storageFactory->CreatePreferenceConfigStorageHandler());
 	handler->Load(filename);
-	for (xml::IPreferenceConfigXMLHandler::iterator iter = handler->Begin();iter!=handler->End();++iter)
+	for (storage::IPreferenceConfigStorageHandler::iterator iter = handler->Begin();iter!=handler->End();++iter)
 	{
 		_preferences[iter->first] = iter->second;
 	}

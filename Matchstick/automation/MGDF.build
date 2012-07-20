@@ -208,6 +208,7 @@
       <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\IconLib.dll" />
       <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
       <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
     </exec>
     <copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\SDK\Bin\PackageGen.exe.config" overwrite="true"/>
 

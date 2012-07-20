@@ -40,18 +40,9 @@ public:
 	std::wstring GameUserPreferencesFile();
 	std::wstring GameUserStatisticsFile();
 	std::wstring ContentDir();
-	std::wstring SchemaFile(const std::wstring &schemaFile);
 	std::wstring Module();
 	std::wstring BinDir();
 	std::wstring LogFile();
-
-	static const std::string GAME_SCHEMA_URI;
-	static const std::string GAME_STATE_SCHEMA_URI;
-	static const std::string PREFERENCES_SCHEMA_URI;
-
-	static const std::wstring GAME_SCHEMA;
-	static const std::wstring GAME_STATE_SCHEMA;
-	static const std::wstring PREFERENCES_SCHEMA;
 
 	static const std::wstring VFS_CONTENT;
 

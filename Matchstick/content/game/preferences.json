@@ -1,0 +1,9 @@
+{
+  "preferences":
+  [
+    {
+        "name":"simFps",
+        "value":"120"
+    }
+  ]
+}

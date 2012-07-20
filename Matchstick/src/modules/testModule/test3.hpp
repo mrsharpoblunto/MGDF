@@ -1,6 +1,5 @@
 #pragma once
 
-#include "d3d9.h"
 #include <MGDF/MGDF.hpp>
 
 #include "Module.hpp"

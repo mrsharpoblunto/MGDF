@@ -50,11 +50,6 @@ namespace MGDF.GamesManager.Tests
 
             MockDirectory mgdfDirectory = volumeRoot.AddDirectory("program files").AddDirectory("MGDF");
             mgdfDirectory.AddDirectory("game");
-            MockDirectory schemasDir = mgdfDirectory.AddDirectory("schemas");
-            schemasDir.AddFile("game.xsd", ReadTextFile("Schemas\\game.xsd"));
-            schemasDir.AddFile("gameState.xsd", ReadTextFile("Schemas\\gameState.xsd"));
-            schemasDir.AddFile("preferences.xsd", ReadTextFile("Schemas\\preferences.xsd"));
-            schemasDir.AddFile("update.xsd", ReadTextFile("Schemas\\update.xsd"));
 
             Resources.InitUpdaterDirectories();
         }

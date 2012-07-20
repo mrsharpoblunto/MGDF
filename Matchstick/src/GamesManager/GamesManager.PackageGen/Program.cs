@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Xml;
 using ICSharpCode.SharpZipLib.Zip;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model;
 using MGDF.GamesManager.Model.Entities;
 using Directory=System.IO.Directory;
 using File=System.IO.File;
+using Newtonsoft.Json;
 
 namespace MGDF.GamesManager.PackageGen
 {
@@ -307,9 +307,9 @@ namespace MGDF.GamesManager.PackageGen
                         }
                     }
 
-                    //add update.xml
+                    //add update.json
                     byte[] updateData = CreateUpdateFileData(updateDetails, removeFiles);
-                    ZipEntry updateEntry = new ZipEntry("update.xml")
+                    ZipEntry updateEntry = new ZipEntry("update.json")
                                                {
                                                    DateTime = DateTime.UtcNow,
                                                    Size = updateData.Length
@@ -324,36 +324,29 @@ namespace MGDF.GamesManager.PackageGen
 
         public static byte[] CreateUpdateFileData(UpdateDetails details, List<string> removeFiles)
         {
-            XmlWriterSettings settings = new XmlWriterSettings
-                                             {
-                                                 OmitXmlDeclaration = false,
-                                                 Indent = true,
-                                                 NewLineChars = "\r\n",
-                                                 IndentChars = "\t"
-                                             };
-
             using (var stream = new MemoryStream())
             {
-                XmlWriter writer = XmlWriter.Create(stream, settings);
-
-                writer.WriteStartDocument();
-                writer.WriteStartElement("mgdf", "update", "http://schemas.matchstickframework.org/2007/update");
-                writer.WriteAttributeString("xmlns", "xsi", null, "http://www.w3.org/2001/XMLSchema-instance");
-
-                writer.WriteElementString("updatedescription", details.UpdateDescription);
-                writer.WriteElementString("updateminversion", details.UpdateVersion.ToString());
-                writer.WriteElementString("updatemaxversion", details.UpdateVersion.ToString());
-
-                writer.WriteStartElement("removefiles");
-                foreach (var file in removeFiles)
+                using (var textWriter = new StreamWriter(stream))
                 {
-                    writer.WriteElementString("file", file);
-                }
-                writer.WriteEndElement();
+                    using (JsonWriter writer = new JsonTextWriter(textWriter))
+                    {
+                        writer.Formatting = Formatting.Indented;
+                        writer.WriteStartObject();
 
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
-                writer.Close();
+                        writer.WriteRequiredValue("updatedescription", details.UpdateDescription);
+                        writer.WriteRequiredValue("updateminversion", details.UpdateVersion.ToString());
+                        writer.WriteRequiredValue("updatemaxversion", details.UpdateVersion.ToString());
+                        writer.WritePropertyName("removefiles");
+                        writer.WriteStartArray();
+                        foreach (var file in removeFiles)
+                        {
+                            writer.WriteValue(file);
+                        }
+                        writer.WriteEndArray();
+
+                        writer.WriteEndObject();
+                    }
+                }
 
                 return stream.ToArray();
             }

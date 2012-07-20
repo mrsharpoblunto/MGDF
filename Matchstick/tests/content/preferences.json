@@ -1,0 +1,45 @@
+{
+"preferences":
+  [
+    {
+    "name":"maxFPS",
+    "value":"60"
+    },
+    {
+    "name":"fullScreen",
+    "value":"0"
+    },
+    {
+    "name":"canToggleFullscreen",
+    "value":"1"
+    },
+    {
+    "name":"canToggleFullscreen",
+    "value":"1"
+    },
+    {
+    "name":"resolution",
+    "value":"800*600"
+    },
+    {
+    "name":"screenX",
+    "value":"800"
+    },
+    {
+    "name":"screenY",
+    "value":"600"
+    },
+    {
+    "name":"colourdepth",
+    "value":"32"
+    },
+    {
+    "name":"refreshrate",
+    "value":"85"
+    },
+    {
+    "name":"volume",
+    "value":"1.0"
+    }
+  ]
+}

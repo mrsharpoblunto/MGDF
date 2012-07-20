@@ -6,7 +6,7 @@
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFParameterManagerImpl.hpp"
 #include "MGDFComponents.hpp"
-#include "../xml/MGDFXMLFactoryComponentImpl.hpp"
+#include "../storage/MGDFStorageFactoryComponentImpl.hpp"
 
 //this snippet ensures that the location of memory leaks is reported correctly in debug mode
 #if defined(DEBUG) |defined(_DEBUG)
@@ -19,9 +19,9 @@ namespace MGDF { namespace core {
 //loads a boot configuration from a file in the boot folder
 Game *GameBuilder::LoadGame()
 {	
-	xml::IXMLFactoryComponent *xmlFactory = Components::Instance().Get<xml::IXMLFactoryComponent>();
+	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
 
-	std::auto_ptr<xml::IGameXMLHandler> handler(xmlFactory->CreateGameXMLHandler());
+	std::auto_ptr<storage::IGameStorageHandler> handler(storageFactory->CreateGameStorageHandler());
 	handler->Load(Resources::Instance().GameFile());
 
 	//add this configurations parameters to the parameter manager
@@ -38,9 +38,9 @@ Game *GameBuilder::LoadGame()
 //particular configuration defaults, and synchs them up with any customized user preferences
 Game *GameBuilder::CreateGame(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version)
 {
-	xml::IXMLFactoryComponent *xmlFactory = Components::Instance().Get<xml::IXMLFactoryComponent>();
+	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
 
-	Game *game = new Game(uid,name,interfaceVersion,version,xmlFactory);
+	Game *game = new Game(uid,name,interfaceVersion,version,storageFactory);
 	
 	//load the defaults from the core settings and the game settings (REQUIRED)
 	game->LoadPreferences(Resources::Instance().CorePreferencesFile());

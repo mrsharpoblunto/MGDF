@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Xml;
-using System.Xml.Serialization;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Model;
 using MGDF.GamesManager.Common.Framework;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace MGDF.GamesManager.Model.Entities
 {
@@ -18,13 +18,13 @@ namespace MGDF.GamesManager.Model.Entities
         public bool? StatisticsServiceEnabled { get; set; }
     }
 
-    public class SettingsManager: XmlEntity
+    public class SettingsManager: JsonEntity
     {
-        private const string SettingsFile = "GamesManagerSettings.xml";
+        private const string SettingsFile = "GamesManagerSettings.json";
 
         private static SettingsManager _instance;
 
-        private SettingsManager(string filename): base(filename,null)
+        private SettingsManager(string filename): base(filename)
         {
         }
 
@@ -58,62 +58,50 @@ namespace MGDF.GamesManager.Model.Entities
 
         public GameSettings Settings { get; set; }
 
-        protected override void Load(XmlReader reader)
+        protected override void Load(JObject json)
         {
-            while (reader.Read())
+            var game = json["game"].First;
+            if (game!=null)
             {
-                switch (reader.NodeType)
-                {
-                    case XmlNodeType.Element:
-                        if (reader.Name.Equals("game"))
-                        {
-                            var gameSource = new GameSettings
-                                                 {
-                                                     GameUid = reader.GetAttribute("uid"),
-                                                     UserName = reader.GetAttribute("username"),
-                                                     Password = DPAPI.Decrypt(reader.GetAttribute("passwordhash"))
-                                                 };
-                            if (!string.IsNullOrEmpty(reader.GetAttribute("statisticsserviceenabled")))
-                            {
-                                gameSource.StatisticsServiceEnabled = bool.Parse(reader.GetAttribute("statisticsserviceenabled"));
-                            }
-                            Settings = gameSource;
-                        }
-                        break;
-                }
+                 var gameSource = new GameSettings
+                 {
+                     GameUid = game.ReadRequiredValue("uid"),
+                     UserName = game.ReadRequiredValue("username"),
+                     Password = DPAPI.Decrypt(game.ReadRequiredValue("passwordhash"))
+                 };
+                 if (game["statisticsserviceenabled"]!=null)
+                 {
+                     gameSource.StatisticsServiceEnabled = bool.Parse(game["statisticsserviceenabled"].Value<string>());
+                 }
+                 Settings = gameSource;
             }
         }
 
         public void Save()
         {
-            XmlWriterSettings settings = new XmlWriterSettings
-                                             {
-                                                 OmitXmlDeclaration = false,
-                                                 Indent = true,
-                                                 NewLineChars = "\r\n",
-                                                 IndentChars = "\t"
-                                             };
-
             using (var stream = FileSystem.Current.GetFile(FileSystem.Combine(Resources.GameUserDir, SettingsFile)).OpenStream(FileMode.Create))
             {
-                XmlWriter writer = XmlWriter.Create(stream, settings);
-
-                writer.WriteStartDocument();
-                writer.WriteStartElement("settings");
-
-                writer.WriteStartElement("game");
-                writer.WriteAttributeString("uid", Settings.GameUid);
-                if (Settings.StatisticsServiceEnabled.HasValue)
+                using (var textWriter = new StreamWriter(stream))
                 {
-                    writer.WriteAttributeString("statisticsserviceenabled", Settings.StatisticsServiceEnabled.ToString());
-                }
-                writer.WriteAttributeString("username", Settings.UserName ?? string.Empty);
-                writer.WriteAttributeString("passwordhash", DPAPI.Encrypt(Settings.Password ?? string.Empty));
-                writer.WriteEndElement();
+                    using (JsonWriter writer = new JsonTextWriter(textWriter))
+                    {
+                        writer.Formatting = Formatting.Indented;
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("game");
 
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
-                writer.Close();
+                        writer.WriteStartObject();
+                        writer.WriteRequiredValue("uid", Settings.GameUid);
+                        if (Settings.StatisticsServiceEnabled.HasValue)
+                        {
+                            writer.WriteRequiredValue("statisticsserviceenabled", Settings.StatisticsServiceEnabled.ToString());
+                        }
+                        writer.WriteRequiredValue("username", Settings.UserName ?? string.Empty);
+                        writer.WriteRequiredValue("passwordhash",DPAPI.Encrypt(Settings.Password ?? string.Empty));           
+                        writer.WriteEndObject();
+
+                        writer.WriteEndObject();
+                    }
+                }
             }
         }
     }

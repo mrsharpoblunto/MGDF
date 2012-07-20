@@ -53,7 +53,7 @@ System::System(Game *game)
 	_lastError.Description=NULL;
 	_lastError.Sender=NULL;
 
-	_xml = Components::Instance().Get<xml::IXMLFactoryComponent>();
+	_storage = Components::Instance().Get<storage::IStorageFactoryComponent>();
 	_input = Components::Instance().Get<input::IInputManagerComponent>();
 	_sound = Components::Instance().Get<audio::ISoundManagerComponent>();
 	_vfs = Components::Instance().Get<vfs::IVirtualFileSystemComponent>();
@@ -246,7 +246,7 @@ int System::Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,V
 		memcpy(loadBuffer,loadDataDir.c_str(),sizeof(wchar_t) * (*size));
 		try
 		{
-			std::auto_ptr<xml::IGameStateXMLHandler> handler(_xml->CreateGameStateXMLHandler(_game->GetUid(),_game->GetVersion()));
+			std::auto_ptr<storage::IGameStateStorageHandler> handler(_storage->CreateGameStateStorageHandler(_game->GetUid(),_game->GetVersion()));
 			try 
 			{
 				handler->Load(loadFile);
@@ -299,7 +299,7 @@ int System::Save(const char *save, wchar_t *saveBuffer, unsigned int *size)
 		boost::filesystem::wpath saveDataDir(saveBufferContent,boost::filesystem::native); 
 		create_directory(saveDataDir);
 
-		std::auto_ptr<xml::IGameStateXMLHandler> handler(_xml->CreateGameStateXMLHandler(_game->GetUid(),_game->GetVersion()));
+		std::auto_ptr<storage::IGameStateStorageHandler> handler(_storage->CreateGameStateStorageHandler(_game->GetUid(),_game->GetVersion()));
 		handler->Save(Resources::Instance().GameStateSaveFile(saveName));
 
 		GetSaves();

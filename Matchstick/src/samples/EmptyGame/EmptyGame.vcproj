@@ -163,7 +163,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath=".\Package\game.xml"
+			RelativePath=".\Package\game.json"
 			>
 		</File>
 		<File
@@ -183,15 +183,11 @@
 			>
 		</File>
 		<File
-			RelativePath=".\Package\preferences.xml"
+			RelativePath=".\Package\preferences.json"
 			>
 		</File>
 		<File
 			RelativePath=".\readme.txt"
-			>
-		</File>
-		<File
-			RelativePath=".\Package\splashImage.png"
 			>
 		</File>
 		<File
