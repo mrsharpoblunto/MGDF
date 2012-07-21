@@ -117,7 +117,7 @@ public:
 	if the file is not open then the method adds nothing to the buffer and returns 0
 	if the file has no data or the 
 	*/
-	virtual int  Read(void* buffer,int length)=0;
+	virtual unsigned int Read(void* buffer,unsigned int length)=0;
 
 	/**
 	sets the read position of the file in bytes (if the file is open)

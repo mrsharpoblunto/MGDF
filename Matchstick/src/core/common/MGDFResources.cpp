@@ -76,7 +76,7 @@ std::wstring Resources::GetApplicationDirectory(HINSTANCE instance)
 	return appDir+L"/";
 }
 
-const std::wstring Resources::VFS_CONTENT = L"content/";
+std::wstring Resources::_vfsContent = L"content/";
 
 const unsigned int Resources::MIN_SCREEN_X = 1024;
 const unsigned int Resources::MIN_SCREEN_Y =768;

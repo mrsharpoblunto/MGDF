@@ -9,6 +9,6 @@
 
 namespace MGDF { namespace core {
 
-const std::string MGDFVersionInfo::MGDF_VERSION = "1.0.0.0";
+const std::string MGDFVersionInfo::_mgdfVersion = "1.0.0.0";
 
 }}

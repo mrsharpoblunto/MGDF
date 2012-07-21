@@ -61,14 +61,14 @@ void ZipFileImpl::CloseFile()
 	}
 }
 
-int ZipFileImpl::Read(void* buffer,int length)
+unsigned int ZipFileImpl::Read(void* buffer,unsigned int length)
 {
-	int maxRead = 0;
+	unsigned int maxRead = 0;
 	if (_isOpen) {
 		ZipArchive::ZipFileData *zfData = _handler->GetFileData(_fileKey);
 		ZipArchive::ZipFileInformation *zfInformation = _handler->GetFileInformation(_fileKey);
 
-		maxRead = std::min<int>(length, zfInformation->size - zfData->readPosition);
+		maxRead = std::min<unsigned int>(length, zfInformation->size - zfData->readPosition);
 		memcpy(buffer, zfData->data + zfData->readPosition, maxRead);
 		zfData->readPosition += maxRead;
 	}

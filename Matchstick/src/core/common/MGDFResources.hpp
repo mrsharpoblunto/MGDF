@@ -44,7 +44,8 @@ public:
 	std::wstring BinDir();
 	std::wstring LogFile();
 
-	static const std::wstring VFS_CONTENT;
+
+	static const std::wstring &VFS_CONTENT() { return _vfsContent; }
 
 	static const unsigned int MIN_SCREEN_X;
 	static const unsigned int MIN_SCREEN_Y;
@@ -54,7 +55,11 @@ public:
 private: 
 	Resources(HINSTANCE instance);
 	static std::wstring GetApplicationDirectory(HINSTANCE instance);
+	#pragma warning(push)
+	#pragma warning(disable: 4251)
+	static std::wstring _vfsContent;
 	std::wstring _applicationDirectory,_userBaseDir,_gameBaseDir;
+	#pragma warning(pop)
 };
 
 }}

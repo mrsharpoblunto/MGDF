@@ -73,7 +73,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../../include; ../../../vendor/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -82,6 +82,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <AdditionalDependencies>dxerr.lib;dxguid.lib;d3dx11d.lib;d3d11.lib;D3DCompiler.lib;dxgi.lib;winmm.lib;../../../vendor/lib/$(Configuration)/fw1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -127,6 +129,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>dxerr.lib;dxguid.lib;d3dx11.lib;d3d11.lib;D3DCompiler.lib;dxgi.lib;winmm.lib;../../../vendor/lib/$(Configuration)/fw1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>

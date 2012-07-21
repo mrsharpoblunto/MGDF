@@ -2,11 +2,7 @@
 
 #include <vector>
 #include <cctype>
-
-#pragma warning( push )
-#pragma warning( disable:4996 )
 #include <boost/algorithm/string.hpp>
-#pragma warning( pop )
 
 #include "../common/MGDFResources.hpp"
 

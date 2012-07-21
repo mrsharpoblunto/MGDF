@@ -13,7 +13,7 @@ public:
 	virtual bool IsOpen() const;
 	virtual bool OpenFile();
 	virtual void CloseFile();
-	virtual int Read(void* buffer,int length);
+	virtual unsigned int Read(void* buffer,unsigned int length);
 	virtual void SetPosition(unsigned long pos);
 	virtual unsigned long GetPosition() const;
 	virtual bool EndOfFile() const;

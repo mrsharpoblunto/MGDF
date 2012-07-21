@@ -37,7 +37,7 @@ void FolderBaseImpl::CloseFile()
 {
 }
 
-int FolderBaseImpl::Read(void* buffer,int length)
+unsigned int FolderBaseImpl::Read(void* buffer,unsigned int length)
 {
 	return 0;
 }

@@ -62,6 +62,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>../../../../../vendor/lib/Release/OpenAL32.lib;../../../../../vendor/lib/Release/alut.lib;../../../../../vendor/lib/$(Configuration)/vorbisfile.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -80,6 +82,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>../../../../../vendor/lib/Release/OpenAL32.lib;../../../../../vendor/lib/Release/alut.lib;../../../../../vendor/lib/$(Configuration)/vorbisfile.lib;%(AdditionalDependencies)</AdditionalDependencies>

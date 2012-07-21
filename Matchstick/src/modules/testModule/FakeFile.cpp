@@ -183,14 +183,14 @@ void FakeFile::CloseFile()
 	}
 }
 
-int FakeFile::Read(void* buffer,int length)
+unsigned int FakeFile::Read(void* buffer,unsigned int length)
 {
 	if(_isOpen)
 	{
 		int oldPosition = _position;
-		if ((oldPosition+length) > _dataLength) length = _dataLength - oldPosition;
+		if ((oldPosition+static_cast<int>(length)) > _dataLength) length = _dataLength - oldPosition;
 		memcpy(buffer,&((char *)_data)[oldPosition],length);
-		_position = oldPosition + length;
+		_position = oldPosition + static_cast<int>(length);
 		return _position;
 	}
 	return 0;
@@ -200,7 +200,7 @@ void FakeFile::SetPosition(unsigned long pos)
 {
 	if(_isOpen)
 	{
-		_position = pos;
+		_position = static_cast<int>(pos);
 	}
 }
 

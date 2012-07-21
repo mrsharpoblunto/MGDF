@@ -7,6 +7,9 @@
 #include <crtdbg.h>
 #endif
 
-#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+#pragma warning( push )
+#pragma warning( disable:4996 )
+#include <xutility>
+#pragma warning ( pop )
 
 #include <MGDF/MGDF.hpp>

@@ -52,7 +52,15 @@ bool DefaultFileImpl::OpenFile()
 		_fileStream = new std::ifstream(_path.c_str(),std::ios::in|std::ios::binary|std::ios::ate);
 		if (_fileStream && !_fileStream->bad() && _fileStream->is_open()) 
 		{
-			_filesize = _fileStream->tellg();
+			//files over 4.2GB unsupported
+			if (_fileStream->tellg()>ULONG_MAX) 
+			{
+				_filesize = ULONG_MAX;
+			}
+			else
+			{
+				_filesize = static_cast<unsigned long>(_fileStream->tellg());
+			}
 			_fileStream->seekg(0, std::ios::beg);
 			return true;
 		}
@@ -78,14 +86,14 @@ void DefaultFileImpl::CloseFile()
 	}
 }
 
-int DefaultFileImpl::Read(void* buffer,int length)
+unsigned int DefaultFileImpl::Read(void* buffer,unsigned int length)
 {
 	if(_fileStream)
 	{
-		int oldPosition = _fileStream->tellg();
+		std::ifstream::pos_type oldPosition = _fileStream->tellg();
 		_fileStream->read((char*)buffer,length);
-		int newPosition = _fileStream->tellg();
-		return newPosition-oldPosition;
+		std::ifstream::pos_type newPosition = _fileStream->tellg();
+		return static_cast<unsigned int>(newPosition-oldPosition);
 	}
 	return 0;
 }
@@ -102,7 +110,15 @@ unsigned long DefaultFileImpl::GetPosition() const
 {
 	if(_fileStream) 
 	{
-		return _fileStream->tellg();
+		//files over 4.2GB unsupported
+		if (_fileStream->tellg()>ULONG_MAX) 
+		{
+			return ULONG_MAX;
+		}
+		else
+		{
+			return static_cast<unsigned long>(_fileStream->tellg());
+		}
 	}
 	else 
 	{
@@ -128,7 +144,16 @@ unsigned long DefaultFileImpl::GetSize()
 		std::ifstream stream(_path.c_str(),std::ios::in|std::ios::binary|std::ios::ate);
 		if (!stream.bad() && stream.is_open()) 
 		{
-			_filesize = stream.tellg();
+			//files over 4.2GB unsupported
+			if (stream.tellg()>ULONG_MAX) 
+			{
+				_filesize = ULONG_MAX;
+			}
+			else
+			{
+				_filesize = static_cast<unsigned long>(stream.tellg());
+			}
+
 			stream.close();
 		}
 		else 

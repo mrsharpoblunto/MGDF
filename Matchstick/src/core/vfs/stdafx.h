@@ -8,4 +8,9 @@
 #pragma warning(disable:4291)
 #endif
 
+#pragma warning( push )
+#pragma warning( disable:4996 )
+#include <xutility>
+#pragma warning ( pop )
+
 #include <MGDF/MGDF.hpp>

@@ -9,8 +9,13 @@ class MGDF_CORE_COMMON_DLL MGDFVersionInfo
 {
 public:
 	virtual ~MGDFVersionInfo(){};
-	static const std::string MGDF_VERSION;
+	static const std::string &MGDF_VERSION() { return _mgdfVersion; }
 	static const int MGDF_INTERFACE_VERSION = 1;
+private:
+	#pragma warning(push)
+	#pragma warning(disable: 4251)
+	static const std::string _mgdfVersion;
+	#pragma warning(pop)
 };
 
 }}

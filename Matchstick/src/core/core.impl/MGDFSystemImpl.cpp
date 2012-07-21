@@ -49,7 +49,7 @@ System::System(Game *game)
 	_game = game;
 	_saves = NULL;
 	_module = NULL;
-	_version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION);
+	_version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION());
 	_lastError.Description=NULL;
 	_lastError.Sender=NULL;
 
@@ -84,7 +84,7 @@ System::System(Game *game)
 	}
 
 	//enumerate the current games content directory
-	_vfs->MapDirectory(Resources::Instance().ContentDir().c_str(),Resources::VFS_CONTENT.c_str(),NULL,true);
+	_vfs->MapDirectory(Resources::Instance().ContentDir().c_str(),Resources::VFS_CONTENT().c_str(),NULL,true);
 
 	//set the initial sound volumes
 	if (_sound!=NULL)
