@@ -13,20 +13,20 @@
 FakeFile::FakeFile(IFile *parent,const std::wstring &physicalFile,const std::wstring &name)
 {
 	_parent = parent;
-	_children = NULL;
+	_children = nullptr;
 	_name = name;
 	_physicalPath = physicalFile;
-	_data = NULL;
+	_data = nullptr;
 	_dataLength = 0;
 	_isOpen = false;
 	_position = 0;
 	_logicalPath = L"";
 }
 
-FakeFile::FakeFile(FakeFile *parent,const std::wstring &name,void *data,int dataLength)//NULL data indicates a folder
+FakeFile::FakeFile(FakeFile *parent,const std::wstring &name,void *data,int dataLength)//nullptr data indicates a folder
 {
 	_parent = parent;
-	_children = NULL;
+	_children = nullptr;
 	_name = name;
 	_physicalPath = parent->_physicalPath;
 	_data = data;
@@ -38,16 +38,15 @@ FakeFile::FakeFile(FakeFile *parent,const std::wstring &name,void *data,int data
 
 FakeFile::~FakeFile()
 {
-	if (_children!=NULL) {
+	if (_children!=nullptr) {
 		//delete all the children of this node
-		boost::unordered_map<std::wstring,MGDF::IFile *>::iterator iter;
-		for (iter=_children->begin();iter!=_children->end();++iter) {
+		for (auto iter=_children->begin();iter!=_children->end();++iter) {
 			delete iter->second;
 		}
 		delete _children;
 	}
 
-	if (_data!=NULL) delete[] (char *)_data;
+	if (_data!=nullptr) delete[] (char *)_data;
 }
 
 void FakeFile::Dispose()
@@ -69,8 +68,8 @@ MGDF::IFile *FakeFile::GetDescendant(const wchar_t * query)
 	std::transform(q.begin(), q.end(), q.begin(), ::towlower);
 	size_t dotPos = q.find(VFS_PATH_SEPARATOR);
 
-	//loop until no separators are found or a subnode is NULL
-	while (dotPos!=std::wstring::npos && node!=NULL) {
+	//loop until no separators are found or a subnode is nullptr
+	while (dotPos!=std::wstring::npos && node!=nullptr) {
 		//get the first node namespace
 		std::wstring nodeName = q.substr(0,dotPos);
 		q = q.substr(dotPos+1,q.length()-1);
@@ -79,7 +78,7 @@ MGDF::IFile *FakeFile::GetDescendant(const wchar_t * query)
 		dotPos = q.find(VFS_PATH_SEPARATOR);
 	}
 
-	if (node!=NULL) {
+	if (node!=nullptr) {
 		node = node->GetChild(q.c_str());
 	}
 
@@ -88,33 +87,33 @@ MGDF::IFile *FakeFile::GetDescendant(const wchar_t * query)
 
 MGDF::IFile *FakeFile::GetFirstChild()
 {
-	if (_children!=NULL && _children->begin() != _children->end()) { 
+	if (_children!=nullptr && _children->begin() != _children->end()) { 
 		return _children->begin()->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 MGDF::IFile *FakeFile::GetLastChild()
 {
-	if (_children!=NULL && _children->begin() != _children->end()) { 
+	if (_children!=nullptr && _children->begin() != _children->end()) { 
 		return _children->end()->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 MGDF::IFile *FakeFile::GetChild(const wchar_t * name)
 {
 	std::wstring n = name;
 	std::transform(n.begin(), n.end(), n.begin(), ::towlower);
-	if (_children!=NULL && _children->find(n) != _children->end()) {
+	if (_children!=nullptr && _children->find(n) != _children->end()) {
 		return (*_children)[n];
 	}
-	return NULL;
+	return nullptr;
 }
 
 unsigned int FakeFile::GetChildCount()
 {
-	if (_children!=NULL) { 
+	if (_children!=nullptr) { 
 		return _children->size();
 	}
 	return 0;
@@ -123,7 +122,7 @@ unsigned int FakeFile::GetChildCount()
 void FakeFile::AddChild(MGDF::IFile *file)
 {
 	//lazily initialise the child map
-	if (_children==NULL) {
+	if (_children==nullptr) {
 		_children = new boost::unordered_map<std::wstring,MGDF::IFile *>();
 	}
 	//if an identical node already exists in the tree then remove it
@@ -133,7 +132,7 @@ void FakeFile::AddChild(MGDF::IFile *file)
 
 MGDF::IFileIterator *FakeFile::GetIterator(void) {
 	MGDF::IFileIterator *result;
-	if (_children!=NULL) {
+	if (_children!=nullptr) {
 		result = new FakeFileIterator(_children->begin(),_children->end());
 	}
 	else {
@@ -147,7 +146,7 @@ const wchar_t *FakeFile::GetLogicalPath()
 	if (_logicalPath.empty()) {
 		MGDF::IFile *f = (MGDF::IFile *)this;
 
-		while (f!=NULL) {
+		while (f!=nullptr) {
 			if (f==this) {
 				_logicalPath = f->GetName();
 			}
@@ -234,7 +233,7 @@ unsigned long FakeFile::GetSize()
 
 bool FakeFile::IsFolder() const
 { 
-	return _data==NULL;
+	return _data==nullptr;
 }
 
 bool FakeFile::IsArchive() const

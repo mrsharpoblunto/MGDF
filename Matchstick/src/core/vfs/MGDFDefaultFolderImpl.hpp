@@ -13,7 +13,7 @@ that time.
 class DefaultFolderImpl : public FolderBaseImpl
 {
 public:
-	DefaultFolderImpl(const std::wstring &foldername,const std::wstring &physicalPath=L"",VirtualFileSystemComponent *vfs=NULL,IFileFilter *filter=NULL);
+	DefaultFolderImpl(const std::wstring &foldername,const std::wstring &physicalPath=L"",VirtualFileSystemComponent *vfs=nullptr,IFileFilter *filter=nullptr);
 	virtual ~DefaultFolderImpl(void);
 
 	virtual IFileIterator *GetIterator();

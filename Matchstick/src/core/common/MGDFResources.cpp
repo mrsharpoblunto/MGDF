@@ -21,7 +21,7 @@
 namespace MGDF { namespace core {
 
 Resources::Resources(HINSTANCE instance) {
-	if (instance!=NULL) {
+	if (instance!=nullptr) {
 		_applicationDirectory = GetApplicationDirectory(instance);
 	}
 	else {
@@ -45,7 +45,7 @@ void Resources::SetUserBaseDir(bool useRootDir,const std::string &gameUid)
 	else 
 	{
 		wchar_t strPath[MAX_PATH];
-		if(SUCCEEDED(SHGetFolderPathW( NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, strPath ) ) )
+		if(SUCCEEDED(SHGetFolderPathW( nullptr, CSIDL_LOCAL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, strPath ) ) )
 		{
 			_userBaseDir = strPath;
 			_userBaseDir +=L"/MGDF/";
@@ -67,7 +67,7 @@ std::wstring Resources::GetApplicationDirectory(HINSTANCE instance)
 	wchar_t *pStr, szPath[MAX_PATH];
 	GetModuleFileNameW(instance, szPath, MAX_PATH);
 	pStr = wcsrchr(szPath, L'\\')-1;
-	if (pStr != NULL)
+	if (pStr != nullptr)
 		*(++pStr)=L'\0';
 
 	std::wstring appDir = szPath;
@@ -189,9 +189,9 @@ std::wstring Resources::BinDir()
 
 std::string Resources::ToString(const std::wstring &wstr)
 {
-    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), NULL, 0, NULL, NULL);
+    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
 	char *strTo = new char[sizeNeeded];
-    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), &strTo[0], sizeNeeded, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), &strTo[0], sizeNeeded, nullptr, nullptr);
 	std::string result(&strTo[0],wstr.size());
 	delete[] strTo;
 	return result;
@@ -199,7 +199,7 @@ std::string Resources::ToString(const std::wstring &wstr)
 
 std::wstring Resources::ToWString(const std::string &str)
 {
-    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), NULL, 0);
+    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), nullptr, 0);
     wchar_t *wstrTo = new wchar_t[sizeNeeded];
     MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstrTo[0], sizeNeeded);
     std::wstring result(&wstrTo[0],str.size());

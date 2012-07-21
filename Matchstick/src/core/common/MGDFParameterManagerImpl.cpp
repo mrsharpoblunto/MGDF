@@ -25,11 +25,11 @@ bool ParameterManager::HasParameter(const char * param) const
 const char *ParameterManager::GetParameter(const char * param) const
 {
 	std::string p = param;
-	boost::unordered_map<std::string,std::string>::const_iterator iter = _parameters.find(p);
+	auto iter = _parameters.find(p);
 	if (iter!=_parameters.end()) {
 		return iter->second.c_str();
 	}
-	return NULL;
+	return nullptr;
 }
 
 bool ParameterManager::AddParameterString(const char * paramString)
@@ -46,7 +46,7 @@ bool ParameterManager::AddParameterString(const char * paramString)
 
 void ParameterManager::ParseParameters(const std::string &paramString, boost::unordered_map<std::string,std::string> &paramMap) 
 {
-	std::string::const_iterator iter = paramString.begin();
+	auto iter = paramString.begin();
 
 	std::string key,value;
 	for (;;)

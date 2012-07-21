@@ -25,10 +25,10 @@ using namespace MGDF::core;
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
-HANDLE _dumpEvent=NULL;
-HANDLE _dumpThread=NULL;
+HANDLE _dumpEvent=nullptr;
+HANDLE _dumpThread=nullptr;
 bool _hasDumped=false;
-_MINIDUMP_EXCEPTION_INFORMATION *_dumpInfo=NULL;
+_MINIDUMP_EXCEPTION_INFORMATION *_dumpInfo=nullptr;
 
 D3DAPP_WNDPROC(MGDFAppWndProc,MGDFApp::InstancePtr())
 
@@ -41,8 +41,8 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 
 	Resources::Instance(hInstance);	//initialise the core resource locator
 	
-	_dumpEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    _dumpThread = CreateThread(NULL, 0, CrashDumpThread, NULL, 0, 0);
+	_dumpEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    _dumpThread = CreateThread(nullptr, 0, CrashDumpThread, nullptr, 0, 0);
 	SetUnhandledExceptionFilter(UnhandledExceptionCallBack);//logs and stackdumps when any unexpected errors occur
 
 	//create the application instance and initialise the window
@@ -52,7 +52,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 	System *system = SystemBuilder::CreateSystem(MGDFApp::Instance().GetApplicationInstance(),MGDFApp::Instance().GetWindow());
 	
 	GetLoggerImpl()->Add("MGDF::WinMain","starting up...");
-	if (system!=NULL) {
+	if (system!=nullptr) {
 		system->AddFatalErrorCallback(&FatalErrorCallBack);
 
 		MGDFApp::Instance().SetSystem(system);
@@ -83,12 +83,12 @@ LONG WINAPI UnhandledExceptionCallBack( struct _EXCEPTION_POINTERS *pExceptionIn
 	_dumpInfo = (_MINIDUMP_EXCEPTION_INFORMATION *)malloc(sizeof(_MINIDUMP_EXCEPTION_INFORMATION));
 	_dumpInfo->ThreadId = GetCurrentThreadId();
 	_dumpInfo->ExceptionPointers = pExceptionInfo;
-	_dumpInfo->ClientPointers = NULL;
+	_dumpInfo->ClientPointers = 0;
 
 	WriteMinidump();
 	
 	if (!GetParameterManagerImpl()->HasParameter("hideerrors")) {
-		MessageBox(NULL,("Unexpected Win32 error\r\n\r\nFor more information, please view the log file\r\n'"+Resources::ToString(Resources::Instance().LogFile())+"'").c_str(),"FATAL ERROR",MB_OK);//output a nasty error message
+		MessageBox(nullptr,("Unexpected Win32 error\r\n\r\nFor more information, please view the log file\r\n'"+Resources::ToString(Resources::Instance().LogFile())+"'").c_str(),"FATAL ERROR",MB_OK);//output a nasty error message
 	}
 	return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -101,7 +101,7 @@ void FatalErrorCallBack(std::string sender,std::string message)
 	WriteMinidump();
 
 	if (!GetParameterManagerImpl()->HasParameter("hideerrors")) {
-		MessageBox(NULL,(message+"\r\n\r\nFor more information, please view the log file\r\n'"+Resources::ToString(Resources::Instance().LogFile())+"'").c_str(),"FATAL ERROR",MB_OK);//output a nasty error message
+		MessageBox(nullptr,(message+"\r\n\r\nFor more information, please view the log file\r\n'"+Resources::ToString(Resources::Instance().LogFile())+"'").c_str(),"FATAL ERROR",MB_OK);//output a nasty error message
 	}
 }
 
@@ -128,11 +128,11 @@ DWORD WINAPI CrashDumpThread(LPVOID data)
 		MINIDUMPWRITEDUMP pDump = (MINIDUMPWRITEDUMP)GetProcAddress( hDll, "MiniDumpWriteDump" );
 		if (pDump)
 		{
-			HANDLE hFile = CreateFileW((Resources::Instance().UserBaseDir()+L"minidump.dmp").c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL, NULL );
+			HANDLE hFile = CreateFileW((Resources::Instance().UserBaseDir()+L"minidump.dmp").c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL, NULL );
 
 			if (hFile!=INVALID_HANDLE_VALUE)
 			{
-				BOOL ok = pDump( GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, _dumpInfo, NULL, NULL );
+				BOOL ok = pDump( GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, _dumpInfo, nullptr, nullptr );
 				if (!ok)
 				{
 					GetLoggerImpl()->Add("MGDF::WinMain","Failed to save dump file");
@@ -146,7 +146,7 @@ DWORD WINAPI CrashDumpThread(LPVOID data)
 		}
 	}
 	GetLoggerImpl()->Flush();
-	if (_dumpInfo!=NULL) free(_dumpInfo);
+	if (_dumpInfo!=nullptr) free(_dumpInfo);
 
 	return 0;
 }

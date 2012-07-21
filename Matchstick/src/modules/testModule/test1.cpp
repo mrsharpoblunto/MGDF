@@ -28,7 +28,7 @@ TestModule *Test1::NextTestModule()
 	}
 	else 
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -47,7 +47,7 @@ void Test1::Update(ISystem *system,TextManagerState *state)
 		);
 	}
 
-	time_t now = time(NULL);
+	time_t now = time(nullptr);
 
 	if (_testState==0)
 	{
@@ -61,7 +61,7 @@ void Test1::Update(ISystem *system,TextManagerState *state)
 		_testState++;
 		state->SetStatus(GREEN,"[Test Passed]");
 		state->AddLine(WHITE,"Press and hold [UP ARROW] key for at least one second");
-		_time = time(NULL);
+		_time = time(nullptr);
 	}
 	else if (_testState==2 && system->GetInput()->IsKeyDown(KEY_UP) && now>_time+1)
 	{

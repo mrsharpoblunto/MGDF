@@ -17,8 +17,8 @@ DEFINE_SINGLETON(MGDFApp)
 
 MGDFApp::MGDFApp(HINSTANCE hInstance) : D3DAppFramework(hInstance) 
 {
-	_font=NULL;
-	_system = NULL;
+	_font=nullptr;
+	_system = nullptr;
 	_initialized = false;
 }
 
@@ -31,7 +31,11 @@ MGDFApp::~MGDFApp()
 void MGDFApp::SetSystem(System *system)
 {
 	_system = system;
-	_system->AddShutDownCallback(boost::bind(&MGDFApp::ShutDownCallBack,this));
+	_system->AddShutDownCallback([this]()
+	{
+		_internalShutDown = true;
+		PostMessage(MGDFApp::Instance()._window,WM_CLOSE,0,0);
+	});
 }
 
 void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP)
@@ -130,14 +134,6 @@ void MGDFApp::FatalError(const std::string &message)
 void MGDFApp::ExternalClose()
 {
 	_system->QueueShutDown();
-}
-
-/**
-shut down the application
-*/
-void MGDFApp::ShutDownCallBack() {
-	_internalShutDown = true;
-	PostMessage(MGDFApp::Instance()._window,WM_CLOSE,NULL,NULL);
 }
 
 }}

@@ -43,7 +43,7 @@ void Alias::AddAlias(std::wstring alias,std::wstring value)
 void Alias::RemoveAlias(std::wstring alias)
 {
 	std::transform(alias.begin(), alias.end(), alias.begin(), ::towlower);
-	boost::unordered_map<std::wstring,std::wstring>::iterator iter = _aliases.find(alias);
+	auto iter = _aliases.find(alias);
 	if (iter!=_aliases.end()) {
 		_aliases.erase(iter);
 	}
@@ -61,7 +61,7 @@ std::wstring Alias::ResolveAliases(std::wstring text)
 	//there should always be an odd number of splits in the string if the correct number of alias separator characters were used
 	else if (splitText.size() % 2 == 1) {
 		std::wstring result;
-		for (std::vector<std::wstring>::iterator it = splitText.begin();it!=splitText.end();++it) {
+		for (auto it = splitText.begin();it!=splitText.end();++it) {
 			//if an alias was found, replace it with the alias value in the new string
 			if (_aliases.find(*it)!=_aliases.end()) {
 				result += _aliases[*it];

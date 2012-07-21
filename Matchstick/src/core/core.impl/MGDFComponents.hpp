@@ -45,7 +45,7 @@ public:
 		if (_components.find(t)!=_components.end()) {
 			return (T *)_components[t];
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	/**

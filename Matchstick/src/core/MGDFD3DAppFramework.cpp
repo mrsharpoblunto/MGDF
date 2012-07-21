@@ -2,7 +2,6 @@
 
 #include <math.h>
 #include <mmsystem.h>
-#include <boost/bind.hpp>
 #include "MGDFD3DAppFramework.hpp"
 #include "common/MGDFExceptions.hpp"
 #include "common/MGDFLoggerImpl.hpp"
@@ -25,28 +24,28 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
 	: _stats(TIMER_SAMPLES)
 	, _drawSystemOverlay(false)
 	, _applicationInstance(hInstance)
-	, _window(NULL)
-	, _swapChain(NULL)
-	, _factory(NULL)
-	, _immediateContext(NULL)
-	, _d3dDevice(NULL)
-	, _backBuffer(NULL)
-	, _renderTargetView(NULL)
-	, _depthStencilView(NULL)
-	, _depthStencilBuffer(NULL)
+	, _window(nullptr)
+	, _swapChain(nullptr)
+	, _factory(nullptr)
+	, _immediateContext(nullptr)
+	, _d3dDevice(nullptr)
+	, _backBuffer(nullptr)
+	, _renderTargetView(nullptr)
+	, _depthStencilView(nullptr)
+	, _depthStencilBuffer(nullptr)
 	, _minimized(false)
 	, _maximized(false)
 	, _resizing(false)
 	, _running(false)
-	, _simThread(NULL)
+	, _simThread(nullptr)
 	, _internalShutDown(false)
 {
 }
 
 D3DAppFramework::~D3DAppFramework()
 {
-	if (_window!=NULL) {
-		UnregisterClass(WINDOW_CLASS_NAME,GetModuleHandle(NULL));
+	if (_window!=nullptr) {
+		UnregisterClass(WINDOW_CLASS_NAME,GetModuleHandle(nullptr));
 	}
 
 	if (_immediateContext)
@@ -58,7 +57,7 @@ D3DAppFramework::~D3DAppFramework()
 	if (_swapChain)
 	{
 		//d3d has to be in windowed mode to cleanup correctly
-		_swapChain->SetFullscreenState(false,NULL);
+		_swapChain->SetFullscreenState(false,nullptr);
 	}
 
 	SAFE_RELEASE(_backBuffer);
@@ -94,7 +93,7 @@ void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProc
 void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowProcedure)
 {
 	//if the window has not already been created
-	if (_window == NULL) {
+	if (_window == nullptr) {
 		WNDCLASS wc;
 		wc.style         = CS_HREDRAW | CS_VREDRAW;
 		wc.lpfnWndProc   = windowProcedure; 
@@ -131,7 +130,7 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 
 void D3DAppFramework::InitD3D(D3DDEVTYPE devType, DWORD requestedVP)
 {
-	if (_window !=NULL) {
+	if (_window != nullptr) {
 		UINT createDeviceFlags = 0;
 		#if defined(DEBUG) || defined(_DEBUG)  
 			createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -188,7 +187,7 @@ void D3DAppFramework::InitD3D(D3DDEVTYPE devType, DWORD requestedVP)
 		OnInitD3D(_d3dDevice,adapter);
 		SAFE_RELEASE(adapter);
 
-		OnResetSwapChain(&_swapDesc,NULL);
+		OnResetSwapChain(&_swapDesc,nullptr);
 		_swapDesc.OutputWindow = _window;
 
 		CreateSwapChain();
@@ -277,7 +276,7 @@ void D3DAppFramework::OnResize()
 int D3DAppFramework::Run(unsigned int simulationFps)
 {
 	//if the window or d3d has not been initialised, quit with an error
-	if (_window == NULL && _d3dDevice == NULL) {
+	if (_window == nullptr && _d3dDevice == nullptr) {
 		return -1;
 	}
 
@@ -293,8 +292,27 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 	_stats.SetExpectedSimTime(1/(double)simulationFps);
 
 	_startRendering = false;
-	_simThread = new boost::thread(boost::bind(&D3DAppFramework::DoSimulation,this));
 
+	//run the simulation on a separate thread to the renderer
+	_simThread = new boost::thread([this]()
+	{
+		_running = true;
+		while (_running)
+		{
+			LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
+
+			UpdateScene(_stats.ExpectedSimTime());//run a frame of game logic
+			_startRendering = true;
+
+			//wait until the next frame to begin if we have any spare time left over
+			_frameLimiter->LimitFps();
+
+			LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
+
+			boost::mutex::scoped_lock lock(_statsMutex);
+			_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
+		}
+	});
 	while (!_startRendering) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
 
 	MSG  msg;
@@ -348,7 +366,7 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 		}
 	}
 
-	if (_simThread!=NULL)
+	if (_simThread!=nullptr)
 	{
 		_running = false;
 		_simThread->join();
@@ -357,26 +375,6 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 
 	delete _frameLimiter;
 	return (int)msg.wParam;
-}
-
-void D3DAppFramework::DoSimulation()
-{
-	_running = true;
-	while (_running)
-	{
-		LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
-
-		UpdateScene(_stats.ExpectedSimTime());//run a frame of game logic
-		_startRendering = true;
-
-		//wait until the next frame to begin if we have any spare time left over
-		_frameLimiter->LimitFps();
-
-		LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
-
-		boost::mutex::scoped_lock lock(_statsMutex);
-		_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
-	}
 }
 
 LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

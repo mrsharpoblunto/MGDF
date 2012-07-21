@@ -10,8 +10,8 @@ public:
 	BufferedGameState()
 	{
 		_pendingState=new T();
-		_currentState=NULL;
-		_previousState=NULL;
+		_currentState=nullptr;
+		_previousState=nullptr;
 	};
 
 	virtual ~BufferedGameState()
@@ -29,7 +29,7 @@ public:
 	boost::shared_ptr<T> Interpolate(double alpha)
 	{
 		boost::mutex::scoped_lock lock(_stateMutex);
-		if (_previousState!=NULL && _currentState!=NULL)
+		if (_previousState!=nullptr && _currentState!=nullptr)
 		{
 			return boost::shared_ptr<T>(_previousState->Interpolate(_currentState,alpha));
 		}

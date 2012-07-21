@@ -5,20 +5,20 @@ namespace MGDF { namespace core { namespace tests {
 
 MockSystemImpl::MockSystemImpl()
 {
-	_lastError.Description=NULL;
-	_lastError.Sender=NULL;
-	_module = NULL;
+	_lastError.Description=nullptr;
+	_lastError.Sender=nullptr;
+	_module = nullptr;
 }
 
 MockSystemImpl::~MockSystemImpl(void)
 {
-	if (_module!=NULL) delete _module;
+	if (_module!=nullptr) delete _module;
 
-	if (_lastError.Description!=NULL)
+	if (_lastError.Description!=nullptr)
 	{
 		delete[] _lastError.Description;
 	}
-	if (_lastError.Sender!=NULL)
+	if (_lastError.Sender!=nullptr)
 	{
 		delete[] _lastError.Sender;
 	}
@@ -36,22 +36,22 @@ const Version *MockSystemImpl::GetMGDFVersion() const
 
 void MockSystemImpl::SetLastError(const char *sender,int code,const char *description)
 {
-	if (_lastError.Description!=NULL)
+	if (_lastError.Description!=nullptr)
 	{
 		delete[] _lastError.Description;
 	}
-	if (_lastError.Sender!=NULL)
+	if (_lastError.Sender!=nullptr)
 	{
 		delete[] _lastError.Sender;
 	}
 
-	if (description!=NULL)
+	if (description!=nullptr)
 	{
 		int size = strlen(description)+1;
 		_lastError.Description = new char[size];
 		strcpy_s(_lastError.Description,size,description);
 	}
-	if (sender!=NULL)
+	if (sender!=nullptr)
 	{
 		int size = strlen(sender)+1;
 		_lastError.Sender = new char[size];

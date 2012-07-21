@@ -21,7 +21,7 @@ IInputManagerComponent *CreateDirectInput8InputManagerComponent(HINSTANCE instan
 	}
 	catch (...)
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -36,11 +36,11 @@ DirectInput8InputManagerComponent::DirectInput8InputManagerComponent(HINSTANCE i
 		_gamepads.Add(new XInputGamepad(i));
 	}
 	//create the directinput device
-	if (FAILED(DirectInput8Create(GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&_lpdi, NULL)))
+	if (FAILED(DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&_lpdi, NULL)))
 		throw new MGDFException("unable to create directInput device");
 
 	//initialise the keyboard
-	if (FAILED(_lpdi->CreateDevice(GUID_SysKeyboard, &_keyboard, NULL)))
+	if (FAILED(_lpdi->CreateDevice(GUID_SysKeyboard, &_keyboard, nullptr)))
 			throw MGDFException("unable to initialise keyboard");
 	if (FAILED(_keyboard->SetDataFormat(&c_dfDIKeyboard)))
 			throw MGDFException("unable to initialise keyboard");
@@ -49,7 +49,7 @@ DirectInput8InputManagerComponent::DirectInput8InputManagerComponent(HINSTANCE i
 			throw MGDFException("unable to initialise keyboard");
 
 	//initialise the mouse
-	if (FAILED(_lpdi->CreateDevice(GUID_SysMouse, &_mouse, NULL)))
+	if (FAILED(_lpdi->CreateDevice(GUID_SysMouse, &_mouse, nullptr)))
 		throw MGDFException("unable to initialise mouse");
 	if (FAILED(_mouse->SetCooperativeLevel(window, DISCL_BACKGROUND |
 		DISCL_NONEXCLUSIVE)))
@@ -76,26 +76,26 @@ DirectInput8InputManagerComponent::DirectInput8InputManagerComponent(HINSTANCE i
 
 DirectInput8InputManagerComponent::~DirectInput8InputManagerComponent(void)
 {
-	for (std::vector<IGamepad *>::const_iterator iter = _gamepads.Items()->begin();iter!=_gamepads.Items()->end();++iter) {
+	for (auto iter = _gamepads.Items()->begin();iter!=_gamepads.Items()->end();++iter) {
 		delete (XInputGamepad *)(*iter);
 	}
 
 	_mouse->Unacquire();
 	_mouse->Release();
-	_mouse = NULL;
+	_mouse = nullptr;
 
 	_keyboard->Unacquire();
 	_keyboard->Release();
-	_keyboard = NULL;
+	_keyboard = nullptr;
 
 	_lpdi->Release();
-	_lpdi = NULL;
+	_lpdi = nullptr;
 }
 
 void DirectInput8InputManagerComponent::ReadInputDevices()
 {
 	//read controller states
-	for (std::vector<IGamepad *>::const_iterator iter = _gamepads.Items()->begin();iter!=_gamepads.Items()->end();++iter) {
+	for (auto iter = _gamepads.Items()->begin();iter!=_gamepads.Items()->end();++iter) {
 		((XInputGamepad *)(*iter))->GetState();
 	}
 

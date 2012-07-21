@@ -11,12 +11,12 @@ class MGDF_CORE_COMMON_DLL Resources
 public:
 	virtual ~Resources(){}
 
-	static Resources *InstancePtr(HINSTANCE instance=NULL) {
+	static Resources *InstancePtr(HINSTANCE instance=nullptr) {
 		static Resources r(instance);
 		return &r;
 	}
 
-	static Resources &Instance(HINSTANCE instance=NULL) {
+	static Resources &Instance(HINSTANCE instance=nullptr) {
 		return *Resources::InstancePtr(instance);
 	}
 

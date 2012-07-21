@@ -23,12 +23,12 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	}
 
 	_device = device;
-	_currentAdaptorMode = NULL;
+	_currentAdaptorMode = nullptr;
 	_currentMultiSampleLevel = 1;
 	_vsync = true;
 
 	UINT maxAdaptorModes;
-	if (FAILED(output->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,NULL)))
+	if (FAILED(output->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,nullptr)))
 	{
 		SAFE_RELEASE(output);
 		return;
@@ -72,7 +72,7 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 
 GraphicsManager::~GraphicsManager(void)
 {
-	for (std::vector<IGraphicsAdaptorMode *>::const_iterator iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
+	for (auto iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
 		delete (GraphicsAdaptorMode *)(*iter);
 	}
 }
@@ -119,10 +119,10 @@ const IGraphicsAdaptorModeList *GraphicsManager::GetAdaptorModes() const
 
 IGraphicsAdaptorMode *GraphicsManager::GetAdaptorMode(unsigned int width,unsigned int height) const
 {
-	IGraphicsAdaptorMode *mode = NULL;
-	for (std::vector<IGraphicsAdaptorMode *>::const_iterator iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
+	IGraphicsAdaptorMode *mode = nullptr;
+	for (auto iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
 		if ((*iter)->GetWidth()==width && (*iter)->GetHeight()==height) {
-			if (mode==NULL) {
+			if (mode==nullptr) {
 				mode = (*iter);
 			}
 			else if (
@@ -195,11 +195,11 @@ void GraphicsManager::LoadPreferences(IGame *game)
 			atoi(game->GetPreference(PreferenceConstants::SCREEN_Y)));
 	}
 
-	if (_currentAdaptorMode==NULL) {
+	if (_currentAdaptorMode==nullptr) {
 		//set 1024*768 as the default
 		_currentAdaptorMode = GetAdaptorMode(Resources::MIN_SCREEN_X,Resources::MIN_SCREEN_Y);
 		//or if 1024*768 was unavailble the first adaptor mode in the list
-		if (_currentAdaptorMode == NULL) {
+		if (_currentAdaptorMode == nullptr) {
 			_currentAdaptorMode = _adaptorModes.Get(0);
 		}
 
@@ -207,7 +207,7 @@ void GraphicsManager::LoadPreferences(IGame *game)
 		//try to find the native resolution if possible, otherwise stick to the default found above if none are found.
 		int nativeWidth = GetSystemMetrics(SM_CXSCREEN);
         int nativeHeight = GetSystemMetrics(SM_CYSCREEN);
-		for (std::vector<IGraphicsAdaptorMode *>::const_iterator iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
+		for (auto iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
 			if ((*iter)->GetWidth()==nativeWidth && (*iter)->GetHeight()==nativeHeight) {
 				_currentAdaptorMode = (*iter);
 				break;
@@ -236,7 +236,7 @@ void GraphicsManager::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc,BOOL *fullScre
 {
 	boost::mutex::scoped_lock lock(_mutex);
 
-	if (fullScreen!=NULL)
+	if (fullScreen!=nullptr)
 	{
 		_fullScreen = *fullScreen!=0;
 	}

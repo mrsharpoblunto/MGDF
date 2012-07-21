@@ -65,16 +65,13 @@ private:
 	void OnResize();
 
 	bool _minimized,_maximized,_resizing,_fullScreen;
-
-	void DoSimulation();
-
 	boost::thread *_simThread;
 	bool _running,_startRendering;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc
 #define D3DAPP_WNDPROC(wndProcName,className) LRESULT CALLBACK wndProcName##(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) { \
-	if(##className##!= NULL ) { return className##->MsgProc(hwnd, msg, wParam, lParam); } \
+	if(##className##!= nullptr ) { return className##->MsgProc(hwnd, msg, wParam, lParam); } \
 	else { return DefWindowProc(hwnd, msg, wParam, lParam);}}
 
 }}

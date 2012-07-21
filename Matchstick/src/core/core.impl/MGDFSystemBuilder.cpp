@@ -34,7 +34,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 
 
 	storage::IStorageFactoryComponent *storageImpl = storage::CreateStorageFactoryComponentImpl(instance,window);
-	if (storageImpl!=NULL) {
+	if (storageImpl!=nullptr) {
 		Components::Instance().RegisterComponent<storage::IStorageFactoryComponent>(storageImpl);
 	}
 	else {
@@ -43,7 +43,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 	}
 
 	input::IInputManagerComponent *input = input::CreateInputManagerComponentImpl(instance,window);
-	if (input!=NULL) {
+	if (input!=nullptr) {
 		Components::Instance().RegisterComponent<input::IInputManagerComponent>(input);
 	}
 	else {
@@ -52,7 +52,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 	}
 
 	vfs::IVirtualFileSystemComponent *vfs = vfs::CreateVirtualFileSystemComponentImpl(instance,window,GetLoggerImpl());
-	if (vfs!=NULL) {
+	if (vfs!=nullptr) {
 		Components::Instance().RegisterComponent<vfs::IVirtualFileSystemComponent>(vfs);
 	}
 	else {
@@ -62,7 +62,7 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 
 
 	audio::ISoundManagerComponent *audioImpl = audio::CreateSoundManagerComponentImpl(instance,vfs,window);
-	if (audioImpl!=NULL) {
+	if (audioImpl!=nullptr) {
 		Components::Instance().RegisterComponent<audio::ISoundManagerComponent>(audioImpl);
 	}
 	else 
@@ -86,11 +86,11 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 {
 	if (!RegisterComponents(instance,window))
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME)) {
-		Game *game=NULL;
+		Game *game=nullptr;
 
 		try 
 		{
@@ -101,18 +101,18 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 			std::string error = "FATAL ERROR: Unable to load game boot configuration - ";
 			error+=ex.what();
 			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),error,LOG_ERROR);
-			return NULL;
+			return nullptr;
 		} 
 		catch (...)
 		{
 			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to load game boot configuration",LOG_ERROR);
-			return NULL;
+			return nullptr;
 		}
 
 		if (MGDFVersionInfo::MGDF_INTERFACE_VERSION!=game->GetInterfaceVersion()) {
 			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unsupported MGDF Interface version",LOG_ERROR);
 			delete game;
-			return NULL;
+			return nullptr;
 		}
 
 		try 
@@ -125,17 +125,17 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 		catch (...)
 		{
 			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to create system",LOG_ERROR);
-			return NULL;
+			return nullptr;
 		}
 	}
 	else {
-		return NULL;
+		return nullptr;
 	}
 }
 
 void SystemBuilder::DisposeSystem(System *system)
 {
-	if (system!=NULL)
+	if (system!=nullptr)
 	{
 		system->DisposeModule();
 	}
@@ -146,14 +146,14 @@ void SystemBuilder::DisposeSystem(System *system)
 void SystemBuilder::InitParameterManager()
 {
 	std::string cmdLine= GetCommandLine();
-	std::string::iterator cmdLineIter = cmdLine.begin();
+	auto cmdLineIter = cmdLine.begin();
 
     // Skip past program name (first token in command line).
     if (*cmdLineIter == '"')  // Check for and handle quoted program name
     {
         cmdLineIter++;
 
-        // Skip over until another double-quote or a null 
+        // Skip over until another double-quote or a nullptr 
         while (cmdLineIter!=cmdLine.end() && *cmdLineIter != '"')
             ++cmdLineIter;
 

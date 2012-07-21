@@ -13,7 +13,7 @@ namespace MGDF { namespace core { namespace vfs { namespace filters {
 
 FilterBase::FilterBase() 
 {
-	_chainedFilter = NULL;
+	_chainedFilter = nullptr;
 }
 
 void FilterBase::Dispose()

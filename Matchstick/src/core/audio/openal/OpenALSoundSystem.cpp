@@ -43,15 +43,15 @@ initialise the openAL sound system
 */
 OpenALSoundSystem::OpenALSoundSystem()
 {
-	ALCdevice *device = alcOpenDevice(NULL);
-	if (device == NULL)
+	ALCdevice *device = alcOpenDevice(nullptr);
+	if (device == nullptr)
 	{
 		GetLoggerImpl()->Add(THIS_NAME,"Unable to open audio device",LOG_ERROR);
     	throw MGDFException("Unable to open audio device");
 	}
 
-	_context=alcCreateContext(device,NULL);
-	if (_context == NULL)
+	_context=alcCreateContext(device,nullptr);
+	if (_context == nullptr)
 	{
 		GetLoggerImpl()->Add(THIS_NAME,"Failed to initialize OpenAL",LOG_ERROR);
     	throw MGDFException("Failed to initialize OpenAL");
@@ -64,7 +64,7 @@ OpenALSoundSystem::OpenALSoundSystem()
     	throw MGDFException("Failed to make OpenAL context current");
 	}
 
-	alutInitWithoutContext(NULL,NULL);
+	alutInitWithoutContext(nullptr,nullptr);
 
 	//allocate as many sources as we can (or until we reach a hard coded limit) and add them to the free sources pool.
 	do
@@ -116,7 +116,7 @@ bool OpenALSoundSystem::AcquireSource(ALuint *source)
 
 void OpenALSoundSystem::ReleaseSource(ALuint source)
 {
-	boost::unordered_map<ALuint,bool>::iterator iter = _allocatedSources.find(source);
+	auto iter = _allocatedSources.find(source);
 	if (iter!=_allocatedSources.end())
 	{
 		//stop the source, clear out its buffer and re add it to the free source pool.
@@ -135,7 +135,7 @@ OpenALSoundSystem::~OpenALSoundSystem()
 {
 	//Get device for active context
 	ALCdevice *device=alcGetContextsDevice(_context);
-	alcMakeContextCurrent(NULL);
+	alcMakeContextCurrent(nullptr);
 	alcDestroyContext(_context);
 	alcCloseDevice(device);
 

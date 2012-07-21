@@ -16,7 +16,7 @@ DefaultFileImpl::DefaultFileImpl(const std::wstring &path,ILogger *logger,IError
 {
 	_logger = logger;
 	_errorHandler = handler;
-	_fileStream = NULL;
+	_fileStream = nullptr;
 
 	_path = path;
 
@@ -43,7 +43,7 @@ DefaultFileImpl::~DefaultFileImpl(void)
 
 bool DefaultFileImpl::IsOpen() const
 {
-	return (_fileStream!=NULL);
+	return (_fileStream!=nullptr);
 }
 
 bool DefaultFileImpl::OpenFile()
@@ -67,7 +67,7 @@ bool DefaultFileImpl::OpenFile()
 		else 
 		{
 			delete _fileStream;
-			_fileStream = NULL;
+			_fileStream = nullptr;
 
 			_logger->Add(THIS_NAME,"Unable to open file stream",LOG_ERROR);
 			_errorHandler->SetLastError(THIS_NAME,MGDF_ERR_INVALID_FILE,"Unable to open file stream");
@@ -82,7 +82,7 @@ void DefaultFileImpl::CloseFile()
 	{
 		_fileStream->close();
 		delete _fileStream;
-		_fileStream = NULL;
+		_fileStream = nullptr;
 	}
 }
 
@@ -178,7 +178,7 @@ bool DefaultFileImpl::IsArchive() const
 
 const wchar_t *DefaultFileImpl::GetArchiveName() const
 {
-	return NULL;
+	return nullptr;
 }
 
 const wchar_t *DefaultFileImpl::GetPhysicalPath() const

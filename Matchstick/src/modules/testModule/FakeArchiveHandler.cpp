@@ -50,7 +50,7 @@ void FakeArchiveHandler::Dispose()
 bool FakeArchiveHandler::IsArchive(const wchar_t *path) const 
 {
 	std::wstring extension = GetFileExtension(std::wstring(path));
-	for(std::vector<std::wstring>::const_iterator extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
+	for(auto extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
 		if ((*extIter) == extension) {
 			return true;
 		}

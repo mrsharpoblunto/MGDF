@@ -32,19 +32,12 @@ public:
 
 	void SetSystem(System *system);
 private:
-	void ShutDownCallBack();
-
 	void DrawSystemOverlay();
 
 	bool _initialized;
 	double _alpha;
-
 	System *_system;
 	IFW1FontWrapper *_font;
-	//IDXGISwapChain* _swapChain;
-	//ID3DXFont *_font;
-	//CUSTOMVERTEX _vertices[6];
-	//LPDIRECT3DVERTEXBUFFER9 _vBuffer;
 };
 
 }}

@@ -124,11 +124,11 @@ void GPUPerformanceCounter::Init()
 
 void GPUPerformanceCounter::Uninit()
 {
-	for (std::vector<ID3D11Query *>::iterator iter = _beginQueries.begin();iter!=_beginQueries.end();++iter)
+	for (auto iter = _beginQueries.begin();iter!=_beginQueries.end();++iter)
 	{
 		SAFE_RELEASE(*iter);
 	}
-	for (std::vector<ID3D11Query *>::iterator iter = _endQueries.begin();iter!=_endQueries.end();++iter)
+	for (auto iter = _endQueries.begin();iter!=_endQueries.end();++iter)
 	{
 		SAFE_RELEASE(*iter);
 	}
@@ -173,8 +173,8 @@ void GPUPerformanceCounter::SetSample(unsigned int frame, UINT64 frequency)
 /** -------------- Timer ------------*/
 Timer::Timer()
 : _currentFrame(0)
-, _device(NULL)
-, _context(NULL)
+, _device(nullptr)
+, _context(nullptr)
 , _bufferSize(0)
 , _maxSamples(0)
 , _initialized(0)
@@ -192,7 +192,7 @@ Timer::~Timer(void)
 {
 	timeEndPeriod(1);
 
-	for (std::vector<ID3D11Query *>::iterator iter = _disjointQueries.begin();iter!=_disjointQueries.end();++iter)
+	for (auto iter = _disjointQueries.begin();iter!=_disjointQueries.end();++iter)
 	{
 		SAFE_RELEASE(*iter);
 	}
@@ -262,7 +262,7 @@ void Timer::DoRemoveCounter(IPerformanceCounter *counter)
 	{
 		boost::mutex::scoped_lock lock(_mutex);
 
-		for (std::vector<CPUPerformanceCounter *>::iterator iter = _cpuCounters.begin();iter!=_cpuCounters.end();++iter)
+		for (auto iter = _cpuCounters.begin();iter!=_cpuCounters.end();++iter)
 		{
 			if (*iter==counter)
 			{
@@ -272,7 +272,7 @@ void Timer::DoRemoveCounter(IPerformanceCounter *counter)
 		}
 	}
 
-	for (std::vector<GPUPerformanceCounter *>::iterator iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+	for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
 	{
 		if (*iter==counter)
 		{
@@ -294,7 +294,7 @@ void Timer::Begin()
 		{
 			if (!disjoint.Disjoint)
 			{
-				for (std::vector<GPUPerformanceCounter *>::iterator iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+				for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
 				{
 					(*iter)->SetSample(_currentFrame,disjoint.Frequency);
 				}
@@ -318,11 +318,11 @@ void Timer::GetCounterAverages(
 		std::vector<std::pair<const char *,double> > &cpuCounters,
 		std::vector<std::pair<const char *,double> > &gpuCounters)
 {
-	for (std::vector<CPUPerformanceCounter *>::iterator iter = _cpuCounters.begin();iter!=_cpuCounters.end();++iter)
+	for (auto iter = _cpuCounters.begin();iter!=_cpuCounters.end();++iter)
 	{
 		cpuCounters.push_back(std::pair<const char *,double>((*iter)->GetName(),(*iter)->GetAvgValue()));
 	}
-	for (std::vector<GPUPerformanceCounter *>::iterator iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+	for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
 	{
 		gpuCounters.push_back(std::pair<const char *,double>((*iter)->GetName(),(*iter)->GetAvgValue()));
 	}

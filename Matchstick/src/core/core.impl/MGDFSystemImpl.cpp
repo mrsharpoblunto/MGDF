@@ -47,20 +47,20 @@ void ISystemImpl::AddFatalErrorCallback(const FatalErrorFunction::slot_type& cal
 System::System(Game *game)
 {
 	_game = game;
-	_saves = NULL;
-	_module = NULL;
+	_saves = nullptr;
+	_module = nullptr;
 	_version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION());
-	_lastError.Description=NULL;
-	_lastError.Sender=NULL;
+	_lastError.Description=nullptr;
+	_lastError.Sender=nullptr;
 
 	_storage = Components::Instance().Get<storage::IStorageFactoryComponent>();
 	_input = Components::Instance().Get<input::IInputManagerComponent>();
 	_sound = Components::Instance().Get<audio::ISoundManagerComponent>();
 	_vfs = Components::Instance().Get<vfs::IVirtualFileSystemComponent>();
-	_graphics = NULL;
+	_graphics = nullptr;
 
 	_stats = new StatisticsManager();
-	_d3dDevice = NULL;
+	_d3dDevice = nullptr;
 
 	_moduleFactory = new ModuleFactory(_game);
 
@@ -70,9 +70,9 @@ System::System(Game *game)
 
 	//ensure the vfs enumerates any custom defined archive formats
 	ICustomArchiveHandlers *customHandlers = _moduleFactory->GetCustomArchiveHandlers();
-	if (customHandlers!=NULL) {
+	if (customHandlers!=nullptr) {
 		unsigned int length = 0;
-		customHandlers->GetHandlers(NULL,&length,GetLoggerImpl(),this);
+		customHandlers->GetHandlers(nullptr,&length,GetLoggerImpl(),this);
 		IArchiveHandler **handlers = new IArchiveHandler *[length];
 		customHandlers->GetHandlers(handlers,&length,GetLoggerImpl(),this);
 		for (unsigned int i=0;i<length;++i) 
@@ -84,10 +84,10 @@ System::System(Game *game)
 	}
 
 	//enumerate the current games content directory
-	_vfs->MapDirectory(Resources::Instance().ContentDir().c_str(),Resources::VFS_CONTENT().c_str(),NULL,true);
+	_vfs->MapDirectory(Resources::Instance().ContentDir().c_str(),Resources::VFS_CONTENT().c_str(),nullptr,true);
 
 	//set the initial sound volumes
-	if (_sound!=NULL)
+	if (_sound!=nullptr)
 	{
 		_sound->SetSoundVolume((float)atof(_game->GetPreference(PreferenceConstants::SOUND_VOLUME)));
 		_sound->SetStreamVolume((float)atof(_game->GetPreference(PreferenceConstants::MUSIC_VOLUME)));
@@ -153,7 +153,7 @@ std::string System::GetSystemInformation(SystemStats *stats)
 		if (gpuCounters.size()>0)
 		{
 			ss << "\r\nGPU\r\n";
-			for (std::vector<std::pair<const char *,double> >::iterator iter = gpuCounters.begin();iter!=gpuCounters.end();++iter)
+			for (auto iter = gpuCounters.begin();iter!=gpuCounters.end();++iter)
 			{
 				ss << " " << iter->first << " : " << iter->second << "\r\n";
 			}
@@ -162,7 +162,7 @@ std::string System::GetSystemInformation(SystemStats *stats)
 		if (cpuCounters.size()>0)
 		{
 			ss << "\r\nCPU\r\n";
-			for (std::vector<std::pair<const char *,double> >::iterator iter = cpuCounters.begin();iter!=cpuCounters.end();++iter)
+			for (auto iter = cpuCounters.begin();iter!=cpuCounters.end();++iter)
 			{
 				ss << " " << iter->first << " : " << iter->second << "\r\n";
 			}
@@ -173,8 +173,8 @@ std::string System::GetSystemInformation(SystemStats *stats)
 
 void System::DisposeModule()
 {
-	if (_module!=NULL && !_module->Dispose()) {
-		_module = NULL;
+	if (_module!=nullptr && !_module->Dispose()) {
+		_module = nullptr;
 		FatalError(THIS_NAME,"Error disposing module");
 	}
 	GetLoggerImpl()->Add(THIS_NAME,"Freed module successfully");
@@ -182,9 +182,9 @@ void System::DisposeModule()
 
 System::~System(void)
 {
-	if (_saves!=NULL)
+	if (_saves!=nullptr)
 	{
-		for (std::vector<const char *>::const_iterator iter=_saves->Items()->begin();iter!=_saves->Items()->end();++iter)
+		for (auto iter=_saves->Items()->begin();iter!=_saves->Items()->end();++iter)
 		{
 			delete[] *iter;
 		}
@@ -196,11 +196,11 @@ System::~System(void)
 	SAFE_DELETE(_moduleFactory);
 
 	//clear out error information
-	if (_lastError.Description!=NULL)
+	if (_lastError.Description!=nullptr)
 	{
 		delete[] _lastError.Description;
 	}
-	if (_lastError.Sender!=NULL)
+	if (_lastError.Sender!=nullptr)
 	{
 		delete[] _lastError.Sender;
 	}
@@ -235,7 +235,7 @@ int System::Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,V
 	std::wstring loadFile = Resources::Instance().GameStateSaveFile(loadName);
 	std::wstring loadDir = Resources::Instance().SaveDir(loadName);
 
-	if (loadDataDir.size()+1>*size || loadBuffer==NULL)
+	if (loadDataDir.size()+1>*size || loadBuffer==nullptr)
 	{
 		*size = loadDataDir.size()+1;
 		return *size;
@@ -274,7 +274,7 @@ int System::Save(const char *save, wchar_t *saveBuffer, unsigned int *size)
 	std::string saveName(save);
 	std::wstring saveBufferContent(Resources::Instance().SaveDataDir(saveName));
 
-	if (saveBufferContent.size()+1>*size  || saveBuffer==NULL)
+	if (saveBufferContent.size()+1>*size  || saveBuffer==nullptr)
 	{
 		*size = saveBufferContent.size()+1;
 		return *size;
@@ -341,7 +341,7 @@ void System::ClearWorkingDirectory()
 create and initialize a new module
 */
 void System::Initialize() {
-	if (_module==NULL)
+	if (_module==nullptr)
 	{
 		_module = CreateModule();
 
@@ -358,7 +358,7 @@ push a module based on its name in the vfs onto the stack
 */
 IModule *System::CreateModule()
 {
-	IModule *module=NULL;
+	IModule *module=nullptr;
 
 	if (!_moduleFactory->IsCompatibleInterfaceVersion(MGDFVersionInfo::MGDF_INTERFACE_VERSION)) {
 		FatalError(THIS_NAME,"MGDF Interface version "+boost::lexical_cast<std::string>(MGDFVersionInfo::MGDF_INTERFACE_VERSION)+" is not compatible");
@@ -367,7 +367,7 @@ IModule *System::CreateModule()
 	//create the module
 	module = _moduleFactory->GetModule(this);
 
-	if (module==NULL) {
+	if (module==nullptr) {
 		FatalError(THIS_NAME,"Unable to create module class");
 	}
 
@@ -388,7 +388,7 @@ void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &
 	LARGE_INTEGER inputEnd = _timer.GetCurrentTimeTicks();
 
 	LARGE_INTEGER audioStart = _timer.GetCurrentTimeTicks();
-	if (_sound!=NULL) _sound->Update();
+	if (_sound!=nullptr) _sound->Update();
 	LARGE_INTEGER audioEnd = _timer.GetCurrentTimeTicks();
 
 	{
@@ -397,7 +397,7 @@ void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &
 		stats->AppendSimAudioTime(_timer.ConvertDifferenceToSeconds(audioEnd,audioStart));
 	}
 
-	if (_module!=NULL) {
+	if (_module!=nullptr) {
 		if (!_module->UpdateScene(simulationTime)) {
 			FatalError(THIS_NAME,"Error updating scene in module - "+std::string(_module->GetLastError()));		
 		}
@@ -407,7 +407,7 @@ void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &
 void System::DrawScene(double alpha)
 {
 	_timer.Begin();
-	if (_module!=NULL) 
+	if (_module!=nullptr) 
 	{
 		if (!_module->DrawScene(alpha))
 		{
@@ -419,7 +419,7 @@ void System::DrawScene(double alpha)
 
 void System::BackBufferChanged()
 {
-	if (_module!=NULL) {
+	if (_module!=nullptr) {
 		if (!_module->BackBufferChanged()) {
 			FatalError(THIS_NAME,"Error handling back buffer change in module - "+std::string(_module->GetLastError()));
 		}
@@ -435,7 +435,7 @@ void System::FatalError(const char *sender,const char *message)
 	GetLoggerImpl()->Add(THIS_NAME,"notified of fatal error, telling module to panic");
 	GetLoggerImpl()->Flush();
 
-	if (_module!=NULL)
+	if (_module!=nullptr)
 	{
 		_module->Panic();
 	}
@@ -447,22 +447,22 @@ void System::FatalError(const char *sender,const char *message)
 
 void System::SetLastError(const char *sender, int code,const char *description)
 {
-	if (_lastError.Description!=NULL)
+	if (_lastError.Description!=nullptr)
 	{
 		delete[] _lastError.Description;
 	}
-	if (_lastError.Sender!=NULL)
+	if (_lastError.Sender!=nullptr)
 	{
 		delete[] _lastError.Sender;
 	}
 
-	if (description!=NULL)
+	if (description!=nullptr)
 	{
 		size_t descLen = strlen(description);
 		_lastError.Description = new char[descLen+1];
 		strncpy_s(_lastError.Description,sizeof(_lastError.Description),description,descLen);
 	}
-	if (sender!=NULL)
+	if (sender!=nullptr)
 	{
 		size_t senderLen = strlen(sender);
 		_lastError.Sender = new char[senderLen+1];
@@ -472,7 +472,7 @@ void System::SetLastError(const char *sender, int code,const char *description)
 
 void System::QueueShutDown()
 {
-	if (_module!=NULL) {
+	if (_module!=nullptr) {
 		_module->ShutDown();
 	}
 }
@@ -484,7 +484,7 @@ void System::ShutDown()
 
 const IStringList *System::GetSaves() const
 {
-	if (_saves == NULL) 
+	if (_saves == nullptr) 
 	{
 		const_cast<StringList *>(_saves) = new StringList();
 

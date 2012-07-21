@@ -73,7 +73,7 @@ bool FolderBaseImpl::IsArchive() const
 
 const wchar_t *FolderBaseImpl::GetArchiveName() const
 {
-	return NULL;
+	return nullptr;
 }
 
 const wchar_t *FolderBaseImpl::GetPhysicalPath() const

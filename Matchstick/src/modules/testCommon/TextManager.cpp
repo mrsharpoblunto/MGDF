@@ -13,7 +13,7 @@ namespace MGDF { namespace Test {
 
 TextManagerState::TextManagerState(const TextManagerState *state)
 {
-	for (std::vector<Line>::const_iterator iter=state->_lines.begin();iter!=state->_lines.end();++iter)
+	for (auto iter=state->_lines.begin();iter!=state->_lines.end();++iter)
 	{
 		_lines.push_back(*iter);
 	}
@@ -52,7 +52,7 @@ TextManager::~TextManager()
 
 TextManager::TextManager(ISystem *system)
 	: _system(system)
-	, _font(NULL)
+	, _font(nullptr)
 {
 	system->GetGraphics()->GetD3DDevice()->GetImmediateContext(&_immediateContext);
 
@@ -82,7 +82,7 @@ void TextManager::DrawText()
 			starty = _system->GetGraphics()->GetScreenY() - 25;
 		}
 
-		for (std::vector<Line>::iterator iter = _state.get()->_lines.begin();iter!=_state.get()->_lines.end();++iter)
+		for (auto iter = _state.get()->_lines.begin();iter!=_state.get()->_lines.end();++iter)
 		{
 			std::wstring content;
 			content.assign(iter->Content.begin(),iter->Content.end());

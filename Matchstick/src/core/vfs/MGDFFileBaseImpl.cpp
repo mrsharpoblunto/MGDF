@@ -14,14 +14,14 @@ namespace MGDF { namespace core { namespace vfs {
 
 FileBaseImpl::FileBaseImpl() 
 {
-	_parent = NULL;
-	_children = NULL;
+	_parent = nullptr;
+	_children = nullptr;
 	_logicalPath = L"";
 }
 
 FileBaseImpl::~FileBaseImpl()
 {
-	if (_children!=NULL) {
+	if (_children!=nullptr) {
 		//delete all the children of this node
 		boost::unordered_map<std::wstring,IFile *>::iterator iter;
 		for (iter=_children->begin();iter!=_children->end();++iter) {
@@ -49,8 +49,8 @@ IFile *FileBaseImpl::GetDescendant(const wchar_t * query)
 	std::transform(q.begin(), q.end(), q.begin(), ::towlower);
 	size_t dotPos = q.find(VFS_PATH_SEPARATOR);
 
-	//loop until no separators are found or a subnode is NULL
-	while (dotPos!=std::wstring::npos && node!=NULL) {
+	//loop until no separators are found or a subnode is nullptr
+	while (dotPos!=std::wstring::npos && node!=nullptr) {
 		//get the first node namespace
 		std::wstring nodeName = q.substr(0,dotPos);
 		q = q.substr(dotPos+1,q.length()-1);
@@ -59,7 +59,7 @@ IFile *FileBaseImpl::GetDescendant(const wchar_t * query)
 		dotPos = q.find(VFS_PATH_SEPARATOR);
 	}
 
-	if (node!=NULL) {
+	if (node!=nullptr) {
 		node = node->GetChild(q.c_str());
 	}
 
@@ -68,42 +68,42 @@ IFile *FileBaseImpl::GetDescendant(const wchar_t * query)
 
 IFile *FileBaseImpl::GetFirstChild()
 {
-	if (_children!=NULL && _children->begin() != _children->end()) { 
+	if (_children!=nullptr && _children->begin() != _children->end()) { 
 		return _children->begin()->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 IFile *FileBaseImpl::GetLastChild()
 {
-	if (_children!=NULL && _children->begin() != _children->end()) { 
+	if (_children!=nullptr && _children->begin() != _children->end()) { 
 		return _children->end()->second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 IFile *FileBaseImpl::GetChild(const wchar_t * name)
 {
 	std::wstring n = name;
 	std::transform(n.begin(), n.end(), n.begin(), ::towlower);
-	if (_children!=NULL && _children->find(n) != _children->end()) {
+	if (_children!=nullptr && _children->find(n) != _children->end()) {
 		return (*_children)[n];
 	}
-	return NULL;
+	return nullptr;
 }
 
 IFile *FileBaseImpl::GetChildInternal(const wchar_t *name)
 {
 	std::wstring n = name;
-	if (_children!=NULL && _children->find(n) != _children->end()) {
+	if (_children!=nullptr && _children->find(n) != _children->end()) {
 		return (*_children)[n];
 	}
-	return NULL;
+	return nullptr;
 }
 
 unsigned int FileBaseImpl::GetChildCount()
 {
-	if (_children!=NULL) { 
+	if (_children!=nullptr) { 
 		return _children->size();
 	}
 	return 0;
@@ -112,7 +112,7 @@ unsigned int FileBaseImpl::GetChildCount()
 void FileBaseImpl::AddChild(IFile *file)
 {
 	//lazily initialise the child map
-	if (_children==NULL) {
+	if (_children==nullptr) {
 		_children = new boost::unordered_map<std::wstring,IFile *>();
 	}
 	//if an identical node already exists in the tree then remove it
@@ -122,7 +122,7 @@ void FileBaseImpl::AddChild(IFile *file)
 
 IFileIterator *FileBaseImpl::GetIterator(void) {
 	IFileIterator *result;
-	if (_children!=NULL) {
+	if (_children!=nullptr) {
 		result = new FileBaseImplIterator(_children->begin(),_children->end());
 	}
 	else {
@@ -141,7 +141,7 @@ const wchar_t *FileBaseImpl::GetLogicalPath()
 	if (_logicalPath.empty()) {
 		IFile *f = (IFile *)this;
 
-		while (f!=NULL) {
+		while (f!=nullptr) {
 			if (f==this) {
 				_logicalPath = f->GetName();
 			}

@@ -17,7 +17,7 @@ namespace MGDF { namespace core {
 
 ModuleFactory::~ModuleFactory()
 {
-	if (_moduleInstance!=NULL) {
+	if (_moduleInstance!=nullptr) {
 		//FreeLibrary(_moduleInstance);
 	}
 }
@@ -26,10 +26,10 @@ ModuleFactory::ModuleFactory(IGame *game)
 {
 	_game = game;
 
-	_moduleInstance = NULL;
-	_getCustomArchiveHandlers = NULL;
-	_getModule = NULL;
-	_isCompatibleInterfaceVersion = NULL;
+	_moduleInstance = nullptr;
+	_getCustomArchiveHandlers = nullptr;
+	_getModule = nullptr;
+	_isCompatibleInterfaceVersion = nullptr;
 
 	boost::filesystem::wpath globalModule(Resources::Instance().Module(),boost::filesystem::native);
 	if (boost::filesystem::exists(globalModule)) 
@@ -39,19 +39,19 @@ ModuleFactory::ModuleFactory(IGame *game)
 		_moduleInstance = LoadLibraryW(Resources::Instance().Module().c_str());
 		CurrentDirectoryHelper::Instance().Pop();
 
-		if (_moduleInstance!=NULL) {
+		if (_moduleInstance!=nullptr) {
 			_getCustomArchiveHandlers = (GetCustomArchiveHandlersPtr)GetProcAddress(_moduleInstance, "GetCustomArchiveHandlers");
-			if (_getCustomArchiveHandlers!=NULL) {
+			if (_getCustomArchiveHandlers!=nullptr) {
 				GetLoggerImpl()->Add(THIS_NAME,"Loaded CustomArchiveHandlers from Module.dll");
 			}
 
 			_getModule = (GetModulePtr)GetProcAddress(_moduleInstance, "GetModule");
-			if (_getModule!=NULL) {
+			if (_getModule!=nullptr) {
 				GetLoggerImpl()->Add(THIS_NAME,"Loaded Module from Module.dll");
 			}
 
 			_isCompatibleInterfaceVersion = (IsCompatibleInterfaceVersionPtr)GetProcAddress(_moduleInstance, "IsCompatibleInterfaceVersion");
-			if (_isCompatibleInterfaceVersion!=NULL) {
+			if (_isCompatibleInterfaceVersion!=nullptr) {
 				GetLoggerImpl()->Add(THIS_NAME,"Loaded IsCompatibleInterfaceVersion from Module.dll");
 			}
 		}
@@ -63,27 +63,27 @@ ModuleFactory::ModuleFactory(IGame *game)
 
 ICustomArchiveHandlers *ModuleFactory::GetCustomArchiveHandlers()
 {
-	if (_getCustomArchiveHandlers!=NULL) {
+	if (_getCustomArchiveHandlers!=nullptr) {
 		return _getCustomArchiveHandlers();
 	}
 	else {
-		return NULL;
+		return nullptr;
 	}
 }
 
 IModule *ModuleFactory::GetModule(ISystem *system)
 {
-	if (_getModule!=NULL) {
+	if (_getModule!=nullptr) {
 		return _getModule(system);
 	}
 	else {
-		return NULL;
+		return nullptr;
 	}
 }
 
 bool ModuleFactory::IsCompatibleInterfaceVersion(int interfaceVersion)
 {
-	if (_isCompatibleInterfaceVersion!=NULL) {
+	if (_isCompatibleInterfaceVersion!=nullptr) {
 		return _isCompatibleInterfaceVersion(interfaceVersion);
 	}
 	else {

@@ -20,7 +20,7 @@ IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent(HINSTANCE instanc
 	}
 	catch (...)
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 

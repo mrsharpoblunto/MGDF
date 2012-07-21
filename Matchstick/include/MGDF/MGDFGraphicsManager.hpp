@@ -58,7 +58,7 @@ get a list of available adaptor modes
 virtual const IGraphicsAdaptorModeList * GetAdaptorModes() const=0;
 
 /**
-get the adaptor mode (if any) matching the requested width and height, if no matching adaptor is found, NULL is returned
+get the adaptor mode (if any) matching the requested width and height, if no matching adaptor is found, nullptr is returned
 */
 virtual const IGraphicsAdaptorMode * GetAdaptorMode(unsigned int width,unsigned int height) const=0;
 

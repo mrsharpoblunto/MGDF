@@ -15,13 +15,13 @@
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 int VorbisStream::_references=0;
-HINSTANCE VorbisStream::_vorbisInstance=NULL;
-LPOVCLEAR VorbisStream::fn_ov_clear=NULL;
-LPOVREAD VorbisStream::fn_ov_read=NULL;
-LPOVPCMTOTAL VorbisStream::fn_ov_pcm_total=NULL;
-LPOVINFO VorbisStream::fn_ov_info=NULL;
-LPOVCOMMENT VorbisStream::fn_ov_comment=NULL;
-LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks=NULL;
+HINSTANCE VorbisStream::_vorbisInstance=nullptr;
+LPOVCLEAR VorbisStream::fn_ov_clear=nullptr;
+LPOVREAD VorbisStream::fn_ov_read=nullptr;
+LPOVPCMTOTAL VorbisStream::fn_ov_pcm_total=nullptr;
+LPOVINFO VorbisStream::fn_ov_info=nullptr;
+LPOVCOMMENT VorbisStream::fn_ov_comment=nullptr;
+LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks=nullptr;
 
 VorbisStream::~VorbisStream()
 {
@@ -51,7 +51,7 @@ void VorbisStream::UninitStream()
 		alDeleteBuffers( VORBIS_BUFFER_COUNT, _buffers);
 	}
 
-	if (_initLevel >= 3 && _decodeBuffer!=NULL)
+	if (_initLevel >= 3 && _decodeBuffer!=nullptr)
 	{
 		delete[] _decodeBuffer;
 	}
@@ -130,7 +130,7 @@ void VorbisStream::InitStream()
 		callbacks.close_func = &VorbisStream::ov_close_func;
 		callbacks.tell_func = &VorbisStream::ov_tell_func;
 
-		int retVal = fn_ov_open_callbacks(_dataSource, &_vorbisFile, NULL, 0, callbacks);
+		int retVal = fn_ov_open_callbacks(_dataSource, &_vorbisFile, nullptr, 0, callbacks);
 
 		// Create an OggVorbis file stream
 		if (retVal == 0)
@@ -139,7 +139,7 @@ void VorbisStream::InitStream()
 
 			// Get some information about the file (Channels, Format, and Frequency)
 			_vorbisInfo = fn_ov_info(&_vorbisFile, -1);
-			if (_vorbisInfo!=NULL)
+			if (_vorbisInfo!=nullptr)
 			{
 				_frequency = _vorbisInfo->rate;
 				_channels = _vorbisInfo->channels;
@@ -227,7 +227,7 @@ void VorbisStream::InitStream()
 bool VorbisStream::InitVorbis()
 {
 	_vorbisInstance = LoadLibrary("vorbisfile.dll");
-	if (_vorbisInstance!=NULL)
+	if (_vorbisInstance!=nullptr)
 	{
 		fn_ov_clear = (LPOVCLEAR)GetProcAddress(_vorbisInstance, "ov_clear");
 		fn_ov_read = (LPOVREAD)GetProcAddress(_vorbisInstance, "ov_read");
@@ -247,10 +247,10 @@ bool VorbisStream::InitVorbis()
 
 void VorbisStream::UninitVorbis()
 {
-	if (_vorbisInstance!=NULL)
+	if (_vorbisInstance!=nullptr)
 	{
 		FreeLibrary(_vorbisInstance);
-		_vorbisInstance = NULL;
+		_vorbisInstance = nullptr;
 	}
 }
 

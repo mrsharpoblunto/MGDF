@@ -39,7 +39,7 @@ public:
         _inst = static_cast<T*>(this);
     }
    ~Singleton( void )
-        {  assert( _inst );  _inst = NULL;  }
+        {  assert( _inst );  _inst = nullptr;  }
     static T& Instance( void )
         {  assert( _inst );  return ( *_inst );  }
     static T* InstancePtr( void )
@@ -50,6 +50,6 @@ public:
 	static className &Instance(void);		\
 	static className *InstancePtr(void)
 
-#define DEFINE_SINGLETON(className)	template<> className *Singleton<##className##>::_inst	= NULL;	\
+#define DEFINE_SINGLETON(className)	template<> className *Singleton<##className##>::_inst	= nullptr;	\
 	className &##className##::Instance(void){ return Singleton<##className##>::Instance();}##className *##className##::InstancePtr(void) { return Singleton<##className##>::InstancePtr();}
 

@@ -31,7 +31,7 @@ IFile *ZipArchiveHandlerImpl::MapArchive(IFile *parent,const wchar_t * archiveFi
 {
 	zip::ZipArchive *archive = new zip::ZipArchive(_logger,_errorHandler);
 	IFile *result = archive->MapArchive(parent,archiveFile);
-	if (result==NULL)
+	if (result==nullptr)
 	{
 		delete archive;
 	}
@@ -46,7 +46,7 @@ void ZipArchiveHandlerImpl::Dispose()
 bool ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) const 
 {
 	std::wstring extension = GetFileExtension(std::wstring(path));
-	for(std::vector<std::wstring>::const_iterator extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
+	for(auto extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
 		if ((*extIter) == extension) {
 			return true;
 		}

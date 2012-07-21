@@ -28,15 +28,15 @@ ZipArchive::ZipArchive(ILogger *logger,IErrorHandler *errorHandler): _refCount(0
 {
 	_logger = logger;
 	_errorHandler = errorHandler;
-	_archiveRoot = NULL;
+	_archiveRoot = nullptr;
 }
 
 ZipArchive::~ZipArchive(){
-	for (std::vector<ZipFileInformation *>::iterator iter = _archiveFiles.begin();iter!=_archiveFiles.end();++iter) {
+	for (auto iter = _archiveFiles.begin();iter!=_archiveFiles.end();++iter) {
 		delete (*iter);
 	}
 
-	for (boost::unordered_map<unsigned int,ZipFileData *>::iterator iter = _archiveData.begin();iter!=_archiveData.end();++iter) {
+	for (auto iter = _archiveData.begin();iter!=_archiveData.end();++iter) {
 		delete iter->second;
 	}
 
@@ -80,7 +80,7 @@ IFile *ZipArchive::MapArchive(IFile *parent,const wchar_t * archiveFile)
 			char fname[FILENAME_BUFFER];
 			std::string name;
 
-			unzGetCurrentFileInfo(_zip, &info, fname, FILENAME_BUFFER, NULL, 0, NULL, 0);
+			unzGetCurrentFileInfo(_zip, &info, fname, FILENAME_BUFFER, nullptr, 0, nullptr, 0);
 
 			//get the name and convert it to lower case
 			name = fname;
@@ -108,7 +108,7 @@ IFile *ZipArchive::MapArchive(IFile *parent,const wchar_t * archiveFile)
 	else {
 		std::string message = "Could not open archive ";
 		_logger->Add(THIS_NAME,(message+Resources::ToString(archiveFile)).c_str(),LOG_ERROR);
-		return NULL;
+		return nullptr;
 	}
 
 	return _archiveRoot;
@@ -127,7 +127,7 @@ IFile *ZipArchive::CreateParentFile(const std::wstring &path,IFile *rootNode,std
 		{
 			p[i] = L'\0';
 			IFile *child = ((FileBaseImpl *)currentFile)->GetChildInternal(&(p[startIndex]));
-			if (child == NULL) {
+			if (child == nullptr) {
 				std::wstring childName = &p[startIndex];
 				child = new ZipFolderImpl(this,childName);
 				((FileBaseImpl *)child)->SetParent(currentFile);
@@ -179,7 +179,7 @@ bool ZipArchive::OpenFile(unsigned int key)
 
 void ZipArchive::CloseFile(unsigned int key)
 {
-	boost::unordered_map<unsigned int,ZipFileData *>::iterator iter = _archiveData.find(key);
+	auto iter = _archiveData.find(key);
 	//if the entry is in the hashmap then the file is already open, so it needs to be closed and removed from the data cache
 	if (iter!=_archiveData.end()) {
 		free(iter->second->data);

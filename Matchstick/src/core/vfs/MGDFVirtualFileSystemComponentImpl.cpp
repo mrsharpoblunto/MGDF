@@ -29,7 +29,7 @@ IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(HINSTANCE inst
 	}
 	catch (...)
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -48,11 +48,11 @@ void VirtualFileSystemComponent::Dispose()
 
 VirtualFileSystemComponent::~VirtualFileSystemComponent()
 {
-	for (std::vector<IArchiveHandler *>::iterator iter = _archiveHandlers.begin();iter!=_archiveHandlers.end();++iter) {
+	for (auto iter = _archiveHandlers.begin();iter!=_archiveHandlers.end();++iter) {
 		delete (*iter);
 	}
 
-	for (std::vector<IFileFilter *>::iterator iter = _directoryMapFilters.begin();iter!=_directoryMapFilters.end();++iter) {
+	for (auto iter = _directoryMapFilters.begin();iter!=_directoryMapFilters.end();++iter) {
 		delete (*iter);
 	}
 
@@ -65,7 +65,7 @@ VirtualFileSystemComponent::~VirtualFileSystemComponent()
 bool VirtualFileSystemComponent::MapDirectory(const wchar_t *physicalDirectory,const wchar_t *logicalDirectory,IFileFilter *filter,bool recursive)
 {
 	IFile *logicalDir = CreateLogicalDirectory(logicalDirectory);
-	if (logicalDir==NULL)
+	if (logicalDir==nullptr)
 	{
 		_logger->Add(THIS_NAME,"Unable to create logical directory, a component of the path is a file",LOG_ERROR);
 		SAFE_DELETE(filter);
@@ -116,14 +116,14 @@ void VirtualFileSystemComponent::MapDirectory(IFile *parent,IFileFilter *filter)
 void VirtualFileSystemComponent::Map(const wchar_t *currentPhysicalFile, IFile *parentFile,IFileFilter *filter,bool recursive)
 {
 	//if the file passes the filter
-	if (filter == NULL || filter->FilterFile(currentPhysicalFile)) {
-		IFile *currentFile=NULL;
+	if (filter == nullptr || filter->FilterFile(currentPhysicalFile)) {
+		IFile *currentFile=nullptr;
 
 		//if its an archive
 		IArchiveHandler *archiveHandler = GetArchiveHandler(currentPhysicalFile);
-		if (archiveHandler!=NULL) {
+		if (archiveHandler!=nullptr) {
 			currentFile = archiveHandler->MapArchive(parentFile,currentPhysicalFile);//replace it with the mapped archive tree
-			if (currentFile==NULL)
+			if (currentFile==nullptr)
 			{
 				//if we can't map it as an archive, thenwe will revert to mapping it as a physical file or folder.
 				std::string message = "Unable to map archive ";
@@ -131,7 +131,7 @@ void VirtualFileSystemComponent::Map(const wchar_t *currentPhysicalFile, IFile *
 			}
 		}
 
-		if (currentFile==NULL)
+		if (currentFile==nullptr)
 		{
 			boost::filesystem::wpath physicalDirectoryPath(currentPhysicalFile,boost::filesystem::native);
 			//if its a folder then map it into the vfs tree (also note if we want this folder to lazily recusivly map its children)
@@ -149,7 +149,7 @@ void VirtualFileSystemComponent::Map(const wchar_t *currentPhysicalFile, IFile *
 			}
 		}
 
-		if (currentFile!=NULL) {
+		if (currentFile!=nullptr) {
 			((FileBaseImpl *)parentFile)->AddChild(currentFile);//add the current file to the vfs tree
 		}
 	}
@@ -158,12 +158,12 @@ void VirtualFileSystemComponent::Map(const wchar_t *currentPhysicalFile, IFile *
 
 IArchiveHandler *VirtualFileSystemComponent::GetArchiveHandler(const wchar_t *fullFilePath)
 {
-	for (std::vector<IArchiveHandler *>::iterator iter=_archiveHandlers.begin();iter!=_archiveHandlers.end();++iter) {
+	for (auto iter=_archiveHandlers.begin();iter!=_archiveHandlers.end();++iter) {
 		if ((*iter)->IsArchive(fullFilePath)) {
 				return (*iter);
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -180,15 +180,15 @@ IFile *VirtualFileSystemComponent::CreateLogicalDirectory(const std::wstring &lo
 		splitPath.erase(splitPath.begin());
 	}
 
-	for (std::vector<std::wstring>::iterator it = splitPath.begin(); it != splitPath.end(); ++it)
+	for (auto it = splitPath.begin(); it != splitPath.end(); ++it)
 	{
 		if (*it != L"") {
 			if (!currentDirectory->IsFolder()) {
-				return NULL;
+				return nullptr;
 			}
 
 			//if the child does not exist and the current file is a directory then create a new subdirectory
-			if (currentDirectory->GetChild((*it).c_str()) == NULL) {
+			if (currentDirectory->GetChild((*it).c_str()) == nullptr) {
 				IFile *newDir = new DefaultFolderImpl(*it);
 				((FileBaseImpl *)currentDirectory)->AddChild(newDir);
 				((FileBaseImpl *)newDir)->SetParent(currentDirectory);
@@ -224,7 +224,7 @@ IFileIterator *VirtualFileSystemComponent::FindFiles(const wchar_t *logicalDirec
 	IFile *logicalDir = this->GetFile(logicalDirectory);
 	std::vector<IFile *> *files = new std::vector<IFile *>();
 
-	if (logicalDir!=NULL) {
+	if (logicalDir!=nullptr) {
 		std::auto_ptr<IFileIterator> iter(logicalDir->GetIterator());
 
 		while (iter->HasNext()) {
@@ -237,7 +237,7 @@ IFileIterator *VirtualFileSystemComponent::FindFiles(const wchar_t *logicalDirec
 
 void VirtualFileSystemComponent::FindFilesRecursive(IFile *currentDirectory,IFileFilter *filter,bool recursive,std::vector<IFile *> *files) const
 {
-	if (filter==NULL || filter->FilterFile(currentDirectory->GetName())) {
+	if (filter==nullptr || filter->FilterFile(currentDirectory->GetName())) {
 		files->push_back(currentDirectory);
 	}
 
@@ -263,10 +263,10 @@ IFile *VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath) const
 	std::wstring rootNodeRef = ROOT_NODE_NAME;
 	rootNodeRef+=VFS_PATH_SEPARATOR;
 	boost::algorithm::trim_left_if(lPath,boost::algorithm::is_any_of(rootNodeRef)); //trim off any reference to the root node if present
-	if (_root!=NULL) {
+	if (_root!=nullptr) {
 		return _root->GetDescendant(lPath.c_str());
 	}
-	return NULL;
+	return nullptr;
 }
 
 IFile *VirtualFileSystemComponent::GetRoot() const

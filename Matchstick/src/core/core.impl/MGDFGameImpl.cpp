@@ -56,12 +56,12 @@ bool Game::HasPreference(const char *name) const
 const char *Game::GetPreference(const char *name) const
 {
 	std::string n(name);
-	storage::IPreferenceConfigStorageHandler::iterator iter = _preferences.find(n);
+	auto iter = _preferences.find(n);
 	if (iter!=_preferences.end()) {
 		return iter->second.c_str();
 	}
 	else {
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -82,7 +82,7 @@ void Game::ResetPreferences()
 void Game::SavePreferences() const
 {
 	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler(_storageFactory->CreatePreferenceConfigStorageHandler());
-	for (storage::IPreferenceConfigStorageHandler::iterator iter = _preferences.begin();iter!=_preferences.end();++iter) {
+	for (auto iter = _preferences.begin();iter!=_preferences.end();++iter) {
 		handler->Add(iter->first,iter->second);
 	}
 	handler->Save(_preferencesFile);
@@ -98,7 +98,7 @@ void Game::LoadPreferences(const std::wstring &filename)
 {
 	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler(_storageFactory->CreatePreferenceConfigStorageHandler());
 	handler->Load(filename);
-	for (storage::IPreferenceConfigStorageHandler::iterator iter = handler->Begin();iter!=handler->End();++iter)
+	for (auto iter = handler->Begin();iter!=handler->End();++iter)
 	{
 		_preferences[iter->first] = iter->second;
 	}

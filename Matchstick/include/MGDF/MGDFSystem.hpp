@@ -94,7 +94,7 @@ public:
 
 	/**
 	get the audio manager
-	\return the audio manager, NULL if the audio subsystem failed to initialize
+	\return the audio manager, nullptr if the audio subsystem failed to initialize
 	*/
 	virtual ISoundManager * GetSound() const=0;
 

@@ -27,7 +27,7 @@ ISoundManagerComponent *CreateOpenALSoundManagerComponent(HINSTANCE instance,IVi
 	}
 	catch (...)
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -60,7 +60,7 @@ OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
 	{
 		delete _soundStreams[i];
 	}
-	for (boost::unordered_map<ALuint,SharedBuffer *>::iterator iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
+	for (auto iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
 	{
 		alDeleteBuffers(1,&(iter->first));
 		delete iter->second;
@@ -85,7 +85,7 @@ void OpenALSoundManagerComponentImpl::Update()
 
 	int deactivatedSoundsCount=0;
 
-	for (std::vector<ISound *>::iterator iter = _sounds.begin();iter!=_sounds.end();++iter)
+	for (auto iter = _sounds.begin();iter!=_sounds.end();++iter)
 	{
 		OpenALSound *sound = (OpenALSound *)*iter;
 		if (!sound->IsActive()) {
@@ -165,7 +165,7 @@ float OpenALSoundManagerComponentImpl::GetSoundVolume() const
 void OpenALSoundManagerComponentImpl::SetSoundVolume(float volume)
 {
 	_soundVolume = volume;
-	for (std::vector<ISound *>::iterator iter = _sounds.begin();iter!=_sounds.end();++iter)
+	for (auto iter = _sounds.begin();iter!=_sounds.end();++iter)
 	{
 		OpenALSound *sound = (OpenALSound *)*iter;
 		sound->SetGlobalVolume(_soundVolume);
@@ -180,7 +180,7 @@ float OpenALSoundManagerComponentImpl::GetStreamVolume() const
 void OpenALSoundManagerComponentImpl::SetStreamVolume(float volume)
 {
 	_streamVolume = volume;
-	for (std::vector<ISoundStream *>::iterator iter = _soundStreams.begin();iter!=_soundStreams.end();++iter)
+	for (auto iter = _soundStreams.begin();iter!=_soundStreams.end();++iter)
 	{
 		VorbisStream *stream = (VorbisStream *)*iter;
 		stream->SetGlobalVolume(_streamVolume);
@@ -221,7 +221,7 @@ ISoundStream *OpenALSoundManagerComponentImpl::CreateSoundStream(IFile *file)
 	if (OpenALSoundSystem::InstancePtr()->GetFreeSources()==0)
 	{
 		GetComponentErrorHandler()->SetLastError(THIS_NAME,MGDF_ERR_NO_FREE_SOURCES,"No free sound sources to create stream");
-		return NULL;
+		return nullptr;
 	}
 	else 
 	{
@@ -232,7 +232,7 @@ ISoundStream *OpenALSoundManagerComponentImpl::CreateSoundStream(IFile *file)
 		}
 		catch (...)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 }
@@ -254,7 +254,7 @@ ISound *OpenALSoundManagerComponentImpl::CreateSound(IFile *file, int priority)
 	}
 	catch (...)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 }
@@ -280,7 +280,7 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds(int deactivatedSoundsCoun
 {
 	//copy the sounds into a local list so sorting won't mess up the external ordering of the samples
 	std::vector<OpenALSound *> sounds;
-	for (std::vector<ISound *>::iterator iter = _sounds.begin();iter!=_sounds.end();++iter)
+	for (auto iter = _sounds.begin();iter!=_sounds.end();++iter)
 	{
 		sounds.push_back((OpenALSound *)(*iter));
 	}
@@ -332,7 +332,7 @@ ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer(IFile *dataSource)
 	dataSourceName.append(dataSource->GetName());
 
 	//see if the buffer already exists in memory before trying to create it
-	for (boost::unordered_map<ALuint,SharedBuffer *>::iterator iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
+	for (auto iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
 	{
 		if (iter->second->BufferSource==dataSourceName) {
 			++iter->second->References;
@@ -391,7 +391,7 @@ void OpenALSoundManagerComponentImpl::RemoveSoundStream(ISoundStream *stream)
 
 void OpenALSoundManagerComponentImpl::DoRemoveSoundStream(ISoundStream *stream)
 {
-	std::vector<ISoundStream *>::iterator iter = find(_soundStreams.begin(), _soundStreams.end(), stream);
+	auto iter = find(_soundStreams.begin(), _soundStreams.end(), stream);
 	if (iter!=_soundStreams.end())
 	{
 		_soundStreams.erase(iter);
@@ -400,7 +400,7 @@ void OpenALSoundManagerComponentImpl::DoRemoveSoundStream(ISoundStream *stream)
 
 void OpenALSoundManagerComponentImpl::DoRemoveSound(ISound *sound)
 {
-	std::vector<ISound *>::iterator iter = find(_sounds.begin(), _sounds.end(), sound);
+	auto iter = find(_sounds.begin(), _sounds.end(), sound);
 	if (iter!=_sounds.end())
 	{
 		_sounds.erase(iter);

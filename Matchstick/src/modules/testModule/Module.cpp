@@ -14,15 +14,15 @@ namespace MGDF { namespace Test {
 Module::~Module(void)
 {
 	delete _textManager;
-	if (_testModule!=NULL) delete _testModule;
+	if (_testModule!=nullptr) delete _testModule;
 
 	if (_textManagerCounter) _system->GetTimer()->RemoveCounter(_textManagerCounter);
 	if (_testModuleCounter) _system->GetTimer()->RemoveCounter(_testModuleCounter);
 }
 
 Module::Module(ISystem *system)
-: _textManagerCounter(NULL)
-, _testModuleCounter(NULL)
+: _textManagerCounter(nullptr)
+, _testModuleCounter(nullptr)
 {
 	_system = system;
 	_textManager = new TextManager(system);
@@ -54,7 +54,7 @@ bool Module::UpdateScene(double elapsedTime)
 		_testModule->Update(_system,_stateBuffer.Pending());
 
 		TestModule *next = _testModule->NextTestModule();
-		if (next!=NULL)
+		if (next!=nullptr)
 		{
 			delete _testModule;
 			_testModule = next;
