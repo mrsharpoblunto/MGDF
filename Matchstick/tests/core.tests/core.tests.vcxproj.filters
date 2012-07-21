@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Mocks">
+      <UniqueIdentifier>{fec74ec5-b8c4-4468-bc4e-81c42cd6ae06}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MGDFMockErrorHandler.cpp">
+      <Filter>Mocks</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFMockLogger.cpp">
+      <Filter>Mocks</Filter>
+    </ClCompile>
+    <ClCompile Include="Mocks\MGDFMockModule.cpp">
+      <Filter>Mocks</Filter>
+    </ClCompile>
+    <ClCompile Include="Mocks\MGDFMockSystemImpl.cpp">
+      <Filter>Mocks</Filter>
+    </ClCompile>
+    <ClCompile Include="ParameterManagerTests.cpp" />
+    <ClCompile Include="ResourcesTests.cpp" />
+    <ClCompile Include="StorageTests.cpp" />
+    <ClCompile Include="VFSTests.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MGDFMockErrorHandler.hpp">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFMockLogger.hpp">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MGDFMockModule.hpp">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Mocks\MGDFMockSystemImpl.hpp">
+      <Filter>Mocks</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

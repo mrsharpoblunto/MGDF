@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="System">
+      <UniqueIdentifier>{d6a7ab6d-8414-4714-bcd4-67e714e029d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{94fc5570-2d7d-4806-967a-9e66496a07e0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MGDFGameBuilder.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFGameImpl.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFGraphicsManagerImpl.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFModuleFactory.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFStatisticsManagerImpl.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFSystemBuilder.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFSystemImpl.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFCurrentDirectoryHelper.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFComponents.cpp" />
+    <ClCompile Include="MGDFParameterConstants.cpp" />
+    <ClCompile Include="MGDFPreferenceConstants.cpp" />
+    <ClCompile Include="MGDFSystemStats.cpp" />
+    <ClCompile Include="MGDFTimer.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MGDFGameBuilder.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFGameImpl.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFGraphicsManagerImpl.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFModuleFactory.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFStatisticsManagerImpl.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFSystemBuilder.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFSystemImpl.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFCurrentDirectoryHelper.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFComponents.hpp" />
+    <ClInclude Include="MGDFParameterConstants.hpp" />
+    <ClInclude Include="MGDFPreferenceConstants.hpp" />
+    <ClInclude Include="MGDFSystemStats.hpp" />
+    <ClInclude Include="MGDFTimer.hpp" />
+    <ClInclude Include="stdafx.h" />
+  </ItemGroup>
+</Project>

@@ -28,6 +28,7 @@
     </UpgradeBackupLocation>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -42,8 +43,6 @@
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
-    <TargetFrameworkSubset>Client</TargetFrameworkSubset>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -58,7 +57,7 @@
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisRules>
     </CodeAnalysisRules>
-    <CodeAnalysisRuleSet>Newtonsoft.Json.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -69,7 +68,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>
     </DocumentationFile>
-    <CodeAnalysisRuleSet>..\..\..\..\trunk\Src\Newtonsoft.Json\Newtonsoft.Json.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <ItemGroup>

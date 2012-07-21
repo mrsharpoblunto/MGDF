@@ -1,31 +1,19 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "zlib\msvc\zlib.vcproj", "{EFF8C713-14FB-4121-AE2E-A2BE2A614901}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "zlib\msvc\zlib.vcxproj", "{EFF8C713-14FB-4121-AE2E-A2BE2A614901}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "minizip", "minizip\msvc\minizip.vcproj", "{F3E5680F-0EEF-4CF2-834F-0968E25CA647}"
-	ProjectSection(ProjectDependencies) = postProject
-		{EFF8C713-14FB-4121-AE2E-A2BE2A614901} = {EFF8C713-14FB-4121-AE2E-A2BE2A614901}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "minizip", "minizip\msvc\minizip.vcxproj", "{F3E5680F-0EEF-4CF2-834F-0968E25CA647}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinUnit", "WinUnit\WinUnit.vcproj", "{C15048B9-665E-42C0-8225-AD9CECDC011E}"
-	ProjectSection(ProjectDependencies) = postProject
-		{AACC66C1-C832-4306-A7FC-15E4253A0E3A} = {AACC66C1-C832-4306-A7FC-15E4253A0E3A}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinUnit", "WinUnit\WinUnit.vcxproj", "{C15048B9-665E-42C0-8225-AD9CECDC011E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinUnitLib", "WinUnitLib\WinUnitLib.vcproj", "{AACC66C1-C832-4306-A7FC-15E4253A0E3A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinUnitLib", "WinUnitLib\WinUnitLib.vcxproj", "{AACC66C1-C832-4306-A7FC-15E4253A0E3A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libogg", "libogg-1.2.0\win32\VS2008\libogg_dynamic.vcproj", "{15CBFEFF-7965-41F5-B4E2-21E8795C9159}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libogg", "libogg-1.2.0\win32\VS2008\libogg_dynamic.vcxproj", "{15CBFEFF-7965-41F5-B4E2-21E8795C9159}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libvorbis", "libvorbis-1.3.1\win32\VS2008\libvorbis\libvorbis_dynamic.vcproj", "{3A214E06-B95E-4D61-A291-1F8DF2EC10FD}"
-	ProjectSection(ProjectDependencies) = postProject
-		{15CBFEFF-7965-41F5-B4E2-21E8795C9159} = {15CBFEFF-7965-41F5-B4E2-21E8795C9159}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libvorbis", "libvorbis-1.3.1\win32\VS2008\libvorbis\libvorbis_dynamic.vcxproj", "{3A214E06-B95E-4D61-A291-1F8DF2EC10FD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libvorbisfile", "libvorbis-1.3.1\win32\VS2008\libvorbisfile\libvorbisfile_dynamic.vcproj", "{CEBDE98B-A6AA-46E6-BC79-FAAF823DB9EC}"
-	ProjectSection(ProjectDependencies) = postProject
-		{15CBFEFF-7965-41F5-B4E2-21E8795C9159} = {15CBFEFF-7965-41F5-B4E2-21E8795C9159}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libvorbisfile", "libvorbis-1.3.1\win32\VS2008\libvorbisfile\libvorbisfile_dynamic.vcxproj", "{CEBDE98B-A6AA-46E6-BC79-FAAF823DB9EC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IconLib", "IconLib\IconLib.csproj", "{CE53747F-D2E6-4E1E-9EF4-A0AE02671B1D}"
 EndProject
@@ -33,9 +21,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICSharpCode.SharpZLib", "IC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Newtonsoft.Json.Net35", "Newtonsoft.Json\Newtonsoft.Json.Net35.csproj", "{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FW1FontWrapper", "FW1FontWrapper\FW1FontWrapper.vcproj", "{27023E90-F9FA-4224-B6C3-7B3340871F5E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FW1FontWrapper", "FW1FontWrapper\FW1FontWrapper.vcxproj", "{27023E90-F9FA-4224-B6C3-7B3340871F5E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jsoncpp", "jsoncpp-0.5.0\Jsoncpp.vcproj", "{41260955-25DE-4D86-B54F-282735B1289D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jsoncpp", "jsoncpp-0.5.0\Jsoncpp.vcxproj", "{41260955-25DE-4D86-B54F-282735B1289D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

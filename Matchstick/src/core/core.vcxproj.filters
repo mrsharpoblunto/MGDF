@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="interfaces">
+      <UniqueIdentifier>{031561f7-e335-455e-a735-669fed2bbb4a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\MGDF\MGDF.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFCustomArchiveHandlers.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFDisposable.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFError.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFErrorHandler.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFGame.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFGraphicsManager.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFInputManager.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFList.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFLogger.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFModule.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFPerformanceCounter.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFSound.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFSoundManager.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFSoundStream.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFStatisticsManager.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFSystem.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFTimer.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFVersion.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFVirtualFileSystem.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFApp.hpp" />
+    <ClInclude Include="MGDFD3DAppFramework.hpp" />
+    <ClInclude Include="MGDFFrameLimiter.hpp" />
+    <ClInclude Include="StdAfx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MGDFApp.cpp" />
+    <ClCompile Include="MGDFD3DAppFramework.cpp" />
+    <ClCompile Include="MGDFFrameLimiter.cpp" />
+    <ClCompile Include="StdAfx.cpp" />
+  </ItemGroup>
+</Project>

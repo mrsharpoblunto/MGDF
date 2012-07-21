@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{762B44B2-4615-4C7D-9418-DC604A6D930A}</ProjectGuid>
+    <RootNamespace>junkship</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">bin\$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">bin\$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <PreBuildEvent>
+      <Command>echo copying MGDF content to bin dir
+XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Configuration)" /E /Y /I
+if errorlevel 1 goto BuildEventFailed
+
+REM Exit properly because the build will not fail
+REM unless the final step exits with an error code
+goto BuildEventOK
+
+:BuildEventFailed
+echo POSTBUILDSTEP for $(ProjectName) FAILED
+exit 1
+
+:BuildEventOK
+
+echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
+</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../include; ../../../vendor/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>StdAfx.h</PrecompiledHeaderFile>
+      <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>dxerr.lib;dxguid.lib;d3dx11d.lib;d3d11.lib;D3DCompiler.lib;dxgi.lib;winmm.lib;../../../vendor/lib/$(Configuration)/fw1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <PreBuildEvent>
+      <Command>echo copying MGDF content to bin dir
+XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Configuration)" /E /Y /I
+if errorlevel 1 goto BuildEventFailed
+
+REM Exit properly because the build will not fail
+REM unless the final step exits with an error code
+goto BuildEventOK
+
+:BuildEventFailed
+echo POSTBUILDSTEP for $(ProjectName) FAILED
+exit 1
+
+:BuildEventOK
+
+echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
+</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <AdditionalIncludeDirectories>../../include; ../../../vendor/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>StdAfx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>dxerr.lib;dxguid.lib;d3dx11.lib;d3d11.lib;D3DCompiler.lib;dxgi.lib;winmm.lib;../../../vendor/lib/$(Configuration)/fw1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\MGDF\MGDF.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFCustomArchiveHandlers.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFDisposable.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFError.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFErrorHandler.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFGame.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFGraphicsManager.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFInputManager.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFList.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFLogger.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFModule.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFPerformanceCounter.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFSound.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFSoundManager.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFSoundStream.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFStatisticsManager.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFSystem.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFTimer.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFVersion.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFVirtualFileSystem.hpp" />
+    <ClInclude Include="MGDFApp.hpp" />
+    <ClInclude Include="MGDFD3DAppFramework.hpp" />
+    <ClInclude Include="MGDFFrameLimiter.hpp" />
+    <ClInclude Include="StdAfx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MGDFApp.cpp" />
+    <ClCompile Include="MGDFD3DAppFramework.cpp" />
+    <ClCompile Include="MGDFFrameLimiter.cpp" />
+    <ClCompile Include="StdAfx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="audio\openal\core.audio.openal.vcxproj">
+      <Project>{f3930f29-c621-41ea-892c-8b5d48c5d2bb}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="common\core.common.vcxproj">
+      <Project>{608dc682-e676-4aa0-8886-fb8177c3a9b6}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="core.impl\core.impl.vcxproj">
+      <Project>{84289e70-d37a-482e-a1d5-72e6773826dc}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="input\directInput8\core.input.directInput8.vcxproj">
+      <Project>{3544cc4c-abd8-4820-88c7-b93fa53a78e6}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="storage\jsoncpp\core.storage.jsoncpp.vcxproj">
+      <Project>{cd45229c-c675-473f-8aa1-2f8a782d754b}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="vfs\core.vfs.vcxproj">
+      <Project>{60a53eec-b17e-4bb8-9626-064ada85cfc7}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
