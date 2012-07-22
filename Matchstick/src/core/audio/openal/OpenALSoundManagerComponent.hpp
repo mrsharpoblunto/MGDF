@@ -27,10 +27,10 @@ public:
 	virtual void Update();
 	virtual void Dispose();
 
-	virtual D3DXVECTOR3 *GetListenerPosition();
-	virtual D3DXVECTOR3 *GetListenerVelocity();
-	virtual D3DXVECTOR3 *GetListenerOrientationForward();
-	virtual D3DXVECTOR3 *GetListenerOrientationUp();
+	virtual XMFLOAT3 *GetListenerPosition();
+	virtual XMFLOAT3 *GetListenerVelocity();
+	virtual XMFLOAT3 *GetListenerOrientationForward();
+	virtual XMFLOAT3 *GetListenerOrientationUp();
 
 	virtual float GetSoundVolume() const;
 	virtual void SetSoundVolume(float volume);
@@ -61,10 +61,10 @@ private:
 
 	static bool Sort(OpenALSound *a,OpenALSound *b);
 
-	D3DXVECTOR3 _position;
-	D3DXVECTOR3 _velocity;
-	D3DXVECTOR3 _orientationForward;
-	D3DXVECTOR3 _orientationUp;
+	XMFLOAT3 _position;
+	XMFLOAT3 _velocity;
+	XMFLOAT3 _orientationForward;
+	XMFLOAT3 _orientationUp;
 	ALCcontext *_context;
 	float _soundVolume,_streamVolume;
 	bool _enableAttenuation;

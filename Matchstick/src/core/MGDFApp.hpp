@@ -28,7 +28,7 @@ public:
 	virtual void DrawScene(double alpha);
 	virtual void FatalError(const std::string &message);
 	virtual void ExternalClose();
-	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP);
+	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure);
 
 	void SetSystem(System *system);
 private:

@@ -25,15 +25,15 @@ public:
 	//these functions are not required for the testing being performed
 	virtual void QueueSaveGameState(const wchar_t *) {}
 	virtual void QueueLoadGameState(const wchar_t *) {}
-	virtual ILogger *GetLogger() const { return NULL; }
-	virtual IParameterManager *GetParameters() const { return NULL; }
-	virtual IVirtualFileSystem *GetVFS() const { return NULL; }
-	virtual ISoundManager *GetSound() const { return NULL; }
-	virtual IGame *GetGame() const { return NULL; }
-	virtual IGraphicsManager *GetGraphics() const { return NULL; }
-	virtual IInputManager *GetInput() const { return NULL; }
-	virtual IStatisticsManager *GetStatistics() const { return NULL; }
-	virtual IDirect3DDevice9 *GetD3DDevice() const { return NULL; }
+	virtual ILogger *GetLogger() const { return nullptr; }
+	virtual IParameterManager *GetParameters() const { return nullptr; }
+	virtual IVirtualFileSystem *GetVFS() const { return nullptr; }
+	virtual ISoundManager *GetSound() const { return nullptr; }
+	virtual IGame *GetGame() const { return nullptr; }
+	virtual IGraphicsManager *GetGraphics() const { return nullptr; }
+	virtual IInputManager *GetInput() const { return nullptr; }
+	virtual IStatisticsManager *GetStatistics() const { return nullptr; }
+	virtual ID3D11Device *GetD3DDevice() const { return nullptr; }
 	virtual IStringList *ListSaved() const { return new StringList(); }
 	virtual const Error *GetLastError() const { return &_lastError; }
 private:

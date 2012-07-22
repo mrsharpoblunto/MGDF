@@ -85,9 +85,9 @@ ID3D11Device *D3DAppFramework::GetD3DDevice() const
 	return _d3dDevice;
 }
 
-void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP) {
+void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure) {
 	InitMainWindow(caption,windowProcedure);
-	InitD3D(devType,requestedVP);
+	InitD3D();
 }
 
 void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowProcedure)
@@ -128,7 +128,7 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 	}
 }
 
-void D3DAppFramework::InitD3D(D3DDEVTYPE devType, DWORD requestedVP)
+void D3DAppFramework::InitD3D()
 {
 	if (_window != nullptr) {
 		UINT createDeviceFlags = 0;

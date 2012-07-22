@@ -28,11 +28,11 @@ To download everything you will need in order to begin building your own MGDF ba
 
 Building Source
 ---------------
-MGDF can be built with Microsoft Visual Studio 2008 on windows (VS2010/VS2011 will probably work too, but this is untested). To build MGDF you will need to have installed and built the following prerequisites.
+MGDF can be built with Microsoft Visual Studio 2010 on windows. To build MGDF you will need to have installed and built the following prerequisites.
 
 * [boost 1.47](http://www.boost.org/users/history/version_1_47_0.html) (For a prebuilt installer go [here](http://www.boostpro.com/download/))
 * Directx SDK [June 2010 version](http://www.microsoft.com/download/en/details.aspx?id=6812)).
-* ensure boost and directX libs and headers are on visual studio's lib/include path.
+* create an environment variable called BOOST_DIR and point it to the location you installed the boost library to.
 * build vendor/libs.sln in debug win32 and release win32 configurations.
 * cd into %installdir%/Matchstick and run 'automation/deploy.bat' to copy the vendor libraries and default data into the Matchstick bin/Debug folder.
 * build Matchstick/Matchstick.sln and debug win32 and release win32 configurations

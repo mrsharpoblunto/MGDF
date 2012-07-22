@@ -19,8 +19,8 @@ public:
 	OpenALSound(IFile *source,OpenALSoundManagerComponentImpl *manager,int priority);
 
 	virtual const wchar_t *GetName() const;	
-	virtual D3DXVECTOR3 *GetPosition();
-	virtual D3DXVECTOR3 *GetVelocity();
+	virtual XMFLOAT3 *GetPosition();
+	virtual XMFLOAT3 *GetVelocity();
 	virtual float GetInnerRange() const;
 	virtual void SetInnerRange(float sourceRelative);
 	virtual float GetOuterRange() const;
@@ -57,8 +57,8 @@ private:
 	float _innerRange,_outerRange,_volume,_globalVolume,_attenuationFactor,_pitch;
 	bool _isActive,_isSourceRelative,_isLooping,_wasPlaying,_startPlaying;
 	int _priority;
-	D3DXVECTOR3 _position;
-	D3DXVECTOR3 _velocity;
+	XMFLOAT3 _position;
+	XMFLOAT3 _velocity;
 };
 
 }}}}

@@ -38,9 +38,9 @@ void MGDFApp::SetSystem(System *system)
 	});
 }
 
-void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3DDEVTYPE devType, DWORD requestedVP)
+void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure)
 {
-	D3DAppFramework::InitDirect3D(caption,windowProcedure,devType,requestedVP);
+	D3DAppFramework::InitDirect3D(caption,windowProcedure);
 	_system->SetD3DDevice(_d3dDevice);//allow the system to pass the d3d object to the modules
 
 	IFW1Factory *factory;

@@ -35,7 +35,7 @@
 
 		<createsolutioninfo product="Matchstick game development framework" version="${buildnumber}" solutionInfoFile="${project::get-base-directory()}\Src\GamesManager\SolutionInfo.cs" />
     <mgdfversion version="${buildnumber}" versionFile="${project::get-base-directory()}\Src\core\common\MGDFVersionInfo.cpp" />
-		
+
 		<echo message="Building MGDF vendor libraries..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
 			<property name="Configuration" value="${msbuild_target}"/>

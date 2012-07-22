@@ -28,8 +28,8 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 		_name = source->GetName();
 		_priority=priority;
 
-		_position = D3DXVECTOR3(0.0f,0.0f,0.0f);
-		_velocity = D3DXVECTOR3(0.0f,0.0f,0.0f);
+		_position = XMFLOAT3(0.0f,0.0f,0.0f);
+		_velocity = XMFLOAT3(0.0f,0.0f,0.0f);
 
 		_innerRange=0;
 		_outerRange=1;
@@ -101,12 +101,12 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 		return _name.c_str();
 	}
 
-	D3DXVECTOR3 *OpenALSound::GetPosition()
+	XMFLOAT3 *OpenALSound::GetPosition()
 	{
 		return &_position;
 	}
 
-	D3DXVECTOR3 *OpenALSound::GetVelocity()
+	XMFLOAT3 *OpenALSound::GetVelocity()
 	{
 		return &_velocity;
 	}

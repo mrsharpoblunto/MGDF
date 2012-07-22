@@ -56,7 +56,7 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 		system->AddFatalErrorCallback(&FatalErrorCallBack);
 
 		MGDFApp::Instance().SetSystem(system);
-		MGDFApp::Instance().InitDirect3D("MGDF",MGDFAppWndProc,D3DDEVTYPE_HAL,D3DCREATE_HARDWARE_VERTEXPROCESSING);
+		MGDFApp::Instance().InitDirect3D("MGDF",MGDFAppWndProc);
 
 		unsigned int simulationFps = atoi(system->GetGame()->GetPreference("simFps"));
 		MGDFApp::Instance().Run(simulationFps);

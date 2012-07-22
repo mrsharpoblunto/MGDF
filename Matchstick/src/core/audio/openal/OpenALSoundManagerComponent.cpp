@@ -37,10 +37,10 @@ OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(HINSTANCE insta
 	_enableAttenuation = false;
 	this->_context = OpenALSoundSystem::SafeNew()->GetContext();
 
-	_orientationForward = D3DXVECTOR3(0.0f,0.0f,1.0f);
-	_orientationUp		= D3DXVECTOR3(0.0f,1.0f,0.0f);
-	_position			= D3DXVECTOR3(0.0f,0.0f,0.0f);
-	_velocity			= D3DXVECTOR3(0.0f,0.0f,0.0f);
+	_orientationForward = XMFLOAT3(0.0f,0.0f,1.0f);
+	_orientationUp		= XMFLOAT3(0.0f,1.0f,0.0f);
+	_position			= XMFLOAT3(0.0f,0.0f,0.0f);
+	_velocity			= XMFLOAT3(0.0f,0.0f,0.0f);
 
 	alDistanceModel(AL_NONE);
 }
@@ -96,9 +96,9 @@ void OpenALSoundManagerComponentImpl::Update()
 		if (_enableAttenuation)
 		{
 			//work out the sounds attenuation due to distance
-			D3DXVECTOR3 distanceVector;
-			D3DXVec3Subtract(&distanceVector,&_position,sound->GetPosition());
-			float distance = D3DXVec3Length(&distanceVector);
+			
+			XMVECTOR distanceVector = XMVectorSet(_position.x - sound->GetPosition()->x,_position.y - sound->GetPosition()->y,_position.z - sound->GetPosition()->z,1.0f);
+			float distance = XMVectorGetX(XMVector3Length(distanceVector));
 
 			if (distance<=sound->GetInnerRange()) 
 			{
@@ -127,22 +127,22 @@ void OpenALSoundManagerComponentImpl::Update()
 	}
 }
 
-D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerOrientationForward()
+XMFLOAT3 *OpenALSoundManagerComponentImpl::GetListenerOrientationForward()
 {
 	return &_orientationForward;
 }
 
-D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerOrientationUp()
+XMFLOAT3 *OpenALSoundManagerComponentImpl::GetListenerOrientationUp()
 {
 	return &_orientationUp;
 }
 
-D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerPosition()
+XMFLOAT3 *OpenALSoundManagerComponentImpl::GetListenerPosition()
 {
 	return &_position;
 }
 
-D3DXVECTOR3 *OpenALSoundManagerComponentImpl::GetListenerVelocity()
+XMFLOAT3 *OpenALSoundManagerComponentImpl::GetListenerVelocity()
 {
 	return &_velocity;
 }
