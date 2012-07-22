@@ -6,7 +6,7 @@
 
 #define NOMINMAX
 #include <D3D11.h>
-#include <D3DCompiler.h>
+#include <D3Dcompiler.h>
 #include <DWrite.h>
 #include <intrin.h>
 #include <string>
