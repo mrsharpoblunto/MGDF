@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <project name="MGDF" default="all" basedir="..\" xmlns="http://nant.sf.net/release/0.86-beta1/nant.xsd">
 
-	<property name="nant.settings.currentframework" value="net-3.5"/>
+	<property name="nant.settings.currentframework" value="net-4.0"/>
 	<include buildfile="Automation\Functions.include"/>
   
 	<description>MGDF Build Script</description>
@@ -17,10 +17,6 @@
   <property name="program_files_path" value="${environment::get-variable('ProgramFiles')}" />
 	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.4.8\bin\nunit-console.exe"/>
 	<property name="nantcontrib_path" value="${program_files_path}\NantContrib-0.85\bin"/>
-	<property name="boost_path" value="${program_files_path}\boost\boost_1_47" />
-	<property name="vc_install_path" value="${program_files_path}\Microsoft Visual Studio 9.0" />
-  <property name="windows_sdk_path" value="c:\program files\Microsoft SDKs\Windows\v6.0A" />
-	<property name="directx_sdk_path" value="${program_files_path}\Microsoft DirectX SDK (June 2010)" />
 	<property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
   <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
   <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>
@@ -39,25 +35,15 @@
 
 		<createsolutioninfo product="Matchstick game development framework" version="${buildnumber}" solutionInfoFile="${project::get-base-directory()}\Src\GamesManager\SolutionInfo.cs" />
     <mgdfversion version="${buildnumber}" versionFile="${project::get-base-directory()}\Src\core\common\MGDFVersionInfo.cpp" />
-
-    <echo message="adding dependant libraries to environment variables..."/>
-		<setenv>
-			<variable name="PATH" value="c:\windows\system32;c:\windows;${windows_sdk_path}\bin;${vc_install_path}\Common7\IDE;${vc_install_path}\VC\BIN;${vc_install_path}\Common7\Tools;C:\WINDOWS\Microsoft.NET\Framework\v3.5;C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727;${vc_install_path}\VC\VCPackages" />
-			<variable name="LIB" value="${windows_sdk_path}\lib;${vc_install_path}\VC\ATLMFC\LIB;${vc_install_path}\VC\LIB;${directx_sdk_path}\Lib\x86;${boost_path}\lib" />
-			<variable name="INCLUDE" value="${windows_sdk_path}\include;${vc_install_path}\VC\ATLMFC\INCLUDE;${vc_install_path}\VC\INCLUDE;${directx_sdk_path}\Include;${boost_path}" />
-			<variable name="LIBPATH" value="C:\WINDOWS\Microsoft.NET\Framework\v3.5;C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727;${windows_sdk_path}\lib;${vc_install_path}\VC\ATLMFC\LIB;${vc_install_path}\VC\LIB;${directx_sdk_path}\Lib\x86;${boost_path}\lib" />
-		</setenv>
 		
 		<echo message="Building MGDF vendor libraries..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
-			<arg value="/p:VCBuildUseEnvironment=true" />
 		</msbuild>
 		
 		<echo message="Building MGDF core..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
-			<arg value="/p:VCBuildUseEnvironment=true" />
 		</msbuild>
 
 		<echo message="Copying vendor libs into MGDF core bin directory..."/>
