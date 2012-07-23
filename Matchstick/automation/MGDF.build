@@ -9,10 +9,7 @@
 	<property name="builddate" value="${year.now}-${month.now}-${day.now}"/>
 	<!-- Update the major.minor version number here whenever a new release is planned -->
 	<property name="buildnumber" value="0.9.${year.since2007}${month.now}${day.now}.${hour.now}${minute.now}"/>
-  
-  	<!-- use pre built vendor libs on the buildserver by default rather than building them each time -->
-	<property name="build_vendor_libs" value="False" />
-	
+
 	<property name="msbuild_target" value="debug"/>
   <property name="program_files_path" value="${environment::get-variable('ProgramFiles')}" />
 	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.4.8\bin\nunit-console.exe"/>
