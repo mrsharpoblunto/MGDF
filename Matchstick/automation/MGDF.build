@@ -17,7 +17,9 @@
   <property name="program_files_path" value="${environment::get-variable('ProgramFiles')}" />
 	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.4.8\bin\nunit-console.exe"/>
 	<property name="nantcontrib_path" value="${program_files_path}\NantContrib-0.85\bin"/>
-	<property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
+  <property name="vc_install_path" value="${program_files_path}\Microsoft Visual Studio 10.0" />
+  <property name="windows_sdk_path" value="c:\program files\Microsoft SDKs\Windows\v7.0A" />
+  <property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
   <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
   <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>
   <property name="ilmerge_exe_path" value="${program_files_path}\Microsoft\Ilmerge\Ilmerge.exe"/>
@@ -36,6 +38,12 @@
 		<createsolutioninfo product="Matchstick game development framework" version="${buildnumber}" solutionInfoFile="${project::get-base-directory()}\Src\GamesManager\SolutionInfo.cs" />
     <mgdfversion version="${buildnumber}" versionFile="${project::get-base-directory()}\Src\core\common\MGDFVersionInfo.cpp" />
 
+    <echo message="adding dependant libraries to environment variables..."/>
+    <setenv>
+     <variable name="LIB" value="${windows_sdk_path}\lib;${vc_install_path}\VC\ATLMFC\LIB;${vc_install_path}\VC\LIB" />    
+     <variable name="INCLUDE" value="${windows_sdk_path}\include;${vc_install_path}\VC\ATLMFC\INCLUDE;${vc_install_path}\VC\INCLUDE" />
+    </setenv>
+    
 		<echo message="Building MGDF vendor libraries..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
