@@ -29,8 +29,6 @@
 //NOTE: with FREE_UNUSED_LIBRARIES enabled memory leaks in external modules are not reported correctly
 //#define FREE_UNUSED_LIBRARIES
 
-using namespace XERCES_CPP_NAMESPACE;
-
 namespace MGDF { namespace core {
 
 
@@ -113,7 +111,7 @@ std::string System::GetSystemInformation(SystemStats *stats)
 
 		_timer.GetCounterAverages(cpuCounters,gpuCounters);
 
-		ss << "MGDF Version: " << MGDFVersionInfo::MGDF_VERSION << "\r\nMGDF Interface version: " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
+		ss << "MGDF Version: " << MGDFVersionInfo::MGDF_VERSION() << "\r\nMGDF Interface version: " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
 
 		ss << "\r\nPerformance Statistics:\r\n";
 

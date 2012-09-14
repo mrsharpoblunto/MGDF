@@ -16,6 +16,11 @@ public:
 	virtual ~ZipFolderImpl();
 	virtual bool IsArchive() const;
 	virtual const wchar_t *GetArchiveName() const;
+	virtual time_t GetLastWriteTime() const
+	{
+		return _handler->GetArchiveRoot()->GetLastWriteTime();
+	}
+
 private:
 	ZipArchive *_handler;
 

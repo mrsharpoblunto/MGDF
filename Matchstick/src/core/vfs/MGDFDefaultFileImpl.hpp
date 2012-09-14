@@ -27,6 +27,7 @@ public:
 	virtual const wchar_t *GetArchiveName() const;
 	virtual const wchar_t *GetPhysicalPath() const;
 	virtual const wchar_t *GetName() const;
+
 private:
 	std::ifstream *_fileStream;
 	unsigned long _filesize;

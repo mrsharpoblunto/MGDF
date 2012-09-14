@@ -25,6 +25,10 @@ public:
 	virtual unsigned long GetPosition() const;
 	virtual bool EndOfFile() const;
 	virtual unsigned long GetSize();
+	virtual time_t GetLastWriteTime() const
+	{
+		return _handler->GetArchiveRoot()->GetLastWriteTime();
+	}
 
 	virtual const wchar_t *GetArchiveName() const;
 	virtual const wchar_t *GetPhysicalPath() const;

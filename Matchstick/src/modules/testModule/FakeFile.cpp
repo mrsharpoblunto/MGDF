@@ -141,6 +141,11 @@ MGDF::IFileIterator *FakeFile::GetIterator(void) {
 	return result;
 }
 
+time_t FakeFile::GetLastWriteTime() const
+{
+	return 0;
+}
+
 const wchar_t *FakeFile::GetLogicalPath()
 {
 	if (_logicalPath.empty()) {

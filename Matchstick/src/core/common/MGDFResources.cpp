@@ -142,9 +142,6 @@ void Resources::CreateRequiredDirectories()
 	boost::filesystem::wpath userBaseDir(UserBaseDir(),boost::filesystem::native); 
 	boost::filesystem::create_directories(userBaseDir);
 
-	boost::filesystem::wpath gameDir(UserBaseDir(),boost::filesystem::native); 
-	boost::filesystem::create_directories(gameDir);
-
 	boost::filesystem::wpath saveBaseDir(SaveBaseDir(),boost::filesystem::native); 
 	boost::filesystem::create_directories(saveBaseDir);
 

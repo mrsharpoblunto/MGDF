@@ -8,9 +8,8 @@ class ParameterConstants
 {
 public:
 	static const char *LOG_LEVEL;
-	static const char *BOOT_GAME;
 	static const char *USER_DIR_OVERRIDE;
-	static const char *GAMES_DIR_OVERRIDE;
+	static const char *GAME_DIR_OVERRIDE;
 
 	static const char *VALUE_LOG_LEVEL_LOW;
 	static const char *VALUE_LOG_LEVEL_MEDIUM;

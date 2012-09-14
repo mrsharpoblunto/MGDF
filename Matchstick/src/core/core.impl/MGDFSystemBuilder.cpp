@@ -25,13 +25,12 @@
 
 namespace MGDF { namespace core {
 
-bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
+bool SystemBuilder::RegisterBaseComponents(HINSTANCE instance,HWND window)
 {
 	//init global common components
 	InitParameterManager();
 	InitResources();
 	InitLogger();
-
 
 	storage::IStorageFactoryComponent *storageImpl = storage::CreateStorageFactoryComponentImpl(instance,window);
 	if (storageImpl!=nullptr) {
@@ -42,6 +41,11 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 		return false;
 	}
 
+	return true;
+}
+
+bool SystemBuilder::RegisterAdditionalComponents(HINSTANCE instance,HWND window,std::string gameUid)
+{
 	input::IInputManagerComponent *input = input::CreateInputManagerComponentImpl(instance,window);
 	if (input!=nullptr) {
 		Components::Instance().RegisterComponent<input::IInputManagerComponent>(input);
@@ -59,7 +63,6 @@ bool SystemBuilder::RegisterComponents(HINSTANCE instance,HWND window)
 		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to register VirtualFileSystem",LOG_ERROR);
 		return false;
 	}
-
 
 	audio::ISoundManagerComponent *audioImpl = audio::CreateSoundManagerComponentImpl(instance,vfs,window);
 	if (audioImpl!=nullptr) {
@@ -84,51 +87,64 @@ void SystemBuilder::UnregisterComponents()
 
 System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 {
-	if (!RegisterComponents(instance,window))
+	//do the bare minimum setup required to be able to 
+	//load up the game configuration file
+	if (!RegisterBaseComponents(instance,window))
 	{
 		return nullptr;
 	}
 
-	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME)) {
-		Game *game=nullptr;
+	Game *game=nullptr;
+	try 
+	{
+		//try and load the game configuration file
+		storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
+		std::auto_ptr<storage::IGameStorageHandler> handler(storageFactory->CreateGameStorageHandler());
+		handler->Load(Resources::Instance().GameFile());
 
-		try 
-		{
-			game = GameBuilder::LoadGame();
-		}
-		catch (MGDFException ex)
-		{
-			std::string error = "FATAL ERROR: Unable to load game boot configuration - ";
-			error+=ex.what();
-			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),error,LOG_ERROR);
-			return nullptr;
-		} 
-		catch (...)
-		{
-			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to load game boot configuration",LOG_ERROR);
-			return nullptr;
-		}
+		//now that we know the UID for the game, we'll set up the user resources paths again
+		//and shift the logfile over to the new user directory
+		InitResources(handler->GetGameUid());
+		GetLoggerImpl()->MoveOutputFile();
 
-		if (MGDFVersionInfo::MGDF_INTERFACE_VERSION!=game->GetInterfaceVersion()) {
-			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unsupported MGDF Interface version",LOG_ERROR);
-			delete game;
-			return nullptr;
-		}
-
-		try 
-		{
-			System *system = new System(game);
-			Components::Instance().RegisterComponentErrorHandler(system); //register the system error handlerswith all components
-
-			return system;
-		}
-		catch (...)
-		{
-			GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to create system",LOG_ERROR);
-			return nullptr;
-		}
+		game = GameBuilder::LoadGame(handler.get());
 	}
-	else {
+	catch (MGDFException ex)
+	{
+		std::string error = "FATAL ERROR: Unable to load game boot configuration - ";
+		error+=ex.what();
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),error,LOG_ERROR);
+		return nullptr;
+	} 
+	catch (...)
+	{
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to load game boot configuration",LOG_ERROR);
+		return nullptr;
+	}
+
+	//now that the game file loaded, initialize everything else
+	//and set the log directory correctly.
+	if (!RegisterAdditionalComponents(instance,window,game->GetUid()))
+	{
+		return nullptr;
+	}
+
+	if (MGDFVersionInfo::MGDF_INTERFACE_VERSION!=game->GetInterfaceVersion()) {
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unsupported MGDF Interface version",LOG_ERROR);
+		delete game;
+		return nullptr;
+	}
+
+	try 
+	{
+		System *system = new System(game);
+		Components::Instance().RegisterComponentErrorHandler(system); //register the system error handlerswith all components
+
+		return system;
+	}
+	catch (...)
+	{
+		GetLoggerImpl()->Add(TYPE_NAME(SystemBuilder),"FATAL ERROR: Unable to create system",LOG_ERROR);
 		return nullptr;
 	}
 }
@@ -193,10 +209,10 @@ void SystemBuilder::InitLogger()
 	}
 }
 
-void SystemBuilder::InitResources()
+void SystemBuilder::InitResources(std::string gameUid)
 {
-	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::GAMES_DIR_OVERRIDE)) {
-		std::string gamesDirOverride(GetParameterManagerImpl()->GetParameter(ParameterConstants::GAMES_DIR_OVERRIDE));
+	if (GetParameterManagerImpl()->HasParameter(ParameterConstants::GAME_DIR_OVERRIDE)) {
+		std::string gamesDirOverride(GetParameterManagerImpl()->GetParameter(ParameterConstants::GAME_DIR_OVERRIDE));
 		if (gamesDirOverride[gamesDirOverride.length()-1]!='\\' && gamesDirOverride[gamesDirOverride.length()-1]!='/')
 		{
 			gamesDirOverride.append("\\");
@@ -205,10 +221,12 @@ void SystemBuilder::InitResources()
 	}
 
 	bool userDirOverride = GetParameterManagerImpl()->HasParameter(ParameterConstants::USER_DIR_OVERRIDE);
-	std::string gameUid = GetParameterManagerImpl()->HasParameter(ParameterConstants::BOOT_GAME) ? GetParameterManagerImpl()->GetParameter(ParameterConstants::BOOT_GAME) : "";
 
 	Resources::Instance().SetUserBaseDir(userDirOverride,gameUid);
-	Resources::Instance().CreateRequiredDirectories();
+	if (!gameUid.empty())
+	{
+		Resources::Instance().CreateRequiredDirectories();
+	}
 }
 
 

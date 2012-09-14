@@ -25,6 +25,7 @@ public:
 	virtual IFile *GetChild(const wchar_t *name);
 	virtual unsigned int GetChildCount();
 	virtual const wchar_t* GetLogicalPath();
+	virtual time_t GetLastWriteTime() const;
 
 	IFile *GetChildInternal(const wchar_t *name);
 	void AddChild(IFile *newNode);

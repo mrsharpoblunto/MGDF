@@ -165,6 +165,12 @@ public:
 	\return the path to the IFile as expressed as a vfs logical file path
 	*/
 	virtual const wchar_t * GetLogicalPath()=0;
+
+	/**
+	find the last write time of the file
+	\return a timestamp indicating the last write time
+	*/
+	virtual time_t GetLastWriteTime() const=0;
 };
 
 /**

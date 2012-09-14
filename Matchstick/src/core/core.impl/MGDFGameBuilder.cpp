@@ -6,7 +6,6 @@
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFParameterManagerImpl.hpp"
 #include "MGDFComponents.hpp"
-#include "../storage/MGDFStorageFactoryComponentImpl.hpp"
 
 //this snippet ensures that the location of memory leaks is reported correctly in debug mode
 #if defined(DEBUG) |defined(_DEBUG)
@@ -17,13 +16,8 @@
 namespace MGDF { namespace core {
 
 //loads a boot configuration from a file in the boot folder
-Game *GameBuilder::LoadGame()
+Game *GameBuilder::LoadGame(storage::IGameStorageHandler *handler)
 {	
-	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
-
-	std::auto_ptr<storage::IGameStorageHandler> handler(storageFactory->CreateGameStorageHandler());
-	handler->Load(Resources::Instance().GameFile());
-
 	//add this configurations parameters to the parameter manager
 	GetParameterManagerImpl()->AddParameterString(handler->GetParameterString().c_str());
 

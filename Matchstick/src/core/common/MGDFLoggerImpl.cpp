@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <fstream>
+#include <boost/filesystem.hpp>
 #include "MGDFLoggerImpl.hpp"
 #include "MGDFResources.hpp"
 
@@ -66,6 +67,21 @@ Logger::Logger()
 	SetLoggingLevel(LOG_MEDIUM);
 	SetOutputFile(Resources::Instance().LogFile());
 }
+
+void Logger::MoveOutputFile()
+{
+	std::wstring newFile = Resources::Instance().LogFile();
+	if (newFile!=_filename)
+	{
+		boost::filesystem3::path from(_filename);
+		boost::filesystem3::path to(Resources::Instance().LogFile());
+		boost::filesystem3::copy_file(from,to,boost::filesystem3::copy_option::overwrite_if_exists);
+		boost::filesystem3::remove(_filename);
+
+		_filename = newFile;
+	}
+}
+
 
 void Logger::SetOutputFile(const std::wstring &filename) 
 {

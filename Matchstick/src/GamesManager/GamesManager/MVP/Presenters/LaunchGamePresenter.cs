@@ -148,7 +148,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
         public void Launch()
         {
-            ProcessManager.Current.StartProcess(Resources.MGDFExecutable, Resources.CoreBootArguments(Game.Current.Uid), GameExited, Game.Current);
+            ProcessManager.Current.StartProcess(Resources.MGDFExecutable, Resources.CoreBootArguments(), GameExited, Game.Current);
             View.Invoke(()=>View.Hide());
         }
 

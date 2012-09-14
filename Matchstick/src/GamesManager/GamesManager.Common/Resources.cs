@@ -72,9 +72,9 @@ namespace MGDF.GamesManager.Common
             }
         }
 
-        public static string CoreBootArguments(string uid)
+        public static string CoreBootArguments()
         {
-            return "-boot:"+uid+ " -hideerrors";
+            return "-hideerrors";
         }
 
         public static string GamesManagerBootArguments(string gameUpdate,string gameUpdateHash,string frameworkUpdate,string frameworkUpdateHash)

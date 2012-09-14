@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cctype>//std::tolower
+#include <boost/filesystem.hpp>
 #include "MGDFFileBaseImpl.hpp"
+
 
 //this snippet ensures that the location of memory leaks is reported correctly in debug mode
 #if defined(DEBUG) |defined(_DEBUG)
@@ -34,6 +36,12 @@ FileBaseImpl::~FileBaseImpl()
 void FileBaseImpl::Dispose()
 {
 	delete this;
+}
+
+time_t FileBaseImpl::GetLastWriteTime() const
+{
+	boost::filesystem3::path path(GetPhysicalPath());
+	return boost::filesystem3::last_write_time(path);
 }
 
 IFile *FileBaseImpl::GetParent() const

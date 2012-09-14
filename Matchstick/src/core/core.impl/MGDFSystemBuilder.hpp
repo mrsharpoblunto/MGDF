@@ -10,10 +10,11 @@ public:
 	static System *CreateSystem(HINSTANCE instance,HWND window); 
 	static void DisposeSystem(System *system);
 private:
-	static bool RegisterComponents(HINSTANCE instance,HWND window);
+	static bool RegisterBaseComponents(HINSTANCE instance,HWND window);
+	static bool RegisterAdditionalComponents(HINSTANCE instance,HWND window,std::string gameUid);
 	static void UnregisterComponents();
 	static void InitParameterManager();
-	static void InitResources();
+	static void InitResources(std::string gameUid="");
 	static void InitLogger();
 	static std::string GetApplicationDirectory(HINSTANCE instance); 
 };

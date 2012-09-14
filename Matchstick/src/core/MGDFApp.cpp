@@ -122,7 +122,7 @@ void MGDFApp::DrawSystemOverlay()
 		0.0f,// X position
 		0.0f,// Y position
 		0xFFFFFFFF,// Text color
-		0// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
+		FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
 	);
 }
 

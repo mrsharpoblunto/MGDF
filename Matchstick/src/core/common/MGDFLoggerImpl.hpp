@@ -16,6 +16,7 @@ public:
 	virtual void Flush()=0;
 	virtual void Add(const std::string &sender,const std::string &message,LogLevel level)=0;
 	virtual void Add(const std::string &sender,const std::string &message)=0;
+	virtual void MoveOutputFile()=0;
 };
 
 /**
@@ -36,6 +37,7 @@ public:
 	virtual void Add(const char * sender,const char * message,LogLevel level);
 	virtual void Add(const std::string &sender,const std::string &message,LogLevel level);
 	virtual void Add(const std::string &sender,const std::string &message);
+	virtual void MoveOutputFile();
 
 	virtual void Flush();
 private:

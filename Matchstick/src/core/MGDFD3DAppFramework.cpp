@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+#include <string.h>
 #include <math.h>
 #include <mmsystem.h>
 #include "MGDFD3DAppFramework.hpp"
@@ -150,10 +151,11 @@ void D3DAppFramework::InitD3D()
 		for(int i = 0; _factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++)
 		{
 			adapter->GetDesc1(&adapterDesc);
-			int error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, 128);		
-			std::string message(videoCardDescription,videoCardDescription+128);
+			unsigned int length = wcslen(adapterDesc.Description);
+			int error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, length);		
+			std::string message(videoCardDescription,videoCardDescription+length);
 			message.insert(0,"Attempting to create device for adapter ");
-			GetLoggerImpl()->Add("MGDF",message,LOG_LOW);
+			GetLoggerImpl()->Add(THIS_NAME,message,LOG_LOW);
 
 			D3D_FEATURE_LEVEL featureLevel;
 			if (FAILED(D3D11CreateDevice(
@@ -181,7 +183,7 @@ void D3DAppFramework::InitD3D()
 
 		if( !_d3dDevice )
 		{
-			FatalError("No adapters found supporting Direct3D Feature Level 11.");
+			FatalError("No adapters found supporting Direct3D Feature Level 11");
 		}
 
 		OnInitD3D(_d3dDevice,adapter);

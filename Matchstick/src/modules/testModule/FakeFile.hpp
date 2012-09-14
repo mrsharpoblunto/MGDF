@@ -40,6 +40,7 @@ public:
 	virtual const wchar_t *GetArchiveName() const;
 	virtual const wchar_t *GetPhysicalPath() const;
 	virtual const wchar_t *GetName() const;
+	virtual time_t GetLastWriteTime() const;
 protected:
 	boost::unordered_map<std::wstring,MGDF::IFile *> *_children;
 	MGDF::IFile *_parent;
