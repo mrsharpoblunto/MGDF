@@ -20,7 +20,7 @@ This is written in c++ and is the part of the framework which actually runs the 
 This is written in C# (.NET 2.0) and consists a winforms application which provides a graphical user interface for launching and updating games.
 
 ### Statistics services
-This is written in c# (.NET 3.5) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user.
+This is written in c# (.NET 3.5) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user. This service exposes a simple json API and could be implemented using a non .NET backend if required.
 
 How do I build games using MGDF?
 --------------------------------
@@ -56,12 +56,12 @@ To make running winunit tests easier you can set up an external tool in visual s
 Running core.exe from command line
 ----------------------------------
 core.exe can be invoked either via the GamesManager or directly via the command line. 
+For ease of debugging command line parameters can also be placed in a params.txt file in the application directory (the contents of this file will have preference over anything specified on the command line)
 
 ### Arguments
-* -boot:<uid> (REQUIRED) specifies the uid of the game you wish to boot up.
 * -logLevel:<level> (OPTIONAL) allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
 * -userdiroverride (OPTIONAL) if specified, the directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
-* -gamesdiroverride:<directory> (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application directory)
+* -gamesdiroverride:<directory> (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory)
 
 Running GamesManager.exe from command line
 ------------------------------------------

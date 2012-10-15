@@ -130,9 +130,14 @@ public:
 	virtual void  FatalError(const char *sender,const char *message)=0;
 
 	/**
-	tells the system to shut down the game
+	tells the system to shut down the game immediately
 	*/
-	virtual void  ShutDown(void)=0;
+	virtual void ShutDown(void)=0;
+
+	/**
+	tells the system to invoke the modules shutdown callback
+	*/
+	virtual void QueueShutDown(void)=0;
 
 	/**
 	allows modules to find out the details of any failed methods

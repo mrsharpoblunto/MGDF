@@ -59,7 +59,9 @@ public:
 
 	/**
 	 This method instructs the module to cleanup and shutdown as soon as possible. This is invoked when external events
-	 such as clicking the windows close button try to close the application
+	 such as clicking the windows close button try to close the application. After being invoked it is the modules
+	 responsibility to call the system->Shutdown() function as soon as possible in order to actually terminate the 
+	 application
 	 NOTE: will be called from the render thread.
 	 */
 	virtual void ShutDown()=0;

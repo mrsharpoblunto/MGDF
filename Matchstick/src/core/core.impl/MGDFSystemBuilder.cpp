@@ -161,29 +161,45 @@ void SystemBuilder::DisposeSystem(System *system)
 
 void SystemBuilder::InitParameterManager()
 {
-	std::string cmdLine= GetCommandLine();
-	auto cmdLineIter = cmdLine.begin();
+	std::string paramString;
+	
+	//use the supplied params.txt in the application path (if provided)
+	//providing a params.txt can be useful for debugging purposes.
+	boost::filesystem3::path paramsTxt(Resources::Instance().RootDir()+L"params.txt",boost::filesystem::native);
+	if (boost::filesystem3::exists(paramsTxt))
+	{
+		std::ifstream input(paramsTxt.native().c_str(),std::ios::in);
+		std::stringstream buffer;
+		buffer << input.rdbuf();
+		paramString = buffer.str();
+	}
+	//otherwise parse the command line
+	else
+	{
+		std::string cmdLine= GetCommandLine();
+		auto cmdLineIter = cmdLine.begin();
 
-    // Skip past program name (first token in command line).
-    if (*cmdLineIter == '"')  // Check for and handle quoted program name
-    {
-        cmdLineIter++;
+		// Skip past program name (first token in command line).
+		if (*cmdLineIter == '"')  // Check for and handle quoted program name
+		{
+			cmdLineIter++;
 
-        // Skip over until another double-quote or a nullptr 
-        while (cmdLineIter!=cmdLine.end() && *cmdLineIter != '"')
-            ++cmdLineIter;
+			// Skip over until another double-quote or a nullptr 
+			while (cmdLineIter!=cmdLine.end() && *cmdLineIter != '"')
+				++cmdLineIter;
 
-        // Skip over double-quote
-        if (*cmdLineIter == '"')            
-            ++cmdLineIter;    
-    }
-    else   
-    {
-        // First token wasn't a quote
-        while (*cmdLineIter > ' ')
-            ++cmdLineIter;
-    }
-	std::string paramString(cmdLineIter,cmdLine.end());
+			// Skip over double-quote
+			if (*cmdLineIter == '"')            
+				++cmdLineIter;    
+		}
+		else   
+		{
+			// First token wasn't a quote
+			while (*cmdLineIter > ' ')
+				++cmdLineIter;
+		}
+		paramString  = std::string(cmdLineIter,cmdLine.end());
+	}
 
 	//add the parameters to the parameter manager
 	GetParameterManagerImpl()->AddParameterString(paramString.c_str());

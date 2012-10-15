@@ -41,7 +41,6 @@ public:
 	typedef boost::signal<void (std::string,std::string)> FatalErrorFunction;//fatal error callback function signature
 
 	virtual IModule *GetModule()=0;
-	virtual void QueueShutDown()=0;
 
 	void AddShutDownCallback(const ShutDownFunction::slot_type& callback);
 	void AddFatalErrorCallback(const FatalErrorFunction::slot_type& callback);
