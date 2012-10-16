@@ -86,6 +86,11 @@ std::wstring Resources::LogFile()
 	return UserBaseDir()+L"coreLog.txt";
 }
 
+std::wstring Resources::ParamsFile()
+{
+	return RootDir() + L"params.txt";
+}
+
 std::wstring Resources::RootDir()
 {
 	return _applicationDirectory;

@@ -29,6 +29,7 @@ public:
 	std::wstring GameBaseDir();
 	std::wstring UserBaseDir();
 
+	std::wstring ParamsFile();
 	std::wstring GameFile();
 	std::wstring WorkingDir();
 	std::wstring SaveBaseDir();

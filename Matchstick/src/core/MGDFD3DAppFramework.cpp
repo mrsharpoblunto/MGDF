@@ -18,8 +18,6 @@
 namespace MGDF { namespace core {
 
 #define WINDOW_CLASS_NAME "MGDFD3DAppFrameworkWindowClass"
-#define STARTING_X 100
-#define STARTING_Y 100
 
 D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
 	: _stats(TIMER_SAMPLES)
@@ -113,11 +111,12 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 		}
 
 		RECT R = {0, 0,Resources::MIN_SCREEN_X,Resources::MIN_SCREEN_Y};
-
 		AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
+		int width  = R.right - R.left;
+		int height = R.bottom - R.top;
+
 		_window = CreateWindow(WINDOW_CLASS_NAME, caption.c_str(), 
-			WS_OVERLAPPEDWINDOW, STARTING_X, STARTING_Y, R.right, R.bottom, 
-			0, 0, _applicationInstance, 0); 
+			WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, _applicationInstance, 0); 
 
 		if( !_window )
 		{

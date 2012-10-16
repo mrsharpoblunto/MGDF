@@ -165,7 +165,7 @@ void SystemBuilder::InitParameterManager()
 	
 	//use the supplied params.txt in the application path (if provided)
 	//providing a params.txt can be useful for debugging purposes.
-	boost::filesystem3::path paramsTxt(Resources::Instance().RootDir()+L"params.txt",boost::filesystem::native);
+	boost::filesystem3::path paramsTxt(Resources::Instance().ParamsFile(),boost::filesystem::native);
 	if (boost::filesystem3::exists(paramsTxt))
 	{
 		std::ifstream input(paramsTxt.native().c_str(),std::ios::in);
