@@ -5,6 +5,34 @@
 
 The SDK includes a number of tools that make developing games using the MGDF framework easier, aswell as providing web service implementations so that you can host your own online game source and statistics service sites.
 
+Providing auto updates for your game
+====================================
+
+To get your game to auto update you will need to set the "gamesourceservice" field in the games game.json file to the hostname of your update site e.g "http://games.example.com".
+When loading your game the GamesManager will then search for a latest.json file at <gamesourceservice>/downloads/1/<gameUid>/latest.json. This file must be of the following format.
+
+{
+"Latest":{
+"Version":"0.1",
+"Url":"http://www.junkship.net/downloads/console.mza",
+"MD5":"xxxxxx"
+},
+"Framework":{
+"Version":"0.1",
+"Url":"http://www.junkship.net/downloads/MGDF.zip",
+"MD5":"xxxxxx"
+},
+"UpdateOlderVersions":[
+    {
+        "Url":"http://www.junkship.net/downloads/console-update.mza",
+        "MD5":"yyyyyy",
+        "FromVersion":"0.1"
+    },
+]
+}
+
+The Latest object should contain the url and version information for the latest available full install package. The Framework object is optional and can specify the version of the MGDF framework required for this game version and where it can be downloaded. Finally the UpdateOlderVersions array is optional and can contain a list of update packages that can be used to upgrade specific installed versions to the latest version. 
+NOTE: The GamesManager supports downloading game updates from urls that use http authentication (either basic or digest) if you want to restrict download access to paid users. The GamesManager will pop up a username/password prompt in this case before the update will proceed.
 Tools
 =====
 

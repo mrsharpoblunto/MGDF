@@ -52,9 +52,8 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		}
 		else 
 		{
-			_testState =999;
+			_testState =1000;
 			state->SetStatus(RED,"[Test Failed]");
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 	}
 	else if (_testState==1)
@@ -64,9 +63,8 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		system->GetSound()->SetEnableAttenuation(true);
 		if (_sound==NULL)
 		{
-			_testState =999;
+			_testState =1000;
 			state->SetStatus(RED,"[Test Failed]");
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 		else 
 		{
@@ -91,10 +89,9 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	}
 	else if (_testState==3 && system->GetInput()->IsKeyPress(KEY_N))
 	{
-		_testState =999;
+		_testState =1000;
 		system->GetSound()->RemoveSound(_sound);
 		state->SetStatus(RED,"[Test Failed]");
-		state->AddLine(WHITE,"Press the [ENTER] key");
 	}
 	else if (_testState==4)
 	{
@@ -124,11 +121,10 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		}
 		else if (system->GetInput()->IsKeyPress(KEY_N))
 		{
-			_testState =999;
+			_testState =1000;
 			_sound->Stop();
 			system->GetSound()->RemoveSound(_sound);
 			state->SetStatus(RED,"[Test Failed]");
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 	}
 	else if (_testState==5)
@@ -137,9 +133,8 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		_stream = system->GetSound()->CreateSoundStream(system->GetVFS()->GetFile(L"content/stream.ogg"));
 		if (_stream==NULL)
 		{
-			_testState =999;
+			_testState =1000;
 			state->SetStatus(RED,"[Test Failed]");
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 		else 
 		{
@@ -162,10 +157,9 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	}
 	else if (_testState==7 && system->GetInput()->IsKeyPress(KEY_N))
 	{
-		_testState =999;
+		_testState =1000;
 		system->GetSound()->RemoveSoundStream(_stream);
 		state->SetStatus(RED,"[Test Failed]");
-		state->AddLine(WHITE,"Press the [ENTER] key");
 	}
 	else if (_testState==8)
 	{
@@ -177,7 +171,7 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		}
 		else if (system->GetInput()->IsKeyPress(KEY_N))
 		{
-			_testState =999;
+			_testState =1000;
 			system->GetSound()->RemoveSoundStream(_stream);
 			state->SetStatus(RED,"[Test Failed]");
 		}

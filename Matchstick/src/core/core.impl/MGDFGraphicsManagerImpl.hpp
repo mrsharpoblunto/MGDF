@@ -45,8 +45,10 @@ public:
 	virtual bool GetVSync() const;
 	virtual void SetVSync(bool vsync);
 	virtual IUIntList *GetMultiSampleLevels() const;
+	virtual bool SetBackBufferMultiSampleLevel(unsigned int multisampleLevel);
+	virtual unsigned int GetBackBufferMultiSampleLevel() const;
 	virtual bool SetCurrentMultiSampleLevel(unsigned int multisampleLevel);
-	virtual unsigned int GetCurrentMultiSampleLevel() const;
+	virtual unsigned int GetCurrentMultiSampleLevel(unsigned int *quality) const;
 	virtual const IGraphicsAdaptorModeList *GetAdaptorModes() const;
 	virtual IGraphicsAdaptorMode *GetAdaptorMode(unsigned int width,unsigned int height) const;
 	virtual IGraphicsAdaptorMode *GetCurrentAdaptorMode() const;
@@ -55,6 +57,7 @@ public:
 	virtual void SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode);
 	virtual void ApplyChanges();
 	virtual ID3D11Texture2D *GetBackBuffer() const;
+	virtual void GetBackBufferDescription(D3D11_TEXTURE2D_DESC *desc) const;
 	virtual ID3D11Device *GetD3DDevice() const;
 
 	void LoadPreferences(IGame *game);
@@ -72,6 +75,7 @@ private:
 	UIntList _multiSampleLevels;
 	std::map<unsigned int,unsigned int> _multiSampleQuality;
 	unsigned int _currentMultiSampleLevel;
+	unsigned int _backBufferMultiSampleLevel;
 
 	bool _vsync;
 	bool _fullScreen;

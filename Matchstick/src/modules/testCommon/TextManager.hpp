@@ -11,7 +11,7 @@ namespace MGDF {
 
 #define GREEN 0xff44ff44
 #define WHITE 0xffffffff
-#define RED 0xffff4444
+#define RED 0xff4444ff
 
 		typedef struct {
 			unsigned int Color;

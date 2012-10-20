@@ -8,7 +8,7 @@ namespace MGDF { namespace core {
 allocates globally unique integer ID numbers
 \author gcconner
 */
-class MGDF_CORE_COMMON_DLL UniqueIDAllocator
+class UniqueIDAllocator
 {
 public:
 	static unsigned int GetID();

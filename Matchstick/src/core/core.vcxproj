@@ -137,7 +137,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>dxerr.lib;dxguid.lib;d3dx11.lib;d3d11.lib;D3DCompiler.lib;dxgi.lib;winmm.lib;../../../vendor/lib/$(Configuration)/fw1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dxerr.lib;dxguid.lib;d3dx11.lib;d3d11.lib;dxgi.lib;winmm.lib;../../../vendor/lib/$(Configuration)/fw1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>

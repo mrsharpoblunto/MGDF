@@ -81,14 +81,9 @@ namespace MGDF.GamesManager.MVP.Presenters
                         View.Details = "Checking for updates...";
                     });
 
-                    UpdateDownload frameworkUpdate=null;
-                    if (Config.Current.AutoUpdateFramework)
-                    {
-                        frameworkUpdate = UpdateChecker.CheckForFrameworkUpdate();
-                    }
-                    UpdateDownload gameUpdate = UpdateChecker.CheckForGameUpdate(Game.Current);
+                    AvailableUpdates availableUpdates = UpdateChecker.CheckForUpdate(Game.Current);
 
-                    if ((frameworkUpdate != null || gameUpdate != null) && GetUpdatePermission())
+                    if ((availableUpdates.Framework != null || availableUpdates.Game != null) && GetUpdatePermission())
                     {
                         Logger.Current.Write(LogInfoLevel.Info, "Updates found, restarting elevated...");
 
@@ -102,10 +97,10 @@ namespace MGDF.GamesManager.MVP.Presenters
                         }
 
                         UACControl.RestartElevated(Resources.GamesManagerBootArguments(
-                            gameUpdate!=null ? gameUpdate.Url : string.Empty, 
-                            gameUpdate!=null ? gameUpdate.MD5 : string.Empty, 
-                            frameworkUpdate!=null ? frameworkUpdate.Url : string.Empty,
-                            frameworkUpdate != null ? frameworkUpdate.MD5 : string.Empty));
+                            availableUpdates.Game != null ? availableUpdates.Game.Url : string.Empty,
+                            availableUpdates.Game != null ? availableUpdates.Game.MD5 : string.Empty,
+                            availableUpdates.Framework != null ? availableUpdates.Framework.Url : string.Empty,
+                            availableUpdates.Framework != null ? availableUpdates.Framework.MD5 : string.Empty));
                         return;
                     }
 

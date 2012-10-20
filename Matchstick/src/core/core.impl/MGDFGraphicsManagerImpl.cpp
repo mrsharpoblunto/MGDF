@@ -12,6 +12,8 @@
 #pragma warning(disable:4291)
 #endif
 
+#define BACKBUFFER_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
+
 namespace MGDF { namespace core {
 
 GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
@@ -25,17 +27,18 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	_device = device;
 	_currentAdaptorMode = nullptr;
 	_currentMultiSampleLevel = 1;
+	_backBufferMultiSampleLevel = 1;
 	_vsync = true;
 
 	UINT maxAdaptorModes;
-	if (FAILED(output->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,nullptr)))
+	if (FAILED(output->GetDisplayModeList(BACKBUFFER_FORMAT,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,nullptr)))
 	{
 		SAFE_RELEASE(output);
 		return;
 	}
 
 	DXGI_MODE_DESC *modes = new DXGI_MODE_DESC[maxAdaptorModes];
-	if (FAILED(output->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,modes)))
+	if (FAILED(output->GetDisplayModeList(BACKBUFFER_FORMAT,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,modes)))
 	{
 		SAFE_RELEASE(output);
 		delete[] modes;
@@ -46,7 +49,7 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	{
 		DXGI_MODE_DESC *displayMode	= &modes[mode];
 		// Does this adaptor mode support  the desired format and is it above the minimum required resolution
-		if( displayMode->Format == DXGI_FORMAT_R8G8B8A8_UNORM && displayMode->Width>=Resources::MIN_SCREEN_X && displayMode->Height >=Resources::MIN_SCREEN_Y)
+		if( displayMode->Format == BACKBUFFER_FORMAT && displayMode->Width>=Resources::MIN_SCREEN_X && displayMode->Height >=Resources::MIN_SCREEN_Y)
 		{
 			GraphicsAdaptorMode *adaptorMode = new GraphicsAdaptorMode(displayMode->Width,displayMode->Height,displayMode->RefreshRate.Numerator,displayMode->RefreshRate.Denominator);
 			_adaptorModes.Add(adaptorMode);
@@ -56,10 +59,10 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	delete[] modes;
 
 	//determine the supported multisampling settings for this device
-	for (int i=1;i<D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT;++i)
+	for (unsigned int i=1;i<D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT;++i)
 	{
 		unsigned int quality=0;
-		if (FAILED(_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, i, &quality)) || quality==0)
+		if (FAILED(_device->CheckMultisampleQualityLevels(BACKBUFFER_FORMAT, i, &quality)) || quality==0)
 		{
 			continue;
 		}
@@ -96,9 +99,29 @@ bool GraphicsManager::SetCurrentMultiSampleLevel(unsigned int multisampleLevel)
 	}
 }
 
-unsigned int GraphicsManager::GetCurrentMultiSampleLevel() const
+unsigned int GraphicsManager::GetCurrentMultiSampleLevel(unsigned int *quality) const
 {
+	if (quality) *quality = _multiSampleQuality.find(_currentMultiSampleLevel)->second;
 	return _currentMultiSampleLevel;
+}
+
+bool GraphicsManager::SetBackBufferMultiSampleLevel(unsigned int multisampleLevel)
+{
+	boost::mutex::scoped_lock lock(_mutex);
+	if (_multiSampleQuality.find(multisampleLevel)!=_multiSampleQuality.end()) 
+	{
+		_backBufferMultiSampleLevel = multisampleLevel;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+unsigned int GraphicsManager::GetBackBufferMultiSampleLevel() const
+{
+	return _backBufferMultiSampleLevel;
 }
 
 bool GraphicsManager::GetVSync() const
@@ -177,6 +200,11 @@ ID3D11Texture2D *GraphicsManager::GetBackBuffer() const
 	return _backBuffer;
 }
 
+void GraphicsManager::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *desc) const
+{
+	_backBuffer->GetDesc(desc);
+}
+
 ID3D11Device *GraphicsManager::GetD3DDevice() const
 {
 	return _device;
@@ -220,10 +248,16 @@ void GraphicsManager::LoadPreferences(IGame *game)
 	}
 
 	//ensure the multisample level is not above what is supported.
-	_currentMultiSampleLevel = atoi(game->GetPreference(PreferenceConstants::MULTISAMPLE_LEVEL));
+	_currentMultiSampleLevel = atoi(game->GetPreference(PreferenceConstants::RT_MULTISAMPLE_LEVEL));
 	if (_currentMultiSampleLevel>_multiSampleLevels.Get(_multiSampleLevels.Size()-1)) {
 		_currentMultiSampleLevel=_multiSampleLevels.Get(_multiSampleLevels.Size()-1);
-		game->SetPreference(PreferenceConstants::MULTISAMPLE_LEVEL,boost::lexical_cast<std::string>(_currentMultiSampleLevel).c_str());
+		game->SetPreference(PreferenceConstants::RT_MULTISAMPLE_LEVEL,boost::lexical_cast<std::string>(_currentMultiSampleLevel).c_str());
+		savePreferences = true;
+	}
+	_backBufferMultiSampleLevel = atoi(game->GetPreference(PreferenceConstants::MULTISAMPLE_LEVEL));
+	if (_backBufferMultiSampleLevel>_multiSampleLevels.Get(_multiSampleLevels.Size()-1)) {
+		_backBufferMultiSampleLevel=_multiSampleLevels.Get(_multiSampleLevels.Size()-1);
+		game->SetPreference(PreferenceConstants::MULTISAMPLE_LEVEL,boost::lexical_cast<std::string>(_backBufferMultiSampleLevel).c_str());
 		savePreferences = true;
 	}
 
@@ -248,12 +282,12 @@ void GraphicsManager::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc,BOOL *fullScre
 	desc->BufferDesc.RefreshRate.Numerator = _vsync ? _currentAdaptorMode->GetRefreshRateNumerator() : 0;
 	desc->BufferDesc.RefreshRate.Denominator = _vsync ? _currentAdaptorMode->GetRefreshRateDenominator() : 1;
 
-	desc->BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc->BufferDesc.Format = BACKBUFFER_FORMAT;
 	desc->BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	desc->BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
-	desc->SampleDesc.Count = _currentMultiSampleLevel;
-	desc->SampleDesc.Quality = _multiSampleQuality[_currentMultiSampleLevel] - 1;
+	desc->SampleDesc.Count = _backBufferMultiSampleLevel;
+	desc->SampleDesc.Quality = _multiSampleQuality[_backBufferMultiSampleLevel] - 1;
 	desc->BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	desc->BufferCount = 1;
 	desc->SwapEffect = DXGI_SWAP_EFFECT_DISCARD;

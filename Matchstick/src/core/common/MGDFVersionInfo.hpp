@@ -5,7 +5,7 @@
 
 namespace MGDF { namespace core {
 
-class MGDF_CORE_COMMON_DLL MGDFVersionInfo
+class MGDFVersionInfo
 {
 public:
 	virtual ~MGDFVersionInfo(){};

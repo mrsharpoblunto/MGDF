@@ -52,7 +52,7 @@ private:
 	LogLevel _level;
 };
 
-MGDF_CORE_COMMON_DLL ILoggerImpl *GetLoggerImpl();
+ILoggerImpl *GetLoggerImpl();
 
 }
 }

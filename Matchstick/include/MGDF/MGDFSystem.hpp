@@ -33,15 +33,23 @@ class ISystem
 public:
 
 	/**
-	 tells the system to provide a location on disk to save the current game data.
-	 \param saveName the name of the module save file. Only alphanumeric characters andspace are valid characters.
+	 tells the system to provide a location on disk to save the current game data. After saving the data
+	 it is required that CompleteSave is called using the same saveName parameter.
+	 \param saveName the name of the module save file. Only alphanumeric characters and space are valid characters.
 	 \param saveBuffer the buffer to fill in the supplied save directory
 	 \param size the size of saveBuffer, if saveBuffer is too small, size will be changed to the size required.
 	 \return 0 if saveBuffer is large enough to fit the supplied save directory, otherwise returns the size required. If the saveName
 		is invalid, the function returns -1
 	*/
-	virtual int Save(const char *saveName, wchar_t *saveBuffer, unsigned int *size)=0;
+	virtual int BeginSave(const char *saveName, wchar_t *saveBuffer, unsigned int *size)=0;
 
+	/**
+	 finalizes the save data for a matching call to BeginSave
+	 \return true if the saveName was in a pending state and was completed successfully, if there was a problem, or the saveName
+	 didn't exist then false is returned.
+	 */
+	virtual bool CompleteSave(const char *saveName)=0;
+	
 	/**
 	 populates the supplied vector with the names of all saved instances of this configuration
 	 The names returned in this list represent all the valid arguments to queueLoadState for the 

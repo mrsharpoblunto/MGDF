@@ -49,6 +49,6 @@ private:
 
 };
 
-MGDF_CORE_COMMON_DLL IParameterManagerImpl *GetParameterManagerImpl();
+IParameterManagerImpl *GetParameterManagerImpl();
 
 }}

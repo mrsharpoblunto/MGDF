@@ -13,6 +13,12 @@ using Newtonsoft.Json;
 
 namespace MGDF.GamesManager.Model
 {
+    public class AvailableUpdates
+    {
+        public UpdateDownload Game;
+        public UpdateDownload Framework;
+    }
+
     public class UpdateDownload
     {
         public string Url;
@@ -30,44 +36,15 @@ namespace MGDF.GamesManager.Model
     public class GameUpdate
     {
         public UpdateDownload Latest;
+        public UpdateDownload Framework;
         public PartialUpdateDownload[] UpdateOlderVersions;
     }
 
     public class UpdateChecker
     {
-        public static UpdateDownload CheckForFrameworkUpdate() 
+        public static AvailableUpdates CheckForUpdate(Game game)
         {
-            UpdateDownload result;
-            string frameworkUpdateSite = Config.Current.FrameworkUpdateSite ?? "http://www.matchstickframework.org";
-
-            try
-            {
-                using (var responseStream = HttpRequestManager.Current.GetResponseStream(frameworkUpdateSite+"/downloads/"+Resources.InterfaceVersion+"/latest.json"))
-                {
-                    using (var reader = new StreamReader(responseStream))
-                    {
-                        result = JsonConvert.DeserializeObject<UpdateDownload>(reader.ReadToEnd());
-                    }
-                }
-
-                var currentVersion = FileSystem.Current.GetFile(Resources.GamesManagerExecutable).AssemblyVersion;
-
-                //if the available version isn't newer than what we have already, then don't bother updating.
-                if (new Version(result.Version) <= currentVersion)
-                {
-                    result = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Current.Write(LogInfoLevel.Error, "Unable to read " + frameworkUpdateSite + "/downloads/" + Resources.InterfaceVersion + "/latest.json - " + ex);
-                result = null;
-            }
-            return result;
-        } 
-
-        public static UpdateDownload CheckForGameUpdate(Game game)
-        {
+            AvailableUpdates result = new AvailableUpdates();
             GameUpdate availableUpdates;
 
             if (!string.IsNullOrEmpty(game.GameSourceService))
@@ -82,8 +59,16 @@ namespace MGDF.GamesManager.Model
                         }
                     }
 
+                    var currentVersion = FileSystem.Current.GetFile(Resources.GamesManagerExecutable).AssemblyVersion;
+
+                    //if the available version is specified and is newer than what we have already, then the framework needs an update
+                    if (availableUpdates.Framework!=null && new Version(availableUpdates.Framework.Version) > currentVersion)
+                    {
+                        result.Framework = availableUpdates.Framework;
+                    }
+
                     //if the available version isn't newer than what we have already, then don't bother updating.
-                    if (new Version(availableUpdates.Latest.Version) > game.Version)
+                    if (availableUpdates.Latest!=null && new Version(availableUpdates.Latest.Version) > game.Version)
                     {
                         if (availableUpdates.UpdateOlderVersions != null)
                         {
@@ -92,7 +77,7 @@ namespace MGDF.GamesManager.Model
                             {
                                 if (new Version(olderVersion.FromVersion) == game.Version)
                                 {
-                                    return new UpdateDownload
+                                    result.Game = new UpdateDownload
                                                {
                                                    Url = olderVersion.Url,
                                                    Version = availableUpdates.Latest.Version,
@@ -103,7 +88,7 @@ namespace MGDF.GamesManager.Model
                         }
 
                         //otherwise resort to a full update
-                        return availableUpdates.Latest;
+                        if (result.Game==null) result.Game = availableUpdates.Latest;
                     }
                 }
                 catch (Exception ex)
@@ -111,7 +96,7 @@ namespace MGDF.GamesManager.Model
                     Logger.Current.Write(LogInfoLevel.Error, "Unable to read " + game.GameSourceService + "/downloads/" + Resources.InterfaceVersion + "/" + game.Uid + "/latest.json - " + ex);
                 }
             }
-            return null;
+            return result;
         }
     }
 }

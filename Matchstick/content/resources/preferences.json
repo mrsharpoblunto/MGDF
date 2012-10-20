@@ -25,6 +25,10 @@
     "name":"multiSampleLevel",
     "value":"1"
     },
+	{
+    "name":"RTMultiSampleLevel",
+    "value":"1"
+    },
     {
     "name":"musicVolume",
     "value":"1.0"

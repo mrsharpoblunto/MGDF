@@ -2,7 +2,7 @@
 
 namespace MGDF { namespace core {
 
-class MGDF_CORE_COMMON_DLL VersionHelper
+class VersionHelper
 {
 public:
 	static Version Create(const std::string &version);

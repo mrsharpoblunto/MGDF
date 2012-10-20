@@ -11,7 +11,7 @@
 
 namespace MGDF { namespace core { namespace vfs { 
 
-MGDF_CORE_DLL IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler)
+IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler)
 {
 	return new ZipArchiveHandlerImpl(logger,errorHandler);
 }

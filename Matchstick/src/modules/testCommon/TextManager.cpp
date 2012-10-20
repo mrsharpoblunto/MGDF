@@ -96,7 +96,7 @@ void TextManager::DrawText()
 				iter->Color,// Text color
 				FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
 			);
-
+			
 			if (iter->StatusText!="")
 			{
 				std::wstring statusText;
@@ -106,7 +106,7 @@ void TextManager::DrawText()
 					_immediateContext,
 					statusText.c_str(),
 					22.0f,// Font size
-					static_cast<float>(_system->GetGraphics()->GetScreenX())-200.0f,// X position
+					static_cast<float>(_system->GetGraphics()->GetScreenX())-150.0f,// X position
 					static_cast<float>(starty),// Y position
 					iter->StatusColor,// Text color
 					FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)

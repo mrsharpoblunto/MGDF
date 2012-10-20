@@ -16,5 +16,6 @@ namespace MGDF { namespace core {
 	const char *PreferenceConstants::SCREEN_Y = "screenY";
 	const char *PreferenceConstants::FULL_SCREEN = "fullScreen";
 	const char *PreferenceConstants::MULTISAMPLE_LEVEL = "multiSampleLevel";
+	const char *PreferenceConstants::RT_MULTISAMPLE_LEVEL = "RTMultiSampleLevel";
 	const char *PreferenceConstants::VSYNC = "vsync";
 }}

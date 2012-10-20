@@ -75,6 +75,6 @@ private:
 };
 
 
-MGDF_CORE_DLL IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(HINSTANCE instance,HWND window,ILogger *logger);
+IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(HINSTANCE instance,HWND window,ILogger *logger);
 
 }}}

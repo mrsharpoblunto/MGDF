@@ -76,7 +76,8 @@ public:
 	virtual void QueueShutDown();
 
 	virtual int Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version);
-	virtual int Save(const char *saveName, wchar_t *saveBuffer, unsigned int *size);
+	virtual int BeginSave(const char *saveName, wchar_t *saveBuffer, unsigned int *size);
+	virtual bool CompleteSave(const char *saveName);
 
 	//error handling functions
 	virtual void FatalError(const char *,const char *);

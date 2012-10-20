@@ -12,6 +12,7 @@ public:
 	static const char *RESOLUTION;
 	static const char *FULL_SCREEN;
 	static const char *MULTISAMPLE_LEVEL;
+	static const char *RT_MULTISAMPLE_LEVEL;
 	static const char *VSYNC;
 };
 

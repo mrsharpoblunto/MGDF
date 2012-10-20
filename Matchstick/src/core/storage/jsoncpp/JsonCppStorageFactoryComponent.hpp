@@ -17,6 +17,6 @@ public:
 	virtual IPreferenceConfigStorageHandler *CreatePreferenceConfigStorageHandler() const;
 };
 
-MGDF_CORE_DLL IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent(HINSTANCE instance,HWND window);
+IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent(HINSTANCE instance,HWND window);
 
 }}}}

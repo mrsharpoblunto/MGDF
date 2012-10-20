@@ -51,12 +51,13 @@ namespace MGDF.GamesManager.Tests
 }");
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
             Assert.IsNotNull(update);
-            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Url);
-            Assert.AreEqual(gameMd5, update.MD5);
-            Assert.AreEqual("1.1.2.4", update.Version);
+            Assert.IsNotNull(update.Game);
+            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
+            Assert.AreEqual(gameMd5, update.Game.MD5);
+            Assert.AreEqual("1.1.2.4", update.Game.Version);
 
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
 
@@ -97,12 +98,13 @@ namespace MGDF.GamesManager.Tests
 }");
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
             Assert.IsNotNull(update);
-            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Url);
-            Assert.AreEqual(gameMd5, update.MD5);
-            Assert.AreEqual("1.1.2.4", update.Version);
+            Assert.IsNotNull(update.Game);
+            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
+            Assert.AreEqual(gameMd5, update.Game.MD5);
+            Assert.AreEqual("1.1.2.4", update.Game.Version);
 
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
 
@@ -141,12 +143,13 @@ namespace MGDF.GamesManager.Tests
 }");
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
             Assert.IsNotNull(update);
-            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Url);
-            Assert.AreEqual(gameMd5, update.MD5);
-            Assert.AreEqual("1.1.2.4", update.Version);
+            Assert.IsNotNull(update.Game);
+            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
+            Assert.AreEqual(gameMd5, update.Game.MD5);
+            Assert.AreEqual("1.1.2.4", update.Game.Version);
 
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
 
@@ -197,12 +200,13 @@ namespace MGDF.GamesManager.Tests
 }");
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
             Assert.IsNotNull(update);
-            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Url);
-            Assert.AreEqual(gameMd5, update.MD5);
-            Assert.AreEqual("1.1.2.4", update.Version);
+            Assert.IsNotNull(update.Game);
+            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
+            Assert.AreEqual(gameMd5, update.Game.MD5);
+            Assert.AreEqual("1.1.2.4", update.Game.Version);
 
             Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
 
@@ -255,12 +259,13 @@ namespace MGDF.GamesManager.Tests
 }");
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
             Assert.IsNotNull(update);
-            Assert.AreEqual("http://www.junkship.net/downloads/console-update.zip", update.Url);
-            Assert.AreEqual(gameMd5, update.MD5);
-            Assert.AreEqual("1.1.2.4", update.Version);
+            Assert.IsNotNull(update.Game);
+            Assert.AreEqual("http://www.junkship.net/downloads/console-update.zip", update.Game.Url);
+            Assert.AreEqual(gameMd5, update.Game.MD5);
+            Assert.AreEqual("1.1.2.4", update.Game.Version);
         }
 
         [Test]
@@ -289,9 +294,10 @@ namespace MGDF.GamesManager.Tests
 }");
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
-            Assert.IsNull(update);
+            Assert.IsNotNull(update);
+            Assert.IsNull(update.Game);
         }
 
         [Test]
@@ -320,12 +326,13 @@ namespace MGDF.GamesManager.Tests
 }");
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
             Assert.IsNotNull(update);
-            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Url);
-            Assert.AreEqual(gameMd5, update.MD5);
-            Assert.AreEqual("1.1.2.4", update.Version);
+            Assert.IsNotNull(update.Game);
+            Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
+            Assert.AreEqual(gameMd5, update.Game.MD5);
+            Assert.AreEqual("1.1.2.4", update.Game.Version);
         }
 
         [Test]
@@ -337,9 +344,10 @@ namespace MGDF.GamesManager.Tests
 
 
             Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
-            var update = UpdateChecker.CheckForGameUpdate(game);
+            var update = UpdateChecker.CheckForUpdate(game);
 
-            Assert.IsNull(update);
+            Assert.IsNotNull(update);
+            Assert.IsNull(update.Game);
         }
 
 

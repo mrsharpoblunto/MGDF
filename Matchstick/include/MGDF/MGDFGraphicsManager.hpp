@@ -45,12 +45,27 @@ virtual IUIntList *GetMultiSampleLevels() const=0;
 set the display adaptors current multisample level, this changed setting is not applied until Queue	ResetDevice is called.
 \return returns false if the desired multisample level cannot be set.
 */
-virtual bool SetCurrentMultiSampleLevel(unsigned int multisampleLevel)=0;
+virtual bool SetBackBufferMultiSampleLevel(unsigned int multisampleLevel)=0;
 
 /**
 get the current multisample level in use by the adaptor
 */
-virtual unsigned int  GetCurrentMultiSampleLevel() const=0;
+virtual unsigned int  GetBackBufferMultiSampleLevel() const=0;
+
+/**
+set the desired multisample level for off screen render targets. This setting is not used directly
+by the framework but any client code should query this property when creatign render targets that
+may require multisampling (see also GetCurrentMultiSampleLevel)
+\return returns false if the desired multisample level cannot be set.
+*/
+virtual bool SetCurrentMultiSampleLevel(unsigned int multisampleLevel)=0;
+
+/**
+get the current desired multisample level for off screen render targets
+\param quality if specified this parameter will be initialized with the maximum 
+multisampling quality setting for the current multisample level
+*/
+virtual unsigned int  GetCurrentMultiSampleLevel(unsigned int *quality) const=0;
 
 /**
 get a list of available adaptor modes
@@ -98,6 +113,11 @@ virtual ID3D11Device * GetD3DDevice() const=0;
 Gets the current back buffer texture. The pointer returned by this method becomes invalid when the modules OnReset event is fired
 */
 virtual ID3D11Texture2D * GetBackBuffer() const=0;
+
+/**
+Gets the description of the backbuffer texture
+*/
+virtual void GetBackBufferDescription(D3D11_TEXTURE2D_DESC *desc) const=0;
 };
 
 }

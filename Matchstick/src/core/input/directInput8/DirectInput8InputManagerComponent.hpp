@@ -59,6 +59,6 @@ private:
 	GamepadList _gamepads;
 };
 
-MGDF_CORE_DLL IInputManagerComponent *CreateDirectInput8InputManagerComponent(HINSTANCE instance,HWND window);
+IInputManagerComponent *CreateDirectInput8InputManagerComponent(HINSTANCE instance,HWND window);
 
 }}}}

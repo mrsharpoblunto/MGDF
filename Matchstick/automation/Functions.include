@@ -139,9 +139,11 @@
                             string md5 = result.ToString();
 
                             writer.WriteLine("{");
+                            writer.WriteLine(@"""Framework"": {");
                             writer.WriteLine(@"""Version"":""" + _version + @""",");
                             writer.WriteLine(@"""Url"":""" + _url + @""",");
                             writer.WriteLine(@"""MD5"":""" + md5 + @"""");
+                            writer.WriteLine("}");
                             writer.WriteLine("}");
                         }
                     }

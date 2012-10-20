@@ -24,6 +24,8 @@
 #pragma warning(disable:4291)
 #endif
 
+#define PENDING_SAVE_PREFIX "__"
+
 //to enable the forced unloading of libraries once they are no longer in use by the application
 //leaving this commented out leaves the unloading of the dlls to the OS
 //NOTE: with FREE_UNUSED_LIBRARIES enabled memory leaks in external modules are not reported correctly
@@ -267,9 +269,22 @@ int System::Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,V
 	}
 }
 
-int System::Save(const char *save, wchar_t *saveBuffer, unsigned int *size)
+int System::BeginSave(const char *save, wchar_t *saveBuffer, unsigned int *size)
 {
 	std::string saveName(save);
+
+	//only alphanumerics and space allowed.
+	for (auto iter = saveName.begin();iter!=saveName.end();++iter)
+	{
+		if (!isalnum(*iter) && *iter!=' ') 
+		{
+			SetLastError(THIS_NAME,MGDF_ERR_INVALID_SAVE_NAME,(saveName+" is an invalid save name. Only alphanumeric characters and the space character are permitted").c_str());
+			return -1;
+		}
+	}
+
+	saveName.insert(0,PENDING_SAVE_PREFIX); 
+
 	std::wstring saveBufferContent(Resources::Instance().SaveDataDir(saveName));
 
 	if (saveBufferContent.size()+1>*size  || saveBuffer==nullptr)
@@ -300,6 +315,41 @@ int System::Save(const char *save, wchar_t *saveBuffer, unsigned int *size)
 		std::auto_ptr<storage::IGameStateStorageHandler> handler(_storage->CreateGameStateStorageHandler(_game->GetUid(),_game->GetVersion()));
 		handler->Save(Resources::Instance().GameStateSaveFile(saveName));
 
+		return 0;
+	}
+	catch (...)
+	{
+		FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(saveBufferContent));
+		return -1;
+	}
+}
+
+bool System::CompleteSave(const char *save)
+{
+	try 
+	{
+		std::string saveName(save);
+		std::string pendingSave(save);
+		pendingSave.insert(0,PENDING_SAVE_PREFIX);
+
+		boost::filesystem::wpath pendingSaveDir(Resources::Instance().SaveDir(pendingSave),boost::filesystem::native); 
+		boost::filesystem::wpath saveDir(Resources::Instance().SaveDir(saveName),boost::filesystem::native); 
+
+		if (!exists(pendingSaveDir)) 
+		{
+			SetLastError(THIS_NAME,MGDF_ERR_NO_PENDING_SAVE,(saveName+" is not a pending save. Ensure that BeginSave is called with a matching save name before calling CompleteSave").c_str());
+			return false;
+		}
+
+		if (exists(saveDir))
+		{
+			remove_all(saveDir);
+		}
+		//swap the pending with the completed save
+		boost::system::error_code ec;
+		boost::filesystem3::rename(pendingSaveDir,saveDir);
+
+		//update the list of save games
 		GetSaves();
 		bool exists = false;
 		for (unsigned int i=0;i<_saves->Size();++i)
@@ -315,12 +365,13 @@ int System::Save(const char *save, wchar_t *saveBuffer, unsigned int *size)
 			strcpy_s(copy,saveName.size()+1,saveName.c_str());
 			_saves->Add(copy);
 		}
-		return 0;
+
+		return true;
 	}
 	catch (...)
 	{
-		FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(saveBufferContent));
-		return -1;
+		FatalError(THIS_NAME,"Unable to complete loading game state data");
+		return false;
 	}
 }
 
@@ -458,13 +509,13 @@ void System::SetLastError(const char *sender, int code,const char *description)
 	{
 		size_t descLen = strlen(description);
 		_lastError.Description = new char[descLen+1];
-		strncpy_s(_lastError.Description,sizeof(_lastError.Description),description,descLen);
+		strncpy_s(_lastError.Description,descLen+1,description,descLen);
 	}
 	if (sender!=nullptr)
 	{
 		size_t senderLen = strlen(sender);
 		_lastError.Sender = new char[senderLen+1];
-		strncpy_s(_lastError.Sender,sizeof(_lastError.Description),sender,senderLen);
+		strncpy_s(_lastError.Sender,senderLen+1,sender,senderLen);
 	}
 }
 

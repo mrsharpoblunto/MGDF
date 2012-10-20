@@ -74,6 +74,6 @@ private:
 	IVirtualFileSystem *_vfs;
 };
 
-MGDF_CORE_DLL ISoundManagerComponent *CreateOpenALSoundManagerComponent(HINSTANCE instance,IVirtualFileSystem *vfs,HWND window);
+ISoundManagerComponent *CreateOpenALSoundManagerComponent(HINSTANCE instance,IVirtualFileSystem *vfs,HWND window);
 
 }}}}

@@ -42,9 +42,9 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		state->AddLine(WHITE,"Save game state");
 
 		unsigned int size=0;
-		system->Save("testsave",NULL,&size);
+		system->BeginSave("testsave",NULL,&size);
 		wchar_t *saveDir = new wchar_t[size];
-		if (system->Save("testsave",saveDir,&size)==0)
+		if (system->BeginSave("testsave",saveDir,&size)==0)
 		{
 			std::wstring saveFile(saveDir);
 			saveFile+=L"currentState.txt";
@@ -59,60 +59,65 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		{
 			state->SetStatus(RED,"[Test Failed]");
 			_testState = 999;
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 		delete[] saveDir;
 	}
 	else if (_testState==1)
 	{
-		if (system->GetSaves()->Size()==1 && strcmp(system->GetSaves()->Get(0),"testsave")==0)
-		{
-			state->SetStatus(GREEN,"[Test Passed]");
-			state->AddLine(WHITE,"Load game state");
-
-			unsigned size=0;
-			MGDF::Version version;
-			system->Load("testsave",NULL,&size,version);
-			wchar_t *saveDir = new wchar_t[size];
-			if (system->Load("testsave",saveDir,&size,version)==0)
-			{
-				//make sure the version we loaded is the same that we saved.
-				if (version.Major!=0 || version.Minor != 1) 
-				{
-					state->SetStatus(RED,"[Test Failed - Invalid version]");
-					_testState = 999;
-					state->AddLine(WHITE,"Press the [ENTER] key");
-				}
-				else
-				{
-					std::wstring saveFile(saveDir);
-					saveFile+=L"currentState.txt";
-					std::ifstream in(saveFile.c_str(),std::ios::in);
-					if (in.fail()) 
-					{
-						_testState = 3;
-					}
-					else
-					{
-						in >> _testState;
-						in.close();
-						if (_testState!=2) _testState = 3;
-					}
-				}
-			}
-			else 
-			{
-				state->SetStatus(RED,"[Test Failed - Unable to load]");
-				_testState = 999;
-				state->AddLine(WHITE,"Press the [ENTER] key");
-			}
-			delete[] saveDir;
-		}
-		else 
+		//we didn't complete saving yet so it shouldn't appear in the list
+		if (system->GetSaves()->Size()!=0)
 		{
 			state->SetStatus(RED,"[Test Failed]");
 			_testState = 999;
-			state->AddLine(WHITE,"Press the [ENTER] key");
+		}
+		else
+		{
+			if (system->CompleteSave("testsave") && system->GetSaves()->Size()==1 && strcmp(system->GetSaves()->Get(0),"testsave")==0)
+			{
+				state->SetStatus(GREEN,"[Test Passed]");
+				state->AddLine(WHITE,"Load game state");
+
+				unsigned size=0;
+				MGDF::Version version;
+				system->Load("testsave",NULL,&size,version);
+				wchar_t *saveDir = new wchar_t[size];
+				if (system->Load("testsave",saveDir,&size,version)==0)
+				{
+					//make sure the version we loaded is the same that we saved.
+					if (version.Major!=0 || version.Minor != 1) 
+					{
+						state->SetStatus(RED,"[Test Failed - Invalid version]");
+						_testState = 999;
+					}
+					else
+					{
+						std::wstring saveFile(saveDir);
+						saveFile+=L"currentState.txt";
+						std::ifstream in(saveFile.c_str(),std::ios::in);
+						if (in.fail()) 
+						{
+							_testState = 3;
+						}
+						else
+						{
+							in >> _testState;
+							in.close();
+							if (_testState!=2) _testState = 3;
+						}
+					}
+				}
+				else 
+				{
+					state->SetStatus(RED,"[Test Failed - Unable to load]");
+					_testState = 999;
+				}
+				delete[] saveDir;
+			}
+			else 
+			{
+				state->SetStatus(RED,"[Test Failed]");
+				_testState = 999;
+			}
 		}
 	}
 	else if (_testState==2)
@@ -124,7 +129,6 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 	{
 		state->SetStatus(RED,"[Test Failed]");
 		_testState = 999;
-		state->AddLine(WHITE,"Press the [ENTER] key");
 	}
 	else if (_testState==4)
 	{
@@ -145,7 +149,6 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		{
 			state->SetStatus(RED,"[Test Failed]");
 			_testState = 999;
-			state->AddLine(WHITE,"Press the [ENTER] key");
 		}
 		else
 		{
@@ -168,7 +171,6 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 	{
 		_testState =999;
 		state->SetStatus(RED,"[Test Failed]");
-		state->AddLine(WHITE,"Press the [ENTER] key");
 	}
 	else if (_testState==7 && system->GetInput()->IsKeyPress(KEY_Y))
 	{
@@ -179,10 +181,10 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 	{
 		_testState =999;
 		state->SetStatus(RED,"[Test Failed]");
-		state->AddLine(WHITE,"Press the [ENTER] key");
 	}
-	else if (_testState==999 && system->GetInput()->IsKeyPress(KEY_RETURN))
+	else if (_testState==999)
 	{
+		_testState++;
 		state->AddLine(WHITE,"All tests complete. Press the [ESC] key to exit");
 	}
 }

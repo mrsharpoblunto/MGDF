@@ -9,8 +9,6 @@ namespace MGDF.GamesManager.Model
     public interface IConfig
     {
         bool AutoRegisterOnUpdate { get; }
-        bool AutoUpdateFramework { get; }
-        string FrameworkUpdateSite { get; }
     }
 
     public class Config: IConfig
@@ -20,16 +18,6 @@ namespace MGDF.GamesManager.Model
         public bool AutoRegisterOnUpdate
         {
             get { return bool.Parse(ConfigurationManager.AppSettings["autoRegisterOnUpdate"]); }
-        }
-
-        public bool AutoUpdateFramework
-        {
-            get { return bool.Parse(ConfigurationManager.AppSettings["autoUpdateFramework"]); }
-        }
-
-        public string FrameworkUpdateSite
-        {
-            get { return ConfigurationManager.AppSettings["frameworkUpdateSite"]; }
         }
     }
 }

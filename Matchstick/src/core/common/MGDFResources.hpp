@@ -6,7 +6,7 @@
 
 namespace MGDF { namespace core {
 
-class MGDF_CORE_COMMON_DLL Resources
+class Resources
 {
 public:
 	virtual ~Resources(){}

@@ -32,6 +32,6 @@ private:
 	std::wstring GetFileExtension(const std::wstring &file) const;
 };
 
-MGDF_CORE_DLL IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler);
+IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler);
 
 }}}
