@@ -30,13 +30,13 @@
         <div id="content">
         <% var latestSDKVersion = VersionManager.GetLatestSDKVersion(1); %>
             <div id="content-inner">
-                <p>MGDF is an open source framework designed to make developing, installing, distributing, and updating games easier. The framework uses DirectX 9 for graphics, DirectInput/XInput for user input (has full support for the xbox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual filesystem which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).</p>
+                <p>MGDF is an open source framework designed to make developing, installing, distributing, and updating games easier. The framework uses DirectX 11 for graphics, DirectInput/XInput for user input (has full support for the xbox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual filesystem which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).</p>
                 <ul>
                 <li>MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game.</li>
                 <li>MGDF makes distributing games easier as it takes care of most of the OS integration when installing your game, all you need to do is bundle up a simple installer.</li>
                 <li>MGDF makes it easier to keep your game up to date by providing an open online distribution system for your games, which you can either self host or have someone else host for you.</li>
                 </ul>
-           </div>
+            </div>
            
             <h3><a href="https://github.com/mrsharpoblunto/MGDF">View Source Code</a><% if (latestSDKVersion!=null) { %> | <a onclick="javascript:_gaq.push(['_trackPageview','<%=latestSDKVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host) %>']);" href="<%=latestSDKVersion.FileName.AbsoluteUri(Request.Url.Scheme+"://" +Request.Url.Host)%>">Download Latest SDK</a> <%} %></h3>
         </div>

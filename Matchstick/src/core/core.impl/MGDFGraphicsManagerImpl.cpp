@@ -101,7 +101,7 @@ bool GraphicsManager::SetCurrentMultiSampleLevel(unsigned int multisampleLevel)
 
 unsigned int GraphicsManager::GetCurrentMultiSampleLevel(unsigned int *quality) const
 {
-	if (quality) *quality = _multiSampleQuality.find(_currentMultiSampleLevel)->second;
+	if (quality) *quality = _multiSampleQuality.find(_currentMultiSampleLevel)->second - 1;
 	return _currentMultiSampleLevel;
 }
 

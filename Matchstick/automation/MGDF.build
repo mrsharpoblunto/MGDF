@@ -44,11 +44,13 @@
 		<echo message="Building MGDF vendor libraries..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
+      <property name="Platform" value="Win32"/>
 		</msbuild>
 		
 		<echo message="Building MGDF core..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
+      <property name="Platform" value="Win32"/>
 		</msbuild>
 
 		<echo message="Copying vendor libs into MGDF core bin directory..."/>
