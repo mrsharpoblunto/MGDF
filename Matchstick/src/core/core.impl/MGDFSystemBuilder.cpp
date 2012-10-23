@@ -156,7 +156,7 @@ void SystemBuilder::DisposeSystem(System *system)
 		system->DisposeModule();
 	}
 	UnregisterComponents();
-	SAFE_DELETE_ARRAY(system);
+	SAFE_DELETE(system);
 }
 
 void SystemBuilder::InitParameterManager()

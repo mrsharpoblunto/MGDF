@@ -40,10 +40,12 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 	#endif
 
 	Resources::Instance(hInstance);	//initialise the core resource locator
-	
+	 
 	_dumpEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     _dumpThread = CreateThread(nullptr, 0, CrashDumpThread, nullptr, 0, 0);
 	SetUnhandledExceptionFilter(UnhandledExceptionCallBack);//logs and stackdumps when any unexpected errors occur
+
+	SetErrorMode( SEM_NOGPFAULTERRORBOX );
 
 	//create the application instance and initialise the window
 	new MGDFApp(hInstance);
