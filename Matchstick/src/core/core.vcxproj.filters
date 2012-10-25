@@ -70,6 +70,7 @@
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
     <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="MGDFQuad.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -77,5 +78,6 @@
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
     <ClCompile Include="StdAfx.cpp" />
+    <ClCompile Include="MGDFQuad.cpp" />
   </ItemGroup>
 </Project>

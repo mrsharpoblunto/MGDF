@@ -18,6 +18,7 @@ DEFINE_SINGLETON(MGDFApp)
 MGDFApp::MGDFApp(HINSTANCE hInstance) : D3DAppFramework(hInstance) 
 {
 	_font=nullptr;
+	_quad = nullptr;
 	_system = nullptr;
 	_initialized = false;
 }
@@ -25,6 +26,7 @@ MGDFApp::MGDFApp(HINSTANCE hInstance) : D3DAppFramework(hInstance)
 MGDFApp::~MGDFApp() 
 {
 	SAFE_RELEASE(_font);
+	SAFE_DELETE(_quad);
 }
 
 //allows the app to read from system configuration preferences when setting up d3d
@@ -42,6 +44,8 @@ void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure)
 {
 	D3DAppFramework::InitDirect3D(caption,windowProcedure);
 	_system->SetD3DDevice(_d3dDevice);//allow the system to pass the d3d object to the modules
+
+	_quad = new Quad(_d3dDevice);
 
 	IFW1Factory *factory;
 	if (FAILED(FW1CreateFactory(FW1_VERSION, &factory)))
@@ -108,6 +112,11 @@ void MGDFApp::DrawScene(double alpha)
 
 void MGDFApp::DrawSystemOverlay()
 {
+	const float margin = 5.0f;
+	const float overlayTextSize = 14.0f;
+	const UINT overlayTextColor = 0xFFFFFFFF;
+	const XMFLOAT4 overlayBackgroundColor(0.0f,0.0f,0.0f,0.7f);
+
 	std::wstring information;
 	{
 		boost::mutex::scoped_lock lock(_statsMutex);
@@ -115,13 +124,25 @@ void MGDFApp::DrawSystemOverlay()
 		information.assign(info.begin(),info.end());
 	}
 
+	FW1_RECTF rect;
+	rect.Left = rect.Right = 0.0f;
+	rect.Top = rect.Bottom = 0.0f;
+	FW1_RECTF container = _font->MeasureString(information.c_str(),nullptr,overlayTextSize,&rect,FW1_RESTORESTATE | FW1_NOWORDWRAP);
+
+	_quad->Resize(_immediateContext,
+		margin,margin,
+		container.Right + (2 * margin),container.Bottom + (2 * margin),
+		static_cast<float>(_system->GetGraphicsImpl()->GetScreenX()),
+		static_cast<float>(_system->GetGraphicsImpl()->GetScreenY()));
+	_quad->Draw(_immediateContext,overlayBackgroundColor);
+
 	_font->DrawString(
 		_immediateContext,
 		information.c_str(),// String
-		14.0f,// Font size
-		0.0f,// X position
-		0.0f,// Y position
-		0xFFFFFFFF,// Text color
+		overlayTextSize,// Font size
+		(2 * margin),// X position
+		(2 * margin),// Y position
+		overlayTextColor,// Text color
 		FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
 	);
 }

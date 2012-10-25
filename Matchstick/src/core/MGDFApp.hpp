@@ -2,6 +2,7 @@
 
 #include "FW1FontWrapper/FW1FontWrapper.h"
 
+#include "MGDFQuad.hpp"
 #include "MGDFD3DAppFramework.hpp"
 #include "core.impl/MGDFSystemImpl.hpp"
 
@@ -37,6 +38,7 @@ private:
 	bool _initialized;
 	double _alpha;
 	System *_system;
+	Quad *_quad;
 	IFW1FontWrapper *_font;
 };
 

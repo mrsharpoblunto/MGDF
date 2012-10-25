@@ -50,6 +50,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resources", "resources", "{
 		content\resources\gameIcon.png = content\resources\gameIcon.png
 		content\resources\gameSystemIcon.ico = content\resources\gameSystemIcon.ico
 		content\resources\preferences.json = content\resources\preferences.json
+		content\resources\quad.pso = content\resources\quad.pso
+		content\resources\quad.vso = content\resources\quad.vso
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{3464DE22-C75C-4826-B33B-7EB283CC060C}"
