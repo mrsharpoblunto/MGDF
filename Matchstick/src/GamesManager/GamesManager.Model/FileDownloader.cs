@@ -101,7 +101,7 @@ namespace MGDF.GamesManager.Model
 
         private static bool OnCheckRemoteCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            return true;
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
     }
 }
