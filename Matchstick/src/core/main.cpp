@@ -33,7 +33,12 @@ MGDFApp *_application=nullptr;
 
 D3DAPP_WNDPROC(MGDFAppWndProc,_application)
 
-int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdline,int nCmdShow)
+int WINAPI WinMain(
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPreviousInstance,
+    _In_ LPSTR lpCmdLine,
+    _In_ int nCmdShow
+    )
 {
 	//Catch memory leaks
 	#if defined(DEBUG) | defined(_DEBUG)

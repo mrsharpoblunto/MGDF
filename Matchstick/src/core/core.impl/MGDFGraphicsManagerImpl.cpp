@@ -30,7 +30,7 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	_backBufferMultiSampleLevel = 1;
 	_vsync = true;
 
-	UINT maxAdaptorModes;
+	UINT maxAdaptorModes=0U;
 	if (FAILED(output->GetDisplayModeList(BACKBUFFER_FORMAT,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,nullptr)))
 	{
 		SAFE_RELEASE(output);

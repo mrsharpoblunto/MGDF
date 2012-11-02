@@ -35,7 +35,7 @@ namespace MGDF.GamesManager.Controls
 
         public void Invoke(InvokeDelegate d)
         {
-            d();
+            if (d!=null) d();
         }
 
         public void Show(string text)

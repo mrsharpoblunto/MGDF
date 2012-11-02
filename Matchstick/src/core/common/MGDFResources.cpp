@@ -205,7 +205,7 @@ std::wstring Resources::ToWString(const std::string &str)
     wchar_t *wstrTo = new wchar_t[sizeNeeded];
     MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstrTo[0], sizeNeeded);
     std::wstring result(&wstrTo[0],str.size());
-	delete wstrTo;
+	delete[] wstrTo;
 	return result;
 }
 

@@ -45,7 +45,10 @@ namespace MGDF.GamesManager.MVP.Presenters
             {
                 if (Game.Current.GameIconData != null)
                 {
-                    View.GameIcon = Image.FromStream(new MemoryStream(Game.Current.GameIconData));
+                    using (var memoryStream = new MemoryStream(Game.Current.GameIconData))
+                    {
+                        View.GameIcon = Image.FromStream(memoryStream);
+                    }
                 }
             }
             catch (Exception ex)

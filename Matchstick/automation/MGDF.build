@@ -14,8 +14,8 @@
   <property name="program_files_path" value="${environment::get-variable('ProgramFiles')}" />
 	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.4.8\bin\nunit-console.exe"/>
 	<property name="nantcontrib_path" value="${program_files_path}\NantContrib-0.85\bin"/>
-  <property name="vc_install_path" value="${program_files_path}\Microsoft Visual Studio 10.0" />
-  <property name="windows_sdk_path" value="c:\program files\Microsoft SDKs\Windows\v7.0A" />
+  <property name="vc_install_path" value="${program_files_path}\Microsoft Visual Studio 11.0" />
+  <property name="windows_sdk_path" value="c:\program files\Microsoft SDKs\Windows\v6.0A" />
   <property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
   <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
   <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>

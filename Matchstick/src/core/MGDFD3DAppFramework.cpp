@@ -186,8 +186,8 @@ void D3DAppFramework::InitD3D()
 						D3D11_SDK_VERSION,
 						&_d3dDevice,
 						&featureLevel,
-						&_immediateContext) || 
-				featureLevel != D3D_FEATURE_LEVEL_11_0))
+						&_immediateContext)) || 
+				featureLevel != D3D_FEATURE_LEVEL_11_0)
 			{
 				//if we couldn't create the device, or it doesn't support the dx11 feature set
 				SAFE_RELEASE(_immediateContext);
@@ -369,13 +369,13 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 				DrawScene(alpha);//render as per the current active module
 				activeRenderEnd = _timer.GetCurrentTimeTicks();
 
-				if (FAILED(_swapChain->Present(0,0)))//_swapDesc.BufferDesc.RefreshRate.Numerator!=1U,0)))
+				if (FAILED(_swapChain->Present(_swapDesc.BufferDesc.RefreshRate.Numerator!=1U,0)))
 				{
 					FatalError("Direct3d Present() failed");
 				}
 				LARGE_INTEGER renderEnd = _timer.GetCurrentTimeTicks();		
 
-				boost::mutex::scoped_lock lock(_statsMutex);
+				boost::mutex::scoped_lock statsLock(_statsMutex);
 				_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
 				_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
 			}
@@ -414,7 +414,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	{
 	case WM_INPUT:
 	{	
-		UINT dwSize;
+		UINT dwSize=0U;
 
 		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 		LPBYTE lpb = new BYTE[dwSize];

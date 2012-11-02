@@ -142,7 +142,7 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 			char *data = new char[file->GetSize()];
 			file->Read(data,file->GetSize());
 			success = strncmp(data,"hello world",file->GetSize())==0;
-			delete data;
+			delete[] data;
 		}
 
 		if (!success)

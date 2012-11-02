@@ -41,7 +41,7 @@ namespace MGDF.GamesManager.PackageGen
                         return 1;
                     }
 
-                    CreateInstaller(args[0], args[2], file => file.StartsWith(".svn"));
+                    CreateInstaller(args[0], args[2], file => file.StartsWith(".svn",StringComparison.OrdinalIgnoreCase));
 
                     if (!ValidateInstaller(args[2])) return 1;
 
@@ -66,7 +66,7 @@ namespace MGDF.GamesManager.PackageGen
                     }
 
                     GameInstall oldInstall;
-                    if (!ValidateNonUpdateInstaller(args[1],out oldInstall)) return 1;
+                    if (!ValidateNonUpdateInstaller(args[1], out oldInstall)) return 1;
 
                     if (!File.Exists(args[2]))
                     {
@@ -82,6 +82,10 @@ namespace MGDF.GamesManager.PackageGen
                                           UpdateDescription = newInstall.Game.Description,
                                           UpdateVersion = oldInstall.Game.Version
                                       };
+
+                    oldInstall.Dispose();
+                    newInstall.Dispose();
+
                     CreateUpdateInstaller(details, args[1], args[2], args[4]);
 
                     if (!ValidateInstaller(args[4])) return 1;
@@ -109,8 +113,10 @@ namespace MGDF.GamesManager.PackageGen
         private static bool ValidateInstaller(string installerFile)
         {
             Console.WriteLine("Validating installer package "+installerFile+"...");
-            GameInstall install = new GameInstall(installerFile);
-            return ValidateInstaller(install);
+            using (GameInstall install = new GameInstall(installerFile))
+            {
+                return ValidateInstaller(install);
+            }
         }
 
         private static bool ValidateNonUpdateInstaller(string installerFile,out GameInstall install)
@@ -122,10 +128,12 @@ namespace MGDF.GamesManager.PackageGen
                 if (install.IsUpdate)
                 {
                     Console.WriteLine("Error: Cannot use update installers as the basis for creating an update.");
+                    install.Dispose();
                     return false;
                 }
                 return true;
             }
+            install.Dispose();
             return false;
         }
 
@@ -147,7 +155,7 @@ namespace MGDF.GamesManager.PackageGen
         {
             Console.WriteLine("Creating install package "+output+"...");
 
-            if (!input.EndsWith("\\")) input += "\\";
+            if (!input.EndsWith("\\",StringComparison.OrdinalIgnoreCase)) input += "\\";
             int trimOffset = (string.IsNullOrEmpty(input) ? Path.GetPathRoot(input).Length : input.Length);
  
             List<string> fileSystemEntries = new List<string>();
@@ -167,7 +175,7 @@ namespace MGDF.GamesManager.PackageGen
                             continue;
                         }
 
-                        if (filePath.EndsWith("\\"))
+                        if (filePath.EndsWith("\\",StringComparison.OrdinalIgnoreCase))
                         {
                             var directoryInfo = new DirectoryInfo(filePath);
                             compressor.PutNextEntry(new ZipEntry(filePath.Substring(trimOffset))
@@ -210,114 +218,118 @@ namespace MGDF.GamesManager.PackageGen
             //list all files/directories in the old archive
             var oldDirectories = new Dictionary<string, ZipEntry>();
             var oldFiles = new Dictionary<string, ZipEntry>();
-            var oldArchive = new ZipFile(oldArchiveFile);
-            foreach (ZipEntry entry in oldArchive)
+            using (var oldArchive = new ZipFile(oldArchiveFile))
             {
-                string name = entry.Name.ToLowerInvariant();
-                if (entry.IsFile)
+                foreach (ZipEntry entry in oldArchive)
                 {
-                    oldFiles.Add(name, entry);
-                }
-                else
-                {
-                    oldDirectories.Add(name, entry);
+                    string name = entry.Name.ToLowerInvariant();
+                    if (entry.IsFile)
+                    {
+                        oldFiles.Add(name, entry);
+                    }
+                    else
+                    {
+                        oldDirectories.Add(name, entry);
+                    }
                 }
             }
 
             //list all files/directories in the new archive
             var newDirectories = new Dictionary<string, ZipEntry>();
             var newFiles = new Dictionary<string, ZipEntry>();
-            var newArchive = new ZipFile(newArchiveFile);
-            foreach (ZipEntry entry in newArchive)
+            using (var newArchive = new ZipFile(newArchiveFile))
             {
-                string name = entry.Name.ToLowerInvariant();
-                if (entry.IsFile)
+                foreach (ZipEntry entry in newArchive)
                 {
-                    newFiles.Add(name, entry);
-                }
-                else
-                {
-                    newDirectories.Add(name, entry);
-                }
-            }
-
-            //any files in the original archive and not in the new one should be marked for removal.
-            List<string> removeFiles = new List<string>();
-            foreach (var dir in oldDirectories)
-            {
-                if (!newDirectories.ContainsKey(dir.Key)) removeFiles.Add(dir.Key);
-            }
-            foreach (var file in oldFiles)
-            {
-                if (!newFiles.ContainsKey(file.Key)) removeFiles.Add(file.Key);
-            }
-
-            //list all new or newer files/directories in archive2
-            var addDirectories = new Dictionary<string, ZipEntry>();
-            var addFiles = new Dictionary<string, ZipEntry>();
-            foreach (ZipEntry entry in newArchive)
-            {
-                string name = entry.Name.ToLowerInvariant();
-                if (entry.IsFile)
-                {
-                    if (!oldFiles.ContainsKey(name) || oldFiles[name].DateTime < entry.DateTime)
-                        addFiles.Add(name, entry);
-                }
-                else
-                {
-                    if (!oldDirectories.ContainsKey(name) || oldDirectories[name].DateTime < entry.DateTime)
-                        addDirectories.Add(name, entry);
-                }
-            }
-
-            //write out the files to a new zip archive
-            using (var outputStream = new FileStream(updateArchiveFile, FileMode.Create, FileAccess.Write, FileShare.None))
-            {
-                using (var compressor = new ZipOutputStream(outputStream))
-                {
-                    compressor.SetLevel(9);
-
-                    //add new directories
-                    foreach (var dir in addDirectories)
+                    string name = entry.Name.ToLowerInvariant();
+                    if (entry.IsFile)
                     {
-                        compressor.PutNextEntry(new ZipEntry(dir.Value.Name)
-                                                    {
-                                                        DateTime = dir.Value.DateTime,
-                                                    });
+                        newFiles.Add(name, entry);
                     }
-
-                    //add new or updated files
-                    foreach (var file in addFiles)
+                    else
                     {
-                        compressor.PutNextEntry(new ZipEntry(file.Value.Name)
-                                                    {
-                                                        DateTime = file.Value.DateTime,
-                                                        Size = file.Value.Size
-                                                    });
+                        newDirectories.Add(name, entry);
+                    }
+                }
 
-                        var data = new byte[2048];
-                        using (var inputStream = newArchive.GetInputStream(file.Value))
+                //any files in the original archive and not in the new one should be marked for removal.
+                List<string> removeFiles = new List<string>();
+                foreach (var dir in oldDirectories)
+                {
+                    if (!newDirectories.ContainsKey(dir.Key)) removeFiles.Add(dir.Key);
+                }
+                foreach (var file in oldFiles)
+                {
+                    if (!newFiles.ContainsKey(file.Key)) removeFiles.Add(file.Key);
+                }
+
+                //list all new or newer files/directories in archive2
+                var addDirectories = new Dictionary<string, ZipEntry>();
+                var addFiles = new Dictionary<string, ZipEntry>();
+                foreach (ZipEntry entry in newArchive)
+                {
+                    string name = entry.Name.ToLowerInvariant();
+                    if (entry.IsFile)
+                    {
+                        if (!oldFiles.ContainsKey(name) || oldFiles[name].DateTime < entry.DateTime)
+                            addFiles.Add(name, entry);
+                    }
+                    else
+                    {
+                        if (!oldDirectories.ContainsKey(name) || oldDirectories[name].DateTime < entry.DateTime)
+                            addDirectories.Add(name, entry);
+                    }
+                }
+
+                //write out the files to a new zip archive
+                using (var outputStream = new FileStream(updateArchiveFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    using (var compressor = new ZipOutputStream(outputStream))
+                    {
+                        compressor.SetLevel(9);
+
+                        //add new directories
+                        foreach (var dir in addDirectories)
                         {
-                            int bytesRead = inputStream.Read(data, 0, data.Length);
-                            while (bytesRead > 0)
+                            compressor.PutNextEntry(new ZipEntry(dir.Value.Name)
+                                                        {
+                                                            DateTime = dir.Value.DateTime,
+                                                        });
+                        }
+
+                        //add new or updated files
+                        foreach (var file in addFiles)
+                        {
+                            compressor.PutNextEntry(new ZipEntry(file.Value.Name)
+                                                        {
+                                                            DateTime = file.Value.DateTime,
+                                                            Size = file.Value.Size
+                                                        });
+
+                            var data = new byte[2048];
+                            using (var inputStream = newArchive.GetInputStream(file.Value))
                             {
-                                compressor.Write(data, 0, bytesRead);
-                                bytesRead = inputStream.Read(data, 0, data.Length);
+                                int bytesRead = inputStream.Read(data, 0, data.Length);
+                                while (bytesRead > 0)
+                                {
+                                    compressor.Write(data, 0, bytesRead);
+                                    bytesRead = inputStream.Read(data, 0, data.Length);
+                                }
                             }
                         }
+
+                        //add update.json
+                        byte[] updateData = CreateUpdateFileData(updateDetails, removeFiles);
+                        ZipEntry updateEntry = new ZipEntry("update.json")
+                                                   {
+                                                       DateTime = DateTime.UtcNow,
+                                                       Size = updateData.Length
+                                                   };
+                        compressor.PutNextEntry(updateEntry);
+                        compressor.Write(updateData, 0, updateData.Length);
+
+                        compressor.Finish();
                     }
-
-                    //add update.json
-                    byte[] updateData = CreateUpdateFileData(updateDetails, removeFiles);
-                    ZipEntry updateEntry = new ZipEntry("update.json")
-                                               {
-                                                   DateTime = DateTime.UtcNow,
-                                                   Size = updateData.Length
-                                               };
-                    compressor.PutNextEntry(updateEntry);
-                    compressor.Write(updateData, 0, updateData.Length);
-
-                    compressor.Finish();
                 }
             }
         }

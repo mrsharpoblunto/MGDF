@@ -78,7 +78,7 @@ namespace MGDF.GamesManager
                 if (!UACControl.IsAdmin())
                 {
                     Logger.Current.Write(LogInfoLevel.Error, "Registering requires administrator access");
-                    ViewFactory.Current.CreateView<IMessage>().Show("Registering requires administrator access", "Administrator accesss required");
+                    ViewFactory.Current.CreateView<IMessage>().Show("Registering requires administrator access", "Administrator access required");
                     return -1;
                 }
 
@@ -87,11 +87,11 @@ namespace MGDF.GamesManager
             }
             else if (commandLine[Resources.GamesManagerArguments.DeregisterArgument] != null)
             {
-                Logger.Current.Write(LogInfoLevel.Info, "Dregistering game...");
+                Logger.Current.Write(LogInfoLevel.Info, "Deregistering game...");
                 if (!UACControl.IsAdmin())
                 {
                     Logger.Current.Write(LogInfoLevel.Error, "Deregistering requires administrator access");
-                    ViewFactory.Current.CreateView<IMessage>().Show("Deregistering requires administrator access", "Administrator accesss required");
+                    ViewFactory.Current.CreateView<IMessage>().Show("Deregistering requires administrator access", "Administrator access required");
                     return -1;
                 }
 
@@ -121,7 +121,7 @@ namespace MGDF.GamesManager
                 if (!UACControl.IsAdmin())
                 {
                     Logger.Current.Write(LogInfoLevel.Error, "Updating requires administrator access");
-                    ViewFactory.Current.CreateView<IMessage>().Show("Updating requires administrator access", "Administrator accesss required");
+                    ViewFactory.Current.CreateView<IMessage>().Show("Updating requires administrator access", "Administrator access required");
                     return -1;
                 }
 

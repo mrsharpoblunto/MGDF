@@ -19,10 +19,11 @@ namespace MGDF.GamesManager.MVP.Views.Impl
                 ControlStyles.OptimizedDoubleBuffer, true);
         }
 
-        protected new Image BackgroundImage { set; private get; }
+        protected new Image BackgroundImage { private get; set; }
     
         protected override void OnPaintBackground(PaintEventArgs e)
         {
+            if (e == null) return;
             Graphics g = e.Graphics;
 
 
