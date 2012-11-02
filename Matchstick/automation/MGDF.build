@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<project name="MGDF" default="all" basedir="..\" xmlns="http://nant.sf.net/release/0.86-beta1/nant.xsd">
+<project name="MGDF" default="all" basedir="..\" xmlns="http://nant.sf.net/release/0.92/nant.xsd">
 
-	<property name="nant.settings.currentframework" value="net-4.0"/>
+	<property name="nant.settings.currentframework" value="net-4.5"/>
 	<include buildfile="Automation\Functions.include"/>
   
 	<description>MGDF Build Script</description>
@@ -11,7 +11,7 @@
 	<property name="buildnumber" value="0.9.${year.since2007}${month.now}${day.now}.${hour.now}${minute.now}"/>
 
 	<property name="msbuild_target" value="debug"/>
-  <property name="program_files_path" value="${environment::get-variable('ProgramFiles')}" />
+  <property name="program_files_path" value="${environment::get-variable('ProgramFiles(x86)')}" />
 	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.4.8\bin\nunit-console.exe"/>
 	<property name="nantcontrib_path" value="${program_files_path}\NantContrib-0.85\bin"/>
   <property name="vc_install_path" value="${program_files_path}\Microsoft Visual Studio 11.0" />

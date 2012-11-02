@@ -1,4 +1,4 @@
-<project name="Functions" basedir="..\" xmlns="http://nant.sf.net/release/0.86-beta1/nant.xsd">
+<project name="Functions" basedir="..\" xmlns="http://nant.sf.net/release/0.92/nant.xsd">
 
   <property name="date.now" value="${ datetime::now() }"/>
   <property name="year.now" value="${ datetime::get-year( date.now ) }"/>
@@ -13,6 +13,12 @@
   <property name="minute.now" value="0${ minute.now }" if="${ int::parse( minute.now ) &lt; 10 }"/>
 
   <script language="C#">
+    <references>
+      <include name="System.dll" />
+    </references>
+    <imports>
+      <import namespace="System.Text.RegularExpressions" />
+    </imports>
     <code>
       <![CDATA[
         [TaskName("createsolutioninfo")]
@@ -57,6 +63,12 @@
   </script>
 
   <script language="C#">
+    <references>
+      <include name="System.dll" />
+    </references>
+    <imports>
+      <import namespace="System.Text.RegularExpressions" />
+    </imports>
     <code>
       <![CDATA[
         [TaskName("mgdfversion")]
