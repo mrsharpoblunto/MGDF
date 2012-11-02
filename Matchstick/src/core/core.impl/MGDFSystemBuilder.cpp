@@ -25,14 +25,14 @@
 
 namespace MGDF { namespace core {
 
-bool SystemBuilder::RegisterBaseComponents(HINSTANCE instance,HWND window)
+bool SystemBuilder::RegisterBaseComponents()
 {
 	//init global common components
 	InitParameterManager();
 	InitResources();
 	InitLogger();
 
-	storage::IStorageFactoryComponent *storageImpl = storage::CreateStorageFactoryComponentImpl(instance,window);
+	storage::IStorageFactoryComponent *storageImpl = storage::CreateStorageFactoryComponentImpl();
 	if (storageImpl!=nullptr) {
 		Components::Instance().RegisterComponent<storage::IStorageFactoryComponent>(storageImpl);
 	}
@@ -44,9 +44,9 @@ bool SystemBuilder::RegisterBaseComponents(HINSTANCE instance,HWND window)
 	return true;
 }
 
-bool SystemBuilder::RegisterAdditionalComponents(HINSTANCE instance,HWND window,std::string gameUid)
+bool SystemBuilder::RegisterAdditionalComponents(std::string gameUid)
 {
-	input::IInputManagerComponent *input = input::CreateInputManagerComponentImpl(instance,window);
+	input::IInputManagerComponent *input = input::CreateInputManagerComponentImpl();
 	if (input!=nullptr) {
 		Components::Instance().RegisterComponent<input::IInputManagerComponent>(input);
 	}
@@ -55,7 +55,7 @@ bool SystemBuilder::RegisterAdditionalComponents(HINSTANCE instance,HWND window,
 		return false;
 	}
 
-	vfs::IVirtualFileSystemComponent *vfs = vfs::CreateVirtualFileSystemComponentImpl(instance,window,GetLoggerImpl());
+	vfs::IVirtualFileSystemComponent *vfs = vfs::CreateVirtualFileSystemComponentImpl(GetLoggerImpl());
 	if (vfs!=nullptr) {
 		Components::Instance().RegisterComponent<vfs::IVirtualFileSystemComponent>(vfs);
 	}
@@ -64,7 +64,7 @@ bool SystemBuilder::RegisterAdditionalComponents(HINSTANCE instance,HWND window,
 		return false;
 	}
 
-	audio::ISoundManagerComponent *audioImpl = audio::CreateSoundManagerComponentImpl(instance,vfs,window);
+	audio::ISoundManagerComponent *audioImpl = audio::CreateSoundManagerComponentImpl(vfs);
 	if (audioImpl!=nullptr) {
 		Components::Instance().RegisterComponent<audio::ISoundManagerComponent>(audioImpl);
 	}
@@ -85,11 +85,11 @@ void SystemBuilder::UnregisterComponents()
 	Components::Instance().UnregisterComponent<vfs::IVirtualFileSystemComponent>();
 }
 
-System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
+System *SystemBuilder::CreateSystem()
 {
 	//do the bare minimum setup required to be able to 
 	//load up the game configuration file
-	if (!RegisterBaseComponents(instance,window))
+	if (!RegisterBaseComponents())
 	{
 		return nullptr;
 	}
@@ -124,7 +124,7 @@ System *SystemBuilder::CreateSystem(HINSTANCE instance,HWND window)
 
 	//now that the game file loaded, initialize everything else
 	//and set the log directory correctly.
-	if (!RegisterAdditionalComponents(instance,window,game->GetUid()))
+	if (!RegisterAdditionalComponents(game->GetUid()))
 	{
 		return nullptr;
 	}
@@ -165,8 +165,8 @@ void SystemBuilder::InitParameterManager()
 	
 	//use the supplied params.txt in the application path (if provided)
 	//providing a params.txt can be useful for debugging purposes.
-	boost::filesystem3::path paramsTxt(Resources::Instance().ParamsFile(),boost::filesystem::native);
-	if (boost::filesystem3::exists(paramsTxt))
+	boost::filesystem::path paramsTxt(Resources::Instance().ParamsFile(),boost::filesystem::native);
+	if (boost::filesystem::exists(paramsTxt))
 	{
 		std::ifstream input(paramsTxt.native().c_str(),std::ios::in);
 		std::stringstream buffer;

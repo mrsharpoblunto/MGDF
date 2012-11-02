@@ -13,10 +13,10 @@
 
 namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
 
-IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent(HINSTANCE instance,HWND window)
+IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent()
 {
 	try {
-		return new JsonCppStorageFactoryComponent(instance,window);
+		return new JsonCppStorageFactoryComponent();
 	}
 	catch (...)
 	{
@@ -24,7 +24,7 @@ IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent(HINSTANCE instanc
 	}
 }
 
-JsonCppStorageFactoryComponent::JsonCppStorageFactoryComponent(HINSTANCE instance,HWND window)
+JsonCppStorageFactoryComponent::JsonCppStorageFactoryComponent()
 {
 }
 

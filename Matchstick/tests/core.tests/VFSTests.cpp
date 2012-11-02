@@ -34,7 +34,7 @@ SETUP(VFSTestFixture)
 	_logger = new MGDF::core::tests::MockLogger();
 	_errorHandler = new MGDF::core::tests::MockErrorHandler();
 
-	_vfs = CreateVirtualFileSystemComponentImpl(nullptr,nullptr,(ILogger *)_logger);
+	_vfs = CreateVirtualFileSystemComponentImpl((ILogger *)_logger);
 	_vfs->RegisterArchiveHandler(CreateZipArchiveHandlerImpl((ILogger *)_logger,(IErrorHandler *)_errorHandler));	
 }
 

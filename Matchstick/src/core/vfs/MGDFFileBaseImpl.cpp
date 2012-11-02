@@ -40,8 +40,8 @@ void FileBaseImpl::Dispose()
 
 time_t FileBaseImpl::GetLastWriteTime() const
 {
-	boost::filesystem3::path path(GetPhysicalPath());
-	return boost::filesystem3::last_write_time(path);
+	boost::filesystem::path path(GetPhysicalPath());
+	return boost::filesystem::last_write_time(path);
 }
 
 IFile *FileBaseImpl::GetParent() const

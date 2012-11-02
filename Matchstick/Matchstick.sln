@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{7DB53567-CA6D-4F58-A2AB-337764CAFF55}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GamesManager", "GamesManager", "{3FAF788A-9BFB-413C-A85B-197BEE7F1321}"
@@ -27,8 +27,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{321F
 		tests\content\preferences.json = tests\content\preferences.json
 		tests\content\Update.json = tests\content\Update.json
 	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Web", "Web", "{B338F8A9-A30E-4464-832D-102678C88A6D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{92937010-1E2A-4928-A03A-49F6AD1C9927}"
 EndProject
@@ -64,10 +62,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{3464
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core", "src\core\core.vcxproj", "{762B44B2-4615-4C7D-9418-DC604A6D930A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C} = {E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.input", "src\core\input\core.input.vcxproj", "{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.input.directInput8", "src\core\input\directInput8\core.input.directInput8.vcxproj", "{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.vfs", "src\core\vfs\core.vfs.vcxproj", "{60A53EEC-B17E-4BB8-9626-064ADA85CFC7}"
 EndProject
@@ -76,6 +75,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.audio", "src\core\audio\core.audio.vcxproj", "{1FF53D27-8086-4755-829D-53B5D13DB505}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.impl", "src\core\core.impl\core.impl.vcxproj", "{84289E70-D37A-482E-A1D5-72E6773826DC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C} = {E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Common", "src\GamesManager\GamesManager.Common\GamesManager.Common.csproj", "{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}"
 EndProject
@@ -95,8 +97,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Tests", "tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Tests.Common", "tests\GamesManager.Tests.Common\GamesManager.Tests.Common.csproj", "{73C28FE8-F8A1-440A-8160-57DA7E318CD3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatchstickFramework.Web", "src\web\MatchstickFramework.Web\MatchstickFramework.Web.csproj", "{391B7998-66A3-442C-B7CD-4761F3A069D6}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.audio.openal", "src\core\audio\openal\core.audio.openal.vcxproj", "{F3930F29-C621-41EA-892C-8B5D48C5D2BB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.FrameworkUpdater", "src\GamesManager\GamesManager.FrameworkUpdater\GamesManager.FrameworkUpdater.csproj", "{CF92A5AA-E52E-4E60-AC3A-25996E089B08}"
@@ -114,6 +114,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.storage", "src\core\storage\core.storage.vcxproj", "{6247D689-9B0F-4FCB-817D-2258739B5AAE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.storage.jsoncpp", "src\core\storage\jsoncpp\core.storage.jsoncpp.vcxproj", "{CD45229C-C675-473F-8AA1-2F8A782D754B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.input.xinput", "src\core\input\xinput\core.input.xinput.vcxproj", "{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -145,16 +147,6 @@ Global
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}.Release|Win32.ActiveCfg = Release|Win32
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}.Release|Win32.Build.0 = Release|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Debug|Win32.ActiveCfg = Debug|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Debug|Win32.Build.0 = Debug|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Release|Any CPU.ActiveCfg = Release|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Release|Win32.ActiveCfg = Release|Win32
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6}.Release|Win32.Build.0 = Release|Win32
 		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
 		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7}.Debug|Mixed Platforms.Build.0 = Debug|Win32
@@ -301,18 +293,6 @@ Global
 		{73C28FE8-F8A1-440A-8160-57DA7E318CD3}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{73C28FE8-F8A1-440A-8160-57DA7E318CD3}.Release|Win32.ActiveCfg = Release|Any CPU
 		{73C28FE8-F8A1-440A-8160-57DA7E318CD3}.Release|Win32.Build.0 = Release|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Debug|Win32.Build.0 = Debug|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Release|Win32.ActiveCfg = Release|Any CPU
-		{391B7998-66A3-442C-B7CD-4761F3A069D6}.Release|Win32.Build.0 = Release|Any CPU
 		{F3930F29-C621-41EA-892C-8B5D48C5D2BB}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{F3930F29-C621-41EA-892C-8B5D48C5D2BB}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
 		{F3930F29-C621-41EA-892C-8B5D48C5D2BB}.Debug|Mixed Platforms.Build.0 = Debug|Win32
@@ -411,6 +391,16 @@ Global
 		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Win32.ActiveCfg = Release|Win32
 		{CD45229C-C675-473F-8AA1-2F8A782D754B}.Release|Win32.Build.0 = Release|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Debug|Win32.Build.0 = Debug|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Release|Any CPU.ActiveCfg = Release|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Release|Win32.ActiveCfg = Release|Win32
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -428,7 +418,6 @@ Global
 		{92937010-1E2A-4928-A03A-49F6AD1C9927} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{762B44B2-4615-4C7D-9418-DC604A6D930A} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC} = {5656FE26-2995-4842-B088-D8E29338C13E}
-		{3544CC4C-ABD8-4820-88C7-B93FA53A78E6} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{60A53EEC-B17E-4BB8-9626-064ADA85CFC7} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{608DC682-E676-4AA0-8886-FB8177C3A9B6} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{1FF53D27-8086-4755-829D-53B5D13DB505} = {5656FE26-2995-4842-B088-D8E29338C13E}
@@ -436,7 +425,7 @@ Global
 		{F3930F29-C621-41EA-892C-8B5D48C5D2BB} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{6247D689-9B0F-4FCB-817D-2258739B5AAE} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{CD45229C-C675-473F-8AA1-2F8A782D754B} = {5656FE26-2995-4842-B088-D8E29338C13E}
-		{391B7998-66A3-442C-B7CD-4761F3A069D6} = {B338F8A9-A30E-4464-832D-102678C88A6D}
+		{E2D534DE-F3E6-44A3-B7D9-EEAD49C56A2C} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{8B2601FE-BE04-4EC9-B703-48C106200470} = {92937010-1E2A-4928-A03A-49F6AD1C9927}
 		{77B40DFE-E113-43EC-8059-099246687405} = {92937010-1E2A-4928-A03A-49F6AD1C9927}
 		{B8D843B7-9EAC-410E-9131-57B33F27605A} = {23BDDADA-83DC-4980-B2B1-CBB0B678942F}

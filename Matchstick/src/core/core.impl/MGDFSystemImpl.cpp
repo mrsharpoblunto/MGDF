@@ -342,7 +342,7 @@ bool System::CompleteSave(const char *save)
 		}
 		//swap the pending with the completed save
 		boost::system::error_code ec;
-		boost::filesystem3::rename(pendingSaveDir,saveDir);
+		boost::filesystem::rename(pendingSaveDir,saveDir);
 
 		//update the list of save games
 		GetSaves();
@@ -421,14 +421,14 @@ IModule *System::CreateModule()
 /**
 returns the module on the top of the stack
 */
-IModule *System::GetModule() {
+IModule *System::GetModule() const {
 	return _module;
 }
 
 void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex)
 {
 	LARGE_INTEGER inputStart = _timer.GetCurrentTimeTicks();
-	_input->ReadInputDevices();
+	_input->ProcessInput();
 	LARGE_INTEGER inputEnd = _timer.GetCurrentTimeTicks();
 
 	LARGE_INTEGER audioStart = _timer.GetCurrentTimeTicks();
@@ -584,7 +584,7 @@ IGraphicsManager *System::GetGraphics() const
 	return _graphics;
 }
 
-GraphicsManager *System::GetGraphicsImpl()
+GraphicsManager *System::GetGraphicsImpl() const
 {
 	return _graphics;
 }
@@ -600,6 +600,11 @@ ITimer * System::GetTimer() const
 }
 
 IInputManager *System::GetInput() const
+{
+	return _input;
+}
+
+input::IInputManagerComponent *System::GetInputManagerImpl() const
 {
 	return _input;
 }

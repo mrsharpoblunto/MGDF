@@ -36,7 +36,6 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
 	, _maximized(false)
 	, _resizing(false)
 	, _running(false)
-	, _simThread(nullptr)
 	, _internalShutDown(false)
 {
 }
@@ -86,6 +85,7 @@ ID3D11Device *D3DAppFramework::GetD3DDevice() const
 
 void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure) {
 	InitMainWindow(caption,windowProcedure);
+	InitRawInput();
 	InitD3D();
 }
 
@@ -126,6 +126,26 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 		ShowWindow(_window, SW_SHOW);
 		UpdateWindow(_window);		
 	}
+}
+
+void D3DAppFramework::InitRawInput()
+{
+	RAWINPUTDEVICE Rid[2] ;
+        
+	Rid[0].usUsagePage = 0x01 ;  // desktop input
+	Rid[0].usUsage = 0x02 ;      // mouse
+	Rid[0].dwFlags =  0;
+	Rid[0].hwndTarget = _window;
+
+	Rid[1].usUsagePage = 0x01 ;  // desktop input
+	Rid[1].usUsage = 0x06 ;      // keyboard
+	Rid[1].dwFlags = 0;
+	Rid[1].hwndTarget = _window ;
+
+	if( !RegisterRawInputDevices( Rid, 2, sizeof(Rid[0]) ) )
+	{
+		FatalError("Failed to register raw input devices for mouse and keyboard");
+	}	
 }
 
 void D3DAppFramework::InitD3D()
@@ -292,10 +312,10 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 
 	_stats.SetExpectedSimTime(1/(double)simulationFps);
 
-	_startRendering = false;
+	bool startRendering = false;
 
-	//run the simulation on a separate thread to the renderer
-	_simThread = new boost::thread([this]()
+	//run the simulation in its own thread
+	boost::thread simThread([this,&startRendering]()
 	{
 		_running = true;
 		while (_running)
@@ -303,7 +323,7 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 			LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
 
 			UpdateScene(_stats.ExpectedSimTime());//run a frame of game logic
-			_startRendering = true;
+			startRendering = true;
 
 			//wait until the next frame to begin if we have any spare time left over
 			_frameLimiter->LimitFps();
@@ -314,18 +334,13 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 			_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
 		}
 	});
-	while (!_startRendering) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
 
-	MSG  msg;
-    msg.message = WM_NULL;
-	while (msg.message != WM_QUIT) {
-		//deal with any windows messages
-		if(PeekMessage(&msg,0,0,0,PM_REMOVE))
+	//run the renderer in its own thread
+	boost::thread renderThread([this,&startRendering]()
+	{
+		while (!startRendering) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
+		while (_running)
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-		else {
 			boost::mutex::scoped_lock lock(_renderMutex);
 
 			//the game logic step may force the device to reset, so lets check
@@ -342,9 +357,9 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 
 			if (!_minimized)//don't bother rendering if the window is minimzed
 			{
-				float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; //red,green,blue,alpha 
+				const float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; //RGBA
 				_immediateContext->ClearRenderTargetView(_renderTargetView, reinterpret_cast<const float*>(&black));
-				_immediateContext->ClearDepthStencilView(_depthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0);
+				_immediateContext->ClearDepthStencilView(_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 				LARGE_INTEGER renderStart = _timer.GetCurrentTimeTicks();
 				LARGE_INTEGER activeRenderEnd;
@@ -354,7 +369,7 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 				DrawScene(alpha);//render as per the current active module
 				activeRenderEnd = _timer.GetCurrentTimeTicks();
 
-				if (FAILED(_swapChain->Present(_swapDesc.BufferDesc.RefreshRate.Numerator!=1U,0)))
+				if (FAILED(_swapChain->Present(0,0)))//_swapDesc.BufferDesc.RefreshRate.Numerator!=1U,0)))
 				{
 					FatalError("Direct3d Present() failed");
 				}
@@ -365,14 +380,29 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 				_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
 			}
 		}
+	});
+
+	MSG  msg;
+    msg.message = WM_NULL;
+	while (msg.message != WM_QUIT) {
+		//deal with any windows messages on the main thread, this allows us
+		//to ensure that any user input is handled with as little latency as possible
+		//independant of the update rate for the sim and render threads.
+		if(PeekMessage(&msg,0,0,0,PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		else 
+		{
+			//don't hog the CPU when there are no messages
+			Sleep(1);
+		}
 	}
 
-	if (_simThread!=nullptr)
-	{
-		_running = false;
-		_simThread->join();
-		delete _simThread;
-	}
+	_running = false;
+	simThread.join();
+	renderThread.join();
 
 	delete _frameLimiter;
 	return (int)msg.wParam;
@@ -380,12 +410,33 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 
 LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	// Is the application in a minimized or maximized state?
-	static bool minOrMaxed = false;
-
-	RECT clientRect = {0, 0, 0, 0};
 	switch( msg )
 	{
+	case WM_INPUT:
+	{	
+		UINT dwSize;
+
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+		LPBYTE lpb = new BYTE[dwSize];
+		if (lpb == NULL) 
+		{
+			return 0;
+		} 
+		
+		int readSize = GetRawInputData( (HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER) ) ;
+
+		if( readSize != dwSize )
+		{
+			FatalError("GetRawInputData returned incorrect size");
+			return 0;
+		}
+
+		RAWINPUT* rawInput = (RAWINPUT*)lpb;
+		OnRawInput(rawInput);
+		delete [] lpb;
+	}
+	return 0;
+
 	// WM_SIZE is sent when the user resizes the window.  
 	case WM_SIZE:
 		//TODO need member variable for size, so setting full screen doesn't overwrite it,
@@ -439,6 +490,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				}
 				else // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
 				{
+					boost::mutex::scoped_lock lock(_renderMutex);
 					OnResize();
 				}
 			}

@@ -27,7 +27,7 @@ TestModule *Test3::NextTestModule()
 
 void Test3::Update(ISystem *system,TextManagerState *state)
 {
-	if (system->GetInput()->IsKeyPress(KEY_ESCAPE))
+	if (system->GetInput()->IsKeyPress(VK_ESCAPE))
 	{
 		system->ShutDown();
 	}
@@ -161,23 +161,23 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		state->AddLine(WHITE,"Press [ALT]+[ENTER] to toggle fullscreen/windowed mode. Then press [Y/N] if this works correctly");
 		_testState++;
 	}
-	else if (_testState==6 && system->GetInput()->IsKeyPress(KEY_Y))
+	else if (_testState==6 && system->GetInput()->IsKeyPress('Y'))
 	{
 		++_testState;
 		state->SetStatus(GREEN,"[Test Passed]");
 		state->AddLine(WHITE,"Press [ALT]+[F12] to toggle the system information overlay. Then press [Y/N] if this works correctly");
 	}
-	else if (_testState==6 && system->GetInput()->IsKeyPress(KEY_N))
+	else if (_testState==6 && system->GetInput()->IsKeyPress('N'))
 	{
 		_testState =999;
 		state->SetStatus(RED,"[Test Failed]");
 	}
-	else if (_testState==7 && system->GetInput()->IsKeyPress(KEY_Y))
+	else if (_testState==7 && system->GetInput()->IsKeyPress('Y'))
 	{
 		_testState =999;
 		state->SetStatus(GREEN,"[Test Passed]");
 	}
-	else if (_testState==7 && system->GetInput()->IsKeyPress(KEY_N))
+	else if (_testState==7 && system->GetInput()->IsKeyPress('N'))
 	{
 		_testState =999;
 		state->SetStatus(RED,"[Test Failed]");

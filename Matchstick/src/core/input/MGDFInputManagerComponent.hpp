@@ -9,7 +9,8 @@ namespace MGDF { namespace core { namespace input {
 class IInputManagerComponent: public ISystemComponent,public IInputManager,public IDisposable
 {
 public:
-	virtual void ReadInputDevices()=0;//read the state of the current input devices
+	virtual void HandleInput(RAWINPUT *input)=0;//deal with a raw input event
+	virtual void ProcessInput()=0;//do any reading/processing of input required before the current frame 
 };
 
 }}}

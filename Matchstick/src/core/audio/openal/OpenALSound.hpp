@@ -10,6 +10,8 @@
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundManagerComponent.hpp"
 
+using namespace DirectX;
+
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 class OpenALSound: public DisposeImpl<ISound> {

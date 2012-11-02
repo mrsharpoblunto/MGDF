@@ -40,7 +40,7 @@ public:
 	typedef boost::signal<void (void)> ShutDownFunction;//shutDown callback function signature
 	typedef boost::signal<void (std::string,std::string)> FatalErrorFunction;//fatal error callback function signature
 
-	virtual IModule *GetModule()=0;
+	virtual IModule *GetModule() const=0;
 
 	void AddShutDownCallback(const ShutDownFunction::slot_type& callback);
 	void AddFatalErrorCallback(const FatalErrorFunction::slot_type& callback);
@@ -68,11 +68,12 @@ public:
 	void BackBufferChanged();
 	void SetD3DDevice(ID3D11Device *d3dDevice);
 	void CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter);
-	GraphicsManager *GetGraphicsImpl();
+	GraphicsManager *GetGraphicsImpl() const;
+	input::IInputManagerComponent *GetInputManagerImpl() const;
 	std::string GetSystemInformation(SystemStats *stats);
 	void DisposeModule();
 
-	virtual IModule *GetModule();
+	virtual IModule *GetModule() const;
 	virtual void QueueShutDown();
 
 	virtual int Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version);

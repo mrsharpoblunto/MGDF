@@ -20,10 +20,10 @@
 
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
-ISoundManagerComponent *CreateOpenALSoundManagerComponent(HINSTANCE instance,IVirtualFileSystem *vfs,HWND window)
+ISoundManagerComponent *CreateOpenALSoundManagerComponent(IVirtualFileSystem *vfs)
 {
 	try {
-		return new OpenALSoundManagerComponentImpl(instance,vfs,window);
+		return new OpenALSoundManagerComponentImpl(vfs);
 	}
 	catch (...)
 	{
@@ -31,7 +31,7 @@ ISoundManagerComponent *CreateOpenALSoundManagerComponent(HINSTANCE instance,IVi
 	}
 }
 
-OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(HINSTANCE instance,IVirtualFileSystem *vfs,HWND window):
+OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(IVirtualFileSystem *vfs):
 	_vfs(vfs)
 {
 	_enableAttenuation = false;

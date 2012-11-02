@@ -22,18 +22,22 @@
 #include <assert.h>
 
 // Direct3D includes
-#include <d3dx11.h>
-#include <dxerr.h>
+
+#define STRINGIFY(x) #x
 
 #if defined(DEBUG) | defined(_DEBUG)
         #ifndef HR
-        #define HR(x)                                              \
-        {                                                          \
-                HRESULT hr = x;                                    \
-                if(FAILED(hr))                                     \
-                {                                                  \
-                        DXTrace(__FILE__, __LINE__, hr, #x, TRUE); \
-                }                                                  \
+        #define HR(x)													\
+        {																\
+                HRESULT hr = x;											\
+                if(FAILED(hr))											\
+                {														\
+					std::string sender = "DirectX API call failed - ";	\
+					sender += __FILE__;									\
+					sender += ":";										\
+					sender += STRINGIFY(__LINE__);						\
+                    OutputDebugString(sender.c_str());					\
+                }														\
         }
         #endif
 

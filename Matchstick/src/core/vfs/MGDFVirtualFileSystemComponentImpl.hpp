@@ -26,7 +26,7 @@ class VirtualFileSystemComponent: public DisposeImpl<IVirtualFileSystemComponent
 {
 	friend class DefaultFolderImpl;
 	public:
-		VirtualFileSystemComponent(HINSTANCE instance,HWND window,ILogger *logger);
+		VirtualFileSystemComponent(ILogger *logger);
 		virtual ~VirtualFileSystemComponent();
 		virtual void Dispose();
 
@@ -75,6 +75,6 @@ private:
 };
 
 
-IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(HINSTANCE instance,HWND window,ILogger *logger);
+IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(ILogger *logger);
 
 }}}

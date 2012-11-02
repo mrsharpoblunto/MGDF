@@ -29,8 +29,9 @@ HANDLE _dumpEvent=nullptr;
 HANDLE _dumpThread=nullptr;
 bool _hasDumped=false;
 _MINIDUMP_EXCEPTION_INFORMATION *_dumpInfo=nullptr;
+MGDFApp *_application=nullptr;
 
-D3DAPP_WNDPROC(MGDFAppWndProc,MGDFApp::InstancePtr())
+D3DAPP_WNDPROC(MGDFAppWndProc,_application)
 
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdline,int nCmdShow)
 {
@@ -48,27 +49,27 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdli
 	SetErrorMode( SEM_NOGPFAULTERRORBOX );
 
 	//create the application instance and initialise the window
-	new MGDFApp(hInstance);
+	_application = new MGDFApp(hInstance);
 
 	//create the system object and related components
-	System *system = SystemBuilder::CreateSystem(MGDFApp::Instance().GetApplicationInstance(),MGDFApp::Instance().GetWindow());
+	System *system = SystemBuilder::CreateSystem();
 	
 	GetLoggerImpl()->Add("MGDF::WinMain","starting up...");
 	if (system!=nullptr) {
 		system->AddFatalErrorCallback(&FatalErrorCallBack);
 
-		MGDFApp::Instance().SetSystem(system);
-		MGDFApp::Instance().InitDirect3D("MGDF",MGDFAppWndProc);
+		_application->SetSystem(system);
+		_application->InitDirect3D("MGDF",MGDFAppWndProc);
 
 		unsigned int simulationFps = atoi(system->GetGame()->GetPreference("simFps"));
-		MGDFApp::Instance().Run(simulationFps);
+		_application->Run(simulationFps);
 	}
 
 	//dispose of the system and related components
 	SystemBuilder::DisposeSystem(system);
 
 	GetLoggerImpl()->Add("MGDF::WinMain","shutting down...");
-	delete MGDFApp::InstancePtr();
+	delete _application;
 
 	GetLoggerImpl()->Add("MGDF::WinMain","shut down successfully");
 	return 0;

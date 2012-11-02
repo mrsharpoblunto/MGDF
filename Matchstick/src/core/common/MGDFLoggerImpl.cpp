@@ -73,10 +73,10 @@ void Logger::MoveOutputFile()
 	std::wstring newFile = Resources::Instance().LogFile();
 	if (newFile!=_filename)
 	{
-		boost::filesystem3::path from(_filename);
-		boost::filesystem3::path to(Resources::Instance().LogFile());
-		boost::filesystem3::copy_file(from,to,boost::filesystem3::copy_option::overwrite_if_exists);
-		boost::filesystem3::remove(_filename);
+		boost::filesystem::path from(_filename);
+		boost::filesystem::path to(Resources::Instance().LogFile());
+		boost::filesystem::copy_file(from,to,boost::filesystem::copy_option::overwrite_if_exists);
+		boost::filesystem::remove(_filename);
 
 		_filename = newFile;
 	}

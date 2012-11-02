@@ -10,157 +10,6 @@ manager
 */
 enum Mouse {MOUSE_LEFT,MOUSE_RIGHT,MOUSE_MIDDLE};
 
-/**
-this is represents all the various key presses that are recognised by the input
-manager, these scan codes are the same as those used by directInput.
-*/
-enum Key {
-KEY_ESCAPE=0x01,
-KEY_1,
-KEY_2,
-KEY_3,
-KEY_4,
-KEY_5,
-KEY_6,
-KEY_7,
-KEY_8,
-KEY_9,
-KEY_0,
-KEY_MINUS,
-KEY_EQUALS,
-KEY_BACK,
-KEY_TAB,
-KEY_Q,
-KEY_W,
-KEY_,
-KEY_R,
-KEY_T,
-KEY_Y,
-KEY_U,
-KEY_I,
-KEY_O,
-KEY_P,
-KEY_LBRACKET,
-KEY_RBRACKET,
-KEY_RETURN,
-KEY_LCONTROL,
-KEY_A,
-KEY_S,
-KEY_D,
-KEY_F,
-KEY_G,
-KEY_H,
-KEY_J,
-KEY_K,
-KEY_L,
-KEY_SEMICOLON,
-KEY_APOSTROPHE,
-KEY_GRAVE,
-KEY_LSHIFT,
-KEY_BACKSLASH,
-KEY_Z,
-KEY_X,
-KEY_C,
-KEY_V,
-KEY_B,
-KEY_N,
-KEY_M,
-KEY_COMMA,
-KEY_PERIOD,
-KEY_SLASH,
-KEY_RSHIFT,
-KEY_MULTIPLY,
-KEY_LMENU,
-KEY_SPACE,
-KEY_CAPITAL,
-KEY_F1,
-KEY_F2,
-KEY_F3,
-KEY_F4,
-KEY_F5,
-KEY_F6,
-KEY_F7,
-KEY_F8,
-KEY_F9,
-KEY_F10,
-KEY_NUMLOCK,
-KEY_SCROLL,
-KEY_NUMPAD7,
-KEY_NUMPAD8,
-KEY_NUMPAD9,
-KEY_SUBTRACT,
-KEY_NUMPAD4,
-KEY_NUMPAD5,
-KEY_NUMPAD6,
-KEY_ADD,
-KEY_NUMPAD1,
-KEY_NUMPAD2,
-KEY_NUMPAD3,
-KEY_NUMPAD0,
-KEY_DECIMAL,
-KEY_OEM_102,
-KEY_F11,
-KEY_F12,
-KEY_F13=0x64,
-KEY_F14,
-KEY_F15,
-KEY_KANA=0x70,
-KEY_ABNT_C1=0x73,
-KEY_CONVERT=0x79,
-KEY_NOCONVERT=0x7B,
-KEY_YEN=0x7D,
-KEY_ABNT_C2,
-KEY_NUMPADEQUALS=0x8D,
-KEY_PREVTRACK=0x90,
-KEY_AT,
-KEY_COLON,
-KEY_UNDERLINE,
-KEY_KANJI,
-KEY_STOP,
-KEY_AX,
-KEY_UNLABELED,
-KEY_NEXTTRACK=0x99,
-KEY_NUMPADENTER=0x9C,
-KEY_RCONTROL,
-KEY_MUTE=0xA0,
-KEY_CALCULATOR,
-KEY_PLAYPAUSE,
-KEY_MEDIASTOP=0xA4,
-KEY_VOLUMEDOWN=0xAE,
-KEY_VOLUMEUP=0xB0,
-KEY_WEBHOME=0xB2,
-KEY_NUMPADCOMMA,
-KEY_DIVIDE=0xB5,
-KEY_SYSRQ=0xB7,
-KEY_RMENU,
-KEY_PAUSE=0xC5,
-KEY_HOME=0xC7,
-KEY_UP,
-KEY_PRIOR,
-KEY_LEFT=0xCB,
-KEY_RIGHT=0xCD,
-KEY_END= 0xCF,
-KEY_DOWN=0xD0,
-KEY_NEXT,
-KEY_INSERT,
-KEY_DELETE,
-KEY_LWIN=0xDB,
-KEY_RWIN,
-KEY_APPS,
-KEY_POWER,
-KEY_SLEEP,
-KEY_WAKE=0xE3,
-KEY_WEBSEARCH=0xE5,
-KEY_WEBFAVORITES,
-KEY_WEBREFRESH,
-KEY_WEBSTOP,
-KEY_WEBFORWARD,
-KEY_WEBBACK,
-KEY_MYCOMPUTER,
-KEY_MAIL,
-KEY_MEDIASELECT 
-};
-
 enum GamepadButton
 {
 GAMEPAD_DPAD_UP =0x00000001,
@@ -269,77 +118,42 @@ public:
 
 /**
 determines if a key is presed
-\param key the keyboard code representing the desired key
+\param key the Microsoft Virtual key code representing the desired key (see here for a list http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 \return true if the key is being held down
 */
-virtual bool  IsKeyDown(Key key) const=0;
+virtual bool  IsKeyDown(unsigned short key) const=0;
 
 /**
 determines if a key is NOT pressed
-\param key the keyboard code representing the desired key
+\param key the Microsoft Virtual key code representing the desired key (see here for a list http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 \return true if the key is not being pressed
 */
-virtual bool  IsKeyUp(Key key) const=0;
+virtual bool  IsKeyUp(unsigned short key) const=0;
 
 /**
 determines if a keypress has occured
-\param key the keyboard code representing the desired key
+\param key the Microsoft Virtual key code representing the desired key (see here for a list http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 \return true if the key has been pressed (i.e pressed down then released)
 */
-virtual bool  IsKeyPress(Key key)=0;
+virtual bool  IsKeyPress(unsigned short key) const=0;
 
 /**
-get the x coordinate of the mouse
-\return the x coordinate of the mouse
+get the x movement of the mouse in the current frame
+\return the x movement of the mouse in the current frame
 */
-virtual long  GetMouseX(void) const=0;
+virtual long  GetMouseDX(void) const=0;
 
 /**
-get the y coordinate of the mouse
-\return the y coordinate of the mouse
+get the y movement of the mouse in the current frame
+\return the y movement of the mouse in the current frame
 */
-virtual long  GetMouseY(void) const=0;
+virtual long  GetMouseDY(void) const=0;
 
 /**
 get the position of the scroll wheel
-\return the position of the scroll wheel
+\return the position of the scroll wheel, this value will be between -120 and 120
 */
-virtual long  GetMouseZ(void) const=0;
-
-/**
-set the mouse x coordinate
-\param x the x coordinate
-*/
-virtual void  SetMouseX(long x)=0;
-
-/**
-set the mouse y coordinate
-\param y the y coordinate
-*/
-virtual void  SetMouseY(long y)=0;
-
-/**
-set the position of the scroll wheel
-\param z the position of the scroll wheel
-*/
-virtual void  SetMouseZ(long z)=0;
-
-/**
-get the x movement of the mouse since the last check
-\return the x movement of the mouse since the last check
-*/
-virtual long  GetMouseMovementX(void) const=0;
-/**
-get the y movement of the mouse since the last check
-\return the y movement of the mouse since the last check
-*/
-virtual long  GetMouseMovementY(void) const=0;
-
-/**
-get the scroll wheel movement of the mouse since the last check
-\return the scroll wheel movement of the mouse since the last check
-*/
-virtual long  GetMouseMovementZ(void) const=0;
+virtual short GetMouseDZ(void) const=0;
 
 /**
 determine if a mouse button is down

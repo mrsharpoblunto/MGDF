@@ -8,7 +8,7 @@ namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
 class JsonCppStorageFactoryComponent: public DisposeImpl<IStorageFactoryComponent>
 {
 public:
-	JsonCppStorageFactoryComponent(HINSTANCE instance,HWND window);
+	JsonCppStorageFactoryComponent();
 	virtual ~JsonCppStorageFactoryComponent();
 
 	virtual void Dispose();
@@ -17,6 +17,6 @@ public:
 	virtual IPreferenceConfigStorageHandler *CreatePreferenceConfigStorageHandler() const;
 };
 
-IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent(HINSTANCE instance,HWND window);
+IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent();
 
 }}}}

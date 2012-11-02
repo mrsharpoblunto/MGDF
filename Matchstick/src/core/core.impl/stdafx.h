@@ -21,10 +21,6 @@
 #include <windows.h>
 #include <assert.h>
 
-// Direct3D includes
-#include <d3dx11.h>
-#include <dxerr.h>
-
 #include <MGDF/MGDF.hpp>
 
 #define TIMER_SAMPLES 60

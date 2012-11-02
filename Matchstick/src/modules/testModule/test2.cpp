@@ -33,7 +33,7 @@ TestModule *Test2::NextTestModule()
 
 void Test2::Update(ISystem *system,TextManagerState *state)
 {
-	if (system->GetInput()->IsKeyPress(KEY_ESCAPE))
+	if (system->GetInput()->IsKeyPress(VK_ESCAPE))
 	{
 		system->ShutDown();
 	}
@@ -81,13 +81,13 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		state->AddLine(WHITE,"Is a sound playing? [Y/N]");
 		++_testState;
 	}
-	else if (_testState==3 && system->GetInput()->IsKeyPress(KEY_Y))
+	else if (_testState==3 && system->GetInput()->IsKeyPress('Y'))
 	{
 		++_testState;
 		state->SetStatus(GREEN,"[Test Passed]");
 		state->AddLine(WHITE,"Use arrow keys to change sounds position, press [Y/N] if the sound adjusts accordingly");
 	}
-	else if (_testState==3 && system->GetInput()->IsKeyPress(KEY_N))
+	else if (_testState==3 && system->GetInput()->IsKeyPress('N'))
 	{
 		_testState =1000;
 		system->GetSound()->RemoveSound(_sound);
@@ -95,31 +95,31 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	}
 	else if (_testState==4)
 	{
-		if (system->GetInput()->IsKeyDown(KEY_UP))
+		if (system->GetInput()->IsKeyDown(VK_UP))
 		{
 			_sound->GetPosition()->y +=1;
 		}
-		if (system->GetInput()->IsKeyDown(KEY_DOWN))
+		if (system->GetInput()->IsKeyDown(VK_DOWN))
 		{
 			_sound->GetPosition()->y -=1;
 		}
-		if (system->GetInput()->IsKeyDown(KEY_LEFT))
+		if (system->GetInput()->IsKeyDown(VK_LEFT))
 		{
 			_sound->GetPosition()->x -=1;
 		}
-		if (system->GetInput()->IsKeyDown(KEY_RIGHT))
+		if (system->GetInput()->IsKeyDown(VK_RIGHT))
 		{
 			_sound->GetPosition()->x +=1;
 		}
 
-		if (system->GetInput()->IsKeyPress(KEY_Y))
+		if (system->GetInput()->IsKeyPress('Y'))
 		{
 			++_testState;
 			_sound->Stop();
 			system->GetSound()->RemoveSound(_sound);
 			state->SetStatus(GREEN,"[Test Passed]");
 		}
-		else if (system->GetInput()->IsKeyPress(KEY_N))
+		else if (system->GetInput()->IsKeyPress('N'))
 		{
 			_testState =1000;
 			_sound->Stop();
@@ -149,13 +149,13 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		_stream->Play();
 		state->AddLine(WHITE,"Playing stream, press [Y/N] if the stream is actually playing");
 	}
-	else if (_testState==7 && system->GetInput()->IsKeyPress(KEY_Y))
+	else if (_testState==7 && system->GetInput()->IsKeyPress('Y'))
 	{
 		++_testState;
 		state->SetStatus(GREEN,"[Test Passed]");
 		state->AddLine(WHITE,"Use [P] to toggle pause/play, press [Y/N] if this is working.");
 	}
-	else if (_testState==7 && system->GetInput()->IsKeyPress(KEY_N))
+	else if (_testState==7 && system->GetInput()->IsKeyPress('N'))
 	{
 		_testState =1000;
 		system->GetSound()->RemoveSoundStream(_stream);
@@ -163,19 +163,19 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	}
 	else if (_testState==8)
 	{
-		if (system->GetInput()->IsKeyPress(KEY_Y))
+		if (system->GetInput()->IsKeyPress('Y'))
 		{
 			_testState =1000;
 			system->GetSound()->RemoveSoundStream(_stream);
 			state->SetStatus(GREEN,"[Test Passed]");
 		}
-		else if (system->GetInput()->IsKeyPress(KEY_N))
+		else if (system->GetInput()->IsKeyPress('N'))
 		{
 			_testState =1000;
 			system->GetSound()->RemoveSoundStream(_stream);
 			state->SetStatus(RED,"[Test Failed]");
 		}
-		else if (system->GetInput()->IsKeyPress(KEY_P))
+		else if (system->GetInput()->IsKeyPress('P'))
 		{
 			if (_stream->IsPaused()) _stream->Play();
 			else _stream->Pause();

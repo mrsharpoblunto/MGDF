@@ -21,11 +21,11 @@ namespace MGDF { namespace core { namespace vfs {
 
 #define ROOT_NODE_NAME L"." 
 
-IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(HINSTANCE instance,HWND window,ILogger *logger)
+IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(ILogger *logger)
 {
 	try 
 	{
-		return new VirtualFileSystemComponent(instance,window,logger);
+		return new VirtualFileSystemComponent(logger);
 	}
 	catch (...)
 	{
@@ -33,7 +33,7 @@ IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl(HINSTANCE inst
 	}
 }
 
-VirtualFileSystemComponent::VirtualFileSystemComponent(HINSTANCE instance,HWND window,ILogger *logger)
+VirtualFileSystemComponent::VirtualFileSystemComponent(ILogger *logger)
 {
 	_logger = logger;
 	_root = new DefaultFolderImpl(ROOT_NODE_NAME);

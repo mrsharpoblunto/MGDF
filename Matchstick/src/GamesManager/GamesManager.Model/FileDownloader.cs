@@ -37,7 +37,6 @@ namespace MGDF.GamesManager.Model
             LongRunningTaskResult result = LongRunningTaskResult.Completed;
             try
             {
-                //For using untrusted SSL Certificates
                 ServicePointManager.ServerCertificateValidationCallback += OnCheckRemoteCallback;
 
                 long total;

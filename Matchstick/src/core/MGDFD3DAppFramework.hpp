@@ -25,6 +25,7 @@ public:
 	virtual void DrawScene(double alpha) =0;
 	virtual void FatalError(const std::string &errorMessage)=0;
 	virtual void ExternalClose()=0;
+	virtual void OnRawInput(RAWINPUT *input)=0;
 	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure);
 
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -60,13 +61,13 @@ protected:
 private:
 	void InitMainWindow(const std::string &caption,WNDPROC windowProcedure);
 	void InitD3D();
+	void InitRawInput();
 	void ToggleFullScreenMode();
 	void CreateSwapChain();
 	void OnResize();
 
 	bool _minimized,_maximized,_resizing,_fullScreen;
-	boost::thread *_simThread;
-	bool _running,_startRendering;
+	bool _running;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc

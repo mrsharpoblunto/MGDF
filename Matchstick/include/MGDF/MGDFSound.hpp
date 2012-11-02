@@ -1,7 +1,7 @@
 #pragma once
 
 #include <windows.h>
-#include <xnamath.h>
+#include <DirectXMath.h>
 #include <MGDF/MGDFDisposable.hpp>
 
 namespace MGDF {
@@ -13,8 +13,8 @@ this class represents an audio source in 3d space
 class ISound: public IDisposable {
 public:
 	virtual const wchar_t * GetName() const =0;
-	virtual XMFLOAT3 * GetPosition()=0;
-	virtual XMFLOAT3 * GetVelocity()=0;
+	virtual DirectX::XMFLOAT3 * GetPosition()=0;
+	virtual DirectX::XMFLOAT3 * GetVelocity()=0;
 
 	virtual float  GetInnerRange() const =0;
 	virtual void  SetInnerRange(float sourceRelative)=0;

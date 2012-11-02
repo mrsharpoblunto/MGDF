@@ -13,8 +13,6 @@
 
 namespace MGDF { namespace core {
 
-DEFINE_SINGLETON(MGDFApp)
-
 MGDFApp::MGDFApp(HINSTANCE hInstance) : D3DAppFramework(hInstance) 
 {
 	_font=nullptr;
@@ -36,7 +34,7 @@ void MGDFApp::SetSystem(System *system)
 	_system->AddShutDownCallback([this]()
 	{
 		_internalShutDown = true;
-		PostMessage(MGDFApp::Instance()._window,WM_CLOSE,0,0);
+		PostMessage(_window,WM_CLOSE,0,0);
 	});
 }
 
@@ -78,6 +76,11 @@ void MGDFApp::UpdateScene(double simulationTime)
 
 	boost::mutex::scoped_lock lock(_statsMutex);
 	_stats.AppendActiveSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart) - _stats.SimInputTime() - _stats.SimAudioTime());
+}
+
+void MGDFApp::OnRawInput(RAWINPUT *input)
+{
+	_system->GetInputManagerImpl()->HandleInput(input);
 }
 
 void MGDFApp::OnInitD3D(ID3D11Device *device,IDXGIAdapter1 *adapter)

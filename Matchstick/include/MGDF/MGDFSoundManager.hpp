@@ -1,6 +1,6 @@
 #pragma once
 
-#include <xnamath.h>
+#include <DirectXMath.h>
 #include <MGDF/MGDFSound.hpp>
 #include <MGDF/MGDFSoundStream.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
@@ -17,10 +17,10 @@ public:
 	/**
 	determine the position/velocity of the observe of the sound
 	*/
-	virtual XMFLOAT3 * GetListenerPosition()=0;
-	virtual XMFLOAT3 * GetListenerVelocity()=0;
-	virtual XMFLOAT3 * GetListenerOrientationForward()=0;
-	virtual XMFLOAT3 * GetListenerOrientationUp()=0;
+	virtual DirectX::XMFLOAT3 * GetListenerPosition()=0;
+	virtual DirectX::XMFLOAT3 * GetListenerVelocity()=0;
+	virtual DirectX::XMFLOAT3 * GetListenerOrientationForward()=0;
+	virtual DirectX::XMFLOAT3 * GetListenerOrientationUp()=0;
 
 	virtual float  GetSoundVolume() const=0;
 	virtual void  SetSoundVolume(float volume)=0;

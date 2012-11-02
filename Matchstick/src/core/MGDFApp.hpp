@@ -8,16 +8,9 @@
 
 namespace MGDF { namespace core {
 
-#include "common/MGDFSingleton.hpp"
-
-//struct CUSTOMVERTEX {FLOAT X, Y, Z, RHW; DWORD COLOR;};
-//#define CUSTOMFVF (D3DFVF_XYZRHW | D3DFVF_DIFFUSE)
-
-class MGDFApp: public D3DAppFramework, public Singleton<MGDFApp>
+class MGDFApp: public D3DAppFramework
 {
 public:
-	DECLARE_SINGLETON(MGDFApp);
-
 	MGDFApp(HINSTANCE hInstance);
 	virtual ~MGDFApp();
 	
@@ -29,6 +22,7 @@ public:
 	virtual void DrawScene(double alpha);
 	virtual void FatalError(const std::string &message);
 	virtual void ExternalClose();
+	virtual void OnRawInput(RAWINPUT *input);
 	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure);
 
 	void SetSystem(System *system);

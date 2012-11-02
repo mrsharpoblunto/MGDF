@@ -28,10 +28,10 @@ SETUP(StorageTestFixture)
 	Resources::Instance().SetUserBaseDir(true,"junkship");
 
 	_logger = new MGDF::core::tests::MockLogger();
-	_vfs = CreateVirtualFileSystemComponentImpl(nullptr,nullptr,(ILogger *)_logger);
+	_vfs = CreateVirtualFileSystemComponentImpl((ILogger *)_logger);
 	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",nullptr,false);
 
-	_storage = CreateStorageFactoryComponentImpl(nullptr,nullptr);
+	_storage = CreateStorageFactoryComponentImpl();
 }
 
 TEARDOWN(StorageTestFixture)

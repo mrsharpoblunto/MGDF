@@ -34,7 +34,7 @@ TestModule *Test1::NextTestModule()
 
 void Test1::Update(ISystem *system,TextManagerState *state)
 {
-	if (system->GetInput()->IsKeyPress(KEY_ESCAPE))
+	if (system->GetInput()->IsKeyPress(VK_ESCAPE))
 	{
 		system->ShutDown();
 	}
@@ -56,20 +56,20 @@ void Test1::Update(ISystem *system,TextManagerState *state)
 		state->AddLine(WHITE,"");
 		state->AddLine(WHITE,"Press the [ENTER] key");
 	}
-	else if (_testState==1 && system->GetInput()->IsKeyPress(KEY_RETURN))
+	else if (_testState==1 && system->GetInput()->IsKeyPress(VK_RETURN))
 	{
 		_testState++;
 		state->SetStatus(GREEN,"[Test Passed]");
 		state->AddLine(WHITE,"Press and hold [UP ARROW] key for at least one second");
 		_time = time(nullptr);
 	}
-	else if (_testState==2 && system->GetInput()->IsKeyDown(KEY_UP) && now>_time+1)
+	else if (_testState==2 && system->GetInput()->IsKeyDown(VK_UP) && now>_time+1)
 	{
 		_testState++;
 		state->SetStatus(GREEN,"[Test Passed]");
 		state->AddLine(WHITE,"Now release the [UP ARROW] key");
 	}
-	else if (_testState==3 && system->GetInput()->IsKeyUp(KEY_UP))
+	else if (_testState==3 && system->GetInput()->IsKeyUp(VK_UP))
 	{
 		_testState++;
 		state->SetStatus(GREEN,"[Test Passed]");
@@ -81,7 +81,7 @@ void Test1::Update(ISystem *system,TextManagerState *state)
 		state->SetStatus(GREEN,"[Test Passed]");
 		state->AddLine(WHITE,"Now move the mouse up");
 	}
-	else if (_testState==5 && system->GetInput()->GetMouseMovementY()<0)
+	else if (_testState==5 && system->GetInput()->GetMouseDY()<0)
 	{
 		_testState++;
 		state->SetStatus(GREEN,"[Test Passed]");
@@ -98,7 +98,7 @@ void Test1::Update(ISystem *system,TextManagerState *state)
 		_testState++;
 		state->AddLine(WHITE,"Xbox 360 controller detected");
 	}
-	else if (_testState==6 && system->GetInput()->IsKeyPress(KEY_S))
+	else if (_testState==6 && system->GetInput()->IsKeyPress('S'))
 	{
 		_testState = 11;//skip past controller tests.
 	}

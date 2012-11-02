@@ -11,6 +11,8 @@
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundSystem.hpp"
 
+using namespace DirectX;
+
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 typedef struct {
@@ -22,7 +24,7 @@ class OpenALSoundManagerComponentImpl: public DisposeImpl<ISoundManagerComponent
 friend class OpenALSound;
 friend class VorbisStream;
 public:
-	OpenALSoundManagerComponentImpl(HINSTANCE instance,IVirtualFileSystem *vfs,HWND window);
+	OpenALSoundManagerComponentImpl(IVirtualFileSystem *vfs);
 	virtual ~OpenALSoundManagerComponentImpl();
 	virtual void Update();
 	virtual void Dispose();
@@ -74,6 +76,6 @@ private:
 	IVirtualFileSystem *_vfs;
 };
 
-ISoundManagerComponent *CreateOpenALSoundManagerComponent(HINSTANCE instance,IVirtualFileSystem *vfs,HWND window);
+ISoundManagerComponent *CreateOpenALSoundManagerComponent(IVirtualFileSystem *vfs);
 
 }}}}
