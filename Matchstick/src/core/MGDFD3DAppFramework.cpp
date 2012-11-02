@@ -418,24 +418,25 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 		LPBYTE lpb = new BYTE[dwSize];
-		if (lpb == NULL) 
-		{
-			return 0;
-		} 
-		
-		int readSize = GetRawInputData( (HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER) ) ;
+		if (lpb != nullptr) 
+		{	
+			int readSize = GetRawInputData( (HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER) ) ;
 
-		if( readSize != dwSize )
-		{
-			FatalError("GetRawInputData returned incorrect size");
-			return 0;
+			if( readSize != dwSize )
+			{
+				FatalError("GetRawInputData returned incorrect size");
+			}
+			else 
+			{
+				RAWINPUT* rawInput = (RAWINPUT*)lpb;
+				OnRawInput(rawInput);
+				delete [] lpb;
+			}
 		}
-
-		RAWINPUT* rawInput = (RAWINPUT*)lpb;
-		OnRawInput(rawInput);
-		delete [] lpb;
 	}
-	return 0;
+	// Even if you handle the event, you have to call DefWindowProx after a WM_Input message so the system can perform cleanup
+	// http://msdn.microsoft.com/en-us/library/windows/desktop/ms645590%28v=vs.85%29.aspx
+	return DefWindowProc(hwnd, msg, wParam, lParam);
 
 	// WM_SIZE is sent when the user resizes the window.  
 	case WM_SIZE:
@@ -547,9 +548,9 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			break;
 		}
 		return 0;
-	
+	default:
+		return DefWindowProc(hwnd, msg, wParam, lParam);
 	}
-	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
 }}
