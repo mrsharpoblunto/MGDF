@@ -538,9 +538,12 @@ const IStringList *System::GetSaves() const
 		for ( boost::filesystem::directory_iterator itr(savePath); itr != end_itr; ++itr ) {
 			if ( is_directory( *itr )) {
 				std::string saveName(itr->path().filename().string());
-				char *copy = new char[saveName.size()+1];
-				strcpy_s(copy,saveName.size()+1,saveName.c_str());
-				_saves->Add(copy);//add the save folder to the list
+				if (saveName.find(PENDING_SAVE_PREFIX)!=0)
+				{
+					char *copy = new char[saveName.size()+1];
+					strcpy_s(copy,saveName.size()+1,saveName.c_str());
+					_saves->Add(copy);//add the save folder to the list
+				}
 			}
 		}
 	}

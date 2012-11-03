@@ -240,7 +240,12 @@
     <mkdir dir="Package/SDK/Src/Samples" />
     <copy todir="Package/SDK/Src/Samples">
       <fileset basedir="Src\Samples">
+        <exclude name="**/bin/**" />
+        <exclude name=".lib" />
         <exclude name=".svn" />
+        <exclude name=".sdf" />
+        <exclude name=".suo" />
+        <exclude name=".user" />
         <include name="**/*.*" />
       </fileset>
     </copy>

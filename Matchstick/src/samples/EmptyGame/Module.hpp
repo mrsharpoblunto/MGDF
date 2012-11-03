@@ -1,6 +1,5 @@
 #pragma once
 
-#include <time.h>
 #include <MGDF/MGDF.hpp>
 
 //this snippet ensures that the location of memory leaks is reported correctly in debug mode

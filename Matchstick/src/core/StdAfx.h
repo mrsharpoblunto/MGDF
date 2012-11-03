@@ -51,3 +51,19 @@
 
 #define TIMER_SAMPLES 60
 
+//some useful macro's to make deleting pointers easier
+#ifndef SAFE_DELETE
+#define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=nullptr; } }
+#endif    
+#ifndef SAFE_DELETE_ARRAY
+#define SAFE_DELETE_ARRAY(p) { if(p) { delete[] (p);   (p)=nullptr; } }
+#endif    
+#ifndef SAFE_RELEASE
+#define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=nullptr; } }
+#endif
+
+//useful macro for specifying the name of the class calling the macro
+#include <typeinfo>
+#define THIS_NAME typeid(this).name()
+#define TYPE_NAME(x) typeid(x).name()
+

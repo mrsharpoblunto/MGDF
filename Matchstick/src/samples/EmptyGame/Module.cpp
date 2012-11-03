@@ -31,16 +31,20 @@ bool Module::Dispose(void)
 
 bool Module::UpdateScene(double elapsedTime)
 {
+	//Game logic goes here
 	return true;
 }
 
 bool Module::DrawScene(double alpha)
 {
+	//Any rendering goes here. Note this runs in a separate thread to UpdateScene
    return true;
 }
 
 bool Module::BackBufferChanged()
 {
+	//Any D3D resources that may need to be updated as a result of the backbuffer
+	//changing should be handled here.
 	return true;
 }
 
@@ -50,6 +54,9 @@ void Module::Panic()
 
 void Module::ShutDown()
 {
+	//The system has requested that the module shutdown. Calling _system->ShutDown()
+	//informs the system that the module is ready to shutdown.
+	_system->ShutDown();
 }
 
 const char * Module::GetLastError()

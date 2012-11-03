@@ -1,14 +1,11 @@
 #pragma once
 
-// If app hasn't choosen, set to work with Windows 98, Windows Me, Windows 2000, Windows XP and beyond
+// If app hasn't choosen, set to work with Windows vista and beyond
 #ifndef WINVER
-#define WINVER         0x0410
-#endif
-#ifndef _WIN32_WINDOWS
-#define _WIN32_WINDOWS 0x0410 
+#define WINVER         0x0600
 #endif
 #ifndef _WIN32_WINNT
-#define _WIN32_WINNT   0x0500 
+#define _WIN32_WINNT   0x0600
 #endif
 
 // CRT's memory leak detection
