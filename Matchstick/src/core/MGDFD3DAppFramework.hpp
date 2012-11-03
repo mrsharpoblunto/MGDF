@@ -67,7 +67,9 @@ private:
 	void OnResize();
 
 	bool _minimized,_maximized,_resizing,_fullScreen;
-	bool _running;
+	boost::thread *_renderThread;
+	bool _runRenderThread;
+	bool _rendering;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc

@@ -35,7 +35,9 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
 	, _minimized(false)
 	, _maximized(false)
 	, _resizing(false)
-	, _running(false)
+	, _rendering(false)
+	, _runRenderThread(false)
+	, _renderThread(nullptr)
 	, _internalShutDown(false)
 {
 }
@@ -312,18 +314,21 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 
 	_stats.SetExpectedSimTime(1/(double)simulationFps);
 
-	bool startRendering = false;
+	_runRenderThread = true;
+	bool runSimThread = false;
+	bool startRenderThread = false;
 
 	//run the simulation in its own thread
-	boost::thread simThread([this,&startRendering]()
+	boost::thread simThread([this,&runSimThread,&startRenderThread]()
 	{
-		_running = true;
-		while (_running)
+		runSimThread = true;
+		while (runSimThread)
 		{
 			LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
 
-			UpdateScene(_stats.ExpectedSimTime());//run a frame of game logic
-			startRendering = true;
+			UpdateScene(_stats.ExpectedSimTime());
+			//run a frame of game logic before starting the render thread
+			startRenderThread = true;
 
 			//wait until the next frame to begin if we have any spare time left over
 			_frameLimiter->LimitFps();
@@ -336,12 +341,17 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 	});
 
 	//run the renderer in its own thread
-	boost::thread renderThread([this,&startRendering]()
+	_renderThread = new boost::thread([this,&startRenderThread]()
 	{
-		while (!startRendering) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
-		while (_running)
+		while (!startRenderThread) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
+		while (_runRenderThread)
 		{
-			boost::mutex::scoped_lock lock(_renderMutex);
+			{
+				//rather than mutex the whole loop we'll set a flag to reduce mutex contention
+				//which can result in thread starvation on the messaging thread.
+				boost::mutex::scoped_lock lock(_renderMutex);
+				_rendering = true;
+			}
 
 			//the game logic step may force the device to reset, so lets check
 			if (IsBackBufferChangePending()) 
@@ -379,6 +389,8 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 				_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
 				_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
 			}
+
+			_rendering = false;
 		}
 	});
 
@@ -400,10 +412,10 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 		}
 	}
 
-	_running = false;
+	runSimThread = false;
 	simThread.join();
-	renderThread.join();
 
+	delete _renderThread;
 	delete _frameLimiter;
 	return (int)msg.wParam;
 }
@@ -456,6 +468,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				_maximized = true;
 				_minimized = false;
 				boost::mutex::scoped_lock lock(_renderMutex);
+				while (_rendering) Sleep(0);
 				OnResize();
 			}
 			// Restored is any resize that is not a minimize or maximize.
@@ -469,12 +482,14 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				{
 					_minimized = false;
 					boost::mutex::scoped_lock lock(_renderMutex);
+					while (_rendering) Sleep(0);
 					OnResize();
 				}
 				else if(_maximized)
 				{
 					_maximized = false;
 					boost::mutex::scoped_lock lock(_renderMutex);
+					while (_rendering) Sleep(0);
 					OnResize();
 				}
 				else if (_resizing)
@@ -492,6 +507,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				else // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
 				{
 					boost::mutex::scoped_lock lock(_renderMutex);
+					while (_rendering) Sleep(0);
 					OnResize();
 				}
 			}
@@ -508,15 +524,19 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		_resizing = false;
 		{
 			boost::mutex::scoped_lock lock(_renderMutex);
+			while (_rendering) Sleep(0);
 			OnResize();
 		}
 		return 0;
 
 	// WM_CLOSE is sent when the user presses the 'X' button in the
-	// caption bar menu.
+	// caption bar menu. or when the MGDF system schedules a shutdown
 	case WM_CLOSE:
 		if (_internalShutDown)
 		{
+			//make sure we stop rendering before disposing of the window
+			_runRenderThread = false;
+			_renderThread->join();
 			//if we triggered this, then shut down
 			DestroyWindow(_window);
 		}
