@@ -53,6 +53,7 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine("OS: " + EnvironmentSettings.Current.OSName);
             sb.AppendLine("OS Architecture: " + EnvironmentSettings.Current.OSArchitecture + " bit");
             sb.AppendLine("RAM: " + EnvironmentSettings.Current.TotalMemory);
+            sb.AppendLine("Processor Count: " + EnvironmentSettings.Current.ProcessorCount);
             sb.AppendLine();
             sb.AppendLine("Details");
             sb.AppendLine("=======");

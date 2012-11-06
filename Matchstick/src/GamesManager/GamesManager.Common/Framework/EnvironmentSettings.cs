@@ -21,6 +21,7 @@ namespace MGDF.GamesManager.Common.Framework
         Version OSVersion { get; }
         int OSArchitecture { get; }
         ulong TotalMemory { get; }
+        int ProcessorCount { get; }
 
         string AppDirectory { get; }
 
@@ -158,6 +159,14 @@ namespace MGDF.GamesManager.Common.Framework
                     return memStatus.ulTotalPhys / 1048576;
                 }
                 return 0;
+            }
+        }
+
+        public int ProcessorCount
+        {
+            get
+            {
+                return Environment.ProcessorCount;
             }
         }
 

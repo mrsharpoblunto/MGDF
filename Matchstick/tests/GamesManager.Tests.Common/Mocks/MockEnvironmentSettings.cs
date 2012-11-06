@@ -86,6 +86,11 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
             get { return 2048; }
         }
 
+        public int ProcessorCount
+        {
+            get { return 2; }
+        }
+
         public void AddEnvironmentVariables(string key,string value)
         {
             _table.Add(key,value);

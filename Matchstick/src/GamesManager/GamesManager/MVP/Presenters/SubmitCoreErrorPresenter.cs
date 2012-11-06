@@ -48,9 +48,9 @@ namespace MGDF.GamesManager.MVP.Presenters
 
             sb.AppendLine("IMPORTANT: In order to help us find out the source of this problem, please attach the following file to this email before sending.");
             sb.AppendLine();
-            sb.AppendLine(EnvironmentSettings.Current.UserDirectory + "\\minidump.dmp");
+            sb.AppendLine(Resources.GameUserDir +  "\\minidump.dmp");
             sb.AppendLine();
-            sb.AppendLine("This file contains important debugging information to allow us to better understand what caused the problem you have experienced");
+            sb.AppendLine("This file contains important debugging information to allow us to better understand what caused the problem you experienced");
             sb.AppendLine();
             sb.AppendLine();
             sb.AppendLine();
@@ -60,6 +60,7 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine("OS: " + EnvironmentSettings.Current.OSName);
             sb.AppendLine("OS Architecture: " + EnvironmentSettings.Current.OSArchitecture + " bit");
             sb.AppendLine("RAM: " + EnvironmentSettings.Current.TotalMemory);
+            sb.AppendLine("Processor Count: " + EnvironmentSettings.Current.ProcessorCount);
             sb.AppendLine();
             sb.AppendLine("Details");
             sb.AppendLine("=======");
@@ -69,7 +70,12 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine("Log output");
             sb.AppendLine("==========");
 
-            IFile coreLog = FileSystem.Current.GetFile(Path.Combine(EnvironmentSettings.Current.UserDirectory, "corelog.txt"));
+            IFile coreLog = FileSystem.Current.GetFile(Path.Combine(Resources.GameUserDir, "corelog.txt"));
+            if (!coreLog.Exists)
+            {
+                coreLog = FileSystem.Current.GetFile(Path.Combine(EnvironmentSettings.Current.UserDirectory, "corelog.txt"));
+            }
+
             if (coreLog.Exists)
             {
                 using (var stream = coreLog.OpenStream(FileMode.Open, FileAccess.Read, FileShare.Read))
