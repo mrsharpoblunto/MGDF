@@ -144,6 +144,13 @@
     <ClInclude Include="FW1CompileSettings.h" />
     <ClInclude Include="FW1FontWrapper.h" />
     <ClInclude Include="FW1Precompiled.h" />
+    <ClInclude Include="gsClipStr.h" />
+    <ClInclude Include="gsSimpleStr.h" />
+    <ClInclude Include="psClipStr.h" />
+    <ClInclude Include="psStr.h" />
+    <ClInclude Include="vsClipStr.h" />
+    <ClInclude Include="vsEmptyStr.h" />
+    <ClInclude Include="vsSimpleStr.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

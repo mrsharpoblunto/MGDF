@@ -58,8 +58,6 @@ class CFW1GlyphRenderStates : public CFW1Object<IFW1GlyphRenderStates> {
 	private:
 		std::wstring				m_lastError;
 		
-		pD3DCompile					m_pfnD3DCompile;
-		
 		ID3D11Device				*m_pDevice;
 		D3D_FEATURE_LEVEL			m_featureLevel;
 		

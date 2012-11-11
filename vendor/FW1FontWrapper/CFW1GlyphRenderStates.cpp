@@ -12,8 +12,6 @@ namespace FW1FontWrapper {
 
 // Construct
 CFW1GlyphRenderStates::CFW1GlyphRenderStates() :
-	m_pfnD3DCompile(NULL),
-	
 	m_pDevice(NULL),
 	m_featureLevel(D3D_FEATURE_LEVEL_9_1),
 	
@@ -83,31 +81,7 @@ HRESULT CFW1GlyphRenderStates::initRenderResources(
 	m_pDevice = pDevice;
 	m_featureLevel = m_pDevice->GetFeatureLevel();
 	
-	// D3DCompiler
-#ifdef FW1_DELAYLOAD_D3DCOMPILER_XX_DLL
-	HMODULE hD3DCompiler = LoadLibrary(D3DCOMPILER_DLL);
-	if(hD3DCompiler == NULL) {
-		DWORD dwErr = GetLastError();
-		dwErr;
-		m_lastError = std::wstring(L"Failed to load ") + D3DCOMPILER_DLL_W;
-		hResult = E_FAIL;
-	}
-	else {
-		m_pfnD3DCompile = reinterpret_cast<pD3DCompile>(GetProcAddress(hD3DCompiler, "D3DCompile"));
-		if(m_pfnD3DCompile == NULL) {
-			DWORD dwErr = GetLastError();
-			dwErr;
-			m_lastError = std::wstring(L"Failed to load D3DCompile from ") + D3DCOMPILER_DLL_W;
-			hResult = E_FAIL;
-		}
-		else {
-			hResult = S_OK;
-		}
-	}
-#else
-	m_pfnD3DCompile = D3DCompile;
 	hResult = S_OK;
-#endif
 	
 	// Create all needed resources
 	if(SUCCEEDED(hResult))
@@ -127,184 +101,72 @@ HRESULT CFW1GlyphRenderStates::initRenderResources(
 	if(SUCCEEDED(hResult))
 		hResult = S_OK;
 	
-#ifdef FW1_DELAYLOAD_D3DCOMPILER_XX_DLL
-	FreeLibrary(hD3DCompiler);
-#endif
-	
 	return hResult;
 }
 
 
 // Create quad shaders
 HRESULT CFW1GlyphRenderStates::createQuadShaders() {
+	
 	// Vertex shaders
-	const char vsSimpleStr[] =
-	"cbuffer ShaderConstants : register(b0) {\r\n"
-	"	float4x4 TransformMatrix : packoffset(c0);\r\n"
-	"};\r\n"
-	"\r\n"
-	"struct VSIn {\r\n"
-	"	float4 Position : POSITION;\r\n"
-	"	float4 GlyphColor : GLYPHCOLOR;\r\n"
-	"};\r\n"
-	"\r\n"
-	"struct VSOut {\r\n"
-	"	float4 Position : SV_Position;\r\n"
-	"	float4 GlyphColor : COLOR;\r\n"
-	"	float2 TexCoord : TEXCOORD;\r\n"
-	"};\r\n"
-	"\r\n"
-	"VSOut VS(VSIn Input) {\r\n"
-	"	VSOut Output;\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(Input.Position.xy, 0.0f, 1.0f));\r\n"
-	"	Output.GlyphColor = Input.GlyphColor;\r\n"
-	"	Output.TexCoord = Input.Position.zw;\r\n"
-	"	\r\n"
-	"	return Output;\r\n"
-	"}\r\n"
-	"";
-	
-	const char vsClipStr[] =
-	"cbuffer ShaderConstants : register(b0) {\r\n"
-	"	float4x4 TransformMatrix : packoffset(c0);\r\n"
-	"	float4 ClipRect : packoffset(c4);\r\n"
-	"};\r\n"
-	"\r\n"
-	"struct VSIn {\r\n"
-	"	float4 Position : POSITION;\r\n"
-	"	float4 GlyphColor : GLYPHCOLOR;\r\n"
-	"};\r\n"
-	"\r\n"
-	"struct VSOut {\r\n"
-	"	float4 Position : SV_Position;\r\n"
-	"	float4 GlyphColor : COLOR;\r\n"
-	"	float2 TexCoord : TEXCOORD;\r\n"
-	"	float4 ClipDistance : CLIPDISTANCE;\r\n"
-	"};\r\n"
-	"\r\n"
-	"VSOut VS(VSIn Input) {\r\n"
-	"	VSOut Output;\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(Input.Position.xy, 0.0f, 1.0f));\r\n"
-	"	Output.GlyphColor = Input.GlyphColor;\r\n"
-	"	Output.TexCoord = Input.Position.zw;\r\n"
-	"	Output.ClipDistance = ClipRect + float4(Input.Position.xy, -Input.Position.xy);\r\n"
-	"	\r\n"
-	"	return Output;\r\n"
-	"}\r\n"
-	"";
-	
-	// Shader compile profile
-	const char *vs_profile = "vs_4_0_level_9_1";
-	if(m_featureLevel >= D3D_FEATURE_LEVEL_11_0)
-		vs_profile = "vs_5_0";
-	else if(m_featureLevel >= D3D_FEATURE_LEVEL_10_0)
-		vs_profile = "vs_4_0";
-	else if(m_featureLevel >= D3D_FEATURE_LEVEL_9_3)
-		vs_profile = "vs_4_0_level_9_3";
-	
-	// Compile vertex shader
-	ID3DBlob *pVSCode;
-	
-	HRESULT hResult = m_pfnD3DCompile(
-		vsSimpleStr,
-		sizeof(vsSimpleStr),
-		NULL,
-		NULL,
-		NULL,
-		"VS",
-		vs_profile,
-		D3DCOMPILE_OPTIMIZATION_LEVEL3,
-		0,
-		&pVSCode,
-		NULL
-	);
+#include "vsSimpleStr.h"
+#include "vsClipStr.h"
+
+	// Create vertex shader
+	ID3D11VertexShader *pVS;
+		
+	HRESULT hResult = m_pDevice->CreateVertexShader(vsSimpleStr,sizeof(vsSimpleStr), NULL, &pVS);
 	if(FAILED(hResult)) {
-		m_lastError = L"Failed to compile vertex shader";
+		m_lastError = L"Failed to create vertex shader";
 	}
 	else {
 		// Create vertex shader
-		ID3D11VertexShader *pVS;
-		
-		hResult = m_pDevice->CreateVertexShader(pVSCode->GetBufferPointer(), pVSCode->GetBufferSize(), NULL, &pVS);
+		ID3D11VertexShader *pVSClip;
+				
+		hResult = m_pDevice->CreateVertexShader(
+			vsClipStr,
+			sizeof(vsClipStr),
+			NULL,
+			&pVSClip
+		);
 		if(FAILED(hResult)) {
-			m_lastError = L"Failed to create vertex shader";
+			m_lastError = L"Failed to create clipping vertex shader";
 		}
 		else {
-			// Compile clipping vertex shader
-			ID3DBlob *pVSClipCode;
-			
-			hResult = m_pfnD3DCompile(
-				vsClipStr,
-				sizeof(vsClipStr),
-				NULL,
-				NULL,
-				NULL,
-				"VS",
-				vs_profile,
-				D3DCOMPILE_OPTIMIZATION_LEVEL3,
-				0,
-				&pVSClipCode,
-				NULL
+			// Create input layout
+			ID3D11InputLayout *pInputLayout;
+					
+			// Quad vertex input layout
+			D3D11_INPUT_ELEMENT_DESC inputElements[] = {
+				{"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+				{"GLYPHCOLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+			};
+					
+			hResult = m_pDevice->CreateInputLayout(
+				inputElements,
+				2,
+				vsSimpleStr,
+				sizeof(vsSimpleStr),
+				&pInputLayout
 			);
 			if(FAILED(hResult)) {
-				m_lastError = L"Failed to compile clipping vertex shader";
+				m_lastError = L"Failed to create input layout";
 			}
 			else {
-				// Create vertex shader
-				ID3D11VertexShader *pVSClip;
-				
-				hResult = m_pDevice->CreateVertexShader(
-					pVSClipCode->GetBufferPointer(),
-					pVSClipCode->GetBufferSize(),
-					NULL,
-					&pVSClip
-				);
-				if(FAILED(hResult)) {
-					m_lastError = L"Failed to create clipping vertex shader";
-				}
-				else {
-					// Create input layout
-					ID3D11InputLayout *pInputLayout;
-					
-					// Quad vertex input layout
-					D3D11_INPUT_ELEMENT_DESC inputElements[] = {
-						{"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-						{"GLYPHCOLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
-					};
-					
-					hResult = m_pDevice->CreateInputLayout(
-						inputElements,
-						2,
-						pVSCode->GetBufferPointer(),
-						pVSCode->GetBufferSize(),
-						&pInputLayout
-					);
-					if(FAILED(hResult)) {
-						m_lastError = L"Failed to create input layout";
-					}
-					else {
-						// Success
-						m_pVertexShaderQuad = pVS;
-						m_pVertexShaderClipQuad = pVSClip;
-						m_pQuadInputLayout = pInputLayout;
+				// Success
+				m_pVertexShaderQuad = pVS;
+				m_pVertexShaderClipQuad = pVSClip;
+				m_pQuadInputLayout = pInputLayout;
 						
-						hResult = S_OK;
-					}
-					
-					if(FAILED(hResult))
-						pVSClip->Release();
-				}
-				
-				pVSClipCode->Release();
+				hResult = S_OK;
 			}
-			
+					
 			if(FAILED(hResult))
-				pVS->Release();
+				pVSClip->Release();
 		}
-		
-		pVSCode->Release();
+			
+		if(FAILED(hResult))
+			pVS->Release();
 	}
 	
 	return hResult;
@@ -316,413 +178,132 @@ HRESULT CFW1GlyphRenderStates::createGlyphShaders() {
 		return E_FAIL;
 	
 	// Geometry shader constructing glyphs from point input and texture buffer
-	const char gsSimpleStr[] =
-	"cbuffer ShaderConstants : register(b0) {\r\n"
-	"	float4x4 TransformMatrix : packoffset(c0);\r\n"
-	"};\r\n"
-	"\r\n"
-	"Buffer<float4> tex0 : register(t0);\r\n"
-	"\r\n"
-	"struct GSIn {\r\n"
-	"	float3 PositionIndex : POSITIONINDEX;\r\n"
-	"	float4 GlyphColor : GLYPHCOLOR;\r\n"
-	"};\r\n"
-	"\r\n"
-	"struct GSOut {\r\n"
-	"	float4 Position : SV_Position;\r\n"
-	"	float4 GlyphColor : COLOR;\r\n"
-	"	float2 TexCoord : TEXCOORD;\r\n"
-	"};\r\n"
-	"\r\n"
-	"[maxvertexcount(4)]\r\n"
-	"void GS(point GSIn Input[1], inout TriangleStream<GSOut> TriStream) {\r\n"
-	"	const float2 basePosition = Input[0].PositionIndex.xy;\r\n"
-	"	const uint glyphIndex = asuint(Input[0].PositionIndex.z);\r\n"
-	"	\r\n"
-	"	float4 texCoords = tex0.Load(uint2(glyphIndex*2, 0));\r\n"
-	"	float4 offsets = tex0.Load(uint2(glyphIndex*2+1, 0));\r\n"
-	"	\r\n"
-	"	GSOut Output;\r\n"
-	"	Output.GlyphColor = Input[0].GlyphColor;\r\n"
-	"	\r\n"
-	"	float4 positions = basePosition.xyxy + offsets;\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.xy, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.xy;\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.zy, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.zy;\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.xw, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.xw;\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.zw, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.zw;\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	TriStream.RestartStrip();\r\n"
-	"}\r\n"
-	"";
-	
+#include "gsSimpleStr.h"
+
 	// Geometry shader with rect clipping
-	const char gsClipStr[] =
-	"cbuffer ShaderConstants : register(b0) {\r\n"
-	"	float4x4 TransformMatrix : packoffset(c0);\r\n"
-	"	float4 ClipRect : packoffset(c4);\r\n"
-	"};\r\n"
-	"\r\n"
-	"Buffer<float4> tex0 : register(t0);\r\n"
-	"\r\n"
-	"struct GSIn {\r\n"
-	"	float3 PositionIndex : POSITIONINDEX;\r\n"
-	"	float4 GlyphColor : GLYPHCOLOR;\r\n"
-	"};\r\n"
-	"\r\n"
-	"struct GSOut {\r\n"
-	"	float4 Position : SV_Position;\r\n"
-	"	float4 GlyphColor : COLOR;\r\n"
-	"	float2 TexCoord : TEXCOORD;\r\n"
-	"	float4 ClipDistance : SV_ClipDistance;\r\n"
-	"};\r\n"
-	"\r\n"
-	"[maxvertexcount(4)]\r\n"
-	"void GS(point GSIn Input[1], inout TriangleStream<GSOut> TriStream) {\r\n"
-	"	const float2 basePosition = Input[0].PositionIndex.xy;\r\n"
-	"	const uint glyphIndex = asuint(Input[0].PositionIndex.z);\r\n"
-	"	\r\n"
-	"	float4 texCoords = tex0.Load(uint2(glyphIndex*2, 0));\r\n"
-	"	float4 offsets = tex0.Load(uint2(glyphIndex*2+1, 0));\r\n"
-	"	\r\n"
-	"	GSOut Output;\r\n"
-	"	Output.GlyphColor = Input[0].GlyphColor;\r\n"
-	"	\r\n"
-	"	float4 positions = basePosition.xyxy + offsets;\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.xy, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.xy;\r\n"
-	"	Output.ClipDistance = ClipRect + float4(positions.xy, -positions.xy);\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.zy, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.zy;\r\n"
-	"	Output.ClipDistance = ClipRect + float4(positions.zy, -positions.zy);\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.xw, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.xw;\r\n"
-	"	Output.ClipDistance = ClipRect + float4(positions.xw, -positions.xw);\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	Output.Position = mul(TransformMatrix, float4(positions.zw, 0.0f, 1.0f));\r\n"
-	"	Output.TexCoord = texCoords.zw;\r\n"
-	"	Output.ClipDistance = ClipRect + float4(positions.zw, -positions.zw);\r\n"
-	"	TriStream.Append(Output);\r\n"
-	"	\r\n"
-	"	TriStream.RestartStrip();\r\n"
-	"}\r\n"
-	"";
-	
+#include "gsClipStr.h"
+
 	// Vertex shader
-	const char vsEmptyStr[] =
-	"struct GSIn {\r\n"
-	"	float3 PositionIndex : POSITIONINDEX;\r\n"
-	"	float4 GlyphColor : GLYPHCOLOR;\r\n"
-	"};\r\n"
-	"\r\n"
-	"GSIn VS(GSIn Input) {\r\n"
-	"	return Input;\r\n"
-	"}\r\n"
-	"";
-	
-	// Shader compile profiles
-	const char *vs_profile = "vs_4_0";
-	const char *gs_profile = "gs_4_0";
-	if(m_featureLevel >= D3D_FEATURE_LEVEL_11_0) {
-		vs_profile = "vs_5_0";
-		gs_profile = "gs_5_0";
-	}
-	
-	// Compile geometry shader
-	ID3DBlob *pGSCode;
-	
-	HRESULT hResult = m_pfnD3DCompile(
-		gsSimpleStr,
-		sizeof(gsSimpleStr),
-		NULL,
-		NULL,
-		NULL,
-		"GS",
-		gs_profile,
-		D3DCOMPILE_OPTIMIZATION_LEVEL3,
-		0,
-		&pGSCode,
-		NULL
-	);
+#include "vsEmptyStr.h"
+
+	// Create geometry shader
+	ID3D11GeometryShader *pGS;
+		
+	HRESULT hResult = m_pDevice->CreateGeometryShader(gsSimpleStr, sizeof(gsSimpleStr), NULL, &pGS);
 	if(FAILED(hResult)) {
-		m_lastError = L"Failed to compile geometry shader";
+		m_lastError = L"Failed to create geometry shader";
 	}
 	else {
-		// Create geometry shader
-		ID3D11GeometryShader *pGS;
-		
-		hResult = m_pDevice->CreateGeometryShader(pGSCode->GetBufferPointer(), pGSCode->GetBufferSize(), NULL, &pGS);
+	
+		// Create clipping geometry shader
+		ID3D11GeometryShader *pGSClip;
+				
+		hResult = m_pDevice->CreateGeometryShader(
+			gsClipStr,
+			sizeof(gsClipStr),
+			NULL,
+			&pGSClip
+		);
 		if(FAILED(hResult)) {
-			m_lastError = L"Failed to create geometry shader";
+			m_lastError = L"Failed to create clipping geometry shader";
 		}
 		else {
-			// Compile clipping geometry shader
-			ID3DBlob *pGSClipCode;
-			
-			hResult = m_pfnD3DCompile(
-				gsClipStr,
-				sizeof(gsClipStr),
+			// Create vertex shader
+			ID3D11VertexShader *pVSEmpty;
+						
+			hResult = m_pDevice->CreateVertexShader(
+				vsEmptyStr,
+				sizeof(vsEmptyStr),
 				NULL,
-				NULL,
-				NULL,
-				"GS",
-				gs_profile,
-				D3DCOMPILE_OPTIMIZATION_LEVEL3,
-				0,
-				&pGSClipCode,
-				NULL
+				&pVSEmpty
 			);
 			if(FAILED(hResult)) {
-				m_lastError = L"Failed to compile clipping geometry shader";
+				m_lastError = L"Failed to create empty vertex shader";
 			}
 			else {
-				// Create clipping geometry shader
-				ID3D11GeometryShader *pGSClip;
-				
-				hResult = m_pDevice->CreateGeometryShader(
-					pGSClipCode->GetBufferPointer(),
-					pGSClipCode->GetBufferSize(),
-					NULL,
-					&pGSClip
+				ID3D11InputLayout *pInputLayout;
+							
+				// Input layout for geometry shader
+				D3D11_INPUT_ELEMENT_DESC inputElements[] = {
+					{"POSITIONINDEX", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+					{"GLYPHCOLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+				};
+							
+				hResult = m_pDevice->CreateInputLayout(
+					inputElements,
+					2,
+					vsEmptyStr,
+					sizeof(vsEmptyStr),
+					&pInputLayout
 				);
 				if(FAILED(hResult)) {
-					m_lastError = L"Failed to create clipping geometry shader";
+					m_lastError = L"Failed to create input layout for geometry shader";
 				}
 				else {
-					ID3DBlob *pVSEmptyCode;
-					
-					// Compile vertex shader
-					hResult = m_pfnD3DCompile(
-						vsEmptyStr,
-						sizeof(vsEmptyStr),
-						NULL,
-						NULL,
-						NULL,
-						"VS",
-						vs_profile,
-						D3DCOMPILE_OPTIMIZATION_LEVEL3,
-						0,
-						&pVSEmptyCode,
-						NULL
-					);
-					if(FAILED(hResult)) {
-						m_lastError = L"Failed to compile empty vertex shader";
-					}
-					else {
-						// Create vertex shader
-						ID3D11VertexShader *pVSEmpty;
-						
-						hResult = m_pDevice->CreateVertexShader(
-							pVSEmptyCode->GetBufferPointer(),
-							pVSEmptyCode->GetBufferSize(),
-							NULL,
-							&pVSEmpty
-						);
-						if(FAILED(hResult)) {
-							m_lastError = L"Failed to create empty vertex shader";
-						}
-						else {
-							ID3D11InputLayout *pInputLayout;
-							
-							// Input layout for geometry shader
-							D3D11_INPUT_ELEMENT_DESC inputElements[] = {
-								{"POSITIONINDEX", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-								{"GLYPHCOLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
-							};
-							
-							hResult = m_pDevice->CreateInputLayout(
-								inputElements,
-								2,
-								pVSEmptyCode->GetBufferPointer(),
-								pVSEmptyCode->GetBufferSize(),
-								&pInputLayout
-							);
-							if(FAILED(hResult)) {
-								m_lastError = L"Failed to create input layout for geometry shader";
-							}
-							else {
-								// Success
-								m_pVertexShaderPoint = pVSEmpty;
-								m_pGeometryShaderPoint = pGS;
-								m_pGeometryShaderClipPoint = pGSClip;
-								m_pPointInputLayout = pInputLayout;
-								m_hasGeometryShader = true;
+					// Success
+					m_pVertexShaderPoint = pVSEmpty;
+					m_pGeometryShaderPoint = pGS;
+					m_pGeometryShaderClipPoint = pGSClip;
+					m_pPointInputLayout = pInputLayout;
+					m_hasGeometryShader = true;
 								
-								hResult = S_OK;
-							}
-							
-							if(FAILED(hResult))
-								pVSEmpty->Release();
-						}
-						
-						pVSEmptyCode->Release();
-					}
-					
-					if(FAILED(hResult))
-						pGSClip->Release();
+					hResult = S_OK;
 				}
-				
-				pGSClipCode->Release();
+							
+				if(FAILED(hResult))
+					pVSEmpty->Release();
 			}
-			
+
 			if(FAILED(hResult))
-				pGS->Release();
+				pGSClip->Release();
 		}
-		
-		pGSCode->Release();
+			
+		if(FAILED(hResult))
+			pGS->Release();
 	}
+
 	
 	return hResult;
 }
 
 // Create pixel shaders
 HRESULT CFW1GlyphRenderStates::createPixelShaders() {
+	
 	// Pixel shader
-	const char psStr[] =
-	"SamplerState sampler0 : register(s0);\r\n"
-	"Texture2D<float> tex0 : register(t0);\r\n"
-	"\r\n"
-	"struct PSIn {\r\n"
-	"	float4 Position : SV_Position;\r\n"
-	"	float4 GlyphColor : COLOR;\r\n"
-	"	float2 TexCoord : TEXCOORD;\r\n"
-	"};\r\n"
-	"\r\n"
-	"float4 PS(PSIn Input) : SV_Target {\r\n"
-	"	float a = tex0.Sample(sampler0, Input.TexCoord);\r\n"
-	"	\r\n"
-	"	if(a == 0.0f)\r\n"
-	"		discard;\r\n"
-	"	\r\n"
-	"	return (a * Input.GlyphColor.a) * float4(Input.GlyphColor.rgb, 1.0f);\r\n"
-	"}\r\n"
-	"";
+#include "psStr.h"
 	
 	// Clipping pixel shader
-	const char psClipStr[] =
-	"SamplerState sampler0 : register(s0);\r\n"
-	"Texture2D<float> tex0 : register(t0);\r\n"
-	"\r\n"
-	"struct PSIn {\r\n"
-	"	float4 Position : SV_Position;\r\n"
-	"	float4 GlyphColor : COLOR;\r\n"
-	"	float2 TexCoord : TEXCOORD;\r\n"
-	"	float4 ClipDistance : CLIPDISTANCE;\r\n"
-	"};\r\n"
-	"\r\n"
-	"float4 PS(PSIn Input) : SV_Target {\r\n"
-	"	clip(Input.ClipDistance);\r\n"
-	"	\r\n"
-	"	float a = tex0.Sample(sampler0, Input.TexCoord);\r\n"
-	"	\r\n"
-	"	if(a == 0.0f)\r\n"
-	"		discard;\r\n"
-	"	\r\n"
-	"	return (a * Input.GlyphColor.a) * float4(Input.GlyphColor.rgb, 1.0f);\r\n"
-	"}\r\n"
-	"";
-	
-	// Shader compile profile
-	const char *ps_profile = "ps_4_0_level_9_1";
-	if(m_featureLevel >= D3D_FEATURE_LEVEL_11_0)
-		ps_profile = "ps_5_0";
-	else if(m_featureLevel >= D3D_FEATURE_LEVEL_10_0)
-		ps_profile = "ps_4_0";
-	else if(m_featureLevel >= D3D_FEATURE_LEVEL_9_3)
-		ps_profile = "ps_4_0_level_9_3";
-	
-	// Compile pixel shader
-	ID3DBlob *pPSCode;
-	
-	HRESULT hResult = m_pfnD3DCompile(
-		psStr,
-		sizeof(psStr),
-		NULL,
-		NULL,
-		NULL,
-		"PS",
-		ps_profile,
-		D3DCOMPILE_OPTIMIZATION_LEVEL3,
-		0,
-		&pPSCode,
-		NULL
-	);
+#include "psClipStr.h"
+
+	// Create pixel shader
+	ID3D11PixelShader *pPS;
+		
+	HRESULT hResult = m_pDevice->CreatePixelShader(psStr, sizeof(psStr), NULL, &pPS);
 	if(FAILED(hResult)) {
-		m_lastError = L"Failed to compile pixel shader";
+		m_lastError = L"Failed to create pixel shader";
 	}
 	else {
 		// Create pixel shader
-		ID3D11PixelShader *pPS;
-		
-		hResult = m_pDevice->CreatePixelShader(pPSCode->GetBufferPointer(), pPSCode->GetBufferSize(), NULL, &pPS);
+		ID3D11PixelShader *pPSClip;
+				
+		hResult = m_pDevice->CreatePixelShader(
+			psClipStr,
+			sizeof(psClipStr),
+			NULL, &pPSClip
+		);
 		if(FAILED(hResult)) {
-			m_lastError = L"Failed to create pixel shader";
+			m_lastError = L"Failed to create clipping pixel shader";
 		}
 		else {
-			// Compile clipping pixel shader
-			ID3DBlob *pPSClipCode;
-			
-			HRESULT hResult = m_pfnD3DCompile(
-				psClipStr,
-				sizeof(psClipStr),
-				NULL,
-				NULL,
-				NULL,
-				"PS",
-				ps_profile,
-				D3DCOMPILE_OPTIMIZATION_LEVEL3,
-				0,
-				&pPSClipCode,
-				NULL
-			);
-			if(FAILED(hResult)) {
-				m_lastError = L"Failed to compile clipping pixel shader";
-			}
-			else {
-				// Create pixel shader
-				ID3D11PixelShader *pPSClip;
-				
-				hResult = m_pDevice->CreatePixelShader(
-					pPSClipCode->GetBufferPointer(),
-					pPSClipCode->GetBufferSize(),
-					NULL, &pPSClip
-				);
-				if(FAILED(hResult)) {
-					m_lastError = L"Failed to create clipping pixel shader";
-				}
-				else {
-					// Success
-					m_pPixelShader = pPS;
-					m_pPixelShaderClip = pPSClip;
+			// Success
+			m_pPixelShader = pPS;
+			m_pPixelShaderClip = pPSClip;
 					
-					hResult = S_OK;
-				}
-				
-				pPSClipCode->Release();
-			}
-			
-			if(FAILED(hResult))
-				pPS->Release();
+			hResult = S_OK;
 		}
-		
-		pPSCode->Release();
+			
+		if(FAILED(hResult))
+			pPS->Release();
 	}
 	
 	return hResult;

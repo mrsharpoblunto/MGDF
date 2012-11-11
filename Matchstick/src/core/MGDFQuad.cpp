@@ -95,7 +95,7 @@ Quad::Quad(ID3D11Device *device)
 	std::string pixelShaderData;
 	std::string vertexShaderData;
 	{
-		std::wstring pixelShader = Resources::Instance().RootDir()+L"resources/quad.pso";
+		std::wstring pixelShader = Resources::Instance().RootDir()+L"resources/quad_ps.cso";
 		std::ifstream input(pixelShader.c_str(),std::ios::in);
 		std::stringstream buffer;
 		buffer << input.rdbuf();
@@ -103,7 +103,7 @@ Quad::Quad(ID3D11Device *device)
 		HR(device->CreatePixelShader(pixelShaderData.c_str(),pixelShaderData.size(),nullptr,&_pixelShader));
 	}
 	{
-		std::wstring vertexShader = Resources::Instance().RootDir()+L"resources/quad.vso";
+		std::wstring vertexShader = Resources::Instance().RootDir()+L"resources/quad_vs.cso";
 		std::ifstream input(vertexShader.c_str(),std::ios::in);
 		std::stringstream buffer;
 		buffer << input.rdbuf();

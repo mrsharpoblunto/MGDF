@@ -140,5 +140,26 @@
     <ClInclude Include="FW1Precompiled.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="vsSimpleStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vsClipStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gsSimpleStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gsClipStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vsEmptyStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="psStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="psClipStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

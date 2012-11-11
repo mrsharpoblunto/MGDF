@@ -9,7 +9,6 @@
 
 // Define to use LoadLibrary instead of linking to DLLs
 #define FW1_DELAYLOAD_DWRITE_DLL
-#define FW1_DELAYLOAD_D3DCOMPILER_XX_DLL
 
 
 #endif// IncludeGuard__FW1_FW1CompileSettings_h

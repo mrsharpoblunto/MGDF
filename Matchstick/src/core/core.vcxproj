@@ -105,6 +105,10 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <Command>
       </Command>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>$(OutDir)resources\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
@@ -154,6 +158,10 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <Command>
       </Command>
     </PostBuildEvent>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>$(OutDir)resources\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\MGDF\MGDF.hpp" />
@@ -217,6 +225,16 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <Project>{60a53eec-b17e-4bb8-9626-064ada85cfc7}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="quad_ps.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="quad_vs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

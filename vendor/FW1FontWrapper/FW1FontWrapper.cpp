@@ -8,10 +8,6 @@
 	#pragma comment (lib, "DWrite.lib")
 #endif
 
-#ifndef FW1_DELAYLOAD_D3DCOMPILER_XX_DLL
-	#pragma comment (lib, "DWrite.lib")
-#endif
-
 #ifdef FW1_COMPILETODLL
 	#ifndef _M_X64
 		#pragma comment (linker, "/EXPORT:FW1CreateFactory=_FW1CreateFactory@8,@1")
