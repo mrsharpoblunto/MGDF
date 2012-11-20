@@ -40,7 +40,19 @@ void MGDFApp::SetSystem(System *system)
 
 void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure)
 {
-	D3DAppFramework::InitDirect3D(caption,windowProcedure);
+	//find out what D3D feature levels this module supports
+	D3D_FEATURE_LEVEL *levels = nullptr;
+	unsigned int featureLevelsSize = 0;
+	if (_system->GetCompatibleD3DFeatureLevels(levels,&featureLevelsSize))
+	{
+		levels = new D3D_FEATURE_LEVEL[featureLevelsSize];
+		_system->GetCompatibleD3DFeatureLevels(levels,&featureLevelsSize);
+	}
+
+	D3DAppFramework::InitDirect3D(caption,windowProcedure,levels,featureLevelsSize);
+
+	SAFE_DELETE_ARRAY(levels);
+
 	_system->SetD3DDevice(_d3dDevice);//allow the system to pass the d3d object to the modules
 
 	_quad = new Quad(_d3dDevice);

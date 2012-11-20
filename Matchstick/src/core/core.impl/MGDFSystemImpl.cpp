@@ -209,6 +209,11 @@ void System::SetD3DDevice(ID3D11Device *d3dDevice)
 	_timer.InitGPUTimer(_d3dDevice,GPU_TIMER_BUFFER,TIMER_SAMPLES);
 }
 
+unsigned int System::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *featureLevelsSize)
+{
+	return _moduleFactory->GetCompatibleFeatureLevels(levels,featureLevelsSize);
+}
+
 void System::CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter)
 {
 	_graphics = new GraphicsManager(device,adapter);

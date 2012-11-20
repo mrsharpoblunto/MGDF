@@ -66,6 +66,7 @@ public:
 	void UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex);
 	void DrawScene(double alpha);
 	void BackBufferChanged();
+	unsigned int GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *featureLevelsSize);
 	void SetD3DDevice(ID3D11Device *d3dDevice);
 	void CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter);
 	GraphicsManager *GetGraphicsImpl() const;

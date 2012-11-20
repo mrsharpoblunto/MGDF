@@ -178,6 +178,7 @@ Timer::Timer()
 , _bufferSize(0)
 , _maxSamples(0)
 , _initialized(0)
+, _gpuTimersSupported(true)
 {
 	timeBeginPeriod(1);//set a higher resolution for timing calls
 
@@ -214,6 +215,12 @@ void Timer::InitGPUTimer(ID3D11Device *device,unsigned int bufferSize,int frameS
 
 		ID3D11Query* query;
 		_device->CreateQuery(&desc, &query);
+		if (!query)
+		{
+			GetLoggerImpl()->Add(THIS_NAME,"GPU timing queries unsupported",LOG_ERROR);
+			_gpuTimersSupported = false;
+			break;
+		}
 		_disjointQueries.push_back(query);
 	}
 }
@@ -247,6 +254,7 @@ IPerformanceCounter *Timer::CreateCPUCounter(const char *name)
 
 IPerformanceCounter *Timer::CreateGPUCounter(const char *name)
 {
+	if (!_gpuTimersSupported) return nullptr;
 	GPUPerformanceCounter *counter = new GPUPerformanceCounter(name,this);
 	_gpuCounters.push_back(counter);
 	return counter;
@@ -286,32 +294,35 @@ void Timer::Begin()
 {
 	_currentFrame = (_currentFrame+1) % _bufferSize;
 
-	if (_initialized == _bufferSize)
+	if (_gpuTimersSupported) 
 	{
-		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint;
-		
-		if (_context->GetData(_disjointQueries[_currentFrame],&disjoint,sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT),0) == S_OK)
+		if (_initialized == _bufferSize)
 		{
-			if (!disjoint.Disjoint)
+			D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint;
+		
+			if (_context->GetData(_disjointQueries[_currentFrame],&disjoint,sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT),0) == S_OK)
 			{
-				for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+				if (!disjoint.Disjoint)
 				{
-					(*iter)->SetSample(_currentFrame,disjoint.Frequency);
+					for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+					{
+						(*iter)->SetSample(_currentFrame,disjoint.Frequency);
+					}
 				}
 			}
 		}
-	}
-	else
-	{
-		++_initialized;
-	}
+		else
+		{
+			++_initialized;
+		}
 
-	_context->Begin(_disjointQueries[_currentFrame]);
+		_context->Begin(_disjointQueries[_currentFrame]);
+	}
 }
 
 void Timer::End()
 {
-	_context->End(_disjointQueries[_currentFrame]);
+	if (_gpuTimersSupported) _context->End(_disjointQueries[_currentFrame]);
 }
 
 void Timer::GetCounterAverages(

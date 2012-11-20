@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
@@ -54,6 +55,7 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine();
             sb.AppendLine();
             sb.AppendLine();
+
             sb.AppendLine("System Information");
             sb.AppendLine("==================");
             sb.AppendLine("MGDF Version: " + Assembly.GetExecutingAssembly().GetName().Version);
@@ -62,20 +64,40 @@ namespace MGDF.GamesManager.MVP.Presenters
             sb.AppendLine("RAM: " + EnvironmentSettings.Current.TotalMemory);
             sb.AppendLine("Processor Count: " + EnvironmentSettings.Current.ProcessorCount);
             sb.AppendLine();
+
+            sb.AppendLine("Video Controllers");
+            sb.AppendLine("=================");
+            //iterate through all the video controllers and output all the relevant info
+            //including driver versions etc.
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_VideoController");
+            int controller = 1;
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                sb.AppendLine(String.Format("Video Controller {0}:", controller));
+                foreach (PropertyData property in obj.Properties)
+                {
+                    if (property.Value != null)
+                    {
+                        sb.AppendLine(property.Name + ": " + property.Value.ToString());
+                    }
+                }
+                sb.AppendLine();
+                controller++;
+            }
+
             sb.AppendLine("Details");
             sb.AppendLine("=======");
             sb.AppendLine("Game: "+_game.Uid+" "+_game.Version);
             sb.AppendLine(_detail);
             sb.AppendLine();
+
             sb.AppendLine("Log output");
             sb.AppendLine("==========");
-
             IFile coreLog = FileSystem.Current.GetFile(Path.Combine(Resources.GameUserDir, "corelog.txt"));
             if (!coreLog.Exists)
             {
                 coreLog = FileSystem.Current.GetFile(Path.Combine(EnvironmentSettings.Current.UserDirectory, "corelog.txt"));
             }
-
             if (coreLog.Exists)
             {
                 using (var stream = coreLog.OpenStream(FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -85,6 +107,10 @@ namespace MGDF.GamesManager.MVP.Presenters
                         sb.Append(reader.ReadToEnd());
                     }
                 }
+            }
+            else
+            {
+                sb.Append("No Log output");
             }
 
 

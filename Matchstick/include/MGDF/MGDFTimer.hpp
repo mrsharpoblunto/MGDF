@@ -27,6 +27,8 @@ public:
 	 * create a performance counter for profiling GPU time taken in DirectX API calls.
 	 * NOTE: This method should ONLY be called from the render thread. Also GPU counters
 	 * should only be used and removed from the render thread.
+	 * \return NULL if GPU counters are unsupported (using D3D_FEATURE_LEVEL_9_3 or less) otherwise
+	 * returns a new GPU timer instance.
 	 */
 	virtual IPerformanceCounter *CreateGPUCounter(const char *name)=0;
 	

@@ -74,17 +74,17 @@ bool Module::DrawScene(double alpha)
 		{
 			_textManagerCounter = _system->GetTimer()->CreateGPUCounter("Text Rendering");
 		}
-		_textManagerCounter->Begin();
+
+		if (_textManagerCounter) _textManagerCounter->Begin();
 			_textManager->SetState(state);
 			_textManager->DrawText();
-		_textManagerCounter->End();
+		if (_textManagerCounter) _textManagerCounter->End();
 	}
    return true;
 }
 
 bool Module::BackBufferChanged()
 {
-	//_textManager->OnLostDevice();
 	return true;
 }
 

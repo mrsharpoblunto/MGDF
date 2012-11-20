@@ -61,6 +61,11 @@ ModuleFactory::ModuleFactory(IGame *game)
 			if (_isCompatibleInterfaceVersion!=nullptr) {
 				GetLoggerImpl()->Add(THIS_NAME,"Loaded IsCompatibleInterfaceVersion from Module.dll");
 			}
+
+			_getCompatibleFeatureLevels = (GetCompatibleFeatureLevelsPtr)GetProcAddress(_moduleInstance, "GetCompatibleFeatureLevels");
+			if (_getCompatibleFeatureLevels!=nullptr) {
+				GetLoggerImpl()->Add(THIS_NAME,"Loaded GetCompatibleFeatureLevels from Module.dll");
+			}
 		}
 		else {
 			GetLoggerImpl()->Add(THIS_NAME,"Failed to load Module.dll");
@@ -97,5 +102,17 @@ bool ModuleFactory::IsCompatibleInterfaceVersion(int interfaceVersion)
 		return false;
 	}
 }
+
+unsigned int ModuleFactory::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *levelSize)
+{
+	if (_getCompatibleFeatureLevels!=nullptr) {
+		return _getCompatibleFeatureLevels(levels,levelSize);
+	}
+	else
+	{
+		return false;
+	}
+}
+
 
 }}

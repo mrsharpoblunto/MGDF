@@ -27,6 +27,20 @@ MGDF::IModule *MGDF::GetModule(MGDF::ISystem *system) {
 	return new MGDF::Test::Module(system);
 }
 
+//specify to the framework what kind of d3d device features we want/require
+unsigned int MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *featureLevelsSize) {
+	if (*featureLevelsSize!=1)
+	{
+		*featureLevelsSize = 1;
+		return 1;
+	}
+	else
+	{
+		levels[0] = D3D_FEATURE_LEVEL_9_3;
+		return 0;
+	}
+}
+
 //register custom archive handlers
 MGDF::ICustomArchiveHandlers * MGDF::GetCustomArchiveHandlers(void)
 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <d3d11.h>
 #include <MGDF/MGDFDisposable.hpp>
 
 namespace MGDF {
@@ -81,15 +82,27 @@ public:
 };
 
 /**
-exports the getversion function so the moduleManager can assert if the current MGDF module interface is compatible with it
+exports the IsCompatibleInterfaceVersion function so the module can assert if the current MGDF system interface is compatible with it
+\param systemInterface the MGDF interface version supported by the system
+\return true if the module supports the system interface
 */
-extern "C" __declspec(dllexport) bool IsCompatibleInterfaceVersion(int);
+extern "C" __declspec(dllexport) bool IsCompatibleInterfaceVersion(int systemInterface);
 
 /**
-exports the getmodule function so the modulemanager can get access to instances
-of a module
+allows the system to determine what d3d feature level to try and use when creating the d3d device
+\param levels an array supplied to the module to fill with acceptable D3D feature levels
+\param levelSize the size of the levels array
+\return 0 if the supplied levels array is large enough, otherwise returns the size required.
 */
-extern "C" __declspec(dllexport) IModule * GetModule(ISystem *);
+extern "C" __declspec(dllexport) unsigned int GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *levelSize);
+
+/**
+exports the getmodule function so the system can get access to instances
+of a module
+\param system a pointer to the MGDF system interface
+\return an instance of the module interface
+*/
+extern "C" __declspec(dllexport) IModule * GetModule(ISystem *system);
 
 }
 

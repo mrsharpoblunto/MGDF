@@ -96,6 +96,8 @@ private:
 	unsigned int _bufferSize;
 	unsigned int _maxSamples;
 	unsigned int _initialized;
+	bool _gpuTimersSupported;
+
 	boost::mutex _mutex;
 	std::vector<CPUPerformanceCounter *> _cpuCounters;
 	std::vector<GPUPerformanceCounter *> _gpuCounters;

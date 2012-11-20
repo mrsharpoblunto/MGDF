@@ -26,7 +26,7 @@ public:
 	virtual void FatalError(const std::string &errorMessage)=0;
 	virtual void ExternalClose()=0;
 	virtual void OnRawInput(RAWINPUT *input)=0;
-	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure);
+	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3D_FEATURE_LEVEL *levels,unsigned int levelsSize);
 
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -60,7 +60,7 @@ protected:
 
 private:
 	void InitMainWindow(const std::string &caption,WNDPROC windowProcedure);
-	void InitD3D();
+	void InitD3D(D3D_FEATURE_LEVEL *levels,unsigned int levelsSize);
 	void InitRawInput();
 	void ToggleFullScreenMode();
 	void CreateSwapChain();

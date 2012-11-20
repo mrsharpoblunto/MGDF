@@ -14,4 +14,13 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="gsClipStr.hlsl" />
+    <FxCompile Include="gsSimpleStr.hlsl" />
+    <FxCompile Include="psClipStr.hlsl" />
+    <FxCompile Include="psStr.hlsl" />
+    <FxCompile Include="vsClipStr.hlsl" />
+    <FxCompile Include="vsEmptyStr.hlsl" />
+    <FxCompile Include="vsSimpleStr.hlsl" />
+  </ItemGroup>
 </Project>

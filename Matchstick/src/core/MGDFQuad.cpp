@@ -43,7 +43,7 @@ Quad::Quad(ID3D11Device *device)
 		ZeroMemory(&desc,sizeof(D3D11_RASTERIZER_DESC));
 		desc.FillMode = D3D11_FILL_SOLID;
 		desc.CullMode = D3D11_CULL_NONE;
-		desc.DepthClipEnable = false;
+		desc.DepthClipEnable = true;
 		HR(device->CreateRasterizerState(&desc,&_rasterizerState));
 	}
 

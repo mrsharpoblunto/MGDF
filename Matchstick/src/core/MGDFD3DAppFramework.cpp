@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+#include <boost/lexical_cast.hpp>
 #include <string.h>
 #include <math.h>
 #include <mmsystem.h>
@@ -85,10 +86,10 @@ ID3D11Device *D3DAppFramework::GetD3DDevice() const
 	return _d3dDevice;
 }
 
-void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure) {
+void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3D_FEATURE_LEVEL *levels,unsigned int levelsSize) {
 	InitMainWindow(caption,windowProcedure);
 	InitRawInput();
-	InitD3D();
+	InitD3D(levels,levelsSize);
 }
 
 void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowProcedure)
@@ -150,7 +151,7 @@ void D3DAppFramework::InitRawInput()
 	}	
 }
 
-void D3DAppFramework::InitD3D()
+void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,unsigned int levelsSize)
 {
 	if (_window != nullptr) {
 		UINT createDeviceFlags = 0;
@@ -163,12 +164,13 @@ void D3DAppFramework::InitD3D()
 			FatalError("Failed to create IDXGIFactory.");
 		}
 
-		IDXGIAdapter1 *adapter;
+		IDXGIAdapter1 *adapter=nullptr;
+		IDXGIAdapter1 *bestAdapter=nullptr;
 		char videoCardDescription[128];
 		DXGI_ADAPTER_DESC1 adapterDesc;
 		unsigned int stringLength;
 
-		// step through the adapters until we find a compatible adapter and successfully create a device
+		// step through the adapters and ensure we use the best one to create our device
 		for(int i = 0; _factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++)
 		{
 			adapter->GetDesc1(&adapterDesc);
@@ -179,36 +181,64 @@ void D3DAppFramework::InitD3D()
 			GetLoggerImpl()->Add(THIS_NAME,message,LOG_LOW);
 
 			D3D_FEATURE_LEVEL featureLevel;
+			ID3D11Device *device=nullptr;
+			ID3D11DeviceContext *context = nullptr;
+
 			if (FAILED(D3D11CreateDevice(
 						adapter,
 						D3D_DRIVER_TYPE_UNKNOWN,// as we're specifying an adapter to use, we must specify that the driver type is unknown!!!
 						0, // no software device
 						createDeviceFlags, 
-						0, 0,  // default feature level array
+						levels, levelsSize,  // default feature level array
 						D3D11_SDK_VERSION,
-						&_d3dDevice,
+						&device,
 						&featureLevel,
-						&_immediateContext)) || 
-				featureLevel != D3D_FEATURE_LEVEL_11_0)
+						&context)) || 
+						featureLevel == 0 )
 			{
-				//if we couldn't create the device, or it doesn't support the dx11 feature set
-				SAFE_RELEASE(_immediateContext);
-				SAFE_RELEASE(_d3dDevice);
+				//if we couldn't create the device, or it doesn't support one of our specified feature sets
+				SAFE_RELEASE(context);
+				SAFE_RELEASE(device);
 				SAFE_RELEASE(adapter);
 			}
 			else
 			{
-				break;
+				//this is the first acceptable adapter, or the best one so far
+				if (_d3dDevice==nullptr || featureLevel > _d3dDevice->GetFeatureLevel())
+				{
+					//clear out the previous best adapter
+					SAFE_RELEASE(_immediateContext);
+					SAFE_RELEASE(_d3dDevice);
+					SAFE_RELEASE(bestAdapter);
+
+					//store the new best adapter
+					bestAdapter = adapter;
+					_d3dDevice = device;
+					_immediateContext = context;
+					GetLoggerImpl()->Add(THIS_NAME,"Adapter is the best found so far",LOG_LOW);
+				}
+				//this adapter is no better than what we already have, so ignore it
+				else
+				{
+					SAFE_RELEASE(context);
+					SAFE_RELEASE(device);
+					SAFE_RELEASE(adapter);
+					GetLoggerImpl()->Add(THIS_NAME,"A better adapter has already been found - Ignoring",LOG_LOW);
+				}
 			}
 		}
 
 		if( !_d3dDevice )
 		{
-			FatalError("No adapters found supporting Direct3D Feature Level 11");
+			FatalError("No adapters found supporting The specified D3D Feature set");
+		}
+		else
+		{
+			GetLoggerImpl()->Add(THIS_NAME,"Created device with D3D Feature level: "+boost::lexical_cast<std::string>(_d3dDevice->GetFeatureLevel()),LOG_LOW);
 		}
 
-		OnInitD3D(_d3dDevice,adapter);
-		SAFE_RELEASE(adapter);
+		OnInitD3D(_d3dDevice,bestAdapter);
+		SAFE_RELEASE(bestAdapter);
 
 		OnResetSwapChain(&_swapDesc,nullptr);
 		_swapDesc.OutputWindow = _window;
