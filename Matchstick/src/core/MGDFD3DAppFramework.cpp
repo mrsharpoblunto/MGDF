@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <mmsystem.h>
+#include "windowsx.h"
 #include "MGDFD3DAppFramework.hpp"
 #include "common/MGDFExceptions.hpp"
 #include "common/MGDFLoggerImpl.hpp"
@@ -437,6 +438,7 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 		}
 		else 
 		{
+			OnInputIdle();
 			//don't hog the CPU when there are no messages
 			Sleep(1);
 		}
@@ -454,6 +456,14 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 {
 	switch( msg )
 	{
+	case WM_MOUSEMOVE:
+	{
+		int x = GET_X_LPARAM(lParam); 
+		int y = GET_Y_LPARAM(lParam); 
+		OnMouseInput(x,y);
+	}
+	return 0;
+
 	case WM_INPUT:
 	{	
 		UINT dwSize=0U;

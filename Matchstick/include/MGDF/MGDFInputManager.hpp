@@ -117,6 +117,12 @@ class IInputManager {
 public:
 
 /**
+determines whether the OS cursor is displayed or not
+\param show Whether to show the cursor or not
+*/
+virtual void ShowCursor(bool show)=0;
+
+/**
 determines if a key is presed
 \param key the Microsoft Virtual key code representing the desired key (see here for a list http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 \return true if the key is being held down
@@ -136,6 +142,18 @@ determines if a keypress has occured
 \return true if the key has been pressed (i.e pressed down then released)
 */
 virtual bool  IsKeyPress(unsigned short key) const=0;
+
+/**
+get the x position of the mouse
+\return the x position of the mouse relative to the left of the screen in pixels
+*/
+virtual int  GetMouseX(void) const=0;
+
+/**
+get the y position of the mouse
+\return the y position of the mouse relative to the top of the screen in pixels
+*/
+virtual int  GetMouseY(void) const=0;
 
 /**
 get the x movement of the mouse in the current frame

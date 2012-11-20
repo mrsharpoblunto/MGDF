@@ -433,7 +433,7 @@ IModule *System::GetModule() const {
 void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex)
 {
 	LARGE_INTEGER inputStart = _timer.GetCurrentTimeTicks();
-	_input->ProcessInput();
+	_input->ProcessSim();
 	LARGE_INTEGER inputEnd = _timer.GetCurrentTimeTicks();
 
 	LARGE_INTEGER audioStart = _timer.GetCurrentTimeTicks();

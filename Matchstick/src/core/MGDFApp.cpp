@@ -95,6 +95,11 @@ void MGDFApp::OnRawInput(RAWINPUT *input)
 	_system->GetInputManagerImpl()->HandleInput(input);
 }
 
+void MGDFApp::OnMouseInput(int x,int y)
+{
+	_system->GetInputManagerImpl()->HandleInput(x,y);
+}
+
 void MGDFApp::OnInitD3D(ID3D11Device *device,IDXGIAdapter1 *adapter)
 {
 	_system->CreateGraphicsImpl(device,adapter);
@@ -114,6 +119,11 @@ void MGDFApp::OnBackBufferChanged(ID3D11Texture2D *backBuffer)
 {
 	_system->GetGraphicsImpl()->SetBackBuffer(backBuffer);
 	_system->BackBufferChanged();
+}
+
+void MGDFApp::OnInputIdle()
+{
+	_system->GetInputManagerImpl()->ProcessInput();
 }
 
 void MGDFApp::DrawScene(double alpha) 

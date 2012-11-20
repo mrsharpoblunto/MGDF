@@ -36,6 +36,11 @@ XInputManagerComponent::XInputManagerComponent()
 		_gamepads.Add(new XInputGamepad(i));
 	}
 
+	_pendingShowCursor = false;
+	_showCursor = false;
+
+	_pendingMouseX = 0;
+	_pendingMouseY = 0;
 	_pendingMouseDX = 0L;
 	_pendingMouseDY = 0L;
 	_pendingMouseDZ = 0;
@@ -63,11 +68,18 @@ XInputManagerComponent::~XInputManagerComponent(void)
 	}
 }
 
+void XInputManagerComponent::HandleInput(int mouseX,int mouseY)
+{
+	boost::mutex::scoped_lock lock(_simMutex);
+	_pendingMouseX = mouseX;
+	_pendingMouseY = mouseY;
+}
+
 void XInputManagerComponent::HandleInput(RAWINPUT *input)
 {
 	if (input->header.dwType == RIM_TYPEKEYBOARD) 
 	{
-		boost::mutex::scoped_lock lock(_mutex);
+		boost::mutex::scoped_lock lock(_simMutex);
 
 		unsigned short key = input->data.keyboard.VKey;
 		if ((input->data.keyboard.Flags & RI_KEY_MAKE) == RI_KEY_MAKE && _pendingKeyDown[key]!=1)
@@ -88,7 +100,7 @@ void XInputManagerComponent::HandleInput(RAWINPUT *input)
 	}
 	else if (input->header.dwType == RIM_TYPEMOUSE) 
 	{
-		boost::mutex::scoped_lock lock(_mutex);
+		boost::mutex::scoped_lock lock(_simMutex);
 
 		if ((input->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
 		{
@@ -134,11 +146,28 @@ void XInputManagerComponent::HandleInput(RAWINPUT *input)
 
 void XInputManagerComponent::ProcessInput()
 {
+	if (_pendingShowCursor)
+	{
+		boost::mutex::scoped_lock lock(_inputMutex);
+		if (_pendingShowCursor)
+		{
+			_pendingShowCursor = false;
+			::ShowCursor(_showCursor);
+		}
+	}
+}
+
+void XInputManagerComponent::ProcessSim()
+{
 	//handleinput occurs on a different thread to processinput so
 	//we need to sync any access to the pending input state
 	{
-		boost::mutex::scoped_lock lock(_mutex);
+		boost::mutex::scoped_lock lock(_simMutex);
 		//update keyboard and mouse state
+
+		//mouse position
+		_mouseX = _pendingMouseX;
+		_mouseY = _pendingMouseY;
 
 		//mouse movement
 		_mouseDX = _pendingMouseDX;
@@ -197,6 +226,13 @@ void XInputManagerComponent::ProcessInput()
 	}
 }
 
+void XInputManagerComponent::ShowCursor(bool show)
+{
+	boost::mutex::scoped_lock lock(_inputMutex);
+	_pendingShowCursor = true;
+	_showCursor = show;
+}
+
 bool XInputManagerComponent::IsKeyDown(unsigned short key) const
 {
 	return _keyDown[key];
@@ -210,6 +246,16 @@ bool XInputManagerComponent::IsKeyUp(unsigned short key) const
 bool XInputManagerComponent::IsKeyPress(unsigned short key) const
 {
 	return _keyPress[key];
+}
+
+int XInputManagerComponent::GetMouseX(void) const
+{
+	return _mouseX;
+}
+
+int XInputManagerComponent::GetMouseY(void) const
+{
+	return _mouseY;
 }
 
 long XInputManagerComponent::GetMouseDX() const
