@@ -10,7 +10,7 @@ this class is used for timing and frame limiting
 class FrameLimiter
 {
 public:
-	FrameLimiter(unsigned int maxFps);
+	FrameLimiter(UINT32 maxFps);
 	~FrameLimiter(void);
 
 	/**
@@ -22,8 +22,8 @@ public:
 
 private:
 	LARGE_INTEGER _freq,_previousFrameEnd;
-	LONGLONG _frameTime;
-	unsigned int _maxFps;
+	INT64 _frameTime;
+	UINT32 _maxFps;
 
 	boost::mutex _frameEndMutex;
 };

@@ -14,10 +14,10 @@ namespace MGDF {
 #define RED 0xff4444ff
 
 		typedef struct {
-			unsigned int Color;
+			UINT32 Color;
 			std::string Content;
 
-			unsigned int StatusColor;
+			UINT32 StatusColor;
 			std::string StatusText;
 		} Line;
 
@@ -30,8 +30,8 @@ namespace MGDF {
 			virtual ~TextManagerState(){};
 			TextManagerState(){};
 			TextManagerState(const TextManagerState *state);
-			void AddLine(unsigned int color,const std::string &line);
-			void SetStatus(unsigned int color,const std::string &text);
+			void AddLine(UINT32 color,const std::string &line);
+			void SetStatus(UINT32 color,const std::string &text);
 			boost::shared_ptr<TextManagerState> Interpolate(const TextManagerState *state,double alpha);
 		private:
 #pragma warning(push)

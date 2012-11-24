@@ -54,7 +54,7 @@ void Logger::Flush()
 
 	outFile.open(_filename.c_str(), std::ios::app);
 
-	for (unsigned int i = 0; i < _events.size(); ++i) {
+	for (UINT32 i = 0; i < _events.size(); ++i) {
 		outFile << _events[i] << "\n";
 	}
 	_events.clear();

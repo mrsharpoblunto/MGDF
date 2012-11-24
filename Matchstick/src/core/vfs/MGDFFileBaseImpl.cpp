@@ -109,7 +109,7 @@ IFile *FileBaseImpl::GetChildInternal(const wchar_t *name)
 	return nullptr;
 }
 
-unsigned int FileBaseImpl::GetChildCount()
+size_t FileBaseImpl::GetChildCount()
 {
 	if (_children!=nullptr) { 
 		return _children->size();

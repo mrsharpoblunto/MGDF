@@ -9,8 +9,8 @@ namespace MGDF {
 #define DECLARE_LIST(className,typeName) class className## \
 { \
 public: \
-	virtual unsigned int  Size() const=0; \
-	virtual typeName  Get(unsigned int index) const=0; \
+	virtual size_t  Size() const=0; \
+	virtual typeName  Get(size_t index) const=0; \
 };
 
 }

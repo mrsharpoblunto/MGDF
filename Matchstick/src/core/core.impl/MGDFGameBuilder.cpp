@@ -30,7 +30,7 @@ Game *GameBuilder::LoadGame(storage::IGameStorageHandler *handler)
 
 //loads the configuration preferences from the core preferences directory as well as the 
 //particular configuration defaults, and synchs them up with any customized user preferences
-Game *GameBuilder::CreateGame(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version)
+Game *GameBuilder::CreateGame(const std::string &uid,const std::string &name,INT32 interfaceVersion,const Version *version)
 {
 	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
 

@@ -41,7 +41,7 @@ public:
 	create a sound from a file in the VFS returns nullptr if the sound could not be created (see system->GetLastError() to get details as to why it failed)
 	\param file the data source for the sound
 	*/
-	virtual ISound * CreateSound(IFile *file, int priority)=0;
+	virtual ISound * CreateSound(IFile *file, INT32 priority)=0;
 
 	/**
 	create a sound stream from a file in the VFS. If no sound sources are available, the sound manager

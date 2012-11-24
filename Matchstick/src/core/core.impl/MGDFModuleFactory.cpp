@@ -93,7 +93,7 @@ IModule *ModuleFactory::GetModule(ISystem *system)
 	}
 }
 
-bool ModuleFactory::IsCompatibleInterfaceVersion(int interfaceVersion)
+bool ModuleFactory::IsCompatibleInterfaceVersion(INT32 interfaceVersion)
 {
 	if (_isCompatibleInterfaceVersion!=nullptr) {
 		return _isCompatibleInterfaceVersion(interfaceVersion);
@@ -103,7 +103,7 @@ bool ModuleFactory::IsCompatibleInterfaceVersion(int interfaceVersion)
 	}
 }
 
-unsigned int ModuleFactory::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *levelSize)
+UINT32 ModuleFactory::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *levelSize)
 {
 	if (_getCompatibleFeatureLevels!=nullptr) {
 		return _getCompatibleFeatureLevels(levels,levelSize);

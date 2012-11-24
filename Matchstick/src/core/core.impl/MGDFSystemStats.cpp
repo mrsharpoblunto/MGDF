@@ -4,7 +4,7 @@
 
 namespace MGDF { namespace core {
 
-	SystemStats::SystemStats(unsigned int maxSamples)
+	SystemStats::SystemStats(UINT32 maxSamples)
 		: _avgActiveRenderTime(0)
 		, _avgRenderTime(0)
 		, _avgActiveSimTime(0)

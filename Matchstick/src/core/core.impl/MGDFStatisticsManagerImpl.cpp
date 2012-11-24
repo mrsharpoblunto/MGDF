@@ -37,7 +37,7 @@ StatisticsManager::~StatisticsManager()
 	SAFE_DELETE(_saveBuffer);
 }
 
-int StatisticsManager::GetSaveBufferSize() 
+size_t StatisticsManager::GetSaveBufferSize() 
 {
 	return _saveBuffer->size();
 }

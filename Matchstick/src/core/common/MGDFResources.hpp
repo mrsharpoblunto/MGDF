@@ -48,8 +48,8 @@ public:
 
 	static const std::wstring &VFS_CONTENT() { return _vfsContent; }
 
-	static const unsigned int MIN_SCREEN_X;
-	static const unsigned int MIN_SCREEN_Y;
+	static const UINT32 MIN_SCREEN_X;
+	static const UINT32 MIN_SCREEN_Y;
 
 	static std::wstring ToWString(const std::string &str);
 	static std::string ToString(const std::wstring &str);

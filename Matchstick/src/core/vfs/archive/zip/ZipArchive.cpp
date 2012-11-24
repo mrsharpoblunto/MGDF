@@ -61,7 +61,7 @@ void ZipArchive::IncRefCount()
 	++_refCount;
 }
 
-unsigned int ZipArchive::GetRefCount()
+UINT32 ZipArchive::GetRefCount()
 {
 	return _refCount;
 }
@@ -75,7 +75,7 @@ IFile *ZipArchive::MapArchive(IFile *parent,const wchar_t * archiveFile)
 		((FileBaseImpl *)_archiveRoot)->SetParent(parent);
 
 		// We need to map file positions to speed up opening later
-		for (int ret = unzGoToFirstFile(_zip); ret == UNZ_OK; ret = unzGoToNextFile(_zip)) {
+		for (INT32 ret = unzGoToFirstFile(_zip); ret == UNZ_OK; ret = unzGoToNextFile(_zip)) {
 			unz_file_info info;
 			char fname[FILENAME_BUFFER];
 			std::string name;
@@ -99,7 +99,7 @@ IFile *ZipArchive::MapArchive(IFile *parent,const wchar_t * archiveFile)
 				zfInfo->name = filename;//the name is the last part of the path
 
 				_archiveFiles.push_back(zfInfo);
-				ZipFileImpl *zipFile = new ZipFileImpl(this,(unsigned int)_archiveFiles.size()-1);
+				ZipFileImpl *zipFile = new ZipFileImpl(this,(UINT32)_archiveFiles.size()-1);
 				((FileBaseImpl *)zipFile)->SetParent(parentFile);
 				((FileBaseImpl *)parentFile)->AddChild(zipFile);
 			}
@@ -143,22 +143,31 @@ IFile *ZipArchive::CreateParentFile(const std::wstring &path,IFile *rootNode,std
 	return currentFile;
 }
 
-bool ZipArchive::OpenFile(unsigned int key)
+bool ZipArchive::OpenFile(UINT32 key)
 {
 	//if the entry is already in the hashmap then the file is already open
 	//if its not in the hashmap then open it
 	if (_archiveData.find(key)==_archiveData.end()) {
 		unzGoToFilePos(_zip,&_archiveFiles[key]->filePosition);
 
+
+		if (_archiveFiles[key]->size>UINT32_MAX)
+		{
+			std::string message = "Archive files cannot be over 4GB in size";
+			_logger->Add(THIS_NAME,(message+" "+Resources::ToString(_archiveFiles[key]->name)).c_str(),LOG_ERROR);
+			_errorHandler->SetLastError(THIS_NAME,MGDF_ERR_ARCHIVE_FILE_TOO_LARGE,message.c_str());
+			return false;
+		}
+
 		ZipFileData *zfData = new ZipFileData();
 		zfData->readPosition = 0;
-		zfData->data = (char *)malloc(_archiveFiles[key]->size);
+		zfData->data = (char *)malloc(static_cast<UINT32>(_archiveFiles[key]->size));
 
 		// If anything fails, we abort and return false
 		try {
 			if (unzOpenCurrentFile(_zip) != UNZ_OK)
 				throw MGDFException("Unable to open zip archive");
-			if (unzReadCurrentFile(_zip, zfData->data, _archiveFiles[key]->size) < 0) 
+			if (unzReadCurrentFile(_zip, zfData->data, static_cast<UINT32>(_archiveFiles[key]->size)) < 0) 
 				throw MGDFException("Unable to read zip archive");
 			if (unzCloseCurrentFile(_zip) == UNZ_CRCERROR)
 				throw MGDFException("Unable to close zip archive");
@@ -177,7 +186,7 @@ bool ZipArchive::OpenFile(unsigned int key)
 	return false;
 }
 
-void ZipArchive::CloseFile(unsigned int key)
+void ZipArchive::CloseFile(UINT32 key)
 {
 	auto iter = _archiveData.find(key);
 	//if the entry is in the hashmap then the file is already open, so it needs to be closed and removed from the data cache
@@ -188,12 +197,12 @@ void ZipArchive::CloseFile(unsigned int key)
 	}
 }
 
-ZipArchive::ZipFileData *ZipArchive::GetFileData(unsigned int key)
+ZipArchive::ZipFileData *ZipArchive::GetFileData(UINT32 key)
 {
 	return _archiveData[key];
 }
 
-ZipArchive::ZipFileInformation *ZipArchive::GetFileInformation(unsigned int key)
+ZipArchive::ZipFileInformation *ZipArchive::GetFileInformation(UINT32 key)
 {
 	return _archiveFiles[key];
 }

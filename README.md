@@ -32,11 +32,11 @@ MGDF can be built with Microsoft Visual Studio 2012 on windows. To build MGDF yo
 
 * [boost 1.51](http://www.boost.org/users/history/version_1_51_0.html) (For a prebuilt installer go [here](http://www.boostpro.com/download/))
 * DirectX SDK [June 2010 version](http://www.microsoft.com/download/en/details.aspx?id=6812)).
-* create an environment variable called BOOST_DIR and point it to the location you installed the boost library to.
+* create an environment variable called BOOST_DIR and point it to the location you installed the boost library to. (also ensure the boost library files exist in BOOST_DIR\lib\x86 or BOOST_DIR\lib\x64)
 * create an environment variable called DXSDK_DIR and point it to the location you installed the DirectX SDK to.
-* build vendor/libs.sln in debug win32 and release win32 configurations.
-* cd into %installdir%/Matchstick and run 'automation/deploy.bat' to copy the vendor libraries and default data into the Matchstick bin folder.
-* build Matchstick/Matchstick.sln and debug win32 and release win32 configurations
+* build vendor/libs.sln in win32 debug/release and x64 debug/release configurations.
+* cd into %installdir%/Matchstick and run 'automation/deploy.bat' (or alternatively just automation/deployx86.bat or automation/deployx64.bat if you don't want to build both architectures) to copy the vendor libraries and default data into the Matchstick bin folder.
+* build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
 
 Running unit tests
 ------------------

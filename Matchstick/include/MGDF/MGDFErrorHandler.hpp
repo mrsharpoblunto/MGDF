@@ -7,7 +7,7 @@ this interface allows subscribers to set the lastError filed on the system and a
 */
 class IErrorHandler {
 public:
-	virtual void SetLastError(const char *sender, int code,const char *description)=0;
+	virtual void SetLastError(const char *sender, UINT32 code,const char *description)=0;
 	virtual void FatalError(const char *sender,const char *message)=0;
 };
 

@@ -22,7 +22,7 @@ public:
 
 	ALCcontext *GetContext(){return _context;}
 
-	int GetFreeSources();
+	size_t GetFreeSources();
 	bool AcquireSource(ALuint *source);
 	void ReleaseSource(ALuint source);
 private:
@@ -30,7 +30,7 @@ private:
 	std::stack<ALuint> _freeSources;
 
 	ALCcontext *_context;
-	static int _refCount;
+	static INT32 _refCount;
 };
 
 }}}}

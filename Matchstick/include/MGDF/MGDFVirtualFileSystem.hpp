@@ -87,7 +87,7 @@ public:
 	virtual IFile * GetFirstChild() =0;
 	virtual IFile * GetLastChild() =0;
 	virtual IFile * GetChild(const wchar_t *name) =0;
-	virtual unsigned int  GetChildCount() =0;
+	virtual size_t  GetChildCount() =0;
 
 	/**
 	determines if the IFile entity is a folder
@@ -117,18 +117,18 @@ public:
 	if the file is not open then the method adds nothing to the buffer and returns 0
 	if the file has no data or the 
 	*/
-	virtual unsigned int Read(void* buffer,unsigned int length)=0;
+	virtual UINT32 Read(void* buffer,UINT32 length)=0;
 
 	/**
 	sets the read position of the file in bytes (if the file is open)
 	*/
-	virtual void SetPosition(unsigned long pos)=0;
+	virtual void SetPosition(INT64 pos)=0;
 
 	/**
 	get the current read position of the file in bytes
 	\return the read position in the file (or 0 if the file is closed)
 	*/
-	virtual unsigned long  GetPosition() const=0;
+	virtual INT64 GetPosition() const=0;
 
 	/**
 	determines whether the file read position has reached the end of the file
@@ -140,7 +140,7 @@ public:
 	get the size of the file in bytes
 	\return the filesize in bytes (for compressed archives this value is the uncompressed size)
 	*/
-	virtual unsigned long GetSize()=0;
+	virtual INT64 GetSize()=0;
 
 	/**
 	determines if the IFile is a (or is a member of) an archive file

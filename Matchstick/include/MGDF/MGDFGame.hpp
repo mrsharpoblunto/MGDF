@@ -22,7 +22,7 @@ public:
 	get the interface version the current game supports
 	\return the interface version the current game supports
 	*/
-	virtual int GetInterfaceVersion() const=0;
+	virtual INT32 GetInterfaceVersion() const=0;
 
 	/**
 	get the uid of the current game running

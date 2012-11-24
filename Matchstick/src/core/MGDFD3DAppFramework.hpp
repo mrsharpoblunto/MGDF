@@ -25,14 +25,14 @@ public:
 	virtual void DrawScene(double alpha) =0;
 	virtual void FatalError(const std::string &errorMessage)=0;
 	virtual void ExternalClose()=0;
-	virtual void OnMouseInput(int x,int y)=0;
+	virtual void OnMouseInput(INT32 x,INT32 y)=0;
 	virtual void OnRawInput(RAWINPUT *input)=0;
 	virtual void OnInputIdle()=0;
-	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3D_FEATURE_LEVEL *levels,unsigned int levelsSize);
+	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3D_FEATURE_LEVEL *levels,UINT32 levelsSize);
 
-	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	LRESULT MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam);
 
-	int Run(unsigned int simulationFps);
+	INT32 Run(UINT32 simulationFps);
 protected:	
 
 	// Application, Windows, and Direct3D data members.
@@ -62,7 +62,7 @@ protected:
 
 private:
 	void InitMainWindow(const std::string &caption,WNDPROC windowProcedure);
-	void InitD3D(D3D_FEATURE_LEVEL *levels,unsigned int levelsSize);
+	void InitD3D(D3D_FEATURE_LEVEL *levels,UINT32 levelsSize);
 	void InitRawInput();
 	void ToggleFullScreenMode();
 	void CreateSwapChain();
@@ -75,7 +75,7 @@ private:
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc
-#define D3DAPP_WNDPROC(wndProcName,className) LRESULT CALLBACK wndProcName##(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) { \
+#define D3DAPP_WNDPROC(wndProcName,className) LRESULT CALLBACK wndProcName##(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam) { \
 	if(##className##!= nullptr ) { return className##->MsgProc(hwnd, msg, wParam, lParam); } \
 	else { return DefWindowProc(hwnd, msg, wParam, lParam);}}
 

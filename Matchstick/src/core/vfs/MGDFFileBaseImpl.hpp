@@ -23,7 +23,7 @@ public:
 	virtual IFile *GetFirstChild();
 	virtual IFile *GetLastChild();
 	virtual IFile *GetChild(const wchar_t *name);
-	virtual unsigned int GetChildCount();
+	virtual size_t GetChildCount();
 	virtual const wchar_t* GetLogicalPath();
 	virtual time_t GetLastWriteTime() const;
 

@@ -24,7 +24,7 @@ public:
 
 	virtual TestModule *NextTestModule();
 private:
-	int _testState;
+	INT32 _testState;
 
 };
 

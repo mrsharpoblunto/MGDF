@@ -7,7 +7,7 @@ namespace MGDF { namespace core {
 typedef ICustomArchiveHandlers * (*GetCustomArchiveHandlersPtr)(void);
 typedef IModule * (*GetModulePtr)(ISystem *);
 typedef bool (*IsCompatibleInterfaceVersionPtr)(int);
-typedef unsigned int (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *,unsigned int *);
+typedef UINT32 (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *,UINT32 *);
 
 class ModuleFactory {
 public:
@@ -17,7 +17,7 @@ public:
 	ICustomArchiveHandlers *GetCustomArchiveHandlers();
 	IModule *GetModule(ISystem *system);
 	bool IsCompatibleInterfaceVersion(int);
-	unsigned int GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *levelSize);
+	UINT32 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *levelSize);
 
 private:
 	IGame *_game;

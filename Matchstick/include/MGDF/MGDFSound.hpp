@@ -33,8 +33,8 @@ public:
 	priority is used by the sound system to determine which sounds get deactivated if not enough sound sources
 	are available to play all sounds
 	*/
-	virtual void  SetPriority(int priority)=0;
-	virtual int  GetPriority() const =0;
+	virtual void  SetPriority(INT32 priority)=0;
+	virtual INT32  GetPriority() const =0;
 
 	virtual bool  GetLooping() const =0;
 	virtual void  SetLooping(bool looping)=0;

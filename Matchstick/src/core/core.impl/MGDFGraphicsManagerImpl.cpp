@@ -30,7 +30,7 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	_backBufferMultiSampleLevel = 1;
 	_vsync = true;
 
-	UINT maxAdaptorModes=0U;
+	UINT32 maxAdaptorModes=0U;
 	if (FAILED(output->GetDisplayModeList(BACKBUFFER_FORMAT,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,nullptr)))
 	{
 		SAFE_RELEASE(output);
@@ -45,7 +45,7 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 		return;
 	}
 
-	for(unsigned int mode = 0; mode < maxAdaptorModes; ++mode)
+	for(UINT32 mode = 0; mode < maxAdaptorModes; ++mode)
 	{
 		DXGI_MODE_DESC *displayMode	= &modes[mode];
 		// Does this adaptor mode support  the desired format and is it above the minimum required resolution
@@ -59,9 +59,9 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 	delete[] modes;
 
 	//determine the supported multisampling settings for this device
-	for (unsigned int i=1;i<D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT;++i)
+	for (UINT32 i=1;i<D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT;++i)
 	{
-		unsigned int quality=0;
+		UINT32 quality=0;
 		if (FAILED(_device->CheckMultisampleQualityLevels(BACKBUFFER_FORMAT, i, &quality)) || quality==0)
 		{
 			continue;
@@ -85,7 +85,7 @@ IUIntList *GraphicsManager::GetMultiSampleLevels() const
 	return (IUIntList *)&_multiSampleLevels;
 }
 
-bool GraphicsManager::SetCurrentMultiSampleLevel(unsigned int multisampleLevel)
+bool GraphicsManager::SetCurrentMultiSampleLevel(UINT32 multisampleLevel)
 {
 	boost::mutex::scoped_lock lock(_mutex);
 	if (_multiSampleQuality.find(multisampleLevel)!=_multiSampleQuality.end()) 
@@ -99,13 +99,13 @@ bool GraphicsManager::SetCurrentMultiSampleLevel(unsigned int multisampleLevel)
 	}
 }
 
-unsigned int GraphicsManager::GetCurrentMultiSampleLevel(unsigned int *quality) const
+UINT32 GraphicsManager::GetCurrentMultiSampleLevel(UINT32 *quality) const
 {
 	if (quality) *quality = _multiSampleQuality.find(_currentMultiSampleLevel)->second - 1;
 	return _currentMultiSampleLevel;
 }
 
-bool GraphicsManager::SetBackBufferMultiSampleLevel(unsigned int multisampleLevel)
+bool GraphicsManager::SetBackBufferMultiSampleLevel(UINT32 multisampleLevel)
 {
 	boost::mutex::scoped_lock lock(_mutex);
 	if (_multiSampleQuality.find(multisampleLevel)!=_multiSampleQuality.end()) 
@@ -119,7 +119,7 @@ bool GraphicsManager::SetBackBufferMultiSampleLevel(unsigned int multisampleLeve
 	}
 }
 
-unsigned int GraphicsManager::GetBackBufferMultiSampleLevel() const
+UINT32 GraphicsManager::GetBackBufferMultiSampleLevel() const
 {
 	return _backBufferMultiSampleLevel;
 }
@@ -140,7 +140,7 @@ const IGraphicsAdaptorModeList *GraphicsManager::GetAdaptorModes() const
 	return &_adaptorModes;
 }
 
-IGraphicsAdaptorMode *GraphicsManager::GetAdaptorMode(unsigned int width,unsigned int height) const
+IGraphicsAdaptorMode *GraphicsManager::GetAdaptorMode(UINT32 width,UINT32 height) const
 {
 	IGraphicsAdaptorMode *mode = nullptr;
 	for (auto iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
@@ -163,12 +163,12 @@ IGraphicsAdaptorMode *GraphicsManager::GetCurrentAdaptorMode() const
 	return _currentAdaptorMode;
 }
 
-unsigned int GraphicsManager::GetScreenX() const
+UINT32 GraphicsManager::GetScreenX() const
 {
 	return _currentAdaptorMode->GetWidth();
 }
 
-unsigned int GraphicsManager::GetScreenY() const
+UINT32 GraphicsManager::GetScreenY() const
 {
 	return _currentAdaptorMode->GetHeight();
 }
@@ -233,8 +233,8 @@ void GraphicsManager::LoadPreferences(IGame *game)
 
 
 		//try to find the native resolution if possible, otherwise stick to the default found above if none are found.
-		int nativeWidth = GetSystemMetrics(SM_CXSCREEN);
-        int nativeHeight = GetSystemMetrics(SM_CYSCREEN);
+		INT32 nativeWidth = GetSystemMetrics(SM_CXSCREEN);
+        INT32 nativeHeight = GetSystemMetrics(SM_CYSCREEN);
 		for (auto iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
 			if ((*iter)->GetWidth()==nativeWidth && (*iter)->GetHeight()==nativeHeight) {
 				_currentAdaptorMode = (*iter);

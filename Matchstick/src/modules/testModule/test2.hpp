@@ -22,8 +22,8 @@ public:
 
 	virtual TestModule *NextTestModule();
 private:
-	int _testState;
-	int _x,_y;
+	INT32 _testState;
+	INT32 _x,_y;
 	ISound *_sound;
 	ISoundStream *_stream;
 };

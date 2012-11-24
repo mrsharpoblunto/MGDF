@@ -43,14 +43,14 @@ public:
 	virtual void End();
 
 	double GetAvgValue();
-	void SetSample(unsigned int previousFrame, UINT64 frequency);
+	void SetSample(UINT32 previousFrame, UINT64 frequency);
 private:
 	std::string _name;
 	std::vector<ID3D11Query *> _beginQueries;
 	std::vector<ID3D11Query *> _endQueries;
 	std::list<double> _samples;
 	double _avg;
-	unsigned int _initialized;
+	UINT32 _initialized;
 	Timer *_timer;
 
 	void Init();
@@ -76,7 +76,7 @@ public:
 	virtual IPerformanceCounter *CreateGPUCounter(const char *name);
 	virtual void RemoveCounter(IPerformanceCounter *counter);
 
-	void InitGPUTimer(ID3D11Device *device,unsigned int bufferSize,int frameSamples);
+	void InitGPUTimer(ID3D11Device *device,UINT32 bufferSize,INT32 frameSamples);
 
 	void Begin();
 	void End();
@@ -92,10 +92,10 @@ private:
 	LARGE_INTEGER _freq;
 	std::vector<ID3D11Query *> _disjointQueries;
 
-	unsigned int _currentFrame;
-	unsigned int _bufferSize;
-	unsigned int _maxSamples;
-	unsigned int _initialized;
+	UINT32 _currentFrame;
+	UINT32 _bufferSize;
+	UINT32 _maxSamples;
+	UINT32 _initialized;
 	bool _gpuTimersSupported;
 
 	boost::mutex _mutex;

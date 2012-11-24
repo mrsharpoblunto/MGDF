@@ -86,7 +86,7 @@ exports the IsCompatibleInterfaceVersion function so the module can assert if th
 \param systemInterface the MGDF interface version supported by the system
 \return true if the module supports the system interface
 */
-extern "C" __declspec(dllexport) bool IsCompatibleInterfaceVersion(int systemInterface);
+extern "C" __declspec(dllexport) bool IsCompatibleInterfaceVersion(INT32 systemInterface);
 
 /**
 allows the system to determine what d3d feature level to try and use when creating the d3d device
@@ -94,7 +94,7 @@ allows the system to determine what d3d feature level to try and use when creati
 \param levelSize the size of the levels array
 \return 0 if the supplied levels array is large enough, otherwise returns the size required.
 */
-extern "C" __declspec(dllexport) unsigned int GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *levelSize);
+extern "C" __declspec(dllexport) UINT32 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *levelSize);
 
 /**
 exports the getmodule function so the system can get access to instances

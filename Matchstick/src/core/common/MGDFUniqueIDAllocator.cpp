@@ -11,9 +11,9 @@
 
 namespace MGDF { namespace core {
 
-unsigned int UniqueIDAllocator::_id = 0;
+UINT32 UniqueIDAllocator::_id = 0;
 
-unsigned int UniqueIDAllocator::GetID() {
+UINT32 UniqueIDAllocator::GetID() {
 	if (_id==INT_MAX) {
 		_id=0;
 	}

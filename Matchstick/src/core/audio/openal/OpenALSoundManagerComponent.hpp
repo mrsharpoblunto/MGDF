@@ -17,7 +17,7 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 typedef struct {
 	std::wstring BufferSource;
-	int References;
+	INT32 References;
 } SharedBuffer;
 
 class OpenALSoundManagerComponentImpl: public DisposeImpl<ISoundManagerComponent> {
@@ -46,7 +46,7 @@ public:
 	virtual float GetSpeedOfSound() const;
 	virtual void SetSpeedOfSound(float speedOfSound);
 
-	virtual ISound *CreateSound(IFile *source, int priority);
+	virtual ISound *CreateSound(IFile *source, INT32 priority);
 	virtual void RemoveSound(ISound *sound);
 
 	virtual ISoundStream *CreateSoundStream(IFile *source);
@@ -58,8 +58,8 @@ private:
 	void DoRemoveSoundStream(ISoundStream *stream);
 	void DoRemoveSound(ISound *sound);
 
-	void DeactivateSound(int priority);
-	void PrioritizeSounds(int deactivatedSoundsCount);
+	void DeactivateSound(INT32 priority);
+	void PrioritizeSounds(INT32 deactivatedSoundsCount);
 
 	static bool Sort(OpenALSound *a,OpenALSound *b);
 

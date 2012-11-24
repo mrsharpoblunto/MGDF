@@ -42,7 +42,7 @@ void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure)
 {
 	//find out what D3D feature levels this module supports
 	D3D_FEATURE_LEVEL *levels = nullptr;
-	unsigned int featureLevelsSize = 0;
+	UINT32 featureLevelsSize = 0;
 	if (_system->GetCompatibleD3DFeatureLevels(levels,&featureLevelsSize))
 	{
 		levels = new D3D_FEATURE_LEVEL[featureLevelsSize];
@@ -95,7 +95,7 @@ void MGDFApp::OnRawInput(RAWINPUT *input)
 	_system->GetInputManagerImpl()->HandleInput(input);
 }
 
-void MGDFApp::OnMouseInput(int x,int y)
+void MGDFApp::OnMouseInput(INT32 x,INT32 y)
 {
 	_system->GetInputManagerImpl()->HandleInput(x,y);
 }
@@ -139,7 +139,7 @@ void MGDFApp::DrawSystemOverlay()
 {
 	const float margin = 5.0f;
 	const float overlayTextSize = 14.0f;
-	const UINT overlayTextColor = 0xFFFFFFFF;
+	const UINT32 overlayTextColor = 0xFFFFFFFF;
 	const XMFLOAT4 overlayBackgroundColor(0.0f,0.0f,0.0f,0.7f);
 
 	std::wstring information;

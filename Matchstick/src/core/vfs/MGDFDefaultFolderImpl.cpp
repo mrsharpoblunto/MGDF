@@ -63,7 +63,7 @@ IFile *DefaultFolderImpl::GetChild(const wchar_t *name)
 	return FolderBaseImpl::GetChild(name);
 }
 
-unsigned int DefaultFolderImpl::GetChildCount()
+size_t DefaultFolderImpl::GetChildCount()
 {
 	MapChildren();
 	return FolderBaseImpl::GetChildCount();

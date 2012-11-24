@@ -7,7 +7,7 @@ namespace MGDF { namespace core {
 class SystemStats
 {
 public:
-	SystemStats(unsigned int maxSamples);
+	SystemStats(UINT32 maxSamples);
 	virtual ~SystemStats(){};
 
 	double ActiveRenderTime();
@@ -40,7 +40,7 @@ public:
 	void AppendSimInputTime(double value);
 	void AppendSimAudioTime(double value);
 private:
-	unsigned int _maxSamples;
+	UINT32 _maxSamples;
 	double _expectedSimTime;
 
 	std::list<double> _activeRenderTime;

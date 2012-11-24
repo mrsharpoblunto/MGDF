@@ -12,7 +12,7 @@
 
 namespace MGDF { namespace core { namespace input { namespace xinput {
 
-XInputGamepad::XInputGamepad(int id) {
+XInputGamepad::XInputGamepad(INT32 id) {
 	_id = id;
 	_connected = false;
 	_frameIndex = 0;
@@ -76,41 +76,41 @@ bool XInputGamepad::IsButtonPress(GamepadButton button){
 }
 
 
-int XInputGamepad::GetLeftTrigger() const{
+INT32 XInputGamepad::GetLeftTrigger() const{
 	return _state.Gamepad.bLeftTrigger>XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? _state.Gamepad.bLeftTrigger : 0;
 }
 
 
-int XInputGamepad::GetRightTrigger() const{
+INT32 XInputGamepad::GetRightTrigger() const{
 	return _state.Gamepad.bRightTrigger>XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? _state.Gamepad.bRightTrigger : 0;
 }
 
 
-int XInputGamepad::GetLeftThumbX() const{
-	int absX = abs(_state.Gamepad.sThumbLX);
+INT32 XInputGamepad::GetLeftThumbX() const{
+	INT32 absX = abs(_state.Gamepad.sThumbLX);
 	return absX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLX : 0;
 }
 
 
-int XInputGamepad::GetLeftThumbY() const{
-	int absY = abs(_state.Gamepad.sThumbLY);
+INT32 XInputGamepad::GetLeftThumbY() const{
+	INT32 absY = abs(_state.Gamepad.sThumbLY);
 	return absY> XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLY : 0;
 }
 
 
-int XInputGamepad::GetRightThumbX() const{
-	int absX = abs(_state.Gamepad.sThumbRX);
+INT32 XInputGamepad::GetRightThumbX() const{
+	INT32 absX = abs(_state.Gamepad.sThumbRX);
 	return absX> XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRX : 0;
 }
 
 
-int XInputGamepad::GetRightThumbY() const{
-	int absY = abs(_state.Gamepad.sThumbRY);
+INT32 XInputGamepad::GetRightThumbY() const{
+	INT32 absY = abs(_state.Gamepad.sThumbRY);
 	return absY> XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRY : 0;
 }
 
 
-void XInputGamepad::SetVibrationSpeed(int left,int right){
+void XInputGamepad::SetVibrationSpeed(INT32 left,INT32 right){
 	if (_connected) {
 		XINPUT_VIBRATION vibration;
 		ZeroMemory( &vibration, sizeof(XINPUT_VIBRATION) );

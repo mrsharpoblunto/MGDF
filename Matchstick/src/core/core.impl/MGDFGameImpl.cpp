@@ -14,7 +14,7 @@
 
 namespace MGDF { namespace core {
 
-Game::Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,storage::IStorageFactoryComponent *storageFactory)
+Game::Game(const std::string &uid,const std::string &name,INT32 interfaceVersion,const Version *version,storage::IStorageFactoryComponent *storageFactory)
 {
 	_uid = uid;
 	_name = name;
@@ -37,7 +37,7 @@ const char *Game::GetName() const
 	return _name.c_str();
 }
 
-int Game::GetInterfaceVersion() const
+INT32 Game::GetInterfaceVersion() const
 {
 	return _interfaceVersion;
 }

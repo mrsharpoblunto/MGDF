@@ -15,7 +15,7 @@
 
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
-	OpenALSound::OpenALSound(IFile *source,OpenALSoundManagerComponentImpl *manager,int priority)
+	OpenALSound::OpenALSound(IFile *source,OpenALSoundManagerComponentImpl *manager,INT32 priority)
 	{
 		_soundManager = manager;
 		_bufferId = _soundManager->GetSoundBuffer(source);
@@ -198,11 +198,11 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 		}
 	}
 
-	void OpenALSound::SetPriority(int priority){
+	void OpenALSound::SetPriority(INT32 priority){
 		_priority = priority;
 	}
 
-	int OpenALSound::GetPriority() const{
+	INT32 OpenALSound::GetPriority() const{
 		return _priority;
 	}
 

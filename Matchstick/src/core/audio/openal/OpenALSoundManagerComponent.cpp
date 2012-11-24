@@ -52,13 +52,13 @@ void OpenALSoundManagerComponentImpl::Dispose()
 
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
 {
-	for (int i=_sounds.size()-1;i>=0;--i)
+	while (_sounds.size()>0)
 	{
-		delete _sounds[i];
+		delete _sounds.back();
 	}
-	for (int i=_soundStreams.size()-1;i>=0;--i)
+	while (_soundStreams.size()>0)
 	{
-		delete _soundStreams[i];
+		delete _soundStreams.back();
 	}
 	for (auto iter = _sharedBuffers.begin();iter!=_sharedBuffers.end();++iter)
 	{
@@ -83,7 +83,7 @@ void OpenALSoundManagerComponentImpl::Update()
 	orientation[5] = _orientationUp.z; //up vector z value
 	alListenerfv(AL_ORIENTATION, orientation);
 
-	int deactivatedSoundsCount=0;
+	INT32 deactivatedSoundsCount=0;
 
 	for (auto iter = _sounds.begin();iter!=_sounds.end();++iter)
 	{
@@ -237,7 +237,7 @@ ISoundStream *OpenALSoundManagerComponentImpl::CreateSoundStream(IFile *file)
 	}
 }
 
-ISound *OpenALSoundManagerComponentImpl::CreateSound(IFile *file, int priority)
+ISound *OpenALSoundManagerComponentImpl::CreateSound(IFile *file, INT32 priority)
 {
 	//try to deactivate a sound in order to free up a source for the new sound
 	//however it may not be possible to deactivate any of the current sounds so the
@@ -259,7 +259,7 @@ ISound *OpenALSoundManagerComponentImpl::CreateSound(IFile *file, int priority)
 
 }
 
-void OpenALSoundManagerComponentImpl::DeactivateSound(int priority)
+void OpenALSoundManagerComponentImpl::DeactivateSound(INT32 priority)
 {
 	//find all sounds with a priority equal or lower to the one to be created
 	std::vector<OpenALSound *> sounds;
@@ -276,7 +276,7 @@ void OpenALSoundManagerComponentImpl::DeactivateSound(int priority)
 }
 
 //ensure as many samples are active as possible, with the highest precedence samples being activated first
-void OpenALSoundManagerComponentImpl::PrioritizeSounds(int deactivatedSoundsCount)
+void OpenALSoundManagerComponentImpl::PrioritizeSounds(INT32 deactivatedSoundsCount)
 {
 	//copy the sounds into a local list so sorting won't mess up the external ordering of the samples
 	std::vector<OpenALSound *> sounds;
@@ -287,8 +287,8 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds(int deactivatedSoundsCoun
 	sort(sounds.begin(),sounds.end(),&OpenALSoundManagerComponentImpl::Sort);
 
 	//detect how many samples will need to be deactivated
-	int freeSources = OpenALSoundSystem::InstancePtr()->GetFreeSources();
-	int requiringDeactivationCount = deactivatedSoundsCount - freeSources;
+	size_t freeSources = OpenALSoundSystem::InstancePtr()->GetFreeSources();
+	size_t requiringDeactivationCount = deactivatedSoundsCount - freeSources;
 	if (requiringDeactivationCount<0) requiringDeactivationCount = 0;//we can activate all sounds.
 
 	//deactivate requiringDeactivationCount of the lowest priority samples, and reactivate the rest.
@@ -347,12 +347,13 @@ ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer(IFile *dataSource)
 	else {
 		dataSource->OpenFile();
 	}
-	int size = dataSource->GetSize();
-	char *data = new char[size];
-	dataSource->Read((void *)data,size);
+	INT64 size = dataSource->GetSize();
+	UINT32 truncSize = size > UINT_MAX ? UINT_MAX : static_cast<UINT32>(size);
+	char *data = new char[truncSize];
+	dataSource->Read((void *)data,truncSize);
 	dataSource->CloseFile();
 
-	ALuint bufferId = alutCreateBufferFromFileImage((ALvoid *)data,size);
+	ALuint bufferId = alutCreateBufferFromFileImage((ALvoid *)data,truncSize);
 	delete[] data;
 
 	//if the buffer loaded ok, add it to the list of loaded shared buffers

@@ -11,9 +11,9 @@ allocates globally unique integer ID numbers
 class UniqueIDAllocator
 {
 public:
-	static unsigned int GetID();
+	static UINT32 GetID();
 private:
-	static unsigned int _id;
+	static UINT32 _id;
 
 };
 

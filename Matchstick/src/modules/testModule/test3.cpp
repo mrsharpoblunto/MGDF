@@ -41,7 +41,7 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		system->RemoveSave("testsave");
 		state->AddLine(WHITE,"Save game state");
 
-		unsigned int size=0;
+		UINT32 size=0;
 		system->BeginSave("testsave",NULL,&size);
 		wchar_t *saveDir = new wchar_t[size];
 		if (system->BeginSave("testsave",saveDir,&size)==0)
@@ -139,9 +139,10 @@ void Test3::Update(ISystem *system,TextManagerState *state)
 		if (file!=NULL)
 		{
 			file->OpenFile();
-			char *data = new char[file->GetSize()];
-			file->Read(data,file->GetSize());
-			success = strncmp(data,"hello world",file->GetSize())==0;
+			UINT32 size = static_cast<UINT32>(file->GetSize());
+			char *data = new char[size];
+			file->Read(data,size);
+			success = strncmp(data,"hello world",size)==0;
 			delete[] data;
 		}
 

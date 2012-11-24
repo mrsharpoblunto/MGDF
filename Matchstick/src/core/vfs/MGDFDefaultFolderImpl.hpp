@@ -21,7 +21,7 @@ public:
 	virtual IFile *GetFirstChild();
 	virtual IFile *GetLastChild();
 	virtual IFile *GetChild(const wchar_t *name);
-	virtual unsigned int GetChildCount();
+	virtual size_t GetChildCount();
 private:
 	bool _mappedChildren;
 	VirtualFileSystemComponent *_vfs;

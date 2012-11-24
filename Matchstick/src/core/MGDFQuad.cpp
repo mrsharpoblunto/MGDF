@@ -150,8 +150,8 @@ void Quad::Draw(ID3D11DeviceContext *context,const XMFLOAT4 &color)
 	//setup the geometry
 	context->IASetInputLayout(_layout);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	const unsigned int offsets = 0;
-	const unsigned int strides = sizeof(XMFLOAT3);
+	const UINT32 offsets = 0;
+	const UINT32 strides = sizeof(XMFLOAT3);
 	context->IASetVertexBuffers(0,1,&_positionBuffer,&strides,&offsets);
 
 	//copy the color into the pixel shaders constant buffer
@@ -207,12 +207,12 @@ void Quad::RestoreState(ID3D11DeviceContext *context)
 	SAFE_RELEASE(_currentRasterizerState);
 	SAFE_RELEASE(_currentDepthStencilState);
 	SAFE_RELEASE(_currentPixelShader);
-	for (UINT i = 0;i < _currentPixelShaderNumClassInstances;++i)
+	for (UINT32 i = 0;i < _currentPixelShaderNumClassInstances;++i)
 	{
 		SAFE_RELEASE(_currentPixelShaderClassInstances[i]);
 	}
 	SAFE_RELEASE(_currentVertexShader);
-	for (UINT i = 0;i < _currentVertexShaderNumClassInstances;++i)
+	for (UINT32 i = 0;i < _currentVertexShaderNumClassInstances;++i)
 	{
 		SAFE_RELEASE(_currentVertexShaderClassInstances[i]);
 	}

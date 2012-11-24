@@ -21,7 +21,7 @@ private:
 	std::wstring _statisticsFile;
 
 	void SaveAll();
-	int GetSaveBufferSize();
+	size_t GetSaveBufferSize();
 	void AddToSaveBuffer(NameValuePair nvp);
 	std::vector<NameValuePair> *ResetSaveBuffer();
 };

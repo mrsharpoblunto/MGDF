@@ -12,12 +12,12 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 #define VORBIS_BUFFER_COUNT 4
 #define FADE_DURATION 5000
 
-typedef int (*LPOVCLEAR)(OggVorbis_File *vf);
-typedef long (*LPOVREAD)(OggVorbis_File *vf,char *buffer,int length,int bigendianp,int word,int sgned,int *bitstream);
-typedef ogg_int64_t (*LPOVPCMTOTAL)(OggVorbis_File *vf,int i);
-typedef vorbis_info * (*LPOVINFO)(OggVorbis_File *vf,int link);
-typedef vorbis_comment * (*LPOVCOMMENT)(OggVorbis_File *vf,int link);
-typedef int (*LPOVOPENCALLBACKS)(void *datasource, OggVorbis_File *vf,char *initial, long ibytes, ov_callbacks callbacks);
+typedef INT32 (*LPOVCLEAR)(OggVorbis_File *vf);
+typedef long (*LPOVREAD)(OggVorbis_File *vf,char *buffer,INT32 length,INT32 bigendianp,INT32 word,INT32 sgned,INT32 *bitstream);
+typedef ogg_int64_t (*LPOVPCMTOTAL)(OggVorbis_File *vf,INT32 i);
+typedef vorbis_info * (*LPOVINFO)(OggVorbis_File *vf,INT32 link);
+typedef vorbis_comment * (*LPOVCOMMENT)(OggVorbis_File *vf,INT32 link);
+typedef INT32 (*LPOVOPENCALLBACKS)(void *datasource, OggVorbis_File *vf,char *initial, long ibytes, ov_callbacks callbacks);
 enum VorbisStreamState {NOT_STARTED,PLAY,PAUSE,STOP};
 
 class VorbisStream: public DisposeImpl<ISoundStream> {
@@ -35,8 +35,8 @@ public:
 	virtual bool IsStopped() const;
 	virtual bool IsPaused() const;
 	virtual bool IsPlaying() const;
-	virtual unsigned int GetPosition();
-	virtual unsigned int GetLength();
+	virtual UINT32 GetPosition();
+	virtual UINT32 GetLength();
 
 	virtual void Dispose();
 	void Update();
@@ -53,7 +53,7 @@ private:
 	OggVorbis_File	_vorbisFile;
 	vorbis_info		*_vorbisInfo;
 
-	int _initLevel;
+	INT32 _initLevel;
 	VorbisStreamState _state;
 	float _volume,_globalVolume;
 
@@ -63,7 +63,7 @@ private:
 	void UninitStream();
 	void SetGlobalVolume(float globalVolume);
 
-	static int _references;
+	static INT32 _references;
 	static HINSTANCE _vorbisInstance;
 	static LPOVCLEAR fn_ov_clear;
 	static LPOVREAD fn_ov_read;

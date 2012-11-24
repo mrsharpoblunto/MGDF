@@ -22,7 +22,7 @@ public:
 
 	virtual TestModule *NextTestModule();
 private:
-	int _testState;
+	INT32 _testState;
 	time_t _time;
 };
 

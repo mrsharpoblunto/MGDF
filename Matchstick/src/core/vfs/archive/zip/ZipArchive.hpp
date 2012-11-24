@@ -17,12 +17,12 @@ class ZipArchive
 public:
 	struct ZipFileInformation {
 		unz_file_pos filePosition;
-		unsigned long size;
+		INT64 size;
 		std::wstring name;
 	};
 
 	struct ZipFileData {
-		unsigned long readPosition;
+		INT64 readPosition;
 		char *data;
 	};
 
@@ -32,22 +32,22 @@ public:
 	IFile *GetArchiveRoot();
 	void DecRefCount();
 	void IncRefCount();
-	unsigned int GetRefCount();
+	UINT32 GetRefCount();
 
-	bool OpenFile(unsigned int key);
-	void CloseFile(unsigned int key);
-	ZipFileData *GetFileData(unsigned int key);
-	ZipFileInformation *GetFileInformation(unsigned int key);
+	bool OpenFile(UINT32 key);
+	void CloseFile(UINT32 key);
+	ZipFileData *GetFileData(UINT32 key);
+	ZipFileInformation *GetFileInformation(UINT32 key);
 
 private:
-	unsigned int _refCount;
+	UINT32 _refCount;
 	std::string _physicalArchiveName;
 	unzFile _zip;
 	IFile *_archiveRoot;
 	ILogger *_logger;
 	IErrorHandler *_errorHandler;
 	std::vector<ZipFileInformation *> _archiveFiles;//information is loaded for all files in the archive as soon as it is mapped
-	boost::unordered_map<unsigned int,ZipFileData *> _archiveData;//the data however is loaded lazily and can be removed as necessary to save memory
+	boost::unordered_map<UINT32,ZipFileData *> _archiveData;//the data however is loaded lazily and can be removed as necessary to save memory
 															//the integer key corresponds to the location in teh archiveFiles vector
 	ZipArchive(ILogger *logger,IErrorHandler *errorHandler);
 	IFile *CreateParentFile(const std::wstring &path,IFile *rootNode,std::wstring *filename);

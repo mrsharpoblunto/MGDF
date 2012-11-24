@@ -20,11 +20,11 @@ public:
 	virtual bool IsOpen() const;
 	virtual bool OpenFile();
 	virtual void CloseFile();
-	virtual unsigned int Read(void* buffer,unsigned int length);
-	virtual void SetPosition(unsigned long pos);
-	virtual unsigned long GetPosition() const;
+	virtual UINT32 Read(void* buffer,UINT32 length);
+	virtual void SetPosition(INT64 pos);
+	virtual INT64 GetPosition() const;
 	virtual bool EndOfFile() const;
-	virtual unsigned long GetSize();
+	virtual INT64 GetSize();
 	virtual time_t GetLastWriteTime() const
 	{
 		return _handler->GetArchiveRoot()->GetLastWriteTime();
@@ -35,10 +35,10 @@ public:
 	virtual const wchar_t *GetName() const;
 private:
 	ZipArchive *_handler;
-	unsigned int _fileKey;
+	UINT32 _fileKey;
 	bool _isOpen;
 
-	ZipFileImpl(ZipArchive *handler,unsigned int fileKey): _handler(handler), _fileKey(fileKey)
+	ZipFileImpl(ZipArchive *handler,UINT32 fileKey): _handler(handler), _fileKey(fileKey)
 	{
 		_isOpen = false;
 		_handler->IncRefCount();

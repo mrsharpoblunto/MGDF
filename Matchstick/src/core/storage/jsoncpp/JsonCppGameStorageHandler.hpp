@@ -15,7 +15,7 @@ public:
 
 	virtual std::string GetGameName() const;
 	virtual std::string GetGameUid() const;
-	virtual int GetInterfaceVersion() const;
+	virtual INT32 GetInterfaceVersion() const;
 	virtual const Version *GetVersion() const;
 	virtual std::string GetParameterString() const;
 
@@ -23,7 +23,7 @@ public:
 
 private:
 	std::string _gameName,_gameUid,_parameterString;
-	int _interfaceVersion;
+	INT32 _interfaceVersion;
 	Version _version;
 };
 

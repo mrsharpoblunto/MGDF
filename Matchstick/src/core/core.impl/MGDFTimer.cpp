@@ -108,7 +108,7 @@ void GPUPerformanceCounter::End()
 
 void GPUPerformanceCounter::Init()
 {
-	for (unsigned int i=0;i<_timer->_bufferSize;++i)
+	for (UINT32 i=0;i<_timer->_bufferSize;++i)
 	{
 		D3D11_QUERY_DESC desc;
 		desc.Query = D3D11_QUERY_TIMESTAMP;
@@ -141,7 +141,7 @@ double GPUPerformanceCounter::GetAvgValue()
 	return _avg;
 }
 
-void GPUPerformanceCounter::SetSample(unsigned int frame, UINT64 frequency)
+void GPUPerformanceCounter::SetSample(UINT32 frame, UINT64 frequency)
 {
 	if (_initialized==_timer->_bufferSize)
 	{
@@ -200,14 +200,14 @@ Timer::~Timer(void)
 	SAFE_RELEASE(_context);
 }
 
-void Timer::InitGPUTimer(ID3D11Device *device,unsigned int bufferSize,int frameSamples)
+void Timer::InitGPUTimer(ID3D11Device *device,UINT32 bufferSize,INT32 frameSamples)
 {
 	_device = device;
 	device->GetImmediateContext(&_context);
 	_bufferSize = bufferSize;
 	_maxSamples = frameSamples;
 
-	for (unsigned int i=0;i<_bufferSize;++i)
+	for (UINT32 i=0;i<_bufferSize;++i)
 	{
 		D3D11_QUERY_DESC desc;
 		desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;

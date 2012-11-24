@@ -66,7 +66,7 @@ public:
 	void UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex);
 	void DrawScene(double alpha);
 	void BackBufferChanged();
-	unsigned int GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *featureLevelsSize);
+	UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *featureLevelsSize);
 	void SetD3DDevice(ID3D11Device *d3dDevice);
 	void CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter);
 	GraphicsManager *GetGraphicsImpl() const;
@@ -77,13 +77,13 @@ public:
 	virtual IModule *GetModule() const;
 	virtual void QueueShutDown();
 
-	virtual int Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version);
-	virtual int BeginSave(const char *saveName, wchar_t *saveBuffer, unsigned int *size);
+	virtual INT32 Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,Version &version);
+	virtual INT32 BeginSave(const char *saveName, wchar_t *saveBuffer, UINT32 *size);
 	virtual bool CompleteSave(const char *saveName);
 
 	//error handling functions
 	virtual void FatalError(const char *,const char *);
-	virtual void SetLastError(const char *sender, int code,const char *description);
+	virtual void SetLastError(const char *sender, UINT32 code,const char *description);
 
 	virtual ILogger *GetLogger() const;
 	virtual ITimer * GetTimer() const;

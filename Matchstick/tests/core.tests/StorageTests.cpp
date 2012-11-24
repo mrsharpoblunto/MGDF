@@ -29,7 +29,7 @@ SETUP(StorageTestFixture)
 
 	_logger = new MGDF::core::tests::MockLogger();
 	_vfs = CreateVirtualFileSystemComponentImpl((ILogger *)_logger);
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",nullptr,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content").c_str(),L"",nullptr,false);
 
 	_storage = CreateStorageFactoryComponentImpl();
 }
@@ -82,7 +82,7 @@ BEGIN_TESTF(StorageGameStateHandlerTest,StorageTestFixture)
 	WIN_ASSERT_EQUAL("Console",handler->GetGameUid());
 	WIN_ASSERT_EQUAL(0,VersionHelper::Compare(handler->GetVersion(),&expected));
 
-	std::wstring savePath = Resources::Instance().RootDir()+L"../../tests/content/temp.json";
+	std::wstring savePath = Resources::Instance().RootDir()+L"../../../tests/content/temp.json";
 	handler->Save(savePath);
 	delete handler;
 
@@ -109,7 +109,7 @@ BEGIN_TESTF(StoragePreferencesHandlerTest,StorageTestFixture)
 	handler->Load(path);
 
 	IPreferenceConfigStorageHandler::iterator iter;
-	int count=0;
+	INT32 count=0;
 	bool foundResolution=false;
 	bool foundScreenX=false;
 	for (iter=handler->Begin();iter!=handler->End();++iter) {
@@ -127,7 +127,7 @@ BEGIN_TESTF(StoragePreferencesHandlerTest,StorageTestFixture)
 	WIN_ASSERT_TRUE(foundScreenX);
 	WIN_ASSERT_EQUAL(9,count);
 
-	std::wstring savePath = Resources::Instance().RootDir()+L"../../tests/content/temp.json";
+	std::wstring savePath = Resources::Instance().RootDir()+L"../../../tests/content/temp.json";
 	if (boost::filesystem::exists(boost::filesystem::wpath(savePath,boost::filesystem::native))){
 		boost::filesystem::remove(boost::filesystem::wpath(savePath,boost::filesystem::native));//remove the temp file	
 	}

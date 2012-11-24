@@ -19,7 +19,7 @@ public:
 		_items.push_back(item);
 	}
 
-	void Remove(unsigned int index)
+	void Remove(size_t index)
 	{
 		_items.erase(_items.begin()+index);
 	}
@@ -29,12 +29,12 @@ public:
 		_items.clear();
 	}
 
-	virtual unsigned int Size() const
+	virtual size_t Size() const
 	{
 		return _items.size();
 	}
 
-	virtual T Get(unsigned int index) const {
+	virtual T Get(size_t index) const {
 		return _items[index];
 	}
 

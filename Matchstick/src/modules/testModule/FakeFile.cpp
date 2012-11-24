@@ -23,7 +23,7 @@ FakeFile::FakeFile(IFile *parent,const std::wstring &physicalFile,const std::wst
 	_logicalPath = L"";
 }
 
-FakeFile::FakeFile(FakeFile *parent,const std::wstring &name,void *data,int dataLength)//nullptr data indicates a folder
+FakeFile::FakeFile(FakeFile *parent,const std::wstring &name,void *data,size_t dataLength)//nullptr data indicates a folder
 {
 	_parent = parent;
 	_children = nullptr;
@@ -111,7 +111,7 @@ MGDF::IFile *FakeFile::GetChild(const wchar_t * name)
 	return nullptr;
 }
 
-unsigned int FakeFile::GetChildCount()
+size_t FakeFile::GetChildCount()
 {
 	if (_children!=nullptr) { 
 		return _children->size();
@@ -187,28 +187,28 @@ void FakeFile::CloseFile()
 	}
 }
 
-unsigned int FakeFile::Read(void* buffer,unsigned int length)
+UINT32 FakeFile::Read(void* buffer,UINT32 length)
 {
 	if(_isOpen)
 	{
-		int oldPosition = _position;
-		if ((oldPosition+static_cast<int>(length)) > _dataLength) length = _dataLength - oldPosition;
+		INT32 oldPosition = _position;
+		if ((static_cast<UINT32>(oldPosition)+length) > _dataLength) length = static_cast<INT32>(_dataLength) - oldPosition;
 		memcpy(buffer,&((char *)_data)[oldPosition],length);
-		_position = oldPosition + static_cast<int>(length);
+		_position = oldPosition + static_cast<INT32>(length);
 		return _position;
 	}
 	return 0;
 }
 
-void FakeFile::SetPosition(unsigned long pos)
+void FakeFile::SetPosition(INT64 pos)
 {
 	if(_isOpen)
 	{
-		_position = static_cast<int>(pos);
+		_position = static_cast<INT32>(pos);
 	}
 }
 
-unsigned long FakeFile::GetPosition() const
+INT64 FakeFile::GetPosition() const
 {
 	if(_isOpen) 
 	{
@@ -231,7 +231,7 @@ bool FakeFile::EndOfFile() const
 	}
 }
 
-unsigned long FakeFile::GetSize()
+INT64 FakeFile::GetSize()
 {
 	return _dataLength;
 }

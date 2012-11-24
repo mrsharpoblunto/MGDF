@@ -9,7 +9,7 @@
 #pragma warning(disable:4291)
 #endif
 
-bool CustomArchiveHandlersImpl::GetHandlers(MGDF::IArchiveHandler **list,unsigned int *length,MGDF::ILogger *logger,MGDF::IErrorHandler *errorHandler) const
+bool CustomArchiveHandlersImpl::GetHandlers(MGDF::IArchiveHandler **list,UINT32 *length,MGDF::ILogger *logger,MGDF::IErrorHandler *errorHandler) const
 {
 	if (*length==0)
 	{

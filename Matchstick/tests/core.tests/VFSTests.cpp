@@ -50,7 +50,7 @@ check that zip archives are enumerated correctly by the vfs
 */
 BEGIN_TESTF(ZipArchiveTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content/test.zip").c_str(),L"",nullptr,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str(),L"",nullptr,false);
 
 	WIN_ASSERT_STRING_EQUAL(L"test.zip",_vfs->GetRoot()->GetFirstChild()->GetName());
 	WIN_ASSERT_EQUAL(6,_vfs->GetRoot()->GetFirstChild()->GetChildCount());
@@ -70,13 +70,14 @@ check that files inside enumeratoed archives can be read correctly
 */
 BEGIN_TESTF(ZipArchiveContentTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content/test.zip").c_str(),L"",nullptr,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str(),L"",nullptr,false);
 
 	IFile *file = _vfs->GetFile(L"test.zip/content/test.lua");
 	file->OpenFile();
-	char* data = new char[file->GetSize()];
-	file->Read((void *)data,file->GetSize());
-	std::string contents(data,file->GetSize());
+	UINT32 size = static_cast<UINT32>(file->GetSize());
+	char* data = new char[size];
+	file->Read((void *)data,size);
+	std::string contents(data,size);
 	delete[] data;
 	file->CloseFile();
 
@@ -98,13 +99,13 @@ check that vfs filters and aliases work as expected
 */
 BEGIN_TESTF(AliasAndFilterTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content/test.zip").c_str(),L"",nullptr,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str(),L"",nullptr,false);
 
 	_vfs->AddAlias(L"testData",L"./test.zip");
 	WIN_ASSERT_STRING_EQUAL(L"game.xml",_vfs->GetFile(L"%Testdata%/game.xml")->GetName());
 
 	IFileIterator *files = _vfs->FindFiles(L".",_vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter(L"xml"),true);
-	unsigned int size=0;
+	UINT32 size=0;
 	while (files->HasNext()) 
 	{
 		files->Next();
@@ -151,7 +152,7 @@ check that the standard filesystem is enumerated correctly by the vfs
 */
 BEGIN_TESTF(FileSystemTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",nullptr,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content").c_str(),L"",nullptr,false);
 
 	WIN_ASSERT_EQUAL(5,_vfs->GetRoot()->GetChildCount());
 	WIN_ASSERT_STRING_EQUAL(L"test.zip",_vfs->GetFile(L"./test.zip")->GetName());
@@ -168,13 +169,14 @@ check that files in the standard filesystem can be read from the vfs correctly
 */
 BEGIN_TESTF(FileSystemContentTests,VFSTestFixture)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../tests/content").c_str(),L"",nullptr,false);
+	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content").c_str(),L"",nullptr,false);
 
 	IFile *file = _vfs->GetFile(L"console.json");
 	file->OpenFile();
-	char *data = new char[file->GetSize()];
-	file->Read(data,file->GetSize());
-	std::string contents(data,file->GetSize());
+	UINT32 size = static_cast<UINT32>(file->GetSize());
+	char *data = new char[size];
+	file->Read(data,size);
+	std::string contents(data,size);
 	delete[] data;
 	file->CloseFile();
 

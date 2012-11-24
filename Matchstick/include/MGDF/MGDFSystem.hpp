@@ -41,7 +41,7 @@ public:
 	 \return 0 if saveBuffer is large enough to fit the supplied save directory, otherwise returns the size required. If the saveName
 		is invalid, the function returns -1
 	*/
-	virtual int BeginSave(const char *saveName, wchar_t *saveBuffer, unsigned int *size)=0;
+	virtual INT32 BeginSave(const char *saveName, wchar_t *saveBuffer, UINT32 *size)=0;
 
 	/**
 	 finalizes the save data for a matching call to BeginSave
@@ -72,7 +72,7 @@ public:
 	 \return 0 if saveBuffer is large enough to fit the supplied load directory, otherwise returns the size required. If the saveName
 		is invalid, the function returns -1
 	*/
-	virtual int Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version)=0;
+	virtual INT32 Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,Version &version)=0;
 
 	/**
 	get the system logger

@@ -30,7 +30,7 @@ std::string JsonCppGameStorageHandler::GetGameUid() const
 	return _gameUid;
 }
 
-int JsonCppGameStorageHandler::GetInterfaceVersion() const
+INT32 JsonCppGameStorageHandler::GetInterfaceVersion() const
 {
 	return _interfaceVersion;
 }

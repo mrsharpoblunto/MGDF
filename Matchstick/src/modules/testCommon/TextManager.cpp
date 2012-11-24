@@ -19,7 +19,7 @@ TextManagerState::TextManagerState(const TextManagerState *state)
 	}
 }
 
-void TextManagerState::AddLine(unsigned int color,const std::string &line)
+void TextManagerState::AddLine(UINT32 color,const std::string &line)
 {
 	Line l;
 	l.Color = color;
@@ -32,7 +32,7 @@ void TextManagerState::AddLine(unsigned int color,const std::string &line)
 	_lines.insert(_lines.begin(),l);
 }
 
-void TextManagerState::SetStatus(unsigned int color,const std::string &text)
+void TextManagerState::SetStatus(UINT32 color,const std::string &text)
 {
 	_lines[0].StatusText = text;
 	_lines[0].StatusColor = color;
@@ -73,10 +73,10 @@ void TextManager::DrawText()
 {
 	if (_state && _font)
 	{
-		int starty;
+		INT32 starty;
 		if (_state.get()->_lines.size()*25 < _system->GetGraphics()->GetScreenY())
 		{
-		   starty = (_state.get()->_lines.size()*25) - 25;
+		   starty = (static_cast<UINT32>(_state.get()->_lines.size())*25) - 25;
 		}
 		else {
 			starty = _system->GetGraphics()->GetScreenY() - 25;

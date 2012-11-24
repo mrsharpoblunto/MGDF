@@ -52,15 +52,7 @@ bool DefaultFileImpl::OpenFile()
 		_fileStream = new std::ifstream(_path.c_str(),std::ios::in|std::ios::binary|std::ios::ate);
 		if (_fileStream && !_fileStream->bad() && _fileStream->is_open()) 
 		{
-			//files over 4.2GB unsupported
-			if (_fileStream->tellg()>ULONG_MAX) 
-			{
-				_filesize = ULONG_MAX;
-			}
-			else
-			{
-				_filesize = static_cast<unsigned long>(_fileStream->tellg());
-			}
+			_filesize = _fileStream->tellg();
 			_fileStream->seekg(0, std::ios::beg);
 			return true;
 		}
@@ -86,19 +78,19 @@ void DefaultFileImpl::CloseFile()
 	}
 }
 
-unsigned int DefaultFileImpl::Read(void* buffer,unsigned int length)
+UINT32 DefaultFileImpl::Read(void* buffer,UINT32 length)
 {
 	if(_fileStream)
 	{
 		std::ifstream::pos_type oldPosition = _fileStream->tellg();
 		_fileStream->read((char*)buffer,length);
 		std::ifstream::pos_type newPosition = _fileStream->tellg();
-		return static_cast<unsigned int>(newPosition-oldPosition);
+		return static_cast<UINT32>(newPosition-oldPosition);
 	}
 	return 0;
 }
 
-void DefaultFileImpl::SetPosition(unsigned long pos)
+void DefaultFileImpl::SetPosition(INT64 pos)
 {
 	if(_fileStream)
 	{
@@ -106,19 +98,11 @@ void DefaultFileImpl::SetPosition(unsigned long pos)
 	}
 }
 
-unsigned long DefaultFileImpl::GetPosition() const
+INT64 DefaultFileImpl::GetPosition() const
 {
 	if(_fileStream) 
 	{
-		//files over 4.2GB unsupported
-		if (_fileStream->tellg()>ULONG_MAX) 
-		{
-			return ULONG_MAX;
-		}
-		else
-		{
-			return static_cast<unsigned long>(_fileStream->tellg());
-		}
+		return _fileStream->tellg();
 	}
 	else 
 	{
@@ -137,23 +121,14 @@ bool DefaultFileImpl::EndOfFile() const
 	}
 }
 
-unsigned long DefaultFileImpl::GetSize()
+INT64 DefaultFileImpl::GetSize()
 {
 	if (_filesize==0)
 	{
 		std::ifstream stream(_path.c_str(),std::ios::in|std::ios::binary|std::ios::ate);
 		if (!stream.bad() && stream.is_open()) 
 		{
-			//files over 4.2GB unsupported
-			if (stream.tellg()>ULONG_MAX) 
-			{
-				_filesize = ULONG_MAX;
-			}
-			else
-			{
-				_filesize = static_cast<unsigned long>(stream.tellg());
-			}
-
+			_filesize = stream.tellg();
 			stream.close();
 		}
 		else 

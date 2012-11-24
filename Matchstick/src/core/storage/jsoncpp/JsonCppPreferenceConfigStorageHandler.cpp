@@ -44,7 +44,7 @@ void JsonCppPreferenceConfigStorageHandler::Load(const std::wstring &filename)
 	if (reader.parse(input,root))
 	{
 		Json::Value preferences = root["preferences"];
-		for ( unsigned int index = 0; index < preferences.size(); ++index )
+		for ( UINT32 index = 0; index < preferences.size(); ++index )
 		{
 			_preferences[preferences[index]["name"].asString()] = preferences[index]["value"].asString();
 		}

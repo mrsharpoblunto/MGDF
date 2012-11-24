@@ -4,7 +4,7 @@ namespace MGDF {
 
 	struct Error
 	{
-		unsigned int Code;
+		UINT32 Code;
 		char *Sender;
 		char *Description;
 	};
@@ -19,4 +19,5 @@ namespace MGDF {
 	#define MGDF_ERR_INVALID_FILE 1007
 	#define MGDF_ERR_NO_PENDING_SAVE 1008
 	#define MGDF_ERR_INVALID_SAVE_NAME 1009
+	#define MGDF_ERR_ARCHIVE_FILE_TOO_LARGE 1010
 }

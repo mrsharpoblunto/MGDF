@@ -23,7 +23,7 @@ public:
 	 \param length the length of the list array
 	 \return returns true if the supplied list is large enough to contain all the items in the list, otherwise returns false and sets the required size in the length parameter.
 	*/
-	virtual bool GetHandlers(IArchiveHandler **list,unsigned int *length,ILogger *logger,IErrorHandler *errorHandler) const=0;
+	virtual bool GetHandlers(IArchiveHandler **list,UINT32 *length,ILogger *logger,IErrorHandler *errorHandler) const=0;
 };
 
 /**

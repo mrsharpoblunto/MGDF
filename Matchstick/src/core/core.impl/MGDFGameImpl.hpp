@@ -15,12 +15,12 @@ this class is the concrete implementation of the configuration interface
 class Game : public IGame
 {
 public:
-	Game(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version,storage::IStorageFactoryComponent *xmlFactory);
+	Game(const std::string &uid,const std::string &name,INT32 interfaceVersion,const Version *version,storage::IStorageFactoryComponent *xmlFactory);
 	virtual ~Game(void);
 
 	virtual const char *GetUid() const;
 	virtual const char *GetName() const;
-	virtual int GetInterfaceVersion() const;
+	virtual INT32 GetInterfaceVersion() const;
 	virtual const Version *GetVersion() const;
 
 	virtual bool HasPreference(const char * name) const;
@@ -37,7 +37,7 @@ private:
 	std::string _uid,_name;
 	std::wstring _preferencesFile;
 	Version _version;
-	int _interfaceVersion;
+	INT32 _interfaceVersion;
 	boost::unordered_map<std::string,std::string> _preferences;
 
 };

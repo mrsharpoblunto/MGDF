@@ -23,7 +23,7 @@ public:
 	virtual void FatalError(const std::string &message);
 	virtual void ExternalClose();
 	virtual void OnRawInput(RAWINPUT *input);
-	virtual void OnMouseInput(int x,int y);
+	virtual void OnMouseInput(INT32 x,INT32 y);
 	virtual void OnInputIdle();
 	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure);
 

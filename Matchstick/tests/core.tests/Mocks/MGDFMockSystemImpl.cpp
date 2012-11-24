@@ -34,7 +34,7 @@ const Version *MockSystemImpl::GetMGDFVersion() const
 	return &_version;
 }
 
-void MockSystemImpl::SetLastError(const char *sender,int code,const char *description)
+void MockSystemImpl::SetLastError(const char *sender,INT32 code,const char *description)
 {
 	if (_lastError.Description!=nullptr)
 	{
@@ -47,13 +47,13 @@ void MockSystemImpl::SetLastError(const char *sender,int code,const char *descri
 
 	if (description!=nullptr)
 	{
-		int size = strlen(description)+1;
+		size_t size = strlen(description)+1;
 		_lastError.Description = new char[size];
 		strcpy_s(_lastError.Description,size,description);
 	}
 	if (sender!=nullptr)
 	{
-		int size = strlen(sender)+1;
+		size_t size = strlen(sender)+1;
 		_lastError.Sender = new char[size];
 		strcpy_s(_lastError.Sender,size,sender);
 	}

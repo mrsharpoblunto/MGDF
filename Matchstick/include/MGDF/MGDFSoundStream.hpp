@@ -15,8 +15,8 @@ public:
 	virtual float  GetVolume() const =0;
 	virtual void  SetVolume(float volume)=0;
 
-	virtual unsigned int GetPosition() = 0;
-	virtual unsigned int GetLength() =0;
+	virtual UINT32 GetPosition() = 0;
+	virtual UINT32 GetLength() =0;
 
 	/**
 	stop the playing of the current stream if it was playing or paused (resets it to the beginning aswell)

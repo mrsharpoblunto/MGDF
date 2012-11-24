@@ -18,23 +18,23 @@ std::string Win32Exception::TranslateError(unsigned code)
 		case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
 			return "The thread tried to access an array element that is out of bounds and the underlying hardware supports bounds checking.";
 		case EXCEPTION_BREAKPOINT:
-			return "A breakpoint was encountered.";
+			return "A breakpoINT32 was encountered.";
 		case EXCEPTION_DATATYPE_MISALIGNMENT:
 			return "The thread tried to read or write data that is misaligned on hardware that does not provide alignment.\r\nFor example, 16-bit values must be aligned on 2-byte boundaries; 32-bit values on 4-byte boundaries, and so on.";
 		case EXCEPTION_FLT_DENORMAL_OPERAND:
-			return "One of the operands in a floating-point operation is denormal.\r\nA denormal value is one that is too small to represent as a standard floating-point value.";
+			return "One of the operands in a floating-poINT32 operation is denormal.\r\nA denormal value is one that is too small to represent as a standard floating-poINT32 value.";
 		case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-			return "The thread tried to divide a floating-point value by a floating-point divisor of zero.";
+			return "The thread tried to divide a floating-poINT32 value by a floating-poINT32 divisor of zero.";
 		case EXCEPTION_FLT_INEXACT_RESULT:
-			return "The result of a floating-point operation cannot be represented exactly as a decimal fraction.";
+			return "The result of a floating-poINT32 operation cannot be represented exactly as a decimal fraction.";
 		case EXCEPTION_FLT_INVALID_OPERATION:
-			return "This exception represents any floating-point exception not included in this list.";
+			return "This exception represents any floating-poINT32 exception not included in this list.";
 		case EXCEPTION_FLT_OVERFLOW:
-			return "The exponent of a floating-point operation is greater than the magnitude allowed by the corresponding type.";
+			return "The exponent of a floating-poINT32 operation is greater than the magnitude allowed by the corresponding type.";
 		case EXCEPTION_FLT_STACK_CHECK:
-			return "The stack overflowed or underflowed as the result of a floating-point operation.";
+			return "The stack overflowed or underflowed as the result of a floating-poINT32 operation.";
 		case EXCEPTION_FLT_UNDERFLOW:
-			return "The exponent of a floating-point operation is less than the magnitude allowed by the corresponding type.";
+			return "The exponent of a floating-poINT32 operation is less than the magnitude allowed by the corresponding type.";
 		case EXCEPTION_ILLEGAL_INSTRUCTION:
 			return "The thread tried to execute an invalid instruction.";
 		case EXCEPTION_IN_PAGE_ERROR:

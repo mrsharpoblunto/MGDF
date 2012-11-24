@@ -32,20 +32,20 @@ private:
 	ID3D11BlendState *_currentBlendState;
 	ID3D11DepthStencilState *_currentDepthStencilState;
 	float _currentBlendFactor[4];
-	UINT _currentSampleMask;
-	UINT _currentStencilRef;
+	UINT32 _currentSampleMask;
+	UINT32 _currentStencilRef;
 	ID3D11VertexShader *_currentVertexShader;
 	ID3D11PixelShader *_currentPixelShader;
 	ID3D11ClassInstance	*_currentVertexShaderClassInstances[256];
 	ID3D11ClassInstance	*_currentPixelShaderClassInstances[256];
-	UINT _currentVertexShaderNumClassInstances;		
-	UINT _currentPixelShaderNumClassInstances;
+	UINT32 _currentVertexShaderNumClassInstances;		
+	UINT32 _currentPixelShaderNumClassInstances;
 	ID3D11InputLayout* _currentInputLayout;
 	D3D11_PRIMITIVE_TOPOLOGY _currentPrimitiveTopology;
 	ID3D11Buffer *_currentPSCBuffer;
 	ID3D11Buffer *_currentVertexBuffer;
-	UINT _currentStride;
-	UINT _currentOffset;
+	UINT32 _currentStride;
+	UINT32 _currentOffset;
 };
 
 }}

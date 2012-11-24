@@ -66,11 +66,11 @@ System::System(Game *game)
 	//ensure the vfs enumerates any custom defined archive formats
 	ICustomArchiveHandlers *customHandlers = _moduleFactory->GetCustomArchiveHandlers();
 	if (customHandlers!=nullptr) {
-		unsigned int length = 0;
+		UINT32 length = 0;
 		customHandlers->GetHandlers(nullptr,&length,GetLoggerImpl(),this);
 		IArchiveHandler **handlers = new IArchiveHandler *[length];
 		customHandlers->GetHandlers(handlers,&length,GetLoggerImpl(),this);
-		for (unsigned int i=0;i<length;++i) 
+		for (UINT32 i=0;i<length;++i) 
 		{
 			_vfs->RegisterArchiveHandler(handlers[i]);
 		}
@@ -209,7 +209,7 @@ void System::SetD3DDevice(ID3D11Device *d3dDevice)
 	_timer.InitGPUTimer(_d3dDevice,GPU_TIMER_BUFFER,TIMER_SAMPLES);
 }
 
-unsigned int System::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *featureLevelsSize)
+UINT32 System::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *featureLevelsSize)
 {
 	return _moduleFactory->GetCompatibleFeatureLevels(levels,featureLevelsSize);
 }
@@ -228,21 +228,27 @@ const Version *System::GetMGDFVersion() const
 	return &_version;
 }
 
-int System::Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,Version &version)
+INT32 System::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,Version &version)
 {
 	std::string loadName(saveName);
 	std::wstring loadDataDir = Resources::Instance().SaveDataDir(loadName);
 	std::wstring loadFile = Resources::Instance().GameStateSaveFile(loadName);
 	std::wstring loadDir = Resources::Instance().SaveDir(loadName);
 
+	if (loadDataDir.size()+1>UINT32_MAX)
+	{
+		FatalError(THIS_NAME,"Unable to store load data path in 32bit buffer");
+		return -1;
+	}
+
 	if (loadDataDir.size()+1>*size || loadBuffer==nullptr)
 	{
-		*size = loadDataDir.size()+1;
+		*size = static_cast<UINT32>(loadDataDir.size())+1;
 		return *size;
 	}
 	else
 	{
-		*size = loadDataDir.size()+1;
+		*size = static_cast<UINT32>(loadDataDir.size())+1;
 		memcpy(loadBuffer,loadDataDir.c_str(),sizeof(wchar_t) * (*size));
 		try
 		{
@@ -269,7 +275,7 @@ int System::Load(const char *saveName, wchar_t *loadBuffer, unsigned int *size,V
 	}
 }
 
-int System::BeginSave(const char *save, wchar_t *saveBuffer, unsigned int *size)
+INT32 System::BeginSave(const char *save, wchar_t *saveBuffer, UINT32 *size)
 {
 	std::string saveName(save);
 
@@ -287,14 +293,20 @@ int System::BeginSave(const char *save, wchar_t *saveBuffer, unsigned int *size)
 
 	std::wstring saveBufferContent(Resources::Instance().SaveDataDir(saveName));
 
+	if (saveBufferContent.size()+1>UINT32_MAX)
+	{
+		FatalError(THIS_NAME,"Unable to store save data path in 32bit buffer");
+		return -1;
+	}
+
 	if (saveBufferContent.size()+1>*size  || saveBuffer==nullptr)
 	{
-		*size = saveBufferContent.size()+1;
+		*size = static_cast<UINT32>(saveBufferContent.size())+1;
 		return *size;
 	}
 	else
 	{
-		*size = saveBufferContent.size()+1;
+		*size = static_cast<UINT32>(saveBufferContent.size())+1;
 		memcpy(saveBuffer,saveBufferContent.c_str(),sizeof(wchar_t) * (*size));
 	}
 
@@ -352,7 +364,7 @@ bool System::CompleteSave(const char *save)
 		//update the list of save games
 		GetSaves();
 		bool exists = false;
-		for (unsigned int i=0;i<_saves->Size();++i)
+		for (UINT32 i=0;i<_saves->Size();++i)
 		{
 			if (strcmp(saveName.c_str(),_saves->Get(i))==0)
 			{
@@ -494,7 +506,7 @@ void System::FatalError(const char *sender,const char *message)
     TerminateProcess(GetCurrentProcess(), 1);
 }
 
-void System::SetLastError(const char *sender, int code,const char *description)
+void System::SetLastError(const char *sender, UINT32 code,const char *description)
 {
 	if (_lastError.Description!=nullptr)
 	{
@@ -559,7 +571,7 @@ void System::RemoveSave(const char *saveName)
 {
 	GetSaves();
 
-	for (unsigned int i=0;i<_saves->Size();++i)
+	for (UINT32 i=0;i<_saves->Size();++i)
 	{
 		if (strcmp(saveName,_saves->Get(i))==0)
 		{

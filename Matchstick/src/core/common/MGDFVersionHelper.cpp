@@ -50,7 +50,7 @@ Version VersionHelper::Copy(const Version *version)
 	return result;
 }
 
-int VersionHelper::Compare(const Version *a,const Version *b)
+INT32 VersionHelper::Compare(const Version *a,const Version *b)
 {
 	if (a->Major!=b->Major) {
 		return a->Major>b->Major?1:-1;

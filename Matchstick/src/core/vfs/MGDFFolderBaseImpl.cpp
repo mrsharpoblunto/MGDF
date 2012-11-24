@@ -37,16 +37,16 @@ void FolderBaseImpl::CloseFile()
 {
 }
 
-unsigned int FolderBaseImpl::Read(void* buffer,unsigned int length)
+UINT32 FolderBaseImpl::Read(void* buffer,UINT32 length)
 {
 	return 0;
 }
 
-void FolderBaseImpl::SetPosition(unsigned long pos)
+void FolderBaseImpl::SetPosition(INT64 pos)
 {
 }
 
-unsigned long FolderBaseImpl::GetPosition() const
+INT64 FolderBaseImpl::GetPosition() const
 {
 	return 0;
 }
@@ -56,7 +56,7 @@ bool FolderBaseImpl::EndOfFile() const
 	return true;
 }
 
-unsigned long FolderBaseImpl::GetSize()
+INT64 FolderBaseImpl::GetSize()
 {
 	return 0;
 }

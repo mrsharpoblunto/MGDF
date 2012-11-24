@@ -78,8 +78,8 @@ std::wstring Resources::GetApplicationDirectory(HINSTANCE instance)
 
 std::wstring Resources::_vfsContent = L"content/";
 
-const unsigned int Resources::MIN_SCREEN_X = 1024;
-const unsigned int Resources::MIN_SCREEN_Y =768;
+const UINT32 Resources::MIN_SCREEN_X = 1024;
+const UINT32 Resources::MIN_SCREEN_Y =768;
 
 std::wstring Resources::LogFile()
 {
@@ -191,7 +191,7 @@ std::wstring Resources::BinDir()
 
 std::string Resources::ToString(const std::wstring &wstr)
 {
-    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
+    INT32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
 	char *strTo = new char[sizeNeeded];
     WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), &strTo[0], sizeNeeded, nullptr, nullptr);
 	std::string result(&strTo[0],wstr.size());
@@ -201,7 +201,7 @@ std::string Resources::ToString(const std::wstring &wstr)
 
 std::wstring Resources::ToWString(const std::string &str)
 {
-    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), nullptr, 0);
+    INT32 sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), nullptr, 0);
     wchar_t *wstrTo = new wchar_t[sizeNeeded];
     MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstrTo[0], sizeNeeded);
     std::wstring result(&wstrTo[0],str.size());

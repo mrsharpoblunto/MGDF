@@ -1,5 +1,9 @@
 #pragma once
 
+#include <basetsd.h>
+#include <d3d11.h>
+#include <DirectXMath.h>
+
 #include <MGDF/MGDFVersion.hpp>
 #include <MGDF/MGDFSound.hpp>
 #include <MGDF/MGDFSoundStream.hpp>

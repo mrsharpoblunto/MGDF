@@ -1,7 +1,7 @@
 #pragma once
 
 /**
- The whole point of having a separate DLL for some trivial test helper classes is that it
+ The whole poINT32 of having a separate DLL for some trivial test helper classes is that it
  ensures that the load path for dependent DLL's is set correctly when loading a game module.
  This is important for modules that actually have depenancies on 3rd party dlls
  */

@@ -87,7 +87,7 @@ ID3D11Device *D3DAppFramework::GetD3DDevice() const
 	return _d3dDevice;
 }
 
-void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3D_FEATURE_LEVEL *levels,unsigned int levelsSize) {
+void D3DAppFramework::InitDirect3D(const std::string &caption,WNDPROC windowProcedure,D3D_FEATURE_LEVEL *levels,UINT32 levelsSize) {
 	InitMainWindow(caption,windowProcedure);
 	InitRawInput();
 	InitD3D(levels,levelsSize);
@@ -116,8 +116,8 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 
 		RECT R = {0, 0,Resources::MIN_SCREEN_X,Resources::MIN_SCREEN_Y};
 		AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
-		int width  = R.right - R.left;
-		int height = R.bottom - R.top;
+		INT32 width  = R.right - R.left;
+		INT32 height = R.bottom - R.top;
 
 		_window = CreateWindow(WINDOW_CLASS_NAME, caption.c_str(), 
 			WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, _applicationInstance, 0); 
@@ -152,10 +152,10 @@ void D3DAppFramework::InitRawInput()
 	}	
 }
 
-void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,unsigned int levelsSize)
+void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,UINT32 levelsSize)
 {
 	if (_window != nullptr) {
-		UINT createDeviceFlags = 0;
+		UINT32 createDeviceFlags = 0;
 		#if defined(DEBUG) || defined(_DEBUG)  
 			createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 		#endif
@@ -169,14 +169,14 @@ void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,unsigned int levelsSize)
 		IDXGIAdapter1 *bestAdapter=nullptr;
 		char videoCardDescription[128];
 		DXGI_ADAPTER_DESC1 adapterDesc;
-		unsigned int stringLength;
+		size_t stringLength;
 
 		// step through the adapters and ensure we use the best one to create our device
-		for(int i = 0; _factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++)
+		for(INT32 i = 0; _factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++)
 		{
 			adapter->GetDesc1(&adapterDesc);
-			unsigned int length = wcslen(adapterDesc.Description);
-			int error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, length);		
+			size_t length = wcslen(adapterDesc.Description);
+			INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, length);		
 			std::string message(videoCardDescription,videoCardDescription+length);
 			message.insert(0,"Attempting to create device for adapter ");
 			GetLoggerImpl()->Add(THIS_NAME,message,LOG_LOW);
@@ -327,7 +327,7 @@ void D3DAppFramework::OnResize()
 	OnBackBufferChanged(_backBuffer);
 }
 
-int D3DAppFramework::Run(unsigned int simulationFps)
+INT32 D3DAppFramework::Run(UINT32 simulationFps)
 {
 	//if the window or d3d has not been initialised, quit with an error
 	if (_window == nullptr && _d3dDevice == nullptr) {
@@ -452,27 +452,27 @@ int D3DAppFramework::Run(unsigned int simulationFps)
 	return (int)msg.wParam;
 }
 
-LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam)
 {
 	switch( msg )
 	{
 	case WM_MOUSEMOVE:
 	{
-		int x = GET_X_LPARAM(lParam); 
-		int y = GET_Y_LPARAM(lParam); 
+		INT32 x = GET_X_LPARAM(lParam); 
+		INT32 y = GET_Y_LPARAM(lParam); 
 		OnMouseInput(x,y);
 	}
 	return 0;
 
 	case WM_INPUT:
 	{	
-		UINT dwSize=0U;
+		UINT32 dwSize=0U;
 
 		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 		LPBYTE lpb = new BYTE[dwSize];
 		if (lpb != nullptr) 
 		{	
-			int readSize = GetRawInputData( (HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER) ) ;
+			INT32 readSize = GetRawInputData( (HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER) ) ;
 
 			if( readSize != dwSize )
 			{

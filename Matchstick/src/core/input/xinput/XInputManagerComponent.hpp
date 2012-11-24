@@ -22,19 +22,19 @@ public:
 	virtual void Dispose();
 
 	virtual void HandleInput(RAWINPUT *input);
-	virtual void HandleInput(int mouseX,int mouseY);
+	virtual void HandleInput(INT32 mouseX,INT32 mouseY);
 	virtual void ProcessSim();
 	virtual void ProcessInput();
 
 	virtual void ShowCursor(bool show);
-	virtual bool  IsKeyDown(unsigned short key) const;
-	virtual bool  IsKeyUp(unsigned short key) const;
-	virtual bool  IsKeyPress(unsigned short key) const;
-	virtual int  GetMouseX(void) const;
-	virtual int  GetMouseY(void) const;
-	virtual long  GetMouseDX(void) const;
-	virtual long  GetMouseDY(void) const;
-	virtual short  GetMouseDZ(void) const;
+	virtual bool  IsKeyDown(UINT16 key) const;
+	virtual bool  IsKeyUp(UINT16 key) const;
+	virtual bool  IsKeyPress(UINT16 key) const;
+	virtual INT32  GetMouseX(void) const;
+	virtual INT32  GetMouseY(void) const;
+	virtual INT32  GetMouseDX(void) const;
+	virtual INT32  GetMouseDY(void) const;
+	virtual INT16  GetMouseDZ(void) const;
 	virtual bool  IsButtonDown(Mouse mouseButton) const;
 	virtual bool  IsButtonUp(Mouse mouseButton) const;
 	virtual bool  IsButtonClicked(Mouse mouseButton);
@@ -45,11 +45,11 @@ private:
 	boost::mutex _inputMutex;
 
 	//pending keyboard state (input thread)
-	unsigned short _pendingKeyDown[256];
-	unsigned short _pendingKeyDownEvents[256];
-	unsigned short _pendingKeyDownEventsLength;
-	unsigned short _pendingKeyPressEvents[256];
-	unsigned short _pendingKeyPressEventsLength;
+	UINT8 _pendingKeyDown[256];
+	UINT8 _pendingKeyDownEvents[256];
+	UINT8 _pendingKeyDownEventsLength;
+	UINT8 _pendingKeyPressEvents[256];
+	UINT8 _pendingKeyPressEventsLength;
 	
 	bool _pendingShowCursor;
 	bool _showCursor;
@@ -59,18 +59,18 @@ private:
 	bool  _keyPress[256];
 
 	//pending mouse state (input thread)
-	long _pendingMouseDX, _pendingMouseDY;
-	short _pendingMouseDZ;
-	unsigned short _pendingMouseButtonDown[3];
+	INT32 _pendingMouseDX, _pendingMouseDY;
+	INT16 _pendingMouseDZ;
+	UINT8 _pendingMouseButtonDown[3];
 	bool _pendingMouseButtonClick[3];
-	int _pendingMouseX,_pendingMouseY;
+	INT32 _pendingMouseX,_pendingMouseY;
 
 	//current mouse state (sim thread)
-	long _mouseDX, _mouseDY;
-	short _mouseDZ;
+	INT32 _mouseDX, _mouseDY;
+	INT16 _mouseDZ;
 	bool _mouseButtonDown[3];
 	bool _mouseButtonClick[3];
-	int _mouseX, _mouseY;
+	INT32 _mouseX, _mouseY;
 
 	GamepadList _gamepads;
 };

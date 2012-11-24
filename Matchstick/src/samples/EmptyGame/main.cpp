@@ -17,12 +17,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 }
 
 // Function that returns if this module is compatible with the framework calling it
-bool MGDF::IsCompatibleInterfaceVersion(int interfaceVersion) {
+bool MGDF::IsCompatibleInterfaceVersion(INT32 interfaceVersion) {
 	return interfaceVersion==1;//compatible with v1 interface
 }
 
 //specify to the framework what kind of d3d device features we want/require
-unsigned int MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,unsigned int *featureLevelsSize) {
+UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *featureLevelsSize) {
 	//if you want to use the default feature support levels
 	//just set featureLevelsSize to 0 and return 0
 

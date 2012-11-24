@@ -21,7 +21,7 @@ namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
 DEFINE_SINGLETON(OpenALSoundSystem);
 
-int OpenALSoundSystem::_refCount = 0;
+INT32 OpenALSoundSystem::_refCount = 0;
 
 OpenALSoundSystem *OpenALSoundSystem::SafeNew()
 {
@@ -85,14 +85,14 @@ OpenALSoundSystem::OpenALSoundSystem()
 	GetLoggerImpl()->Add(THIS_NAME,"initialised successfully",LOG_LOW);
 }
 
-int OpenALSoundSystem::GetFreeSources()
+size_t OpenALSoundSystem::GetFreeSources()
 {
 	return _freeSources.size();
 }
 
 bool OpenALSoundSystem::AcquireSource(ALuint *source)
 {
-	int freeSources = GetFreeSources();
+	size_t freeSources = GetFreeSources();
 	if (freeSources>0)
 	{
 		ALuint freeSource = _freeSources.top();

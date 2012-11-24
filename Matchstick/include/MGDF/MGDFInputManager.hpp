@@ -66,42 +66,42 @@ public:
 	returns the state of the controllers left trigger
 	\return 0 for idle to 255 for fully held
 	*/
-	virtual int  GetLeftTrigger() const=0;
+	virtual INT32  GetLeftTrigger() const=0;
 
 	/**
 	returns the state of the controllers right trigger
 	\return 0 for idle to 255 for fully held
 	*/
-	virtual int  GetRightTrigger() const=0;
+	virtual INT32  GetRightTrigger() const=0;
 
 	/**
 	returns the state of the left thumbstick on the X axis
 	\return -32768 for far left to +32767 for far right
 	*/
-	virtual int  GetLeftThumbX() const=0;
+	virtual INT32  GetLeftThumbX() const=0;
 
 	/**
 	returns the state of the left thumbstick on the Y axis
 	\return -32768 for top to +32767 for bottom
 	*/
-	virtual int  GetLeftThumbY() const=0;
+	virtual INT32  GetLeftThumbY() const=0;
 
 	/**
 	returns the state of the right thumbstick on the X axis
 	\return -32768 for far left to +32767 for far right
 	*/
-	virtual int  GetRightThumbX() const=0;
+	virtual INT32  GetRightThumbX() const=0;
 
 	/**
 	returns the state of the right thumbstick on the Y axis
 	\return -32768 for top to +32767 for bottom
 	*/
-	virtual int  GetRightThumbY() const=0;
+	virtual INT32  GetRightThumbY() const=0;
 
 	/**
 	sets the vibration intensity in the left and right vibrator motors of the controller, valid values are 0-65535
 	*/
-	virtual void  SetVibrationSpeed(int left,int right)=0;
+	virtual void  SetVibrationSpeed(INT32 left,INT32 right)=0;
 };
 
 DECLARE_LIST(IGamepadList,IGamepad *)
@@ -127,51 +127,51 @@ determines if a key is presed
 \param key the Microsoft Virtual key code representing the desired key (see here for a list http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 \return true if the key is being held down
 */
-virtual bool  IsKeyDown(unsigned short key) const=0;
+virtual bool  IsKeyDown(UINT16 key) const=0;
 
 /**
 determines if a key is NOT pressed
 \param key the Microsoft Virtual key code representing the desired key (see here for a list http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 \return true if the key is not being pressed
 */
-virtual bool  IsKeyUp(unsigned short key) const=0;
+virtual bool  IsKeyUp(UINT16 key) const=0;
 
 /**
 determines if a keypress has occured
 \param key the Microsoft Virtual key code representing the desired key (see here for a list http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx)
 \return true if the key has been pressed (i.e pressed down then released)
 */
-virtual bool  IsKeyPress(unsigned short key) const=0;
+virtual bool  IsKeyPress(UINT16 key) const=0;
 
 /**
 get the x position of the mouse
 \return the x position of the mouse relative to the left of the screen in pixels
 */
-virtual int  GetMouseX(void) const=0;
+virtual INT32  GetMouseX(void) const=0;
 
 /**
 get the y position of the mouse
 \return the y position of the mouse relative to the top of the screen in pixels
 */
-virtual int  GetMouseY(void) const=0;
+virtual INT32  GetMouseY(void) const=0;
 
 /**
 get the x movement of the mouse in the current frame
 \return the x movement of the mouse in the current frame
 */
-virtual long  GetMouseDX(void) const=0;
+virtual INT32  GetMouseDX(void) const=0;
 
 /**
 get the y movement of the mouse in the current frame
 \return the y movement of the mouse in the current frame
 */
-virtual long  GetMouseDY(void) const=0;
+virtual INT32  GetMouseDY(void) const=0;
 
 /**
 get the position of the scroll wheel
 \return the position of the scroll wheel, this value will be between -120 and 120
 */
-virtual short GetMouseDZ(void) const=0;
+virtual INT16 GetMouseDZ(void) const=0;
 
 /**
 determine if a mouse button is down

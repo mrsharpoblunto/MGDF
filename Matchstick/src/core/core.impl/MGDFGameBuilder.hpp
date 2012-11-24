@@ -9,7 +9,7 @@ class GameBuilder {
 public:
 	static Game *LoadGame(storage::IGameStorageHandler *handler);
 private:
-	static Game *CreateGame(const std::string &uid,const std::string &name,int interfaceVersion,const Version *version);
+	static Game *CreateGame(const std::string &uid,const std::string &name,INT32 interfaceVersion,const Version *version);
 };
 
 }}

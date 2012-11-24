@@ -10,7 +10,7 @@ class MGDFVersionInfo
 public:
 	virtual ~MGDFVersionInfo(){};
 	static const std::string &MGDF_VERSION() { return _mgdfVersion; }
-	static const int MGDF_INTERFACE_VERSION = 1;
+	static const INT32 MGDF_INTERFACE_VERSION = 1;
 private:
 	#pragma warning(push)
 	#pragma warning(disable: 4251)

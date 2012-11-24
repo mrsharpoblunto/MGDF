@@ -32,7 +32,7 @@ void XInputManagerComponent::Dispose()
 
 XInputManagerComponent::XInputManagerComponent()
 {
-	for (int i=0;i<4;++i) {
+	for (INT32 i=0;i<4;++i) {
 		_gamepads.Add(new XInputGamepad(i));
 	}
 
@@ -68,7 +68,7 @@ XInputManagerComponent::~XInputManagerComponent(void)
 	}
 }
 
-void XInputManagerComponent::HandleInput(int mouseX,int mouseY)
+void XInputManagerComponent::HandleInput(INT32 mouseX,INT32 mouseY)
 {
 	boost::mutex::scoped_lock lock(_simMutex);
 	_pendingMouseX = mouseX;
@@ -81,7 +81,10 @@ void XInputManagerComponent::HandleInput(RAWINPUT *input)
 	{
 		boost::mutex::scoped_lock lock(_simMutex);
 
-		unsigned short key = input->data.keyboard.VKey;
+		//we only know how to deal with keys
+		if (input->data.keyboard.VKey>UINT8_MAX) return;
+
+		UINT8 key = static_cast<UINT8>(input->data.keyboard.VKey);
 		if ((input->data.keyboard.Flags & RI_KEY_MAKE) == RI_KEY_MAKE && _pendingKeyDown[key]!=1)
 		{
 			_pendingKeyDown[key] = 1;
@@ -111,7 +114,7 @@ void XInputManagerComponent::HandleInput(RAWINPUT *input)
 		//mouse scrollwheel
 		if ((input->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) == RI_MOUSE_WHEEL)
 		{
-			_pendingMouseDZ += (short)input->data.mouse.usButtonData;
+			_pendingMouseDZ += static_cast<INT16>(input->data.mouse.usButtonData);
 		}
 		//mouse button states
 		if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) == RI_MOUSE_LEFT_BUTTON_DOWN)
@@ -203,18 +206,18 @@ void XInputManagerComponent::ProcessSim()
 
 
 		//keyboard events
-		for (unsigned short i=0;i<_pendingKeyDownEventsLength;++i)
+		for (UINT8 i=0;i<_pendingKeyDownEventsLength;++i)
 		{
-			unsigned short key = _pendingKeyDownEvents[i];
+			UINT8 key = _pendingKeyDownEvents[i];
 			_keyDown[key] = _pendingKeyDown[key] == 1;
 		}
 		ZeroMemory(_pendingKeyDown,sizeof(_pendingKeyDown));
 		_pendingKeyDownEventsLength = 0;
 
 		ZeroMemory(_keyPress,sizeof(_keyPress));
-		for (unsigned short i=0;i<_pendingKeyPressEventsLength;++i)
+		for (UINT8 i=0;i<_pendingKeyPressEventsLength;++i)
 		{
-			unsigned short key = _pendingKeyPressEvents[i];
+			UINT8 key = _pendingKeyPressEvents[i];
 			_keyPress[key] = true;
 		}
 		_pendingKeyPressEventsLength = 0;
@@ -233,42 +236,42 @@ void XInputManagerComponent::ShowCursor(bool show)
 	_showCursor = show;
 }
 
-bool XInputManagerComponent::IsKeyDown(unsigned short key) const
+bool XInputManagerComponent::IsKeyDown(UINT16 key) const
 {
 	return _keyDown[key];
 }
 
-bool XInputManagerComponent::IsKeyUp(unsigned short key) const
+bool XInputManagerComponent::IsKeyUp(UINT16 key) const
 {
 	return !_keyDown[key];
 }
 
-bool XInputManagerComponent::IsKeyPress(unsigned short key) const
+bool XInputManagerComponent::IsKeyPress(UINT16 key) const
 {
 	return _keyPress[key];
 }
 
-int XInputManagerComponent::GetMouseX(void) const
+INT32 XInputManagerComponent::GetMouseX(void) const
 {
 	return _mouseX;
 }
 
-int XInputManagerComponent::GetMouseY(void) const
+INT32 XInputManagerComponent::GetMouseY(void) const
 {
 	return _mouseY;
 }
 
-long XInputManagerComponent::GetMouseDX() const
+INT32 XInputManagerComponent::GetMouseDX() const
 {
 	return _mouseDX;
 }
 
-long XInputManagerComponent::GetMouseDY() const
+INT32 XInputManagerComponent::GetMouseDY() const
 {
 	return _mouseDY;
 }
 
-short XInputManagerComponent::GetMouseDZ() const
+INT16 XInputManagerComponent::GetMouseDZ() const
 {
 	return _mouseDZ;
 }

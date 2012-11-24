@@ -11,6 +11,7 @@
 	<property name="buildnumber" value="0.9.${year.since2007}${month.now}${day.now}.${hour.now}${minute.now}"/>
 
 	<property name="msbuild_target" value="debug"/>
+  <property name="msplatform_target" value="Win32"/>
   <property name="program_files_path" value="${environment::get-variable('ProgramFiles(x86)')}" />
 	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.4.8\bin\nunit-console.exe"/>
 	<property name="nantcontrib_path" value="${program_files_path}\NantContrib-0.85\bin"/>
@@ -44,18 +45,18 @@
 		<echo message="Building MGDF vendor libraries..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
-      <property name="Platform" value="Win32"/>
+      <property name="Platform" value="${msplatform_target}"/>
 		</msbuild>
 		
 		<echo message="Building MGDF core..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
-      <property name="Platform" value="Win32"/>
+      <property name="Platform" value="${msplatform_target}"/>
 		</msbuild>
 
 		<echo message="Copying vendor libs into MGDF core bin directory..."/>
 		<copy todir="bin\${msbuild_target}">
-			<fileset basedir="..\vendor\lib\${msbuild_target}">
+			<fileset basedir="..\vendor\lib\${msplatform_target}\${msbuild_target}">
 				<include name="*.dll" />
 			</fileset>
 		</copy>
@@ -63,7 +64,7 @@
 
 	<target name="test" description="Runs the MGDF core unit tests">
 		<echo message="Running MGDF GamesManager unit tests..."/>
-		<exec program="${nunit_exe_path}" output="${project::get-base-directory()}\GamesManager.Tests-Results.txt" failonerror="false" resultproperty="testresult.gamesmanager" workingdir="tests\GamesManager.Tests\bin\${msbuild_target}">
+		<exec program="${nunit_exe_path}" output="${project::get-base-directory()}\GamesManager.Tests-Results.txt" failonerror="false" resultproperty="testresult.gamesmanager" workingdir="tests\GamesManager.Tests\bin\${msplatform_target}\${msbuild_target}">
 			<arg value="GamesManager.Tests.dll" />
 			<arg value="/xml=${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
 			<arg value="/nologo" />
@@ -79,7 +80,7 @@
 		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.Tests-Results.html']"/>
 
 		<echo message="Running MGDF core unit tests..."/>
-		<exec program="${project::get-base-directory()}\..\vendor\bin\${msbuild_target}\WinUnit.exe" output="${project::get-base-directory()}\core.tests-Results.txt" failonerror="false" resultproperty="testresult.core" workingdir="bin\${msbuild_target}">
+		<exec program="${project::get-base-directory()}\..\vendor\bin\${msplatform_target}\${msbuild_target}\WinUnit.exe" output="${project::get-base-directory()}\core.tests-Results.txt" failonerror="false" resultproperty="testresult.core" workingdir="bin\${msplatform_target}\${msbuild_target}">
 			<arg value="-b" />
 			<arg value="core.tests.dll" />
 		</exec>
@@ -98,52 +99,52 @@
 	</target>
 
   <target name="distro" description="Generates the MGDF distributable package">
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\core.tests.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\nunit.framework.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\core.tests.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\nunit.framework.dll" />
     
     <!-- bundle up gamesmanager dependancies so the gamesmanager can update all dlls while running -->
     <exec program="${ilmerge_exe_path}">
-      <arg value="/out:${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Common.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Controls.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Model.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\IconLib.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
+      <arg value="/out:${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Merged.exe" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.exe" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Common.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Controls.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Model.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\IconLib.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
     </exec>
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
-    <copy file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" tofile="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.exe" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Merged.exe" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.exe" />
+    <copy file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Merged.exe" tofile="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.exe" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Merged.exe" />
 
     <!-- bundle up gamesmanager framework updater dependancies -->
     <exec program="${ilmerge_exe_path}">
-      <arg value="/out:${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Common.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Model.dll" />
+      <arg value="/out:${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Common.dll" />
+      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Model.dll" />
     </exec>
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-    <copy file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" tofile="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
+    <copy file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" tofile="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
 
     <!-- remove individual assemblies -->
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Common.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Controls.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.Model.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\IconLib.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Common.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Controls.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Model.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\IconLib.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
     
     <!-- create the main distribution file which will be put on the auto update site -->
     <mkdir dir="Package" />
     <mkdir dir="Package/Distro" />
     <copy todir="Package/Distro">
-      <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}">
+      <fileset basedir="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}">
         <exclude name=".svn" />
         <exclude name="*.exp"/>
         <exclude name="*.lib"/>
@@ -171,14 +172,14 @@
     <!-- copy debugging symbols + binaries to the package directory so that we can debug minidumps later -->
     <mkdir dir="Package/Symbols" />
     <copy todir="Package/Symbols">
-      <fileset basedir="${project::get-base-directory()}\bin\${msbuild_target}">
+      <fileset basedir="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}">
         <include name="*.pdb" />
         <include name="*.dll" />
         <include name="*.exe" />
       </fileset>
     </copy>
     <copy todir="Package/Symbols">
-      <fileset basedir="..\vendor\lib\${msbuild_target}">
+      <fileset basedir="..\vendor\lib\${msplatform_target}\${msbuild_target}">
         <include name="*.pdb" />
         <include name="*.dll" />
         <include name="*.exe" />
@@ -215,16 +216,16 @@
     <!-- ilmerge and copy packagegen to SDK bin dir -->
     <exec program="${ilmerge_exe_path}">
       <arg value="/out:Package\SDK\Bin\PackageGen.exe" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Common.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Model.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\IconLib.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\GamesManager.PackageGen.exe" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\GamesManager.Common.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\GamesManager.Model.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\IconLib.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
+      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
     </exec>
-    <copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\SDK\Bin\PackageGen.exe.config" overwrite="true"/>
+    <copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msplatform_target}\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\SDK\Bin\PackageGen.exe.config" overwrite="true"/>
 
     <!-- copy docs to SDK/Documentation -->
     <mkdir dir="Package/SDK/Documentation" />

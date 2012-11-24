@@ -16,7 +16,7 @@
 
 namespace MGDF { namespace core {
 
-FrameLimiter::FrameLimiter(unsigned int maxFps)
+FrameLimiter::FrameLimiter(UINT32 maxFps)
 {
 	timeBeginPeriod(1);//set a higher resolution for timing calls
 	_maxFps = maxFps;
@@ -70,8 +70,8 @@ void FrameLimiter::LimitFps() {
         {
             QueryPerformanceCounter(&currentTime);
             
-            LONGLONG timePassed = currentTime.QuadPart - _previousFrameEnd.QuadPart;
-            LONGLONG timeLeft = _frameTime - timePassed;
+            INT64 timePassed = currentTime.QuadPart - _previousFrameEnd.QuadPart;
+            INT64 timeLeft = _frameTime - timePassed;
 
             if (currentTime.QuadPart < _previousFrameEnd.QuadPart)    // time wrap
                 done = true;
@@ -89,7 +89,7 @@ void FrameLimiter::LimitFps() {
                 if (timeLeft > (int)_freq.QuadPart*2/1000)
                     Sleep(1);
                 else                        
-                    for (int i=0; i<10; i++) 
+                    for (INT32 i=0; i<10; i++) 
                         Sleep(0);  // causes thread to give up its timeslice
             }
         }

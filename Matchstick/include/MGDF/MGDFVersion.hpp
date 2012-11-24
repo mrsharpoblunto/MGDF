@@ -4,6 +4,6 @@ namespace MGDF {
 
 	struct Version
 	{
-		int Major,Minor,Build,Revision;
+		INT32 Major,Minor,Build,Revision;
 	};
 }

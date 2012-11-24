@@ -12,7 +12,7 @@ class FakeFile : public MGDF::DisposeImpl<MGDF::IFile>
 {
 public:
 	FakeFile(IFile *parent,const std::wstring &physicalFile,const std::wstring &name);
-	FakeFile(FakeFile *parent,const std::wstring &name,void *data,int dataLength);//NULL data indicates a folder
+	FakeFile(FakeFile *parent,const std::wstring &name,void *data,size_t dataLength);//NULL data indicates a folder
 	void AddChild(MGDF::IFile *file);
 	virtual ~FakeFile(void);
 
@@ -23,17 +23,17 @@ public:
 	virtual MGDF::IFile *GetFirstChild();
 	virtual MGDF::IFile *GetLastChild();
 	virtual MGDF::IFile *GetChild(const wchar_t *name);
-	virtual unsigned int GetChildCount();
+	virtual size_t GetChildCount();
 	virtual const wchar_t* GetLogicalPath();
 
 	virtual bool IsOpen() const;
 	virtual bool OpenFile();
 	virtual void CloseFile();
-	virtual unsigned int Read(void* buffer,unsigned int length);
-	virtual void SetPosition(unsigned long pos);
-	virtual unsigned long GetPosition() const;
+	virtual UINT32 Read(void* buffer,UINT32 length);
+	virtual void SetPosition(INT64 pos);
+	virtual INT64 GetPosition() const;
 	virtual bool EndOfFile() const;
-	virtual unsigned long GetSize();
+	virtual INT64 GetSize();
 
 	virtual bool IsFolder() const;
 	virtual bool IsArchive() const;
@@ -48,9 +48,9 @@ protected:
 	std::wstring _name;
 	std::wstring _physicalPath;
 	
-	int _dataLength;
+	size_t _dataLength;
 	void *_data;
-	int _position;
+	INT32 _position;
 	bool _isOpen;
 };
 

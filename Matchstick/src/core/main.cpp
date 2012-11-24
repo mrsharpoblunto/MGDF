@@ -33,11 +33,11 @@ MGDFApp *_application=nullptr;
 
 D3DAPP_WNDPROC(MGDFAppWndProc,_application)
 
-int WINAPI WinMain(
+INT32 WINAPI WinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPreviousInstance,
     _In_ LPSTR lpCmdLine,
-    _In_ int nCmdShow
+    _In_ INT32 nCmdShow
     )
 {
 	//Catch memory leaks
@@ -66,7 +66,7 @@ int WINAPI WinMain(
 		_application->SetSystem(system);
 		_application->InitDirect3D("MGDF",MGDFAppWndProc);
 
-		unsigned int simulationFps = atoi(system->GetGame()->GetPreference("simFps"));
+		UINT32 simulationFps = atoi(system->GetGame()->GetPreference("simFps"));
 		_application->Run(simulationFps);
 	}
 

@@ -85,7 +85,7 @@ int wmain(int argc, wchar_t* argv[])
     const wchar_t* outputFileName = NULL;
     bool listOnly = false;
     bool nonInteractive = false;
-    unsigned int verbosity = 1;
+    UINT32 verbosity = 1;
     const wchar_t* customLoggerReferenceString = NULL;
 	wchar_t** exactNamesStart = NULL;
 	int exactNamesCount = -1;
@@ -539,7 +539,7 @@ namespace
         DWORD size = GetFileVersionInfoSizeW(executablePath, &unused);
         if (size == 0) { return defaultValue; }
 
-        const unsigned int versionInfoMaxSize = 2048;
+        const UINT32 versionInfoMaxSize = 2048;
         char versionInfoBlock[versionInfoMaxSize] = { '\0' };
         if (size > versionInfoMaxSize) { return defaultValue; }
         

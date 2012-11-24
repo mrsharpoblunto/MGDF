@@ -14,10 +14,10 @@ class GraphicsAdaptorMode: public IGraphicsAdaptorMode
 {
 public:
 	GraphicsAdaptorMode(
-		unsigned int width,
-		unsigned int height,
-		unsigned int refreshRateNumerator,
-		unsigned int refreshRateDenominator)
+		UINT32 width,
+		UINT32 height,
+		UINT32 refreshRateNumerator,
+		UINT32 refreshRateDenominator)
 	{
 		_width = width;
 		_height = height;
@@ -26,16 +26,16 @@ public:
 	}
 
 	virtual ~GraphicsAdaptorMode(void){};
-	virtual unsigned int GetWidth() const{ return _width; }
-	virtual unsigned int GetHeight() const{ return _height; }
-	virtual unsigned int GetRefreshRateNumerator() const { return _refreshRateNumerator; }
-	virtual unsigned int GetRefreshRateDenominator() const { return _refreshRateDenominator; }
+	virtual UINT32 GetWidth() const{ return _width; }
+	virtual UINT32 GetHeight() const{ return _height; }
+	virtual UINT32 GetRefreshRateNumerator() const { return _refreshRateNumerator; }
+	virtual UINT32 GetRefreshRateDenominator() const { return _refreshRateDenominator; }
 private:
-	unsigned int _width,_height,_refreshRateNumerator,_refreshRateDenominator;
+	UINT32 _width,_height,_refreshRateNumerator,_refreshRateDenominator;
 };
 
 typedef ListImpl<IGraphicsAdaptorModeList,IGraphicsAdaptorMode *> GraphicsAdaptorModeList;
-typedef ListImpl<IUIntList,unsigned int> UIntList;
+typedef ListImpl<IUIntList,UINT32> UIntList;
 
 //this class is accessed by the sim and render threads, so setting values and doing device resets must be synced up with a mutex
 class GraphicsManager: public IGraphicsManager {
@@ -45,15 +45,15 @@ public:
 	virtual bool GetVSync() const;
 	virtual void SetVSync(bool vsync);
 	virtual IUIntList *GetMultiSampleLevels() const;
-	virtual bool SetBackBufferMultiSampleLevel(unsigned int multisampleLevel);
-	virtual unsigned int GetBackBufferMultiSampleLevel() const;
-	virtual bool SetCurrentMultiSampleLevel(unsigned int multisampleLevel);
-	virtual unsigned int GetCurrentMultiSampleLevel(unsigned int *quality) const;
+	virtual bool SetBackBufferMultiSampleLevel(UINT32 multisampleLevel);
+	virtual UINT32 GetBackBufferMultiSampleLevel() const;
+	virtual bool SetCurrentMultiSampleLevel(UINT32 multisampleLevel);
+	virtual UINT32 GetCurrentMultiSampleLevel(UINT32 *quality) const;
 	virtual const IGraphicsAdaptorModeList *GetAdaptorModes() const;
-	virtual IGraphicsAdaptorMode *GetAdaptorMode(unsigned int width,unsigned int height) const;
+	virtual IGraphicsAdaptorMode *GetAdaptorMode(UINT32 width,UINT32 height) const;
 	virtual IGraphicsAdaptorMode *GetCurrentAdaptorMode() const;
-	virtual unsigned int GetScreenX() const;
-	virtual unsigned int GetScreenY() const;
+	virtual UINT32 GetScreenX() const;
+	virtual UINT32 GetScreenY() const;
 	virtual void SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode);
 	virtual void ApplyChanges();
 	virtual ID3D11Texture2D *GetBackBuffer() const;
@@ -73,9 +73,9 @@ private:
 	IGraphicsAdaptorMode *_currentAdaptorMode;
 
 	UIntList _multiSampleLevels;
-	std::map<unsigned int,unsigned int> _multiSampleQuality;
-	unsigned int _currentMultiSampleLevel;
-	unsigned int _backBufferMultiSampleLevel;
+	std::map<UINT32,UINT32> _multiSampleQuality;
+	UINT32 _currentMultiSampleLevel;
+	UINT32 _backBufferMultiSampleLevel;
 
 	bool _vsync;
 	bool _fullScreen;
