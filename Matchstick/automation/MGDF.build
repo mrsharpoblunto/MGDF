@@ -55,7 +55,7 @@
 		</msbuild>
 
 		<echo message="Copying vendor libs into MGDF core bin directory..."/>
-		<copy todir="bin\${msbuild_target}">
+		<copy todir="bin\${msplatform_target}\${msbuild_target}">
 			<fileset basedir="..\vendor\lib\${msplatform_target}\${msbuild_target}">
 				<include name="*.dll" />
 			</fileset>
@@ -64,7 +64,7 @@
 
 	<target name="test" description="Runs the MGDF core unit tests">
 		<echo message="Running MGDF GamesManager unit tests..."/>
-		<exec program="${nunit_exe_path}" output="${project::get-base-directory()}\GamesManager.Tests-Results.txt" failonerror="false" resultproperty="testresult.gamesmanager" workingdir="tests\GamesManager.Tests\bin\${msplatform_target}\${msbuild_target}">
+		<exec program="${nunit_exe_path}" output="${project::get-base-directory()}\GamesManager.Tests-Results.txt" failonerror="false" resultproperty="testresult.gamesmanager" workingdir="tests\GamesManager.Tests\bin\${msbuild_target}">
 			<arg value="GamesManager.Tests.dll" />
 			<arg value="/xml=${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
 			<arg value="/nologo" />
