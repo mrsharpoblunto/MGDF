@@ -127,7 +127,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/Release/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -151,7 +151,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/Release/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -172,7 +172,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/Release/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -192,7 +192,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/Release/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>

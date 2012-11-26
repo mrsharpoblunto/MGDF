@@ -120,7 +120,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/Release/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -146,7 +146,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/Release/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -168,7 +168,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/Release/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -190,7 +190,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/Release/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
