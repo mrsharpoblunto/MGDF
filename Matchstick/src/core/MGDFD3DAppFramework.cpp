@@ -143,7 +143,7 @@ void D3DAppFramework::InitRawInput()
 
 	Rid[1].usUsagePage = 0x01 ;  // desktop input
 	Rid[1].usUsage = 0x06 ;      // keyboard
-	Rid[1].dwFlags = 0;
+	Rid[1].dwFlags = RIDEV_NOHOTKEYS; // disable windows key and other windows hotkeys while the game has focus
 	Rid[1].hwndTarget = _window ;
 
 	if( !RegisterRawInputDevices( Rid, 2, sizeof(Rid[0]) ) )
