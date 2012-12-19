@@ -90,10 +90,10 @@
                 versionFile = reader.ReadToEnd();
             }
             
-            //const std::string MGDF_VERSION = "1.0.0.0";
-            Regex versionRegex = new Regex(@"const\sstd\:\:string\sMGDFVersionInfo\:\:MGDF_VERSION\s=\s"".+"";");
+            //const std::string MGDFVersionInfo::_mgdfVersion = "1.0.0.0";
+            Regex versionRegex = new Regex(@"const\sstd\:\:string\sMGDFVersionInfo\:\:_mgdfVersion\s=\s"".+"";");
             
-            versionFile = versionRegex.Replace(versionFile,@"const std::string MGDFVersionInfo::MGDF_VERSION = """+ Version +@""";");
+            versionFile = versionRegex.Replace(versionFile,@"const std::string MGDFVersionInfo::_mgdfVersion = """+ Version +@""";");
             
             using (StreamWriter writer = new StreamWriter(VersionFile))
             {
