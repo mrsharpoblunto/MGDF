@@ -120,7 +120,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -146,7 +146,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -168,7 +168,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -190,7 +190,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/minizip.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -235,6 +235,12 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\vendor\minizip\msvc\minizip.vcxproj">
+      <Project>{f3e5680f-0eef-4cf2-834f-0968e25ca647}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\vendor\zlib\msvc\zlib.vcxproj">
+      <Project>{eff8c713-14fb-4121-ae2e-a2be2a614901}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\common\core.common.vcxproj">
       <Project>{608dc682-e676-4aa0-8886-fb8177c3a9b6}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
