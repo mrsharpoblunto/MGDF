@@ -1,6 +1,5 @@
 #pragma once
 #include <boost/unordered_map.hpp>
-#include <xercesc/sax2/DefaultHandler.hpp>
 #include <MGDF/MGDFSystem.hpp>
 #include <MGDF/MGDFGame.hpp>
 #include "../common/MGDFLoggerImpl.hpp"

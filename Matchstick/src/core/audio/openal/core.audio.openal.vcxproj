@@ -127,7 +127,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -151,7 +151,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -172,7 +172,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -192,7 +192,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/alut.lib;../../../../../vendor/lib/$(Platform)/$(Configuration)/vorbisfile.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/Release/OpenAL32.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -229,6 +229,12 @@
     <ClInclude Include="VorbisStream.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\vendor\alut\alut.vcxproj">
+      <Project>{8cc73bd6-b85e-4c1c-a020-dceb0df69eee}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\vendor\libvorbis-1.3.1\win32\VS2008\libvorbisfile\libvorbisfile_dynamic.vcxproj">
+      <Project>{cebde98b-a6aa-46e6-bc79-faaf823db9ec}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\common\core.common.vcxproj">
       <Project>{608dc682-e676-4aa0-8886-fb8177c3a9b6}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

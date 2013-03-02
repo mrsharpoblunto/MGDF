@@ -6,15 +6,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MGDFMockErrorHandler.cpp">
-      <Filter>Mocks</Filter>
-    </ClCompile>
-    <ClCompile Include="MGDFMockLogger.cpp">
-      <Filter>Mocks</Filter>
-    </ClCompile>
-    <ClCompile Include="Mocks\MGDFMockModule.cpp">
-      <Filter>Mocks</Filter>
-    </ClCompile>
     <ClCompile Include="Mocks\MGDFMockSystemImpl.cpp">
       <Filter>Mocks</Filter>
     </ClCompile>
@@ -22,6 +13,8 @@
     <ClCompile Include="ResourcesTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
     <ClCompile Include="VFSTests.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MGDFMockErrorHandler.hpp">
@@ -36,5 +29,6 @@
     <ClInclude Include="Mocks\MGDFMockSystemImpl.hpp">
       <Filter>Mocks</Filter>
     </ClInclude>
+    <ClInclude Include="stdafx.h" />
   </ItemGroup>
 </Project>

@@ -116,7 +116,7 @@
       <Name>GamesManager.StatisticsService.Contracts</Name>
     </ProjectReference>
     <ProjectReference Include="..\GamesManager.StatisticsService.Model\GamesManager.StatisticsService.Model.csproj">
-      <Project>{FB9B2DE4-6E41-452B-B166-B1145A8E3ACD}</Project>
+      <Project>{fb9b2de4-6e41-452b-b166-b1145a8e3acd}</Project>
       <Name>GamesManager.StatisticsService.Model</Name>
     </ProjectReference>
   </ItemGroup>

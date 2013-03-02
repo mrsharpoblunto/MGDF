@@ -67,18 +67,18 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)FW1FontWrapper\</OutDir>
+    <OutDir>$(SolutionDir)..\Vendor\FW1FontWrapper\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)FW1FontWrapper\</OutDir>
+    <OutDir>$(SolutionDir)..\Vendor\FW1FontWrapper\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)FW1FontWrapper\</OutDir>
+    <OutDir>$(SolutionDir)..\Vendor\FW1FontWrapper\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)FW1FontWrapper\</OutDir>
+    <OutDir>$(SolutionDir)..\Vendor\FW1FontWrapper\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

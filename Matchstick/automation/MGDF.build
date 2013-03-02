@@ -41,25 +41,12 @@
      <variable name="LIB" value="${windows_sdk_path}\lib;${vc_install_path}\VC\ATLMFC\LIB;${vc_install_path}\VC\LIB" />    
      <variable name="INCLUDE" value="${windows_sdk_path}\include;${vc_install_path}\VC\ATLMFC\INCLUDE;${vc_install_path}\VC\INCLUDE" />
     </setenv>
-    
-		<echo message="Building MGDF vendor libraries..."/>
-		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="..\vendor\libs.sln">
-			<property name="Configuration" value="${msbuild_target}"/>
-      <property name="Platform" value="${msplatform_target}"/>
-		</msbuild>
-		
+
 		<echo message="Building MGDF core..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
       <property name="Platform" value="${msplatform_target}"/>
 		</msbuild>
-
-		<echo message="Copying vendor libs into MGDF core bin directory..."/>
-		<copy todir="bin\${msplatform_target}\${msbuild_target}">
-			<fileset basedir="..\vendor\lib\${msplatform_target}\${msbuild_target}">
-				<include name="*.dll" />
-			</fileset>
-		</copy>
 	</target>
 
 	<target name="test" description="Runs the MGDF core unit tests">
@@ -80,11 +67,9 @@
 		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.Tests-Results.html']"/>
 
 		<echo message="Running MGDF core unit tests..."/>
-		<exec program="${project::get-base-directory()}\..\vendor\bin\${msplatform_target}\${msbuild_target}\WinUnit.exe" output="${project::get-base-directory()}\core.tests-Results.txt" failonerror="false" resultproperty="testresult.core" workingdir="bin\${msplatform_target}\${msbuild_target}">
-			<arg value="-b" />
-			<arg value="core.tests.dll" />
+		<exec program="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\core.tests.exe" failonerror="false" resultproperty="testresult.core" workingdir="bin\${msplatform_target}\${msbuild_target}">
+      <arg value="--teamcity" />
 		</exec>
-		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\core.tests-Results.txt']"/>
 
 		<!-- Check the results and fail if necessary -->
 		<fail message="Failures reported in MGDF GamesManager unit tests." unless="${int::parse(testresult.gamesmanager)==0}" />
@@ -99,7 +84,7 @@
 	</target>
 
   <target name="distro" description="Generates the MGDF distributable package">
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\core.tests.dll" />
+    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\core.tests.exe" />
     <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\nunit.framework.dll" />
     
     <!-- bundle up gamesmanager dependancies so the gamesmanager can update all dlls while running -->

@@ -120,7 +120,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/$(Configuration)/jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -146,7 +146,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/$(Configuration)/jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -169,7 +169,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/$(Configuration)/jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -192,7 +192,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../../vendor/lib/$(Platform)/$(Configuration)/jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -213,6 +213,9 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\vendor\jsoncpp-0.5.0\Jsoncpp.vcxproj">
+      <Project>{41260955-25de-4d86-b54f-282735b1289d}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\common\core.common.vcxproj">
       <Project>{608dc682-e676-4aa0-8886-fb8177c3a9b6}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

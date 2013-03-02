@@ -1,4 +1,6 @@
-#include <winunit.h>
+#include "stdafx.h"
+
+#include "UnitTest++.h"
 
 #include <boost/lexical_cast.hpp>
 #include "../../src/core/common/MGDFResources.hpp"
@@ -6,49 +8,48 @@
 
 using namespace MGDF::core;
 
-FIXTURE(ResourcesTestFixture)
-
-SETUP(ResourcesTestFixture)
+SUITE(ResourcesTests)
 {
-	HINSTANCE inst;
-	inst=(HINSTANCE)GetModuleHandleW(L"core.tests.dll");
-	Resources::Instance(inst);
-	Resources::Instance().SetUserBaseDir(true,"junkship");
-}
 
-TEARDOWN(ResourcesTestFixture)
+struct ResourcesTestFixture {
+	ResourcesTestFixture() {
+		HINSTANCE inst;
+		inst=(HINSTANCE)GetModuleHandleW(L"core.tests.exe");
+		Resources::Instance(inst);
+		Resources::Instance().SetUserBaseDir(true,"junkship");
+	}
+	virtual ~ResourcesTestFixture()
+	{
+	}
+};
+
+TEST_FIXTURE(ResourcesTestFixture,PathTests)
 {
-}
-
-BEGIN_TESTF(ResourcesTests,ResourcesTestFixture)
-{
-	WIN_ASSERT_NOT_EQUAL(Resources::Instance().RootDir(),L".");
-
 	std::wstring root = Resources::Instance().RootDir();
 
-	WIN_ASSERT_EQUAL(root +L"game/bin/module.dll",Resources::Instance().Module());
+	CHECK_WS_EQUAL(root +L"game/bin/module.dll",Resources::Instance().Module());
 
-	WIN_ASSERT_EQUAL(root + L"game/game.json",Resources::Instance().GameFile());
-	WIN_ASSERT_EQUAL(root + L"game/preferences.json",Resources::Instance().GameDefaultPreferencesFile());
-	WIN_ASSERT_EQUAL(root + L"game/bin/",Resources::Instance().BinDir());
-	WIN_ASSERT_EQUAL(root + L"game/content/",Resources::Instance().ContentDir());
-	WIN_ASSERT_EQUAL(root + L"resources/preferences.json", Resources::Instance().CorePreferencesFile());
+	CHECK_WS_EQUAL(root + L"game/game.json",Resources::Instance().GameFile());
+	CHECK_WS_EQUAL(root + L"game/preferences.json",Resources::Instance().GameDefaultPreferencesFile());
+	CHECK_WS_EQUAL(root + L"game/bin/",Resources::Instance().BinDir());
+	CHECK_WS_EQUAL(root + L"game/content/",Resources::Instance().ContentDir());
+	CHECK_WS_EQUAL(root + L"resources/preferences.json", Resources::Instance().CorePreferencesFile());
 
 	//use the games directory override
 	Resources::Instance().SetGameBaseDir(L"c:/MGDF/");
-	WIN_ASSERT_EQUAL(L"c:/MGDF/game.json",Resources::Instance().GameFile());
-	WIN_ASSERT_EQUAL(L"c:/MGDF/preferences.json",Resources::Instance().GameDefaultPreferencesFile());
-	WIN_ASSERT_EQUAL(L"c:/MGDF/bin/",Resources::Instance().BinDir());
-	WIN_ASSERT_EQUAL(L"c:/MGDF/content/",Resources::Instance().ContentDir());
-	WIN_ASSERT_EQUAL(root + L"resources/preferences.json", Resources::Instance().CorePreferencesFile());
+	CHECK_WS_EQUAL(L"c:/MGDF/game.json",Resources::Instance().GameFile());
+	CHECK_WS_EQUAL(L"c:/MGDF/preferences.json",Resources::Instance().GameDefaultPreferencesFile());
+	CHECK_WS_EQUAL(L"c:/MGDF/bin/",Resources::Instance().BinDir());
+	CHECK_WS_EQUAL(L"c:/MGDF/content/",Resources::Instance().ContentDir());
+	CHECK_WS_EQUAL(root + L"resources/preferences.json", Resources::Instance().CorePreferencesFile());
 
-	WIN_ASSERT_EQUAL(root + L"user/junkship/",Resources::Instance().UserBaseDir());
-	WIN_ASSERT_EQUAL(root + L"user/junkship/working/",Resources::Instance().WorkingDir());
-	WIN_ASSERT_EQUAL(root + L"user/junkship/preferences.json",Resources::Instance().GameUserPreferencesFile());
-	WIN_ASSERT_EQUAL(root + L"user/junkship/saves/",Resources::Instance().SaveBaseDir());
-	WIN_ASSERT_EQUAL(root + L"user/junkship/saves/save1/gameState.json",Resources::Instance().GameStateSaveFile("save1"));
-	WIN_ASSERT_EQUAL(root + L"user/junkship/saves/save1/",Resources::Instance().SaveDir("save1"));
-	WIN_ASSERT_EQUAL(root + L"user/junkship/saves/save1/data/",Resources::Instance().SaveDataDir("save1"));
+	CHECK_WS_EQUAL(root + L"user/junkship/",Resources::Instance().UserBaseDir());
+	CHECK_WS_EQUAL(root + L"user/junkship/working/",Resources::Instance().WorkingDir());
+	CHECK_WS_EQUAL(root + L"user/junkship/preferences.json",Resources::Instance().GameUserPreferencesFile());
+	CHECK_WS_EQUAL(root + L"user/junkship/saves/",Resources::Instance().SaveBaseDir());
+	CHECK_WS_EQUAL(root + L"user/junkship/saves/save1/gameState.json",Resources::Instance().GameStateSaveFile("save1"));
+	CHECK_WS_EQUAL(root + L"user/junkship/saves/save1/",Resources::Instance().SaveDir("save1"));
+	CHECK_WS_EQUAL(root + L"user/junkship/saves/save1/data/",Resources::Instance().SaveDataDir("save1"));
+}
 
 }
-END_TESTF

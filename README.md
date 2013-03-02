@@ -34,23 +34,18 @@ MGDF can be built with Microsoft Visual Studio 2012 on windows. To build MGDF yo
 * DirectX SDK [June 2010 version](http://www.microsoft.com/download/en/details.aspx?id=6812)).
 * create an environment variable called BOOST_DIR and point it to the location you installed the boost library to. (also ensure the boost library files exist in BOOST_DIR\lib\x86 or BOOST_DIR\lib\x64)
 * create an environment variable called DXSDK_DIR and point it to the location you installed the DirectX SDK to.
-* build vendor/libs.sln in win32 debug/release and x64 debug/release configurations.
-* cd into %installdir%/Matchstick and run 'automation/deploy.bat' (or alternatively just automation/deployx86.bat or automation/deployx64.bat if you don't want to build both architectures) to copy the vendor libraries and default data into the Matchstick bin folder.
 * build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
 
 Running unit tests
 ------------------
 All managed code projects use nunit 2.5.2 and providing nunit is installed (use testdriven.net for integration into the visual studio UI) they should work once the solution is compiled
 
-all unmanaged code project use winunit which must first be compiled as part of the vendor\libs.sln project Once built, winunit can be invoked to run a unit test dll with the following command 
-
-    winunit -b test.dll
+all unmanaged code tests are contined within the core.tests.exe binary which must first be compiled as part of the Matchstick/Matchstick.sln project Once built, running this exe from the command line will run the test suite.
 
 To make running winunit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
 
     Title: Core tests
-    Command: <path to winunit>\WinUnit.exe
-    Arguments: -b "$(TargetDir)\core.tests.dll"
+    Command: <MGDF bin dir>\core.tests.exe
     Initial Directory: $(TargetDir)
     Also tick use output window
 
@@ -62,7 +57,7 @@ For ease of debugging command line parameters can also be placed in a params.txt
 ### Arguments
 * -logLevel:<level> (OPTIONAL) allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
 * -userdiroverride (OPTIONAL) if specified, the directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
-* -gamesdiroverride:<directory> (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory)
+* -gamediroverride:<directory> (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory)
 
 Running GamesManager.exe from command line
 ------------------------------------------
@@ -72,3 +67,7 @@ Running GamesManager.exe from command line
 
 * -deregister: Removes anything added via the register argument
 
+Building a game using MGDF
+--------------------------
+
+A sample project is included which includes all the intial scaffolding required to build a compatible MGDF game dll. This project is located in Matchstick/src/samples/EmptyGame. 

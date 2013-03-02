@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "MGDFMockModule.hpp"
 #include "MGDFMockSystemImpl.hpp"
 
