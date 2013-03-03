@@ -37,15 +37,23 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
 	, _minimized(false)
 	, _maximized(false)
 	, _resizing(false)
-	, _rendering(false)
-	, _runRenderThread(false)
 	, _renderThread(nullptr)
 	, _internalShutDown(false)
 {
+	_resize = (long *)_aligned_malloc(sizeof(long),32);
+	*_resize = 0L;
+	_runRenderThread = (long *)_aligned_malloc(sizeof(long),32);
+	*_runRenderThread = 1L;
+	_drawSystemOverlay = (long *)_aligned_malloc(sizeof(long),32);
+	*_drawSystemOverlay = 0L;
 }
 
 D3DAppFramework::~D3DAppFramework()
 {
+	_aligned_free(_resize);
+	_aligned_free(_runRenderThread);
+	_aligned_free(_drawSystemOverlay);
+
 	if (_window!=nullptr) {
 		UnregisterClass(WINDOW_CLASS_NAME,GetModuleHandle(nullptr));
 	}
@@ -345,45 +353,44 @@ INT32 D3DAppFramework::Run(UINT32 simulationFps)
 
 	_stats.SetExpectedSimTime(1/(double)simulationFps);
 
-	_runRenderThread = true;
-	bool runSimThread = false;
-	bool startRenderThread = false;
+	*_runRenderThread = 1L;
+	long *runSimThread = (long *)_aligned_malloc(sizeof(long),32);
+	*runSimThread = 0L;
+	long *startRenderThread = (long *)_aligned_malloc(sizeof(long),32);
+	*startRenderThread = 0L;
 
 	//run the simulation in its own thread
-	boost::thread simThread([this,&runSimThread,&startRenderThread]()
+	boost::thread simThread([this,runSimThread,startRenderThread]()
 	{
-		runSimThread = true;
-		while (runSimThread)
+		InterlockedExchange(runSimThread,1L);
+
+		while (InterlockedCompareExchange(runSimThread,1L,1L))
 		{
 			LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
 
 			UpdateScene(_stats.ExpectedSimTime());
 			//run a frame of game logic before starting the render thread
-			startRenderThread = true;
+			InterlockedExchange(startRenderThread,1L);
 
 			//wait until the next frame to begin if we have any spare time left over
 			_frameLimiter->LimitFps();
 
 			LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
 
-			boost::mutex::scoped_lock lock(_statsMutex);
-			_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
+			{
+				boost::mutex::scoped_lock lock(_statsMutex);
+				_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
+			}
 		}
 	});
 
 	//run the renderer in its own thread
-	_renderThread = new boost::thread([this,&startRenderThread]()
+	_renderThread = new boost::thread([this,startRenderThread]()
 	{
-		while (!startRenderThread) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
-		while (_runRenderThread)
-		{
-			{
-				//rather than mutex the whole loop we'll set a flag to reduce mutex contention
-				//which can result in thread starvation on the messaging thread.
-				boost::mutex::scoped_lock lock(_renderMutex);
-				_rendering = true;
-			}
+		while (!InterlockedCompareExchange(startRenderThread,1L,1L)) Sleep(1);//ensure the simulation runs at least one tick before rendering begins.
 
+		while (InterlockedCompareExchange(_runRenderThread,1L,1L))
+		{
 			//the game logic step may force the device to reset, so lets check
 			if (IsBackBufferChangePending()) 
 			{
@@ -393,6 +400,10 @@ INT32 D3DAppFramework::Run(UINT32 simulationFps)
 				SAFE_RELEASE(_swapChain);
 				OnResetSwapChain(&_swapDesc,&fullScreen);
 				CreateSwapChain();
+				OnResize();
+			}
+			//a window event may also have triggered a resize event.
+			else if (InterlockedBitTestAndReset(_resize,0)) {
 				OnResize();
 			}
 
@@ -416,12 +427,12 @@ INT32 D3DAppFramework::Run(UINT32 simulationFps)
 				}
 				LARGE_INTEGER renderEnd = _timer.GetCurrentTimeTicks();		
 
-				boost::mutex::scoped_lock statsLock(_statsMutex);
-				_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
-				_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
+				{
+					boost::mutex::scoped_lock statsLock(_statsMutex);
+					_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
+					_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
+				}
 			}
-
-			_rendering = false;
 		}
 	});
 
@@ -444,9 +455,11 @@ INT32 D3DAppFramework::Run(UINT32 simulationFps)
 		}
 	}
 
-	runSimThread = false;
+	InterlockedExchange(runSimThread,0L);
 	simThread.join();
 
+	_aligned_free(runSimThread);
+	_aligned_free(startRenderThread);
 	delete _renderThread;
 	delete _frameLimiter;
 	return (int)msg.wParam;
@@ -507,9 +520,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lP
 			{
 				_maximized = true;
 				_minimized = false;
-				boost::mutex::scoped_lock lock(_renderMutex);
-				while (_rendering) Sleep(0);
-				OnResize();
+				//tell the render thread to resize at the start of the next frame
+				InterlockedExchange(_resize,1L);
 			}
 			// Restored is any resize that is not a minimize or maximize.
 			// For example, restoring the window to its default size
@@ -521,16 +533,14 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lP
 				if(_minimized)
 				{
 					_minimized = false;
-					boost::mutex::scoped_lock lock(_renderMutex);
-					while (_rendering) Sleep(0);
-					OnResize();
+					//tell the render thread to resize at the start of the next frame
+					InterlockedExchange(_resize,1L);
 				}
 				else if(_maximized)
 				{
 					_maximized = false;
-					boost::mutex::scoped_lock lock(_renderMutex);
-					while (_rendering) Sleep(0);
-					OnResize();
+					//tell the render thread to resize at the start of the next frame
+					InterlockedExchange(_resize,1L);
 				}
 				else if (_resizing)
 				{
@@ -546,9 +556,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lP
 				}
 				else // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
 				{
-					boost::mutex::scoped_lock lock(_renderMutex);
-					while (_rendering) Sleep(0);
-					OnResize();
+					//tell the render thread to resize at the start of the next frame
+					InterlockedExchange(_resize,1L);
 				}
 			}
 		}
@@ -563,9 +572,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lP
 	case WM_EXITSIZEMOVE:
 		_resizing = false;
 		{
-			boost::mutex::scoped_lock lock(_renderMutex);
-			while (_rendering) Sleep(0);
-			OnResize();
+			//tell the render thread to resize at the start of the next frame
+			InterlockedExchange(_resize,1L);
 		}
 		return 0;
 
@@ -575,7 +583,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lP
 		if (_internalShutDown)
 		{
 			//make sure we stop rendering before disposing of the window
-			_runRenderThread = false;
+			InterlockedExchange(_runRenderThread,0L);
 			_renderThread->join();
 			//if we triggered this, then shut down
 			DestroyWindow(_window);
@@ -602,8 +610,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lP
 		{
 		case VK_F12:
 			{
-				//Toggle system stats overlay with alt f12
-				_drawSystemOverlay = !_drawSystemOverlay;
+				//Toggle system stats overlay with alt f12			
+				InterlockedExchange(_drawSystemOverlay,*_drawSystemOverlay==0L ? 1L : 0L);
 			}
 			break;
 		}

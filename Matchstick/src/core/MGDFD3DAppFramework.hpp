@@ -53,8 +53,8 @@ protected:
 
 	Timer _timer;
 	FrameLimiter *_frameLimiter;
-	bool _drawSystemOverlay;
-	boost::mutex _renderMutex;
+	long *_drawSystemOverlay;
+	long *_resize;
 	bool _internalShutDown;
 	
 	boost::mutex _statsMutex;
@@ -68,10 +68,9 @@ private:
 	void CreateSwapChain();
 	void OnResize();
 
-	bool _minimized,_maximized,_resizing,_fullScreen;
+	bool _minimized,_maximized,_resizing;
 	boost::thread *_renderThread;
-	bool _runRenderThread;
-	bool _rendering;
+	long *_runRenderThread;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc

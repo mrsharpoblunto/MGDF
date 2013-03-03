@@ -24,6 +24,8 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 		return;
 	}
 
+	_changePending = (long *)_aligned_malloc(sizeof(long),32);
+	*_changePending = 0L;
 	_device = device;
 	_currentAdaptorMode = nullptr;
 	_currentMultiSampleLevel = 1;
@@ -75,6 +77,7 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 
 GraphicsManager::~GraphicsManager(void)
 {
+	_aligned_free(_changePending);
 	for (auto iter = _adaptorModes.Items()->begin();iter!=_adaptorModes.Items()->end();++iter) {
 		delete (GraphicsAdaptorMode *)(*iter);
 	}
@@ -182,12 +185,12 @@ void GraphicsManager::SetCurrentAdaptorMode(IGraphicsAdaptorMode *mode)
 void GraphicsManager::ApplyChanges()
 {
 	boost::mutex::scoped_lock lock(_mutex);
-	_changePending = true;
+	InterlockedExchange(_changePending,1L);
 }
 
 bool GraphicsManager::IsBackBufferChangePending()
 {
-	return _changePending;
+	return InterlockedCompareExchange(_changePending,1L,1L)==1L;
 }
 
 void GraphicsManager::SetBackBuffer(ID3D11Texture2D *backBuffer)
@@ -293,7 +296,7 @@ void GraphicsManager::OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc,BOOL *fullScre
 	desc->SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	desc->Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-	_changePending = false;
+	InterlockedExchange(_changePending,0L);
 }
 
 }}

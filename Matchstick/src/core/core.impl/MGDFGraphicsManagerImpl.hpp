@@ -65,7 +65,8 @@ public:
 	void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *desc,BOOL *fullScreen);
 	void SetBackBuffer(ID3D11Texture2D *backBuffer);
 private:
-	bool _initialized,_changePending;
+	bool _initialized;
+	long *_changePending;
 	ID3D11Device *_device;
 	ID3D11Texture2D *_backBuffer;
 

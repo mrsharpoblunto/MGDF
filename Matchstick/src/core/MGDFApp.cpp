@@ -130,7 +130,7 @@ void MGDFApp::DrawScene(double alpha)
 {
 	_system->DrawScene(alpha);//render as per the current active module
 
-	if (_drawSystemOverlay) {
+	if (InterlockedCompareExchange(_drawSystemOverlay,0L,0L)) {
 		DrawSystemOverlay();
 	}
 }
