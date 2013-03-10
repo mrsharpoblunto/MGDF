@@ -191,8 +191,8 @@
     <ClInclude Include="..\src\inflate.h" />
     <ClInclude Include="..\src\inftrees.h" />
     <ClInclude Include="..\src\trees.h" />
-    <ClInclude Include="..\..\include\zconf.h" />
-    <ClInclude Include="..\..\include\zlib.h" />
+    <ClInclude Include="..\src\zconf.h" />
+    <ClInclude Include="..\src\zlib.h" />
     <ClInclude Include="..\src\zutil.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
