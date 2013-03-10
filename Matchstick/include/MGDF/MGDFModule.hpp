@@ -1,7 +1,9 @@
 #pragma once
 
 #include <d3d11.h>
-#include <MGDF/MGDFDisposable.hpp>
+#include <MGDF/MGDFErrorHandler.hpp>
+#include <MGDF/MGDFLogger.hpp>
+#include <MGDF/MGDFVirtualFileSystem.hpp>
 
 namespace MGDF {
 
@@ -103,6 +105,15 @@ of a module
 \return an instance of the module interface
 */
 extern "C" __declspec(dllexport) IModule * GetModule(ISystem *system);
+
+/**
+gets a list of all custom handler factories to pass to the vfs.
+\param list a pointer to an array of characters to store the saves in.
+\param length the length of the list array
+\return returns true if the supplied list is large enough to contain all the items in the list, otherwise returns false and sets the required size in the length parameter.
+*/
+extern "C" __declspec(dllexport) bool GetCustomArchiveHandlers(IArchiveHandler **list,UINT32 *length,ILogger *logger,IErrorHandler *errorHandler);
+
 
 }
 

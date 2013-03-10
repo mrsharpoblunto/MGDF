@@ -8,13 +8,9 @@ namespace MGDF { namespace core {
 class CurrentDirectoryHelper
 {
 public:
-	static CurrentDirectoryHelper *InstancePtr() {
-		static CurrentDirectoryHelper c;
-		return &c;
-	}
-
 	static CurrentDirectoryHelper &Instance() {
-		return *CurrentDirectoryHelper::InstancePtr();
+		static CurrentDirectoryHelper c;
+		return c;
 	}
 
 	virtual ~CurrentDirectoryHelper(){};

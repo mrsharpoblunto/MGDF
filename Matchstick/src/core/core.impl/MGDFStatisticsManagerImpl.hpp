@@ -22,7 +22,7 @@ private:
 
 	void SaveAll();
 	size_t GetSaveBufferSize();
-	void AddToSaveBuffer(NameValuePair nvp);
+	void AddToSaveBuffer(NameValuePair &&nvp);
 	std::vector<NameValuePair> *ResetSaveBuffer();
 };
 

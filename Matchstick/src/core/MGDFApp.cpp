@@ -5,31 +5,33 @@
 #include "core.impl/MGDFParameterConstants.hpp"
 #include <boost/lexical_cast.hpp>
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
 
 namespace MGDF { namespace core {
 
-MGDFApp::MGDFApp(HINSTANCE hInstance) : D3DAppFramework(hInstance) 
+MGDFApp::MGDFApp(HINSTANCE hInstance) 
+	: D3DAppFramework(hInstance) 
+	, _font(nullptr)
+	, _quad(nullptr)
+	, _system(nullptr)
+	, _initialized(false)
 {
-	_font=nullptr;
-	_quad = nullptr;
-	_system = nullptr;
-	_initialized = false;
 }
 
 MGDFApp::~MGDFApp() 
 {
 	SAFE_RELEASE(_font);
-	SAFE_DELETE(_quad);
+	delete _quad;
 }
 
 //allows the app to read from system configuration preferences when setting up d3d
 void MGDFApp::SetSystem(System *system)
 {
+	_ASSERTE(system);
 	_system = system;
 	_system->AddShutDownCallback([this]()
 	{
@@ -51,7 +53,7 @@ void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure)
 
 	D3DAppFramework::InitDirect3D(caption,windowProcedure,levels,featureLevelsSize);
 
-	SAFE_DELETE_ARRAY(levels);
+	delete[] levels;
 
 	_system->SetD3DDevice(_d3dDevice);//allow the system to pass the d3d object to the modules
 
@@ -60,12 +62,12 @@ void MGDFApp::InitDirect3D(const std::string &caption,WNDPROC windowProcedure)
 	IFW1Factory *factory;
 	if (FAILED(FW1CreateFactory(FW1_VERSION, &factory)))
 	{
-		FatalError("unable to create MGDF system font factory");
+		FATALERROR(_system,"unable to create MGDF system font factory");
 	}
 	
 	if (FAILED(factory->CreateFontWrapper(_d3dDevice, L"Arial", &_font)))
 	{
-		FatalError("unable to create MGDF system font");
+		FATALERROR(_system,"unable to create MGDF system font");
 	}
 
 	SAFE_RELEASE(factory);
@@ -82,12 +84,11 @@ void MGDFApp::UpdateScene(double simulationTime)
 	}
 
 	//execute one frame of game logic as per the current module
-	_system->UpdateScene(simulationTime,&_stats,_statsMutex);
+	_system->UpdateScene(simulationTime,_stats);
 
 	LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
 
-	boost::mutex::scoped_lock lock(_statsMutex);
-	_stats.AppendActiveSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart) - _stats.SimInputTime() - _stats.SimAudioTime());
+	_stats.AppendActiveSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
 }
 
 void MGDFApp::OnRawInput(RAWINPUT *input)
@@ -143,11 +144,8 @@ void MGDFApp::DrawSystemOverlay()
 	const XMFLOAT4 overlayBackgroundColor(0.0f,0.0f,0.0f,0.7f);
 
 	std::wstring information;
-	{
-		boost::mutex::scoped_lock lock(_statsMutex);
-		std::string info =_system->GetSystemInformation(&_stats);
-		information.assign(info.begin(),info.end());
-	}
+	std::string info =_system->GetSystemInformation(_stats);
+	information.assign(info.begin(),info.end());
 
 	FW1_RECTF rect;
 	rect.Left = rect.Right = 0.0f;
@@ -172,9 +170,9 @@ void MGDFApp::DrawSystemOverlay()
 	);
 }
 
-void MGDFApp::FatalError(const std::string &message)
+void MGDFApp::FatalError(const char *sender,const char *message)
 {
-	_system->FatalError("MGDF",message);
+	_system->FatalError(sender,message);
 }
 
 void MGDFApp::ExternalClose()

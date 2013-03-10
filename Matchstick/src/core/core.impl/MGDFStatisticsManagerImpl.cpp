@@ -8,8 +8,8 @@
 #include <iostream>
 #include <fstream>
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -25,13 +25,13 @@ StatisticsManager::StatisticsManager()
 
 	std::ofstream file(_statisticsFile.c_str(),std::ios_base::out|std::ios_base::trunc);
 	file.close();
-	GetLoggerImpl()->Add(THIS_NAME,"StatisticsManager enabled");
+	LOG("StatisticsManager enabled",LOG_LOW);
 }
 
 StatisticsManager::~StatisticsManager()
 {
 	if (GetSaveBufferSize() > 0) {
-		GetLoggerImpl()->Add(THIS_NAME,"Saving remaining statistics...");
+		LOG("Saving remaining statistics...",LOG_LOW);
 		StatisticsManager::SaveAll();
 	}
 	SAFE_DELETE(_saveBuffer);
@@ -42,7 +42,7 @@ size_t StatisticsManager::GetSaveBufferSize()
 	return _saveBuffer->size();
 }
 
-void StatisticsManager::AddToSaveBuffer(NameValuePair nvp) 
+void StatisticsManager::AddToSaveBuffer(NameValuePair &&nvp) 
 {
 	_saveBuffer->push_back(nvp);
 }
@@ -56,10 +56,14 @@ std::vector<StatisticsManager::NameValuePair> *StatisticsManager::ResetSaveBuffe
 
 void StatisticsManager::SaveStatistic(const char *  name,const char *  value)
 {
+	_ASSERTE(name);
+	_ASSERTE(value);
+
 	NameValuePair nvp;
 	nvp.Name = name;
 	nvp.Value = value;
-	AddToSaveBuffer(nvp);
+
+	AddToSaveBuffer(std::move(nvp));
 
 	if (GetSaveBufferSize()>= SEND_THRESHOLD) {
 		StatisticsManager::SaveAll();
@@ -80,9 +84,9 @@ void StatisticsManager::SaveAll()
 			}
 			file.close();
 		}
-		catch (std::exception& e)
+		catch (const std::exception& e)
 		{
-			GetLoggerImpl()->Add(THIS_NAME,std::string("Error saving statistics: ") + e.what());
+			LOG("Error saving statistics: " << e.what(),LOG_ERROR);
 		}
 	}
 	SAFE_DELETE(saveBuffer);

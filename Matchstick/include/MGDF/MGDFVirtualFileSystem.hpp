@@ -1,73 +1,20 @@
 #pragma once
 
 #include <MGDF/MGDFList.hpp>
-#include <MGDF/MGDFDisposable.hpp>
 
 namespace MGDF {
 
-#define VFS_ALIAS_SEPARATOR L"%"
-#define VFS_PATH_SEPARATOR L"/"
-
 /**
- provides a means to filter searches and mappings into the virtual file system
- \author gcconner
- */
-class IFileFilter: public IDisposable
-{
-public:
-	/**
-	chain another filter after the current one
-	\return the chained filter, so another filter can be chanined onto it in turn
-	i.e filter1.chainFilter(filter2).chainFilter(filter3).chainFilter(filter4);
-	*/
-	virtual IFileFilter * ChainFilter(IFileFilter *filter)=0;
-
-	/**
-	\return true if the file is to be included in the filtered list of results otherwise returns false
-	*/
-	virtual bool  FilterFile(const wchar_t *file)=0;
-};
-
-/**
-this class provides the means to create a number of common filters. If these are insufficient then custom filters can also be create
-by implementing the IFileFilter interface
-\author gcconner
+provides a means to filter files from result sets
 */
-class IFileFilterFactory
+class IFileFilter
 {
 public:
 	/**
-	creates a filter which filters out all instances of files with a matching name
-	the name can include regexes
+	\param childname the name of the file to be filtered
+	\return true if the file is to be included in a result set, and false if it should be excluded
 	*/
-	virtual IFileFilter * CreateNameExclusionFilter(const wchar_t *name) const=0;
-
-	/**
-	creates a filter which filters in all instances of files without a matching name
-	the name can include regexes
-	*/
-	virtual IFileFilter * CreateNameInclusionFilter(const wchar_t *name) const=0;
-
-	/**
-	creates a filter which filters in all instance of files with a matching extension
-	\param extension the extension to filter (excluding the preceding '.')
-	*/
-	virtual IFileFilter * CreateFileExtensionExclusionFilter(const wchar_t *extension) const=0;
-
-	/**
-	creates a filter which filters out all instance of files with a matching extension
-	\param extension the extension to filter (excluding the preceding '.')
-	*/
-	virtual IFileFilter * CreateFileExtensionInclusionFilter(const wchar_t *extension) const=0;
-};
-
-class IFile;
-
-class IFileIterator: public IDisposable { 
-	public: 
-	virtual IFile * Current() const=0; 
-	virtual IFile * Next()=0;
-	virtual bool  HasNext() const=0; 
+	virtual bool Accept(const wchar_t *childname) const=0;
 };
 
 /**
@@ -77,17 +24,38 @@ as files with the same name as the archive filename, but unlike normal files the
 containing the uncompressed archive data
 \author gcconner
 */
-class IFile: public IDisposable
+class IFile
 {
 public:
+	/**
+	\return the name of this file
+	*/
 	virtual const wchar_t * GetName() const=0;
+
+	/**
+	\return the parent of this file. If this file is the root of the virtual file system, then this will be nullptr
+	*/
 	virtual IFile * GetParent() const=0;
-	virtual IFileIterator * GetIterator() =0;
-	virtual IFile * GetDescendant(const wchar_t *path) =0;
-	virtual IFile * GetFirstChild() =0;
-	virtual IFile * GetLastChild() =0;
+
+	/**
+	\param name the child name of this file
+	\return the child file of the current file. If no such file exists, nullptr is returned
+	*/
 	virtual IFile * GetChild(const wchar_t *name) =0;
-	virtual size_t  GetChildCount() =0;
+
+	/**
+	 Get all the children of this file (non-recursive) which match the given wildcard filter
+	 \param a user supplied filter to filter the results
+	 \param childBuffer an array to store the results
+	 \param bufferLength the length of the childBuffer. Will be set to the length of the buffer required when the method returns
+	 \return true if the supplied buffer is large enough to hold all the results, otherwise returns false and sets the size required in bufferLength.
+	 */
+	virtual bool GetAllChildren(const IFileFilter *filter,IFile **childBuffer,size_t *bufferLength)=0;
+
+	/**
+	\return how many children this file node has
+	*/
+	virtual size_t GetChildCount() =0;
 
 	/**
 	determines if the IFile entity is a folder
@@ -176,19 +144,29 @@ public:
 /**
 this interface encapsulates the functionality required for creating portions of the vfs tree from archive files
 */
-class IArchiveHandler: public IDisposable
+class IArchiveHandler
 {
 public:
 	/**
 	get the root node of the mapped vfs subtree
 	\return the root node of the mapped vfs subtree
 	*/
-	virtual IFile * MapArchive(IFile *parent,const wchar_t *archive)=0;
+	virtual IFile * MapArchive(const wchar_t *name, const wchar_t *physicalPath, IFile *parent)=0;
 
 	/**
 	whether this file/directory is recognised as an archive type
 	*/
-	virtual bool  IsArchive(const wchar_t *path) const=0;
+	virtual bool  IsArchive(const wchar_t *physicalPath) const=0;
+
+	/**
+	tells the archive handler to dispose of an archive which it previously created
+	*/
+	virtual void DisposeArchive(IFile *archive)=0;
+
+	/** 
+	tells the archive handler to dispose of itself
+	*/
+	virtual void Dispose()=0;
 };
 
 /**
@@ -197,30 +175,17 @@ this interface provides facilities for building and accessing the virtual filesy
 */
 class IVirtualFileSystem
 {
-	public:
-		/**
-		sets a string alias to a logical directory
-		*/
-		virtual bool  AddAlias(const wchar_t *alias,const wchar_t *logicalDirectory)=0;
+public:
+	/**
+	return the file/folder/archive in the denoted logical directory. paths are delimited using the / character and names
+	are case sensitive
+	*/
+	virtual IFile * GetFile(const wchar_t *logicalPath) const=0;
 
-		/**
-		removes a string alias from a logical directory
-		*/
-		virtual void RemoveAlias(const wchar_t *alias)=0;
-
-		/**
-		return a list of File objects satisfying the filters provided in the specified logical directory
-		*/
-		virtual IFileIterator * FindFiles(const wchar_t *logicalDirectory,IFileFilter *filter,bool recursive) const=0;
-
-		/**
-		return the file/folder/archive in the denoted logical directory
-		*/
-		virtual IFile * GetFile(const wchar_t *logicalPath) const=0;
-
-		virtual IFile * GetRoot() const=0;
-
-		virtual const IFileFilterFactory * GetFilterFactory() const=0;
+	/**
+	return the root node of the virtual file system
+	*/
+	virtual IFile * GetRoot() const=0;
 };
 
 }

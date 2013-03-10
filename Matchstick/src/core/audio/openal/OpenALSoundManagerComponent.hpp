@@ -20,14 +20,13 @@ typedef struct {
 	INT32 References;
 } SharedBuffer;
 
-class OpenALSoundManagerComponentImpl: public DisposeImpl<ISoundManagerComponent> {
+class OpenALSoundManagerComponentImpl: public ISoundManagerComponent {
 friend class OpenALSound;
 friend class VorbisStream;
 public:
 	OpenALSoundManagerComponentImpl(IVirtualFileSystem *vfs);
 	virtual ~OpenALSoundManagerComponentImpl();
 	virtual void Update();
-	virtual void Dispose();
 
 	virtual XMFLOAT3 *GetListenerPosition();
 	virtual XMFLOAT3 *GetListenerVelocity();
@@ -47,16 +46,13 @@ public:
 	virtual void SetSpeedOfSound(float speedOfSound);
 
 	virtual ISound *CreateSound(IFile *source, INT32 priority);
-	virtual void RemoveSound(ISound *sound);
-
 	virtual ISoundStream *CreateSoundStream(IFile *source);
-	virtual void RemoveSoundStream(ISoundStream *stream);
 private:
 	ALuint GetSoundBuffer(IFile *dataSource);
 	void RemoveSoundBuffer(ALuint bufferId);
 
-	void DoRemoveSoundStream(ISoundStream *stream);
-	void DoRemoveSound(ISound *sound);
+	void RemoveSoundStream(ISoundStream *stream);
+	void RemoveSound(ISound *sound);
 
 	void DeactivateSound(INT32 priority);
 	void PrioritizeSounds(INT32 deactivatedSoundsCount);

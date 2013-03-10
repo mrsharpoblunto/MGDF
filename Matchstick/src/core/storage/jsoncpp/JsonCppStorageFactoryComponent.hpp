@@ -5,13 +5,12 @@
 
 namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
 
-class JsonCppStorageFactoryComponent: public DisposeImpl<IStorageFactoryComponent>
+class JsonCppStorageFactoryComponent: public IStorageFactoryComponent
 {
 public:
-	JsonCppStorageFactoryComponent();
-	virtual ~JsonCppStorageFactoryComponent();
+	JsonCppStorageFactoryComponent(){}
+	virtual ~JsonCppStorageFactoryComponent(){}
 
-	virtual void Dispose();
 	virtual IGameStorageHandler *CreateGameStorageHandler() const;
 	virtual IGameStateStorageHandler *CreateGameStateStorageHandler(const std::string &,const Version *) const;
 	virtual IPreferenceConfigStorageHandler *CreatePreferenceConfigStorageHandler() const;

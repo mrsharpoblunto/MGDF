@@ -1,14 +1,12 @@
 #pragma once 
 
-#include <MGDF/MGDFDisposable.hpp>
-
 namespace MGDF {
 
 /**
 this class represents an audio stream
 \author gcconner
 */
-	class ISoundStream: public IDisposable {
+class ISoundStream {
 public:
 	virtual const wchar_t * GetName() const =0;
 
@@ -17,6 +15,11 @@ public:
 
 	virtual UINT32 GetPosition() = 0;
 	virtual UINT32 GetLength() =0;
+
+	/**
+	removes the soundstream 
+	*/
+	virtual void Dispose()=0;
 
 	/**
 	stop the playing of the current stream if it was playing or paused (resets it to the beginning aswell)

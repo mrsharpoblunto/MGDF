@@ -15,109 +15,16 @@ namespace MGDF { namespace core {
 		_maxSamples = maxSamples;
 	}
 
-	double SystemStats::AvgActiveRenderTime()
+	void SystemStats::GetTimings(Timings &timings)
 	{
-		return _avgActiveRenderTime;
-	}
-
-	double SystemStats::AvgRenderTime()
-	{
-		return _avgRenderTime;
-	}
-
-	double SystemStats::AvgActiveSimTime()
-	{
-		return _avgActiveSimTime;
-	}
-
-	double SystemStats::AvgSimTime()
-	{
-		return _avgSimTime;
-	}
-
-	double SystemStats::AvgSimInputTime()
-	{
-		return _avgSimInputTime;
-	}
-
-	double SystemStats::AvgSimAudioTime()
-	{
-		return _avgSimAudioTime;
-	}
-
-	double SystemStats::ActiveRenderTime()
-	{
-		return *_activeRenderTime.begin();
-	}
-
-	double SystemStats::RenderTime()
-	{
-		return *_renderTime.begin();
-	}
-
-	double SystemStats::ExpectedSimTime()
-	{
-		return _expectedSimTime;
-	}
-
-	double SystemStats::ActiveSimTime()
-	{
-		return *_activeSimTime.begin();
-	}
-
-	double SystemStats::SimTime()
-	{
-		return *_simTime.begin();
-	}
-
-	double SystemStats::SimInputTime()
-	{
-		return *_simInputTime.begin();
-	}
-
-	double SystemStats::SimAudioTime()
-	{
-		return *_simAudioTime.begin();
-	}
-
-	std::list<double> *SystemStats::ActiveRenderTimeSamples()
-	{
-		return &_activeRenderTime;
-	}
-
-	std::list<double> *SystemStats::RenderTimeSamples()
-	{
-		return &_renderTime;
-	}
-
-	std::list<double> *SystemStats::ActiveSimTimeSamples()
-	{
-		return &_activeSimTime;
-	}
-
-	std::list<double> *SystemStats::SimTimeSamples()
-	{
-		return &_simTime;
-	}
-
-	std::list<double> *SystemStats::SimInputTimeSamples()
-	{
-		return &_simInputTime;
-	}
-
-	std::list<double> *SystemStats::SimAudioTimeSamples()
-	{
-		return &_simAudioTime;
-	}
-
-	void SystemStats::AppendActiveRenderTime(double value)
-	{
-		Append(value,_avgActiveRenderTime,_activeRenderTime);
-	}
-
-	void SystemStats::AppendRenderTime(double value)
-	{
-		Append(value,_avgRenderTime,_renderTime);
+		boost::mutex::scoped_lock lock(_statsMutex);
+		timings.AvgActiveRenderTime = _avgActiveRenderTime;
+		timings.AvgRenderTime = _avgRenderTime;
+		timings.AvgActiveSimTime = _avgActiveSimTime;
+		timings.AvgSimTime = _avgSimTime;
+		timings.AvgSimInputTime = _avgSimInputTime;
+		timings.AvgSimAudioTime = _avgSimAudioTime;
+		timings.ExpectedSimTime = _expectedSimTime;
 	}
 
 	void SystemStats::SetExpectedSimTime(double value)
@@ -125,24 +32,35 @@ namespace MGDF { namespace core {
 		_expectedSimTime = value;
 	}
 
+	double SystemStats::ExpectedSimTime()
+	{
+		return _expectedSimTime;
+	}
+
+	void SystemStats::AppendRenderTimes(double renderValue,double activeRenderValue)
+	{
+		boost::mutex::scoped_lock lock(_statsMutex);
+		Append(renderValue,_avgRenderTime,_renderTime);
+		Append(activeRenderValue,_avgActiveRenderTime,_activeRenderTime);
+	}
+
 	void SystemStats::AppendActiveSimTime(double value)
 	{
-		Append(value,_avgActiveSimTime,_activeSimTime);
+		boost::mutex::scoped_lock lock(_statsMutex);
+		Append(value - *_simInputTime.begin() - *_simAudioTime.begin(),_avgActiveSimTime,_activeSimTime);
 	}
 
 	void SystemStats::AppendSimTime(double value)
 	{
+		boost::mutex::scoped_lock lock(_statsMutex);
 		Append(value,_avgSimTime,_simTime);
 	}
 
-	void SystemStats::AppendSimInputTime(double value)
+	void SystemStats::AppendSimInputAndAudioTimes(double inputValue,double audioValue)
 	{
-		Append(value,_avgSimInputTime,_simInputTime);
-	}
-
-	void SystemStats::AppendSimAudioTime(double value)
-	{
-		Append(value,_avgSimAudioTime,_simAudioTime);
+		boost::mutex::scoped_lock lock(_statsMutex);
+		Append(inputValue,_avgSimInputTime,_simInputTime);
+		Append(audioValue,_avgSimAudioTime,_simAudioTime);
 	}
 
 	void SystemStats::Append(double value,double &averageValue,std::list<double> &list)

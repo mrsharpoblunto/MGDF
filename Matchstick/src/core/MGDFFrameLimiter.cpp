@@ -5,14 +5,7 @@
 
 #include "common/MGDFExceptions.hpp"
 #include "common/MGDFLoggerImpl.hpp"
-#include "common/MGDFUniqueIDAllocator.hpp"
 #include "MGDFFrameLimiter.hpp"
-
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
-#define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
-#pragma warning(disable:4291)
-#endif
 
 namespace MGDF { namespace core {
 
@@ -23,7 +16,7 @@ FrameLimiter::FrameLimiter(UINT32 maxFps)
 
 	    // exit if the system does not support a high performance timer
 	if (!QueryPerformanceFrequency(&_freq)) {
-		GetLoggerImpl()->Add(THIS_NAME,"High performance timer unsupported",LOG_ERROR);
+		LOG("High performance timer unsupported",LOG_ERROR);
 		throw MGDFException("High performance timer unsupported");
 	}
 

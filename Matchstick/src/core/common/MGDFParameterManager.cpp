@@ -1,20 +1,15 @@
 #include "StdAfx.h"
 
 #include "MGDFExceptions.hpp"
-#include "MGDFParameterManagerImpl.hpp"
+#include "MGDFParameterManager.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
 
 namespace MGDF { namespace core {
-
-IParameterManagerImpl *GetParameterManagerImpl()
-{
-	return ParameterManager::InstancePtr();
-}
 
 bool ParameterManager::HasParameter(const char * param) const
 {
@@ -44,7 +39,7 @@ bool ParameterManager::AddParameterString(const char * paramString)
 	}
 }
 
-void ParameterManager::ParseParameters(const std::string &paramString, boost::unordered_map<std::string,std::string> &paramMap) 
+void ParameterManager::ParseParameters(const std::string &paramString, std::map<std::string,std::string> &paramMap) 
 {
 	auto iter = paramString.begin();
 

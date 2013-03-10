@@ -29,22 +29,19 @@ VFSTestFixture()
 	Resources::Instance(inst);
 	Resources::Instance().SetUserBaseDir(true,"junkship");
 
-	_logger = new MGDF::core::tests::MockLogger();
 	_errorHandler = new MGDF::core::tests::MockErrorHandler();
 
-	_vfs = CreateVirtualFileSystemComponentImpl((ILogger *)_logger);
-	_vfs->RegisterArchiveHandler(CreateZipArchiveHandlerImpl((ILogger *)_logger,(IErrorHandler *)_errorHandler));	
+	_vfs = CreateVirtualFileSystemComponentImpl();
+	_vfs->RegisterArchiveHandler(zip::CreateZipArchiveHandlerImpl((IErrorHandler *)_errorHandler));	
 }
 
 virtual ~VFSTestFixture()
 {
 	delete _vfs;
-	delete _logger;
 	delete _errorHandler;
 }
 protected:
 	IVirtualFileSystemComponent *_vfs;
-	MGDF::core::tests::MockLogger *_logger;
 	MGDF::core::tests::MockErrorHandler *_errorHandler;
 };
 
@@ -53,18 +50,18 @@ check that zip archives are enumerated correctly by the vfs
 */
 TEST_FIXTURE(VFSTestFixture,ZipArchiveTests)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str(),L"",nullptr,false);
+	_vfs->Mount((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str());
 
-	CHECK_WS_EQUAL(L"test.zip",_vfs->GetRoot()->GetFirstChild()->GetName());
-	CHECK_EQUAL(6,_vfs->GetRoot()->GetFirstChild()->GetChildCount());
-	CHECK_WS_EQUAL(L"game.xml",_vfs->GetFile(L"./test.zip/game.xml")->GetName());
-	CHECK_WS_EQUAL(L"gameicon.png",_vfs->GetFile(L"./test.zip/gameIcon.png")->GetName());
-	CHECK_WS_EQUAL(L"preferences.xml",_vfs->GetFile(L"./test.zip/preferences.xml")->GetName());
-	CHECK_WS_EQUAL(L"preferencetemplates.xml",_vfs->GetFile(L"test.zip/preferenceTemplates.xml")->GetName());
-	CHECK_WS_EQUAL(L"gamestate.xml",_vfs->GetFile(L"test.zip/boot/gameState.xml")->GetName());
-	CHECK_WS_EQUAL(L"persistency.xml",_vfs->GetFile(L"test.zip/boot/persistency.xml")->GetName());
-	CHECK_WS_EQUAL(L"test.lua",_vfs->GetFile(L"test.zip/content/test.lua")->GetName());
-	CHECK(_vfs->GetFile(L"test.zip/content")->IsFolder());
+	CHECK_WS_EQUAL(L"test.zip",_vfs->GetRoot()->GetName());
+	CHECK_EQUAL(6,_vfs->GetRoot()->GetChildCount());
+	CHECK_WS_EQUAL(L"game.xml",_vfs->GetFile(L"game.xml")->GetName());
+	CHECK_WS_EQUAL(L"gameIcon.png",_vfs->GetFile(L"gameIcon.png")->GetName());
+	CHECK_WS_EQUAL(L"preferences.xml",_vfs->GetFile(L"preferences.xml")->GetName());
+	CHECK_WS_EQUAL(L"preferenceTemplates.xml",_vfs->GetFile(L"preferenceTemplates.xml")->GetName());
+	CHECK_WS_EQUAL(L"gameState.xml",_vfs->GetFile(L"boot/gameState.xml")->GetName());
+	CHECK_WS_EQUAL(L"persistency.xml",_vfs->GetFile(L"boot/persistency.xml")->GetName());
+	CHECK_WS_EQUAL(L"test.lua",_vfs->GetFile(L"content/test.lua")->GetName());
+	CHECK(_vfs->GetFile(L"content")->IsFolder());
 }
 
 /*
@@ -72,9 +69,9 @@ check that files inside enumeratoed archives can be read correctly
 */
 TEST_FIXTURE(VFSTestFixture,ZipArchiveContentTests)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str(),L"",nullptr,false);
+	_vfs->Mount((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str());
 
-	IFile *file = _vfs->GetFile(L"test.zip/content/test.lua");
+	IFile *file = _vfs->GetFile(L"content/test.lua");
 	file->OpenFile();
 	UINT32 size = static_cast<UINT32>(file->GetSize());
 	char* data = new char[size];
@@ -95,58 +92,50 @@ TEST_FIXTURE(VFSTestFixture,ZipArchiveContentTests)
 	CHECK_EQUAL("end",list[26]);
 }
 
+class ContainsFilter: public MGDF::IFileFilter
+{
+public:
+	ContainsFilter(std::wstring match)
+		: _match(match)
+	{
+	}
+	virtual ~ContainsFilter(){}
+	virtual bool Accept(const wchar_t *file) const {
+		std::wstring temp(file);
+		return temp.find(_match)!=std::wstring::npos;
+	}
+private:
+	std::wstring _match;
+};
+
 /**
 check that vfs filters and aliases work as expected
 */
 TEST_FIXTURE(VFSTestFixture,AliasAndFilterTests)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str(),L"",nullptr,false);
+	_vfs->Mount((Resources::Instance().RootDir()+L"../../../tests/content/test.zip").c_str());
 
-	_vfs->AddAlias(L"testData",L"./test.zip");
-	CHECK_WS_EQUAL(L"game.xml",_vfs->GetFile(L"%Testdata%/game.xml")->GetName());
+	ContainsFilter filter1(L"xml");
+	IFile *buffer1[3];
+	size_t len1 = 3;
+	CHECK(_vfs->GetRoot()->GetAllChildren(&filter1,buffer1,&len1));
+	CHECK_EQUAL(3,len1);
+	CHECK_WS_EQUAL(L"game.xml",buffer1[0]->GetName());
+	CHECK_WS_EQUAL(L"preferenceTemplates.xml",buffer1[1]->GetName());
+	CHECK_WS_EQUAL(L"preferences.xml",buffer1[2]->GetName());
 
-	std::auto_ptr<MGDF::IFileFilter> filter1(_vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter(L"xml"));
-	IFileIterator *files = _vfs->FindFiles(L".",filter1.get(),true);
-	UINT32 size=0;
-	while (files->HasNext()) 
-	{
-		files->Next();
-		++size;
-	}
-	CHECK_EQUAL(5,size);
-	delete files;
+	CHECK(!_vfs->GetRoot()->GetAllChildren(nullptr,buffer1,&len1));
+	CHECK_EQUAL(6,len1);
 
-	files = _vfs->FindFiles(L"%testdata%",filter1.get(),false);
-	size=0;
-	while (files->HasNext()) 
-	{
-		files->Next();
-		++size;
-	}
-	CHECK_EQUAL(3,size);
-	delete files;
-	
-	std::auto_ptr<MGDF::IFileFilter> filter2(_vfs->GetFilterFactory()->CreateFileExtensionExclusionFilter(L"xml"));
-	std::auto_ptr<MGDF::IFileFilter> filter3(_vfs->GetFilterFactory()->CreateFileExtensionInclusionFilter(L"png"));
-	files = _vfs->FindFiles(L"%testdata%",filter2->ChainFilter(filter3.get()),false);
-	size=0;
-	while (files->HasNext()) 
-	{
-		files->Next();
-		++size;
-	}
-	CHECK_EQUAL(1,size);
-	delete files;
-
-	files = _vfs->FindFiles(L"test.zip",nullptr,false);
-	size=0;
-	while (files->HasNext()) 
-	{
-		files->Next();
-		++size;
-	}
-	CHECK_EQUAL(6,size);
-	delete files;
+	IFile *buffer2[6];
+	CHECK(_vfs->GetRoot()->GetAllChildren(nullptr,buffer2,&len1));
+	CHECK_EQUAL(6,len1);
+	CHECK_WS_EQUAL(L"boot",buffer2[0]->GetName());
+	CHECK_WS_EQUAL(L"content",buffer2[1]->GetName());
+	CHECK_WS_EQUAL(L"game.xml",buffer2[2]->GetName());
+	CHECK_WS_EQUAL(L"gameIcon.png",buffer2[3]->GetName());
+	CHECK_WS_EQUAL(L"preferenceTemplates.xml",buffer2[4]->GetName());
+	CHECK_WS_EQUAL(L"preferences.xml",buffer2[5]->GetName());
 }
 
 /**
@@ -154,15 +143,15 @@ check that the standard filesystem is enumerated correctly by the vfs
 */
 TEST_FIXTURE(VFSTestFixture,FileSystemTests)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content").c_str(),L"",nullptr,false);
+	_vfs->Mount((Resources::Instance().RootDir()+L"../../../tests/content").c_str());
 
 	CHECK_EQUAL(5,_vfs->GetRoot()->GetChildCount());
-	CHECK_WS_EQUAL(L"test.zip",_vfs->GetFile(L"./test.zip")->GetName());
-	CHECK_EQUAL(true,_vfs->GetFile(L"./test.zip")->IsArchive());
-	CHECK_WS_EQUAL(L"console.json",_vfs->GetFile(L"./console.json")->GetName());
-	CHECK_WS_EQUAL(L"preferences.json",_vfs->GetFile(L"./preferences.json")->GetName());
-	CHECK_WS_EQUAL(L"gamestate.json",_vfs->GetFile(L"gameState.json")->GetName());
-	CHECK_WS_EQUAL(L"update.json",_vfs->GetFile(L"Update.json")->GetName());
+	CHECK_WS_EQUAL(L"test.zip",_vfs->GetFile(L"test.zip")->GetName());
+	CHECK_EQUAL(true,_vfs->GetFile(L"test.zip")->IsArchive());
+	CHECK_WS_EQUAL(L"console.json",_vfs->GetFile(L"console.json")->GetName());
+	CHECK_WS_EQUAL(L"preferences.json",_vfs->GetFile(L"preferences.json")->GetName());
+	CHECK_WS_EQUAL(L"gameState.json",_vfs->GetFile(L"gameState.json")->GetName());
+	CHECK_WS_EQUAL(L"Update.json",_vfs->GetFile(L"Update.json")->GetName());
 }
 
 /**
@@ -170,7 +159,7 @@ check that files in the standard filesystem can be read from the vfs correctly
 */
 TEST_FIXTURE(VFSTestFixture,FileSystemContentTests)
 {
-	_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content").c_str(),L"",nullptr,false);
+	_vfs->Mount((Resources::Instance().RootDir()+L"../../../tests/content").c_str());
 
 	IFile *file = _vfs->GetFile(L"console.json");
 	file->OpenFile();

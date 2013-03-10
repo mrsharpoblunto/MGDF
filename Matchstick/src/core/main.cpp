@@ -20,8 +20,8 @@ typedef BOOL (WINAPI *MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hF
 using namespace MGDF;
 using namespace MGDF::core;
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
@@ -41,7 +41,7 @@ INT32 WINAPI WinMain(
     )
 {
 	//Catch memory leaks
-	#if defined(DEBUG) | defined(_DEBUG)
+	#if defined(_DEBUG)
 		_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	#endif
 
@@ -59,8 +59,8 @@ INT32 WINAPI WinMain(
 	//create the system object and related components
 	System *system = SystemBuilder::CreateSystem();
 	
-	GetLoggerImpl()->Add("MGDF::WinMain","starting up...");
-	if (system!=nullptr) {
+	LOG("starting up...",LOG_LOW);
+	if (system) {
 		system->AddFatalErrorCallback(&FatalErrorCallBack);
 
 		_application->SetSystem(system);
@@ -73,10 +73,10 @@ INT32 WINAPI WinMain(
 	//dispose of the system and related components
 	SystemBuilder::DisposeSystem(system);
 
-	GetLoggerImpl()->Add("MGDF::WinMain","shutting down...");
+	LOG("shutting down...",LOG_LOW);
 	delete _application;
 
-	GetLoggerImpl()->Add("MGDF::WinMain","shut down successfully");
+	LOG("shut down successfully",LOG_LOW);
 	return 0;
 }
 
@@ -85,8 +85,8 @@ log & handle unexpected win32 errors before the exception is thrown
 */
 LONG WINAPI UnhandledExceptionCallBack( struct _EXCEPTION_POINTERS *pExceptionInfo )
 {
-	GetLoggerImpl()->Add("MGDF::WinMain","WIN32 ERROR: "+Win32Exception::TranslateError(pExceptionInfo->ExceptionRecord->ExceptionCode),LOG_ERROR);
-	GetLoggerImpl()->Add("MGDF::WinMain","Generating Minidump file minidump.dmp...",LOG_ERROR);
+	LOG("WIN32 ERROR: " << Win32Exception::TranslateError(pExceptionInfo->ExceptionRecord->ExceptionCode),LOG_ERROR);
+	LOG("Generating Minidump file minidump.dmp...",LOG_ERROR);
 	
 	_dumpInfo = (_MINIDUMP_EXCEPTION_INFORMATION *)malloc(sizeof(_MINIDUMP_EXCEPTION_INFORMATION));
 	_dumpInfo->ThreadId = GetCurrentThreadId();
@@ -95,7 +95,7 @@ LONG WINAPI UnhandledExceptionCallBack( struct _EXCEPTION_POINTERS *pExceptionIn
 
 	WriteMinidump();
 	
-	if (!GetParameterManagerImpl()->HasParameter("hideerrors")) {
+	if (!ParameterManager::Instance().HasParameter("hideerrors")) {
 		MessageBox(nullptr,("Unexpected Win32 error\r\n\r\nFor more information, please view the log file\r\n'"+Resources::ToString(Resources::Instance().LogFile())+"'").c_str(),"FATAL ERROR",MB_OK);//output a nasty error message
 	}
 	return EXCEPTION_EXECUTE_HANDLER;
@@ -108,7 +108,7 @@ void FatalErrorCallBack(std::string sender,std::string message)
 {
 	WriteMinidump();
 
-	if (!GetParameterManagerImpl()->HasParameter("hideerrors")) {
+	if (!ParameterManager::Instance().HasParameter("hideerrors")) {
 		MessageBox(nullptr,(message+"\r\n\r\nFor more information, please view the log file\r\n'"+Resources::ToString(Resources::Instance().LogFile())+"'").c_str(),"FATAL ERROR",MB_OK);//output a nasty error message
 	}
 }
@@ -129,7 +129,7 @@ DWORD WINAPI CrashDumpThread(LPVOID data)
 {
 	WaitForSingleObject(_dumpEvent, INFINITE);
 
-	GetLoggerImpl()->Add("MGDF::WinMain","Generating Minidump file minidump.dmp...",LOG_ERROR);
+	LOG("Generating Minidump file minidump.dmp...",LOG_ERROR);
 	HMODULE hDll = LoadLibraryW(L"DBGHELP.DLL");
 	if (hDll)
 	{
@@ -143,17 +143,17 @@ DWORD WINAPI CrashDumpThread(LPVOID data)
 				BOOL ok = pDump( GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, _dumpInfo, nullptr, nullptr );
 				if (!ok)
 				{
-					GetLoggerImpl()->Add("MGDF::WinMain","Failed to save dump file");
+					LOG("Failed to save dump file",LOG_ERROR);
 				}
 				CloseHandle(hFile);
 			}
 			else
 			{
-				GetLoggerImpl()->Add("MGDF::WinMain","Failed to save dump file");
+				LOG("Failed to save dump file",LOG_ERROR);
 			}
 		}
 	}
-	GetLoggerImpl()->Flush();
+	Logger::Instance().Flush();
 	if (_dumpInfo!=nullptr) free(_dumpInfo);
 
 	return 0;

@@ -6,8 +6,8 @@
 
 #include "VorbisStream.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -30,7 +30,7 @@ VorbisStream::~VorbisStream()
 		UninitVorbis();
 	}
 	UninitStream();
-	_soundManager->DoRemoveSoundStream(this);
+	_soundManager->RemoveSoundStream(this);
 }
 
 void VorbisStream::Dispose()
@@ -44,7 +44,7 @@ void VorbisStream::UninitStream()
 	{
 		alSourceStop(_source);
 		alSourcei(_source, AL_BUFFER, 0);
-		OpenALSoundSystem::InstancePtr()->ReleaseSource(_source);
+		OpenALSoundSystem::Instance()->ReleaseSource(_source);
 	}
 
 	if (_initLevel >= 4) {
@@ -99,7 +99,7 @@ VorbisStream::VorbisStream(IFile *source,OpenALSoundManagerComponentImpl *manage
 		if (!InitVorbis()) 
 		{
 			_references--;
-			_soundManager->GetComponentErrorHandler()->SetLastError(THIS_NAME,MGDF_ERR_VORBIS_LIB_LOAD_FAILED,"Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)");
+			SETLASTERROR(_soundManager->GetComponentErrorHandler(),MGDF_ERR_VORBIS_LIB_LOAD_FAILED,"Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)");
 			throw MGDFException("Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)");
 		}
 	}
@@ -186,10 +186,10 @@ void VorbisStream::InitStream()
 				alGenBuffers( VORBIS_BUFFER_COUNT, _buffers );
 				_initLevel++;//vorbis stream buffers generated
 
-				bool createdSource = OpenALSoundSystem::InstancePtr()->AcquireSource(&_source);
+				bool createdSource = OpenALSoundSystem::Instance()->AcquireSource(&_source);
 				if (!createdSource)
 				{
-					_soundManager->GetComponentErrorHandler()->SetLastError(THIS_NAME,MGDF_ERR_NO_FREE_SOURCES,"No free sound sources to create stream");
+					SETLASTERROR(_soundManager->GetComponentErrorHandler(),MGDF_ERR_NO_FREE_SOURCES,"No free sound sources to create stream");
 					throw MGDFException("No free sound sources");
 				}
 				_initLevel++;//sound source created
@@ -208,7 +208,7 @@ void VorbisStream::InitStream()
 			}
 			else 
 			{
-				_soundManager->GetComponentErrorHandler()->SetLastError(THIS_NAME,MGDF_ERR_INVALID_FORMAT,"Failed to find format information, or unsupported format");
+				SETLASTERROR(_soundManager->GetComponentErrorHandler(),MGDF_ERR_INVALID_FORMAT,"Failed to find format information, or unsupported format");
 				throw MGDFException("Failed to find format information, or unsupported format");
 			}
 		}

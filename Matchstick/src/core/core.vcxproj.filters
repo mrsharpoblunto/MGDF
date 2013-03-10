@@ -12,12 +12,6 @@
     <ClInclude Include="..\..\include\MGDF\MGDF.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\MGDF\MGDFCustomArchiveHandlers.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MGDF\MGDFDisposable.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\MGDF\MGDFError.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>

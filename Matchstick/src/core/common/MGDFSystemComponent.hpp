@@ -6,7 +6,7 @@ namespace MGDF { namespace core {
 
 /* 
 defines the interface used by core components. Core components are used to add a layer in between the core engine 
-and the various third party libraries used to provide the engine functionality e.g xml parsing, audio, input etc..
+and the various third party libraries used to provide the engine functionality e.g json parsing, audio, input etc..
 */
 class ISystemComponent {
 public:

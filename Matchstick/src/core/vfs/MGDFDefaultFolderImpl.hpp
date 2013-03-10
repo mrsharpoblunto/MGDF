@@ -13,21 +13,18 @@ that time.
 class DefaultFolderImpl : public FolderBaseImpl
 {
 public:
-	DefaultFolderImpl(const std::wstring &foldername,const std::wstring &physicalPath=L"",VirtualFileSystemComponent *vfs=nullptr,IFileFilter *filter=nullptr);
+	DefaultFolderImpl(const std::wstring &name,const std::wstring &physicalPath,IFile *parent,VirtualFileSystemComponent *vfs);
 	virtual ~DefaultFolderImpl(void);
 
-	virtual IFileIterator *GetIterator();
-	virtual IFile *GetDescendant(const wchar_t * query);
-	virtual IFile *GetFirstChild();
-	virtual IFile *GetLastChild();
 	virtual IFile *GetChild(const wchar_t *name);
 	virtual size_t GetChildCount();
+	virtual bool GetAllChildren(const IFileFilter *filter,IFile **childBuffer,size_t *bufferLength);
 private:
 	bool _mappedChildren;
 	VirtualFileSystemComponent *_vfs;
 	IFileFilter *_filter;
 
-	inline void MapChildren();
+	void MapChildren();
 };
 
 }}}

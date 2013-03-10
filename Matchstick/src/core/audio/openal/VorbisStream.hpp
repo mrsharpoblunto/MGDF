@@ -20,7 +20,7 @@ typedef vorbis_comment * (*LPOVCOMMENT)(OggVorbis_File *vf,INT32 link);
 typedef INT32 (*LPOVOPENCALLBACKS)(void *datasource, OggVorbis_File *vf,char *initial, long ibytes, ov_callbacks callbacks);
 enum VorbisStreamState {NOT_STARTED,PLAY,PAUSE,STOP};
 
-class VorbisStream: public DisposeImpl<ISoundStream> {
+class VorbisStream: public ISoundStream {
 friend class OpenALSoundManagerComponentImpl;
 public:
 	virtual ~VorbisStream();

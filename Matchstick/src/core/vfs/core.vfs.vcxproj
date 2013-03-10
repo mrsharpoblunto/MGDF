@@ -194,10 +194,6 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="filters\MGDFExtensionFilter.cpp" />
-    <ClCompile Include="filters\MGDFFileFilterFactory.cpp" />
-    <ClCompile Include="filters\MGDFFilterBase.cpp" />
-    <ClCompile Include="filters\MGDFNameFilter.cpp" />
     <ClCompile Include="archive\zip\ZipArchive.cpp" />
     <ClCompile Include="archive\zip\ZipArchiveHandlerImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFileImpl.cpp" />
@@ -206,8 +202,6 @@
     <ClCompile Include="MGDFDefaultFileImpl.cpp" />
     <ClCompile Include="MGDFDefaultFolderImpl.cpp" />
     <ClCompile Include="MGDFFileBaseImpl.cpp" />
-    <ClCompile Include="MGDFFolderBaseImpl.cpp" />
-    <ClCompile Include="MGDFAlias.cpp" />
     <ClCompile Include="MGDFVirtualFileSystemComponentImpl.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -217,10 +211,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="filters\MGDFExtensionFilter.hpp" />
-    <ClInclude Include="filters\MGDFFileFilterFactory.hpp" />
-    <ClInclude Include="filters\MGDFFilterBase.hpp" />
-    <ClInclude Include="filters\MGDFNameFilter.hpp" />
     <ClInclude Include="archive\zip\ZipArchive.hpp" />
     <ClInclude Include="archive\zip\ZipArchiveHandlerImpl.hpp" />
     <ClInclude Include="archive\zip\ZipFileImpl.hpp" />
@@ -230,7 +220,6 @@
     <ClInclude Include="MGDFDefaultFolderImpl.hpp" />
     <ClInclude Include="MGDFFileBaseImpl.hpp" />
     <ClInclude Include="MGDFFolderBaseImpl.hpp" />
-    <ClInclude Include="MGDFAlias.hpp" />
     <ClInclude Include="MGDFVirtualFileSystemComponentImpl.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

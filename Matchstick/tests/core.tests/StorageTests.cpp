@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include <boost/filesystem/operations.hpp>
+
 #include "unittest++.h"
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
@@ -24,9 +26,8 @@ public:
 		Resources::Instance(inst);
 		Resources::Instance().SetUserBaseDir(true,"junkship");
 
-		_logger = new MGDF::core::tests::MockLogger();
-		_vfs = CreateVirtualFileSystemComponentImpl((ILogger *)_logger);
-		_vfs->MapDirectory((Resources::Instance().RootDir()+L"../../../tests/content").c_str(),L"",nullptr,false);
+		_vfs = CreateVirtualFileSystemComponentImpl();
+		_vfs->Mount((Resources::Instance().RootDir()+L"../../../tests/content").c_str());
 
 		_storage = CreateStorageFactoryComponentImpl();
 	}
@@ -34,12 +35,10 @@ public:
 	{
 		delete _storage;
 		delete _vfs;
-		delete _logger;
 	}
 protected:
 	IVirtualFileSystemComponent *_vfs;
 	IStorageFactoryComponent *_storage;
-	MGDF::core::tests::MockLogger *_logger;
 };
 
 /**
@@ -76,7 +75,7 @@ TEST_FIXTURE(StorageTestFixture,StorageGameStateHandlerTest)
 
 	IGameStateStorageHandler *handler = _storage->CreateGameStateStorageHandler("Console",&expected);
 
-	std::wstring path = _vfs->GetFile(L"gamestate.json")->GetPhysicalPath();
+	std::wstring path = _vfs->GetFile(L"gameState.json")->GetPhysicalPath();
 	handler->Load(path);
 
 	CHECK_EQUAL("Console",handler->GetGameUid());

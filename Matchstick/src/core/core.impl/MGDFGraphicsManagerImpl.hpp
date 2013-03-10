@@ -18,14 +18,14 @@ public:
 		UINT32 height,
 		UINT32 refreshRateNumerator,
 		UINT32 refreshRateDenominator)
+		: _width(width)
+		, _height(height)
+		, _refreshRateNumerator(refreshRateNumerator)
+		, _refreshRateDenominator(refreshRateDenominator)
 	{
-		_width = width;
-		_height = height;
-		_refreshRateNumerator = refreshRateNumerator;
-		_refreshRateDenominator = refreshRateDenominator;
 	}
 
-	virtual ~GraphicsAdaptorMode(void){};
+	virtual ~GraphicsAdaptorMode(void){}
 	virtual UINT32 GetWidth() const{ return _width; }
 	virtual UINT32 GetHeight() const{ return _height; }
 	virtual UINT32 GetRefreshRateNumerator() const { return _refreshRateNumerator; }
@@ -41,7 +41,7 @@ typedef ListImpl<IUIntList,UINT32> UIntList;
 class GraphicsManager: public IGraphicsManager {
 public:
 	GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter);
-	virtual ~GraphicsManager(void);
+	virtual ~GraphicsManager();
 	virtual bool GetVSync() const;
 	virtual void SetVSync(bool vsync);
 	virtual IUIntList *GetMultiSampleLevels() const;

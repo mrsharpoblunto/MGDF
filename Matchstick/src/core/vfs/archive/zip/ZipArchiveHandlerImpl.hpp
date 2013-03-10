@@ -2,36 +2,40 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
-namespace MGDF { namespace core { namespace vfs {
+#include "ZipArchive.hpp"
+
+namespace MGDF { namespace core { namespace vfs { namespace zip {
 
 /**
 Creates zip archive handlers
 */
-class ZipArchiveHandlerImpl: public DisposeImpl<IArchiveHandler>
+class ZipArchiveHandlerImpl: public IArchiveHandler
 {
 public:
-	ZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler);
-	virtual ~ZipArchiveHandlerImpl();
+	ZipArchiveHandlerImpl(IErrorHandler *errorHandler);
+	virtual ~ZipArchiveHandlerImpl(){}
 	virtual void Dispose();
-	virtual bool IsArchive(const wchar_t *path) const; 
-	virtual IFile *MapArchive(IFile *parent,const wchar_t * archiveFile);
+	virtual void DisposeArchive(IFile *archive);
+	virtual bool IsArchive(const wchar_t *physicalPath) const; 
+	virtual IFile *MapArchive(const wchar_t * name,const wchar_t * physicalPath,IFile *parent);
 
 private:
-	std::vector<std::wstring> _fileExtensions;
-	ILogger *_logger;
+	std::map<ZipFileRoot *,ZipArchive *> _archives;
+	std::vector<const wchar_t *> _fileExtensions;
 	IErrorHandler *_errorHandler;
 
 	/**
 	get the extension of a file
 	\return the extension (excluding the preceding '.' if possible, otherwise returns "" if no extension could be found
 	*/
-	std::wstring GetFileExtension(const std::wstring &file) const;
+	const wchar_t *GetFileExtension(const wchar_t *file) const;
 };
 
-IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler);
+IArchiveHandler *CreateZipArchiveHandlerImpl(IErrorHandler *errorHandler);
 
-}}}
+}}}}

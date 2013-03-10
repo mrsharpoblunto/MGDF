@@ -6,37 +6,34 @@
 #include "FakeArchiveHandler.hpp"
 #include "FakeFile.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
+
+static const wchar_t *FAKE_EXT = L".fakearchive";
 
 FakeArchiveHandler::FakeArchiveHandler(MGDF::ILogger *logger,MGDF::IErrorHandler *errorHandler)
 {
 	_logger = logger;
 	_errorHandler = errorHandler;
-	_fileExtensions.push_back(L".fakearchive");
+	_fileExtensions.push_back(FAKE_EXT);
 }
 
 FakeArchiveHandler::~FakeArchiveHandler()
 {
 }
 
-MGDF::IFile *FakeArchiveHandler::MapArchive(MGDF::IFile *parent,const wchar_t * archiveFile) 
+MGDF::IFile *FakeArchiveHandler::MapArchive(const wchar_t *name,const wchar_t * archiveFile,MGDF::IFile *parent)
 {
-	std::wstring physicalFile(archiveFile);
-	boost::filesystem::wpath physicalDirectoryPath(physicalFile,boost::filesystem::native);
-	std::wstring name = physicalDirectoryPath.filename().native();
-	std::transform(name.begin(), name.end(), name.begin(),::towlower);
-
-	FakeFile *rootFile = new FakeFile(parent,archiveFile,name);
+	FakeFile *rootFile = new FakeFile(name,archiveFile,parent);
 
 	std::string dataString = "hello world";
 	char *data = new char[dataString.size()];
 	memcpy(data,dataString.c_str(),dataString.size());
 
-	FakeFile *subFile = new FakeFile(rootFile,L"testfile.txt",data,dataString.size());
+	FakeFile *subFile = new FakeFile(L"testfile.txt",rootFile,data,dataString.size());
 	rootFile->AddChild(subFile);
 
 	return rootFile;
@@ -47,9 +44,14 @@ void FakeArchiveHandler::Dispose()
 	delete this;
 }
 
+void FakeArchiveHandler::DisposeArchive(MGDF::IFile *file)
+{
+	delete (FakeFile *)file;
+}
+
 bool FakeArchiveHandler::IsArchive(const wchar_t *path) const 
 {
-	std::wstring extension = GetFileExtension(std::wstring(path));
+	std::wstring extension = GetFileExtension(path);
 	for(auto extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
 		if ((*extIter) == extension) {
 			return true;
@@ -58,11 +60,12 @@ bool FakeArchiveHandler::IsArchive(const wchar_t *path) const
 	return false;
 }
 
-std::wstring FakeArchiveHandler::GetFileExtension(std::wstring filename) const
+const wchar_t *FakeArchiveHandler::GetFileExtension(const wchar_t *filename) const
 {
-	std::wstring::size_type pos = filename.rfind('.',filename.length()-1);
-	if (pos != std::wstring::npos) {
-		return filename.substr(pos);
+	_ASSERTE( filename );
+	size_t index = wcslen(filename);
+	while (index >= 0) {
+		if (filename[index] == '.') return filename + (index*sizeof(wchar_t));
 	}
-	return L"";
+	return nullptr;
 }

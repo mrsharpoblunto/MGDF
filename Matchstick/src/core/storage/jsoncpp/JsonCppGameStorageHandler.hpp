@@ -5,13 +5,11 @@
 
 namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
 
-class JsonCppGameStorageHandler: public DisposeImpl<IGameStorageHandler> 
+class JsonCppGameStorageHandler: public IGameStorageHandler
 {
 public:
-	JsonCppGameStorageHandler(){};
-	virtual ~JsonCppGameStorageHandler(){};
-
-	virtual void Dispose();
+	JsonCppGameStorageHandler(){}
+	virtual ~JsonCppGameStorageHandler(){}
 
 	virtual std::string GetGameName() const;
 	virtual std::string GetGameUid() const;

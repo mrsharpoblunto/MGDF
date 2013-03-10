@@ -6,8 +6,8 @@
 #include "XInputManagerComponent.hpp"
 #include "XInputGamepad.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -16,37 +16,27 @@ namespace MGDF { namespace core { namespace input { namespace xinput {
 
 IInputManagerComponent *CreateXInputManagerComponent()
 {
-	try {
-		return new XInputManagerComponent();
-	}
-	catch (...)
-	{
-		return nullptr;
-	}
-}
-
-void XInputManagerComponent::Dispose()
-{
-	delete this;
+	return new XInputManagerComponent();
 }
 
 XInputManagerComponent::XInputManagerComponent()
+	: _pendingShowCursor(false)
+	, _showCursor(false)
+	, _pendingMouseX(0)
+	, _pendingMouseY(0)
+	, _pendingMouseDX(0L)
+	, _pendingMouseDY(0L)
+	, _pendingMouseDZ(0)
+	, _mouseDX(0L)
+	, _mouseDY(0L)
+	, _mouseDZ(0)
+	, _pendingKeyDownEventsLength(0)
+	, _pendingKeyPressEventsLength(0)
 {
 	for (INT32 i=0;i<4;++i) {
 		_gamepads.Add(new XInputGamepad(i));
 	}
 
-	_pendingShowCursor = false;
-	_showCursor = false;
-
-	_pendingMouseX = 0;
-	_pendingMouseY = 0;
-	_pendingMouseDX = 0L;
-	_pendingMouseDY = 0L;
-	_pendingMouseDZ = 0;
-	_mouseDX = 0L;
-	_mouseDY = 0L;
-	_mouseDZ = 0;
 	ZeroMemory(_pendingMouseButtonDown,sizeof(_pendingMouseButtonDown));
 	ZeroMemory(_pendingMouseButtonClick,sizeof(_pendingMouseButtonClick));
 	ZeroMemory(_mouseButtonDown,sizeof(_mouseButtonDown));
@@ -54,9 +44,7 @@ XInputManagerComponent::XInputManagerComponent()
 
 	ZeroMemory(_pendingKeyDown,sizeof(_pendingKeyDown));
 	ZeroMemory(_pendingKeyDownEvents,sizeof(_pendingKeyDownEvents));
-	_pendingKeyDownEventsLength = 0;
 	ZeroMemory(_pendingKeyPressEvents,sizeof(_pendingKeyPressEvents));
-	_pendingKeyPressEventsLength = 0;
 	ZeroMemory(_keyDown,sizeof(_keyDown));
 	ZeroMemory(_keyPress,sizeof(_keyPress));
 }

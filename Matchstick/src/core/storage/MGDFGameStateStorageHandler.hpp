@@ -1,7 +1,6 @@
 #pragma once
 
 #include <MGDF/MGDFVersion.hpp>
-#include <MGDF/MGDFDisposable.hpp>
 #include <exception>
 #include <string>
 #include <vector>
@@ -9,9 +8,10 @@
 
 namespace MGDF { namespace core { namespace storage {
 
-class IGameStateStorageHandler: public IDisposable
+class IGameStateStorageHandler
 {
 public:
+	virtual ~IGameStateStorageHandler(){}
 	virtual void Load(const std::wstring &load)=0;
 	virtual void Save(const std::wstring &save) const=0;
 

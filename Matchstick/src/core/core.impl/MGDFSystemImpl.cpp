@@ -18,8 +18,8 @@
 
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -40,46 +40,42 @@ void ISystemImpl::AddFatalErrorCallback(const FatalErrorFunction::slot_type& cal
 }
 
 System::System(Game *game)
+	: _game(game)
+	, _saves(nullptr)
+	, _module(nullptr)
+	, _version(VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION()))
+	, _storage(Components::Instance().Get<storage::IStorageFactoryComponent>())
+	, _input(Components::Instance().Get<input::IInputManagerComponent>())
+	, _sound(Components::Instance().Get<audio::ISoundManagerComponent>())
+	, _vfs(Components::Instance().Get<vfs::IVirtualFileSystemComponent>())
+	, _graphics(nullptr)
+	, _stats(new StatisticsManager())
+	, _d3dDevice(nullptr)
 {
-	_game = game;
-	_saves = nullptr;
-	_module = nullptr;
-	_version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION());
 	_lastError.Description=nullptr;
 	_lastError.Sender=nullptr;
 
-	_storage = Components::Instance().Get<storage::IStorageFactoryComponent>();
-	_input = Components::Instance().Get<input::IInputManagerComponent>();
-	_sound = Components::Instance().Get<audio::ISoundManagerComponent>();
-	_vfs = Components::Instance().Get<vfs::IVirtualFileSystemComponent>();
-	_graphics = nullptr;
-
-	_stats = new StatisticsManager();
-	_d3dDevice = nullptr;
-
+	_ASSERTE(game);
 	_moduleFactory = new ModuleFactory(_game);
 
 	//map essential directories to the vfs
 	//ensure the vfs automatically enumerates zip files
-	_vfs->RegisterArchiveHandler(vfs::CreateZipArchiveHandlerImpl(GetLoggerImpl(),this));
+	_vfs->RegisterArchiveHandler(vfs::zip::CreateZipArchiveHandlerImpl(this));
 
 	//ensure the vfs enumerates any custom defined archive formats
-	ICustomArchiveHandlers *customHandlers = _moduleFactory->GetCustomArchiveHandlers();
-	if (customHandlers!=nullptr) {
-		UINT32 length = 0;
-		customHandlers->GetHandlers(nullptr,&length,GetLoggerImpl(),this);
+	UINT32 length = 0;
+	_moduleFactory->GetCustomArchiveHandlers(nullptr,&length,&Logger::Instance(),this);
+	if (length > 0) {
 		IArchiveHandler **handlers = new IArchiveHandler *[length];
-		customHandlers->GetHandlers(handlers,&length,GetLoggerImpl(),this);
-		for (UINT32 i=0;i<length;++i) 
-		{
+		_moduleFactory->GetCustomArchiveHandlers(handlers,&length,&Logger::Instance(),this);
+		for (UINT32 i=0;i<length;++i)  {
 			_vfs->RegisterArchiveHandler(handlers[i]);
 		}
 		delete[] handlers;
-		delete customHandlers;
 	}
 
 	//enumerate the current games content directory
-	_vfs->MapDirectory(Resources::Instance().ContentDir().c_str(),Resources::VFS_CONTENT().c_str(),nullptr,true);
+	_vfs->Mount(Resources::Instance().ContentDir().c_str());
 
 	//set the initial sound volumes
 	if (_sound!=nullptr)
@@ -88,81 +84,50 @@ System::System(Game *game)
 		_sound->SetStreamVolume((float)atof(_game->GetPreference(PreferenceConstants::MUSIC_VOLUME)));
 	}
 
-	GetLogger()->Add(THIS_NAME,"Initialised system components successfully",LOG_LOW);
+	LOG("Initialised system components successfully",LOG_LOW);
 }
 
-std::string System::GetSystemInformation(SystemStats *stats)
+std::string System::GetSystemInformation(SystemStats &stats)
 {
+	Timings timings;
+	stats.GetTimings(timings);
+
 	std::stringstream ss;
 	ss.setf(std::ios::fixed);
 	ss.precision(4);
 
-	std::vector<std::pair<const char *,double> > cpuCounters;
-	std::vector<std::pair<const char *,double> > gpuCounters;
+	ss << "MGDF Version: " << MGDFVersionInfo::MGDF_VERSION() << "\r\nMGDF Interface version: " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
+	ss << "\r\nPerformance Statistics:\r\n";
 
-	//lock as this method is called from the render thread and we
-	//dont want the sim thread modifying the cpu counters while we
-	//enumerate them
-	{
-		boost::mutex::scoped_lock lock(_timer.Mutex());
+	ss << "Render Thread\r\n";
+	ss << " FPS : ";
+	if (timings.AvgRenderTime==0)
+		ss << "N/A\r\n";
+	else 
+		ss << 1/timings.AvgRenderTime << "\r\n";
+	ss << " Render CPU : " << timings.AvgActiveRenderTime << "\r\n";
+	ss << " Idle CPU : " << timings.AvgRenderTime-timings.AvgActiveRenderTime << "\r\n";
 
-		_timer.GetCounterAverages(cpuCounters,gpuCounters);
+	ss << "\r\nSim Thread\r\n";
+	ss << " Expected FPS : ";
+	if (timings.ExpectedSimTime==0)
+		ss << "N/A\r\n";
+	else 
+		ss << 1/timings.ExpectedSimTime << "\r\n";
 
-		ss << "MGDF Version: " << MGDFVersionInfo::MGDF_VERSION() << "\r\nMGDF Interface version: " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
+	ss << " Actual FPS : ";
+	if (timings.AvgSimTime==0)
+		ss << "N/A\r\n";
+	else 
+		ss << 1/timings.AvgSimTime << "\r\n";
 
-		ss << "\r\nPerformance Statistics:\r\n";
+	ss << " Input CPU : " << timings.AvgSimInputTime << "\r\n";
+	ss << " Audio CPU : " << timings.AvgSimAudioTime << "\r\n";
+	ss << " Other CPU : " << timings.AvgActiveSimTime << "\r\n";
+	ss << " Idle CPU : " << (timings.AvgSimTime - timings.AvgActiveSimTime - timings.AvgSimInputTime - timings.AvgSimAudioTime) << "\r\n";
 
-		ss << "Render Thread\r\n";
-		ss << " FPS : ";
-		double avgRenderTime = stats->AvgRenderTime();
-		if (avgRenderTime==0)
-			ss << "N/A\r\n";
-		else 
-			ss << 1/avgRenderTime << "\r\n";
-		double activeRenderTime = stats->AvgActiveRenderTime();
-		ss << " Render CPU : " << activeRenderTime << "\r\n";
-		ss << " Idle CPU : " << avgRenderTime-activeRenderTime << "\r\n";
+	_timer.GetCounterInformation(ss);
 
-		ss << "\r\nSim Thread\r\n";
-		ss << " Expected FPS : ";
-		if (stats->ExpectedSimTime()==0)
-			ss << "N/A\r\n";
-		else 
-			ss << 1/stats->ExpectedSimTime() << "\r\n";
-
-		ss << " Actual FPS : ";
-		double simTime = stats->SimTime();
-		if (simTime==0)
-			ss << "N/A\r\n";
-		else 
-			ss << 1/simTime << "\r\n";
-
-		double simInputTime = stats->AvgSimInputTime();
-		double simAudioTime = stats->AvgSimAudioTime();
-		double activeSimTime = stats->AvgActiveSimTime();
-		ss << " Input CPU : " << simInputTime << "\r\n";
-		ss << " Audio CPU : " << simAudioTime << "\r\n";
-		ss << " Other CPU : " << activeSimTime << "\r\n";
-		ss << " Idle CPU : " << simTime - (activeSimTime+simInputTime+simAudioTime) << "\r\n";
-
-		if (gpuCounters.size()>0)
-		{
-			ss << "\r\nGPU\r\n";
-			for (auto iter = gpuCounters.begin();iter!=gpuCounters.end();++iter)
-			{
-				ss << " " << iter->first << " : " << iter->second << "\r\n";
-			}
-		}
-
-		if (cpuCounters.size()>0)
-		{
-			ss << "\r\nCPU\r\n";
-			for (auto iter = cpuCounters.begin();iter!=cpuCounters.end();++iter)
-			{
-				ss << " " << iter->first << " : " << iter->second << "\r\n";
-			}
-		}
-	}
 	return ss.str();
 }
 
@@ -170,9 +135,9 @@ void System::DisposeModule()
 {
 	if (_module!=nullptr && !_module->Dispose()) {
 		_module = nullptr;
-		FatalError(THIS_NAME,"Error disposing module");
+		FATALERROR(this,"Error disposing module");
 	}
-	GetLoggerImpl()->Add(THIS_NAME,"Freed module successfully");
+	LOG("Freed module successfully",LOG_LOW);
 }
 
 System::~System(void)
@@ -185,10 +150,10 @@ System::~System(void)
 		}
 		delete _saves;
 	}
-	SAFE_DELETE(_game);
-	SAFE_DELETE(_stats);
-	SAFE_DELETE(_graphics);
-	SAFE_DELETE(_moduleFactory);
+	delete _game;
+	delete _stats;
+	delete _graphics;
+	delete _moduleFactory;
 
 	//clear out error information
 	if (_lastError.Description!=nullptr)
@@ -200,7 +165,7 @@ System::~System(void)
 		delete[] _lastError.Sender;
 	}
 
-	GetLogger()->Add(THIS_NAME,"Uninitialised system successfully",LOG_LOW);
+	LOG("Uninitialised system successfully",LOG_LOW);
 }
 
 void System::SetD3DDevice(ID3D11Device *d3dDevice)
@@ -218,7 +183,7 @@ void System::CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter)
 {
 	_graphics = new GraphicsManager(device,adapter);
 	if (_graphics->GetAdaptorModes()->Size()==0) {
-		FatalError(THIS_NAME,"No compatible adaptor modes found");
+		FATALERROR(this,"No compatible adaptor modes found");
 	}
 	_graphics->LoadPreferences(_game);
 }
@@ -237,7 +202,7 @@ INT32 System::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,Versi
 
 	if (loadDataDir.size()+1>UINT32_MAX)
 	{
-		FatalError(THIS_NAME,"Unable to store load data path in 32bit buffer");
+		FATALERROR(this,"Unable to store load data path in 32bit buffer");
 		return -1;
 	}
 
@@ -250,26 +215,21 @@ INT32 System::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,Versi
 	{
 		*size = static_cast<UINT32>(loadDataDir.size())+1;
 		memcpy(loadBuffer,loadDataDir.c_str(),sizeof(wchar_t) * (*size));
-		try
+
+		std::auto_ptr<storage::IGameStateStorageHandler> handler(_storage->CreateGameStateStorageHandler(_game->GetUid(),_game->GetVersion()));
+		try 
 		{
-			std::auto_ptr<storage::IGameStateStorageHandler> handler(_storage->CreateGameStateStorageHandler(_game->GetUid(),_game->GetVersion()));
-			try 
-			{
-				handler->Load(loadFile);
-				version = *handler->GetVersion();
-				return 0;
-			}
-			catch (MGDFException ex)
-			{
-				FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(loadDir)+" - "+ex.what());
-			}
-			catch (...)
-			{
-				FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(loadDir));
-			}
+			handler->Load(loadFile);
+			version = *handler->GetVersion();
+			return 0;
 		}
-		catch (MGDFException e) {
-			FatalError(THIS_NAME,e.what());	
+		catch (MGDFException ex)
+		{
+			FATALERROR(this,"Unable to load game state data from "+Resources::ToString(loadDir)+" - "+ex.what());
+		}
+		catch (...)
+		{
+			FATALERROR(this,"Unable to load game state data from "+Resources::ToString(loadDir));
 		}
 		return -1;
 	}
@@ -284,7 +244,7 @@ INT32 System::BeginSave(const char *save, wchar_t *saveBuffer, UINT32 *size)
 	{
 		if (!isalnum(*iter) && *iter!=' ') 
 		{
-			SetLastError(THIS_NAME,MGDF_ERR_INVALID_SAVE_NAME,(saveName+" is an invalid save name. Only alphanumeric characters and the space character are permitted").c_str());
+			SETLASTERROR(this,MGDF_ERR_INVALID_SAVE_NAME,saveName << " is an invalid save name. Only alphanumeric characters and the space character are permitted");
 			return -1;
 		}
 	}
@@ -295,7 +255,7 @@ INT32 System::BeginSave(const char *save, wchar_t *saveBuffer, UINT32 *size)
 
 	if (saveBufferContent.size()+1>UINT32_MAX)
 	{
-		FatalError(THIS_NAME,"Unable to store save data path in 32bit buffer");
+		FATALERROR(this,"Unable to store save data path in 32bit buffer");
 		return -1;
 	}
 
@@ -331,7 +291,7 @@ INT32 System::BeginSave(const char *save, wchar_t *saveBuffer, UINT32 *size)
 	}
 	catch (...)
 	{
-		FatalError(THIS_NAME,"Unable to load game state data from "+Resources::ToString(saveBufferContent));
+		FATALERROR(this,"Unable to load game state data from " << Resources::ToString(saveBufferContent));
 		return -1;
 	}
 }
@@ -349,7 +309,7 @@ bool System::CompleteSave(const char *save)
 
 		if (!exists(pendingSaveDir)) 
 		{
-			SetLastError(THIS_NAME,MGDF_ERR_NO_PENDING_SAVE,(saveName+" is not a pending save. Ensure that BeginSave is called with a matching save name before calling CompleteSave").c_str());
+			SETLASTERROR(this,MGDF_ERR_NO_PENDING_SAVE,saveName << " is not a pending save. Ensure that BeginSave is called with a matching save name before calling CompleteSave");
 			return false;
 		}
 
@@ -382,7 +342,7 @@ bool System::CompleteSave(const char *save)
 	}
 	catch (...)
 	{
-		FatalError(THIS_NAME,"Unable to complete loading game state data");
+		FATALERROR(this,"Unable to complete loading game state data");
 		return false;
 	}
 }
@@ -409,7 +369,7 @@ void System::Initialize() {
 		//init the module
 		if (!_module->New(Resources::Instance().WorkingDir().c_str()))
 		{
-			FatalError(THIS_NAME,"Error initialising module - "+std::string(_module->GetLastError()));
+			FATALERROR(this,"Error initialising module - " << _module->GetLastError());
 		}
 	}
 }
@@ -422,14 +382,14 @@ IModule *System::CreateModule()
 	IModule *module=nullptr;
 
 	if (!_moduleFactory->IsCompatibleInterfaceVersion(MGDFVersionInfo::MGDF_INTERFACE_VERSION)) {
-		FatalError(THIS_NAME,"MGDF Interface version "+boost::lexical_cast<std::string>(MGDFVersionInfo::MGDF_INTERFACE_VERSION)+" is not compatible");
+		FATALERROR(this,"MGDF Interface version " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << " is not compatible");
 	}
 
 	//create the module
 	module = _moduleFactory->GetModule(this);
 
 	if (module==nullptr) {
-		FatalError(THIS_NAME,"Unable to create module class");
+		FATALERROR(this,"Unable to create module class");
 	}
 
 	return module;
@@ -442,7 +402,7 @@ IModule *System::GetModule() const {
 	return _module;
 }
 
-void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex)
+void System::UpdateScene(double simulationTime,SystemStats &stats)
 {
 	LARGE_INTEGER inputStart = _timer.GetCurrentTimeTicks();
 	_input->ProcessSim();
@@ -452,15 +412,13 @@ void System::UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &
 	if (_sound!=nullptr) _sound->Update();
 	LARGE_INTEGER audioEnd = _timer.GetCurrentTimeTicks();
 
-	{
-		boost::mutex::scoped_lock lock(statsMutex);
-		stats->AppendSimInputTime(_timer.ConvertDifferenceToSeconds(inputEnd,inputStart));
-		stats->AppendSimAudioTime(_timer.ConvertDifferenceToSeconds(audioEnd,audioStart));
-	}
+	stats.AppendSimInputAndAudioTimes(
+		_timer.ConvertDifferenceToSeconds(inputEnd,inputStart),
+		_timer.ConvertDifferenceToSeconds(audioEnd,audioStart));
 
 	if (_module!=nullptr) {
 		if (!_module->UpdateScene(simulationTime)) {
-			FatalError(THIS_NAME,"Error updating scene in module - "+std::string(_module->GetLastError()));		
+			FATALERROR(this,"Error updating scene in module - " << _module->GetLastError());		
 		}
 	}
 }
@@ -472,7 +430,7 @@ void System::DrawScene(double alpha)
 	{
 		if (!_module->DrawScene(alpha))
 		{
-			FatalError(THIS_NAME,"Error drawing scene in module - "+std::string(_module->GetLastError()));		
+			FATALERROR(this,"Error drawing scene in module - " << _module->GetLastError());		
 		}
 	}
 	_timer.End();
@@ -482,7 +440,7 @@ void System::BackBufferChanged()
 {
 	if (_module!=nullptr) {
 		if (!_module->BackBufferChanged()) {
-			FatalError(THIS_NAME,"Error handling back buffer change in module - "+std::string(_module->GetLastError()));
+			FATALERROR(this,"Error handling back buffer change in module - " << _module->GetLastError());
 		}
 	}
 }
@@ -491,10 +449,11 @@ void System::FatalError(const char *sender,const char *message)
 {
 	boost::mutex::scoped_lock lock(_mutex);
 
-	std::string fullMessage = "FATAL ERROR: ";
-	GetLoggerImpl()->Add(sender,(fullMessage+message).c_str(),LOG_ERROR);
-	GetLoggerImpl()->Add(THIS_NAME,"notified of fatal error, telling module to panic");
-	GetLoggerImpl()->Flush();
+	std::ostringstream ss;
+	ss << "FATAL ERROR: " << message;
+	Logger::Instance().Add(sender,ss.str().c_str(),LOG_ERROR);
+	LOG("Notified of fatal error, telling module to panic",LOG_ERROR);
+	Logger::Instance().Flush();
 
 	if (_module!=nullptr)
 	{
@@ -611,7 +570,7 @@ GraphicsManager *System::GetGraphicsImpl() const
 
 ILogger *System::GetLogger() const
 {
-	return GetLoggerImpl();
+	return &Logger::Instance();
 }
 
 ITimer * System::GetTimer() const

@@ -4,7 +4,6 @@
 
 #include <boost/lexical_cast.hpp>
 #include "../../src/core/common/MGDFResources.hpp"
-#include "../../src/core/common/MGDFUniqueIDAllocator.hpp"
 
 using namespace MGDF::core;
 

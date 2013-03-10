@@ -1,28 +1,24 @@
 #pragma once
 
 #include <string>
-#include <boost/unordered_map.hpp>
+#include <map>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
 /**
  abstract class which contains the common functionality to default file instances aswell as the zip and other archive file implementations
  of the standard ifile interface
 */
-class FakeFile : public MGDF::DisposeImpl<MGDF::IFile>
+class FakeFile : public MGDF::IFile
 {
 public:
-	FakeFile(IFile *parent,const std::wstring &physicalFile,const std::wstring &name);
-	FakeFile(FakeFile *parent,const std::wstring &name,void *data,size_t dataLength);//NULL data indicates a folder
+	FakeFile(const std::wstring &name,const std::wstring &physicalFile,IFile *parent);
+	FakeFile(const std::wstring &name,FakeFile *parent,void *data,size_t dataLength);//NULL data indicates a folder
 	void AddChild(MGDF::IFile *file);
 	virtual ~FakeFile(void);
 
-	virtual void Dispose();
 	virtual MGDF::IFile *GetParent() const;
-	virtual MGDF::IFileIterator *GetIterator();
-	virtual MGDF::IFile *GetDescendant(const wchar_t * query);
-	virtual MGDF::IFile *GetFirstChild();
-	virtual MGDF::IFile *GetLastChild();
 	virtual MGDF::IFile *GetChild(const wchar_t *name);
+	virtual bool GetAllChildren(const MGDF::IFileFilter *filter,IFile **childBuffer,size_t *bufferLength);
 	virtual size_t GetChildCount();
 	virtual const wchar_t* GetLogicalPath();
 
@@ -42,7 +38,7 @@ public:
 	virtual const wchar_t *GetName() const;
 	virtual time_t GetLastWriteTime() const;
 protected:
-	boost::unordered_map<std::wstring,MGDF::IFile *> *_children;
+	std::map<const wchar_t *,MGDF::IFile *> *_children;
 	MGDF::IFile *_parent;
 	std::wstring _logicalPath;
 	std::wstring _name;
@@ -52,22 +48,4 @@ protected:
 	void *_data;
 	INT32 _position;
 	bool _isOpen;
-};
-
-class FakeFileIterator: public MGDF::DisposeImpl<MGDF::IFileIterator>
-{ 
-	friend class FakeFile;
-public:
-	virtual ~FakeFileIterator(){};
-	virtual MGDF::IFile *Current() const;
-	virtual MGDF::IFile *Next();
-	virtual bool HasNext() const;
-	virtual void Dispose();
-private:
-	FakeFileIterator() : _isEmpty(true) {};
-	FakeFileIterator(boost::unordered_map<std::wstring,MGDF::IFile *>::iterator mapIter,boost::unordered_map<std::wstring,MGDF::IFile *>::iterator mapIterEnd): _mapIter(mapIter) , _mapIterEnd(mapIterEnd), _isEmpty(false) {};
-
-	bool _isEmpty;
-	boost::unordered_map<std::wstring,MGDF::IFile *>::iterator _mapIter;
-	boost::unordered_map<std::wstring,MGDF::IFile *>::iterator _mapIterEnd;
 };

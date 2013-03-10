@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="filters">
-      <UniqueIdentifier>{fbea8ec2-7428-4b3d-8cf6-4f0323507d68}</UniqueIdentifier>
-    </Filter>
     <Filter Include="archive">
       <UniqueIdentifier>{08cbd65d-e2e0-4f1f-ba2c-826ffcdf614f}</UniqueIdentifier>
     </Filter>
@@ -15,18 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="filters\MGDFExtensionFilter.cpp">
-      <Filter>filters</Filter>
-    </ClCompile>
-    <ClCompile Include="filters\MGDFFileFilterFactory.cpp">
-      <Filter>filters</Filter>
-    </ClCompile>
-    <ClCompile Include="filters\MGDFFilterBase.cpp">
-      <Filter>filters</Filter>
-    </ClCompile>
-    <ClCompile Include="filters\MGDFNameFilter.cpp">
-      <Filter>filters</Filter>
-    </ClCompile>
     <ClCompile Include="archive\zip\ZipArchive.cpp">
       <Filter>archive\zip</Filter>
     </ClCompile>
@@ -34,12 +19,6 @@
       <Filter>archive\zip</Filter>
     </ClCompile>
     <ClCompile Include="archive\zip\ZipFileImpl.cpp">
-      <Filter>archive\zip</Filter>
-    </ClCompile>
-    <ClCompile Include="archive\zip\ZipFileRoot.cpp">
-      <Filter>archive\zip</Filter>
-    </ClCompile>
-    <ClCompile Include="archive\zip\ZipFolderImpl.cpp">
       <Filter>archive\zip</Filter>
     </ClCompile>
     <ClCompile Include="MGDFDefaultFileImpl.cpp">
@@ -51,26 +30,16 @@
     <ClCompile Include="MGDFFileBaseImpl.cpp">
       <Filter>file</Filter>
     </ClCompile>
-    <ClCompile Include="MGDFFolderBaseImpl.cpp">
-      <Filter>file</Filter>
-    </ClCompile>
-    <ClCompile Include="MGDFAlias.cpp" />
     <ClCompile Include="MGDFVirtualFileSystemComponentImpl.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="archive\zip\ZipFileRoot.cpp">
+      <Filter>archive\zip</Filter>
+    </ClCompile>
+    <ClCompile Include="archive\zip\ZipFolderImpl.cpp">
+      <Filter>archive\zip</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="filters\MGDFExtensionFilter.hpp">
-      <Filter>filters</Filter>
-    </ClInclude>
-    <ClInclude Include="filters\MGDFFileFilterFactory.hpp">
-      <Filter>filters</Filter>
-    </ClInclude>
-    <ClInclude Include="filters\MGDFFilterBase.hpp">
-      <Filter>filters</Filter>
-    </ClInclude>
-    <ClInclude Include="filters\MGDFNameFilter.hpp">
-      <Filter>filters</Filter>
-    </ClInclude>
     <ClInclude Include="archive\zip\ZipArchive.hpp">
       <Filter>archive\zip</Filter>
     </ClInclude>
@@ -98,7 +67,6 @@
     <ClInclude Include="MGDFFolderBaseImpl.hpp">
       <Filter>file</Filter>
     </ClInclude>
-    <ClInclude Include="MGDFAlias.hpp" />
     <ClInclude Include="MGDFVirtualFileSystemComponentImpl.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

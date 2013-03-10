@@ -20,7 +20,7 @@ public:
 	virtual void OnBackBufferChanged(ID3D11Texture2D *backBuffer);
 	virtual void UpdateScene(double elapsedTime);
 	virtual void DrawScene(double alpha);
-	virtual void FatalError(const std::string &message);
+	virtual void FatalError(const char *sender,const char *message);
 	virtual void ExternalClose();
 	virtual void OnRawInput(RAWINPUT *input);
 	virtual void OnMouseInput(INT32 x,INT32 y);

@@ -3,7 +3,7 @@
 #include <MGDF/MGDF.hpp>
 #include "Module.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
+
 #if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
@@ -52,7 +52,8 @@ MGDF::IModule *MGDF::GetModule(MGDF::ISystem *system) {
 }
 
 //register custom archive handlers
-MGDF::ICustomArchiveHandlers * MGDF::GetCustomArchiveHandlers(void)
+bool MGDF::GetCustomArchiveHandlers(IArchiveHandler **list,UINT32 *length,ILogger *logger,IErrorHandler *errorHandler)
 {
-	return NULL;
+	*length = 0;
+	return true;
 }

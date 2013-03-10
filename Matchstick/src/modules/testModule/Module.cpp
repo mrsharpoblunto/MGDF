@@ -4,7 +4,7 @@
 #include "Test3.hpp"
 #include <fstream>
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
+
 #if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
@@ -16,8 +16,8 @@ Module::~Module(void)
 	delete _textManager;
 	if (_testModule!=nullptr) delete _testModule;
 
-	if (_textManagerCounter) _system->GetTimer()->RemoveCounter(_textManagerCounter);
-	if (_testModuleCounter) _system->GetTimer()->RemoveCounter(_testModuleCounter);
+	if (_textManagerCounter) _textManagerCounter->Dispose();
+	if (_testModuleCounter) _testModuleCounter->Dispose();
 }
 
 Module::Module(ISystem *system)

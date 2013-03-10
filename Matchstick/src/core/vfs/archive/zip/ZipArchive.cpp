@@ -1,19 +1,19 @@
 #include "stdafx.h"
 
 #include <algorithm>
-#include <cctype>//std::tolower
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "../../../common/MGDFExceptions.hpp"
 #include "../../../common/MGDFResources.hpp"
+#include "../../../common/MGDFLoggerImpl.hpp"
 #include "ZipFileRoot.hpp"
 #include "ZipFileImpl.hpp"
 #include "ZipFolderImpl.hpp"
 #include "ZipArchiveHandlerImpl.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -24,187 +24,137 @@ namespace MGDF { namespace core { namespace vfs { namespace zip {
 
 #define FILENAME_BUFFER 512
 
-ZipArchive::ZipArchive(ILogger *logger,IErrorHandler *errorHandler): _refCount(0)
+ZipArchive::ZipArchive(IErrorHandler *errorHandler)
+	: _errorHandler( errorHandler )
+	, _root( nullptr )
 {
-	_logger = logger;
-	_errorHandler = errorHandler;
-	_archiveRoot = nullptr;
 }
 
 ZipArchive::~ZipArchive(){
-	for (auto iter = _archiveFiles.begin();iter!=_archiveFiles.end();++iter) {
-		delete (*iter);
-	}
-
-	for (auto iter = _archiveData.begin();iter!=_archiveData.end();++iter) {
-		delete iter->second;
-	}
-
 	if (_zip)
 		unzClose(_zip);
 }
 
-IFile *ZipArchive::GetArchiveRoot()
+ZipFileRoot *ZipArchive::MapArchive(const wchar_t *name,const wchar_t * physicalPath,IFile *parent) 
 {
-	return _archiveRoot;
-}
+	_ASSERTE(name);
+	_ASSERTE(physicalPath);
 
-void ZipArchive::DecRefCount()
-{
-	if (_refCount>0) {
-	--_refCount;
-	}
-}
-
-void ZipArchive::IncRefCount()
-{
-	++_refCount;
-}
-
-UINT32 ZipArchive::GetRefCount()
-{
-	return _refCount;
-}
-
-IFile *ZipArchive::MapArchive(IFile *parent,const wchar_t * archiveFile) 
-{
-	_zip = unzOpen(archiveFile);
+	_zip = unzOpen(physicalPath);
 	
 	if (_zip) {
-		_archiveRoot = new ZipFileRoot(archiveFile,_logger,_errorHandler);
-		((FileBaseImpl *)_archiveRoot)->SetParent(parent);
+		_root = new ZipFileRoot(name,physicalPath,parent,_errorHandler);
 
 		// We need to map file positions to speed up opening later
 		for (INT32 ret = unzGoToFirstFile(_zip); ret == UNZ_OK; ret = unzGoToNextFile(_zip)) {
 			unz_file_info info;
-			char fname[FILENAME_BUFFER];
-			std::string name;
+			char name[FILENAME_BUFFER];
 
-			unzGetCurrentFileInfo(_zip, &info, fname, FILENAME_BUFFER, nullptr, 0, nullptr, 0);
-
-			//get the name and convert it to lower case
-			name = fname;
-			std::transform(name.begin(), name.end(), name.begin(), std::tolower);
+			unzGetCurrentFileInfo(_zip, &info, name, FILENAME_BUFFER, nullptr, 0, nullptr, 0);
 
 			//if the path is for a folder the last element will be a "" element (because all path element names
 			//found using zlib include a trailing "/") this means that the entire folder tree will be created
 			//in the case of folders, and that the last element will be excluded for files which is the desired behaviour
-			std::wstring filename;
-			IFile *parentFile = CreateParentFile(Resources::ToWString(name),_archiveRoot,&filename);
+			const wchar_t *filename=nullptr;
+			std::wstring path = Resources::ToWString(name);
+			IFile *parentFile = CreateParentFile(path,_root,&filename);
 
 			if (info.uncompressed_size > 0) {
-				ZipFileInformation *zfInfo = new ZipFileInformation();
-				unzGetFilePos(_zip, &zfInfo->filePosition);
-				zfInfo->size = info.uncompressed_size;
-				zfInfo->name = filename;//the name is the last part of the path
+				_ASSERTE(filename);
+				ZipFileHeader header;
+				unzGetFilePos(_zip, &header.filePosition);
+				header.size = info.uncompressed_size;
+				header.name = filename;//the name is the last part of the path
 
-				_archiveFiles.push_back(zfInfo);
-				ZipFileImpl *zipFile = new ZipFileImpl(this,(UINT32)_archiveFiles.size()-1);
-				((FileBaseImpl *)zipFile)->SetParent(parentFile);
-				((FileBaseImpl *)parentFile)->AddChild(zipFile);
+				ZipFileImpl *zipFile = new ZipFileImpl(parentFile,this,std::move(header));
+				static_cast<FileBaseImpl *>(parentFile)->AddChild(zipFile);
 			}
 		}
 	}
 	else {
-		std::string message = "Could not open archive ";
-		_logger->Add(THIS_NAME,(message+Resources::ToString(archiveFile)).c_str(),LOG_ERROR);
+		LOG("Could not open archive " << Resources::ToString(physicalPath),LOG_ERROR);
 		return nullptr;
 	}
 
-	return _archiveRoot;
+	return _root;
 }
 
-IFile *ZipArchive::CreateParentFile(const std::wstring &path,IFile *rootNode,std::wstring *filename) {
+IFile *ZipArchive::CreateParentFile(std::wstring &path,IFile *root,const wchar_t **filename) 
+{
+	_ASSERTE( root );
+	_ASSERTE(path.size());
 
-	IFile *currentFile = rootNode;
-
-	size_t startIndex=0;
-	wchar_t *p = new wchar_t[path.size()+1];
-	wcsncpy_s(p,path.size()+1,path.c_str(),path.size());
-
-	for (size_t i = 0;i<path.size();++i) {
-		if (p[i]==L'/')
-		{
-			p[i] = L'\0';
-			IFile *child = ((FileBaseImpl *)currentFile)->GetChildInternal(&(p[startIndex]));
-			if (child == nullptr) {
-				std::wstring childName = &p[startIndex];
-				child = new ZipFolderImpl(this,childName);
-				((FileBaseImpl *)child)->SetParent(currentFile);
-				((FileBaseImpl *)currentFile)->AddChild(child);
-			}
-			currentFile = child;
-			startIndex = i+1;
-		}
+	size_t len = path.rfind('/');
+	if (len == std::wstring::npos) {
+		*filename = path.data();
+		len = 0;
+	}
+	else {
+		path[len] = '\0';
+		*filename = &path.data()[len + 1];
 	}
 
-	if (startIndex<path.size()) *filename = &p[startIndex];
-	delete[] p;
-	return currentFile;
+	size_t start = 0;
+	size_t end = 0;
+	IFile *parent = root;
+
+	while (end<len)
+	{
+		while (end < len && path[end]!='/') {
+			++end;
+		}
+		if (end != start) {
+			path[end] = '\0';
+			IFile *child = parent->GetChild(&path[start]);
+			if (!child) {
+				child = new ZipFolderImpl(&path[start],parent,this);
+				static_cast<FileBaseImpl *>(parent)->AddChild(child);
+			}
+			parent = child;
+		}
+		++end;
+		start = end;
+	}
+
+	return parent;
 }
 
-bool ZipArchive::OpenFile(UINT32 key)
+bool ZipArchive::GetFileData(ZipFileHeader &header,ZipFileData &data)
 {
-	//if the entry is already in the hashmap then the file is already open
+	//if the entry is already in the map then the file is already open
 	//if its not in the hashmap then open it
-	if (_archiveData.find(key)==_archiveData.end()) {
-		unzGoToFilePos(_zip,&_archiveFiles[key]->filePosition);
+	unzGoToFilePos(_zip,&header.filePosition);
 
 
-		if (_archiveFiles[key]->size>UINT32_MAX)
-		{
-			std::string message = "Archive files cannot be over 4GB in size";
-			_logger->Add(THIS_NAME,(message+" "+Resources::ToString(_archiveFiles[key]->name)).c_str(),LOG_ERROR);
-			_errorHandler->SetLastError(THIS_NAME,MGDF_ERR_ARCHIVE_FILE_TOO_LARGE,message.c_str());
-			return false;
-		}
+	if (header.size>UINT32_MAX)
+	{
+		std::string message = "Archive files cannot be over 4GB in size";
+		LOG("Archive files cannot be over 4GB in size " << Resources::ToString(header.name),LOG_ERROR);
+		SETLASTERROR(_errorHandler,MGDF_ERR_ARCHIVE_FILE_TOO_LARGE,message.c_str());
+		return false;
+	}
 
-		ZipFileData *zfData = new ZipFileData();
-		zfData->readPosition = 0;
-		zfData->data = (char *)malloc(static_cast<UINT32>(_archiveFiles[key]->size));
+	data.readPosition = 0;
+	data.data = (char *)malloc(static_cast<UINT32>(header.size));
 
-		// If anything fails, we abort and return false
-		try {
-			if (unzOpenCurrentFile(_zip) != UNZ_OK)
-				throw MGDFException("Unable to open zip archive");
-			if (unzReadCurrentFile(_zip, zfData->data, static_cast<UINT32>(_archiveFiles[key]->size)) < 0) 
-				throw MGDFException("Unable to read zip archive");
-			if (unzCloseCurrentFile(_zip) == UNZ_CRCERROR)
-				throw MGDFException("Unable to close zip archive");
-
-			//if everything has gone okay then add the file to the data cache
-			_archiveData[key] = zfData;
-			return true;
-		}
-		catch (MGDFException e) {
-			std::string message = e.what();
-			_logger->Add(THIS_NAME,(message+" "+Resources::ToString(_archiveFiles[key]->name)).c_str(),LOG_ERROR);
-			_errorHandler->SetLastError(THIS_NAME,MGDF_ERR_INVALID_ARCHIVE_FILE,e.what());
-			free(zfData->data);
-		}
+	// If anything fails, we abort and return false
+	try {
+		if (unzOpenCurrentFile(_zip) != UNZ_OK)
+			throw MGDFException("Unable to open zip archive");
+		if (unzReadCurrentFile(_zip, data.data, static_cast<UINT32>(header.size)) < 0) 
+			throw MGDFException("Unable to read zip archive");
+		if (unzCloseCurrentFile(_zip) == UNZ_CRCERROR)
+			throw MGDFException("Unable to close zip archive");
+		return true;
+	}
+	catch (MGDFException e) {
+		std::string message = e.what();
+		LOG(e.what() << ' ' << Resources::ToString(header.name),LOG_ERROR);
+		SETLASTERROR(_errorHandler,MGDF_ERR_INVALID_ARCHIVE_FILE,e.what());
+		free(data.data);
+		data.data = nullptr;
 	}
 	return false;
-}
-
-void ZipArchive::CloseFile(UINT32 key)
-{
-	auto iter = _archiveData.find(key);
-	//if the entry is in the hashmap then the file is already open, so it needs to be closed and removed from the data cache
-	if (iter!=_archiveData.end()) {
-		free(iter->second->data);
-		delete iter->second;
-		_archiveData.erase(iter);
-	}
-}
-
-ZipArchive::ZipFileData *ZipArchive::GetFileData(UINT32 key)
-{
-	return _archiveData[key];
-}
-
-ZipArchive::ZipFileInformation *ZipArchive::GetFileInformation(UINT32 key)
-{
-	return _archiveFiles[key];
 }
 
 }}}}

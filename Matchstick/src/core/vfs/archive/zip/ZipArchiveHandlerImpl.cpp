@@ -1,38 +1,41 @@
 #include "StdAfx.h"
 
+#include "ZipFileRoot.hpp"
 #include "ZipArchiveHandlerImpl.hpp"
-#include "ZipArchive.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core { namespace vfs { 
+const wchar_t *ZIP_EXT = L".zip";
 
-IArchiveHandler *CreateZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler)
+namespace MGDF { namespace core { namespace vfs { namespace zip {
+
+IArchiveHandler *CreateZipArchiveHandlerImpl(IErrorHandler *errorHandler)
 {
-	return new ZipArchiveHandlerImpl(logger,errorHandler);
+	_ASSERTE( errorHandler );
+	return new ZipArchiveHandlerImpl(errorHandler);
 }
 
-ZipArchiveHandlerImpl::ZipArchiveHandlerImpl(ILogger *logger,IErrorHandler *errorHandler)
+ZipArchiveHandlerImpl::ZipArchiveHandlerImpl(IErrorHandler *errorHandler)
+	: _errorHandler( errorHandler )
 {
-	_logger = logger;
-	_errorHandler = errorHandler;
-	_fileExtensions.push_back(L".zip");
+	_fileExtensions.push_back(ZIP_EXT);
 }
 
-ZipArchiveHandlerImpl::~ZipArchiveHandlerImpl()
+IFile *ZipArchiveHandlerImpl::MapArchive(const wchar_t * name,const wchar_t * physicalPath,IFile *parent) 
 {
-}
+	_ASSERTE(name);
+	_ASSERTE( physicalPath );
 
-IFile *ZipArchiveHandlerImpl::MapArchive(IFile *parent,const wchar_t * archiveFile) 
-{
-	zip::ZipArchive *archive = new zip::ZipArchive(_logger,_errorHandler);
-	IFile *result = archive->MapArchive(parent,archiveFile);
-	if (result==nullptr)
-	{
+	ZipArchive *archive = new ZipArchive(_errorHandler);
+	ZipFileRoot *result = archive->MapArchive(name,physicalPath,parent);
+	if (result) {
+		_archives.insert(std::pair<ZipFileRoot *,zip::ZipArchive *>(result,archive));
+	}
+	else {
 		delete archive;
 	}
 	return result;
@@ -40,27 +43,44 @@ IFile *ZipArchiveHandlerImpl::MapArchive(IFile *parent,const wchar_t * archiveFi
 
 void ZipArchiveHandlerImpl::Dispose()
 {
+	_ASSERTE( _archives.size() == 0 );
 	delete this;
+}
+
+void ZipArchiveHandlerImpl::DisposeArchive(IFile *archive)
+{
+	auto it = _archives.find(static_cast<ZipFileRoot *>(archive));
+	_ASSERTE(it != _archives.end());
+	if (it != _archives.end()) {
+		delete it->first;
+		delete it->second;
+		_archives.erase(it);
+	}
 }
 
 bool ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) const 
 {
-	std::wstring extension = GetFileExtension(std::wstring(path));
-	for(auto extIter = _fileExtensions.begin();extIter!=_fileExtensions.end();++extIter) {
-		if ((*extIter) == extension) {
+	_ASSERTE( path );
+	const wchar_t *extension = GetFileExtension(path);
+	if (!extension) return false;
+
+	for(auto it = _fileExtensions.begin();it!=_fileExtensions.end();++it) {
+		if (wcscmp(*it,extension)==0) {
 			return true;
 		}
 	}
 	return false;
 }
 
-std::wstring ZipArchiveHandlerImpl::GetFileExtension(const std::wstring &filename) const
+const wchar_t *ZipArchiveHandlerImpl::GetFileExtension(const wchar_t *filename) const
 {
-	std::wstring::size_type pos = filename.rfind('.',filename.length()-1);
-	if (pos != std::wstring::npos) {
-		return filename.substr(pos);
+	_ASSERTE( filename );
+	size_t index = wcslen(filename);
+	while (index >= 0) {
+		if (filename[index] == '.') return &filename[index];
+		--index;
 	}
-	return L"";
+	return nullptr;
 }
 
-}}}
+}}}}

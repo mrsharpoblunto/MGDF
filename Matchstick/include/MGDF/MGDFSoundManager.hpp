@@ -50,9 +50,6 @@ public:
 	\param file the data source for the sound
 	*/
 	virtual ISoundStream * CreateSoundStream(IFile *file)=0;
-
-	virtual void RemoveSound(ISound *sound)=0;
-	virtual void RemoveSoundStream(ISoundStream *soundStream)=0;
 };
 
 }

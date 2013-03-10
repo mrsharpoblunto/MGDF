@@ -11,13 +11,16 @@ namespace MGDF { namespace core { namespace vfs { namespace zip {
  */
 class ZipFileRoot: public DefaultFileImpl 
 {
-	friend class ZipArchive;
 public:
+	ZipFileRoot(const std::wstring &name,const std::wstring &physicalPath,IFile *parent,IErrorHandler *errorHandler)
+		: DefaultFileImpl(name,physicalPath,parent,errorHandler)
+		, _archiveName(name)
+	{
+	}	
 	virtual ~ZipFileRoot();
-	virtual bool IsArchive() const;
-	virtual const wchar_t *GetArchiveName() const;
+	virtual bool IsArchive() const { return true; }
+	virtual const wchar_t *GetArchiveName() const { return _archiveName.c_str();  }
 private:
-	ZipFileRoot(const std::wstring &path,ILogger *logger,IErrorHandler *errorHandler);
 	std::wstring _archiveName;
 };
 

@@ -14,7 +14,7 @@ using namespace DirectX;
 
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
-class OpenALSound: public DisposeImpl<ISound> {
+class OpenALSound: public ISound {
 friend class OpenALSoundManagerComponentImpl;
 public:
 	virtual ~OpenALSound();
@@ -44,7 +44,6 @@ public:
 	virtual bool IsPaused() const;
 	virtual bool IsPlaying() const;
 	virtual bool IsActive() const;
-
 	virtual void Dispose();
 private:
 	float GetAttenuatedVolume();
@@ -53,7 +52,7 @@ private:
 	void SetGlobalVolume(float globalVolume);
 	void Update(float attenuationFactor);
 
-	std::wstring _name;
+	const wchar_t *_name;
 	OpenALSoundManagerComponentImpl *_soundManager;
 	ALuint _sourceId,_bufferId;
 	float _innerRange,_outerRange,_volume,_globalVolume,_attenuationFactor,_pitch;

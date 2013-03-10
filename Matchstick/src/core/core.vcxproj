@@ -315,8 +315,6 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\MGDF\MGDF.hpp" />
-    <ClInclude Include="..\..\include\MGDF\MGDFCustomArchiveHandlers.hpp" />
-    <ClInclude Include="..\..\include\MGDF\MGDFDisposable.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFError.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFErrorHandler.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFGame.hpp" />

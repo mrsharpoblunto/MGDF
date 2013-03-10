@@ -12,7 +12,7 @@ error classes
 class MGDFException: public std::exception
 {
 public:
-	MGDFException(std::string message): std::exception(message.c_str()) {};
+	MGDFException(const std::string &message): std::exception(message.c_str()) {};
 	virtual ~MGDFException(){}
 };
 

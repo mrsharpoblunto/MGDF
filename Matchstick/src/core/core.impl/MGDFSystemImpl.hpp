@@ -12,7 +12,7 @@
 #include "../common/MGDFListImpl.hpp"
 #include "../common/MGDFSystemComponent.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFParameterManagerImpl.hpp"
+#include "../common/MGDFParameterManager.hpp"
 #include "../storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
 #include "../audio/MGDFSoundManagerComponentImpl.hpp"
@@ -63,7 +63,7 @@ public:
 	void Initialize();
 	virtual ~System(void);
 
-	void UpdateScene(double simulationTime,SystemStats *stats,boost::mutex &statsMutex);
+	void UpdateScene(double simulationTime,SystemStats &stats);
 	void DrawScene(double alpha);
 	void BackBufferChanged();
 	UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *featureLevelsSize);
@@ -71,7 +71,7 @@ public:
 	void CreateGraphicsImpl(ID3D11Device *device,IDXGIAdapter1 *adapter);
 	GraphicsManager *GetGraphicsImpl() const;
 	input::IInputManagerComponent *GetInputManagerImpl() const;
-	std::string GetSystemInformation(SystemStats *stats);
+	std::string GetSystemInformation(SystemStats &stats);
 	void DisposeModule();
 
 	virtual IModule *GetModule() const;
@@ -99,11 +99,6 @@ public:
 	virtual void RemoveSave(const char *saveName);
 	virtual const Version * GetMGDFVersion() const;
 	virtual const Error *GetLastError() const;
-
-	void FatalError(std::string sender,std::string message)
-	{
-		FatalError(sender.c_str(),message.c_str());
-	}
 private:
 	IModule *CreateModule();
 

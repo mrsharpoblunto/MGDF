@@ -182,11 +182,9 @@
     <ClInclude Include="MGDFExceptions.hpp" />
     <ClInclude Include="MGDFListImpl.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
-    <ClInclude Include="MGDFParameterManagerImpl.hpp" />
+    <ClInclude Include="MGDFParameterManager.hpp" />
     <ClInclude Include="MGDFResources.hpp" />
-    <ClInclude Include="MGDFSingleton.hpp" />
     <ClInclude Include="MGDFSystemComponent.hpp" />
-    <ClInclude Include="MGDFUniqueIDAllocator.hpp" />
     <ClInclude Include="MGDFVersionHelper.hpp" />
     <ClInclude Include="MGDFVersionInfo.hpp" />
     <ClInclude Include="stdafx.h" />
@@ -194,9 +192,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MGDFLoggerImpl.cpp" />
-    <ClCompile Include="MGDFParameterManagerImpl.cpp" />
+    <ClCompile Include="MGDFParameterManager.cpp" />
     <ClCompile Include="MGDFResources.cpp" />
-    <ClCompile Include="MGDFUniqueIDAllocator.cpp" />
     <ClCompile Include="MGDFVersionHelper.cpp" />
     <ClCompile Include="MGDFVersionInfo.cpp" />
     <ClCompile Include="stdafx.cpp">

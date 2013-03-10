@@ -14,12 +14,11 @@ typedef ListImpl<IGamepadList,IGamepad *> GamepadList;
  reference implementation of the inputmanager interface
  \author gcconner
 */
-class XInputManagerComponent: public DisposeImpl<IInputManagerComponent>
+class XInputManagerComponent: public IInputManagerComponent
 {
 public:
 	XInputManagerComponent();
 	virtual ~XInputManagerComponent(void);
-	virtual void Dispose();
 
 	virtual void HandleInput(RAWINPUT *input);
 	virtual void HandleInput(INT32 mouseX,INT32 mouseY);

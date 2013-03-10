@@ -7,22 +7,17 @@
 
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
-#include "../../common/MGDFSingleton.hpp"
-
-class OpenALSoundSystem : public Singleton<OpenALSoundSystem>
+class OpenALSoundSystem
 {
 public:
 	OpenALSoundSystem(void);
 	~OpenALSoundSystem(void);
 
-	static OpenALSoundSystem *SafeNew();
-	static void SafeDelete();
+	static OpenALSoundSystem *Instance();
 
-	DECLARE_SINGLETON(OpenALSoundSystem);
+	ALCcontext *GetContext() const {return _context;}
+	size_t GetFreeSources() const { return _freeSources.size(); }
 
-	ALCcontext *GetContext(){return _context;}
-
-	size_t GetFreeSources();
 	bool AcquireSource(ALuint *source);
 	void ReleaseSource(ALuint source);
 private:
@@ -30,7 +25,8 @@ private:
 	std::stack<ALuint> _freeSources;
 
 	ALCcontext *_context;
-	static INT32 _refCount;
+
+	static OpenALSoundSystem *_instance;
 };
 
 }}}}

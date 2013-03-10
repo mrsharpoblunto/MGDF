@@ -10,8 +10,8 @@
 
 #define MAX_SOURCES 256
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -19,23 +19,14 @@
 
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {
 
-DEFINE_SINGLETON(OpenALSoundSystem);
+OpenALSoundSystem *OpenALSoundSystem::_instance = nullptr;
 
-INT32 OpenALSoundSystem::_refCount = 0;
-
-OpenALSoundSystem *OpenALSoundSystem::SafeNew()
+OpenALSoundSystem *OpenALSoundSystem::Instance()
 {
-	if (_refCount++ == 0) {
-		new OpenALSoundSystem();
+	if (_instance == nullptr) {
+		_instance = new OpenALSoundSystem();
 	}
-	return OpenALSoundSystem::InstancePtr();
-}
-
-void OpenALSoundSystem::SafeDelete()
-{
-	if (--_refCount ==0) {
-		delete OpenALSoundSystem::InstancePtr();
-	}
+	return _instance;
 }
 
 /**
@@ -46,21 +37,21 @@ OpenALSoundSystem::OpenALSoundSystem()
 	ALCdevice *device = alcOpenDevice(nullptr);
 	if (device == nullptr)
 	{
-		GetLoggerImpl()->Add(THIS_NAME,"Unable to open audio device",LOG_ERROR);
+		LOG("Unable to open audio device",LOG_ERROR);
     	throw MGDFException("Unable to open audio device");
 	}
 
 	_context=alcCreateContext(device,nullptr);
 	if (_context == nullptr)
 	{
-		GetLoggerImpl()->Add(THIS_NAME,"Failed to initialize OpenAL",LOG_ERROR);
+		LOG("Failed to initialize OpenAL",LOG_ERROR);
     	throw MGDFException("Failed to initialize OpenAL");
 	}
 
 	alcMakeContextCurrent(_context);
 	if (alcGetError(device) !=AL_NO_ERROR)
 	{
-		GetLoggerImpl()->Add(THIS_NAME,"Failed to make OpenAL context current",LOG_ERROR);
+		LOG("Failed to make OpenAL context current",LOG_ERROR);
     	throw MGDFException("Failed to make OpenAL context current");
 	}
 
@@ -81,13 +72,8 @@ OpenALSoundSystem::OpenALSoundSystem()
 	}
 	while (_freeSources.size()<MAX_SOURCES);
 
-	GetLoggerImpl()->Add(THIS_NAME,"max audio sources determined - "+boost::lexical_cast<std::string>(_freeSources.size()),LOG_LOW);
-	GetLoggerImpl()->Add(THIS_NAME,"initialised successfully",LOG_LOW);
-}
-
-size_t OpenALSoundSystem::GetFreeSources()
-{
-	return _freeSources.size();
+	LOG("max audio sources determined - "+boost::lexical_cast<std::string>(_freeSources.size()),LOG_LOW);
+	LOG("initialised successfully",LOG_LOW);
 }
 
 bool OpenALSoundSystem::AcquireSource(ALuint *source)
@@ -146,7 +132,7 @@ OpenALSoundSystem::~OpenALSoundSystem()
 		alDeleteSources(1, &source);
 	}
 
-	GetLoggerImpl()->Add(THIS_NAME,"uninitialised successfully",LOG_LOW);
+	LOG("uninitialised successfully",LOG_LOW);
 }
 
 }}}}

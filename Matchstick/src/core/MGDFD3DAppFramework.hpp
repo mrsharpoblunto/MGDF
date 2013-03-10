@@ -3,7 +3,6 @@
 #include "core.impl/MGDFTimer.hpp"
 #include "core.impl/MGDFSystemStats.hpp"
 #include "MGDFFrameLimiter.hpp"
-#include <boost/thread.hpp>
 
 namespace MGDF { namespace core {
 
@@ -23,7 +22,7 @@ public:
 	virtual void OnBackBufferChanged(ID3D11Texture2D *backBuffer)=0;
 	virtual void UpdateScene(double elapsedTime) =0;
 	virtual void DrawScene(double alpha) =0;
-	virtual void FatalError(const std::string &errorMessage)=0;
+	virtual void FatalError(const char *sender,const char *message)=0;
 	virtual void ExternalClose()=0;
 	virtual void OnMouseInput(INT32 x,INT32 y)=0;
 	virtual void OnRawInput(RAWINPUT *input)=0;
@@ -57,7 +56,6 @@ protected:
 	long *_resize;
 	bool _internalShutDown;
 	
-	boost::mutex _statsMutex;
 	SystemStats _stats;
 
 private:

@@ -179,7 +179,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CustomArchiveHandlersImpl.cpp" />
     <ClCompile Include="FakeArchiveHandler.cpp" />
     <ClCompile Include="FakeFile.cpp" />
     <ClCompile Include="main.cpp" />
@@ -195,7 +194,6 @@
     <ClCompile Include="test3.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CustomArchiveHandlersImpl.hpp" />
     <ClInclude Include="FakeArchiveHandler.hpp" />
     <ClInclude Include="FakeFile.hpp" />
     <ClInclude Include="Module.hpp" />

@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 #include <MGDF/MGDFVersion.hpp>
-#include <MGDF/MGDFDisposable.hpp>
 
 namespace MGDF { namespace core { namespace storage {
 
-class IGameStorageHandler: public IDisposable
+class IGameStorageHandler
 {
 public:
+	virtual ~IGameStorageHandler(){}
 	virtual std::string GetGameName() const=0;
 	virtual std::string GetGameUid() const=0;
 	virtual const Version *GetVersion() const=0;

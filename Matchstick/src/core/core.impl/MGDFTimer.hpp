@@ -9,7 +9,7 @@ namespace MGDF { namespace core {
 
 class Timer;
 
-class CPUPerformanceCounter: public DisposeImpl<IPerformanceCounter>
+class CPUPerformanceCounter: public IPerformanceCounter
 {
 public:
 	virtual ~CPUPerformanceCounter();
@@ -31,7 +31,7 @@ private:
 
 };
 
-class GPUPerformanceCounter: public DisposeImpl<IPerformanceCounter>
+class GPUPerformanceCounter: public IPerformanceCounter
 {
 public:
 	virtual ~GPUPerformanceCounter();
@@ -74,17 +74,12 @@ public:
 
 	virtual IPerformanceCounter *CreateCPUCounter(const char *name);
 	virtual IPerformanceCounter *CreateGPUCounter(const char *name);
-	virtual void RemoveCounter(IPerformanceCounter *counter);
 
 	void InitGPUTimer(ID3D11Device *device,UINT32 bufferSize,INT32 frameSamples);
 
 	void Begin();
 	void End();
-	void GetCounterAverages(
-		std::vector<std::pair<const char *,double> > &cpuCounters,
-		std::vector<std::pair<const char *,double> > &gpuCounters);
-
-	boost::mutex &Mutex() { return _mutex; }
+	void GetCounterInformation(std::stringstream &outputStream);
 
 private:
 	ID3D11Device *_device;
@@ -101,8 +96,7 @@ private:
 	boost::mutex _mutex;
 	std::vector<CPUPerformanceCounter *> _cpuCounters;
 	std::vector<GPUPerformanceCounter *> _gpuCounters;
-
-	void DoRemoveCounter(IPerformanceCounter *counter);
+	void RemoveCounter(IPerformanceCounter *counter);
 };
 
 }}

@@ -11,11 +11,21 @@ these files are essentially flyweight objects, all the zip functionality is enca
 */
 class ZipFolderImpl: public FolderBaseImpl
 {
-	friend class ZipArchive;//allow the handler to create instances
-public:
+public:	
+	ZipFolderImpl(const wchar_t *name,IFile *parent,ZipArchive *handler)
+		: FolderBaseImpl(name,handler->GetArchiveRoot()->GetPhysicalPath(),parent)
+		, _handler( handler )
+	{
+	}
 	virtual ~ZipFolderImpl();
-	virtual bool IsArchive() const;
-	virtual const wchar_t *GetArchiveName() const;
+
+	virtual bool IsArchive() const { return true; }
+
+	virtual const wchar_t *GetArchiveName() const
+	{
+		return _handler->GetArchiveRoot()->GetName();
+	}
+
 	virtual time_t GetLastWriteTime() const
 	{
 		return _handler->GetArchiveRoot()->GetLastWriteTime();
@@ -23,12 +33,6 @@ public:
 
 private:
 	ZipArchive *_handler;
-
-	ZipFolderImpl(ZipArchive *handler,const std::wstring &name): FolderBaseImpl(name,handler->GetArchiveRoot()->GetPhysicalPath())
-	{
-		_handler = handler;
-		_handler->IncRefCount();
-	}
 };
 
 }}}}

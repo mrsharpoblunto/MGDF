@@ -9,11 +9,9 @@
 namespace MGDF { namespace core {
 
 /** ------------CPU counter ---------*/
-
-	
 CPUPerformanceCounter::~CPUPerformanceCounter()
 {
-	_timer->DoRemoveCounter(this);
+	_timer->RemoveCounter(this);
 }
 
 CPUPerformanceCounter::CPUPerformanceCounter(const char *name,Timer *timer)
@@ -69,7 +67,7 @@ double CPUPerformanceCounter::GetAvgValue()
 
 GPUPerformanceCounter::~GPUPerformanceCounter()
 {
-	_timer->DoRemoveCounter(this);
+	_timer->RemoveCounter(this);
 	Uninit();
 }
 
@@ -184,7 +182,7 @@ Timer::Timer()
 
     // exit if the system does not support a high performance timer
 	if (!QueryPerformanceFrequency(&_freq)) {
-		GetLoggerImpl()->Add(THIS_NAME,"High performance timer unsupported",LOG_ERROR);
+		LOG("High performance timer unsupported",LOG_ERROR);
 		throw MGDFException("High performance timer unsupported");
 	}
 }
@@ -217,7 +215,7 @@ void Timer::InitGPUTimer(ID3D11Device *device,UINT32 bufferSize,INT32 frameSampl
 		_device->CreateQuery(&desc, &query);
 		if (!query)
 		{
-			GetLoggerImpl()->Add(THIS_NAME,"GPU timing queries unsupported",LOG_ERROR);
+			LOG("GPU timing queries unsupported",LOG_ERROR);
 			_gpuTimersSupported = false;
 			break;
 		}
@@ -245,31 +243,31 @@ double Timer::ConvertDifferenceToSeconds(LARGE_INTEGER newTime,LARGE_INTEGER old
 
 IPerformanceCounter *Timer::CreateCPUCounter(const char *name)
 {
-	boost::mutex::scoped_lock lock(_mutex);
-
 	CPUPerformanceCounter *counter = new CPUPerformanceCounter(name,this);
+
+	boost::mutex::scoped_lock lock(_mutex);
 	_cpuCounters.push_back(counter);
 	return counter;
 }
 
 IPerformanceCounter *Timer::CreateGPUCounter(const char *name)
 {
+
 	if (!_gpuTimersSupported) return nullptr;
 	GPUPerformanceCounter *counter = new GPUPerformanceCounter(name,this);
+
+	boost::mutex::scoped_lock lock(_mutex);
 	_gpuCounters.push_back(counter);
 	return counter;
 }
 
 void Timer::RemoveCounter(IPerformanceCounter *counter)
 {
-	delete counter;
-}
+	CPUPerformanceCounter *cpuCounter = dynamic_cast<CPUPerformanceCounter *>(counter);
 
-void Timer::DoRemoveCounter(IPerformanceCounter *counter)
-{
+	boost::mutex::scoped_lock lock(_mutex);
+	if (cpuCounter)
 	{
-		boost::mutex::scoped_lock lock(_mutex);
-
 		for (auto iter = _cpuCounters.begin();iter!=_cpuCounters.end();++iter)
 		{
 			if (*iter==counter)
@@ -279,13 +277,15 @@ void Timer::DoRemoveCounter(IPerformanceCounter *counter)
 			}
 		}
 	}
-
-	for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+	else
 	{
-		if (*iter==counter)
+		for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
 		{
-			_gpuCounters.erase(iter);
-			return;
+			if (*iter==counter)
+			{
+				_gpuCounters.erase(iter);
+				return;
+			}
 		}
 	}
 }
@@ -304,6 +304,7 @@ void Timer::Begin()
 			{
 				if (!disjoint.Disjoint)
 				{
+					boost::mutex::scoped_lock lock(_mutex);
 					for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
 					{
 						(*iter)->SetSample(_currentFrame,disjoint.Frequency);
@@ -325,17 +326,26 @@ void Timer::End()
 	if (_gpuTimersSupported) _context->End(_disjointQueries[_currentFrame]);
 }
 
-void Timer::GetCounterAverages(
-		std::vector<std::pair<const char *,double> > &cpuCounters,
-		std::vector<std::pair<const char *,double> > &gpuCounters)
+void Timer::GetCounterInformation(std::stringstream &outputStream)
 {
-	for (auto iter = _cpuCounters.begin();iter!=_cpuCounters.end();++iter)
+	boost::mutex::scoped_lock lock(_mutex);
+
+	if (_gpuCounters.size()>0)
 	{
-		cpuCounters.push_back(std::pair<const char *,double>((*iter)->GetName(),(*iter)->GetAvgValue()));
+		outputStream << "\r\nGPU\r\n";
+		for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+		{
+			outputStream << " " << (*iter)->GetName() << " : " << (*iter)->GetAvgValue() << "\r\n";
+		}
 	}
-	for (auto iter = _gpuCounters.begin();iter!=_gpuCounters.end();++iter)
+
+	if (_cpuCounters.size()>0)
 	{
-		gpuCounters.push_back(std::pair<const char *,double>((*iter)->GetName(),(*iter)->GetAvgValue()));
+		outputStream << "\r\nCPU\r\n";
+		for (auto iter = _cpuCounters.begin();iter!=_cpuCounters.end();++iter)
+		{
+			outputStream << " " << (*iter)->GetName() << " : " << (*iter)->GetAvgValue() << "\r\n";
+		}
 	}
 }
 

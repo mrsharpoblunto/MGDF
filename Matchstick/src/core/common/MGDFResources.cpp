@@ -10,10 +10,9 @@
 
 #include "MGDFVersionInfo.hpp"
 #include "MGDFResources.hpp"
-#include "MGDFUniqueIDAllocator.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -75,8 +74,6 @@ std::wstring Resources::GetApplicationDirectory(HINSTANCE instance)
 
 	return appDir+L"/";
 }
-
-std::wstring Resources::_vfsContent = L"content/";
 
 const UINT32 Resources::MIN_SCREEN_X = 1024;
 const UINT32 Resources::MIN_SCREEN_Y =768;
@@ -191,21 +188,48 @@ std::wstring Resources::BinDir()
 
 std::string Resources::ToString(const std::wstring &wstr)
 {
-    INT32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
-	char *strTo = new char[sizeNeeded];
-    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), &strTo[0], sizeNeeded, nullptr, nullptr);
-	std::string result(&strTo[0],wstr.size());
-	delete[] strTo;
+	INT32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
+
+	std::string result;
+	result.resize(sizeNeeded);
+
+	WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), const_cast<LPSTR>(result.data()), sizeNeeded, nullptr, nullptr);
 	return result;
 }
+
+std::string Resources::ToString(const wchar_t *wstr)
+{
+	size_t len = wcslen(wstr);
+    INT32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, (int)len, nullptr, 0, nullptr, nullptr);
+	
+	std::string result;
+	result.resize(sizeNeeded);
+
+    WideCharToMultiByte(CP_UTF8, 0, wstr, (int)len, const_cast<LPSTR>(result.data()), sizeNeeded, nullptr, nullptr);
+	return result;
+}
+
 
 std::wstring Resources::ToWString(const std::string &str)
 {
     INT32 sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), nullptr, 0);
-    wchar_t *wstrTo = new wchar_t[sizeNeeded];
-    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstrTo[0], sizeNeeded);
-    std::wstring result(&wstrTo[0],str.size());
-	delete[] wstrTo;
+    
+	std::wstring result;
+	result.resize(sizeNeeded);
+
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), const_cast<LPWSTR>(result.data()), sizeNeeded);
+	return result;
+}
+
+std::wstring Resources::ToWString(const char *str)
+{
+	size_t len = strlen(str);
+    INT32 sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
+	
+	std::wstring result;
+	result.resize(sizeNeeded);
+
+    MultiByteToWideChar(CP_UTF8, 0, str, (int)len, const_cast<LPWSTR>(result.data()), sizeNeeded);
 	return result;
 }
 

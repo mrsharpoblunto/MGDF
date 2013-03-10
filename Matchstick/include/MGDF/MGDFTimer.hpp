@@ -31,12 +31,6 @@ public:
 	 * returns a new GPU timer instance.
 	 */
 	virtual IPerformanceCounter *CreateGPUCounter(const char *name)=0;
-	
-	/**
-	 * removes a previously created counter, either CPU or GPU counters can be removed
-	 * using this method
-	 */
-	virtual void RemoveCounter(IPerformanceCounter *counter)=0;
 };
 
 }

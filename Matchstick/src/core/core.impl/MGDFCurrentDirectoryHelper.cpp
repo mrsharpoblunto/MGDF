@@ -3,8 +3,8 @@
 #include "../common/MGDFLoggerImpl.hpp"
 #include "MGDFCurrentDirectoryHelper.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -19,11 +19,11 @@ CurrentDirectoryHelper::CurrentDirectoryHelper()
 	ret = GetCurrentDirectoryW(MAX_PATH,buffer);
 	if( ret == 0 )
 	{
-		GetLoggerImpl()->Add(THIS_NAME,"unable to get current directory");
+		LOG("unable to get current directory",LOG_ERROR);
 	}
 	if(ret > MAX_PATH)
 	{
-		GetLoggerImpl()->Add(THIS_NAME,"unable to get current directory - buffer to small");
+		LOG("unable to get current directory - buffer to small",LOG_ERROR);
 	}
 	
 	_currentDirectory = buffer;
@@ -70,7 +70,7 @@ void CurrentDirectoryHelper::SetDirectory(const std::wstring &directory)
 {
 	if(directory.length() > MAX_PATH-1)
 	{
-		GetLoggerImpl()->Add(THIS_NAME,"cannot set directory with more than MAX_PATH characters");
+		LOG("cannot set directory with more than MAX_PATH characters",LOG_ERROR);
 	}
 	else {
 		SetCurrentDirectoryW(directory.c_str());

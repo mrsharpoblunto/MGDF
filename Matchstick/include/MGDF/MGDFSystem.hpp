@@ -9,7 +9,6 @@
 #include <MGDF/MGDFList.hpp>
 #include <MGDF/MGDFLogger.hpp>
 #include <MGDF/MGDFSoundManager.hpp>
-#include <MGDF/MGDFParameterManager.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>
 #include <MGDF/MGDFGraphicsManager.hpp>
@@ -131,8 +130,7 @@ public:
 	virtual const Version * GetMGDFVersion()  const=0;
 
 	/**
-	inform the system a fatal error has occured (how this is handled is up to the 
-	system) but would propably result in an output then closure of the program.
+	inform the system a fatal error has occured which will result in immediate closure of the program.
 	\param message a description of the error encountered
 	*/
 	virtual void  FatalError(const char *sender,const char *message)=0;

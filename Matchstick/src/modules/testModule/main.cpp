@@ -1,10 +1,10 @@
 #include "StdAfx.h"
 
 #include <MGDF/MGDF.hpp>
+#include "FakeArchiveHandler.hpp"
 #include "Module.hpp"
-#include "CustomArchiveHandlersImpl.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
+
 #if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
@@ -42,7 +42,14 @@ UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,UINT32 *featur
 }
 
 //register custom archive handlers
-MGDF::ICustomArchiveHandlers * MGDF::GetCustomArchiveHandlers(void)
+bool MGDF::GetCustomArchiveHandlers(IArchiveHandler **list,UINT32 *length,ILogger *logger,IErrorHandler *errorHandler)
 {
-	return new CustomArchiveHandlersImpl();
+	if (*length>=1)
+	{
+		list[0] = new FakeArchiveHandler(logger,errorHandler);
+		*length = 1;
+		return true;
+	}
+	*length = 1;
+	return false;
 }

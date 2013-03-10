@@ -4,26 +4,28 @@
 #include <boost/filesystem/operations.hpp>
 #include "MGDFGameImpl.hpp"
 #include "../common/MGDFResources.hpp"
-#include "../common/MGDFParameterManagerImpl.hpp"
+#include "../common/MGDFParameterManager.hpp"
 #include "MGDFComponents.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
 
 namespace MGDF { namespace core {
 
-//loads a boot configuration from a file in the boot folder
+//loads a game from the game.json file stored in the game folder
 Game *GameBuilder::LoadGame(storage::IGameStorageHandler *handler)
 {	
-	//add this configurations parameters to the parameter manager
-	GetParameterManagerImpl()->AddParameterString(handler->GetParameterString().c_str());
+	_ASSERTE(handler);
 
-	//initialise the configuration preferences
-	Game *game = CreateGame(handler->GetGameUid(),handler->GetGameName(),handler->GetInterfaceVersion(),handler->GetVersion());
-
+	ParameterManager::Instance().AddParameterString(handler->GetParameterString().c_str());
+	Game *game = CreateGame(
+		handler->GetGameUid(),
+		handler->GetGameName(),
+		handler->GetInterfaceVersion(),
+		handler->GetVersion());
 	return game;
 }
 
@@ -32,6 +34,8 @@ Game *GameBuilder::LoadGame(storage::IGameStorageHandler *handler)
 //particular configuration defaults, and synchs them up with any customized user preferences
 Game *GameBuilder::CreateGame(const std::string &uid,const std::string &name,INT32 interfaceVersion,const Version *version)
 {
+	_ASSERTE(version);
+
 	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
 
 	Game *game = new Game(uid,name,interfaceVersion,version,storageFactory);

@@ -6,8 +6,8 @@
 #include "MGDFGraphicsManagerImpl.hpp"
 #include "MGDFPreferenceConstants.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -17,7 +17,15 @@
 namespace MGDF { namespace core {
 
 GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
+	: _device(device)
+	, _currentAdaptorMode(nullptr)
+	, _currentMultiSampleLevel(1)
+	, _backBufferMultiSampleLevel(1)
+	, _vsync(true)
 {
+	_ASSERTE(device);
+	_ASSERTE(adapter);
+
 	IDXGIOutput *output;
 	if (FAILED(adapter->EnumOutputs(0, &output)))
 	{
@@ -26,11 +34,6 @@ GraphicsManager::GraphicsManager(ID3D11Device *device,IDXGIAdapter1 *adapter)
 
 	_changePending = (long *)_aligned_malloc(sizeof(long),32);
 	*_changePending = 0L;
-	_device = device;
-	_currentAdaptorMode = nullptr;
-	_currentMultiSampleLevel = 1;
-	_backBufferMultiSampleLevel = 1;
-	_vsync = true;
 
 	UINT32 maxAdaptorModes=0U;
 	if (FAILED(output->GetDisplayModeList(BACKBUFFER_FORMAT,DXGI_ENUM_MODES_INTERLACED,&maxAdaptorModes,nullptr)))

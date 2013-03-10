@@ -5,13 +5,11 @@
  
 namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
 
-class JsonCppPreferenceConfigStorageHandler: public DisposeImpl<IPreferenceConfigStorageHandler>
+class JsonCppPreferenceConfigStorageHandler: public IPreferenceConfigStorageHandler
 {
 public:
-	JsonCppPreferenceConfigStorageHandler(){};
-	virtual ~JsonCppPreferenceConfigStorageHandler(){};
-
-	virtual void Dispose();
+	JsonCppPreferenceConfigStorageHandler(){}
+	virtual ~JsonCppPreferenceConfigStorageHandler(){}
 
 	virtual void Add(const std::string &name,const std::string &value);
 	virtual IPreferenceConfigStorageHandler::iterator Begin() const;
@@ -20,7 +18,7 @@ public:
 	virtual void Load(const std::wstring &);
 	virtual void Save(const std::wstring &) const;
 private:
-	boost::unordered_map<std::string,std::string> _preferences;
+	std::map<std::string,std::string> _preferences;
 };
 
 }}}}

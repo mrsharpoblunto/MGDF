@@ -7,18 +7,13 @@
 #include "json/json.h"
 #include "JsonCppGameStateStorageHandler.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
 
 namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
-
-void JsonCppGameStateStorageHandler::Dispose()
-{
-	delete this;
-}
 
 void JsonCppGameStateStorageHandler::Load(const std::wstring &filename)
 {

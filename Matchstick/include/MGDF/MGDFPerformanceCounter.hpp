@@ -1,7 +1,5 @@
 #pragma once
 
-#include <MGDF/MGDFDisposable.hpp>
-
 namespace MGDF {
 
 /**
@@ -9,7 +7,7 @@ namespace MGDF {
  events. The results of these counters are shown in the MGDF stats overlay (press alt-f12 to see in game)
  \author gconner
  */
-class IPerformanceCounter: public IDisposable {
+class IPerformanceCounter {
 public:
 	/**
 	 Gets the name of the counter
@@ -27,6 +25,8 @@ public:
 	 and when End was called
 	 */
 	virtual void End()=0;
+
+	virtual void Dispose()=0;
 };
 
 }

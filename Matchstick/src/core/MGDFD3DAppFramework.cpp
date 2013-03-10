@@ -11,8 +11,8 @@
 #include "common/MGDFResources.hpp"
 #include "core.impl/MGDFSystemImpl.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -119,7 +119,7 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 
 		if( !RegisterClass(&wc) )
 		{
-			FatalError("RegisterClass FAILED");
+			FATALERROR(this,"RegisterClass FAILED");
 		}
 
 		RECT R = {0, 0,Resources::MIN_SCREEN_X,Resources::MIN_SCREEN_Y};
@@ -132,7 +132,7 @@ void D3DAppFramework::InitMainWindow(const std::string &caption,WNDPROC windowPr
 
 		if( !_window )
 		{
-			FatalError("CreateWindow FAILED");
+			FATALERROR(this,"CreateWindow FAILED");
 		}
 
 		ShowWindow(_window, SW_SHOW);
@@ -156,7 +156,7 @@ void D3DAppFramework::InitRawInput()
 
 	if( !RegisterRawInputDevices( Rid, 2, sizeof(Rid[0]) ) )
 	{
-		FatalError("Failed to register raw input devices for mouse and keyboard");
+		FATALERROR(this,"Failed to register raw input devices for mouse and keyboard");
 	}	
 }
 
@@ -170,7 +170,7 @@ void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,UINT32 levelsSize)
 
 		if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&_factory)))
 		{
-			FatalError("Failed to create IDXGIFactory.");
+			FATALERROR(this,"Failed to create IDXGIFactory.");
 		}
 
 		IDXGIAdapter1 *adapter=nullptr;
@@ -187,7 +187,7 @@ void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,UINT32 levelsSize)
 			INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, length);		
 			std::string message(videoCardDescription,videoCardDescription+length);
 			message.insert(0,"Attempting to create device for adapter ");
-			GetLoggerImpl()->Add(THIS_NAME,message,LOG_LOW);
+			LOG(message,LOG_LOW);
 
 			D3D_FEATURE_LEVEL featureLevel;
 			ID3D11Device *device=nullptr;
@@ -224,7 +224,7 @@ void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,UINT32 levelsSize)
 					bestAdapter = adapter;
 					_d3dDevice = device;
 					_immediateContext = context;
-					GetLoggerImpl()->Add(THIS_NAME,"Adapter is the best found so far",LOG_LOW);
+					LOG("Adapter is the best found so far",LOG_LOW);
 				}
 				//this adapter is no better than what we already have, so ignore it
 				else
@@ -232,18 +232,18 @@ void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,UINT32 levelsSize)
 					SAFE_RELEASE(context);
 					SAFE_RELEASE(device);
 					SAFE_RELEASE(adapter);
-					GetLoggerImpl()->Add(THIS_NAME,"A better adapter has already been found - Ignoring",LOG_LOW);
+					LOG("A better adapter has already been found - Ignoring",LOG_LOW);
 				}
 			}
 		}
 
 		if( !_d3dDevice )
 		{
-			FatalError("No adapters found supporting The specified D3D Feature set");
+			FATALERROR(this,"No adapters found supporting The specified D3D Feature set");
 		}
 		else
 		{
-			GetLoggerImpl()->Add(THIS_NAME,"Created device with D3D Feature level: "+boost::lexical_cast<std::string>(_d3dDevice->GetFeatureLevel()),LOG_LOW);
+			LOG("Created device with D3D Feature level: "+boost::lexical_cast<std::string>(_d3dDevice->GetFeatureLevel()),LOG_LOW);
 		}
 
 		OnInitD3D(_d3dDevice,bestAdapter);
@@ -261,7 +261,7 @@ void D3DAppFramework::CreateSwapChain()
 {
 	if (FAILED(_factory->CreateSwapChain(_d3dDevice, &_swapDesc, &_swapChain)))
 	{
-		FatalError("Failed to create swap chain");
+		FATALERROR(this,"Failed to create swap chain");
 	}
 }
 
@@ -282,16 +282,16 @@ void D3DAppFramework::OnResize()
 		DXGI_FORMAT_R8G8B8A8_UNORM, 
 		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH)))
 	{
-		FatalError("Failed to resize swapchain buffers");
+		FATALERROR(this,"Failed to resize swapchain buffers");
 	}
 
 	if (FAILED(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&_backBuffer))))
 	{
-		FatalError("Failed to get swapchain buffer");
+		FATALERROR(this,"Failed to get swapchain buffer");
 	}
 	if (FAILED(_d3dDevice->CreateRenderTargetView(_backBuffer, 0, &_renderTargetView)))
 	{
-		FatalError("Failed to create render target view from backbuffer");
+		FATALERROR(this,"Failed to create render target view from backbuffer");
 	}
 
 	// Create the depth/stencil buffer and view.
@@ -310,12 +310,12 @@ void D3DAppFramework::OnResize()
 
 	if (FAILED(_d3dDevice->CreateTexture2D(&depthStencilDesc, 0, &_depthStencilBuffer)))
 	{
-		FatalError("Failed to create texture from depth stencil description");
+		FATALERROR(this,"Failed to create texture from depth stencil description");
 	}
 
 	if (FAILED(_d3dDevice->CreateDepthStencilView(_depthStencilBuffer, 0, &_depthStencilView)))
 	{
-		FatalError("Failed to create depthStencilView from depth stencil buffer");
+		FATALERROR(this,"Failed to create depthStencilView from depth stencil buffer");
 	}
 
 	// Bind the render target view and depth/stencil view to the pipeline.
@@ -348,7 +348,7 @@ INT32 D3DAppFramework::Run(UINT32 simulationFps)
 	}
 	catch (MGDFException ex)
 	{
-		FatalError(ex.what());
+		FATALERROR(this,ex.what());
 	}
 
 	_stats.SetExpectedSimTime(1/(double)simulationFps);
@@ -376,11 +376,7 @@ INT32 D3DAppFramework::Run(UINT32 simulationFps)
 			_frameLimiter->LimitFps();
 
 			LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
-
-			{
-				boost::mutex::scoped_lock lock(_statsMutex);
-				_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
-			}
+			_stats.AppendSimTime(_timer.ConvertDifferenceToSeconds(simulationEnd,simulationStart));
 		}
 	});
 
@@ -423,15 +419,13 @@ INT32 D3DAppFramework::Run(UINT32 simulationFps)
 
 				if (FAILED(_swapChain->Present(_swapDesc.BufferDesc.RefreshRate.Numerator!=1U,0)))
 				{
-					FatalError("Direct3d Present() failed");
+					FATALERROR(this,"Direct3d Present() failed");
 				}
-				LARGE_INTEGER renderEnd = _timer.GetCurrentTimeTicks();		
 
-				{
-					boost::mutex::scoped_lock statsLock(_statsMutex);
-					_stats.AppendRenderTime(_timer.ConvertDifferenceToSeconds(renderEnd,renderStart));
-					_stats.AppendActiveRenderTime(_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
-				}
+				LARGE_INTEGER renderEnd = _timer.GetCurrentTimeTicks();		
+				_stats.AppendRenderTimes(
+					_timer.ConvertDifferenceToSeconds(renderEnd,renderStart),
+					_timer.ConvertDifferenceToSeconds(activeRenderEnd,renderStart));
 			}
 		}
 	});
@@ -489,7 +483,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lP
 
 			if( readSize != dwSize )
 			{
-				FatalError("GetRawInputData returned incorrect size");
+				FATALERROR(this,"GetRawInputData returned incorrect size");
 			}
 			else 
 			{

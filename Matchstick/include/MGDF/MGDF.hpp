@@ -13,9 +13,7 @@
 #include <MGDF/MGDFList.hpp>
 #include <MGDF/MGDFLogger.hpp>
 #include <MGDF/MGDFModule.hpp>
-#include <MGDF/MGDFParameterManager.hpp>
 #include <MGDF/MGDFSystem.hpp>
-#include <MGDF/MGDFCustomArchiveHandlers.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>
 #include <MGDF/MGDFGraphicsManager.hpp>

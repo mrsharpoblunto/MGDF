@@ -2,7 +2,6 @@
 
 #include <windows.h>
 #include <DirectXMath.h>
-#include <MGDF/MGDFDisposable.hpp>
 
 namespace MGDF {
 
@@ -10,7 +9,7 @@ namespace MGDF {
 this class represents an audio source in 3d space
 \author gcconner
 */
-class ISound: public IDisposable {
+class ISound {
 public:
 	virtual const wchar_t * GetName() const =0;
 	virtual DirectX::XMFLOAT3 * GetPosition()=0;
@@ -28,6 +27,11 @@ public:
 	virtual void  SetVolume(float volume)=0;
 	virtual float  GetPitch() const =0;
 	virtual void  SetPitch(float pitch)=0;
+
+	/**
+	disposes of the sound
+	*/
+	virtual void Dispose()=0;
 
 	/**
 	priority is used by the sound system to determine which sounds get deactivated if not enough sound sources

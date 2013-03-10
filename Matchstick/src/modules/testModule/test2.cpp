@@ -3,7 +3,7 @@
 #include "Test2.hpp"
 #include "Test3.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
+
 #if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
@@ -59,7 +59,7 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	else if (_testState==1)
 	{
 		state->AddLine(WHITE,"Loading sound chimes.wav");
-		_sound = system->GetSound()->CreateSound(system->GetVFS()->GetFile(L"content/chimes.wav"),0);
+		_sound = system->GetSound()->CreateSound(system->GetVFS()->GetFile(L"chimes.wav"),0);
 		system->GetSound()->SetEnableAttenuation(true);
 		if (_sound==NULL)
 		{
@@ -90,7 +90,7 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	else if (_testState==3 && system->GetInput()->IsKeyPress('N'))
 	{
 		_testState =1000;
-		system->GetSound()->RemoveSound(_sound);
+		_sound->Dispose();
 		state->SetStatus(RED,"[Test Failed]");
 	}
 	else if (_testState==4)
@@ -116,21 +116,21 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		{
 			++_testState;
 			_sound->Stop();
-			system->GetSound()->RemoveSound(_sound);
+			_sound->Dispose();
 			state->SetStatus(GREEN,"[Test Passed]");
 		}
 		else if (system->GetInput()->IsKeyPress('N'))
 		{
 			_testState =1000;
 			_sound->Stop();
-			system->GetSound()->RemoveSound(_sound);
+			_sound->Dispose();
 			state->SetStatus(RED,"[Test Failed]");
 		}
 	}
 	else if (_testState==5)
 	{
 		state->AddLine(WHITE,"Loading stream stream.ogg");
-		_stream = system->GetSound()->CreateSoundStream(system->GetVFS()->GetFile(L"content/stream.ogg"));
+		_stream = system->GetSound()->CreateSoundStream(system->GetVFS()->GetFile(L"stream.ogg"));
 		if (_stream==NULL)
 		{
 			_testState =1000;
@@ -158,7 +158,7 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 	else if (_testState==7 && system->GetInput()->IsKeyPress('N'))
 	{
 		_testState =1000;
-		system->GetSound()->RemoveSoundStream(_stream);
+		_stream->Dispose();
 		state->SetStatus(RED,"[Test Failed]");
 	}
 	else if (_testState==8)
@@ -166,13 +166,13 @@ void Test2::Update(ISystem *system,TextManagerState *state)
 		if (system->GetInput()->IsKeyPress('Y'))
 		{
 			_testState =1000;
-			system->GetSound()->RemoveSoundStream(_stream);
+			_stream->Dispose();
 			state->SetStatus(GREEN,"[Test Passed]");
 		}
 		else if (system->GetInput()->IsKeyPress('N'))
 		{
 			_testState =1000;
-			system->GetSound()->RemoveSoundStream(_stream);
+			_stream->Dispose();
 			state->SetStatus(RED,"[Test Failed]");
 		}
 		else if (system->GetInput()->IsKeyPress('P'))

@@ -6,9 +6,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Mocks\MGDFMockSystemImpl.cpp">
-      <Filter>Mocks</Filter>
-    </ClCompile>
     <ClCompile Include="ParameterManagerTests.cpp" />
     <ClCompile Include="ResourcesTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
@@ -24,9 +21,6 @@
       <Filter>Mocks</Filter>
     </ClInclude>
     <ClInclude Include="Mocks\MGDFMockModule.hpp">
-      <Filter>Mocks</Filter>
-    </ClInclude>
-    <ClInclude Include="Mocks\MGDFMockSystemImpl.hpp">
       <Filter>Mocks</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h" />

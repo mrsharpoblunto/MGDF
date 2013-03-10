@@ -12,8 +12,8 @@
 
 #include "OpenALSoundManagerComponent.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -31,23 +31,16 @@ ISoundManagerComponent *CreateOpenALSoundManagerComponent(IVirtualFileSystem *vf
 	}
 }
 
-OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(IVirtualFileSystem *vfs):
-	_vfs(vfs)
+OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(IVirtualFileSystem *vfs)
+	: _vfs(vfs)
+	, _enableAttenuation(false)
+	, _orientationForward(XMFLOAT3(0.0f,0.0f,1.0f))
+	, _orientationUp(XMFLOAT3(0.0f,1.0f,0.0f))
+	, _position(XMFLOAT3(0.0f,0.0f,0.0f))
+	, _velocity(XMFLOAT3(0.0f,0.0f,0.0f))
 {
-	_enableAttenuation = false;
-	this->_context = OpenALSoundSystem::SafeNew()->GetContext();
-
-	_orientationForward = XMFLOAT3(0.0f,0.0f,1.0f);
-	_orientationUp		= XMFLOAT3(0.0f,1.0f,0.0f);
-	_position			= XMFLOAT3(0.0f,0.0f,0.0f);
-	_velocity			= XMFLOAT3(0.0f,0.0f,0.0f);
-
+	_context = OpenALSoundSystem::Instance()->GetContext();
 	alDistanceModel(AL_NONE);
-}
-
-void OpenALSoundManagerComponentImpl::Dispose()
-{
-	delete this;
 }
 
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
@@ -66,7 +59,7 @@ OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
 		delete iter->second;
 	}
 
-	OpenALSoundSystem::SafeDelete();
+	delete OpenALSoundSystem::Instance();
 }
 
 void OpenALSoundManagerComponentImpl::Update()
@@ -212,15 +205,15 @@ ISoundStream *OpenALSoundManagerComponentImpl::CreateSoundStream(IFile *file)
 	//try to deactivate a sound in order to free up a source for the new sound
 	//however it may not be possible to deactivate any of the current sounds so the
 	//new sound may have to be created as inactive.
-	if (OpenALSoundSystem::InstancePtr()->GetFreeSources()==0)
+	if (OpenALSoundSystem::Instance()->GetFreeSources()==0)
 	{
 		DeactivateSound(INT_MAX);
 	}
 
 	//if we couldn't deactivate any sources then we cannot create the stream
-	if (OpenALSoundSystem::InstancePtr()->GetFreeSources()==0)
+	if (OpenALSoundSystem::Instance()->GetFreeSources()==0)
 	{
-		GetComponentErrorHandler()->SetLastError(THIS_NAME,MGDF_ERR_NO_FREE_SOURCES,"No free sound sources to create stream");
+		SETLASTERROR(GetComponentErrorHandler(),MGDF_ERR_NO_FREE_SOURCES,"No free sound sources to create stream");
 		return nullptr;
 	}
 	else 
@@ -242,7 +235,7 @@ ISound *OpenALSoundManagerComponentImpl::CreateSound(IFile *file, INT32 priority
 	//try to deactivate a sound in order to free up a source for the new sound
 	//however it may not be possible to deactivate any of the current sounds so the
 	//new sound may have to be created as inactive.
-	if (OpenALSoundSystem::InstancePtr()->GetFreeSources()==0)
+	if (OpenALSoundSystem::Instance()->GetFreeSources()==0)
 	{
 		DeactivateSound(priority);
 	}
@@ -287,7 +280,7 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds(INT32 deactivatedSoundsCo
 	sort(sounds.begin(),sounds.end(),&OpenALSoundManagerComponentImpl::Sort);
 
 	//detect how many samples will need to be deactivated
-	size_t freeSources = OpenALSoundSystem::InstancePtr()->GetFreeSources();
+	size_t freeSources = OpenALSoundSystem::Instance()->GetFreeSources();
 	size_t requiringDeactivationCount = deactivatedSoundsCount - freeSources;
 	if (requiringDeactivationCount<0) requiringDeactivationCount = 0;//we can activate all sounds.
 
@@ -328,7 +321,7 @@ bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a,OpenALSound *b)
 ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer(IFile *dataSource)
 {
 	std::wstring dataSourceName = dataSource->GetLogicalPath();
-	dataSourceName.append(VFS_PATH_SEPARATOR);
+	dataSourceName.append(L"/");
 	dataSourceName.append(dataSource->GetName());
 
 	//see if the buffer already exists in memory before trying to create it
@@ -380,17 +373,7 @@ void OpenALSoundManagerComponentImpl::RemoveSoundBuffer(ALuint bufferId)
 	}
 }
 
-void OpenALSoundManagerComponentImpl::RemoveSound(ISound *sound)
-{
-	delete sound;
-}
-
 void OpenALSoundManagerComponentImpl::RemoveSoundStream(ISoundStream *stream)
-{
-	delete stream;
-}
-
-void OpenALSoundManagerComponentImpl::DoRemoveSoundStream(ISoundStream *stream)
 {
 	auto iter = find(_soundStreams.begin(), _soundStreams.end(), stream);
 	if (iter!=_soundStreams.end())
@@ -399,7 +382,7 @@ void OpenALSoundManagerComponentImpl::DoRemoveSoundStream(ISoundStream *stream)
 	}
 }
 
-void OpenALSoundManagerComponentImpl::DoRemoveSound(ISound *sound)
+void OpenALSoundManagerComponentImpl::RemoveSound(ISound *sound)
 {
 	auto iter = find(_sounds.begin(), _sounds.end(), sound);
 	if (iter!=_sounds.end())

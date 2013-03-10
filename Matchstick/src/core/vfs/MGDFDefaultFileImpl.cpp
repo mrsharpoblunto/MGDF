@@ -1,49 +1,29 @@
 #include "StdAfx.h"
 
-#include <cctype>//std::tolower
-#include "../common/MGDFExceptions.hpp"
+#include "../common/MGDFLoggerImpl.hpp"
 #include "MGDFDefaultFileImpl.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
 
 namespace MGDF { namespace core { namespace vfs {
 
-DefaultFileImpl::DefaultFileImpl(const std::wstring &path,ILogger *logger,IErrorHandler *handler)
+DefaultFileImpl::DefaultFileImpl(const std::wstring &name,const std::wstring &physicalPath,IFile *parent,IErrorHandler *handler)
+	: FileBaseImpl(parent)
+	, _name( name )
+	, _path( physicalPath )
+	, _fileStream( nullptr )
+	, _errorHandler( handler )
+	, _filesize( 0 ) 
 {
-	_logger = logger;
-	_errorHandler = handler;
-	_fileStream = nullptr;
-
-	_path = path;
-
-	size_t index=_path.size()-1;
-	const wchar_t *_pathStr = _path.c_str();
-	while (index>0)
-	{
-		if (_pathStr[index]==L'\\' || _pathStr[index]==L'/')
-		{
-			_name = &_pathStr[index+1];
-			std::transform(_name.begin(), _name.end(), _name.begin(), ::towlower);
-			break;
-		}
-		--index;
-	}
-
-	_filesize = 0;
 }
 
 DefaultFileImpl::~DefaultFileImpl(void)
 {
 	CloseFile();
-}
-
-bool DefaultFileImpl::IsOpen() const
-{
-	return (_fileStream!=nullptr);
 }
 
 bool DefaultFileImpl::OpenFile()
@@ -61,8 +41,8 @@ bool DefaultFileImpl::OpenFile()
 			delete _fileStream;
 			_fileStream = nullptr;
 
-			_logger->Add(THIS_NAME,"Unable to open file stream",LOG_ERROR);
-			_errorHandler->SetLastError(THIS_NAME,MGDF_ERR_INVALID_FILE,"Unable to open file stream");
+			LOG("Unable to open file stream",LOG_ERROR);
+			SETLASTERROR(_errorHandler,MGDF_ERR_INVALID_FILE,"Unable to open file stream");
 		}
 	}
 	return false;
@@ -80,7 +60,7 @@ void DefaultFileImpl::CloseFile()
 
 UINT32 DefaultFileImpl::Read(void* buffer,UINT32 length)
 {
-	if(_fileStream)
+	if(_fileStream && buffer && length)
 	{
 		std::ifstream::pos_type oldPosition = _fileStream->tellg();
 		_fileStream->read((char*)buffer,length);
@@ -133,40 +113,12 @@ INT64 DefaultFileImpl::GetSize()
 		}
 		else 
 		{
-			_logger->Add(THIS_NAME,"Unable to open file stream",LOG_ERROR);
-			_errorHandler->SetLastError(THIS_NAME,MGDF_ERR_INVALID_FILE,"Unable to open file stream");
+			LOG("Unable to open file stream",LOG_ERROR);
+			SETLASTERROR(_errorHandler,MGDF_ERR_INVALID_FILE,"Unable to open file stream");
 		}
 	}
 
 	return _filesize;
 }
-
-bool DefaultFileImpl::IsFolder() const
-{ 
-	return false;
-}
-
-bool DefaultFileImpl::IsArchive() const
-{
-	return false;
-}
-
-const wchar_t *DefaultFileImpl::GetArchiveName() const
-{
-	return nullptr;
-}
-
-const wchar_t *DefaultFileImpl::GetPhysicalPath() const
-{ 
-	return _path.c_str();
-}
-
-const wchar_t *DefaultFileImpl::GetName() const
-{
-	return _name.c_str();
-
-}
-
-
 
 }}}

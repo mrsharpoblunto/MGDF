@@ -1,8 +1,20 @@
 #pragma once
 
 #include <list>
+#include <boost/thread.hpp>
 
 namespace MGDF { namespace core {
+
+struct Timings
+{
+	double AvgActiveRenderTime;
+	double AvgRenderTime;
+	double AvgActiveSimTime;
+	double AvgSimTime;
+	double AvgSimInputTime;
+	double AvgSimAudioTime;
+	double ExpectedSimTime;
+};
 
 class SystemStats
 {
@@ -10,36 +22,16 @@ public:
 	SystemStats(UINT32 maxSamples);
 	virtual ~SystemStats(){};
 
-	double ActiveRenderTime();
-	double RenderTime();
+	void GetTimings(Timings &timings);
 	double ExpectedSimTime();
-	double ActiveSimTime();
-	double SimTime();
-	double SimInputTime();
-	double SimAudioTime();
 
-	double AvgActiveRenderTime();
-	double AvgRenderTime();
-	double AvgActiveSimTime();
-	double AvgSimTime();
-	double AvgSimInputTime();
-	double AvgSimAudioTime();
-
-	std::list<double> *ActiveRenderTimeSamples();
-	std::list<double> *RenderTimeSamples();
-	std::list<double> *ActiveSimTimeSamples();
-	std::list<double> *SimTimeSamples();
-	std::list<double> *SimInputTimeSamples();
-	std::list<double> *SimAudioTimeSamples();
-
-	void AppendActiveRenderTime(double value);
-	void AppendRenderTime(double value);
+	void AppendRenderTimes(double renderValue,double activeRenderValue);
 	void SetExpectedSimTime(double value);
 	void AppendActiveSimTime(double value);
 	void AppendSimTime(double value);
-	void AppendSimInputTime(double value);
-	void AppendSimAudioTime(double value);
+	void AppendSimInputAndAudioTimes(double inputValue,double audioValue);
 private:
+	boost::mutex _statsMutex;
 	UINT32 _maxSamples;
 	double _expectedSimTime;
 

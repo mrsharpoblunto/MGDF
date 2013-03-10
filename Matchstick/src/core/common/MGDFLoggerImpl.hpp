@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 #include <boost/thread/thread.hpp>
 
 #include <MGDF/MGDF.hpp>
@@ -14,8 +15,6 @@ class ILoggerImpl: public ILogger
 {
 public:
 	virtual void Flush()=0;
-	virtual void Add(const std::string &sender,const std::string &message,LogLevel level)=0;
-	virtual void Add(const std::string &sender,const std::string &message)=0;
 	virtual void MoveOutputFile()=0;
 };
 
@@ -27,18 +26,16 @@ public:
 class Logger: public ILoggerImpl
 {
 public:
-	static Logger *InstancePtr() {
+	static Logger &Instance() {
 		static Logger log;
-		return &log;
+		return log;
 	}
 
 	virtual void SetLoggingLevel(LogLevel level);
 	virtual LogLevel GetLoggingLevel() const;
 	virtual void Add(const char * sender,const char * message,LogLevel level);
-	virtual void Add(const std::string &sender,const std::string &message,LogLevel level);
-	virtual void Add(const std::string &sender,const std::string &message);
-	virtual void MoveOutputFile();
 
+	virtual void MoveOutputFile();
 	virtual void Flush();
 private:
 	Logger();
@@ -52,7 +49,16 @@ private:
 	LogLevel _level;
 };
 
-ILoggerImpl *GetLoggerImpl();
+
+#define LOG(msg,lvl) {\
+	if (lvl <= MGDF::core::Logger::Instance().GetLoggingLevel()) {\
+		std::ostringstream ss;\
+		ss << __FILE__ <<  ':' <<__LINE__;\
+		std::ostringstream ms;\
+		ms << msg;\
+		MGDF::core::Logger::Instance().Add(ss.str().c_str(),ms.str().c_str(),lvl);\
+	}\
+}
 
 }
 }

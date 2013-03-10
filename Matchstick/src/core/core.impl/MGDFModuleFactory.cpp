@@ -7,8 +7,8 @@
 #include "../common/MGDFLoggerImpl.hpp"
 #include "MGDFCurrentDirectoryHelper.hpp"
 
-//this snippet ensures that the location of memory leaks is reported correctly in debug mode
-#if defined(DEBUG) |defined(_DEBUG)
+
+#if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
@@ -30,18 +30,18 @@ ModuleFactory::~ModuleFactory()
 }
 
 ModuleFactory::ModuleFactory(IGame *game)
+	: _game(game)
+	, _moduleInstance(nullptr)
+	, _getCustomArchiveHandlers(nullptr)
+	, _getModule(nullptr)
+	, _isCompatibleInterfaceVersion(nullptr)
 {
-	_game = game;
-
-	_moduleInstance = nullptr;
-	_getCustomArchiveHandlers = nullptr;
-	_getModule = nullptr;
-	_isCompatibleInterfaceVersion = nullptr;
+	_ASSERTE(game);
 
 	boost::filesystem::wpath globalModule(Resources::Instance().Module(),boost::filesystem::native);
 	if (boost::filesystem::exists(globalModule)) 
 	{
-		GetLoggerImpl()->Add(THIS_NAME,"Loading Module.dll");
+		LOG("Loading Module.dll",LOG_LOW);
 		CurrentDirectoryHelper::Instance().Push(Resources::Instance().BinDir());
 		_moduleInstance = LoadLibraryW(Resources::Instance().Module().c_str());
 		CurrentDirectoryHelper::Instance().Pop();
@@ -49,37 +49,37 @@ ModuleFactory::ModuleFactory(IGame *game)
 		if (_moduleInstance!=nullptr) {
 			_getCustomArchiveHandlers = (GetCustomArchiveHandlersPtr)GetProcAddress(_moduleInstance, "GetCustomArchiveHandlers");
 			if (_getCustomArchiveHandlers!=nullptr) {
-				GetLoggerImpl()->Add(THIS_NAME,"Loaded CustomArchiveHandlers from Module.dll");
+				LOG("Loaded GetCustomArchiveHandlers from Module.dll",LOG_LOW);
 			}
 
 			_getModule = (GetModulePtr)GetProcAddress(_moduleInstance, "GetModule");
 			if (_getModule!=nullptr) {
-				GetLoggerImpl()->Add(THIS_NAME,"Loaded Module from Module.dll");
+				LOG("Loaded GetModule from Module.dll",LOG_LOW);
 			}
 
 			_isCompatibleInterfaceVersion = (IsCompatibleInterfaceVersionPtr)GetProcAddress(_moduleInstance, "IsCompatibleInterfaceVersion");
 			if (_isCompatibleInterfaceVersion!=nullptr) {
-				GetLoggerImpl()->Add(THIS_NAME,"Loaded IsCompatibleInterfaceVersion from Module.dll");
+				LOG("Loaded IsCompatibleInterfaceVersion from Module.dll",LOG_LOW);
 			}
 
 			_getCompatibleFeatureLevels = (GetCompatibleFeatureLevelsPtr)GetProcAddress(_moduleInstance, "GetCompatibleFeatureLevels");
 			if (_getCompatibleFeatureLevels!=nullptr) {
-				GetLoggerImpl()->Add(THIS_NAME,"Loaded GetCompatibleFeatureLevels from Module.dll");
+				LOG("Loaded GetCompatibleFeatureLevels from Module.dll",LOG_LOW);
 			}
 		}
 		else {
-			GetLoggerImpl()->Add(THIS_NAME,"Failed to load Module.dll");
+			LOG("Failed to load Module.dll",LOG_LOW);
 		}
 	}
 }
 
-ICustomArchiveHandlers *ModuleFactory::GetCustomArchiveHandlers()
+bool ModuleFactory::GetCustomArchiveHandlers(IArchiveHandler **list,UINT32 *length,ILogger *logger,IErrorHandler *errorHandler)
 {
 	if (_getCustomArchiveHandlers!=nullptr) {
-		return _getCustomArchiveHandlers();
+		return _getCustomArchiveHandlers(list,length,logger,errorHandler);
 	}
 	else {
-		return nullptr;
+		return true;
 	}
 }
 
