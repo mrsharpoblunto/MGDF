@@ -110,7 +110,7 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 		state->AddLine( WHITE, "Testing custom VFS archive handler registration" );
 
 		bool success = false;
-		IFile *file = system->GetVFS()->GetFile( L"/content/test.fakearchive/testfile.txt" );
+		IFile *file = system->GetVFS()->GetFile( L"test.fakearchive/testfile.txt" );
 		if ( file != NULL ) {
 			file->OpenFile();
 			UINT32 size = static_cast<UINT32>( file->GetSize() );

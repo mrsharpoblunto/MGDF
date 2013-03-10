@@ -99,13 +99,13 @@ bool FakeFile::GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuf
 	return result;
 }
 
-void FakeFile::AddChild( IFile *file )
+void FakeFile::AddChild( FakeFile *file )
 {
 	_ASSERTE( file );
 	if ( !_children ) {
-		_children = new std::map<const wchar_t *, IFile *>();
+		_children = new std::map<const wchar_t *, FakeFile *,WCharCmp>();
 	}
-	_children->insert( std::pair<const wchar_t *, IFile *> ( file->GetName(), file ) );
+	_children->insert( std::pair<const wchar_t *, FakeFile *> ( file->GetName(), file ) );
 }
 
 const wchar_t *FakeFile::GetLogicalPath()

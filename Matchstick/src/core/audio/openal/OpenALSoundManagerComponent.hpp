@@ -75,8 +75,8 @@ private:
 	float _soundVolume, _streamVolume;
 	bool _enableAttenuation;
 	boost::unordered_map<ALuint, SharedBuffer *> _sharedBuffers;
-	std::vector<ISound *> _sounds;
-	std::vector<ISoundStream *> _soundStreams;
+	std::vector<OpenALSound *> _sounds;
+	std::vector<VorbisStream *> _soundStreams;
 	IVirtualFileSystem *_vfs;
 };
 

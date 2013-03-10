@@ -103,7 +103,7 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 		}
 	} else if ( _testState == 5 ) {
 		state->AddLine( WHITE, "Loading stream stream.ogg" );
-		_stream = system->GetSound()->CreateSoundStream( system->GetVFS()->GetFile( L"stream.ogg" ) );
+		_stream = system->GetSound()->CreateSoundStream( system->GetVFS()->GetFile( L"Stream.ogg" ) );
 		if ( _stream == NULL ) {
 			_testState = 1000;
 			state->SetStatus( RED, "[Test Failed]" );

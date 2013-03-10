@@ -46,14 +46,17 @@ void FakeArchiveHandler::Dispose()
 
 void FakeArchiveHandler::DisposeArchive( MGDF::IFile *file )
 {
-	delete( FakeFile * ) file;
+	delete ( FakeFile * ) file;
 }
 
 bool FakeArchiveHandler::IsArchive( const wchar_t *path ) const
 {
-	std::wstring extension = GetFileExtension( path );
-	for ( auto extIter = _fileExtensions.begin(); extIter != _fileExtensions.end(); ++extIter ) {
-		if ( ( *extIter ) == extension ) {
+	_ASSERTE( path );
+	const wchar_t *extension = GetFileExtension( path );
+	if ( !extension ) return false;
+
+	for ( auto it = _fileExtensions.begin(); it != _fileExtensions.end(); ++it ) {
+		if ( wcscmp( *it, extension ) == 0 ) {
 			return true;
 		}
 	}
@@ -65,7 +68,8 @@ const wchar_t *FakeArchiveHandler::GetFileExtension( const wchar_t *filename ) c
 	_ASSERTE( filename );
 	size_t index = wcslen( filename );
 	while ( index >= 0 ) {
-		if ( filename[index] == '.' ) return filename + ( index * sizeof( wchar_t ) );
+		if ( filename[index] == '.' ) return &filename[index];
+		--index;
 	}
 	return nullptr;
 }

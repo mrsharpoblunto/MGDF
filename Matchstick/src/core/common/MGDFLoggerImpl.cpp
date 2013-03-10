@@ -27,7 +27,7 @@ void Logger::Add( const char *sender, const char *message, LogLevel level )
 		stream << sender << " " << message << "\n";
 		_events.push_back( stream.str() );
 #if defined(_DEBUG)
-		OutputDebugString( _events.back().c_str() );
+		OutputDebugString( ("MGDF: "+_events.back()).c_str() );
 #endif
 		if ( _events.size() >= LOG_BUFFER_SIZE )
 			Flush();

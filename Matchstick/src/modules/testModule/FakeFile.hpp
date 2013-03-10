@@ -4,6 +4,12 @@
 #include <map>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
+struct WCharCmp {
+	bool operator()( const wchar_t *a, const wchar_t *b ) {
+		return std::wcscmp( a, b ) < 0;
+	}
+};
+
 /**
  abstract class which contains the common functionality to default file instances aswell as the zip and other archive file implementations
  of the standard ifile interface
@@ -13,7 +19,7 @@ class FakeFile : public MGDF::IFile
 public:
 	FakeFile( const std::wstring &name, const std::wstring &physicalFile, IFile *parent );
 	FakeFile( const std::wstring &name, FakeFile *parent, void *data, size_t dataLength );  //NULL data indicates a folder
-	void AddChild( MGDF::IFile *file );
+	void AddChild( FakeFile *file );
 	virtual ~FakeFile( void );
 
 	virtual MGDF::IFile *GetParent() const;
@@ -38,7 +44,7 @@ public:
 	virtual const wchar_t *GetName() const;
 	virtual time_t GetLastWriteTime() const;
 protected:
-	std::map<const wchar_t *, MGDF::IFile *> *_children;
+	std::map<const wchar_t *, FakeFile *,WCharCmp> *_children;
 	MGDF::IFile *_parent;
 	std::wstring _logicalPath;
 	std::wstring _name;

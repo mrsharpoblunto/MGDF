@@ -108,7 +108,7 @@ void OpenALSoundManagerComponentImpl::Update()
 		PrioritizeSounds( deactivatedSoundsCount );
 	}
 
-	for ( std::vector<ISoundStream *>::iterator iter = _soundStreams.begin(); iter != _soundStreams.end(); ++iter ) {
+	for ( std::vector<VorbisStream *>::iterator iter = _soundStreams.begin(); iter != _soundStreams.end(); ++iter ) {
 		VorbisStream *stream = ( VorbisStream * ) *iter;
 		stream->Update();
 	}
@@ -207,7 +207,7 @@ ISoundStream *OpenALSoundManagerComponentImpl::CreateSoundStream( IFile *file )
 		return nullptr;
 	} else {
 		try {
-			ISoundStream *stream = new VorbisStream( file, this );
+			VorbisStream *stream = new VorbisStream( file, this );
 			_soundStreams.push_back( stream );
 			return stream;
 		} catch ( ... ) {
@@ -226,7 +226,7 @@ ISound *OpenALSoundManagerComponentImpl::CreateSound( IFile *file, INT32 priorit
 	}
 
 	try {
-		ISound *sound = new OpenALSound( file, this, priority );
+		OpenALSound *sound = new OpenALSound( file, this, priority );
 		_sounds.push_back( sound );
 		return sound;
 	} catch ( ... ) {
@@ -239,7 +239,7 @@ void OpenALSoundManagerComponentImpl::DeactivateSound( INT32 priority )
 {
 	//find all sounds with a priority equal or lower to the one to be created
 	std::vector<OpenALSound *> sounds;
-	for ( std::vector<ISound *>::iterator iter = _sounds.begin(); iter != _sounds.end(); ++iter ) {
+	for ( std::vector<OpenALSound *>::iterator iter = _sounds.begin(); iter != _sounds.end(); ++iter ) {
 		if ( ( *iter )->GetPriority() <= priority ) {
 			sounds.push_back( ( OpenALSound * )( *iter ) );
 		}

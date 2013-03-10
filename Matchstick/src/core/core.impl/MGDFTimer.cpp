@@ -185,6 +185,13 @@ Timer::~Timer( void )
 {
 	timeEndPeriod( 1 );
 
+	while ( _cpuCounters.size() > 0 ) {
+		delete _cpuCounters.back();
+	}
+	while ( _gpuCounters.size() > 0 ) {
+		delete _gpuCounters.back();
+	}
+
 	for ( auto iter = _disjointQueries.begin(); iter != _disjointQueries.end(); ++iter ) {
 		SAFE_RELEASE( *iter );
 	}

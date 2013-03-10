@@ -122,7 +122,7 @@ IFile *VirtualFileSystemComponent::GetFile( const wchar_t *logicalPath ) const
 	boost::split( pathComponents, logicalPath, boost::is_any_of( L"/" ) );
 
 	IFile *node = _root;
-	for ( auto it = pathComponents.cbegin(); it != pathComponents.cend(); ++it ) {
+	for ( auto it = pathComponents.begin(); it != pathComponents.end(); ++it ) {
 		node = node->GetChild( it->c_str() );
 		if ( !node ) break;
 	}
