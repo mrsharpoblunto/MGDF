@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 
 #include "AL/alut.h"
-#include <boost/lexical_cast.hpp>
 
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFExceptions.hpp"
@@ -72,7 +71,7 @@ OpenALSoundSystem::OpenALSoundSystem()
 	}
 	while (_freeSources.size()<MAX_SOURCES);
 
-	LOG("max audio sources determined - "+boost::lexical_cast<std::string>(_freeSources.size()),LOG_LOW);
+	LOG("max audio sources determined - " << _freeSources.size(),LOG_LOW);
 	LOG("initialised successfully",LOG_LOW);
 }
 

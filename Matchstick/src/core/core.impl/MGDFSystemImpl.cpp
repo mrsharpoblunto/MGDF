@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <sstream>
 #include <boost/filesystem/operations.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
 
 #include "../common/MGDFResources.hpp"

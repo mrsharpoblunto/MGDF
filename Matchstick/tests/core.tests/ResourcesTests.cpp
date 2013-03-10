@@ -2,7 +2,6 @@
 
 #include "UnitTest++.h"
 
-#include <boost/lexical_cast.hpp>
 #include "../../src/core/common/MGDFResources.hpp"
 
 using namespace MGDF::core;

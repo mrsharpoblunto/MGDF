@@ -46,9 +46,9 @@ void Resources::SetUserBaseDir(bool useRootDir,const std::string &gameUid)
 		wchar_t strPath[MAX_PATH];
 		if(SUCCEEDED(SHGetFolderPathW( nullptr, CSIDL_LOCAL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, strPath ) ) )
 		{
-			_userBaseDir = strPath;
-			_userBaseDir +=L"/MGDF/";
-			_userBaseDir +=boost::lexical_cast<std::wstring>(MGDFVersionInfo::MGDF_INTERFACE_VERSION)+L"/"+ ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
+			std::wostringstream ss;
+			ss << strPath << L"/MGDF/" << MGDFVersionInfo::MGDF_INTERFACE_VERSION << L"/" << ToWString(gameUid) << (!gameUid.empty() ? L"/" : L"");
+			_userBaseDir = ss.str();
 		}
 		else 
 		{

@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+#include <sstream>
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
@@ -15,28 +16,37 @@ namespace MGDF { namespace core {
 
 std::string VersionHelper::Format(const Version *version)
 {
-	std::string result = boost::lexical_cast<std::string>(version->Major) + "." + boost::lexical_cast<std::string>(version->Minor);
+	std::ostringstream ss;
+
+	ss << version->Major << '.' << version->Minor;
 	
 	if (version->Build>=0) {
-		result+="."+boost::lexical_cast<std::string>(version->Build);
+		ss << '.' << version->Build;
 	}
 	if (version->Revision>=0) {
-		result+="."+boost::lexical_cast<std::string>(version->Revision);
+		ss << '.' << version->Revision;
 	}
-	return result;
+	return ss.str();
 }
 
 Version VersionHelper::Create(const std::string &version)
 {
+	Version result;
+	result.Major = result.Minor = result.Build = result.Revision = -1;
+	try 
+	{
 		std::vector<std::string> versionSplit;
 		boost::split(versionSplit,version,boost::is_any_of("."));
-		Version result;
 		result.Major = boost::lexical_cast<int>(versionSplit[0]);
 		result.Minor = boost::lexical_cast<int>(versionSplit[1]);
 		result.Build = versionSplit.size()>2 ? boost::lexical_cast<int>(versionSplit[2]): -1;
 		result.Revision = versionSplit.size()>3 ?boost::lexical_cast<int>(versionSplit[3]): -1;
-
-		return result;
+	}
+	catch (...)
+	{
+		_ASSERTE(0);
+	}
+	return result;
 }
 
 Version VersionHelper::Copy(const Version *version)

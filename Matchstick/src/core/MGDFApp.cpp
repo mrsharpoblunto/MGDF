@@ -3,8 +3,6 @@
 #include "MGDFApp.hpp"
 #include "core.impl/MGDFSystemBuilder.hpp"
 #include "core.impl/MGDFParameterConstants.hpp"
-#include <boost/lexical_cast.hpp>
-
 
 #if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)

@@ -1,6 +1,5 @@
 #include "StdAfx.h"
 
-#include <boost/lexical_cast.hpp>
 #include <string.h>
 #include <math.h>
 #include <mmsystem.h>
@@ -243,7 +242,7 @@ void D3DAppFramework::InitD3D(D3D_FEATURE_LEVEL *levels,UINT32 levelsSize)
 		}
 		else
 		{
-			LOG("Created device with D3D Feature level: "+boost::lexical_cast<std::string>(_d3dDevice->GetFeatureLevel()),LOG_LOW);
+			LOG("Created device with D3D Feature level: " << _d3dDevice->GetFeatureLevel(),LOG_LOW);
 		}
 
 		OnInitD3D(_d3dDevice,bestAdapter);
