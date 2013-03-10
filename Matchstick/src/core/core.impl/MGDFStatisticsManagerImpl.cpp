@@ -14,7 +14,10 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 #define SEND_THRESHOLD 10
 
@@ -23,73 +26,70 @@ StatisticsManager::StatisticsManager()
 	_saveBuffer = new std::vector<NameValuePair>();
 	_statisticsFile = Resources::Instance().GameUserStatisticsFile();
 
-	std::ofstream file(_statisticsFile.c_str(),std::ios_base::out|std::ios_base::trunc);
+	std::ofstream file( _statisticsFile.c_str(), std::ios_base::out | std::ios_base::trunc );
 	file.close();
-	LOG("StatisticsManager enabled",LOG_LOW);
+	LOG( "StatisticsManager enabled", LOG_LOW );
 }
 
 StatisticsManager::~StatisticsManager()
 {
-	if (GetSaveBufferSize() > 0) {
-		LOG("Saving remaining statistics...",LOG_LOW);
+	if ( GetSaveBufferSize() > 0 ) {
+		LOG( "Saving remaining statistics...", LOG_LOW );
 		StatisticsManager::SaveAll();
 	}
-	SAFE_DELETE(_saveBuffer);
+	SAFE_DELETE( _saveBuffer );
 }
 
-size_t StatisticsManager::GetSaveBufferSize() 
+size_t StatisticsManager::GetSaveBufferSize()
 {
 	return _saveBuffer->size();
 }
 
-void StatisticsManager::AddToSaveBuffer(NameValuePair &&nvp) 
+void StatisticsManager::AddToSaveBuffer( NameValuePair && nvp )
 {
-	_saveBuffer->push_back(nvp);
+	_saveBuffer->push_back( nvp );
 }
 
-std::vector<StatisticsManager::NameValuePair> *StatisticsManager::ResetSaveBuffer() 
+std::vector<StatisticsManager::NameValuePair> *StatisticsManager::ResetSaveBuffer()
 {
 	std::vector<NameValuePair> *result = _saveBuffer;
 	_saveBuffer = new std::vector<NameValuePair>();
 	return result;
 }
 
-void StatisticsManager::SaveStatistic(const char *  name,const char *  value)
+void StatisticsManager::SaveStatistic( const char *  name, const char *  value )
 {
-	_ASSERTE(name);
-	_ASSERTE(value);
+	_ASSERTE( name );
+	_ASSERTE( value );
 
 	NameValuePair nvp;
 	nvp.Name = name;
 	nvp.Value = value;
 
-	AddToSaveBuffer(std::move(nvp));
+	AddToSaveBuffer( std::move( nvp ) );
 
-	if (GetSaveBufferSize()>= SEND_THRESHOLD) {
+	if ( GetSaveBufferSize() >= SEND_THRESHOLD ) {
 		StatisticsManager::SaveAll();
 	}
 }
 
-void StatisticsManager::SaveAll() 
+void StatisticsManager::SaveAll()
 {
 	std::vector<NameValuePair> *saveBuffer = ResetSaveBuffer();
 
-	if (saveBuffer->size()>0) {
-		try 
-		{
-			std::ofstream file(_statisticsFile.c_str(),std::ios_base::out|std::ios_base::app);
-			BOOST_FOREACH(NameValuePair pair,(*saveBuffer)) 
-			{
+	if ( saveBuffer->size() > 0 ) {
+		try {
+			std::ofstream file( _statisticsFile.c_str(), std::ios_base::out | std::ios_base::app );
+			BOOST_FOREACH( NameValuePair pair, ( *saveBuffer ) ) {
 				file << pair.Name + " " << pair.Value << "\r\n";
 			}
 			file.close();
-		}
-		catch (const std::exception& e)
-		{
-			LOG("Error saving statistics: " << e.what(),LOG_ERROR);
+		} catch ( const std::exception& e ) {
+			LOG( "Error saving statistics: " << e.what(), LOG_ERROR );
 		}
 	}
-	SAFE_DELETE(saveBuffer);
+	SAFE_DELETE( saveBuffer );
 }
 
-}}
+}
+}

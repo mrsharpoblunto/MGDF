@@ -2,7 +2,8 @@
 
 #include <MGDF/MGDFList.hpp>
 
-namespace MGDF {
+namespace MGDF
+{
 
 /**
 provides a means to filter files from result sets
@@ -14,12 +15,12 @@ public:
 	\param childname the name of the file to be filtered
 	\return true if the file is to be included in a result set, and false if it should be excluded
 	*/
-	virtual bool Accept(const wchar_t *childname) const=0;
+	virtual bool Accept( const wchar_t *childname ) const = 0;
 };
 
 /**
 represents a file/directory structure in the virtual file system. Directories have no data but can have subfiles
-Files have no subfiles (except for archives) but may have data. Archives that have been added to the vfs are mapped 
+Files have no subfiles (except for archives) but may have data. Archives that have been added to the vfs are mapped
 as files with the same name as the archive filename, but unlike normal files they also have a tree of subdirectories
 containing the uncompressed archive data
 \author gcconner
@@ -30,18 +31,18 @@ public:
 	/**
 	\return the name of this file
 	*/
-	virtual const wchar_t * GetName() const=0;
+	virtual const wchar_t * GetName() const = 0;
 
 	/**
 	\return the parent of this file. If this file is the root of the virtual file system, then this will be nullptr
 	*/
-	virtual IFile * GetParent() const=0;
+	virtual IFile * GetParent() const = 0;
 
 	/**
 	\param name the child name of this file
 	\return the child file of the current file. If no such file exists, nullptr is returned
 	*/
-	virtual IFile * GetChild(const wchar_t *name) =0;
+	virtual IFile * GetChild( const wchar_t *name ) = 0;
 
 	/**
 	 Get all the children of this file (non-recursive) which match the given wildcard filter
@@ -50,95 +51,95 @@ public:
 	 \param bufferLength the length of the childBuffer. Will be set to the length of the buffer required when the method returns
 	 \return true if the supplied buffer is large enough to hold all the results, otherwise returns false and sets the size required in bufferLength.
 	 */
-	virtual bool GetAllChildren(const IFileFilter *filter,IFile **childBuffer,size_t *bufferLength)=0;
+	virtual bool GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) = 0;
 
 	/**
 	\return how many children this file node has
 	*/
-	virtual size_t GetChildCount() =0;
+	virtual size_t GetChildCount() = 0;
 
 	/**
 	determines if the IFile entity is a folder
 	\return true if the IFile is a folder
 	*/
-	virtual bool  IsFolder() const =0;
+	virtual bool  IsFolder() const = 0;
 
 	/**
 	determines if the IFile is open
 	\return true if the IFile is open
 	*/
-	virtual bool  IsOpen() const=0;
+	virtual bool  IsOpen() const = 0;
 
 	/**
-	attempt to open the file for reading 
+	attempt to open the file for reading
 	\return false if the file cannot be opened
 	*/
-	virtual bool OpenFile()=0;
+	virtual bool OpenFile() = 0;
 
 	/**
 	closes the file if its open, otherwise does nothing
 	*/
-	virtual void CloseFile()=0;
+	virtual void CloseFile() = 0;
 
 	/**
 	reads the specified number of bytes into the buffer and returns the amount of bytes actually read into the buffer
 	if the file is not open then the method adds nothing to the buffer and returns 0
-	if the file has no data or the 
+	if the file has no data or the
 	*/
-	virtual UINT32 Read(void* buffer,UINT32 length)=0;
+	virtual UINT32 Read( void* buffer, UINT32 length ) = 0;
 
 	/**
 	sets the read position of the file in bytes (if the file is open)
 	*/
-	virtual void SetPosition(INT64 pos)=0;
+	virtual void SetPosition( INT64 pos ) = 0;
 
 	/**
 	get the current read position of the file in bytes
 	\return the read position in the file (or 0 if the file is closed)
 	*/
-	virtual INT64 GetPosition() const=0;
+	virtual INT64 GetPosition() const = 0;
 
 	/**
 	determines whether the file read position has reached the end of the file
 	\returns true if the read position is past the end of the file (or if the file is closed)
 	*/
-	virtual bool  EndOfFile() const=0;
+	virtual bool  EndOfFile() const = 0;
 
 	/**
 	get the size of the file in bytes
 	\return the filesize in bytes (for compressed archives this value is the uncompressed size)
 	*/
-	virtual INT64 GetSize()=0;
+	virtual INT64 GetSize() = 0;
 
 	/**
 	determines if the IFile is a (or is a member of) an archive file
 	\return true if the entity is a (or is a member of) an archive file
 	*/
-	virtual bool  IsArchive() const=0;
+	virtual bool  IsArchive() const = 0;
 
 	/**
 	gets the name of the archive the file belongs to (if any)
 	\returns the name of the archive file the entity belongs to, otherwise it returns ""
 	*/
-	virtual const wchar_t * GetArchiveName() const=0;
+	virtual const wchar_t * GetArchiveName() const = 0;
 
 	/**
 	get the pyshical path to the IFile in the filesystem
 	\return the pyshical path to the IFile in the filesystem, in the case of an archive submember this will be the address to the containing archive
 	*/
-	virtual const wchar_t * GetPhysicalPath() const=0;
+	virtual const wchar_t * GetPhysicalPath() const = 0;
 
 	/**
 	get the path to the IFile as expressed as a vfs logical file path
 	\return the path to the IFile as expressed as a vfs logical file path
 	*/
-	virtual const wchar_t * GetLogicalPath()=0;
+	virtual const wchar_t * GetLogicalPath() = 0;
 
 	/**
 	find the last write time of the file
 	\return a timestamp indicating the last write time
 	*/
-	virtual time_t GetLastWriteTime() const=0;
+	virtual time_t GetLastWriteTime() const = 0;
 };
 
 /**
@@ -151,22 +152,22 @@ public:
 	get the root node of the mapped vfs subtree
 	\return the root node of the mapped vfs subtree
 	*/
-	virtual IFile * MapArchive(const wchar_t *name, const wchar_t *physicalPath, IFile *parent)=0;
+	virtual IFile * MapArchive( const wchar_t *name, const wchar_t *physicalPath, IFile *parent ) = 0;
 
 	/**
 	whether this file/directory is recognised as an archive type
 	*/
-	virtual bool  IsArchive(const wchar_t *physicalPath) const=0;
+	virtual bool  IsArchive( const wchar_t *physicalPath ) const = 0;
 
 	/**
 	tells the archive handler to dispose of an archive which it previously created
 	*/
-	virtual void DisposeArchive(IFile *archive)=0;
+	virtual void DisposeArchive( IFile *archive ) = 0;
 
-	/** 
+	/**
 	tells the archive handler to dispose of itself
 	*/
-	virtual void Dispose()=0;
+	virtual void Dispose() = 0;
 };
 
 /**
@@ -180,12 +181,12 @@ public:
 	return the file/folder/archive in the denoted logical directory. paths are delimited using the / character and names
 	are case sensitive
 	*/
-	virtual IFile * GetFile(const wchar_t *logicalPath) const=0;
+	virtual IFile * GetFile( const wchar_t *logicalPath ) const = 0;
 
 	/**
 	return the root node of the virtual file system
 	*/
-	virtual IFile * GetRoot() const=0;
+	virtual IFile * GetRoot() const = 0;
 };
 
 }

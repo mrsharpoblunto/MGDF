@@ -8,14 +8,16 @@
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFLogger.hpp>
 
-namespace MGDF {
-namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 class ILoggerImpl: public ILogger
 {
 public:
-	virtual void Flush()=0;
-	virtual void MoveOutputFile()=0;
+	virtual void Flush() = 0;
+	virtual void MoveOutputFile() = 0;
 };
 
 /**
@@ -31,9 +33,9 @@ public:
 		return log;
 	}
 
-	virtual void SetLoggingLevel(LogLevel level);
+	virtual void SetLoggingLevel( LogLevel level );
 	virtual LogLevel GetLoggingLevel() const;
-	virtual void Add(const char * sender,const char * message,LogLevel level);
+	virtual void Add( const char * sender, const char * message, LogLevel level );
 
 	virtual void MoveOutputFile();
 	virtual void Flush();
@@ -41,7 +43,7 @@ private:
 	Logger();
 	virtual ~Logger();
 
-	void SetOutputFile(const std::wstring &);
+	void SetOutputFile( const std::wstring & );
 
 	boost::mutex _mutex;
 	std::vector<std::string> _events;

@@ -3,7 +3,10 @@
 #include <string>
 #include <list>
 
-namespace MGDF { namespace core { 
+namespace MGDF
+{
+namespace core
+{
 
 class CurrentDirectoryHelper
 {
@@ -13,18 +16,19 @@ public:
 		return c;
 	}
 
-	virtual ~CurrentDirectoryHelper(){};
+	virtual ~CurrentDirectoryHelper() {};
 
 	std::wstring Get();
-	void Set(const std::wstring &directory);
-	void Push(const std::wstring &directory);
+	void Set( const std::wstring &directory );
+	void Push( const std::wstring &directory );
 	void Pop();
 private:
 	CurrentDirectoryHelper();
 	std::wstring _currentDirectory;
 	std::list<std::wstring> _currentDirectories;
 
-	void SetDirectory(const std::wstring &directory);
+	void SetDirectory( const std::wstring &directory );
 };
 
-}}
+}
+}

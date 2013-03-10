@@ -11,7 +11,14 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
+namespace MGDF
+{
+namespace core
+{
+namespace storage
+{
+namespace jsoncppImpl
+{
 
 IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent()
 {
@@ -23,10 +30,10 @@ IGameStorageHandler *JsonCppStorageFactoryComponent::CreateGameStorageHandler() 
 	return new JsonCppGameStorageHandler();
 }
 
-IGameStateStorageHandler *JsonCppStorageFactoryComponent::CreateGameStateStorageHandler(const std::string &game,const Version *version) const
+IGameStateStorageHandler *JsonCppStorageFactoryComponent::CreateGameStateStorageHandler( const std::string &game, const Version *version ) const
 {
-	_ASSERTE(version);
-	return new JsonCppGameStateStorageHandler(game,version);
+	_ASSERTE( version );
+	return new JsonCppGameStateStorageHandler( game, version );
 }
 
 IPreferenceConfigStorageHandler *JsonCppStorageFactoryComponent::CreatePreferenceConfigStorageHandler() const
@@ -34,4 +41,7 @@ IPreferenceConfigStorageHandler *JsonCppStorageFactoryComponent::CreatePreferenc
 	return new JsonCppPreferenceConfigStorageHandler();
 }
 
-}}}}
+}
+}
+}
+}

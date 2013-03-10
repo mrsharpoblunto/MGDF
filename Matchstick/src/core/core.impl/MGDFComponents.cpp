@@ -9,7 +9,10 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 Components::Components()
 {
@@ -18,9 +21,10 @@ Components::Components()
 Components::~Components()
 {
 	//warnings output for components that have not been properly cleaned up
-	for (auto iter=_components.begin();iter!=_components.end();++iter) {
-		LOG("component " << iter->first << " has not been unregistered on shutdown",LOG_ERROR);
+	for ( auto iter = _components.begin(); iter != _components.end(); ++iter ) {
+		LOG( "component " << iter->first << " has not been unregistered on shutdown", LOG_ERROR );
 	}
 }
 
-}}
+}
+}

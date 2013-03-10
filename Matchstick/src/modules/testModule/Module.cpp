@@ -9,27 +9,30 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
-namespace MGDF { namespace Test {
+namespace MGDF
+{
+namespace Test
+{
 
-Module::~Module(void)
+Module::~Module( void )
 {
 	delete _textManager;
-	if (_testModule!=nullptr) delete _testModule;
+	if ( _testModule != nullptr ) delete _testModule;
 
-	if (_textManagerCounter) _textManagerCounter->Dispose();
-	if (_testModuleCounter) _testModuleCounter->Dispose();
+	if ( _textManagerCounter ) _textManagerCounter->Dispose();
+	if ( _testModuleCounter ) _testModuleCounter->Dispose();
 }
 
-Module::Module(ISystem *system)
-: _textManagerCounter(nullptr)
-, _testModuleCounter(nullptr)
+Module::Module( ISystem *system )
+	: _textManagerCounter( nullptr )
+	, _testModuleCounter( nullptr )
 {
 	_system = system;
-	_textManager = new TextManager(system);
-	_stateBuffer.Pending()->AddLine(WHITE,"MGDF functional test suite started");
+	_textManager = new TextManager( system );
+	_stateBuffer.Pending()->AddLine( WHITE, "MGDF functional test suite started" );
 }
 
-bool Module::New(const wchar_t *workingFolder)
+bool Module::New( const wchar_t *workingFolder )
 {
 	_workingFolder = workingFolder;
 	_testModule = new Test1();
@@ -37,50 +40,46 @@ bool Module::New(const wchar_t *workingFolder)
 	return true;
 }
 
-bool Module::Dispose(void)
+bool Module::Dispose( void )
 {
 	delete this;
 	return true;
 }
 
-bool Module::UpdateScene(double elapsedTime)
+bool Module::UpdateScene( double elapsedTime )
 {
-	if (!_testModuleCounter)
-	{
-		_testModuleCounter = _system->GetTimer()->CreateCPUCounter("Test Module");
+	if ( !_testModuleCounter ) {
+		_testModuleCounter = _system->GetTimer()->CreateCPUCounter( "Test Module" );
 	}
 
 	_testModuleCounter->Begin();
-		_testModule->Update(_system,_stateBuffer.Pending());
+	_testModule->Update( _system, _stateBuffer.Pending() );
 
-		TestModule *next = _testModule->NextTestModule();
-		if (next!=nullptr)
-		{
-			delete _testModule;
-			_testModule = next;
-		}
+	TestModule *next = _testModule->NextTestModule();
+	if ( next != nullptr ) {
+		delete _testModule;
+		_testModule = next;
+	}
 	_testModuleCounter->End();
 
 	_stateBuffer.Flip();
 	return true;
 }
 
-bool Module::DrawScene(double alpha)
+bool Module::DrawScene( double alpha )
 {
-	boost::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate(alpha);
-	if (state)
-	{
-		if (!_textManagerCounter)
-		{
-			_textManagerCounter = _system->GetTimer()->CreateGPUCounter("Text Rendering");
+	boost::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate( alpha );
+	if ( state ) {
+		if ( !_textManagerCounter ) {
+			_textManagerCounter = _system->GetTimer()->CreateGPUCounter( "Text Rendering" );
 		}
 
-		if (_textManagerCounter) _textManagerCounter->Begin();
-			_textManager->SetState(state);
-			_textManager->DrawText();
-		if (_textManagerCounter) _textManagerCounter->End();
+		if ( _textManagerCounter ) _textManagerCounter->Begin();
+		_textManager->SetState( state );
+		_textManager->DrawText();
+		if ( _textManagerCounter ) _textManagerCounter->End();
 	}
-   return true;
+	return true;
 }
 
 bool Module::BackBufferChanged()
@@ -102,4 +101,5 @@ const char * Module::GetLastError()
 	return _lastError.c_str();
 }
 
-}}
+}
+}

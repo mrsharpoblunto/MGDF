@@ -2,7 +2,10 @@
 
 #include <string>
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 class ParameterConstants
 {
@@ -17,4 +20,5 @@ public:
 	static const char *VALUE_LOG_LEVEL_ERROR;
 };
 
-}}
+}
+}

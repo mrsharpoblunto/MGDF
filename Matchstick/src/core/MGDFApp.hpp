@@ -6,28 +6,31 @@
 #include "MGDFD3DAppFramework.hpp"
 #include "core.impl/MGDFSystemImpl.hpp"
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 class MGDFApp: public D3DAppFramework
 {
 public:
-	MGDFApp(HINSTANCE hInstance);
+	MGDFApp( HINSTANCE hInstance );
 	virtual ~MGDFApp();
-	
-	virtual void OnInitD3D(ID3D11Device *device, IDXGIAdapter1 *adapter);
-	virtual void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC *,BOOL *);
-	virtual bool IsBackBufferChangePending();	
-	virtual void OnBackBufferChanged(ID3D11Texture2D *backBuffer);
-	virtual void UpdateScene(double elapsedTime);
-	virtual void DrawScene(double alpha);
-	virtual void FatalError(const char *sender,const char *message);
-	virtual void ExternalClose();
-	virtual void OnRawInput(RAWINPUT *input);
-	virtual void OnMouseInput(INT32 x,INT32 y);
-	virtual void OnInputIdle();
-	virtual void InitDirect3D(const std::string &caption,WNDPROC windowProcedure);
 
-	void SetSystem(System *system);
+	virtual void OnInitD3D( ID3D11Device *device, IDXGIAdapter1 *adapter );
+	virtual void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC *, BOOL * );
+	virtual bool IsBackBufferChangePending();
+	virtual void OnBackBufferChanged( ID3D11Texture2D *backBuffer );
+	virtual void UpdateScene( double elapsedTime );
+	virtual void DrawScene( double alpha );
+	virtual void FatalError( const char *sender, const char *message );
+	virtual void ExternalClose();
+	virtual void OnRawInput( RAWINPUT *input );
+	virtual void OnMouseInput( INT32 x, INT32 y );
+	virtual void OnInputIdle();
+	virtual void InitDirect3D( const std::string &caption, WNDPROC windowProcedure );
+
+	void SetSystem( System *system );
 private:
 	void DrawSystemOverlay();
 
@@ -38,4 +41,5 @@ private:
 	IFW1FontWrapper *_font;
 };
 
-}}
+}
+}

@@ -25,7 +25,10 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 bool SystemBuilder::RegisterBaseComponents()
 {
@@ -35,45 +38,40 @@ bool SystemBuilder::RegisterBaseComponents()
 	InitLogger();
 
 	storage::IStorageFactoryComponent *storageImpl = storage::CreateStorageFactoryComponentImpl();
-	if (storageImpl!=nullptr) {
-		Components::Instance().RegisterComponent<storage::IStorageFactoryComponent>(storageImpl);
-	}
-	else {
-		LOG("FATAL ERROR: Unable to register StorageFactory",LOG_ERROR);
+	if ( storageImpl != nullptr ) {
+		Components::Instance().RegisterComponent<storage::IStorageFactoryComponent> ( storageImpl );
+	} else {
+		LOG( "FATAL ERROR: Unable to register StorageFactory", LOG_ERROR );
 		return false;
 	}
 
 	return true;
 }
 
-bool SystemBuilder::RegisterAdditionalComponents(std::string gameUid)
+bool SystemBuilder::RegisterAdditionalComponents( std::string gameUid )
 {
 	input::IInputManagerComponent *input = input::CreateInputManagerComponentImpl();
-	if (input!=nullptr) {
-		Components::Instance().RegisterComponent<input::IInputManagerComponent>(input);
-	}
-	else {
-		LOG("FATAL ERROR: Unable to register InputManager",LOG_ERROR);
+	if ( input != nullptr ) {
+		Components::Instance().RegisterComponent<input::IInputManagerComponent> ( input );
+	} else {
+		LOG( "FATAL ERROR: Unable to register InputManager", LOG_ERROR );
 		return false;
 	}
 
 	vfs::IVirtualFileSystemComponent *vfs = vfs::CreateVirtualFileSystemComponentImpl();
-	if (vfs!=nullptr) {
-		Components::Instance().RegisterComponent<vfs::IVirtualFileSystemComponent>(vfs);
-	}
-	else {
-		LOG("FATAL ERROR: Unable to register VirtualFileSystem",LOG_ERROR);
+	if ( vfs != nullptr ) {
+		Components::Instance().RegisterComponent<vfs::IVirtualFileSystemComponent> ( vfs );
+	} else {
+		LOG( "FATAL ERROR: Unable to register VirtualFileSystem", LOG_ERROR );
 		return false;
 	}
 
-	audio::ISoundManagerComponent *audioImpl = audio::CreateSoundManagerComponentImpl(vfs);
-	if (audioImpl!=nullptr) {
-		Components::Instance().RegisterComponent<audio::ISoundManagerComponent>(audioImpl);
-	}
-	else 
-	{
+	audio::ISoundManagerComponent *audioImpl = audio::CreateSoundManagerComponentImpl( vfs );
+	if ( audioImpl != nullptr ) {
+		Components::Instance().RegisterComponent<audio::ISoundManagerComponent> ( audioImpl );
+	} else {
 		//its a problem, but we can still probably run if the soundmanager failed to initialize
-		LOG("ERROR: Unable to register SoundManager",LOG_ERROR);
+		LOG( "ERROR: Unable to register SoundManager", LOG_ERROR );
 	}
 
 	return true;
@@ -89,163 +87,146 @@ void SystemBuilder::UnregisterComponents()
 
 System *SystemBuilder::CreateSystem()
 {
-	//do the bare minimum setup required to be able to 
+	//do the bare minimum setup required to be able to
 	//load up the game configuration file
-	if (!RegisterBaseComponents())
-	{
+	if ( !RegisterBaseComponents() ) {
 		return nullptr;
 	}
 
-	Game *game=nullptr;
-	try 
-	{
+	Game *game = nullptr;
+	try {
 		//try and load the game configuration file
 		storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
-		_ASSERTE(storageFactory);
+		_ASSERTE( storageFactory );
 
-		std::auto_ptr<storage::IGameStorageHandler> handler(storageFactory->CreateGameStorageHandler());
-		handler->Load(Resources::Instance().GameFile());
+		std::auto_ptr<storage::IGameStorageHandler> handler( storageFactory->CreateGameStorageHandler() );
+		handler->Load( Resources::Instance().GameFile() );
 
 		//now that we know the UID for the game, we'll set up the user resources paths again
 		//and shift the logfile over to the new user directory
-		InitResources(handler->GetGameUid());
+		InitResources( handler->GetGameUid() );
 		Logger::Instance().MoveOutputFile();
 
-		game = GameBuilder::LoadGame(handler.get());
-	}
-	catch (MGDFException ex)
-	{
-		LOG("FATAL ERROR: Unable to load game configuration - " << ex.what(),LOG_ERROR);
+		game = GameBuilder::LoadGame( handler.get() );
+	} catch ( MGDFException ex ) {
+		LOG( "FATAL ERROR: Unable to load game configuration - " << ex.what(), LOG_ERROR );
 		return nullptr;
-	} 
-	catch (...)
-	{
-		LOG("FATAL ERROR: Unable to load game configuration",LOG_ERROR);
+	} catch ( ... ) {
+		LOG( "FATAL ERROR: Unable to load game configuration", LOG_ERROR );
 		return nullptr;
 	}
 
 	//now that the game file loaded, initialize everything else
 	//and set the log directory correctly.
-	if (!RegisterAdditionalComponents(game->GetUid()))
-	{
+	if ( !RegisterAdditionalComponents( game->GetUid() ) ) {
 		return nullptr;
 	}
 
-	if (MGDFVersionInfo::MGDF_INTERFACE_VERSION!=game->GetInterfaceVersion()) {
-		LOG("FATAL ERROR: Unsupported MGDF Interface version",LOG_ERROR);
+	if ( MGDFVersionInfo::MGDF_INTERFACE_VERSION != game->GetInterfaceVersion() ) {
+		LOG( "FATAL ERROR: Unsupported MGDF Interface version", LOG_ERROR );
 		delete game;
 		return nullptr;
 	}
 
-	try 
-	{
-		System *system = new System(game);
-		Components::Instance().RegisterComponentErrorHandler(system); //register the system error handlerswith all components
+	try {
+		System *system = new System( game );
+		Components::Instance().RegisterComponentErrorHandler( system );  //register the system error handlerswith all components
 
 		return system;
-	}
-	catch (...)
-	{
-		LOG("FATAL ERROR: Unable to create system",LOG_ERROR);
+	} catch ( ... ) {
+		LOG( "FATAL ERROR: Unable to create system", LOG_ERROR );
 		return nullptr;
 	}
 }
 
-void SystemBuilder::DisposeSystem(System *system)
+void SystemBuilder::DisposeSystem( System *system )
 {
-	if (system!=nullptr)
-	{
+	if ( system != nullptr ) {
 		system->DisposeModule();
 	}
 	UnregisterComponents();
-	SAFE_DELETE(system);
+	SAFE_DELETE( system );
 }
 
 void SystemBuilder::InitParameterManager()
 {
 	std::string paramString;
-	
+
 	//use the supplied params.txt in the application path (if provided)
 	//providing a params.txt can be useful for debugging purposes.
-	boost::filesystem::path paramsTxt(Resources::Instance().ParamsFile(),boost::filesystem::native);
-	if (boost::filesystem::exists(paramsTxt))
-	{
-		std::ifstream input(paramsTxt.native().c_str(),std::ios::in);
+	boost::filesystem::path paramsTxt( Resources::Instance().ParamsFile(), boost::filesystem::native );
+	if ( boost::filesystem::exists( paramsTxt ) ) {
+		std::ifstream input( paramsTxt.native().c_str(), std::ios::in );
 		std::stringstream buffer;
 		buffer << input.rdbuf();
 		paramString = buffer.str();
 	}
 	//otherwise parse the command line
-	else
-	{
-		std::string cmdLine= GetCommandLine();
+	else {
+		std::string cmdLine = GetCommandLine();
 		auto cmdLineIter = cmdLine.begin();
 
 		// Skip past program name (first token in command line).
-		if (*cmdLineIter == '"')  // Check for and handle quoted program name
-		{
+		if ( *cmdLineIter == '"' ) { // Check for and handle quoted program name
 			cmdLineIter++;
 
-			// Skip over until another double-quote or a nullptr 
-			while (cmdLineIter!=cmdLine.end() && *cmdLineIter != '"')
+			// Skip over until another double-quote or a nullptr
+			while ( cmdLineIter != cmdLine.end() && *cmdLineIter != '"' )
 				++cmdLineIter;
 
 			// Skip over double-quote
-			if (*cmdLineIter == '"')            
-				++cmdLineIter;    
-		}
-		else   
-		{
+			if ( *cmdLineIter == '"' )
+				++cmdLineIter;
+		} else {
 			// First token wasn't a quote
-			while (*cmdLineIter > ' ')
+			while ( *cmdLineIter > ' ' )
 				++cmdLineIter;
 		}
-		paramString  = std::string(cmdLineIter,cmdLine.end());
+		paramString  = std::string( cmdLineIter, cmdLine.end() );
 	}
 
 	//add the parameters to the parameter manager
-	ParameterManager::Instance().AddParameterString(paramString.c_str());
+	ParameterManager::Instance().AddParameterString( paramString.c_str() );
 }
 
 void SystemBuilder::InitLogger()
 {
-	if (ParameterManager::Instance().HasParameter(ParameterConstants::LOG_LEVEL)) {
-		const char *level = ParameterManager::Instance().GetParameter(ParameterConstants::LOG_LEVEL);
+	if ( ParameterManager::Instance().HasParameter( ParameterConstants::LOG_LEVEL ) ) {
+		const char *level = ParameterManager::Instance().GetParameter( ParameterConstants::LOG_LEVEL );
 
-		if (level == ParameterConstants::VALUE_LOG_LEVEL_ERROR) {
-			Logger::Instance().SetLoggingLevel(LOG_ERROR);
+		if ( level == ParameterConstants::VALUE_LOG_LEVEL_ERROR ) {
+			Logger::Instance().SetLoggingLevel( LOG_ERROR );
 		}
-		if (level == ParameterConstants::VALUE_LOG_LEVEL_LOW) {
-			Logger::Instance().SetLoggingLevel(LOG_LOW);
+		if ( level == ParameterConstants::VALUE_LOG_LEVEL_LOW ) {
+			Logger::Instance().SetLoggingLevel( LOG_LOW );
 		}
-		if (level == ParameterConstants::VALUE_LOG_LEVEL_MEDIUM) {
-			Logger::Instance().SetLoggingLevel(LOG_MEDIUM);
+		if ( level == ParameterConstants::VALUE_LOG_LEVEL_MEDIUM ) {
+			Logger::Instance().SetLoggingLevel( LOG_MEDIUM );
 		}
-		if (level == ParameterConstants::VALUE_LOG_LEVEL_HIGH) {
-			Logger::Instance().SetLoggingLevel(LOG_HIGH);
+		if ( level == ParameterConstants::VALUE_LOG_LEVEL_HIGH ) {
+			Logger::Instance().SetLoggingLevel( LOG_HIGH );
 		}
 	}
 }
 
-void SystemBuilder::InitResources(std::string gameUid)
+void SystemBuilder::InitResources( std::string gameUid )
 {
-	if (ParameterManager::Instance().HasParameter(ParameterConstants::GAME_DIR_OVERRIDE)) {
-		std::string gamesDirOverride(ParameterManager::Instance().GetParameter(ParameterConstants::GAME_DIR_OVERRIDE));
-		if (gamesDirOverride[gamesDirOverride.length()-1]!='\\' && gamesDirOverride[gamesDirOverride.length()-1]!='/')
-		{
-			gamesDirOverride.append("\\");
+	if ( ParameterManager::Instance().HasParameter( ParameterConstants::GAME_DIR_OVERRIDE ) ) {
+		std::string gamesDirOverride( ParameterManager::Instance().GetParameter( ParameterConstants::GAME_DIR_OVERRIDE ) );
+		if ( gamesDirOverride[gamesDirOverride.length() - 1] != '\\' && gamesDirOverride[gamesDirOverride.length() - 1] != '/' ) {
+			gamesDirOverride.append( "\\" );
 		}
-		Resources::Instance().SetGameBaseDir(Resources::ToWString(gamesDirOverride));
+		Resources::Instance().SetGameBaseDir( Resources::ToWString( gamesDirOverride ) );
 	}
 
-	bool userDirOverride = ParameterManager::Instance().HasParameter(ParameterConstants::USER_DIR_OVERRIDE);
+	bool userDirOverride = ParameterManager::Instance().HasParameter( ParameterConstants::USER_DIR_OVERRIDE );
 
-	Resources::Instance().SetUserBaseDir(userDirOverride,gameUid);
-	if (!gameUid.empty())
-	{
+	Resources::Instance().SetUserBaseDir( userDirOverride, gameUid );
+	if ( !gameUid.empty() ) {
 		Resources::Instance().CreateRequiredDirectories();
 	}
 }
 
 
-}}
+}
+}

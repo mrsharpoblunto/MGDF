@@ -2,20 +2,25 @@
 
 #include "MGDFSystemImpl.hpp"
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
-class SystemBuilder {
+class SystemBuilder
+{
 public:
-	static System *CreateSystem(); 
-	static void DisposeSystem(System *system);
+	static System *CreateSystem();
+	static void DisposeSystem( System *system );
 private:
 	static bool RegisterBaseComponents();
-	static bool RegisterAdditionalComponents(std::string gameUid);
+	static bool RegisterAdditionalComponents( std::string gameUid );
 	static void UnregisterComponents();
 	static void InitParameterManager();
-	static void InitResources(std::string gameUid="");
+	static void InitResources( std::string gameUid = "" );
 	static void InitLogger();
-	static std::string GetApplicationDirectory(HINSTANCE instance); 
+	static std::string GetApplicationDirectory( HINSTANCE instance );
 };
 
-}}
+}
+}

@@ -11,31 +11,34 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
-namespace MGDF { namespace Test {
+namespace MGDF
+{
+namespace Test
+{
 
 class TestModule
 {
 public:
-	virtual ~TestModule(void){}
+	virtual ~TestModule( void ) {}
 
-	virtual void Update(ISystem *system,TextManagerState *state)=0;
+	virtual void Update( ISystem *system, TextManagerState *state ) = 0;
 
-	virtual TestModule *NextTestModule()=0;
+	virtual TestModule *NextTestModule() = 0;
 };
 
-class Module: public IModule 
+class Module: public IModule
 {
 public:
-	virtual ~Module(void);
-	Module(ISystem *);
+	virtual ~Module( void );
+	Module( ISystem * );
 
-	virtual bool New(const wchar_t *workingFolder);
+	virtual bool New( const wchar_t *workingFolder );
 
-	virtual bool Dispose(void);
+	virtual bool Dispose( void );
 
-	virtual bool DrawScene(double alpha);
+	virtual bool DrawScene( double alpha );
 	virtual bool BackBufferChanged();
-	virtual bool UpdateScene(double elapsedTime);
+	virtual bool UpdateScene( double elapsedTime );
 	virtual void Panic();
 	virtual void ShutDown();
 
@@ -52,4 +55,5 @@ private:
 	MGDF::IPerformanceCounter *_testModuleCounter;
 };
 
-}}
+}
+}

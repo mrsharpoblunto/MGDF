@@ -1,9 +1,9 @@
 #pragma once
 
-namespace MGDF {
+namespace MGDF
+{
 
-	struct Version
-	{
-		INT32 Major,Minor,Build,Revision;
-	};
+struct Version {
+	INT32 Major, Minor, Build, Revision;
+};
 }

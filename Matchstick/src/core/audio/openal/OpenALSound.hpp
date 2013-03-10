@@ -12,31 +12,39 @@
 
 using namespace DirectX;
 
-namespace MGDF { namespace core { namespace audio { namespace openal_audio {
+namespace MGDF
+{
+namespace core
+{
+namespace audio
+{
+namespace openal_audio
+{
 
-class OpenALSound: public ISound {
-friend class OpenALSoundManagerComponentImpl;
+class OpenALSound: public ISound
+{
+	friend class OpenALSoundManagerComponentImpl;
 public:
 	virtual ~OpenALSound();
-	OpenALSound(IFile *source,OpenALSoundManagerComponentImpl *manager,INT32 priority);
+	OpenALSound( IFile *source, OpenALSoundManagerComponentImpl *manager, INT32 priority );
 
-	virtual const wchar_t *GetName() const;	
+	virtual const wchar_t *GetName() const;
 	virtual XMFLOAT3 *GetPosition();
 	virtual XMFLOAT3 *GetVelocity();
 	virtual float GetInnerRange() const;
-	virtual void SetInnerRange(float sourceRelative);
+	virtual void SetInnerRange( float sourceRelative );
 	virtual float GetOuterRange() const;
-	virtual void SetOuterRange(float sourceRelative);
+	virtual void SetOuterRange( float sourceRelative );
 	virtual bool GetSourceRelative() const;
-	virtual void SetSourceRelative(bool sourceRelative);
+	virtual void SetSourceRelative( bool sourceRelative );
 	virtual float GetVolume() const;
-	virtual void SetVolume(float volume);
+	virtual void SetVolume( float volume );
 	virtual float GetPitch() const;
-	virtual void SetPitch(float pitch);
-	virtual void SetPriority(INT32 priority);
+	virtual void SetPitch( float pitch );
+	virtual void SetPriority( INT32 priority );
 	virtual INT32 GetPriority() const;
 	virtual bool GetLooping() const;
-	virtual void SetLooping(bool looping);
+	virtual void SetLooping( bool looping );
 	virtual void Stop();
 	virtual void Pause();
 	virtual void Play();
@@ -49,17 +57,20 @@ private:
 	float GetAttenuatedVolume();
 	void Reactivate();
 	void Deactivate();
-	void SetGlobalVolume(float globalVolume);
-	void Update(float attenuationFactor);
+	void SetGlobalVolume( float globalVolume );
+	void Update( float attenuationFactor );
 
 	const wchar_t *_name;
 	OpenALSoundManagerComponentImpl *_soundManager;
-	ALuint _sourceId,_bufferId;
-	float _innerRange,_outerRange,_volume,_globalVolume,_attenuationFactor,_pitch;
-	bool _isActive,_isSourceRelative,_isLooping,_wasPlaying,_startPlaying;
+	ALuint _sourceId, _bufferId;
+	float _innerRange, _outerRange, _volume, _globalVolume, _attenuationFactor, _pitch;
+	bool _isActive, _isSourceRelative, _isLooping, _wasPlaying, _startPlaying;
 	INT32 _priority;
 	XMFLOAT3 _position;
 	XMFLOAT3 _velocity;
 };
 
-}}}}
+}
+}
+}
+}

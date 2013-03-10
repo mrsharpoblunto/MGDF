@@ -9,18 +9,21 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
-namespace MGDF { namespace Test {
+namespace MGDF
+{
+namespace Test
+{
 
 /**
 this class acts as a command console to the lua system interfaces
 */
-class Test3: public TestModule 
+class Test3: public TestModule
 {
 public:
-	virtual ~Test3(void);
+	virtual ~Test3( void );
 	Test3();
 
-	virtual void Update(ISystem *system,TextManagerState *state);
+	virtual void Update( ISystem *system, TextManagerState *state );
 
 	virtual TestModule *NextTestModule();
 private:
@@ -28,4 +31,5 @@ private:
 
 };
 
-}}
+}
+}

@@ -7,7 +7,14 @@
 #include "ZipFileRoot.hpp"
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
-namespace MGDF { namespace core { namespace vfs { namespace zip {
+namespace MGDF
+{
+namespace core
+{
+namespace vfs
+{
+namespace zip
+{
 
 struct ZipFileHeader {
 	unz_file_pos filePosition;
@@ -20,25 +27,30 @@ struct ZipFileData {
 	char *data;
 };
 
-/** 
+/**
 handles the mapping and access to zip archives by the virtual file system
 */
 class ZipArchive
 {
 public:
-	ZipArchive(IErrorHandler *errorHandler);
+	ZipArchive( IErrorHandler *errorHandler );
 	virtual ~ZipArchive();
 
-	ZipFileRoot *MapArchive(const wchar_t *name,const wchar_t * physicalPath,IFile *parent);
+	ZipFileRoot *MapArchive( const wchar_t *name, const wchar_t * physicalPath, IFile *parent );
 
-	ZipFileRoot *GetArchiveRoot() const { return _root; }
-	bool GetFileData(ZipFileHeader &header,ZipFileData &data);
+	ZipFileRoot *GetArchiveRoot() const {
+		return _root;
+	}
+	bool GetFileData( ZipFileHeader &header, ZipFileData &data );
 private:
 	unzFile _zip;
 	ZipFileRoot *_root;
 	IErrorHandler *_errorHandler;
 
-	IFile *CreateParentFile(std::wstring &path,IFile *root,const wchar_t **);
+	IFile *CreateParentFile( std::wstring &path, IFile *root, const wchar_t ** );
 };
 
-}}}}
+}
+}
+}
+}

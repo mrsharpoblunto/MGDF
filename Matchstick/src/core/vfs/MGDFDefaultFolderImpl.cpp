@@ -9,10 +9,15 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core { namespace vfs {
+namespace MGDF
+{
+namespace core
+{
+namespace vfs
+{
 
-DefaultFolderImpl::DefaultFolderImpl(const std::wstring &name,const std::wstring &physicalPath,IFile *parent,VirtualFileSystemComponent *vfs)
-	: FolderBaseImpl(name,physicalPath,parent)
+DefaultFolderImpl::DefaultFolderImpl( const std::wstring &name, const std::wstring &physicalPath, IFile *parent, VirtualFileSystemComponent *vfs )
+	: FolderBaseImpl( name, physicalPath, parent )
 	, _mappedChildren( false )
 	, _vfs( vfs )
 {
@@ -20,29 +25,29 @@ DefaultFolderImpl::DefaultFolderImpl(const std::wstring &name,const std::wstring
 
 DefaultFolderImpl::~DefaultFolderImpl()
 {
-	if  (!_children) return;
+	if ( !_children ) return;
 
-	for (auto iter=_children->begin();iter!=_children->end();++iter) {
+	for ( auto iter = _children->begin(); iter != _children->end(); ++iter ) {
 		// don't delete archives as we will explicitly pass them off to
 		// the archive handler that created them in order to clean them up
-		if (!iter->second->IsArchive()) {
-			delete static_cast<FileBaseImpl *>(iter->second);
+		if ( !iter->second->IsArchive() ) {
+			delete static_cast<FileBaseImpl *>( iter->second );
 		}
 	}
 }
 
 void DefaultFolderImpl::MapChildren()
 {
-	if (!_mappedChildren) {
-		_vfs->MapChildren(this);
+	if ( !_mappedChildren ) {
+		_vfs->MapChildren( this );
 		_mappedChildren = true;
 	}
 }
 
-IFile *DefaultFolderImpl::GetChild(const wchar_t *name)
+IFile *DefaultFolderImpl::GetChild( const wchar_t *name )
 {
 	MapChildren();
-	return FolderBaseImpl::GetChild(name);
+	return FolderBaseImpl::GetChild( name );
 }
 
 size_t DefaultFolderImpl::GetChildCount()
@@ -51,10 +56,12 @@ size_t DefaultFolderImpl::GetChildCount()
 	return FolderBaseImpl::GetChildCount();
 }
 
-bool DefaultFolderImpl::GetAllChildren(const IFileFilter *filter,IFile **childBuffer,size_t *bufferLength)
+bool DefaultFolderImpl::GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength )
 {
 	MapChildren();
-	return FolderBaseImpl::GetAllChildren(filter,childBuffer,bufferLength);
+	return FolderBaseImpl::GetAllChildren( filter, childBuffer, bufferLength );
 }
 
-}}}
+}
+}
+}

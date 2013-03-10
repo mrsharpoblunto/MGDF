@@ -11,11 +11,16 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core { namespace vfs {
+namespace MGDF
+{
+namespace core
+{
+namespace vfs
+{
 
-FileBaseImpl::FileBaseImpl(IFile *parent) 
-	: _parent(parent)
-	, _children(nullptr)
+FileBaseImpl::FileBaseImpl( IFile *parent )
+	: _parent( parent )
+	, _children( nullptr )
 {
 }
 
@@ -26,32 +31,32 @@ FileBaseImpl::~FileBaseImpl()
 
 time_t FileBaseImpl::GetLastWriteTime() const
 {
-	boost::filesystem::path path(GetPhysicalPath());
-	return boost::filesystem::last_write_time(path);
+	boost::filesystem::path path( GetPhysicalPath() );
+	return boost::filesystem::last_write_time( path );
 }
 
-IFile *FileBaseImpl::GetChild(const wchar_t * name)
+IFile *FileBaseImpl::GetChild( const wchar_t * name )
 {
-	if (!_children || !name) return nullptr;
+	if ( !_children || !name ) return nullptr;
 
-	auto it = _children->find(name);
-	if (it != _children->end()) {
+	auto it = _children->find( name );
+	if ( it != _children->end() ) {
 		return it->second;
 	}
 	return nullptr;
 }
 
-bool FileBaseImpl::GetAllChildren(const IFileFilter *filter,IFile **childBuffer,size_t *bufferLength)
+bool FileBaseImpl::GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength )
 {
-	if (!_children || !bufferLength) {
+	if ( !_children || !bufferLength ) {
 		*bufferLength = 0;
 		return 0;
 	}
 
 	size_t size = 0;
-	for (auto it = _children->begin();it!=_children->end();++it) {
-		if (!filter || filter->Accept(it->first)) {
-			if (size < *bufferLength) childBuffer[size] = it->second;
+	for ( auto it = _children->begin(); it != _children->end(); ++it ) {
+		if ( !filter || filter->Accept( it->first ) ) {
+			if ( size < *bufferLength ) childBuffer[size] = it->second;
 			++size;
 		}
 	}
@@ -61,36 +66,36 @@ bool FileBaseImpl::GetAllChildren(const IFileFilter *filter,IFile **childBuffer,
 	return result;
 }
 
-void FileBaseImpl::AddChild(IFile *file)
+void FileBaseImpl::AddChild( IFile *file )
 {
 	_ASSERTE( file );
-	if (!_children) {
-		_children = new std::map<const wchar_t *,IFile *,WCharCmp>();
+	if ( !_children ) {
+		_children = new std::map<const wchar_t *, IFile *, WCharCmp>();
 	}
-	_children->insert(std::pair<const wchar_t *,IFile *>(file->GetName(),file));
+	_children->insert( std::pair<const wchar_t *, IFile *> ( file->GetName(), file ) );
 }
 
 const wchar_t *FileBaseImpl::GetLogicalPath()
 {
-	if (_logicalPath.empty() && this->GetParent()) {
+	if ( _logicalPath.empty() && this->GetParent() ) {
 
 		std::vector<const IFile *> path;
 		const IFile *node = this;
-		while (node)
-		{
-			path.push_back(node);
+		while ( node ) {
+			path.push_back( node );
 			node = node->GetParent();
 		}
 
 		std::wostringstream ss;
-		for (auto it = path.rbegin()+1;it!=path.rend();++it)
-		{
-			ss << (*it)->GetName();
-			if ((*it)!=this) ss << '/';
+		for ( auto it = path.rbegin() + 1; it != path.rend(); ++it ) {
+			ss << ( *it )->GetName();
+			if ( ( *it ) != this ) ss << '/';
 		}
 		_logicalPath = ss.str();
 	}
 	return _logicalPath.c_str();
 }
 
-}}}
+}
+}
+}

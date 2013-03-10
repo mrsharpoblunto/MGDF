@@ -3,38 +3,37 @@
 #include <vector>
 #include <MGDF/MGDFList.hpp>
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
-template<typename I,typename T> class ListImpl: public I
+template<typename I, typename T> class ListImpl: public I
 {
 public:
-	ListImpl(){
+	ListImpl() {
 	}
 
-	virtual ~ListImpl(void){
+	virtual ~ListImpl( void ) {
 	}
 
-	void Add(T item)
-	{
-		_items.push_back(item);
+	void Add( T item ) {
+		_items.push_back( item );
 	}
 
-	void Remove(size_t index)
-	{
-		_items.erase(_items.begin()+index);
+	void Remove( size_t index ) {
+		_items.erase( _items.begin() + index );
 	}
 
-	void  Clear()
-	{
+	void  Clear() {
 		_items.clear();
 	}
 
-	virtual size_t Size() const
-	{
+	virtual size_t Size() const {
 		return _items.size();
 	}
 
-	virtual T Get(size_t index) const {
+	virtual T Get( size_t index ) const {
 		return _items[index];
 	}
 
@@ -46,4 +45,5 @@ private:
 	std::vector<T> _items;
 };
 
-}}
+}
+}

@@ -12,37 +12,44 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
-
-void JsonCppGameStateStorageHandler::Load(const std::wstring &filename)
+namespace MGDF
 {
-	std::ifstream input(filename.c_str(),std::ios::in);
+namespace core
+{
+namespace storage
+{
+namespace jsoncppImpl
+{
+
+void JsonCppGameStateStorageHandler::Load( const std::wstring &filename )
+{
+	std::ifstream input( filename.c_str(), std::ios::in );
 
 	Json::Value root;
 	Json::Reader reader;
 
-	if (reader.parse(input,root))
-	{
+	if ( reader.parse( input, root ) ) {
 		_gameUid = root["gameuid"].asString();
-		_version = VersionHelper::Create(root["gameversion"].asString());
-	}
-	else
-	{
-		throw MGDFException(reader.getFormatedErrorMessages());
+		_version = VersionHelper::Create( root["gameversion"].asString() );
+	} else {
+		throw MGDFException( reader.getFormatedErrorMessages() );
 	}
 }
 
-void JsonCppGameStateStorageHandler::Save(const std::wstring &filename) const
+void JsonCppGameStateStorageHandler::Save( const std::wstring &filename ) const
 {
-	std::ofstream file(filename.c_str(),std::ios::out);
+	std::ofstream file( filename.c_str(), std::ios::out );
 
 	Json::Value root;
 
 	root["gameuid"] = _gameUid;
-	root["gameversion"] = VersionHelper::Format(&_version);
+	root["gameversion"] = VersionHelper::Format( &_version );
 
 	file << root;
 	file.close();
 }
 
-}}}}
+}
+}
+}
+}

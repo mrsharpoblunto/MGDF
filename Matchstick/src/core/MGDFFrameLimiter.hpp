@@ -2,7 +2,10 @@
 
 #include <boost/thread.hpp>
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 /**
 this class is used for timing and frame limiting
@@ -10,8 +13,8 @@ this class is used for timing and frame limiting
 class FrameLimiter
 {
 public:
-	FrameLimiter(UINT32 maxFps);
-	~FrameLimiter(void);
+	FrameLimiter( UINT32 maxFps );
+	~FrameLimiter( void );
 
 	/**
 	limit the Fps to maxFps
@@ -21,11 +24,12 @@ public:
 	double ProgressThroughCurrentFrame();
 
 private:
-	LARGE_INTEGER _freq,_previousFrameEnd;
+	LARGE_INTEGER _freq, _previousFrameEnd;
 	INT64 _frameTime;
 	UINT32 _maxFps;
 
 	boost::mutex _frameEndMutex;
 };
 
-}}
+}
+}

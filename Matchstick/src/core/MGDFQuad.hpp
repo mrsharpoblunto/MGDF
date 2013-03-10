@@ -5,15 +5,18 @@
 
 using namespace DirectX;
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 class Quad
 {
 public:
-	Quad(ID3D11Device *device);	
+	Quad( ID3D11Device *device );
 	virtual ~Quad();
-	void Resize(ID3D11DeviceContext *context,float topX,float topY,float width,float height,float screenX,float screenY);
-	void Draw(ID3D11DeviceContext *context,const XMFLOAT4 &color);
+	void Resize( ID3D11DeviceContext *context, float topX, float topY, float width, float height, float screenX, float screenY );
+	void Draw( ID3D11DeviceContext *context, const XMFLOAT4 &color );
 private:
 	ID3D11Buffer* _positionBuffer;
 	ID3D11Buffer * _pixelShaderCBuffer;
@@ -24,8 +27,8 @@ private:
 	ID3D11DepthStencilState *_depthStencilState;
 	ID3D11InputLayout* _layout;
 
-	void SaveState(ID3D11DeviceContext *context);
-	void RestoreState(ID3D11DeviceContext *context);
+	void SaveState( ID3D11DeviceContext *context );
+	void RestoreState( ID3D11DeviceContext *context );
 
 	//used for saving and restoring existing device state
 	ID3D11RasterizerState *_currentRasterizerState;
@@ -38,7 +41,7 @@ private:
 	ID3D11PixelShader *_currentPixelShader;
 	ID3D11ClassInstance	*_currentVertexShaderClassInstances[256];
 	ID3D11ClassInstance	*_currentPixelShaderClassInstances[256];
-	UINT32 _currentVertexShaderNumClassInstances;		
+	UINT32 _currentVertexShaderNumClassInstances;
 	UINT32 _currentPixelShaderNumClassInstances;
 	ID3D11InputLayout* _currentInputLayout;
 	D3D11_PRIMITIVE_TOPOLOGY _currentPrimitiveTopology;
@@ -48,4 +51,5 @@ private:
 	UINT32 _currentOffset;
 };
 
-}}
+}
+}

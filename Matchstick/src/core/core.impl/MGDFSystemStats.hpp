@@ -3,10 +3,12 @@
 #include <list>
 #include <boost/thread.hpp>
 
-namespace MGDF { namespace core {
-
-struct Timings
+namespace MGDF
 {
+namespace core
+{
+
+struct Timings {
 	double AvgActiveRenderTime;
 	double AvgRenderTime;
 	double AvgActiveSimTime;
@@ -19,17 +21,17 @@ struct Timings
 class SystemStats
 {
 public:
-	SystemStats(UINT32 maxSamples);
-	virtual ~SystemStats(){};
+	SystemStats( UINT32 maxSamples );
+	virtual ~SystemStats() {};
 
-	void GetTimings(Timings &timings);
+	void GetTimings( Timings &timings );
 	double ExpectedSimTime();
 
-	void AppendRenderTimes(double renderValue,double activeRenderValue);
-	void SetExpectedSimTime(double value);
-	void AppendActiveSimTime(double value);
-	void AppendSimTime(double value);
-	void AppendSimInputAndAudioTimes(double inputValue,double audioValue);
+	void AppendRenderTimes( double renderValue, double activeRenderValue );
+	void SetExpectedSimTime( double value );
+	void AppendActiveSimTime( double value );
+	void AppendSimTime( double value );
+	void AppendSimInputAndAudioTimes( double inputValue, double audioValue );
 private:
 	boost::mutex _statsMutex;
 	UINT32 _maxSamples;
@@ -40,7 +42,7 @@ private:
 	std::list<double> _activeSimTime;
 	std::list<double> _simTime;
 	std::list<double> _simInputTime;
-	std::list<double> _simAudioTime;	
+	std::list<double> _simAudioTime;
 
 	double _avgActiveRenderTime;
 	double _avgRenderTime;
@@ -49,7 +51,8 @@ private:
 	double _avgSimInputTime;
 	double _avgSimAudioTime;
 
-	void Append(double value,double &average,std::list<double> &list);
+	void Append( double value, double &average, std::list<double> &list );
 };
 
-}}
+}
+}

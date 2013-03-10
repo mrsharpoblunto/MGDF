@@ -7,38 +7,38 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
-Module::~Module(void)
+Module::~Module( void )
 {
 }
 
-Module::Module(MGDF::ISystem *system)
+Module::Module( MGDF::ISystem *system )
 {
 	_system = system;
 }
 
-bool Module::New(const wchar_t *workingFolder)
+bool Module::New( const wchar_t *workingFolder )
 {
 	_workingFolder = workingFolder;
 
 	return true;
 }
 
-bool Module::Dispose(void)
+bool Module::Dispose( void )
 {
 	delete this;
 	return true;
 }
 
-bool Module::UpdateScene(double elapsedTime)
+bool Module::UpdateScene( double elapsedTime )
 {
 	//Game logic goes here
 	return true;
 }
 
-bool Module::DrawScene(double alpha)
+bool Module::DrawScene( double alpha )
 {
 	//Any rendering goes here. Note this runs in a separate thread to UpdateScene
-   return true;
+	return true;
 }
 
 bool Module::BackBufferChanged()

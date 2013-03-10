@@ -1,14 +1,18 @@
 #pragma once
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 class VersionHelper
 {
 public:
-	static Version Create(const std::string &version);
-	static Version Copy(const Version *version);
-	static std::string Format(const Version *version);
-	static INT32 Compare(const Version *a,const Version *b);
+	static Version Create( const std::string &version );
+	static Version Copy( const Version *version );
+	static std::string Format( const Version *version );
+	static INT32 Compare( const Version *a, const Version *b );
 };
 
-}}
+}
+}

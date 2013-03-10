@@ -7,19 +7,19 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #endif
 
-class Module: public MGDF::IModule 
+class Module: public MGDF::IModule
 {
 public:
-	virtual ~Module(void);
-	Module(MGDF::ISystem *);
+	virtual ~Module( void );
+	Module( MGDF::ISystem * );
 
-	virtual bool New(const wchar_t *workingFolder);
+	virtual bool New( const wchar_t *workingFolder );
 
-	virtual bool Dispose(void);
+	virtual bool Dispose( void );
 
-	virtual bool DrawScene(double alpha);
+	virtual bool DrawScene( double alpha );
 	virtual bool BackBufferChanged();
-	virtual bool UpdateScene(double elapsedTime);
+	virtual bool UpdateScene( double elapsedTime );
 	virtual void Panic();
 	virtual void ShutDown();
 

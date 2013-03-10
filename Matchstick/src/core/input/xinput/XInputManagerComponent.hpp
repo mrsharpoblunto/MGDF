@@ -6,9 +6,16 @@
 #include "../../common/MGDFListImpl.hpp"
 #include "../MGDFInputManagerComponent.hpp"
 
-namespace MGDF { namespace core { namespace input { namespace xinput {
+namespace MGDF
+{
+namespace core
+{
+namespace input
+{
+namespace xinput
+{
 
-typedef ListImpl<IGamepadList,IGamepad *> GamepadList;
+typedef ListImpl<IGamepadList, IGamepad *> GamepadList;
 
 /**
  reference implementation of the inputmanager interface
@@ -18,25 +25,25 @@ class XInputManagerComponent: public IInputManagerComponent
 {
 public:
 	XInputManagerComponent();
-	virtual ~XInputManagerComponent(void);
+	virtual ~XInputManagerComponent( void );
 
-	virtual void HandleInput(RAWINPUT *input);
-	virtual void HandleInput(INT32 mouseX,INT32 mouseY);
+	virtual void HandleInput( RAWINPUT *input );
+	virtual void HandleInput( INT32 mouseX, INT32 mouseY );
 	virtual void ProcessSim();
 	virtual void ProcessInput();
 
-	virtual void ShowCursor(bool show);
-	virtual bool  IsKeyDown(UINT16 key) const;
-	virtual bool  IsKeyUp(UINT16 key) const;
-	virtual bool  IsKeyPress(UINT16 key) const;
-	virtual INT32  GetMouseX(void) const;
-	virtual INT32  GetMouseY(void) const;
-	virtual INT32  GetMouseDX(void) const;
-	virtual INT32  GetMouseDY(void) const;
-	virtual INT16  GetMouseDZ(void) const;
-	virtual bool  IsButtonDown(Mouse mouseButton) const;
-	virtual bool  IsButtonUp(Mouse mouseButton) const;
-	virtual bool  IsButtonClicked(Mouse mouseButton);
+	virtual void ShowCursor( bool show );
+	virtual bool  IsKeyDown( UINT16 key ) const;
+	virtual bool  IsKeyUp( UINT16 key ) const;
+	virtual bool  IsKeyPress( UINT16 key ) const;
+	virtual INT32  GetMouseX( void ) const;
+	virtual INT32  GetMouseY( void ) const;
+	virtual INT32  GetMouseDX( void ) const;
+	virtual INT32  GetMouseDY( void ) const;
+	virtual INT16  GetMouseDZ( void ) const;
+	virtual bool  IsButtonDown( Mouse mouseButton ) const;
+	virtual bool  IsButtonUp( Mouse mouseButton ) const;
+	virtual bool  IsButtonClicked( Mouse mouseButton );
 	virtual const IGamepadList *  GetGamepads() const;
 
 private:
@@ -49,7 +56,7 @@ private:
 	UINT8 _pendingKeyDownEventsLength;
 	UINT8 _pendingKeyPressEvents[256];
 	UINT8 _pendingKeyPressEventsLength;
-	
+
 	bool _pendingShowCursor;
 	bool _showCursor;
 
@@ -62,7 +69,7 @@ private:
 	INT16 _pendingMouseDZ;
 	UINT8 _pendingMouseButtonDown[3];
 	bool _pendingMouseButtonClick[3];
-	INT32 _pendingMouseX,_pendingMouseY;
+	INT32 _pendingMouseX, _pendingMouseY;
 
 	//current mouse state (sim thread)
 	INT32 _mouseDX, _mouseDY;
@@ -76,4 +83,7 @@ private:
 
 IInputManagerComponent *CreateXInputManagerComponent();
 
-}}}}
+}
+}
+}
+}

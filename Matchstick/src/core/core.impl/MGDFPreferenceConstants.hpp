@@ -1,6 +1,9 @@
 #pragma once
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 class PreferenceConstants
 {
@@ -16,4 +19,5 @@ public:
 	static const char *VSYNC;
 };
 
-}}
+}
+}

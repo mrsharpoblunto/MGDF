@@ -4,13 +4,20 @@
 #include <MGDF/MGDFSoundManager.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
-namespace MGDF { namespace core { namespace audio {
+namespace MGDF
+{
+namespace core
+{
+namespace audio
+{
 
-class ISoundManagerComponent: public ISystemComponent,public ISoundManager
+class ISoundManagerComponent: public ISystemComponent, public ISoundManager
 {
 public:
-	virtual ~ISoundManagerComponent(){}
-	virtual void Update()=0;
+	virtual ~ISoundManagerComponent() {}
+	virtual void Update() = 0;
 };
 
-}}}
+}
+}
+}

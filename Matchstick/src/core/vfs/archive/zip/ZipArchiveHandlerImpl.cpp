@@ -11,31 +11,37 @@
 
 const wchar_t *ZIP_EXT = L".zip";
 
-namespace MGDF { namespace core { namespace vfs { namespace zip {
+namespace MGDF
+{
+namespace core
+{
+namespace vfs
+{
+namespace zip
+{
 
-IArchiveHandler *CreateZipArchiveHandlerImpl(IErrorHandler *errorHandler)
+IArchiveHandler *CreateZipArchiveHandlerImpl( IErrorHandler *errorHandler )
 {
 	_ASSERTE( errorHandler );
-	return new ZipArchiveHandlerImpl(errorHandler);
+	return new ZipArchiveHandlerImpl( errorHandler );
 }
 
-ZipArchiveHandlerImpl::ZipArchiveHandlerImpl(IErrorHandler *errorHandler)
+ZipArchiveHandlerImpl::ZipArchiveHandlerImpl( IErrorHandler *errorHandler )
 	: _errorHandler( errorHandler )
 {
-	_fileExtensions.push_back(ZIP_EXT);
+	_fileExtensions.push_back( ZIP_EXT );
 }
 
-IFile *ZipArchiveHandlerImpl::MapArchive(const wchar_t * name,const wchar_t * physicalPath,IFile *parent) 
+IFile *ZipArchiveHandlerImpl::MapArchive( const wchar_t * name, const wchar_t * physicalPath, IFile *parent )
 {
-	_ASSERTE(name);
+	_ASSERTE( name );
 	_ASSERTE( physicalPath );
 
-	ZipArchive *archive = new ZipArchive(_errorHandler);
-	ZipFileRoot *result = archive->MapArchive(name,physicalPath,parent);
-	if (result) {
-		_archives.insert(std::pair<ZipFileRoot *,zip::ZipArchive *>(result,archive));
-	}
-	else {
+	ZipArchive *archive = new ZipArchive( _errorHandler );
+	ZipFileRoot *result = archive->MapArchive( name, physicalPath, parent );
+	if ( result ) {
+		_archives.insert( std::pair<ZipFileRoot *, zip::ZipArchive *> ( result, archive ) );
+	} else {
 		delete archive;
 	}
 	return result;
@@ -47,40 +53,43 @@ void ZipArchiveHandlerImpl::Dispose()
 	delete this;
 }
 
-void ZipArchiveHandlerImpl::DisposeArchive(IFile *archive)
+void ZipArchiveHandlerImpl::DisposeArchive( IFile *archive )
 {
-	auto it = _archives.find(static_cast<ZipFileRoot *>(archive));
-	_ASSERTE(it != _archives.end());
-	if (it != _archives.end()) {
+	auto it = _archives.find( static_cast<ZipFileRoot *>( archive ) );
+	_ASSERTE( it != _archives.end() );
+	if ( it != _archives.end() ) {
 		delete it->first;
 		delete it->second;
-		_archives.erase(it);
+		_archives.erase( it );
 	}
 }
 
-bool ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) const 
+bool ZipArchiveHandlerImpl::IsArchive( const wchar_t *path ) const
 {
 	_ASSERTE( path );
-	const wchar_t *extension = GetFileExtension(path);
-	if (!extension) return false;
+	const wchar_t *extension = GetFileExtension( path );
+	if ( !extension ) return false;
 
-	for(auto it = _fileExtensions.begin();it!=_fileExtensions.end();++it) {
-		if (wcscmp(*it,extension)==0) {
+	for ( auto it = _fileExtensions.begin(); it != _fileExtensions.end(); ++it ) {
+		if ( wcscmp( *it, extension ) == 0 ) {
 			return true;
 		}
 	}
 	return false;
 }
 
-const wchar_t *ZipArchiveHandlerImpl::GetFileExtension(const wchar_t *filename) const
+const wchar_t *ZipArchiveHandlerImpl::GetFileExtension( const wchar_t *filename ) const
 {
 	_ASSERTE( filename );
-	size_t index = wcslen(filename);
-	while (index >= 0) {
-		if (filename[index] == '.') return &filename[index];
+	size_t index = wcslen( filename );
+	while ( index >= 0 ) {
+		if ( filename[index] == '.' ) return &filename[index];
 		--index;
 	}
 	return nullptr;
 }
 
-}}}}
+}
+}
+}
+}

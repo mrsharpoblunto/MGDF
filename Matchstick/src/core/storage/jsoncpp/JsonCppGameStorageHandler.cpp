@@ -13,7 +13,14 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core { namespace storage { namespace jsoncppImpl {
+namespace MGDF
+{
+namespace core
+{
+namespace storage
+{
+namespace jsoncppImpl
+{
 
 std::string JsonCppGameStorageHandler::GetGameName() const
 {
@@ -35,24 +42,21 @@ const Version *JsonCppGameStorageHandler::GetVersion() const
 	return &_version;
 }
 
-void JsonCppGameStorageHandler::Load(const std::wstring &filename)
+void JsonCppGameStorageHandler::Load( const std::wstring &filename )
 {
-	std::ifstream input(filename.c_str(),std::ios::in);
+	std::ifstream input( filename.c_str(), std::ios::in );
 
 	Json::Value root;
 	Json::Reader reader;
 
-	if (reader.parse(input,root))
-	{
+	if ( reader.parse( input, root ) ) {
 		_gameName = root["gamename"].asString();
 		_gameUid = root["gameuid"].asString();
-		_version = VersionHelper::Create(root["version"].asString());
+		_version = VersionHelper::Create( root["version"].asString() );
 		_parameterString = root["parameters"].asString();
-		_interfaceVersion = boost::lexical_cast<int>(root["interfaceversion"].asString());
-	}
-	else
-	{
-		throw MGDFException(reader.getFormatedErrorMessages());
+		_interfaceVersion = boost::lexical_cast<int> ( root["interfaceversion"].asString() );
+	} else {
+		throw MGDFException( reader.getFormatedErrorMessages() );
 	}
 }
 
@@ -61,4 +65,7 @@ std::string JsonCppGameStorageHandler::GetParameterString() const
 	return _parameterString;
 }
 
-}}}}
+}
+}
+}
+}

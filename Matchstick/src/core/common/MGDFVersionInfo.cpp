@@ -7,8 +7,12 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core {
+namespace MGDF
+{
+namespace core
+{
 
 const std::string MGDFVersionInfo::_mgdfVersion = "1.0.0.0";
 
-}}
+}
+}

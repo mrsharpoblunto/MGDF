@@ -12,7 +12,14 @@
 #pragma warning(disable:4291)
 #endif
 
-namespace MGDF { namespace core { namespace input { namespace xinput {
+namespace MGDF
+{
+namespace core
+{
+namespace input
+{
+namespace xinput
+{
 
 IInputManagerComponent *CreateXInputManagerComponent()
 {
@@ -20,67 +27,64 @@ IInputManagerComponent *CreateXInputManagerComponent()
 }
 
 XInputManagerComponent::XInputManagerComponent()
-	: _pendingShowCursor(false)
-	, _showCursor(false)
-	, _pendingMouseX(0)
-	, _pendingMouseY(0)
-	, _pendingMouseDX(0L)
-	, _pendingMouseDY(0L)
-	, _pendingMouseDZ(0)
-	, _mouseDX(0L)
-	, _mouseDY(0L)
-	, _mouseDZ(0)
-	, _pendingKeyDownEventsLength(0)
-	, _pendingKeyPressEventsLength(0)
+	: _pendingShowCursor( false )
+	, _showCursor( false )
+	, _pendingMouseX( 0 )
+	, _pendingMouseY( 0 )
+	, _pendingMouseDX( 0L )
+	, _pendingMouseDY( 0L )
+	, _pendingMouseDZ( 0 )
+	, _mouseDX( 0L )
+	, _mouseDY( 0L )
+	, _mouseDZ( 0 )
+	, _pendingKeyDownEventsLength( 0 )
+	, _pendingKeyPressEventsLength( 0 )
 {
-	for (INT32 i=0;i<4;++i) {
-		_gamepads.Add(new XInputGamepad(i));
+	for ( INT32 i = 0; i < 4; ++i ) {
+		_gamepads.Add( new XInputGamepad( i ) );
 	}
 
-	ZeroMemory(_pendingMouseButtonDown,sizeof(_pendingMouseButtonDown));
-	ZeroMemory(_pendingMouseButtonClick,sizeof(_pendingMouseButtonClick));
-	ZeroMemory(_mouseButtonDown,sizeof(_mouseButtonDown));
-	ZeroMemory(_mouseButtonClick,sizeof(_mouseButtonClick));
+	ZeroMemory( _pendingMouseButtonDown, sizeof( _pendingMouseButtonDown ) );
+	ZeroMemory( _pendingMouseButtonClick, sizeof( _pendingMouseButtonClick ) );
+	ZeroMemory( _mouseButtonDown, sizeof( _mouseButtonDown ) );
+	ZeroMemory( _mouseButtonClick, sizeof( _mouseButtonClick ) );
 
-	ZeroMemory(_pendingKeyDown,sizeof(_pendingKeyDown));
-	ZeroMemory(_pendingKeyDownEvents,sizeof(_pendingKeyDownEvents));
-	ZeroMemory(_pendingKeyPressEvents,sizeof(_pendingKeyPressEvents));
-	ZeroMemory(_keyDown,sizeof(_keyDown));
-	ZeroMemory(_keyPress,sizeof(_keyPress));
+	ZeroMemory( _pendingKeyDown, sizeof( _pendingKeyDown ) );
+	ZeroMemory( _pendingKeyDownEvents, sizeof( _pendingKeyDownEvents ) );
+	ZeroMemory( _pendingKeyPressEvents, sizeof( _pendingKeyPressEvents ) );
+	ZeroMemory( _keyDown, sizeof( _keyDown ) );
+	ZeroMemory( _keyPress, sizeof( _keyPress ) );
 }
 
-XInputManagerComponent::~XInputManagerComponent(void)
+XInputManagerComponent::~XInputManagerComponent( void )
 {
-	for (auto iter = _gamepads.Items()->begin();iter!=_gamepads.Items()->end();++iter) {
-		delete (XInputGamepad *)(*iter);
+	for ( auto iter = _gamepads.Items()->begin(); iter != _gamepads.Items()->end(); ++iter ) {
+		delete( XInputGamepad * )( *iter );
 	}
 }
 
-void XInputManagerComponent::HandleInput(INT32 mouseX,INT32 mouseY)
+void XInputManagerComponent::HandleInput( INT32 mouseX, INT32 mouseY )
 {
-	boost::mutex::scoped_lock lock(_simMutex);
+	boost::mutex::scoped_lock lock( _simMutex );
 	_pendingMouseX = mouseX;
 	_pendingMouseY = mouseY;
 }
 
-void XInputManagerComponent::HandleInput(RAWINPUT *input)
+void XInputManagerComponent::HandleInput( RAWINPUT *input )
 {
-	if (input->header.dwType == RIM_TYPEKEYBOARD) 
-	{
-		boost::mutex::scoped_lock lock(_simMutex);
+	if ( input->header.dwType == RIM_TYPEKEYBOARD ) {
+		boost::mutex::scoped_lock lock( _simMutex );
 
 		//we only know how to deal with keys
-		if (input->data.keyboard.VKey>UINT8_MAX) return;
+		if ( input->data.keyboard.VKey > UINT8_MAX ) return;
 
-		UINT8 key = static_cast<UINT8>(input->data.keyboard.VKey);
-		if ((input->data.keyboard.Flags & RI_KEY_MAKE) == RI_KEY_MAKE && _pendingKeyDown[key]!=1)
-		{
+		UINT8 key = static_cast<UINT8>( input->data.keyboard.VKey );
+		if ( ( input->data.keyboard.Flags & RI_KEY_MAKE ) == RI_KEY_MAKE && _pendingKeyDown[key] != 1 ) {
 			_pendingKeyDown[key] = 1;
 			_pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
 			_pendingKeyDownEventsLength++;
 		}
-		if ((input->data.keyboard.Flags & RI_KEY_BREAK) == RI_KEY_BREAK  && _pendingKeyDown[key]!=2)
-		{
+		if ( ( input->data.keyboard.Flags & RI_KEY_BREAK ) == RI_KEY_BREAK  && _pendingKeyDown[key] != 2 ) {
 			_pendingKeyDown[key] = 2;
 			_pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
 			_pendingKeyDownEventsLength++;
@@ -88,62 +92,50 @@ void XInputManagerComponent::HandleInput(RAWINPUT *input)
 			_pendingKeyPressEvents[_pendingKeyPressEventsLength] = key;
 			_pendingKeyPressEventsLength++;
 		}
-	}
-	else if (input->header.dwType == RIM_TYPEMOUSE) 
-	{
-		boost::mutex::scoped_lock lock(_simMutex);
+	} else if ( input->header.dwType == RIM_TYPEMOUSE ) {
+		boost::mutex::scoped_lock lock( _simMutex );
 
-		if ((input->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
-		{
+		if ( ( input->data.mouse.usFlags & MOUSE_MOVE_RELATIVE ) == MOUSE_MOVE_RELATIVE ) {
 			_pendingMouseDX += input->data.mouse.lLastX;
 			_pendingMouseDY += input->data.mouse.lLastY;
 		}
 
 		//mouse scrollwheel
-		if ((input->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) == RI_MOUSE_WHEEL)
-		{
-			_pendingMouseDZ += static_cast<INT16>(input->data.mouse.usButtonData);
+		if ( ( input->data.mouse.usButtonFlags & RI_MOUSE_WHEEL ) == RI_MOUSE_WHEEL ) {
+			_pendingMouseDZ += static_cast<INT16>( input->data.mouse.usButtonData );
 		}
 		//mouse button states
-		if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) == RI_MOUSE_LEFT_BUTTON_DOWN)
-		{
+		if ( ( input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN ) == RI_MOUSE_LEFT_BUTTON_DOWN ) {
 			_pendingMouseButtonDown[MOUSE_LEFT] = 1;
 		}
-		if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) == RI_MOUSE_LEFT_BUTTON_UP)
-		{
+		if ( ( input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP ) == RI_MOUSE_LEFT_BUTTON_UP ) {
 			_pendingMouseButtonDown[MOUSE_LEFT] = 2;
 			_pendingMouseButtonClick[MOUSE_LEFT] = true;
 		}
-		if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) == RI_MOUSE_MIDDLE_BUTTON_DOWN)
-		{
+		if ( ( input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN ) == RI_MOUSE_MIDDLE_BUTTON_DOWN ) {
 			_pendingMouseButtonDown[MOUSE_MIDDLE] = 1;
 		}
-		if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) == RI_MOUSE_MIDDLE_BUTTON_UP)
-		{
+		if ( ( input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP ) == RI_MOUSE_MIDDLE_BUTTON_UP ) {
 			_pendingMouseButtonDown[MOUSE_MIDDLE] = 2;
 			_pendingMouseButtonClick[MOUSE_MIDDLE] = true;
 		}
-		if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) == RI_MOUSE_RIGHT_BUTTON_DOWN)
-		{
+		if ( ( input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN ) == RI_MOUSE_RIGHT_BUTTON_DOWN ) {
 			_pendingMouseButtonDown[MOUSE_RIGHT] = 1;
 		}
-		if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) == RI_MOUSE_RIGHT_BUTTON_UP)
-		{
+		if ( ( input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP ) == RI_MOUSE_RIGHT_BUTTON_UP ) {
 			_pendingMouseButtonDown[MOUSE_RIGHT] = 2;
 			_pendingMouseButtonClick[MOUSE_RIGHT] = true;
 		}
-	} 
+	}
 }
 
 void XInputManagerComponent::ProcessInput()
 {
-	if (_pendingShowCursor)
-	{
-		boost::mutex::scoped_lock lock(_inputMutex);
-		if (_pendingShowCursor)
-		{
+	if ( _pendingShowCursor ) {
+		boost::mutex::scoped_lock lock( _inputMutex );
+		if ( _pendingShowCursor ) {
 			_pendingShowCursor = false;
-			::ShowCursor(_showCursor);
+			::ShowCursor( _showCursor );
 		}
 	}
 }
@@ -153,7 +145,7 @@ void XInputManagerComponent::ProcessSim()
 	//handleinput occurs on a different thread to processinput so
 	//we need to sync any access to the pending input state
 	{
-		boost::mutex::scoped_lock lock(_simMutex);
+		boost::mutex::scoped_lock lock( _simMutex );
 		//update keyboard and mouse state
 
 		//mouse position
@@ -169,19 +161,16 @@ void XInputManagerComponent::ProcessSim()
 		_pendingMouseDZ = 0;
 
 		//mouse button states
-		if (_pendingMouseButtonDown[MOUSE_LEFT])
-		{
+		if ( _pendingMouseButtonDown[MOUSE_LEFT] ) {
 			_mouseButtonDown[MOUSE_LEFT] = _pendingMouseButtonDown[MOUSE_LEFT] == 1;
 		}
-		if (_pendingMouseButtonDown[MOUSE_MIDDLE])
-		{
+		if ( _pendingMouseButtonDown[MOUSE_MIDDLE] ) {
 			_mouseButtonDown[MOUSE_MIDDLE] = _pendingMouseButtonDown[MOUSE_MIDDLE] == 1;
 		}
-		if (_pendingMouseButtonDown[MOUSE_RIGHT])
-		{
+		if ( _pendingMouseButtonDown[MOUSE_RIGHT] ) {
 			_mouseButtonDown[MOUSE_RIGHT] = _pendingMouseButtonDown[MOUSE_RIGHT] == 1;
 		}
-		ZeroMemory(_pendingMouseButtonDown,sizeof(_pendingMouseButtonDown));
+		ZeroMemory( _pendingMouseButtonDown, sizeof( _pendingMouseButtonDown ) );
 
 		//mouse clicks
 		_mouseButtonClick[MOUSE_LEFT] = _pendingMouseButtonClick[MOUSE_LEFT];
@@ -190,21 +179,19 @@ void XInputManagerComponent::ProcessSim()
 		_pendingMouseButtonClick[MOUSE_LEFT] = false;
 		_pendingMouseButtonClick[MOUSE_MIDDLE] = false;
 		_pendingMouseButtonClick[MOUSE_RIGHT] = false;
-		ZeroMemory(_pendingMouseButtonClick,sizeof(_pendingMouseButtonClick));
+		ZeroMemory( _pendingMouseButtonClick, sizeof( _pendingMouseButtonClick ) );
 
 
 		//keyboard events
-		for (UINT8 i=0;i<_pendingKeyDownEventsLength;++i)
-		{
+		for ( UINT8 i = 0; i < _pendingKeyDownEventsLength; ++i ) {
 			UINT8 key = _pendingKeyDownEvents[i];
 			_keyDown[key] = _pendingKeyDown[key] == 1;
 		}
-		ZeroMemory(_pendingKeyDown,sizeof(_pendingKeyDown));
+		ZeroMemory( _pendingKeyDown, sizeof( _pendingKeyDown ) );
 		_pendingKeyDownEventsLength = 0;
 
-		ZeroMemory(_keyPress,sizeof(_keyPress));
-		for (UINT8 i=0;i<_pendingKeyPressEventsLength;++i)
-		{
+		ZeroMemory( _keyPress, sizeof( _keyPress ) );
+		for ( UINT8 i = 0; i < _pendingKeyPressEventsLength; ++i ) {
 			UINT8 key = _pendingKeyPressEvents[i];
 			_keyPress[key] = true;
 		}
@@ -212,39 +199,39 @@ void XInputManagerComponent::ProcessSim()
 	}
 
 	//read controller states
-	for (auto iter = _gamepads.Items()->begin();iter!=_gamepads.Items()->end();++iter) {
-		((XInputGamepad *)(*iter))->GetState();
+	for ( auto iter = _gamepads.Items()->begin(); iter != _gamepads.Items()->end(); ++iter ) {
+		( ( XInputGamepad * )( *iter ) )->GetState();
 	}
 }
 
-void XInputManagerComponent::ShowCursor(bool show)
+void XInputManagerComponent::ShowCursor( bool show )
 {
-	boost::mutex::scoped_lock lock(_inputMutex);
+	boost::mutex::scoped_lock lock( _inputMutex );
 	_pendingShowCursor = true;
 	_showCursor = show;
 }
 
-bool XInputManagerComponent::IsKeyDown(UINT16 key) const
+bool XInputManagerComponent::IsKeyDown( UINT16 key ) const
 {
 	return _keyDown[key];
 }
 
-bool XInputManagerComponent::IsKeyUp(UINT16 key) const
+bool XInputManagerComponent::IsKeyUp( UINT16 key ) const
 {
 	return !_keyDown[key];
 }
 
-bool XInputManagerComponent::IsKeyPress(UINT16 key) const
+bool XInputManagerComponent::IsKeyPress( UINT16 key ) const
 {
 	return _keyPress[key];
 }
 
-INT32 XInputManagerComponent::GetMouseX(void) const
+INT32 XInputManagerComponent::GetMouseX( void ) const
 {
 	return _mouseX;
 }
 
-INT32 XInputManagerComponent::GetMouseY(void) const
+INT32 XInputManagerComponent::GetMouseY( void ) const
 {
 	return _mouseY;
 }
@@ -264,19 +251,19 @@ INT16 XInputManagerComponent::GetMouseDZ() const
 	return _mouseDZ;
 }
 
-bool XInputManagerComponent::IsButtonDown(Mouse mouseButton) const
+bool XInputManagerComponent::IsButtonDown( Mouse mouseButton ) const
 {
 	return _mouseButtonDown[mouseButton];
 }
 
-bool XInputManagerComponent::IsButtonUp(Mouse mouseButton) const
+bool XInputManagerComponent::IsButtonUp( Mouse mouseButton ) const
 {
 	return !_mouseButtonDown[mouseButton];
 }
 
-bool XInputManagerComponent::IsButtonClicked(Mouse mouseButton)
+bool XInputManagerComponent::IsButtonClicked( Mouse mouseButton )
 {
-	return _mouseButtonClick[mouseButton];	
+	return _mouseButtonClick[mouseButton];
 }
 
 const IGamepadList *XInputManagerComponent::GetGamepads() const
@@ -285,4 +272,7 @@ const IGamepadList *XInputManagerComponent::GetGamepads() const
 }
 
 
-}}}}
+}
+}
+}
+}
