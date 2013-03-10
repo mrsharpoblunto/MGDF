@@ -115,12 +115,12 @@ System *SystemBuilder::CreateSystem()
 	}
 	catch (MGDFException ex)
 	{
-		LOG("FATAL ERROR: Unable to load game boot configuration - " << ex.what(),LOG_ERROR);
+		LOG("FATAL ERROR: Unable to load game configuration - " << ex.what(),LOG_ERROR);
 		return nullptr;
 	} 
 	catch (...)
 	{
-		LOG("FATAL ERROR: Unable to load game boot configuration",LOG_ERROR);
+		LOG("FATAL ERROR: Unable to load game configuration",LOG_ERROR);
 		return nullptr;
 	}
 

@@ -4,9 +4,9 @@
 #include <algorithm>
 
 #include <limits.h>
-#include "al.h"
-#include "alc.h"
-#include "AL/alut.h"
+#include <al.h>
+#include <alc.h>
+#include <AL/alut.h>
 #include "OpenALSound.hpp"
 #include "VorbisStream.hpp"
 

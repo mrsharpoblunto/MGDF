@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-#include "UnitTest++.h"
-
 #include "../../src/core/common/MGDFResources.hpp"
 
 using namespace MGDF::core;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "al.h"
-#include "alc.h"
+#include <al.h>
+#include <alc.h>
 #include <boost/unordered_map.hpp>
 #include <vector>
 #include <string>

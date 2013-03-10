@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FW1FontWrapper/FW1FontWrapper.h"
+#include "FW1FontWrapper.h"
 
 #include "MGDFQuad.hpp"
 #include "MGDFD3DAppFramework.hpp"

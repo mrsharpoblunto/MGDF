@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include "unittest++.h"
 #include "../../src/core/common/MGDFParameterManager.hpp"
 
 using namespace MGDF::core;

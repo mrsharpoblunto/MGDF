@@ -1,7 +1,7 @@
 #pragma once
 
 #include "d3d11.h"
-#include "FW1FontWrapper/FW1FontWrapper.h"
+#include "FW1FontWrapper.h"
 #include "Common.hpp"
 #include <boost/shared_ptr.hpp>
 #include <MGDF/MGDF.hpp>

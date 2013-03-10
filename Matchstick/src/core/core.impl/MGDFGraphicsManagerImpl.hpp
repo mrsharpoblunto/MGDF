@@ -4,7 +4,7 @@
 #include <boost/thread.hpp>
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFGraphicsManager.hpp>
-#include "d3d11.h"
+#include <d3d11.h>
 
 #include "../common/MGDFListImpl.hpp"
 

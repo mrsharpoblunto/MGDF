@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 
-#include "AL/alut.h"
+#include <AL/alut.h>
 
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFExceptions.hpp"

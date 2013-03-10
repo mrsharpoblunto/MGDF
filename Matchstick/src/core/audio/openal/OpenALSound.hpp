@@ -1,8 +1,8 @@
 #pragma once
 
-#include "al.h"
-#include "alc.h"
-#include "AL/alut.h"
+#include <al.h>
+#include <alc.h>
+#include <AL/alut.h>
 
 #include <vector>
 

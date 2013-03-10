@@ -2,7 +2,6 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include "unittest++.h"
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
 #include "../../src/core/vfs/MGDFVirtualFileSystemComponentImpl.hpp"

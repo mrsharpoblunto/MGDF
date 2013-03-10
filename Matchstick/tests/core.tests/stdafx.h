@@ -27,7 +27,7 @@
 #include <assert.h>
 
 #include <MGDF/MGDF.hpp>
-#include "UnitTest++.h"
+#include <UnitTest++.h>
 #define ROWTEST(testtype, testname, ...) TEST(RT_##testtype##_##testname) { testtype __x __VA_ARGS__; __x(); }
 #define CHECK_WS_EQUAL(a, b) CHECK(std::wstring(a) == std::wstring(b))
 

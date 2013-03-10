@@ -4,7 +4,6 @@
 #include "../../common/MGDFResources.hpp"
 #include "../../common/MGDFVersionHelper.hpp"
 #include "../../common/MGDFExceptions.hpp"
-#include "json/json.h"
 #include "JsonCppGameStateStorageHandler.hpp"
 
 

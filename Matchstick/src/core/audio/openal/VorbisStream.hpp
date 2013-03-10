@@ -1,10 +1,10 @@
 #pragma once
 
 #include <MGDF/MGDF.hpp>
-#include "al.h"
-#include "alc.h"
-#include "AL/alut.h"
-#include "Vorbis/vorbisfile.h"
+#include <al.h>
+#include <alc.h>
+#include <AL/alut.h>
+#include <Vorbis/vorbisfile.h>
 #include "OpenALSoundManagerComponent.hpp"
 
 namespace MGDF { namespace core { namespace audio { namespace openal_audio {

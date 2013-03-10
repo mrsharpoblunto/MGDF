@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 
 #include <algorithm>
-#include <cctype>//std::tolower
 #include "MGDFDefaultFolderImpl.hpp"
 
 
