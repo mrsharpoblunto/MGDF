@@ -41,12 +41,12 @@ VirtualFileSystemComponent::~VirtualFileSystemComponent()
 		delete static_cast<FileBaseImpl *>( _root );
 	}
 
-	for ( auto iter = _mappedArchives.begin(); iter != _mappedArchives.end(); ++iter ) {
-		iter->first->DisposeArchive( iter->second );
+	for ( auto &archive : _mappedArchives ) {
+		archive.first->DisposeArchive( archive.second );
 	}
 
-	for ( auto iter = _archiveHandlers.begin(); iter != _archiveHandlers.end(); ++iter ) {
-		( *iter )->Dispose();
+	for ( auto handler : _archiveHandlers ) {
+		handler->Dispose();
 	}
 }
 
@@ -106,9 +106,9 @@ IFile *VirtualFileSystemComponent::Map( const wchar_t *physicalPath, IFile *pare
 IArchiveHandler *VirtualFileSystemComponent::GetArchiveHandler( const wchar_t *fullFilePath )
 {
 	_ASSERTE( fullFilePath );
-	for ( auto iter = _archiveHandlers.begin(); iter != _archiveHandlers.end(); ++iter ) {
-		if ( ( *iter )->IsArchive( fullFilePath ) ) {
-			return ( *iter );
+	for ( auto handler : _archiveHandlers ) {
+		if ( handler->IsArchive( fullFilePath ) ) {
+			return handler;
 		}
 	}
 	return nullptr;

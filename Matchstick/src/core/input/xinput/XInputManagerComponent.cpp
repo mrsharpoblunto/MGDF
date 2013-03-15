@@ -58,8 +58,8 @@ XInputManagerComponent::XInputManagerComponent()
 
 XInputManagerComponent::~XInputManagerComponent( void )
 {
-	for ( auto iter = _gamepads.Items()->begin(); iter != _gamepads.Items()->end(); ++iter ) {
-		delete( XInputGamepad * )( *iter );
+	for ( auto gamepad : *_gamepads.Items() ) {
+		delete static_cast<XInputGamepad *>( gamepad );
 	}
 }
 
@@ -199,8 +199,8 @@ void XInputManagerComponent::ProcessSim()
 	}
 
 	//read controller states
-	for ( auto iter = _gamepads.Items()->begin(); iter != _gamepads.Items()->end(); ++iter ) {
-		( ( XInputGamepad * )( *iter ) )->GetState();
+	for ( auto gamepad : *_gamepads.Items() ) {
+		static_cast<XInputGamepad *>( gamepad )->GetState();
 	}
 }
 

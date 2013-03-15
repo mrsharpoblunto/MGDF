@@ -316,15 +316,15 @@ void Timer::GetCounterInformation( std::stringstream &outputStream )
 
 	if ( _gpuCounters.size() > 0 ) {
 		outputStream << "\r\nGPU\r\n";
-		for ( auto iter = _gpuCounters.begin(); iter != _gpuCounters.end(); ++iter ) {
-			outputStream << " " << ( *iter )->GetName() << " : " << ( *iter )->GetAvgValue() << "\r\n";
+		for ( auto counter : _gpuCounters ) {
+			outputStream << " " << counter->GetName() << " : " << counter->GetAvgValue() << "\r\n";
 		}
 	}
 
 	if ( _cpuCounters.size() > 0 ) {
 		outputStream << "\r\nCPU\r\n";
-		for ( auto iter = _cpuCounters.begin(); iter != _cpuCounters.end(); ++iter ) {
-			outputStream << " " << ( *iter )->GetName() << " : " << ( *iter )->GetAvgValue() << "\r\n";
+		for ( auto counter : _cpuCounters ) {
+			outputStream << " " << counter->GetName() << " : " << counter->GetAvgValue() << "\r\n";
 		}
 	}
 }

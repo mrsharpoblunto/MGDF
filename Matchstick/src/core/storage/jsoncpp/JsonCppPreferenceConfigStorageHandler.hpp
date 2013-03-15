@@ -19,8 +19,8 @@ public:
 	virtual ~JsonCppPreferenceConfigStorageHandler() {}
 
 	virtual void Add( const std::string &name, const std::string &value );
-	virtual IPreferenceConfigStorageHandler::iterator Begin() const;
-	virtual IPreferenceConfigStorageHandler::iterator End() const;
+	virtual IPreferenceConfigStorageHandler::iterator begin() const;
+	virtual IPreferenceConfigStorageHandler::iterator end() const;
 
 	virtual void Load( const std::wstring & );
 	virtual void Save( const std::wstring & ) const;

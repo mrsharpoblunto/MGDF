@@ -61,8 +61,8 @@ void Game::ResetPreferences()
 void Game::SavePreferences() const
 {
 	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler( _storageFactory->CreatePreferenceConfigStorageHandler() );
-	for ( auto iter = _preferences.begin(); iter != _preferences.end(); ++iter ) {
-		handler->Add( iter->first, iter->second );
+	for ( auto &pref : _preferences ) {
+		handler->Add( pref.first, pref.second );
 	}
 	handler->Save( _preferencesFile );
 	LOG( "saved preferences to '" << Resources::ToString( _preferencesFile ) << "' successfully", LOG_MEDIUM );
@@ -78,8 +78,8 @@ void Game::LoadPreferences( const std::wstring &filename )
 {
 	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler( _storageFactory->CreatePreferenceConfigStorageHandler() );
 	handler->Load( filename );
-	for ( auto iter = handler->Begin(); iter != handler->End(); ++iter ) {
-		_preferences[iter->first] = iter->second;
+	for ( auto storedPreference : *handler ) {
+		_preferences[storedPreference.first] = storedPreference.second;
 	}
 	LOG( "loaded preferences from '" + Resources::ToString( filename ) + "' successfully", LOG_MEDIUM );
 }

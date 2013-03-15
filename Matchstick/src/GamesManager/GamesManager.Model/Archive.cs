@@ -121,7 +121,7 @@ namespace MGDF.GamesManager.Model
             var root = new Archive(file, null, filename);
             foreach (ZipEntry entry in file)
             {
-                string name = entry.Name.ToLowerInvariant();
+                string name = entry.Name;
                 string[] pathComponents = name.Split(new[] { '/','\\' },StringSplitOptions.RemoveEmptyEntries);
 
                 if (entry.IsFile)

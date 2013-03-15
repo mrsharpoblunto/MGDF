@@ -15,18 +15,9 @@ public:
 	virtual ~StatisticsManager();
 	virtual void SaveStatistic( const char * name, const char *  value );
 private:
-	typedef struct {
-		std::string Name;
-		std::string Value;
-	} NameValuePair;
-
-	std::vector<NameValuePair> *_saveBuffer;
+	std::vector<std::pair<std::string,std::string> > _saveBuffer;
 	std::wstring _statisticsFile;
-
 	void SaveAll();
-	size_t GetSaveBufferSize();
-	void AddToSaveBuffer( NameValuePair && nvp );
-	std::vector<NameValuePair> *ResetSaveBuffer();
 };
 
 }

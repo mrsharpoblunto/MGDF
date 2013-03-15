@@ -5,6 +5,7 @@
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFGraphicsManager.hpp>
 #include <d3d11.h>
+#include <atomic>
 
 #include "../common/MGDFListImpl.hpp"
 
@@ -77,7 +78,7 @@ public:
 	void SetBackBuffer( ID3D11Texture2D *backBuffer );
 private:
 	bool _initialized;
-	long *_changePending;
+	std::atomic_bool _changePending;
 	ID3D11Device *_device;
 	ID3D11Texture2D *_backBuffer;
 

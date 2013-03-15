@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.hpp>
-#include <boost/unordered_map.hpp>
+#include <map>
 #include <typeinfo>
 #include "../common/MGDFSystemComponent.hpp"
 
@@ -35,7 +35,7 @@ public:
 	void RegisterComponent( T *component ) {
 		std::string t = typeid( T ).name();
 		if ( _components.find( t ) == _components.end() ) {
-			_components[t] = ( void * ) component;
+			_components.insert( std::pair<std::string,void *>( t, component) );
 		}
 	}
 
@@ -44,9 +44,9 @@ public:
 	*/
 	template<class T>
 	T *Get() {
-		std::string t = typeid( T ).name();
-		if ( _components.find( t ) != _components.end() ) {
-			return ( T * ) _components[t];
+		auto component = _components.find( typeid( T ).name() );
+		if ( component != _components.end() ) {
+			return static_cast <T *>(component->second);
 		}
 		return nullptr;
 	}
@@ -57,24 +57,22 @@ public:
 	*/
 	template<class T>
 	void UnregisterComponent() {
-		std::string t = typeid( T ).name();
-		boost::unordered_map<std::string, void *>::iterator iter = _components.find( t );
-		if ( iter != _components.end() ) {
-			T *temp = ( T * ) _components[t];
-			_components.erase( iter );
-			SAFE_DELETE( temp );
+		auto component = _components.find( typeid( T ).name() );
+		if ( component != _components.end() ) {
+			delete static_cast <ISystemComponent *>(component->second);
+			_components.erase( component );
 		}
 	}
 
 	void RegisterComponentErrorHandler( IErrorHandler *errorHandler ) {
-		for ( boost::unordered_map<std::string, void *>::iterator iter = _components.begin(); iter != _components.end(); ++iter ) {
-			( ( ISystemComponent * ) iter->second )->SetComponentErrorHandler( errorHandler );
+		for ( auto component : _components ) {
+			static_cast <ISystemComponent *>(component.second)->SetComponentErrorHandler( errorHandler );
 		}
 	}
 
 private:
 	Components();
-	boost::unordered_map<std::string, void *> _components;
+	std::map<std::string, void *> _components;
 };
 
 }

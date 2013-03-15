@@ -26,12 +26,12 @@ void JsonCppPreferenceConfigStorageHandler::Add( const std::string &name, const 
 	_preferences[name] = value;
 }
 
-IPreferenceConfigStorageHandler::iterator JsonCppPreferenceConfigStorageHandler::Begin() const
+IPreferenceConfigStorageHandler::iterator JsonCppPreferenceConfigStorageHandler::begin() const
 {
 	return _preferences.begin();
 }
 
-IPreferenceConfigStorageHandler::iterator JsonCppPreferenceConfigStorageHandler::End() const
+IPreferenceConfigStorageHandler::iterator JsonCppPreferenceConfigStorageHandler::end() const
 {
 	return _preferences.end();
 }
@@ -60,11 +60,11 @@ void JsonCppPreferenceConfigStorageHandler::Save( const std::wstring &filename )
 	Json::Value root;
 	Json::Value preferences;
 
-	for ( IPreferenceConfigStorageHandler::iterator iter = _preferences.begin(); iter != _preferences.end(); ++iter ) {
-		Json::Value pref;
-		pref["name"] = iter->first;
-		pref["value"] = iter->second;
-		preferences.append( pref );
+	for ( auto &pref : _preferences ) {
+		Json::Value json;
+		json["name"] = pref.first;
+		json["value"] = pref.second;
+		preferences.append( json );
 	}
 	root["preferences"] = preferences;
 

@@ -144,8 +144,8 @@ void System::DisposeModule()
 System::~System( void )
 {
 	if ( _saves != nullptr ) {
-		for ( auto iter = _saves->Items()->begin(); iter != _saves->Items()->end(); ++iter ) {
-			delete[] *iter;
+		for ( auto save : *_saves->Items() ) {
+			delete[] save;
 		}
 		delete _saves;
 	}
@@ -228,8 +228,8 @@ INT32 System::BeginSave( const char *save, wchar_t *saveBuffer, UINT32 *size )
 	std::string saveName( save );
 
 	//only alphanumerics and space allowed.
-	for ( auto iter = saveName.begin(); iter != saveName.end(); ++iter ) {
-		if ( !isalnum( *iter ) && *iter != ' ' ) {
+	for ( auto c : saveName ) {
+		if ( !isalnum( c ) && c != ' ' ) {
 			SETLASTERROR( this, MGDF_ERR_INVALID_SAVE_NAME, saveName << " is an invalid save name. Only alphanumeric characters and the space character are permitted" );
 			return -1;
 		}
@@ -300,8 +300,8 @@ bool System::CompleteSave( const char *save )
 		//update the list of save games
 		GetSaves();
 		bool exists = false;
-		for ( UINT32 i = 0; i < _saves->Size(); ++i ) {
-			if ( strcmp( saveName.c_str(), _saves->Get( i ) ) == 0 ) {
+		for ( auto save : *_saves->Items() ) {
+			if ( strcmp( saveName.c_str(), save ) == 0 ) {
 				exists = true;
 				break;
 			}

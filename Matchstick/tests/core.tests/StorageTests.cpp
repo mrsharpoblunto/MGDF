@@ -100,16 +100,15 @@ SUITE( StorageTests )
 		std::wstring path = _vfs->GetFile( L"preferences.json" )->GetPhysicalPath();
 		handler->Load( path );
 
-		IPreferenceConfigStorageHandler::iterator iter;
 		INT32 count = 0;
 		bool foundResolution = false;
 		bool foundScreenX = false;
-		for ( iter = handler->Begin(); iter != handler->End(); ++iter ) {
-			if ( iter->first == "resolution" ) {
-				CHECK_EQUAL( "800*600", iter->second );
+		for ( auto pref : *handler ) {
+			if ( pref.first == "resolution" ) {
+				CHECK_EQUAL( "800*600", pref.second );
 				foundResolution = true;
-			} else if ( iter->first == "screenX" ) {
-				CHECK_EQUAL( "800", iter->second );
+			} else if ( pref.first == "screenX" ) {
+				CHECK_EQUAL( "800", pref.second );
 				foundScreenX = true;
 			}
 			++count;
@@ -132,12 +131,12 @@ SUITE( StorageTests )
 		count = 0;
 		foundResolution = false;
 		foundScreenX = false;
-		for ( iter = handler->Begin(); iter != handler->End(); ++iter ) {
-			if ( iter->first == "resolution" ) {
-				CHECK_EQUAL( "800*600", iter->second );
+		for ( auto pref : *handler ) {
+			if ( pref.first == "resolution" ) {
+				CHECK_EQUAL( "800*600", pref.second );
 				foundResolution = true;
-			} else if ( iter->first == "screenX" ) {
-				CHECK_EQUAL( "800", iter->second );
+			} else if ( pref.first == "screenX" ) {
+				CHECK_EQUAL( "800", pref.second );
 				foundScreenX = true;
 			}
 			++count;

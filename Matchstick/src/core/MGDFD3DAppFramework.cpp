@@ -25,7 +25,6 @@ namespace core
 
 D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
 	: _stats( TIMER_SAMPLES )
-	, _drawSystemOverlay( false )
 	, _applicationInstance( hInstance )
 	, _window( nullptr )
 	, _swapChain( nullptr )
@@ -42,20 +41,12 @@ D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
 	, _renderThread( nullptr )
 	, _internalShutDown( false )
 {
-	_resize = ( long * ) _aligned_malloc( sizeof( long ), 32 );
-	*_resize = 0L;
-	_runRenderThread = ( long * ) _aligned_malloc( sizeof( long ), 32 );
-	*_runRenderThread = 1L;
-	_drawSystemOverlay = ( long * ) _aligned_malloc( sizeof( long ), 32 );
-	*_drawSystemOverlay = 0L;
+	_drawSystemOverlay.store( false );
+	_resize.store( false );
 }
 
 D3DAppFramework::~D3DAppFramework()
 {
-	_aligned_free( _resize );
-	_aligned_free( _runRenderThread );
-	_aligned_free( _drawSystemOverlay );
-
 	if ( _window != nullptr ) {
 		UnregisterClass( WINDOW_CLASS_NAME, GetModuleHandle( nullptr ) );
 	}
@@ -332,22 +323,22 @@ INT32 D3DAppFramework::Run( UINT32 simulationFps )
 
 	_stats.SetExpectedSimTime( 1 / ( double ) simulationFps );
 
-	*_runRenderThread = 1L;
-	long *runSimThread = ( long * ) _aligned_malloc( sizeof( long ), 32 );
-	*runSimThread = 0L;
-	long *startRenderThread = ( long * ) _aligned_malloc( sizeof( long ), 32 );
-	*startRenderThread = 0L;
+	std::atomic_flag runSimThread;
+	std::atomic_flag waitOnRenderThread;
+	waitOnRenderThread.test_and_set();
+	_runRenderThread.test_and_set();
 
 	//run the simulation in its own thread
-	boost::thread simThread( [this, runSimThread, startRenderThread]() {
-		InterlockedExchange( runSimThread, 1L );
+	boost::thread simThread( [this, &runSimThread, &waitOnRenderThread]() {
+		runSimThread.test_and_set();
 
-		while ( InterlockedCompareExchange( runSimThread, 1L, 1L ) ) {
+		while ( runSimThread.test_and_set() ) {
 			LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
 
 			UpdateScene( _stats.ExpectedSimTime() );
+
 			//run a frame of game logic before starting the render thread
-			InterlockedExchange( startRenderThread, 1L );
+			waitOnRenderThread.clear();
 
 			//wait until the next frame to begin if we have any spare time left over
 			_frameLimiter->LimitFps();
@@ -358,10 +349,12 @@ INT32 D3DAppFramework::Run( UINT32 simulationFps )
 	} );
 
 	//run the renderer in its own thread
-	_renderThread = new boost::thread( [this, startRenderThread]() {
-		while ( !InterlockedCompareExchange( startRenderThread, 1L, 1L ) ) Sleep( 1 );   //ensure the simulation runs at least one tick before rendering begins.
+	_renderThread = new boost::thread( [this, &waitOnRenderThread]() {
+		while ( waitOnRenderThread.test_and_set() ) Sleep( 1 );   //ensure the simulation runs at least one tick before rendering begins.
 
-		while ( InterlockedCompareExchange( _runRenderThread, 1L, 1L ) ) {
+		while ( _runRenderThread.test_and_set() ) {
+			bool exp=true;
+
 			//the game logic step may force the device to reset, so lets check
 			if ( IsBackBufferChangePending() ) {
 				//clean up the old swap chain, then recreate it with the new settings
@@ -373,7 +366,7 @@ INT32 D3DAppFramework::Run( UINT32 simulationFps )
 				OnResize();
 			}
 			//a window event may also have triggered a resize event.
-			else if ( InterlockedBitTestAndReset( _resize, 0 ) ) {
+			else if ( _resize.compare_exchange_strong( exp, false ) ) {
 				OnResize();
 			}
 
@@ -418,11 +411,9 @@ INT32 D3DAppFramework::Run( UINT32 simulationFps )
 		}
 	}
 
-	InterlockedExchange( runSimThread, 0L );
+	runSimThread.clear();
 	simThread.join();
 
-	_aligned_free( runSimThread );
-	_aligned_free( startRenderThread );
 	delete _renderThread;
 	delete _frameLimiter;
 	return ( int ) msg.wParam;
@@ -473,7 +464,7 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 				_maximized = true;
 				_minimized = false;
 				//tell the render thread to resize at the start of the next frame
-				InterlockedExchange( _resize, 1L );
+				_resize.store( true );
 			}
 			// Restored is any resize that is not a minimize or maximize.
 			// For example, restoring the window to its default size
@@ -484,11 +475,11 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 				if ( _minimized ) {
 					_minimized = false;
 					//tell the render thread to resize at the start of the next frame
-					InterlockedExchange( _resize, 1L );
+					_resize.store( true );
 				} else if ( _maximized ) {
 					_maximized = false;
 					//tell the render thread to resize at the start of the next frame
-					InterlockedExchange( _resize, 1L );
+					_resize.store( true );
 				} else if ( _resizing ) {
 					// No, which implies the user is resizing by dragging
 					// the resize bars.  However, we do not reset the device
@@ -501,7 +492,7 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 					// WM_EXITSIZEMOVE message.
 				} else { // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
 					//tell the render thread to resize at the start of the next frame
-					InterlockedExchange( _resize, 1L );
+					_resize.store( true );
 				}
 			}
 		}
@@ -515,10 +506,7 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 		// Here we reset everything based on the new window dimensions.
 	case WM_EXITSIZEMOVE:
 		_resizing = false;
-		{
-			//tell the render thread to resize at the start of the next frame
-			InterlockedExchange( _resize, 1L );
-		}
+		_resize.store( true );
 		return 0;
 
 		// WM_CLOSE is sent when the user presses the 'X' button in the
@@ -526,7 +514,7 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 	case WM_CLOSE:
 		if ( _internalShutDown ) {
 			//make sure we stop rendering before disposing of the window
-			InterlockedExchange( _runRenderThread, 0L );
+			_runRenderThread.clear();
 			_renderThread->join();
 			//if we triggered this, then shut down
 			DestroyWindow( _window );
@@ -550,7 +538,12 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 		switch ( wParam ) {
 		case VK_F12: {
 			//Toggle system stats overlay with alt f12
-			InterlockedExchange( _drawSystemOverlay, *_drawSystemOverlay == 0L ? 1L : 0L );
+			bool exp = true;
+			//if its true set it to false.
+			if ( !_drawSystemOverlay.compare_exchange_weak( exp, false ) ) {
+				//otherwise it must be false so set it to true
+				_drawSystemOverlay.store( true );
+			}
 		}
 		break;
 		}

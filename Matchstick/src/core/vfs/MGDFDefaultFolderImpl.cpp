@@ -27,11 +27,11 @@ DefaultFolderImpl::~DefaultFolderImpl()
 {
 	if ( !_children ) return;
 
-	for ( auto iter = _children->begin(); iter != _children->end(); ++iter ) {
+	for ( auto child : *_children ) {
 		// don't delete archives as we will explicitly pass them off to
 		// the archive handler that created them in order to clean them up
-		if ( !iter->second->IsArchive() ) {
-			delete static_cast<FileBaseImpl *>( iter->second );
+		if ( !child.second->IsArchive() ) {
+			delete static_cast<FileBaseImpl *>( child.second );
 		}
 	}
 }

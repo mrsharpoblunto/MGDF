@@ -34,8 +34,7 @@ GraphicsManager::GraphicsManager( ID3D11Device *device, IDXGIAdapter1 *adapter )
 		return;
 	}
 
-	_changePending = ( long * ) _aligned_malloc( sizeof( long ), 32 );
-	*_changePending = 0L;
+	_changePending.store( false );
 
 	UINT32 maxAdaptorModes = 0U;
 	if ( FAILED( output->GetDisplayModeList( BACKBUFFER_FORMAT, DXGI_ENUM_MODES_INTERLACED, &maxAdaptorModes, nullptr ) ) ) {
@@ -76,9 +75,8 @@ GraphicsManager::GraphicsManager( ID3D11Device *device, IDXGIAdapter1 *adapter )
 
 GraphicsManager::~GraphicsManager( void )
 {
-	_aligned_free( _changePending );
-	for ( auto iter = _adaptorModes.Items()->begin(); iter != _adaptorModes.Items()->end(); ++iter ) {
-		delete( GraphicsAdaptorMode * )( *iter );
+	for ( auto mode : *_adaptorModes.Items() ) {
+		delete static_cast<GraphicsAdaptorMode *>( mode );
 	}
 }
 
@@ -139,14 +137,14 @@ const IGraphicsAdaptorModeList *GraphicsManager::GetAdaptorModes() const
 IGraphicsAdaptorMode *GraphicsManager::GetAdaptorMode( UINT32 width, UINT32 height ) const
 {
 	IGraphicsAdaptorMode *mode = nullptr;
-	for ( auto iter = _adaptorModes.Items()->begin(); iter != _adaptorModes.Items()->end(); ++iter ) {
-		if ( ( *iter )->GetWidth() == width && ( *iter )->GetHeight() == height ) {
+	for ( auto currentMode : *_adaptorModes.Items() ) {
+		if ( currentMode->GetWidth() == width && currentMode->GetHeight() == height ) {
 			if ( mode == nullptr ) {
-				mode = ( *iter );
+				mode = currentMode;
 			} else if (
-			    ( *iter )->GetRefreshRateNumerator() >= mode->GetRefreshRateNumerator() &&
-			    ( *iter )->GetRefreshRateDenominator() <= mode->GetRefreshRateDenominator() ) {
-				mode = ( *iter );
+			    currentMode->GetRefreshRateNumerator() >= mode->GetRefreshRateNumerator() &&
+			    currentMode->GetRefreshRateDenominator() <= mode->GetRefreshRateDenominator() ) {
+				mode = currentMode;
 			}
 		}
 	}
@@ -177,12 +175,13 @@ void GraphicsManager::SetCurrentAdaptorMode( IGraphicsAdaptorMode *mode )
 void GraphicsManager::ApplyChanges()
 {
 	boost::mutex::scoped_lock lock( _mutex );
-	InterlockedExchange( _changePending, 1L );
+	_changePending.store( true );
 }
 
 bool GraphicsManager::IsBackBufferChangePending()
 {
-	return InterlockedCompareExchange( _changePending, 1L, 1L ) == 1L;
+	bool exp = true;
+	return _changePending.compare_exchange_weak( exp, true );
 }
 
 void GraphicsManager::SetBackBuffer( ID3D11Texture2D *backBuffer )
@@ -229,9 +228,9 @@ void GraphicsManager::LoadPreferences( IGame *game )
 		//try to find the native resolution if possible, otherwise stick to the default found above if none are found.
 		INT32 nativeWidth = GetSystemMetrics( SM_CXSCREEN );
 		INT32 nativeHeight = GetSystemMetrics( SM_CYSCREEN );
-		for ( auto iter = _adaptorModes.Items()->begin(); iter != _adaptorModes.Items()->end(); ++iter ) {
-			if ( ( *iter )->GetWidth() == nativeWidth && ( *iter )->GetHeight() == nativeHeight ) {
-				_currentAdaptorMode = ( *iter );
+		for ( auto mode : *_adaptorModes.Items() ) {
+			if ( mode->GetWidth() == nativeWidth && mode->GetHeight() == nativeHeight ) {
+				_currentAdaptorMode = mode;
 				break;
 			}
 		}
@@ -286,7 +285,7 @@ void GraphicsManager::OnResetSwapChain( DXGI_SWAP_CHAIN_DESC *desc, BOOL *fullSc
 	desc->SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	desc->Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-	InterlockedExchange( _changePending, 0L );
+	_changePending.store( false );
 }
 
 }

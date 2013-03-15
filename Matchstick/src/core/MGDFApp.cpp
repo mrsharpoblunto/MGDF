@@ -127,7 +127,8 @@ void MGDFApp::DrawScene( double alpha )
 {
 	_system->DrawScene( alpha );  //render as per the current active module
 
-	if ( InterlockedCompareExchange( _drawSystemOverlay, 0L, 0L ) ) {
+	bool exp = true;
+	if ( _drawSystemOverlay.compare_exchange_weak( exp, true ) ) {
 		DrawSystemOverlay();
 	}
 }

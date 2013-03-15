@@ -17,8 +17,8 @@ public:
 
 	virtual ~IPreferenceConfigStorageHandler() {}
 	virtual void Add( const std::string &name, const std::string &value ) = 0;
-	virtual iterator Begin() const = 0;
-	virtual iterator End() const = 0;
+	virtual iterator begin() const = 0;
+	virtual iterator end() const = 0;
 
 	virtual void Load( const std::wstring &load ) = 0;
 	virtual void Save( const std::wstring &save ) const = 0;

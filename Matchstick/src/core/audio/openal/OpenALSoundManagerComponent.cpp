@@ -56,9 +56,9 @@ OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
 	while ( _soundStreams.size() > 0 ) {
 		delete _soundStreams.back();
 	}
-	for ( auto iter = _sharedBuffers.begin(); iter != _sharedBuffers.end(); ++iter ) {
-		alDeleteBuffers( 1, & ( iter->first ) );
-		delete iter->second;
+	for ( auto buffer : _sharedBuffers ) {
+		alDeleteBuffers( 1, & buffer.first );
+		delete buffer.second;
 	}
 
 	delete OpenALSoundSystem::Instance();
@@ -80,8 +80,7 @@ void OpenALSoundManagerComponentImpl::Update()
 
 	INT32 deactivatedSoundsCount = 0;
 
-	for ( auto iter = _sounds.begin(); iter != _sounds.end(); ++iter ) {
-		OpenALSound *sound = ( OpenALSound * ) *iter;
+	for ( auto sound : _sounds ) {
 		if ( !sound->IsActive() ) {
 			deactivatedSoundsCount++;
 		}
@@ -108,8 +107,7 @@ void OpenALSoundManagerComponentImpl::Update()
 		PrioritizeSounds( deactivatedSoundsCount );
 	}
 
-	for ( std::vector<VorbisStream *>::iterator iter = _soundStreams.begin(); iter != _soundStreams.end(); ++iter ) {
-		VorbisStream *stream = ( VorbisStream * ) *iter;
+	for ( auto stream : _soundStreams ) {
 		stream->Update();
 	}
 }
@@ -152,8 +150,7 @@ float OpenALSoundManagerComponentImpl::GetSoundVolume() const
 void OpenALSoundManagerComponentImpl::SetSoundVolume( float volume )
 {
 	_soundVolume = volume;
-	for ( auto iter = _sounds.begin(); iter != _sounds.end(); ++iter ) {
-		OpenALSound *sound = ( OpenALSound * ) *iter;
+	for ( auto sound : _sounds ) {
 		sound->SetGlobalVolume( _soundVolume );
 	}
 }
@@ -166,8 +163,7 @@ float OpenALSoundManagerComponentImpl::GetStreamVolume() const
 void OpenALSoundManagerComponentImpl::SetStreamVolume( float volume )
 {
 	_streamVolume = volume;
-	for ( auto iter = _soundStreams.begin(); iter != _soundStreams.end(); ++iter ) {
-		VorbisStream *stream = ( VorbisStream * ) *iter;
+	for ( auto stream : _soundStreams ) {
 		stream->SetGlobalVolume( _streamVolume );
 	}
 }
@@ -239,9 +235,9 @@ void OpenALSoundManagerComponentImpl::DeactivateSound( INT32 priority )
 {
 	//find all sounds with a priority equal or lower to the one to be created
 	std::vector<OpenALSound *> sounds;
-	for ( std::vector<OpenALSound *>::iterator iter = _sounds.begin(); iter != _sounds.end(); ++iter ) {
-		if ( ( *iter )->GetPriority() <= priority ) {
-			sounds.push_back( ( OpenALSound * )( *iter ) );
+	for ( auto sound : _sounds ) {
+		if ( sound->GetPriority() <= priority ) {
+			sounds.push_back( sound );
 		}
 	}
 	if ( sounds.size() > 0 ) {
@@ -255,8 +251,8 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds( INT32 deactivatedSoundsC
 {
 	//copy the sounds into a local list so sorting won't mess up the external ordering of the samples
 	std::vector<OpenALSound *> sounds;
-	for ( auto iter = _sounds.begin(); iter != _sounds.end(); ++iter ) {
-		sounds.push_back( ( OpenALSound * )( *iter ) );
+	for ( auto s : _sounds ) {
+		sounds.push_back( s );
 	}
 	sort( sounds.begin(), sounds.end(), &OpenALSoundManagerComponentImpl::Sort );
 
@@ -266,14 +262,14 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds( INT32 deactivatedSoundsC
 	if ( requiringDeactivationCount < 0 ) requiringDeactivationCount = 0; //we can activate all sounds.
 
 	//deactivate requiringDeactivationCount of the lowest priority samples, and reactivate the rest.
-	for ( std::vector<OpenALSound *>::iterator iter = sounds.begin(); iter != sounds.end(); ++iter ) {
+	for ( auto s : sounds ) {
 		if ( requiringDeactivationCount-- > 0 ) {
-			if ( ( *iter )->IsActive() ) {
-				( *iter )->Deactivate();
+			if ( s->IsActive() ) {
+				s->Deactivate();
 			}
 		} else {
-			if ( !( *iter )->IsActive() ) {
-				( *iter )->Reactivate();
+			if ( !s->IsActive() ) {
+				s->Reactivate();
 			}
 		}
 	}
@@ -300,10 +296,10 @@ ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer( IFile *dataSource )
 	dataSourceName.append( dataSource->GetName() );
 
 	//see if the buffer already exists in memory before trying to create it
-	for ( auto iter = _sharedBuffers.begin(); iter != _sharedBuffers.end(); ++iter ) {
-		if ( iter->second->BufferSource == dataSourceName ) {
-			++iter->second->References;
-			return iter->first;
+	for ( auto buffer : _sharedBuffers ) {
+		if ( buffer.second->BufferSource == dataSourceName ) {
+			++buffer.second->References;
+			return buffer.first;
 		}
 	}
 

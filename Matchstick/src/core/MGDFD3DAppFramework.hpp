@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include "core.impl/MGDFTimer.hpp"
 #include "core.impl/MGDFSystemStats.hpp"
 #include "MGDFFrameLimiter.hpp"
@@ -55,8 +56,8 @@ protected:
 
 	Timer _timer;
 	FrameLimiter *_frameLimiter;
-	long *_drawSystemOverlay;
-	long *_resize;
+	std::atomic_bool _drawSystemOverlay;
+	std::atomic_bool _resize;
 	bool _internalShutDown;
 
 	SystemStats _stats;
@@ -71,7 +72,7 @@ private:
 
 	bool _minimized, _maximized, _resizing;
 	boost::thread *_renderThread;
-	long *_runRenderThread;
+	std::atomic_flag _runRenderThread;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc

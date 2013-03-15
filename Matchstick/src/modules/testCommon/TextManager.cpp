@@ -16,8 +16,8 @@ namespace Test
 
 TextManagerState::TextManagerState( const TextManagerState *state )
 {
-	for ( auto iter = state->_lines.begin(); iter != state->_lines.end(); ++iter ) {
-		_lines.push_back( *iter );
+	for ( auto line : state->_lines ) {
+		_lines.push_back( line );
 	}
 }
 
@@ -79,9 +79,9 @@ void TextManager::DrawText()
 			starty = _system->GetGraphics()->GetScreenY() - 25;
 		}
 
-		for ( auto iter = _state.get()->_lines.begin(); iter != _state.get()->_lines.end(); ++iter ) {
+		for ( auto &line : _state.get()->_lines ) {
 			std::wstring content;
-			content.assign( iter->Content.begin(), iter->Content.end() );
+			content.assign( line.Content.begin(), line.Content.end() );
 
 			_font->DrawString(
 			    _immediateContext,
@@ -89,13 +89,13 @@ void TextManager::DrawText()
 			    22.0f,// Font size
 			    0.0f,// X position
 			    static_cast<float>( starty ),  // Y position
-			    iter->Color,// Text color
+			    line.Color,// Text color
 			    FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
 			);
 
-			if ( iter->StatusText != "" ) {
+			if ( line.StatusText != "" ) {
 				std::wstring statusText;
-				statusText.assign( iter->StatusText.begin(), iter->StatusText.end() );
+				statusText.assign( line.StatusText.begin(), line.StatusText.end() );
 
 				_font->DrawString(
 				    _immediateContext,
@@ -103,7 +103,7 @@ void TextManager::DrawText()
 				    22.0f,// Font size
 				    static_cast<float>( _system->GetGraphics()->GetScreenX() ) - 150.0f,  // X position
 				    static_cast<float>( starty ),  // Y position
-				    iter->StatusColor,// Text color
+				    line.StatusColor,// Text color
 				    FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
 				);
 			}

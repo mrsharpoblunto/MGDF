@@ -55,8 +55,8 @@ bool FakeArchiveHandler::IsArchive( const wchar_t *path ) const
 	const wchar_t *extension = GetFileExtension( path );
 	if ( !extension ) return false;
 
-	for ( auto it = _fileExtensions.begin(); it != _fileExtensions.end(); ++it ) {
-		if ( wcscmp( *it, extension ) == 0 ) {
+	for ( auto ext : _fileExtensions ) {
+		if ( wcscmp( ext, extension ) == 0 ) {
 			return true;
 		}
 	}

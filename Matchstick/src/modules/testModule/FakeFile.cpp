@@ -41,8 +41,8 @@ FakeFile::~FakeFile()
 {
 	if ( _children != nullptr ) {
 		//delete all the children of this node
-		for ( auto iter = _children->begin(); iter != _children->end(); ++iter ) {
-			delete iter->second;
+		for ( auto child : *_children ) {
+			delete child.second;
 		}
 		delete _children;
 	}
@@ -87,9 +87,9 @@ bool FakeFile::GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuf
 	}
 
 	size_t size = 0;
-	for ( auto it = _children->begin(); it != _children->end(); ++it ) {
-		if ( !filter || filter->Accept( it->first ) ) {
-			if ( size < *bufferLength ) childBuffer[size] = it->second;
+	for ( auto child : *_children ) {
+		if ( !filter || filter->Accept( child.first ) ) {
+			if ( size < *bufferLength ) childBuffer[size] = child.second;
 			++size;
 		}
 	}
@@ -120,9 +120,9 @@ const wchar_t *FakeFile::GetLogicalPath()
 		}
 
 		std::wostringstream ss;
-		for ( auto it = path.begin(); it != path.end(); ++it ) {
-			ss << ( *it )->GetName();
-			if ( ( *it ) != this ) ss << '/';
+		for ( auto file : path ) {
+			ss << file->GetName();
+			if ( file != this ) ss << '/';
 		}
 		_logicalPath = ss.str();
 	}
