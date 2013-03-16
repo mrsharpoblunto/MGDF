@@ -42,7 +42,7 @@ namespace MGDF.GamesManager.Tests
             var gameMd5 = GenerateMd5Hash(newGameData);
 
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
 ""Latest"":{
 ""Version"":""1.1.2.4"",
 ""Url"":""http://www.junkship.net/downloads/console.zip"",
@@ -89,7 +89,7 @@ namespace MGDF.GamesManager.Tests
 
             ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
 ""Latest"":{
 ""Version"":""1.1.2.4"",
 ""Url"":""http://www.junkship.net/downloads/console.zip"",
@@ -134,7 +134,7 @@ namespace MGDF.GamesManager.Tests
 
             ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
 ""Latest"":{
 ""Version"":""1.1.2.4"",
 ""Url"":""http://www.junkship.net/downloads/console.zip"",
@@ -191,7 +191,7 @@ namespace MGDF.GamesManager.Tests
 
             ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
 ""Latest"":{
 ""Version"":""1.1.2.4"",
 ""Url"":""http://www.junkship.net/downloads/console.zip"",
@@ -238,7 +238,7 @@ namespace MGDF.GamesManager.Tests
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
 ""Latest"":{
 ""Version"":""1.1.2.4"",
 ""Url"":""http://www.junkship.net/downloads/console.zip"",
@@ -310,7 +310,7 @@ namespace MGDF.GamesManager.Tests
             var newGameData = GenerateDataBlock(65536);
             var gameMd5 = GenerateMd5Hash(newGameData);
 
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
 ""Latest"":{
 ""Version"":""1.1.2.4"",
 ""Url"":""http://www.junkship.net/downloads/console.zip"",

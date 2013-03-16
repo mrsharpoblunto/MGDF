@@ -34,7 +34,7 @@ namespace MGDF.GamesManager.Tests
             var frameworkMd5 = GenerateMd5Hash(newFrameworkData);
 
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/1/MGDF.zip",newFrameworkData);
-            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{""Framework"":{
+            ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{""Framework"":{
 ""Version"":""1.1.2.4"",
 ""Url"":""http://www.matchstickframework.org/downloads/1/MGDF.zip"",
 ""MD5"":""" + frameworkMd5 + @"""

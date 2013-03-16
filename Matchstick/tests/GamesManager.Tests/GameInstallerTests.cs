@@ -40,8 +40,7 @@ namespace MGDF.GamesManager.Tests
             Assert.IsTrue(install.IsValid);
 
             Assert.AreEqual("A Lua command console for interacting with the MGDF system",install.Game.Description);
-            Assert.AreEqual("no-8", install.Game.DeveloperUid);
-            Assert.AreEqual("http://games.junkship.org/gamesource.asmx", install.Game.GameSourceService);
+            Assert.AreEqual("http://games.junkship.org/gamesource.asmx", install.Game.UpdateService);
             Assert.AreEqual("http://www.junkship.org", install.Game.Homepage);
             Assert.AreEqual(1, install.Game.InterfaceVersion);
             Assert.IsFalse(install.IsUpdate);

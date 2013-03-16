@@ -7,7 +7,7 @@
   "developeruid":"no-8",
   "developername":"no8 interactive",
   "homepage":"http://www.junkship.org",
-  "gamesourceservice":"http://games.junkship.org/gamesource.asmx",
+  "updateservice":"http://games.junkship.org/gamesource.asmx",
   "statisticsservice":"http://statistics.junkship.org/statisticsservice.asmx",
   "statisticsprivacypolicy":"We wont use ur informationz",
   "supportemail":"support@junkship.org"

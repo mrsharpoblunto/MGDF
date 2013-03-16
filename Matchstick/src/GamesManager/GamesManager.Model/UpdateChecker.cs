@@ -47,11 +47,11 @@ namespace MGDF.GamesManager.Model
             AvailableUpdates result = new AvailableUpdates();
             GameUpdate availableUpdates;
 
-            if (!string.IsNullOrEmpty(game.GameSourceService))
+            if (!string.IsNullOrEmpty(game.UpdateService))
             {
                 try
                 {
-                    using (var responseStream = HttpRequestManager.Current.GetResponseStream(game.GameSourceService + "/downloads/" + Resources.InterfaceVersion + "/" + game.Uid + "/latest.json"))
+                    using (var responseStream = HttpRequestManager.Current.GetResponseStream(game.UpdateService))
                     {
                         using (var reader = new StreamReader(responseStream))
                         {
@@ -93,7 +93,7 @@ namespace MGDF.GamesManager.Model
                 }
                 catch (Exception ex)
                 {
-                    Logger.Current.Write(LogInfoLevel.Error, "Unable to read " + game.GameSourceService + "/downloads/" + Resources.InterfaceVersion + "/" + game.Uid + "/latest.json - " + ex);
+                    Logger.Current.Write(LogInfoLevel.Error, "Unable to read " + game.UpdateService + " - " + ex);
                 }
             }
             return result;

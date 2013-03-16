@@ -23,12 +23,11 @@ namespace MGDF.GamesManager.Tests
             Assert.AreEqual("Lua Console", game.Name);
             Assert.AreEqual("A Lua command console for interacting with the MGDF system", game.Description);
             Assert.AreEqual(new Version(0,1), game.Version);
-            Assert.AreEqual("no-8", game.DeveloperUid);
             Assert.AreEqual("http://www.junkship.org", game.Homepage);
             Assert.AreEqual(1, game.InterfaceVersion);
             Assert.AreEqual("no8 interactive",game.DeveloperName);
             Assert.AreEqual(true, game.IsValid);
-            Assert.AreEqual("http://games.junkship.org/gamesource.asmx", game.GameSourceService);
+            Assert.AreEqual("http://games.junkship.org/gamesource.asmx", game.UpdateService);
             Assert.AreEqual("http://statistics.junkship.org/statisticsservice.asmx", game.StatisticsService);
         }
 

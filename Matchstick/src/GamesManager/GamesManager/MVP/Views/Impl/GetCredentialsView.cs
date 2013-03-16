@@ -30,7 +30,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
         {
             set
             {
-                Uri gameSourceUri = new Uri(value.GameSourceService);
+                Uri gameSourceUri = new Uri(value.UpdateService);
                 label3.Text = "Please enter your credentials to download " + value.Name + " from " + gameSourceUri.Host;
             }
         }

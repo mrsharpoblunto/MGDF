@@ -4,7 +4,6 @@
   "description":"A series of semi-automated tests designed to provide good test coverage over MGDF",
   "version":"0.1",
   "interfaceversion":"1",
-  "developeruid":"TeamJunkship",
   "developername":"Team Junkship",
   "homepage":"http://www.junkship.net",
   "supportemail":"support@matchstickframework.org"

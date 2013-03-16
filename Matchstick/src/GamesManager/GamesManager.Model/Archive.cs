@@ -128,7 +128,7 @@ namespace MGDF.GamesManager.Model
                 {
                     IArchiveFile parent = pathComponents.Length > 1 ? CreateDirectories(file, root, pathComponents, pathComponents.Length-1) : root;
                     IArchiveFile child = new Archive(file, parent, pathComponents[pathComponents.Length - 1], entry);
-                    parent.Children.Add(child.Name, child);
+                    parent.Children.Add(child.Name.ToLowerInvariant(), child);
                 }
                 else
                 {
@@ -143,15 +143,15 @@ namespace MGDF.GamesManager.Model
             IArchiveFile parent = root;
             for (int i = 0; i < length; ++i)
             {
-                if (!parent.Children.ContainsKey(components[i]))
+                if (!parent.Children.ContainsKey(components[i].ToLowerInvariant()))
                 {
                     var child = new Archive(file,parent, components[i]);
-                    parent.Children.Add(child.Name, child);
+                    parent.Children.Add(child.Name.ToLowerInvariant(), child);
                     parent = child;
                 }
                 else
                 {
-                    parent = parent.Children[components[i]];
+                    parent = parent.Children[components[i].ToLowerInvariant()];
                 }
             }
             return parent;

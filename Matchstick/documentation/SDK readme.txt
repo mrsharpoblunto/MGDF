@@ -8,13 +8,13 @@ The SDK includes a number of tools that make developing games using the MGDF fra
 Providing auto updates for your game
 ====================================
 
-To get your game to auto update you will need to set the "gamesourceservice" field in the games game.json file to the hostname of your update site e.g "http://games.example.com".
-When loading your game the GamesManager will then search for a latest.json file at <gamesourceservice>/downloads/1/<gameUid>/latest.json. This file must be of the following format.
+To get your game to auto update you will need to set the "updateservice" field in the games game.json file to the hostname of your update site e.g "http://games.example.com/downloads/latest.json".
+When loading your game the GamesManager will then search for this file. This file must be of the following format.
 
 {
 "Latest":{
 "Version":"0.1",
-"Url":"http://www.junkship.net/downloads/console.mza",
+"Url":"http://www.junkship.net/downloads/console.zip",
 "MD5":"xxxxxx"
 },
 "Framework":{
@@ -24,7 +24,7 @@ When loading your game the GamesManager will then search for a latest.json file 
 },
 "UpdateOlderVersions":[
     {
-        "Url":"http://www.junkship.net/downloads/console-update.mza",
+        "Url":"http://www.junkship.net/downloads/console-update.zip",
         "MD5":"yyyyyy",
         "FromVersion":"0.1"
     },
@@ -40,7 +40,7 @@ PackageGen.exe
 ==============
 
 This tool allows you to create MGDF installer packages or create an update package based upon the difference between two existing installer packages.
-Packages created by this tool are then able to be installed directly by the user or uploaded to an online game source for distribution.
+Packages created by this tool are then able to be linked to from your games update service for distribution.
 
 Usage
 

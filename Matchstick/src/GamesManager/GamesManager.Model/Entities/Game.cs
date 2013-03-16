@@ -64,13 +64,12 @@ namespace MGDF.GamesManager.Model.Entities
         public Version Version { get; private set; }
         public int InterfaceVersion { get; private set; }
         public string Description { get; private set; }
-        public string DeveloperUid { get; private set; }
         public string DeveloperName { get; private set; }
 
         public string Homepage { get; private set; }
         public string SupportEmail { get; private set; }
 
-        public string GameSourceService { get; private set; }
+        public string UpdateService { get; private set; }
         public string StatisticsService { get; private set; }
         public string StatisticsPrivacyPolicy { get; private set; }
 
@@ -95,7 +94,6 @@ namespace MGDF.GamesManager.Model.Entities
         protected override void Load(JObject json)
         {
             Description = json.ReadRequiredValue("description");
-            DeveloperUid = json.ReadRequiredValue("developeruid");
             DeveloperName = json.ReadRequiredValue("developername");
             Version = new Version(json.ReadRequiredValue("version"));
             Name = json.ReadRequiredValue("gamename");
@@ -103,7 +101,7 @@ namespace MGDF.GamesManager.Model.Entities
             InterfaceVersion = int.Parse(json.ReadRequiredValue("interfaceversion"));
 
             Homepage = json.ReadOptionalValue("homepage");
-            GameSourceService = json.ReadOptionalValue("gamesourceservice");
+            UpdateService = json.ReadOptionalValue("updateservice");
             StatisticsService = json.ReadOptionalValue("statisticsservice");
             StatisticsPrivacyPolicy = json.ReadOptionalValue("statisticsprivacypolicy");
             SupportEmail = json.ReadOptionalValue("supportemail");
@@ -147,11 +145,10 @@ namespace MGDF.GamesManager.Model.Entities
                         writer.WriteRequiredValue("description",Description);
                         writer.WriteRequiredValue("version",Version.ToString());
                         writer.WriteRequiredValue("interfaceversion",InterfaceVersion.ToString());
-                        writer.WriteRequiredValue("developeruid",DeveloperUid);
                         writer.WriteRequiredValue("developername",DeveloperName);
                         writer.WriteOptionalValue("supportemail", SupportEmail);
                         writer.WriteOptionalValue("homepage", Homepage);
-                        writer.WriteOptionalValue("gamesourceservice", GameSourceService);
+                        writer.WriteOptionalValue("updateservice", UpdateService);
                         writer.WriteOptionalValue("statisticsservice", StatisticsService);
                         writer.WriteOptionalValue("statisticsprivacypolicy", StatisticsPrivacyPolicy);
 
