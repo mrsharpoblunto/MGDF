@@ -51,7 +51,7 @@ All managed code projects use nunit 2.5.2 and providing nunit is installed (use 
 
 all unmanaged code tests are contined within the core.tests.exe binary which must first be compiled as part of the Matchstick/Matchstick.sln project Once built, running this exe from the command line will run the test suite.
 
-To make running winunit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
+To make running the unmanaged unit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
 
     Title: Core tests
     Command: <MGDF bin dir>\core.tests.exe
