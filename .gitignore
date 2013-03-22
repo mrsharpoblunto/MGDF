@@ -59,3 +59,15 @@ Matchstick\ipch\core.audio.openal-d3b8cb44*/
 /Matchstick/ipch
 /vendor/FW1FontWrapperShaders/Debug
 /vendor/FW1FontWrapperShaders/Release
+/vendor/lib/x64/Release/zlib.lib
+/vendor/lib/x64/Release/minizip.lib
+/vendor/lib/x64/Release/UnitTest++.lib
+/vendor/lib/x64/Release/Jsoncpp.lib
+/vendor/lib/x64/Release/FW1FontWrapper.lib
+/vendor/lib/Win32/Release/zlib.lib
+/vendor/lib/Win32/Release/minizip.lib
+/vendor/lib/Win32/Release/UnitTest++.lib
+/vendor/lib/Win32/Release/Jsoncpp.lib
+/vendor/lib/Win32/Release/FW1FontWrapper.lib
+/Matchstick/src/GamesManager/GamesManager.StatisticsService/Log/log.txt
+/Matchstick/src/samples/EmptyGame/user
