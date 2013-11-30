@@ -54,7 +54,7 @@ void MGDFApp::InitDirect3D( const std::string &caption, WNDPROC windowProcedure 
 
 	delete[] levels;
 
-	_system->SetD3DDevice( _d3dDevice );  //allow the system to pass the d3d object to the modules
+	_system->SetDevices( _d3dDevice, _d2dDevice );  //allow the system to pass the d3d object to the modules
 
 	_quad = new Quad( _d3dDevice );
 
@@ -97,9 +97,9 @@ void MGDFApp::OnMouseInput( INT32 x, INT32 y )
 	_system->GetInputManagerImpl()->HandleInput( x, y );
 }
 
-void MGDFApp::OnInitD3D( ID3D11Device *device, IDXGIAdapter1 *adapter )
+void MGDFApp::OnInit(  ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter )
 {
-	_system->CreateGraphicsImpl( device, adapter );
+	_system->CreateGraphicsImpl( d3dDevice, d2dDevice, adapter );
 }
 
 bool MGDFApp::IsBackBufferChangePending()

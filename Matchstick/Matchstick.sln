@@ -10,7 +10,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Automation", "Automation", 
 		automation\documentation.Doxyfile = automation\documentation.Doxyfile
 		automation\Functions.include = automation\Functions.include
 		automation\MGDF.build = automation\MGDF.build
-		automation\NUnit-NoFrame.xsl = automation\NUnit-NoFrame.xsl
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B2911380-5E76-457A-AC80-A24B1EECA0BB}"

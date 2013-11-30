@@ -69,6 +69,7 @@ D3DAppFramework::~D3DAppFramework()
 	SAFE_RELEASE( _factory );
 	SAFE_RELEASE( _immediateContext );
 	SAFE_RELEASE( _d3dDevice );
+	SAFE_RELEASE( _d2dDevice );
 }
 
 HINSTANCE D3DAppFramework::GetApplicationInstance()
@@ -152,7 +153,7 @@ void D3DAppFramework::InitRawInput()
 void D3DAppFramework::InitD3D( D3D_FEATURE_LEVEL *levels, UINT32 levelsSize )
 {
 	if ( _window != nullptr ) {
-		UINT32 createDeviceFlags = 0;
+		UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #if defined(DEBUG) || defined(_DEBUG)
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
@@ -225,8 +226,34 @@ void D3DAppFramework::InitD3D( D3D_FEATURE_LEVEL *levels, UINT32 levelsSize )
 			LOG( "Created device with D3D Feature level: " << _d3dDevice->GetFeatureLevel(), LOG_LOW );
 		}
 
-		OnInitD3D( _d3dDevice, bestAdapter );
+		D2D1_FACTORY_OPTIONS options;
+#if defined(DEBUG) || defined(_DEBUG)
+		options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+#else
+		options.debugLevel = D2D1_DEBUG_LEVEL_NONE;
+#endif
+
+		ID2D1Factory1 *d2dFactory;
+		if ( FAILED( D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, options,&d2dFactory ) ) ) {
+			FATALERROR( this, "Unable to create ID2DFactory1" );
+		}
+
+		IDXGIDevice *dxgiDevice;
+		if ( FAILED(_d3dDevice->QueryInterface<IDXGIDevice>(&dxgiDevice))) {
+			FATALERROR( this, "Unable to acquire IDXGIDevice from ID3D11Device" );
+		}
+
+		HRESULT result = d2dFactory->CreateDevice( dxgiDevice, &_d2dDevice );
+
+		if ( FAILED( result )) {
+			FATALERROR( this, "Unable to create ID2DDevice1" );
+		}
+
+		OnInit( _d3dDevice, _d2dDevice, bestAdapter );
 		SAFE_RELEASE( bestAdapter );
+
+		SAFE_RELEASE( dxgiDevice );
+		SAFE_RELEASE( d2dFactory );
 
 		OnResetSwapChain( &_swapDesc, nullptr );
 		_swapDesc.OutputWindow = _window;

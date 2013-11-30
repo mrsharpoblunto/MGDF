@@ -17,7 +17,7 @@ public:
 	MGDFApp( HINSTANCE hInstance );
 	virtual ~MGDFApp();
 
-	virtual void OnInitD3D( ID3D11Device *device, IDXGIAdapter1 *adapter );
+	virtual void OnInit( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter );
 	virtual void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC *, BOOL * );
 	virtual bool IsBackBufferChangePending();
 	virtual void OnBackBufferChanged( ID3D11Texture2D *backBuffer );

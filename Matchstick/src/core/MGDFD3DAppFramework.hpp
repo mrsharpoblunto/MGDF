@@ -15,12 +15,12 @@ class D3DAppFramework
 public:
 	D3DAppFramework( HINSTANCE hInstance );
 	virtual ~D3DAppFramework();
-
+	
 	HINSTANCE GetApplicationInstance();
 	HWND GetWindow();
 	ID3D11Device *GetD3DDevice() const;
 
-	virtual void OnInitD3D( ID3D11Device *device, IDXGIAdapter1 *adapter ) = 0;
+	virtual void OnInit( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) = 0;
 	virtual void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC *, BOOL *fullScreen ) = 0;
 	virtual bool IsBackBufferChangePending() = 0;
 	virtual void OnBackBufferChanged( ID3D11Texture2D *backBuffer ) = 0;
@@ -41,6 +41,8 @@ protected:
 	// Application, Windows, and Direct3D data members.
 	ID3D11Device*			_d3dDevice;
 	ID3D11DeviceContext*	_immediateContext;
+
+	ID2D1Device*			_d2dDevice;
 
 	IDXGISwapChain*			_swapChain;
 	IDXGIFactory1*			_factory;

@@ -19,14 +19,16 @@ namespace MGDF
 namespace core
 {
 
-GraphicsManager::GraphicsManager( ID3D11Device *device, IDXGIAdapter1 *adapter )
-	: _device( device )
+GraphicsManager::GraphicsManager( ID3D11Device *d3dDevice, ID2D1Device* d2dDevice, IDXGIAdapter1 *adapter )
+	: _d3dDevice( d3dDevice )
+	, _d2dDevice( d2dDevice )
 	, _currentAdaptorMode( nullptr )
 	, _currentMultiSampleLevel( 1 )
 	, _backBufferMultiSampleLevel( 1 )
 	, _vsync( true )
 {
-	_ASSERTE( device );
+	_ASSERTE( d3dDevice );
+	_ASSERTE( d2dDevice );
 	_ASSERTE( adapter );
 
 	IDXGIOutput *output;
@@ -63,7 +65,7 @@ GraphicsManager::GraphicsManager( ID3D11Device *device, IDXGIAdapter1 *adapter )
 	//determine the supported multisampling settings for this device
 	for ( UINT32 i = 1; i < D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; ++i ) {
 		UINT32 quality = 0;
-		if ( FAILED( _device->CheckMultisampleQualityLevels( BACKBUFFER_FORMAT, i, &quality ) ) || quality == 0 ) {
+		if ( FAILED( _d3dDevice->CheckMultisampleQualityLevels( BACKBUFFER_FORMAT, i, &quality ) ) || quality == 0 ) {
 			continue;
 		}
 
@@ -201,7 +203,38 @@ void GraphicsManager::GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) con
 
 ID3D11Device *GraphicsManager::GetD3DDevice() const
 {
-	return _device;
+	return _d3dDevice;
+}
+
+bool GraphicsManager::SetBackBufferRenderTarget(ID2D1DeviceContext *context)
+{
+	D2D1_PIXEL_FORMAT pixelFormat;
+	pixelFormat.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
+
+	D2D1_BITMAP_PROPERTIES1 bitmapProperties;
+	bitmapProperties.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
+	bitmapProperties.pixelFormat = pixelFormat;
+	bitmapProperties.dpiX = 0;
+	bitmapProperties.dpiX = 0;
+	bitmapProperties.colorContext = nullptr;
+
+	IDXGISurface1* dxgiSurface;
+	if ( !FAILED(_backBuffer->QueryInterface<IDXGISurface1>(&dxgiSurface))) {
+		ID2D1Bitmap1 *bitmap;
+		if ( !FAILED(context->CreateBitmapFromDxgiSurface( dxgiSurface, bitmapProperties,&bitmap ))) {	
+			context->SetTarget(bitmap);
+			SAFE_RELEASE(bitmap);
+			return true;
+		}
+		SAFE_RELEASE( dxgiSurface );
+	}
+	return false;
+}
+
+ID2D1Device *GraphicsManager::GetD2DDevice() const
+{
+	return _d2dDevice;
 }
 
 void GraphicsManager::LoadPreferences( IGame *game )

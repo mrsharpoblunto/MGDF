@@ -113,6 +113,18 @@ public:
 	virtual ID3D11Device * GetD3DDevice() const = 0;
 
 	/**
+	get the direct2d device object from the system
+	\return the direct2d device object from the system
+	*/
+	virtual ID2D1Device * GetD2DDevice() const = 0;
+
+	/**
+	set the current back buffer as the render target for the specified d2d device context
+	\return true if the back buffer can be set as the render target for the device context
+	*/
+	virtual bool SetBackBufferRenderTarget(ID2D1DeviceContext *context) =0;
+
+	/**
 	Gets the current back buffer texture. The pointer returned by this method becomes invalid when the modules OnReset event is fired
 	*/
 	virtual ID3D11Texture2D * GetBackBuffer() const = 0;

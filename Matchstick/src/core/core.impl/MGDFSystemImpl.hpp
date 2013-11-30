@@ -70,8 +70,8 @@ public:
 	void DrawScene( double alpha );
 	void BackBufferChanged();
 	UINT32 GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *featureLevelsSize );
-	void SetD3DDevice( ID3D11Device *d3dDevice );
-	void CreateGraphicsImpl( ID3D11Device *device, IDXGIAdapter1 *adapter );
+	void SetDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice );
+	void CreateGraphicsImpl( ID3D11Device *device, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter );
 	GraphicsManager *GetGraphicsImpl() const;
 	input::IInputManagerComponent *GetInputManagerImpl() const;
 	std::string GetSystemInformation( SystemStats &stats );
@@ -97,6 +97,7 @@ public:
 	virtual IGame *GetGame() const;
 	virtual IInputManager *GetInput() const;
 	virtual ID3D11Device *GetD3DDevice() const;
+	virtual ID2D1Device *GetD2DDevice() const;
 	virtual void ShutDown();
 	virtual const IStringList *GetSaves() const;
 	virtual void RemoveSave( const char *saveName );
@@ -116,6 +117,7 @@ private:
 	GraphicsManager *_graphics;
 	StatisticsManager *_stats;
 	ID3D11Device *_d3dDevice;
+	ID2D1Device *_d2dDevice;
 	Version _version;
 	Error _lastError;
 	boost::mutex _mutex;

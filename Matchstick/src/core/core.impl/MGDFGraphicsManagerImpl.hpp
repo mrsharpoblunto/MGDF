@@ -52,7 +52,7 @@ typedef ListImpl<IUIntList, UINT32> UIntList;
 class GraphicsManager: public IGraphicsManager
 {
 public:
-	GraphicsManager( ID3D11Device *device, IDXGIAdapter1 *adapter );
+	GraphicsManager( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter );
 	virtual ~GraphicsManager();
 	virtual bool GetVSync() const;
 	virtual void SetVSync( bool vsync );
@@ -69,8 +69,10 @@ public:
 	virtual void SetCurrentAdaptorMode( IGraphicsAdaptorMode *mode );
 	virtual void ApplyChanges();
 	virtual ID3D11Texture2D *GetBackBuffer() const;
+	virtual bool SetBackBufferRenderTarget(ID2D1DeviceContext *context);
 	virtual void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const;
 	virtual ID3D11Device *GetD3DDevice() const;
+	virtual ID2D1Device *GetD2DDevice() const;
 
 	void LoadPreferences( IGame *game );
 	bool IsBackBufferChangePending();
@@ -79,8 +81,10 @@ public:
 private:
 	bool _initialized;
 	std::atomic_bool _changePending;
-	ID3D11Device *_device;
+	ID3D11Device *_d3dDevice;
 	ID3D11Texture2D *_backBuffer;
+
+	ID2D1Device *_d2dDevice;
 
 	GraphicsAdaptorModeList _adaptorModes;
 	IGraphicsAdaptorMode *_currentAdaptorMode;

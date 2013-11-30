@@ -165,8 +165,9 @@ System::~System( void )
 	LOG( "Uninitialised system successfully", LOG_LOW );
 }
 
-void System::SetD3DDevice( ID3D11Device *d3dDevice )
+void System::SetDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice )
 {
+	_d2dDevice = d2dDevice;
 	_d3dDevice = d3dDevice;
 	_timer.InitGPUTimer( _d3dDevice, GPU_TIMER_BUFFER, TIMER_SAMPLES );
 }
@@ -176,9 +177,9 @@ UINT32 System::GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 
 	return _moduleFactory->GetCompatibleFeatureLevels( levels, featureLevelsSize );
 }
 
-void System::CreateGraphicsImpl( ID3D11Device *device, IDXGIAdapter1 *adapter )
+void System::CreateGraphicsImpl( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter )
 {
-	_graphics = new GraphicsManager( device, adapter );
+	_graphics = new GraphicsManager( d3dDevice, d2dDevice, adapter );
 	if ( _graphics->GetAdaptorModes()->Size() == 0 ) {
 		FATALERROR( this, "No compatible adaptor modes found" );
 	}
@@ -556,6 +557,11 @@ ISoundManager *System::GetSound() const
 ID3D11Device *System::GetD3DDevice() const
 {
 	return _d3dDevice;
+}
+
+ID2D1Device *System::GetD2DDevice() const
+{
+	return _d2dDevice;
 }
 
 const Error *System::GetLastError() const
