@@ -16,20 +16,23 @@ namespace core
 
 MGDFApp::MGDFApp( HINSTANCE hInstance )
 	: D3DAppFramework( hInstance )
-	, _font( nullptr )
-	, _quad( nullptr )
 	, _system( nullptr )
+	, _blackBrush( nullptr )
+	, _whiteBrush( nullptr )
+	, _textFormat( nullptr )
+	, _dWriteFactory( nullptr )
 	, _initialized( false )
 {
 }
 
 MGDFApp::~MGDFApp()
 {
-	SAFE_RELEASE( _font );
-	delete _quad;
+	SAFE_RELEASE(_blackBrush);
+	SAFE_RELEASE(_whiteBrush);
+	SAFE_RELEASE(_textFormat);
+	SAFE_RELEASE(_dWriteFactory);
 }
 
-//allows the app to read from system configuration preferences when setting up d3d
 void MGDFApp::SetSystem( System *system )
 {
 	_ASSERTE( system );
@@ -56,18 +59,42 @@ void MGDFApp::InitDirect3D( const std::string &caption, WNDPROC windowProcedure 
 
 	_system->SetDevices( _d3dDevice, _d2dDevice );  //allow the system to pass the d3d object to the modules
 
-	_quad = new Quad( _d3dDevice );
-
-	IFW1Factory *factory;
-	if ( FAILED( FW1CreateFactory( FW1_VERSION, &factory ) ) ) {
-		FATALERROR( _system, "unable to create MGDF system font factory" );
+	if ( FAILED( DWriteCreateFactory(
+	            DWRITE_FACTORY_TYPE_SHARED,
+	            __uuidof( IDWriteFactory1 ),
+	            reinterpret_cast<IUnknown**>( &_dWriteFactory )
+	        ) ) ) {
+		FATALERROR( _system, "Unable to create IDWriteFactory" );
 	}
 
-	if ( FAILED( factory->CreateFontWrapper( _d3dDevice, L"Arial", &_font ) ) ) {
-		FATALERROR( _system, "unable to create MGDF system font" );
+	IDWriteFontCollection *fontCollection;
+	if (FAILED(_dWriteFactory->GetSystemFontCollection( &fontCollection ))) {
+		FATALERROR( _system, "Unable to get system font collection" );
 	}
 
-	SAFE_RELEASE( factory );
+	if (FAILED(_dWriteFactory->CreateTextFormat( 
+		L"Arial",
+		fontCollection,
+		DWRITE_FONT_WEIGHT_NORMAL,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		14,L"",&_textFormat))) {
+		FATALERROR( _system, "Unable to create text format" );
+	}
+
+	D2D1_COLOR_F color;
+	color.a = color.r = color.g = color.b = 1.0f;
+	if (FAILED(_context->CreateSolidColorBrush(color,&_whiteBrush))) {
+		FATALERROR(_system,"Unable to create white color brush");
+	}
+
+	color.r = color.g = color.b = 0.0f;
+	color.a = 0.85f;
+	if (FAILED(_context->CreateSolidColorBrush(color,&_blackBrush))) {
+		FATALERROR(_system,"Unable to create black color brush");
+	}
+
+	SAFE_RELEASE(fontCollection);
 }
 
 void MGDFApp::UpdateScene( double simulationTime )
@@ -115,6 +142,7 @@ void MGDFApp::OnResetSwapChain( DXGI_SWAP_CHAIN_DESC *swapDesc, BOOL *doFullScre
 void MGDFApp::OnBackBufferChanged( ID3D11Texture2D *backBuffer )
 {
 	_system->GetGraphicsImpl()->SetBackBuffer( backBuffer );
+	_system->GetGraphics()->SetBackBufferRenderTarget(_context);
 	_system->BackBufferChanged();
 }
 
@@ -136,35 +164,48 @@ void MGDFApp::DrawScene( double alpha )
 void MGDFApp::DrawSystemOverlay()
 {
 	const float margin = 5.0f;
-	const float overlayTextSize = 14.0f;
-	const UINT32 overlayTextColor = 0xFFFFFFFF;
-	const XMFLOAT4 overlayBackgroundColor( 0.0f, 0.0f, 0.0f, 0.7f );
 
 	std::wstring information;
 	std::string info = _system->GetSystemInformation( _stats );
 	information.assign( info.begin(), info.end() );
 
-	FW1_RECTF rect;
-	rect.Left = rect.Right = 0.0f;
-	rect.Top = rect.Bottom = 0.0f;
-	FW1_RECTF container = _font->MeasureString( information.c_str(), nullptr, overlayTextSize, &rect, FW1_RESTORESTATE | FW1_NOWORDWRAP );
+	IDWriteTextLayout *textLayout;
+	if (FAILED(_dWriteFactory->CreateTextLayout(
+		information.c_str(),
+		static_cast<UINT32>(info.size()),
+		_textFormat,
+		static_cast<float>(_system->GetGraphics()->GetCurrentAdaptorMode()->GetWidth()),
+		static_cast<float>(_system->GetGraphics()->GetCurrentAdaptorMode()->GetHeight()),
+		&textLayout))) {
+		FATALERROR(_system,"Unable to create text layout");
+	}
 
-	_quad->Resize( _immediateContext,
-	               margin, margin,
-	               container.Right + ( 2 * margin ), container.Bottom + ( 2 * margin ),
-	               static_cast<float>( _system->GetGraphicsImpl()->GetScreenX() ),
-	               static_cast<float>( _system->GetGraphicsImpl()->GetScreenY() ) );
-	_quad->Draw( _immediateContext, overlayBackgroundColor );
+	DWRITE_TEXT_METRICS metrics;
+	ZeroMemory(&metrics,sizeof(metrics));
+	if (FAILED(textLayout->GetMetrics(&metrics))) {
+		FATALERROR(_system,"Unable to get text overhang metrics");
+	}
 
-	_font->DrawString(
-	    _immediateContext,
-	    information.c_str(),// String
-	    overlayTextSize,// Font size
-	    ( 2 * margin ), // X position
-	    ( 2 * margin ), // Y position
-	    overlayTextColor,// Text color
-	    FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
-	);
+	_context->BeginDraw();
+
+	D2D1_ROUNDED_RECT rect;
+	rect.radiusX = margin;
+	rect.radiusY = margin;
+	rect.rect.top = margin;
+	rect.rect.left = margin;
+	rect.rect.bottom = ( margin * 3 ) + metrics.height;
+	rect.rect.right = ( margin * 3 ) + metrics.width;
+	_context->FillRoundedRectangle(&rect,_blackBrush);
+	_context->DrawRoundedRectangle(&rect,_whiteBrush);
+
+	D2D_POINT_2F origin;
+	origin.x = ( 2 * margin );
+	origin.y = ( 2 * margin );
+	_context->DrawTextLayout(origin,textLayout,_whiteBrush);
+
+	_context->EndDraw();
+
+	SAFE_RELEASE(textLayout);
 }
 
 void MGDFApp::FatalError( const char *sender, const char *message )

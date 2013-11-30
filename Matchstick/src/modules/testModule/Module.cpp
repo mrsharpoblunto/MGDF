@@ -29,7 +29,7 @@ Module::Module( ISystem *system )
 {
 	_system = system;
 	_textManager = new TextManager( system );
-	_stateBuffer.Pending()->AddLine( WHITE, "MGDF functional test suite started" );
+	_stateBuffer.Pending()->AddLine( "MGDF functional test suite started" );
 }
 
 bool Module::New( const wchar_t *workingFolder )
@@ -84,6 +84,7 @@ bool Module::DrawScene( double alpha )
 
 bool Module::BackBufferChanged()
 {
+	_textManager->BackBufferChanged();
 	return true;
 }
 

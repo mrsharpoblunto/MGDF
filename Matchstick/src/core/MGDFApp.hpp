@@ -1,7 +1,6 @@
 #pragma once
 
-#include "FW1FontWrapper.h"
-
+#include <dwrite_1.h>
 #include "MGDFQuad.hpp"
 #include "MGDFD3DAppFramework.hpp"
 #include "core.impl/MGDFSystemImpl.hpp"
@@ -37,8 +36,11 @@ private:
 	bool _initialized;
 	double _alpha;
 	System *_system;
-	Quad *_quad;
-	IFW1FontWrapper *_font;
+
+	ID2D1SolidColorBrush *_whiteBrush;
+	ID2D1SolidColorBrush *_blackBrush;
+	IDWriteFactory1 *_dWriteFactory;
+	IDWriteTextFormat *_textFormat;
 };
 
 }

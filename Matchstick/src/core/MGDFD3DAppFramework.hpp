@@ -43,6 +43,7 @@ protected:
 	ID3D11DeviceContext*	_immediateContext;
 
 	ID2D1Device*			_d2dDevice;
+	ID2D1DeviceContext *	_context;
 
 	IDXGISwapChain*			_swapChain;
 	IDXGIFactory1*			_factory;

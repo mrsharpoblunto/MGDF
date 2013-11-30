@@ -38,12 +38,12 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 	}
 
 	if ( _testState == 0 ) {
-		state->AddLine( WHITE, "" );
-		state->AddLine( WHITE, "SoundManager Tests" );
-		state->AddLine( WHITE, "" );
+		state->AddLine( "" );
+		state->AddLine( "SoundManager Tests" );
+		state->AddLine( "" );
 
 		_testState++;
-		state->AddLine( WHITE, "Checking SoundManager is initialized" );
+		state->AddLine( "Checking SoundManager is initialized" );
 		if ( system->GetSound() != NULL ) {
 			state->SetStatus( GREEN, "[Test Passed]" );
 		} else {
@@ -51,7 +51,7 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 			state->SetStatus( RED, "[Test Failed]" );
 		}
 	} else if ( _testState == 1 ) {
-		state->AddLine( WHITE, "Loading sound chimes.wav" );
+		state->AddLine( "Loading sound chimes.wav" );
 		_sound = system->GetSound()->CreateSound( system->GetVFS()->GetFile( L"chimes.wav" ), 0 );
 		system->GetSound()->SetEnableAttenuation( true );
 		if ( _sound == NULL ) {
@@ -66,12 +66,12 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 		_sound->SetInnerRange( 0 );
 		_sound->SetOuterRange( 250 );
 		_sound->Play();
-		state->AddLine( WHITE, "Is a sound playing? [Y/N]" );
+		state->AddLine( "Is a sound playing? [Y/N]" );
 		++_testState;
 	} else if ( _testState == 3 && system->GetInput()->IsKeyPress( 'Y' ) ) {
 		++_testState;
 		state->SetStatus( GREEN, "[Test Passed]" );
-		state->AddLine( WHITE, "Use arrow keys to change sounds position, press [Y/N] if the sound adjusts accordingly" );
+		state->AddLine( "Use arrow keys to change sounds position, press [Y/N] if the sound adjusts accordingly" );
 	} else if ( _testState == 3 && system->GetInput()->IsKeyPress( 'N' ) ) {
 		_testState = 1000;
 		_sound->Dispose();
@@ -102,7 +102,7 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 			state->SetStatus( RED, "[Test Failed]" );
 		}
 	} else if ( _testState == 5 ) {
-		state->AddLine( WHITE, "Loading stream stream.ogg" );
+		state->AddLine( "Loading stream stream.ogg" );
 		_stream = system->GetSound()->CreateSoundStream( system->GetVFS()->GetFile( L"Stream.ogg" ) );
 		if ( _stream == NULL ) {
 			_testState = 1000;
@@ -115,11 +115,11 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 	} else if ( _testState == 6 ) {
 		++_testState;
 		_stream->Play();
-		state->AddLine( WHITE, "Playing stream, press [Y/N] if the stream is actually playing" );
+		state->AddLine( "Playing stream, press [Y/N] if the stream is actually playing" );
 	} else if ( _testState == 7 && system->GetInput()->IsKeyPress( 'Y' ) ) {
 		++_testState;
 		state->SetStatus( GREEN, "[Test Passed]" );
-		state->AddLine( WHITE, "Use [P] to toggle pause/play, press [Y/N] if this is working." );
+		state->AddLine( "Use [P] to toggle pause/play, press [Y/N] if this is working." );
 	} else if ( _testState == 7 && system->GetInput()->IsKeyPress( 'N' ) ) {
 		_testState = 1000;
 		_stream->Dispose();

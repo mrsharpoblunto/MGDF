@@ -21,10 +21,9 @@ TextManagerState::TextManagerState( const TextManagerState *state )
 	}
 }
 
-void TextManagerState::AddLine( UINT32 color, const std::string &line )
+void TextManagerState::AddLine( const std::string &line )
 {
 	Line l;
-	l.Color = color;
 	l.Content = line;
 
 	if ( _lines.size() == MAX_LINES ) {
@@ -33,7 +32,7 @@ void TextManagerState::AddLine( UINT32 color, const std::string &line )
 	_lines.insert( _lines.begin(), l );
 }
 
-void TextManagerState::SetStatus( UINT32 color, const std::string &text )
+void TextManagerState::SetStatus( TextColor color, const std::string &text )
 {
 	_lines[0].StatusText = text;
 	_lines[0].StatusColor = color;
@@ -47,21 +46,78 @@ boost::shared_ptr<TextManagerState> TextManagerState::Interpolate( const TextMan
 
 TextManager::~TextManager()
 {
-	SAFE_RELEASE( _font );
+	SAFE_RELEASE( _whiteBrush );
+	SAFE_RELEASE( _redBrush );
+	SAFE_RELEASE( _greenBrush );
+	SAFE_RELEASE( _d2dContext );
+	SAFE_RELEASE( _dWriteFactory );
+	SAFE_RELEASE( _textFormat );
 	SAFE_RELEASE( _immediateContext );
+}
+
+void TextManager::BackBufferChanged()
+{
+	_system->GetGraphics()->SetBackBufferRenderTarget( _d2dContext );
 }
 
 TextManager::TextManager( ISystem *system )
 	: _system( system )
-	, _font( nullptr )
+	, _whiteBrush(nullptr)
+	, _redBrush(nullptr)
+	, _greenBrush(nullptr)
+	, _d2dContext(nullptr)
+	, _dWriteFactory(nullptr)
+	, _textFormat(nullptr)
+	, _immediateContext(nullptr)
 {
 	system->GetGraphics()->GetD3DDevice()->GetImmediateContext( &_immediateContext );
-
-	IFW1Factory *factory;
-	if ( !FAILED( FW1CreateFactory( FW1_VERSION, &factory ) ) ) {
-		factory->CreateFontWrapper( system->GetGraphics()->GetD3DDevice(), L"Arial", &_font );
-		SAFE_RELEASE( factory );
+	if ( FAILED( system->GetGraphics()->GetD2DDevice()->CreateDeviceContext( D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &_d2dContext ) ) )
+	{
+		FATALERROR( system, "Unable to create ID2D1DeviceContext" );
 	}
+	BackBufferChanged();
+
+	if ( FAILED( DWriteCreateFactory(
+	            DWRITE_FACTORY_TYPE_SHARED,
+	            __uuidof( IDWriteFactory1 ),
+	            reinterpret_cast<IUnknown**>( &_dWriteFactory )
+	        ) ) ) {
+		FATALERROR( system, "Unable to create IDWriteFactory" );
+	}
+
+	IDWriteFontCollection *fontCollection;
+	if (FAILED(_dWriteFactory->GetSystemFontCollection( &fontCollection ))) {
+		FATALERROR( system, "Unable to get system font collection" );
+	}
+
+	if (FAILED(_dWriteFactory->CreateTextFormat( 
+		L"Arial",
+		fontCollection,
+		DWRITE_FONT_WEIGHT_NORMAL,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		22,L"",&_textFormat))) {
+		FATALERROR( system, "Unable to create text format" );
+	}
+
+	D2D1_COLOR_F color;
+	color.a = color.r = color.g = color.b = 1.0f;
+	if (FAILED(_d2dContext->CreateSolidColorBrush(color,&_whiteBrush))) {
+		FATALERROR(system,"Unable to create white color brush");
+	}
+
+	color.g = color.b = 0.5f;
+	if (FAILED(_d2dContext->CreateSolidColorBrush(color,&_redBrush))) {
+		FATALERROR(system,"Unable to create red color brush");
+	}
+
+	color.g = 1.0f;
+	color.r = 0.5f;
+	if (FAILED(_d2dContext->CreateSolidColorBrush(color,&_greenBrush))) {
+		FATALERROR(system,"Unable to create green color brush");
+	}
+
+	SAFE_RELEASE(fontCollection);
 }
 
 void TextManager::SetState( boost::shared_ptr<TextManagerState> state )
@@ -71,7 +127,7 @@ void TextManager::SetState( boost::shared_ptr<TextManagerState> state )
 
 void TextManager::DrawText()
 {
-	if ( _state && _font ) {
+	if ( _state ) {
 		INT32 starty;
 		if ( _state.get()->_lines.size() * 25 < _system->GetGraphics()->GetScreenY() ) {
 			starty = ( static_cast<UINT32>( _state.get()->_lines.size() ) * 25 ) - 25;
@@ -79,38 +135,58 @@ void TextManager::DrawText()
 			starty = _system->GetGraphics()->GetScreenY() - 25;
 		}
 
+		_d2dContext->BeginDraw();
+
 		for ( auto &line : _state.get()->_lines ) {
 			std::wstring content;
 			content.assign( line.Content.begin(), line.Content.end() );
 
-			_font->DrawString(
-			    _immediateContext,
-			    content.c_str(),// String
-			    22.0f,// Font size
-			    0.0f,// X position
-			    static_cast<float>( starty ),  // Y position
-			    line.Color,// Text color
-			    FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
-			);
+			IDWriteTextLayout *textLayout;
+			if (FAILED(_dWriteFactory->CreateTextLayout(
+					content.c_str(),
+					static_cast<UINT32>(content.size()),
+					_textFormat,
+					static_cast<float>(_system->GetGraphics()->GetCurrentAdaptorMode()->GetWidth()),
+					static_cast<float>(_system->GetGraphics()->GetCurrentAdaptorMode()->GetHeight()),
+					&textLayout))) {
+				FATALERROR(_system,"Unable to create text layout");
+			}
+
+			D2D_POINT_2F origin;
+			origin.x = 0;
+			origin.y = static_cast<float>( starty );
+
+			_d2dContext->DrawTextLayout(origin,textLayout,_whiteBrush);
+
+			SAFE_RELEASE( textLayout );
 
 			if ( line.StatusText != "" ) {
 				std::wstring statusText;
 				statusText.assign( line.StatusText.begin(), line.StatusText.end() );
 
-				_font->DrawString(
-				    _immediateContext,
-				    statusText.c_str(),
-				    22.0f,// Font size
-				    static_cast<float>( _system->GetGraphics()->GetScreenX() ) - 150.0f,  // X position
-				    static_cast<float>( starty ),  // Y position
-				    line.StatusColor,// Text color
-				    FW1_RESTORESTATE// Flags (for example FW1_RESTORESTATE to keep context states unchanged)
-				);
+				if (FAILED(_dWriteFactory->CreateTextLayout(
+						statusText.c_str(),
+						static_cast<UINT32>(statusText.size()),
+						_textFormat,
+						static_cast<float>(_system->GetGraphics()->GetCurrentAdaptorMode()->GetWidth()),
+						static_cast<float>(_system->GetGraphics()->GetCurrentAdaptorMode()->GetHeight()),
+						&textLayout))) {
+					FATALERROR(_system,"Unable to create text layout");
+				}
+
+				origin.x = static_cast<float>( _system->GetGraphics()->GetScreenX() ) - 150.0f;
+				origin.y = static_cast<float>( starty );
+
+				_d2dContext->DrawTextLayout(origin,textLayout,line.StatusColor == GREEN ? _greenBrush : _redBrush );
+
+				SAFE_RELEASE(textLayout);
 			}
 
 			starty -= 25;
 			if ( starty <= -25 ) break;
 		}
+
+		_d2dContext->EndDraw();
 	}
 }
 

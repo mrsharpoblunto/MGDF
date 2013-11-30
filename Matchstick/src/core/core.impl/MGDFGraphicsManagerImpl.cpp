@@ -225,6 +225,7 @@ bool GraphicsManager::SetBackBufferRenderTarget(ID2D1DeviceContext *context)
 		if ( !FAILED(context->CreateBitmapFromDxgiSurface( dxgiSurface, bitmapProperties,&bitmap ))) {	
 			context->SetTarget(bitmap);
 			SAFE_RELEASE(bitmap);
+			SAFE_RELEASE( dxgiSurface );
 			return true;
 		}
 		SAFE_RELEASE( dxgiSurface );

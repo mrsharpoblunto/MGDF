@@ -35,12 +35,12 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 	}
 
 	if ( _testState == 0 ) {
-		state->AddLine( WHITE, "" );
-		state->AddLine( WHITE, "Load/Save Tests" );
-		state->AddLine( WHITE, "" );
+		state->AddLine( "" );
+		state->AddLine( "Load/Save Tests" );
+		state->AddLine( "" );
 
 		system->RemoveSave( "testsave" );
-		state->AddLine( WHITE, "Save game state" );
+		state->AddLine( "Save game state" );
 
 		UINT32 size = 0;
 		system->BeginSave( "testsave", NULL, &size );
@@ -52,7 +52,7 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 			out << 2;
 			out.close();
 			state->SetStatus( GREEN, "[Test Passed]" );
-			state->AddLine( WHITE, "Search saved game state" );
+			state->AddLine( "Search saved game state" );
 			_testState = 1;
 		} else {
 			state->SetStatus( RED, "[Test Failed]" );
@@ -67,7 +67,7 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 		} else {
 			if ( system->CompleteSave( "testsave" ) && system->GetSaves()->Size() == 1 && strcmp( system->GetSaves()->Get( 0 ), "testsave" ) == 0 ) {
 				state->SetStatus( GREEN, "[Test Passed]" );
-				state->AddLine( WHITE, "Load game state" );
+				state->AddLine( "Load game state" );
 
 				unsigned size = 0;
 				MGDF::Version version;
@@ -107,7 +107,7 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 		state->SetStatus( RED, "[Test Failed]" );
 		_testState = 999;
 	} else if ( _testState == 4 ) {
-		state->AddLine( WHITE, "Testing custom VFS archive handler registration" );
+		state->AddLine( "Testing custom VFS archive handler registration" );
 
 		bool success = false;
 		IFile *file = system->GetVFS()->GetFile( L"test.fakearchive/testfile.txt" );
@@ -128,12 +128,12 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 			_testState++;
 		}
 	} else if ( _testState == 5 ) {
-		state->AddLine( WHITE, "Press [ALT]+[ENTER] to toggle fullscreen/windowed mode. Then press [Y/N] if this works correctly" );
+		state->AddLine( "Press [ALT]+[ENTER] to toggle fullscreen/windowed mode. Then press [Y/N] if this works correctly" );
 		_testState++;
 	} else if ( _testState == 6 && system->GetInput()->IsKeyPress( 'Y' ) ) {
 		++_testState;
 		state->SetStatus( GREEN, "[Test Passed]" );
-		state->AddLine( WHITE, "Press [ALT]+[F12] to toggle the system information overlay. Then press [Y/N] if this works correctly" );
+		state->AddLine( "Press [ALT]+[F12] to toggle the system information overlay. Then press [Y/N] if this works correctly" );
 	} else if ( _testState == 6 && system->GetInput()->IsKeyPress( 'N' ) ) {
 		_testState = 999;
 		state->SetStatus( RED, "[Test Failed]" );
@@ -145,7 +145,7 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 		state->SetStatus( RED, "[Test Failed]" );
 	} else if ( _testState == 999 ) {
 		_testState++;
-		state->AddLine( WHITE, "All tests complete. Press the [ESC] key to exit" );
+		state->AddLine( "All tests complete. Press the [ESC] key to exit" );
 	}
 }
 

@@ -69,6 +69,7 @@ D3DAppFramework::~D3DAppFramework()
 	SAFE_RELEASE( _factory );
 	SAFE_RELEASE( _immediateContext );
 	SAFE_RELEASE( _d3dDevice );
+	SAFE_RELEASE( _context );
 	SAFE_RELEASE( _d2dDevice );
 }
 
@@ -238,15 +239,17 @@ void D3DAppFramework::InitD3D( D3D_FEATURE_LEVEL *levels, UINT32 levelsSize )
 			FATALERROR( this, "Unable to create ID2DFactory1" );
 		}
 
-		IDXGIDevice *dxgiDevice;
-		if ( FAILED(_d3dDevice->QueryInterface<IDXGIDevice>(&dxgiDevice))) {
+		IDXGIDevice1 *dxgiDevice;
+		if ( FAILED(_d3dDevice->QueryInterface<IDXGIDevice1>(&dxgiDevice))) {
 			FATALERROR( this, "Unable to acquire IDXGIDevice from ID3D11Device" );
 		}
 
-		HRESULT result = d2dFactory->CreateDevice( dxgiDevice, &_d2dDevice );
+		if ( FAILED( d2dFactory->CreateDevice( dxgiDevice, &_d2dDevice ) )) {
+			FATALERROR( this, "Unable to create ID2D1Device" );
+		}
 
-		if ( FAILED( result )) {
-			FATALERROR( this, "Unable to create ID2DDevice1" );
+		if ( FAILED( _d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,&_context))) {
+			FATALERROR( this, "Unable to create ID2D1DeviceContext" );
 		}
 
 		OnInit( _d3dDevice, _d2dDevice, bestAdapter );
