@@ -18,10 +18,11 @@ public:
 	virtual ~ModuleFactory();
 	ModuleFactory( IGame * );
 
-	bool GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler );
-	IModule *GetModule( ISystem *system );
-	bool IsCompatibleInterfaceVersion( int );
-	UINT32 GetCompatibleFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *levelSize );
+	bool GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler ) const;
+	IModule *GetModule( ISystem *system ) const;
+	bool IsCompatibleInterfaceVersion( int ) const;
+	UINT32 GetCompatibleFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *levelSize ) const;
+	bool GetLastError( std::string& error ) const;
 
 private:
 	IGame *_game;
@@ -30,6 +31,7 @@ private:
 	GetModulePtr _getModule;
 	IsCompatibleInterfaceVersionPtr _isCompatibleInterfaceVersion;
 	GetCompatibleFeatureLevelsPtr _getCompatibleFeatureLevels;
+	std::string _lastError;
 };
 
 }

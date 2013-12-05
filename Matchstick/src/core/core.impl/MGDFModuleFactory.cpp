@@ -2,6 +2,7 @@
 
 #include "MGDFModuleFactory.hpp"
 
+#include "Dbghelp.h"
 #include <boost/filesystem/operations.hpp>
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
@@ -38,6 +39,7 @@ ModuleFactory::ModuleFactory( IGame *game )
 	, _getCustomArchiveHandlers( nullptr )
 	, _getModule( nullptr )
 	, _isCompatibleInterfaceVersion( nullptr )
+	, _getCompatibleFeatureLevels( nullptr )
 {
 	_ASSERTE( game );
 
@@ -49,32 +51,84 @@ ModuleFactory::ModuleFactory( IGame *game )
 		CurrentDirectoryHelper::Instance().Pop();
 
 		if ( _moduleInstance != nullptr ) {
-			_getCustomArchiveHandlers = ( GetCustomArchiveHandlersPtr ) GetProcAddress( _moduleInstance, "GetCustomArchiveHandlers" );
-			if ( _getCustomArchiveHandlers != nullptr ) {
-				LOG( "Loaded GetCustomArchiveHandlers from Module.dll", LOG_LOW );
-			}
-
+			// required exported functions
 			_getModule = ( GetModulePtr ) GetProcAddress( _moduleInstance, "GetModule" );
 			if ( _getModule != nullptr ) {
 				LOG( "Loaded GetModule from Module.dll", LOG_LOW );
+			} else {
+				_lastError = "Module has no exported GetModule function";
 			}
 
 			_isCompatibleInterfaceVersion = ( IsCompatibleInterfaceVersionPtr ) GetProcAddress( _moduleInstance, "IsCompatibleInterfaceVersion" );
 			if ( _isCompatibleInterfaceVersion != nullptr ) {
 				LOG( "Loaded IsCompatibleInterfaceVersion from Module.dll", LOG_LOW );
+			} else {
+				_lastError = "Module has no exported IsCompatibleInterfaceVersion function";
+			}
+
+			// optional exported functions
+			_getCustomArchiveHandlers = ( GetCustomArchiveHandlersPtr ) GetProcAddress( _moduleInstance, "GetCustomArchiveHandlers" );
+			if ( _getCustomArchiveHandlers != nullptr ) {
+				LOG( "Loaded GetCustomArchiveHandlers from Module.dll", LOG_LOW );
+			} else {
+				LOG( "Module has no exported GetCustomArchiveHandlers function", LOG_LOW );
 			}
 
 			_getCompatibleFeatureLevels = ( GetCompatibleFeatureLevelsPtr ) GetProcAddress( _moduleInstance, "GetCompatibleFeatureLevels" );
 			if ( _getCompatibleFeatureLevels != nullptr ) {
 				LOG( "Loaded GetCompatibleFeatureLevels from Module.dll", LOG_LOW );
+			} else {
+				LOG( "Module has no exported GetCompatibleFeatureLevels function", LOG_LOW );
 			}
 		} else {
-			LOG( "Failed to load Module.dll", LOG_LOW );
+			LOG( "Failed to load Module.dll", LOG_ERROR );
+
+#if defined (_WIN64) 
+			bool win64 = true;	
+#else
+			bool win64 = false;
+#endif
+			bool loggedMessage = false;
+
+			HANDLE file = CreateFileW( Resources::Instance().Module().c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+			if (file == INVALID_HANDLE_VALUE) goto cleanup;
+
+			HANDLE fileMapping = CreateFileMapping(file, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL );
+			if (fileMapping == INVALID_HANDLE_VALUE) goto cleanup;
+
+			LPVOID addressHeader = MapViewOfFileEx(fileMapping, FILE_MAP_READ, 0, 0, 0, NULL);
+			if (addressHeader == NULL) goto cleanup; //couldn't memory map the file
+
+			PIMAGE_NT_HEADERS peHeader = ImageNtHeader(addressHeader);
+			if (peHeader == NULL) goto cleanup; //couldn't read the header
+
+			if (peHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_I386 && win64)
+			{
+				_lastError = "Failed to load Module.dll - MGDF core is 64 bit and Module is 32 bit";
+				loggedMessage = true;
+			}
+			else if (peHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64 && !win64)
+			{
+				_lastError = "Failed to load Module.dll - MGDF core is 32 bit and Module is 64 bit";
+				loggedMessage = true;		
+			}
+cleanup:
+			if (!loggedMessage) {
+				_lastError = "Failed to load Module.dll - It doesn't appear to be a valid dll";
+			}
+			if (file != INVALID_HANDLE_VALUE) {
+				CloseHandle(file);
+			}
+			if (fileMapping != INVALID_HANDLE_VALUE) {
+				CloseHandle(fileMapping);
+			}
 		}
 	}
 }
 
-bool ModuleFactory::GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler )
+
+
+bool ModuleFactory::GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler ) const
 {
 	if ( _getCustomArchiveHandlers != nullptr ) {
 		return _getCustomArchiveHandlers( list, length, logger, errorHandler );
@@ -83,7 +137,7 @@ bool ModuleFactory::GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *le
 	}
 }
 
-IModule *ModuleFactory::GetModule( ISystem *system )
+IModule *ModuleFactory::GetModule( ISystem *system ) const
 {
 	if ( _getModule != nullptr ) {
 		return _getModule( system );
@@ -92,7 +146,7 @@ IModule *ModuleFactory::GetModule( ISystem *system )
 	}
 }
 
-bool ModuleFactory::IsCompatibleInterfaceVersion( INT32 interfaceVersion )
+bool ModuleFactory::IsCompatibleInterfaceVersion( INT32 interfaceVersion ) const
 {
 	if ( _isCompatibleInterfaceVersion != nullptr ) {
 		return _isCompatibleInterfaceVersion( interfaceVersion );
@@ -101,13 +155,19 @@ bool ModuleFactory::IsCompatibleInterfaceVersion( INT32 interfaceVersion )
 	}
 }
 
-UINT32 ModuleFactory::GetCompatibleFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *levelSize )
+UINT32 ModuleFactory::GetCompatibleFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *levelSize ) const
 {
 	if ( _getCompatibleFeatureLevels != nullptr ) {
 		return _getCompatibleFeatureLevels( levels, levelSize );
 	} else {
-		return false;
+		return 0;
 	}
+}
+
+bool ModuleFactory::GetLastError( std::string& error ) const
+{
+	error = _lastError;
+	return _lastError.length()>0;
 }
 
 

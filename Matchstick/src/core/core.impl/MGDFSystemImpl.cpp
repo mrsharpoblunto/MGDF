@@ -352,8 +352,13 @@ IModule *System::CreateModule()
 {
 	IModule *module = nullptr;
 
+	std::string error;
+	if ( _moduleFactory->GetLastError( error ) ) {
+		FATALERROR( this, error );
+	}
+
 	if ( !_moduleFactory->IsCompatibleInterfaceVersion( MGDFVersionInfo::MGDF_INTERFACE_VERSION ) ) {
-		FATALERROR( this, "MGDF Interface version " << MGDFVersionInfo::MGDF_INTERFACE_VERSION << " is not compatible" );
+		FATALERROR( this, "Module is not compatible with MGDF Interface version " << MGDFVersionInfo::MGDF_INTERFACE_VERSION );
 	}
 
 	//create the module

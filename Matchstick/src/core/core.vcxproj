@@ -140,7 +140,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -194,7 +194,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -244,7 +244,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -297,7 +297,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
