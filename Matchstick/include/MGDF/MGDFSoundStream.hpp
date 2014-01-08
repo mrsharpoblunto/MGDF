@@ -10,9 +10,21 @@ this class represents an audio stream
 class ISoundStream
 {
 public:
+	/**
+	The name of the sound stream
+	\return The name of the sound stream
+	*/
 	virtual const wchar_t * GetName() const = 0;
 
+	/**
+	Get the volume level (0-1)
+	\return The volume level (0-1)
+	*/
 	virtual float  GetVolume() const = 0;
+	
+	/**
+	Set the volume level (0-1)
+	*/
 	virtual void  SetVolume( float volume ) = 0;
 
 	virtual UINT32 GetPosition() = 0;

@@ -13,8 +13,8 @@ namespace tests
 class MockModule: public IModule
 {
 public:
-	MockModule( ISystem *system ) {
-		this->_system = system;
+	MockModule( ISystem * ) {
+		this->_ = ;
 	}
 	virtual ~MockModule( void ) {};
 
@@ -54,7 +54,7 @@ public:
 		return _lastError.c_str();
 	}
 private:
-	ISystem *_system;
+	ISystem *_;
 	std::string _lastError;
 };
 

@@ -188,7 +188,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
                 case FileMode.CreateNew:
                     if (_stream != null)
                     {
-                        throw new IOException("File already exists in fake filesystem");
+                        throw new IOException("File already exists in fake file");
                     }
                     CreateFileStream();
                     _stream.Open();
@@ -226,7 +226,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
                 return _stream;
             }
 
-            throw new FileNotFoundException("File not found in fake filesystem", FullName);
+            throw new FileNotFoundException("File not found in fake file", FullName);
         }
 
         public Stream OpenStream(FileMode mode, FileAccess access, FileShare share)

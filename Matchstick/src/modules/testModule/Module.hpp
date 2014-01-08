@@ -21,7 +21,7 @@ class TestModule
 public:
 	virtual ~TestModule( void ) {}
 
-	virtual void Update( ISystem *system, TextManagerState *state ) = 0;
+	virtual void Update( ISimHost *host, TextManagerState *state ) = 0;
 
 	virtual TestModule *NextTestModule() = 0;
 };
@@ -30,22 +30,22 @@ class Module: public IModule
 {
 public:
 	virtual ~Module( void );
-	Module( ISystem * );
+	Module();
 
-	virtual bool New( const wchar_t *workingFolder );
+	bool STNew( ISimHost * simHost, const wchar_t *workingFolder ) override;
+	bool STDispose( ISimHost * simHost ) override;
+	bool STUpdate( ISimHost * simHost, double elapsedTime ) override;
+	void STShutDown( ISimHost * simHost ) override;
 
-	virtual bool Dispose( void );
+	bool RTBeforeFirstDraw( MGDF::IRenderHost *renderHost ) override;
+	bool RTDraw( IRenderHost *renderHost, double alpha ) override;
+	bool RTBeforeBackBufferChange( IRenderHost *renderHost ) override;
+	bool RTBackBufferChange( IRenderHost *renderHost ) override;
+	bool RTBeforeDeviceReset( IRenderHost *renderHost ) override;
+	bool RTDeviceReset( IRenderHost *renderHost ) override;
 
-	virtual bool DrawScene( double alpha );
-	virtual bool BackBufferChanged();
-	virtual bool UpdateScene( double elapsedTime );
-	virtual void Panic();
-	virtual void ShutDown();
-
-	const char *GetLastError();
+	void Panic() override;
 private:
-	MGDF::ISystem *_system;
-	std::string _lastError;
 	std::wstring _workingFolder;
 
 	TestModule *_testModule;

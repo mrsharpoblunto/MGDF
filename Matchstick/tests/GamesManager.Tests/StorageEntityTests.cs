@@ -21,7 +21,7 @@ namespace MGDF.GamesManager.Tests
             Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory,"game\\game.json"));
             Assert.AreEqual("Console",game.Uid);
             Assert.AreEqual("Lua Console", game.Name);
-            Assert.AreEqual("A Lua command console for interacting with the MGDF system", game.Description);
+            Assert.AreEqual("A Lua command console for interacting with the MGDF ", game.Description);
             Assert.AreEqual(new Version(0,1), game.Version);
             Assert.AreEqual("http://www.junkship.org", game.Homepage);
             Assert.AreEqual(1, game.InterfaceVersion);
@@ -36,7 +36,7 @@ namespace MGDF.GamesManager.Tests
         {
             const string NoUid = @"{
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""0.1"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",
@@ -61,7 +61,7 @@ namespace MGDF.GamesManager.Tests
             const string InvalidVersion = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""1.0 Beta 2"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",
@@ -86,7 +86,7 @@ namespace MGDF.GamesManager.Tests
             const string InvalidXml = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""1.0 Beta 2"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",

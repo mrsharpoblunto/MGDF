@@ -18,9 +18,9 @@ namespace vfs
 
 DefaultFolderImpl::DefaultFolderImpl( const std::wstring &name, const std::wstring &physicalPath, IFile *parent, VirtualFileSystemComponent *vfs )
 	: FolderBaseImpl( name, physicalPath, parent )
-	, _mappedChildren( false )
 	, _vfs( vfs )
 {
+	_ASSERTE( vfs );
 }
 
 DefaultFolderImpl::~DefaultFolderImpl()
@@ -38,27 +38,31 @@ DefaultFolderImpl::~DefaultFolderImpl()
 
 void DefaultFolderImpl::MapChildren()
 {
-	if ( !_mappedChildren ) {
-		_vfs->MapChildren( this );
-		_mappedChildren = true;
+	boost::mutex::scoped_lock lock( _mutex );
+	if ( !_children ) {
+		auto children = new std::map<const wchar_t *, IFile *, WCharCmp>();
+		_vfs->MapChildren( this, *children );
+		_children = children;
 	}
 }
 
-IFile *DefaultFolderImpl::GetChild( const wchar_t *name )
+IFile *DefaultFolderImpl::GetChild( const wchar_t *name ) const
 {
-	MapChildren();
+	if ( !name ) return nullptr;
+
+	const_cast<DefaultFolderImpl *>(this)->MapChildren();
 	return FolderBaseImpl::GetChild( name );
 }
 
-size_t DefaultFolderImpl::GetChildCount()
+size_t DefaultFolderImpl::GetChildCount()  const
 {
-	MapChildren();
+	const_cast<DefaultFolderImpl *>(this)->MapChildren();
 	return FolderBaseImpl::GetChildCount();
 }
 
-bool DefaultFolderImpl::GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength )
+bool DefaultFolderImpl::GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength )  const
 {
-	MapChildren();
+	const_cast<DefaultFolderImpl *>(this)->MapChildren();
 	return FolderBaseImpl::GetAllChildren( filter, childBuffer, bufferLength );
 }
 

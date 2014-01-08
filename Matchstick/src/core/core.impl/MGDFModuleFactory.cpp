@@ -137,10 +137,10 @@ bool ModuleFactory::GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *le
 	}
 }
 
-IModule *ModuleFactory::GetModule( ISystem *system ) const
+IModule *ModuleFactory::GetModule() const
 {
 	if ( _getModule != nullptr ) {
-		return _getModule( system );
+		return _getModule();
 	} else {
 		return nullptr;
 	}

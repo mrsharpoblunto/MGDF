@@ -4,9 +4,8 @@
 
 #include <MGDF/MGDF.hpp>
 
-#include "MGDFSystemBuilder.hpp"
+#include "MGDFHostBuilder.hpp"
 #include "MGDFGameBuilder.hpp"
-#include "MGDFSystemImpl.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
@@ -30,7 +29,7 @@ namespace MGDF
 namespace core
 {
 
-bool SystemBuilder::RegisterBaseComponents()
+bool HostBuilder::RegisterBaseComponents()
 {
 	//init global common components
 	InitParameterManager();
@@ -48,7 +47,7 @@ bool SystemBuilder::RegisterBaseComponents()
 	return true;
 }
 
-bool SystemBuilder::RegisterAdditionalComponents( std::string gameUid )
+bool HostBuilder::RegisterAdditionalComponents( std::string gameUid )
 {
 	input::IInputManagerComponent *input = input::CreateInputManagerComponentImpl();
 	if ( input != nullptr ) {
@@ -77,7 +76,7 @@ bool SystemBuilder::RegisterAdditionalComponents( std::string gameUid )
 	return true;
 }
 
-void SystemBuilder::UnregisterComponents()
+void HostBuilder::UnregisterComponents()
 {
 	Components::Instance().UnregisterComponent<storage::IStorageFactoryComponent>();
 	Components::Instance().UnregisterComponent<input::IInputManagerComponent>();
@@ -85,7 +84,7 @@ void SystemBuilder::UnregisterComponents()
 	Components::Instance().UnregisterComponent<vfs::IVirtualFileSystemComponent>();
 }
 
-System *SystemBuilder::CreateSystem()
+Host *HostBuilder::CreateHost()
 {
 	//do the bare minimum setup required to be able to
 	//load up the game configuration file
@@ -129,26 +128,27 @@ System *SystemBuilder::CreateSystem()
 	}
 
 	try {
-		System *system = new System( game );
-		Components::Instance().RegisterComponentErrorHandler( system );  //register the system error handlerswith all components
+		LOG( "Creating host...", LOG_LOW );
+		Host *host = new Host( game );
+		Components::Instance().RegisterComponentErrorHandler( host );  //register the hosterror handlers with all components
 
-		return system;
+		return host;
 	} catch ( ... ) {
-		LOG( "FATAL ERROR: Unable to create system", LOG_ERROR );
+		LOG( "FATAL ERROR: Unable to create host", LOG_ERROR );
 		return nullptr;
 	}
 }
 
-void SystemBuilder::DisposeSystem( System *system )
+void HostBuilder::DisposeHost( Host *host )
 {
-	if ( system != nullptr ) {
-		system->DisposeModule();
+	if ( host != nullptr ) {
+		host->STDisposeModule();
 	}
 	UnregisterComponents();
-	SAFE_DELETE( system );
+	SAFE_DELETE( host );
 }
 
-void SystemBuilder::InitParameterManager()
+void HostBuilder::InitParameterManager()
 {
 	std::string paramString;
 
@@ -189,7 +189,7 @@ void SystemBuilder::InitParameterManager()
 	ParameterManager::Instance().AddParameterString( paramString.c_str() );
 }
 
-void SystemBuilder::InitLogger()
+void HostBuilder::InitLogger()
 {
 	if ( ParameterManager::Instance().HasParameter( ParameterConstants::LOG_LEVEL ) ) {
 		const char *level = ParameterManager::Instance().GetParameter( ParameterConstants::LOG_LEVEL );
@@ -209,7 +209,7 @@ void SystemBuilder::InitLogger()
 	}
 }
 
-void SystemBuilder::InitResources( std::string gameUid )
+void HostBuilder::InitResources( std::string gameUid )
 {
 	if ( ParameterManager::Instance().HasParameter( ParameterConstants::GAME_DIR_OVERRIDE ) ) {
 		std::string gamesDirOverride( ParameterManager::Instance().GetParameter( ParameterConstants::GAME_DIR_OVERRIDE ) );

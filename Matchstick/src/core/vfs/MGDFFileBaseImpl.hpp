@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/thread/mutex.hpp>
 #include <string>
 #include <map>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
@@ -27,28 +28,41 @@ public:
 	FileBaseImpl( IFile *parent );
 	virtual ~FileBaseImpl();
 
-	virtual IFile *GetParent() const {
+	IFile *GetParent() const override {
 		return _parent;
 	}
-	virtual IFile *GetChild( const wchar_t *name );
-	virtual size_t GetChildCount() {
-		return _children ? _children->size() : 0;
+	IFile *GetChild( const wchar_t *name ) const override ;
+
+	size_t GetChildCount() const override {
+		if ( !_children ) {
+			boost::mutex::scoped_lock lock( _mutex );
+			if ( !_children ) {
+				return 0;
+			}
+		}
+		return _children->size();
 	}
-	virtual bool GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength );
-	virtual bool IsArchive() const {
+
+	bool GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const override;
+	
+	bool IsArchive() const override {
 		return false;
 	}
 
-	virtual const wchar_t* GetLogicalPath();
-	virtual time_t GetLastWriteTime() const;
+	const wchar_t* GetLogicalPath() const override; 
+	time_t GetLastWriteTime() const override;
 
-	IFile *GetChildInternal( const wchar_t *name );
+	// These internal methods are not threadsafe, so ensure 
+	// that the mutex for this file is acquired or that only
+	// one thread can access the file before calling
 	void AddChild( IFile *newNode );
 	void SetParent( IFile *file );
 protected:
-	std::map<const wchar_t *, IFile *, WCharCmp> *_children;
+	mutable boost::mutex _mutex;
+	mutable std::map<const wchar_t *, IFile *, WCharCmp> *_children;
+	mutable std::wstring _logicalPath;
+
 	IFile *_parent;
-	std::wstring _logicalPath;
 };
 
 

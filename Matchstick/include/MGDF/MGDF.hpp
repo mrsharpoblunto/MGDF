@@ -14,10 +14,10 @@
 #include <MGDF/MGDFList.hpp>
 #include <MGDF/MGDFLogger.hpp>
 #include <MGDF/MGDFModule.hpp>
-#include <MGDF/MGDFSystem.hpp>
+#include <MGDF/MGDFHost.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>
-#include <MGDF/MGDFGraphicsManager.hpp>
+#include <MGDF/MGDFRenderSettingsManager.hpp>
 #include <MGDF/MGDFError.hpp>
 #include <MGDF/MGDFErrorHandler.hpp>
 #include <MGDF/MGDFTimer.hpp>

@@ -21,17 +21,17 @@ public:
 	XInputGamepad( INT32 id );
 	virtual ~XInputGamepad( void ) {};
 
-	virtual bool IsConnected() const;
-	virtual bool IsButtonDown( GamepadButton button ) const;
-	virtual bool IsButtonUp( GamepadButton button ) const;
-	virtual bool IsButtonPress( GamepadButton button );
-	virtual INT32 GetLeftTrigger() const;
-	virtual INT32 GetRightTrigger() const;
-	virtual INT32 GetLeftThumbX() const;
-	virtual INT32 GetLeftThumbY() const;
-	virtual INT32 GetRightThumbX() const;
-	virtual INT32 GetRightThumbY() const;
-	virtual void SetVibrationSpeed( INT32 left, INT32 right );
+	bool IsConnected() const override;
+	bool IsButtonDown( GamepadButton button ) const override;
+	bool IsButtonUp( GamepadButton button ) const override;
+	bool IsButtonPress( GamepadButton button ) override;
+	INT32 GetLeftTrigger() const override;
+	INT32 GetRightTrigger() const override;
+	INT32 GetLeftThumbX() const override;
+	INT32 GetLeftThumbY() const override;
+	INT32 GetRightThumbX() const override;
+	INT32 GetRightThumbY() const override;
+	void SetVibrationSpeed( INT32 left, INT32 right ) override;
 	void GetState();
 private:
 	INT32 _id, _frameIndex, _checkIndex;

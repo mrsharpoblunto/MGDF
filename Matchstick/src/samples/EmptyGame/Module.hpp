@@ -11,23 +11,23 @@ class Module: public MGDF::IModule
 {
 public:
 	virtual ~Module( void );
-	Module( MGDF::ISystem * );
+	Module();
 
-	virtual bool New( const wchar_t *workingFolder );
+	bool STNew( MGDF::ISimHost *host, const wchar_t *workingFolder ) override;
+	bool STUpdate( MGDF::ISimHost *host, double elapsedTime ) override;
+	void STShutDown( MGDF::ISimHost *host ) override;
+	bool STDispose( MGDF::ISimHost *host ) override;
 
-	virtual bool Dispose( void );
+	bool RTBeforeFirstDraw( MGDF::IRenderHost *host ) override;
+	bool RTDraw( MGDF::IRenderHost *host, double alpha ) override;
+	bool RTBeforeBackBufferChange( MGDF::IRenderHost *host ) override;
+	bool RTBackBufferChange( MGDF::IRenderHost *host ) override;
+	bool RTBeforeDeviceReset( MGDF::IRenderHost *host ) override;
+	bool RTDeviceReset( MGDF::IRenderHost *host ) override;
 
-	virtual bool DrawScene( double alpha );
-	virtual bool BackBufferChanged();
-	virtual bool UpdateScene( double elapsedTime );
-	virtual void Panic();
-	virtual void ShutDown();
-
-	const char *GetLastError();
+	void Panic() override;
 private:
-	MGDF::ISystem *_system;
 	bool _inited;
-	std::string _lastError;
 	std::wstring _workingFolder;
 };
 

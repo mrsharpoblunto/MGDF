@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MGDF/MGDFError.hpp>
 #include <MGDF/MGDFList.hpp>
 
 namespace MGDF
@@ -19,67 +20,15 @@ public:
 };
 
 /**
-represents a file/directory structure in the virtual file system. Directories have no data but can have subfiles
-Files have no subfiles (except for archives) but may have data. Archives that have been added to the vfs are mapped
-as files with the same name as the archive filename, but unlike normal files they also have a tree of subdirectories
-containing the uncompressed archive data
-\author gcconner
-*/
-class IFile
+ An interface used to read data from a file
+ */
+class IFileReader 
 {
 public:
 	/**
-	\return the name of this file
+	closes the file reader, otherwise does nothing
 	*/
-	virtual const wchar_t * GetName() const = 0;
-
-	/**
-	\return the parent of this file. If this file is the root of the virtual file system, then this will be nullptr
-	*/
-	virtual IFile * GetParent() const = 0;
-
-	/**
-	\param name the child name of this file
-	\return the child file of the current file. If no such file exists, nullptr is returned
-	*/
-	virtual IFile * GetChild( const wchar_t *name ) = 0;
-
-	/**
-	 Get all the children of this file (non-recursive) which match the given wildcard filter
-	 \param a user supplied filter to filter the results
-	 \param childBuffer an array to store the results
-	 \param bufferLength the length of the childBuffer. Will be set to the length of the buffer required when the method returns
-	 \return true if the supplied buffer is large enough to hold all the results, otherwise returns false and sets the size required in bufferLength.
-	 */
-	virtual bool GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) = 0;
-
-	/**
-	\return how many children this file node has
-	*/
-	virtual size_t GetChildCount() = 0;
-
-	/**
-	determines if the IFile entity is a folder
-	\return true if the IFile is a folder
-	*/
-	virtual bool  IsFolder() const = 0;
-
-	/**
-	determines if the IFile is open
-	\return true if the IFile is open
-	*/
-	virtual bool  IsOpen() const = 0;
-
-	/**
-	attempt to open the file for reading
-	\return false if the file cannot be opened
-	*/
-	virtual bool OpenFile() = 0;
-
-	/**
-	closes the file if its open, otherwise does nothing
-	*/
-	virtual void CloseFile() = 0;
+	virtual void Close() = 0;
 
 	/**
 	reads the specified number of bytes into the buffer and returns the amount of bytes actually read into the buffer
@@ -103,13 +52,73 @@ public:
 	determines whether the file read position has reached the end of the file
 	\returns true if the read position is past the end of the file (or if the file is closed)
 	*/
-	virtual bool  EndOfFile() const = 0;
+	virtual bool EndOfFile() const = 0;
 
 	/**
 	get the size of the file in bytes
 	\return the filesize in bytes (for compressed archives this value is the uncompressed size)
 	*/
-	virtual INT64 GetSize() = 0;
+	virtual INT64 GetSize() const = 0;
+};
+
+/**
+represents a file/directory structure in the virtual file . Directories have no data but can have subfiles
+Files have no subfiles (except for archives) but may have data. Archives that have been added to the vfs are mapped
+as files with the same name as the archive filename, but unlike normal files they also have a tree of subdirectories
+containing the uncompressed archive data
+\author gcconner
+*/
+class IFile
+{
+public:
+	/**
+	\return the name of this file
+	*/
+	virtual const wchar_t * GetName() const = 0;
+
+	/**
+	\return the parent of this file. If this file is the root of the virtual file , then this will be nullptr
+	*/
+	virtual IFile * GetParent() const = 0;
+
+	/**
+	\param name the child name of this file
+	\return the child file of the current file. If no such file exists, nullptr is returned
+	*/
+	virtual IFile * GetChild( const wchar_t *name ) const = 0;
+
+	/**
+	 Get all the children of this file (non-recursive) which match the given wildcard filter
+	 \param a user supplied filter to filter the results
+	 \param childBuffer an array to store the results
+	 \param bufferLength the length of the childBuffer. Will be set to the length of the buffer required when the method returns
+	 \return true if the supplied buffer is large enough to hold all the results, otherwise returns false and sets the size required in bufferLength.
+	 */
+	virtual bool GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const = 0;
+
+	/**
+	\return how many children this file node has
+	*/
+	virtual size_t GetChildCount() const = 0;
+
+	/**
+	determines if the IFile entity is a folder
+	\return true if the IFile is a folder
+	*/
+	virtual bool  IsFolder() const = 0;
+
+	/**
+	determines if the IFile is open
+	\return true if the IFile is open
+	*/
+	virtual bool  IsOpen() const = 0;
+
+	/**
+	attempt to open the file for reading. Only one fileReader can be open for a file at any time.
+	Because of this, you should ensure that any reader is closed after it is no longer needed.
+	\return nullptr if the file cannot be opened or is already open
+	*/
+	virtual MGDFError OpenFile( IFileReader **reader ) = 0;
 
 	/**
 	determines if the IFile is a (or is a member of) an archive file
@@ -124,8 +133,8 @@ public:
 	virtual const wchar_t * GetArchiveName() const = 0;
 
 	/**
-	get the pyshical path to the IFile in the filesystem
-	\return the pyshical path to the IFile in the filesystem, in the case of an archive submember this will be the address to the containing archive
+	get the pyshical path to the IFile in the file
+	\return the pyshical path to the IFile in the file, in the case of an archive submember this will be the address to the containing archive
 	*/
 	virtual const wchar_t * GetPhysicalPath() const = 0;
 
@@ -133,7 +142,7 @@ public:
 	get the path to the IFile as expressed as a vfs logical file path
 	\return the path to the IFile as expressed as a vfs logical file path
 	*/
-	virtual const wchar_t * GetLogicalPath() = 0;
+	virtual const wchar_t * GetLogicalPath() const = 0;
 
 	/**
 	find the last write time of the file
@@ -171,7 +180,7 @@ public:
 };
 
 /**
-this interface provides facilities for building and accessing the virtual filesystem
+this interface provides facilities for building and accessing the virtual file
 \author gcconner
 */
 class IVirtualFileSystem
@@ -184,7 +193,7 @@ public:
 	virtual IFile * GetFile( const wchar_t *logicalPath ) const = 0;
 
 	/**
-	return the root node of the virtual file system
+	return the root node of the virtual file 
 	*/
 	virtual IFile * GetRoot() const = 0;
 };

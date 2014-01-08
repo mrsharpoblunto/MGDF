@@ -4,7 +4,6 @@
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFResources.hpp"
 #include "MGDFGameImpl.hpp"
-#include "MGDFSystemImpl.hpp"
 
 
 #if defined(_DEBUG)
@@ -29,12 +28,15 @@ Game::Game( const std::string &uid, const std::string &name, INT32 interfaceVers
 
 bool Game::HasPreference( const char *name ) const
 {
+	if ( !name ) return false;
+
 	return _preferences.find( name ) != _preferences.end();
 }
 
 const char *Game::GetPreference( const char *name ) const
 {
-	_ASSERTE( name );
+	if ( !name ) return false;
+
 	auto iter = _preferences.find( name );
 	if ( iter != _preferences.end() ) {
 		return iter->second.c_str();
@@ -45,8 +47,8 @@ const char *Game::GetPreference( const char *name ) const
 
 void Game::SetPreference( const char *name, const char *value )
 {
-	_ASSERTE( name );
-	_ASSERTE( value );
+	if ( !name || !value ) return;
+
 	auto it = _preferences.find( name );
 	if ( it != _preferences.end() ) {
 		it->second = value;
@@ -65,7 +67,7 @@ void Game::SavePreferences() const
 		handler->Add( pref.first, pref.second );
 	}
 	handler->Save( _preferencesFile );
-	LOG( "saved preferences to '" << Resources::ToString( _preferencesFile ) << "' successfully", LOG_MEDIUM );
+	LOG( "Saved preferences to '" << Resources::ToString( _preferencesFile ) << "' successfully", LOG_LOW );
 }
 
 void Game::SavePreferences( const std::wstring &filename )
@@ -81,7 +83,7 @@ void Game::LoadPreferences( const std::wstring &filename )
 	for ( auto storedPreference : *handler ) {
 		_preferences[storedPreference.first] = storedPreference.second;
 	}
-	LOG( "loaded preferences from '" + Resources::ToString( filename ) + "' successfully", LOG_MEDIUM );
+	LOG( "Loaded preferences from '" + Resources::ToString( filename ) + "' successfully", LOG_LOW );
 }
 
 }

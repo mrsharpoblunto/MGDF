@@ -22,8 +22,8 @@ public:
 	}
 	virtual ~JsonCppGameStateStorageHandler() {}
 
-	virtual void Load( const std::wstring & );
-	virtual void Save( const std::wstring & ) const;
+	void Load( const std::wstring & ) override;
+	void Save( const std::wstring & ) const override;
 
 	std::string GetGameUid() const {
 		return _gameUid;

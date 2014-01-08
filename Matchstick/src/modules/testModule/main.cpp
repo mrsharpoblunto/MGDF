@@ -23,10 +23,10 @@ bool MGDF::IsCompatibleInterfaceVersion( INT32 interfaceVersion )
 	return interfaceVersion == 1; //compatible with v1 interface
 }
 
-//create module instances as they are requested by the system.
-MGDF::IModule *MGDF::GetModule( MGDF::ISystem *system )
+//create module instances as they are requested by the framework
+MGDF::IModule *MGDF::GetModule()
 {
-	return new MGDF::Test::Module( system );
+	return new MGDF::Test::Module();
 }
 
 //specify to the framework what kind of d3d device features we want/require

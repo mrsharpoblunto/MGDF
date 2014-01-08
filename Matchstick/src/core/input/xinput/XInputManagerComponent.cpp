@@ -72,6 +72,8 @@ void XInputManagerComponent::HandleInput( INT32 mouseX, INT32 mouseY )
 
 void XInputManagerComponent::HandleInput( RAWINPUT *input )
 {
+	_ASSERTE( input );
+
 	if ( input->header.dwType == RIM_TYPEKEYBOARD ) {
 		boost::mutex::scoped_lock lock( _simMutex );
 

@@ -34,22 +34,23 @@ public:
 	virtual ~VorbisStream();
 	VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *manager );
 
-	virtual const wchar_t * GetName() const;
-	virtual float GetVolume() const;
-	virtual void SetVolume( float volume );
-	virtual void Stop();
-	virtual void Pause();
-	virtual void Play();
-	virtual bool IsStopped() const;
-	virtual bool IsPaused() const;
-	virtual bool IsPlaying() const;
-	virtual UINT32 GetPosition();
-	virtual UINT32 GetLength();
+	const wchar_t * GetName() const override;
+	float GetVolume() const override;
+	void SetVolume( float volume ) override;
+	void Stop() override;
+	void Pause() override;
+	void Play() override;
+	bool IsStopped() const override;
+	bool IsPaused() const override;
+	bool IsPlaying() const override;
+	UINT32 GetPosition() override;
+	UINT32 GetLength() override;
 
-	virtual void Dispose();
+	void Dispose() override;
 	void Update();
 private:
-	IFile		    *_dataSource;
+	IFile			*_dataSource;
+	IFileReader		*_reader;
 	ALuint		    _buffers[VORBIS_BUFFER_COUNT];
 	ALuint		    _source;
 	ALint			_totalBuffersProcessed;
@@ -86,7 +87,7 @@ private:
 	static void UninitVorbis();
 	static void Swap( short &s1, short &s2 );
 
-	//vorbis callbacks to read from the MGDF virtual filesystem
+	//vorbis callbacks to read from the MGDF virtual file
 	static size_t ov_read_func( void *ptr, size_t size, size_t nmemb, void *datasource );
 	static int ov_seek_func( void *datasource, ogg_int64_t offset, int whence );
 	static int ov_close_func( void *datasource );

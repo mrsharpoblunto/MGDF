@@ -55,7 +55,7 @@ MGDF::IFile *FakeFile::GetParent() const
 	return _parent;
 }
 
-size_t FakeFile::GetChildCount()
+size_t FakeFile::GetChildCount() const
 {
 	if ( _children != nullptr ) {
 		return _children->size();
@@ -68,7 +68,7 @@ time_t FakeFile::GetLastWriteTime() const
 	return 0;
 }
 
-MGDF::IFile *FakeFile::GetChild( const wchar_t * name )
+MGDF::IFile *FakeFile::GetChild( const wchar_t * name ) const
 {
 	if ( !_children || !name ) return nullptr;
 
@@ -79,7 +79,7 @@ MGDF::IFile *FakeFile::GetChild( const wchar_t * name )
 	return nullptr;
 }
 
-bool FakeFile::GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuffer, size_t *bufferLength )
+bool FakeFile::GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const
 {
 	if ( !_children || !bufferLength ) {
 		*bufferLength = 0;
@@ -108,10 +108,10 @@ void FakeFile::AddChild( FakeFile *file )
 	_children->insert( std::pair<const wchar_t *, FakeFile *> ( file->GetName(), file ) );
 }
 
-const wchar_t *FakeFile::GetLogicalPath()
+const wchar_t *FakeFile::GetLogicalPath() const
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	if ( _logicalPath.empty() ) {
-
 		std::vector<const IFile *> path;
 		const IFile *node = this;
 		while ( node ) {
@@ -126,25 +126,31 @@ const wchar_t *FakeFile::GetLogicalPath()
 		}
 		_logicalPath = ss.str();
 	}
+
 	return _logicalPath.c_str();
 }
 
 bool FakeFile::IsOpen() const
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	return _isOpen;
 }
 
-bool FakeFile::OpenFile()
+MGDF::MGDFError FakeFile::OpenFile( IFileReader **reader )
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	if ( _data && !_isOpen ) {
 		_isOpen = true;
 		_position = 0;
+		*reader = this;
+		return MGDF::MGDF_OK;
 	}
-	return false;
+	return MGDF::MGDF_ERR_FILE_IN_USE;
 }
 
-void FakeFile::CloseFile()
+void FakeFile::Close()
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	if ( _data && _isOpen ) {
 		_isOpen = false;
 	}
@@ -187,7 +193,7 @@ bool FakeFile::EndOfFile() const
 	}
 }
 
-INT64 FakeFile::GetSize()
+INT64 FakeFile::GetSize() const
 {
 	return _dataLength;
 }

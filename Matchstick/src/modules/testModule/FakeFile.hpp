@@ -2,6 +2,8 @@
 
 #include <string>
 #include <map>
+#include <boost/thread/mutex.hpp>
+
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
 struct WCharCmp {
@@ -14,7 +16,7 @@ struct WCharCmp {
  abstract class which contains the common functionality to default file instances aswell as the zip and other archive file implementations
  of the standard ifile interface
 */
-class FakeFile : public MGDF::IFile
+class FakeFile : public MGDF::IFile, public MGDF::IFileReader
 {
 public:
 	FakeFile( const std::wstring &name, const std::wstring &physicalFile, IFile *parent );
@@ -22,31 +24,34 @@ public:
 	void AddChild( FakeFile *file );
 	virtual ~FakeFile( void );
 
-	virtual MGDF::IFile *GetParent() const;
-	virtual MGDF::IFile *GetChild( const wchar_t *name );
-	virtual bool GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuffer, size_t *bufferLength );
-	virtual size_t GetChildCount();
-	virtual const wchar_t* GetLogicalPath();
+	MGDF::IFile *GetParent() const override;
+	MGDF::IFile *GetChild( const wchar_t *name ) const override;
+	bool GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const override;
+	size_t GetChildCount() const override;
+	const wchar_t* GetLogicalPath() const override;
 
-	virtual bool IsOpen() const;
-	virtual bool OpenFile();
-	virtual void CloseFile();
-	virtual UINT32 Read( void* buffer, UINT32 length );
-	virtual void SetPosition( INT64 pos );
-	virtual INT64 GetPosition() const;
-	virtual bool EndOfFile() const;
-	virtual INT64 GetSize();
+	MGDF::MGDFError OpenFile( IFileReader **reader ) override;
 
-	virtual bool IsFolder() const;
-	virtual bool IsArchive() const;
-	virtual const wchar_t *GetArchiveName() const;
-	virtual const wchar_t *GetPhysicalPath() const;
-	virtual const wchar_t *GetName() const;
-	virtual time_t GetLastWriteTime() const;
+	bool IsOpen() const override;
+	void Close() override;
+	UINT32 Read( void* buffer, UINT32 length ) override;
+	void SetPosition( INT64 pos ) override;
+	INT64 GetPosition() const override;
+	bool EndOfFile() const override;
+	INT64 GetSize() const override;
+
+	bool IsFolder() const override;
+	bool IsArchive() const override;
+	const wchar_t *GetArchiveName() const override;
+	const wchar_t *GetPhysicalPath() const override;
+	const wchar_t *GetName() const override;
+	time_t GetLastWriteTime() const override;
 protected:
+	mutable boost::mutex _mutex;
+	mutable std::wstring _logicalPath;
+
 	std::map<const wchar_t *, FakeFile *,WCharCmp> *_children;
 	MGDF::IFile *_parent;
-	std::wstring _logicalPath;
 	std::wstring _name;
 	std::wstring _physicalPath;
 

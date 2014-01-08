@@ -40,8 +40,7 @@ StatisticsManager::~StatisticsManager()
 
 void StatisticsManager::SaveStatistic( const char *  name, const char *  value )
 {
-	_ASSERTE( name );
-	_ASSERTE( value );
+	if ( !name || !value ) return;
 
 	_saveBuffer.push_back(std::pair<std::string,std::string>(name,value));
 

@@ -4,9 +4,6 @@
     <Filter Include="interfaces">
       <UniqueIdentifier>{031561f7-e335-455e-a735-669fed2bbb4a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="shaders">
-      <UniqueIdentifier>{e0a8542d-1d84-42f0-9443-e5ddd0e38bb6}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\MGDF\MGDF.hpp">
@@ -19,9 +16,6 @@
       <Filter>interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\MGDF\MGDFGame.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MGDF\MGDFGraphicsManager.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\MGDF\MGDFInputManager.hpp">
@@ -51,9 +45,6 @@
     <ClInclude Include="..\..\include\MGDF\MGDFStatisticsManager.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\MGDF\MGDFSystem.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\MGDF\MGDFTimer.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>
@@ -67,7 +58,12 @@
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
     <ClInclude Include="StdAfx.h" />
-    <ClInclude Include="MGDFQuad.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFHost.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFRenderSettingsManager.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -75,14 +71,5 @@
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
     <ClCompile Include="StdAfx.cpp" />
-    <ClCompile Include="MGDFQuad.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="quad_vs.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="quad_ps.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
   </ItemGroup>
 </Project>

@@ -18,12 +18,12 @@ public:
 	JsonCppPreferenceConfigStorageHandler() {}
 	virtual ~JsonCppPreferenceConfigStorageHandler() {}
 
-	virtual void Add( const std::string &name, const std::string &value );
-	virtual IPreferenceConfigStorageHandler::iterator begin() const;
-	virtual IPreferenceConfigStorageHandler::iterator end() const;
+	void Add( const std::string &name, const std::string &value ) override;
+	IPreferenceConfigStorageHandler::iterator begin() const override;
+	IPreferenceConfigStorageHandler::iterator end() const override;
 
-	virtual void Load( const std::wstring & );
-	virtual void Save( const std::wstring & ) const;
+	void Load( const std::wstring & ) override;
+	void Save( const std::wstring & ) const override;
 private:
 	std::map<std::string, std::string> _preferences;
 };

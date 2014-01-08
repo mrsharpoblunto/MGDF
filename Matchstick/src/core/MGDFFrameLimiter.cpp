@@ -17,7 +17,7 @@ FrameLimiter::FrameLimiter( UINT32 maxFps )
 	timeBeginPeriod( 1 );  //set a higher resolution for timing calls
 	_maxFps = maxFps;
 
-	// exit if the system does not support a high performance timer
+	// exit if the  does not support a high performance timer
 	if ( !QueryPerformanceFrequency( &_freq ) ) {
 		LOG( "High performance timer unsupported", LOG_ERROR );
 		throw MGDFException( "High performance timer unsupported" );

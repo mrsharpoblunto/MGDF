@@ -36,7 +36,7 @@ public:
 	virtual void Dispose() = 0;
 
 	/**
-	priority is used by the sound system to determine which sounds get deactivated if not enough sound sources
+	priority is used by the sound  to determine which sounds get deactivated if not enough sound sources
 	are available to play all sounds
 	*/
 	virtual void  SetPriority( INT32 priority ) = 0;

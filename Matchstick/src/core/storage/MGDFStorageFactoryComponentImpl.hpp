@@ -12,7 +12,7 @@ namespace core
 namespace xml
 {
 
-//provide a generic name for the rest of the system so that
+//provide a generic name for the rest of the  so that
 //there is no explicit instansiation of a particular xml
 //implementation
 #ifdef USE_JSONCPP_STORAGE

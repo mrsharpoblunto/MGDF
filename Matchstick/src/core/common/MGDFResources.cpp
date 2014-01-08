@@ -194,6 +194,9 @@ std::string Resources::ToString( const std::wstring &wstr )
 
 std::string Resources::ToString( const wchar_t *wstr )
 {
+	_ASSERTE( wstr );
+	if ( !wstr ) return "";
+
 	size_t len = wcslen( wstr );
 	INT32 sizeNeeded = WideCharToMultiByte( CP_UTF8, 0, wstr, ( int ) len, nullptr, 0, nullptr, nullptr );
 
@@ -218,6 +221,9 @@ std::wstring Resources::ToWString( const std::string &str )
 
 std::wstring Resources::ToWString( const char *str )
 {
+	_ASSERTE( str );
+	if ( !str ) return L"";
+
 	size_t len = strlen( str );
 	INT32 sizeNeeded = MultiByteToWideChar( CP_UTF8, 0, str, ( int ) len, nullptr, 0 );
 

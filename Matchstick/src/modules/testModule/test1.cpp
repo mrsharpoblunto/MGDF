@@ -32,16 +32,16 @@ TestModule *Test1::NextTestModule()
 	}
 }
 
-void Test1::Update( ISystem *system, TextManagerState *state )
+void Test1::Update( ISimHost *host, TextManagerState *state )
 {
-	if ( system->GetInput()->IsKeyPress( VK_ESCAPE ) ) {
-		system->ShutDown();
+	if ( host->GetInput()->IsKeyPress( VK_ESCAPE ) ) {
+		host->ShutDown();
 	}
 
 	if ( _testState == 10 ) {
-		system->GetInput()->GetGamepads()->Get( 0 )->SetVibrationSpeed(
-		    system->GetInput()->GetGamepads()->Get( 0 )->GetRightTrigger() * 257,
-		    system->GetInput()->GetGamepads()->Get( 0 )->GetRightTrigger() * 257
+		host->GetInput()->GetGamepads()->Get( 0 )->SetVibrationSpeed(
+		    host->GetInput()->GetGamepads()->Get( 0 )->GetRightTrigger() * 257,
+		    host->GetInput()->GetGamepads()->Get( 0 )->GetRightTrigger() * 257
 		);
 	}
 
@@ -52,56 +52,56 @@ void Test1::Update( ISystem *system, TextManagerState *state )
 		state->AddLine( "InputManager Tests" );
 		state->AddLine( "" );
 		state->AddLine( "Press the [ENTER] key" );
-	} else if ( _testState == 1 && system->GetInput()->IsKeyPress( VK_RETURN ) ) {
+	} else if ( _testState == 1 && host->GetInput()->IsKeyPress( VK_RETURN ) ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Press and hold [UP ARROW] key for at least one second" );
 		_time = time( nullptr );
-	} else if ( _testState == 2 && system->GetInput()->IsKeyDown( VK_UP ) && now > _time + 1 ) {
+	} else if ( _testState == 2 && host->GetInput()->IsKeyDown( VK_UP ) && now > _time + 1 ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Now release the [UP ARROW] key" );
-	} else if ( _testState == 3 && system->GetInput()->IsKeyUp( VK_UP ) ) {
+	} else if ( _testState == 3 && host->GetInput()->IsKeyUp( VK_UP ) ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Now click the left mouse button" );
-	} else if ( _testState == 4 && system->GetInput()->IsButtonClicked( MOUSE_LEFT ) ) {
+	} else if ( _testState == 4 && host->GetInput()->IsButtonClicked( MOUSE_LEFT ) ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Now move the mouse up" );
-	} else if ( _testState == 5 && system->GetInput()->GetMouseDY() < 0 ) {
+	} else if ( _testState == 5 && host->GetInput()->GetMouseDY() < 0 ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
-		if ( system->GetInput()->GetGamepads()->Get( 0 )->IsConnected() ) {
+		if ( host->GetInput()->GetGamepads()->Get( 0 )->IsConnected() ) {
 			_testState++;
 			state->AddLine( "Xbox 360 controller detected" );
 		} else {
 			state->AddLine( "Plug in an xbox 360 controller or press [S] to skip controller tests" );
 		}
-	} else if ( _testState == 6 && system->GetInput()->GetGamepads()->Get( 0 )->IsConnected() ) {
+	} else if ( _testState == 6 && host->GetInput()->GetGamepads()->Get( 0 )->IsConnected() ) {
 		_testState++;
 		state->AddLine( "Xbox 360 controller detected" );
-	} else if ( _testState == 6 && system->GetInput()->IsKeyPress( 'S' ) ) {
+	} else if ( _testState == 6 && host->GetInput()->IsKeyPress( 'S' ) ) {
 		_testState = 11;//skip past controller tests.
 	} else if ( _testState == 7 ) {
 		_testState++;
 		state->AddLine( "Press the [A] button on controller 1" );
-	} else if ( _testState == 8 && system->GetInput()->GetGamepads()->Get( 0 )->IsButtonPress( GAMEPAD_A ) ) {
+	} else if ( _testState == 8 && host->GetInput()->GetGamepads()->Get( 0 )->IsButtonPress( GAMEPAD_A ) ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Pull the left trigger on controller 1" );
-	} else if ( _testState == 9 && system->GetInput()->GetGamepads()->Get( 0 )->GetLeftTrigger() == 255 ) {
+	} else if ( _testState == 9 && host->GetInput()->GetGamepads()->Get( 0 )->GetLeftTrigger() == 255 ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Pull the right trigger on controller 1, press [A] if the controller vibrates, [B] if it does not." );
-	} else if ( _testState == 10 && system->GetInput()->GetGamepads()->Get( 0 )->IsButtonPress( GAMEPAD_A ) ) {
+	} else if ( _testState == 10 && host->GetInput()->GetGamepads()->Get( 0 )->IsButtonPress( GAMEPAD_A ) ) {
 		_testState++;
 		state->SetStatus( GREEN, "[Test Passed]" );
-		system->GetInput()->GetGamepads()->Get( 0 )->SetVibrationSpeed( 0, 0 );
-	} else if ( _testState == 10 && system->GetInput()->GetGamepads()->Get( 0 )->IsButtonPress( GAMEPAD_B ) ) {
+		host->GetInput()->GetGamepads()->Get( 0 )->SetVibrationSpeed( 0, 0 );
+	} else if ( _testState == 10 && host->GetInput()->GetGamepads()->Get( 0 )->IsButtonPress( GAMEPAD_B ) ) {
 		_testState++;
 		state->SetStatus( RED, "[Test Failed]" );
-		system->GetInput()->GetGamepads()->Get( 0 )->SetVibrationSpeed( 0, 0 );
+		host->GetInput()->GetGamepads()->Get( 0 )->SetVibrationSpeed( 0, 0 );
 	}
 }
 

@@ -28,7 +28,7 @@ struct ZipFileData {
 };
 
 /**
-handles the mapping and access to zip archives by the virtual file system
+handles the mapping and access to zip archives by the virtual file 
 */
 class ZipArchive
 {
@@ -41,7 +41,7 @@ public:
 	ZipFileRoot *GetArchiveRoot() const {
 		return _root;
 	}
-	bool GetFileData( ZipFileHeader &header, ZipFileData &data );
+	MGDFError GetFileData( ZipFileHeader &header, ZipFileData &data );
 private:
 	unzFile _zip;
 	ZipFileRoot *_root;

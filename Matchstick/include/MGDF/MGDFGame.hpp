@@ -6,7 +6,7 @@ namespace MGDF
 {
 
 /**
-this class provides information regarding the current game being run in the engine
+this class provides information regarding the current game being run
 and the preferences associated with that game
 \author gcconner
 */

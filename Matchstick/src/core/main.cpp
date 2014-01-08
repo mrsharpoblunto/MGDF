@@ -4,10 +4,10 @@
 #include "common/win32Exception.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"
-#include "core.impl/MGDFSystemBuilder.hpp"
+#include "core.impl/MGDFHostBuilder.hpp"
 #include "MGDFApp.hpp"
 
-void FatalErrorCallBack( std::string sender, std::string message );
+void FatalErrorCallBack( const std::string &sender, const std::string &message );
 void WriteMinidump();
 DWORD WINAPI CrashDumpThread( LPVOID data );
 
@@ -53,25 +53,21 @@ INT32 WINAPI WinMain(
 
 	SetErrorMode( SEM_NOGPFAULTERRORBOX );
 
-	//create the application instance and initialise the window
-	_application = new MGDFApp( hInstance );
-
-	//create the system object and related components
-	System *system = SystemBuilder::CreateSystem();
+	//create the host object and related components
+	Host *host = HostBuilder::CreateHost();
 
 	LOG( "starting up...", LOG_LOW );
-	if ( system ) {
-		system->AddFatalErrorCallback( &FatalErrorCallBack );
+	if ( host ) {
+		host->SetFatalErrorHandler( FatalErrorCallBack );
 
-		_application->SetSystem( system );
-		_application->InitDirect3D( "MGDF", MGDFAppWndProc );
-
-		UINT32 simulationFps = atoi( system->GetGame()->GetPreference( "simFps" ) );
-		_application->Run( simulationFps );
+		//create the application instance and initialise the window
+		_application = new MGDFApp( host, hInstance );
+		_application->InitWindow( "MGDF", MGDFAppWndProc );
+		_application->Run();
 	}
 
-	//dispose of the system and related components
-	SystemBuilder::DisposeSystem( system );
+	//dispose of the  and related components
+	HostBuilder::DisposeHost( host );
 
 	LOG( "shutting down...", LOG_LOW );
 	delete _application;
@@ -85,6 +81,7 @@ log & handle unexpected win32 errors before the exception is thrown
 */
 LONG WINAPI UnhandledExceptionCallBack( struct _EXCEPTION_POINTERS *pExceptionInfo )
 {
+	_ASSERTE( pExceptionInfo );
 	LOG( "WIN32 ERROR: " << Win32Exception::TranslateError( pExceptionInfo->ExceptionRecord->ExceptionCode ), LOG_ERROR );
 	LOG( "Generating Minidump file minidump.dmp...", LOG_ERROR );
 
@@ -102,9 +99,9 @@ LONG WINAPI UnhandledExceptionCallBack( struct _EXCEPTION_POINTERS *pExceptionIn
 }
 
 /**
-handle fatal errors explicitly invoked from the MGDF system
+handle fatal errors explicitly invoked from the MGDF 
 */
-void FatalErrorCallBack( std::string sender, std::string message )
+void FatalErrorCallBack( const std::string &sender, const std::string &message )
 {
 	WriteMinidump();
 

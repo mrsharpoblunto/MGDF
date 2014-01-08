@@ -15,7 +15,7 @@ namespace zip
 /**
 implementation of a file in a zipped archive
 */
-class ZipFileImpl: public FileBaseImpl
+class ZipFileImpl: public FileBaseImpl, public IFileReader
 {
 public:
 	ZipFileImpl( IFile *parent, ZipArchive *handler, ZipFileHeader && header )
@@ -26,36 +26,38 @@ public:
 	}
 	virtual ~ZipFileImpl();
 
-	virtual bool IsFolder() const {
+	bool IsFolder() const override {
 		return false;
 	}
-	virtual bool IsArchive() const {
+	bool IsArchive() const override {
 		return true;
 	}
 
-	virtual bool IsOpen() const {
+	bool IsOpen() const override {
+		boost::mutex::scoped_lock lock( _mutex );
 		return _isOpen;
 	}
-	virtual bool OpenFile();
-	virtual void CloseFile();
-	virtual UINT32 Read( void* buffer, UINT32 length );
-	virtual void SetPosition( INT64 pos );
-	virtual INT64 GetPosition() const;
-	virtual bool EndOfFile() const;
-	virtual INT64 GetSize() {
+
+	MGDFError OpenFile( IFileReader **reader ) override;
+	void Close() override;
+	UINT32 Read( void* buffer, UINT32 length ) override;
+	void SetPosition( INT64 pos ) override;
+	INT64 GetPosition() const override;
+	bool EndOfFile() const override;
+	INT64 GetSize() const override {
 		return _header.size;
 	}
 
-	virtual time_t GetLastWriteTime() const {
+	time_t GetLastWriteTime() const override {
 		return _handler->GetArchiveRoot()->GetLastWriteTime();
 	}
-	virtual const wchar_t *GetArchiveName() const {
+	const wchar_t *GetArchiveName() const override {
 		return _handler->GetArchiveRoot()->GetName();
 	}
-	virtual const wchar_t *GetPhysicalPath() const {
+	const wchar_t *GetPhysicalPath() const override {
 		return _handler->GetArchiveRoot()->GetPhysicalPath();
 	}
-	virtual const wchar_t *GetName() const {
+	const wchar_t *GetName() const override {
 		return _header.name.c_str();
 	}
 private:

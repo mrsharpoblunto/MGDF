@@ -27,24 +27,24 @@ public:
 	XInputManagerComponent();
 	virtual ~XInputManagerComponent( void );
 
-	virtual void HandleInput( RAWINPUT *input );
-	virtual void HandleInput( INT32 mouseX, INT32 mouseY );
-	virtual void ProcessSim();
-	virtual void ProcessInput();
+	void HandleInput( RAWINPUT *input ) override;
+	void HandleInput( INT32 mouseX, INT32 mouseY ) override;
+	void ProcessSim() override;
+	void ProcessInput() override;
 
-	virtual void ShowCursor( bool show );
-	virtual bool  IsKeyDown( UINT16 key ) const;
-	virtual bool  IsKeyUp( UINT16 key ) const;
-	virtual bool  IsKeyPress( UINT16 key ) const;
-	virtual INT32  GetMouseX( void ) const;
-	virtual INT32  GetMouseY( void ) const;
-	virtual INT32  GetMouseDX( void ) const;
-	virtual INT32  GetMouseDY( void ) const;
-	virtual INT16  GetMouseDZ( void ) const;
-	virtual bool  IsButtonDown( Mouse mouseButton ) const;
-	virtual bool  IsButtonUp( Mouse mouseButton ) const;
-	virtual bool  IsButtonClicked( Mouse mouseButton );
-	virtual const IGamepadList *  GetGamepads() const;
+	void ShowCursor( bool show ) override;
+	bool  IsKeyDown( UINT16 key ) const override;
+	bool  IsKeyUp( UINT16 key ) const override;
+	bool  IsKeyPress( UINT16 key ) const override;
+	INT32  GetMouseX( void ) const override;
+	INT32  GetMouseY( void ) const override;
+	INT32  GetMouseDX( void ) const override;
+	INT32  GetMouseDY( void ) const override;
+	INT16  GetMouseDZ( void ) const override;
+	bool  IsButtonDown( Mouse mouseButton ) const override;
+	bool  IsButtonUp( Mouse mouseButton ) const override;
+	bool  IsButtonClicked( Mouse mouseButton ) override;
+	const IGamepadList *  GetGamepads() const override;
 
 private:
 	boost::mutex _simMutex;

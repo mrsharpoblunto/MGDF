@@ -36,7 +36,7 @@ OpenALSoundSystem *OpenALSoundSystem::Instance()
 }
 
 /**
-initialise the openAL sound system
+initialise the openAL sound 
 */
 OpenALSoundSystem::OpenALSoundSystem()
 {
@@ -77,6 +77,7 @@ OpenALSoundSystem::OpenALSoundSystem()
 
 bool OpenALSoundSystem::AcquireSource( ALuint *source )
 {
+	_ASSERTE( source );
 	size_t freeSources = GetFreeSources();
 	if ( freeSources > 0 ) {
 		ALuint freeSource = _freeSources.top();
@@ -111,7 +112,7 @@ void OpenALSoundSystem::ReleaseSource( ALuint source )
 }
 
 /**
-uninitialise the openAL sound system
+uninitialise the openAL sound 
 */
 OpenALSoundSystem::~OpenALSoundSystem()
 {

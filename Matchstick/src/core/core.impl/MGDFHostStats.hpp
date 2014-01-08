@@ -18,14 +18,14 @@ struct Timings {
 	double ExpectedSimTime;
 };
 
-class SystemStats
+class HostStats
 {
 public:
-	SystemStats( UINT32 maxSamples );
-	virtual ~SystemStats() {};
+	HostStats( UINT32 maxSamples );
+	virtual ~HostStats() {};
 
-	void GetTimings( Timings &timings );
-	double ExpectedSimTime();
+	void GetTimings( Timings &timings ) const;
+	double ExpectedSimTime() const;
 
 	void AppendRenderTimes( double renderValue, double activeRenderValue );
 	void SetExpectedSimTime( double value );
@@ -33,7 +33,7 @@ public:
 	void AppendSimTime( double value );
 	void AppendSimInputAndAudioTimes( double inputValue, double audioValue );
 private:
-	boost::mutex _statsMutex;
+	mutable boost::mutex _statsMutex;
 	UINT32 _maxSamples;
 	double _expectedSimTime;
 

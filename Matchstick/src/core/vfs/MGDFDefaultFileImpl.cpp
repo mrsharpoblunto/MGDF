@@ -24,34 +24,39 @@ DefaultFileImpl::DefaultFileImpl( const std::wstring &name, const std::wstring &
 	, _errorHandler( handler )
 	, _filesize( 0 )
 {
+	_ASSERTE( handler );
 }
 
 DefaultFileImpl::~DefaultFileImpl( void )
 {
-	CloseFile();
+	Close();
 }
 
-bool DefaultFileImpl::OpenFile()
+MGDFError DefaultFileImpl::OpenFile( IFileReader **reader )
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	if ( !_fileStream ) {
 		_fileStream = new std::ifstream( _path.c_str(), std::ios::in | std::ios::binary | std::ios::ate );
+
 		if ( _fileStream && !_fileStream->bad() && _fileStream->is_open() ) {
 			_filesize = _fileStream->tellg();
 			_fileStream->seekg( 0, std::ios::beg );
-			return true;
+			*reader = this;
+			return MGDF_OK;
 		} else {
 			delete _fileStream;
 			_fileStream = nullptr;
-
-			LOG( "Unable to open file stream", LOG_ERROR );
-			SETLASTERROR( _errorHandler, MGDF_ERR_INVALID_FILE, "Unable to open file stream" );
+			LOG( "Unable to open file stream for " << _path.c_str(), LOG_ERROR );
+			return MGDF_ERR_INVALID_FILE;
 		}
 	}
-	return false;
+	LOG( "File " << _path.c_str() << " currently in use", LOG_ERROR );
+	return MGDF_ERR_FILE_IN_USE;
 }
 
-void DefaultFileImpl::CloseFile()
+void DefaultFileImpl::Close()
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	if ( _fileStream ) {
 		_fileStream->close();
 		delete _fileStream;
@@ -95,19 +100,8 @@ bool DefaultFileImpl::EndOfFile() const
 	}
 }
 
-INT64 DefaultFileImpl::GetSize()
+INT64 DefaultFileImpl::GetSize() const
 {
-	if ( _filesize == 0 ) {
-		std::ifstream stream( _path.c_str(), std::ios::in | std::ios::binary | std::ios::ate );
-		if ( !stream.bad() && stream.is_open() ) {
-			_filesize = stream.tellg();
-			stream.close();
-		} else {
-			LOG( "Unable to open file stream", LOG_ERROR );
-			SETLASTERROR( _errorHandler, MGDF_ERR_INVALID_FILE, "Unable to open file stream" );
-		}
-	}
-
 	return _filesize;
 }
 

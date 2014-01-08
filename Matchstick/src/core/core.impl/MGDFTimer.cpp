@@ -22,6 +22,8 @@ CPUPerformanceCounter::CPUPerformanceCounter( const char *name, Timer *timer )
 	, _avg( 0 )
 	, _timer( timer )
 {
+	_ASSERTE( name );
+	_ASSERTE( timer );
 }
 
 void CPUPerformanceCounter::Dispose()
@@ -79,6 +81,8 @@ GPUPerformanceCounter::GPUPerformanceCounter( const char *name, Timer *timer )
 	, _avg( 0 )
 	, _initialized( 0 )
 {
+	_ASSERTE( name );
+	_ASSERTE( timer );
 	Init();
 }
 
@@ -103,6 +107,15 @@ void GPUPerformanceCounter::End()
 	if ( _initialized < _timer->_bufferSize ) {
 		_initialized++;
 	}
+}
+
+void GPUPerformanceCounter::Reinit()
+{
+	_avg = 0;
+	_initialized = 0;
+	_samples.clear();
+	Uninit();
+	Init();
 }
 
 void GPUPerformanceCounter::Init()
@@ -174,7 +187,7 @@ Timer::Timer()
 {
 	timeBeginPeriod( 1 );  //set a higher resolution for timing calls
 
-	// exit if the system does not support a high performance timer
+	// exit if the  does not support a high performance timer
 	if ( !QueryPerformanceFrequency( &_freq ) ) {
 		LOG( "High performance timer unsupported", LOG_ERROR );
 		throw MGDFException( "High performance timer unsupported" );
@@ -192,14 +205,30 @@ Timer::~Timer( void )
 		delete _gpuCounters.back();
 	}
 
+	UninitGPUTimer();
+}
+
+void Timer::UninitGPUTimer()
+{
+	
 	for ( auto iter = _disjointQueries.begin(); iter != _disjointQueries.end(); ++iter ) {
 		SAFE_RELEASE( *iter );
 	}
+	_disjointQueries.clear();
 	SAFE_RELEASE( _context );
 }
 
-void Timer::InitGPUTimer( ID3D11Device *device, UINT32 bufferSize, INT32 frameSamples )
+
+void Timer::InitFromDevice( ID3D11Device *device, UINT32 bufferSize, INT32 frameSamples )
 {
+	_ASSERTE( device );
+
+	if ( _device ) {
+		// if a device is reset, then we need to 
+		// clean up any old counters and contexts
+		UninitGPUTimer();
+	}
+
 	_device = device;
 	device->GetImmediateContext( &_context );
 	_bufferSize = bufferSize;
@@ -218,6 +247,10 @@ void Timer::InitGPUTimer( ID3D11Device *device, UINT32 bufferSize, INT32 frameSa
 			break;
 		}
 		_disjointQueries.push_back( query );
+	}
+
+	for (auto gpuCounter : _gpuCounters ) {
+		gpuCounter->Reinit();
 	}
 }
 
@@ -241,6 +274,8 @@ double Timer::ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER o
 
 IPerformanceCounter *Timer::CreateCPUCounter( const char *name )
 {
+	if ( !name ) return nullptr;
+
 	CPUPerformanceCounter *counter = new CPUPerformanceCounter( name, this );
 
 	boost::mutex::scoped_lock lock( _mutex );
@@ -250,8 +285,7 @@ IPerformanceCounter *Timer::CreateCPUCounter( const char *name )
 
 IPerformanceCounter *Timer::CreateGPUCounter( const char *name )
 {
-
-	if ( !_gpuTimersSupported ) return nullptr;
+	if ( !_gpuTimersSupported || !name ) return nullptr;
 	GPUPerformanceCounter *counter = new GPUPerformanceCounter( name, this );
 
 	boost::mutex::scoped_lock lock( _mutex );
@@ -261,6 +295,7 @@ IPerformanceCounter *Timer::CreateGPUCounter( const char *name )
 
 void Timer::RemoveCounter( IPerformanceCounter *counter )
 {
+	if ( !counter ) return;
 	CPUPerformanceCounter *cpuCounter = dynamic_cast<CPUPerformanceCounter *>( counter );
 
 	boost::mutex::scoped_lock lock( _mutex );
@@ -310,7 +345,7 @@ void Timer::End()
 	if ( _gpuTimersSupported ) _context->End( _disjointQueries[_currentFrame] );
 }
 
-void Timer::GetCounterInformation( std::stringstream &outputStream )
+void Timer::GetCounterInformation( std::wstringstream &outputStream ) const
 {
 	boost::mutex::scoped_lock lock( _mutex );
 

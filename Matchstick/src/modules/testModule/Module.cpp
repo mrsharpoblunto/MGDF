@@ -23,16 +23,14 @@ Module::~Module( void )
 	if ( _testModuleCounter ) _testModuleCounter->Dispose();
 }
 
-Module::Module( ISystem *system )
+Module::Module( )
 	: _textManagerCounter( nullptr )
 	, _testModuleCounter( nullptr )
 {
-	_system = system;
-	_textManager = new TextManager( system );
 	_stateBuffer.Pending()->AddLine( "MGDF functional test suite started" );
 }
 
-bool Module::New( const wchar_t *workingFolder )
+bool Module::STNew( ISimHost* host, const wchar_t *workingFolder )
 {
 	_workingFolder = workingFolder;
 	_testModule = new Test1();
@@ -40,20 +38,14 @@ bool Module::New( const wchar_t *workingFolder )
 	return true;
 }
 
-bool Module::Dispose( void )
-{
-	delete this;
-	return true;
-}
-
-bool Module::UpdateScene( double elapsedTime )
+bool Module::STUpdate( ISimHost* host, double elapsedTime )
 {
 	if ( !_testModuleCounter ) {
-		_testModuleCounter = _system->GetTimer()->CreateCPUCounter( "Test Module" );
+		_testModuleCounter = host->GetTimer()->CreateCPUCounter( "Test Module" );
 	}
 
 	_testModuleCounter->Begin();
-	_testModule->Update( _system, _stateBuffer.Pending() );
+	_testModule->Update( host, _stateBuffer.Pending() );
 
 	TestModule *next = _testModule->NextTestModule();
 	if ( next != nullptr ) {
@@ -66,14 +58,28 @@ bool Module::UpdateScene( double elapsedTime )
 	return true;
 }
 
-bool Module::DrawScene( double alpha )
+void Module::STShutDown( ISimHost* host )
+{
+	host->ShutDown();
+}
+
+bool Module::STDispose( ISimHost* host )
+{
+	delete this;
+	return true;
+}
+
+bool Module::RTBeforeFirstDraw( MGDF::IRenderHost *host )
+{
+	_textManager = new TextManager( host );
+	_textManagerCounter = host->GetRenderTimer()->CreateGPUCounter( "Text Rendering" );
+	return true;
+}
+
+bool Module::RTDraw( IRenderHost* host, double alpha )
 {
 	boost::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate( alpha );
 	if ( state ) {
-		if ( !_textManagerCounter ) {
-			_textManagerCounter = _system->GetTimer()->CreateGPUCounter( "Text Rendering" );
-		}
-
 		if ( _textManagerCounter ) _textManagerCounter->Begin();
 		_textManager->SetState( state );
 		_textManager->DrawText();
@@ -82,24 +88,32 @@ bool Module::DrawScene( double alpha )
 	return true;
 }
 
-bool Module::BackBufferChanged()
+bool Module::RTBackBufferChange( IRenderHost* host )
 {
-	_textManager->BackBufferChanged();
+	_textManager->BackBufferChange();
 	return true;
 }
 
-void Module::ShutDown()
+
+bool Module::RTBeforeBackBufferChange( IRenderHost* host )
 {
-	_system->ShutDown();
+	_textManager->BeforeBackBufferChange();
+	return true;
+}
+
+bool Module::RTBeforeDeviceReset( IRenderHost* host )
+{
+	_textManager->BeforeDeviceReset();
+	return true;
+}
+
+bool Module::RTDeviceReset( IRenderHost* host )
+{
+	return true;
 }
 
 void Module::Panic()
 {
-}
-
-const char * Module::GetLastError()
-{
-	return _lastError.c_str();
 }
 
 }

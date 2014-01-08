@@ -35,9 +35,14 @@ time_t FileBaseImpl::GetLastWriteTime() const
 	return boost::filesystem::last_write_time( path );
 }
 
-IFile *FileBaseImpl::GetChild( const wchar_t * name )
+IFile *FileBaseImpl::GetChild( const wchar_t * name ) const
 {
-	if ( !_children || !name ) return nullptr;
+	if ( !name ) return nullptr;
+
+	{
+		boost::mutex::scoped_lock lock( _mutex );
+		if ( !_children ) return nullptr;
+	}
 
 	auto it = _children->find( name );
 	if ( it != _children->end() ) {
@@ -46,11 +51,19 @@ IFile *FileBaseImpl::GetChild( const wchar_t * name )
 	return nullptr;
 }
 
-bool FileBaseImpl::GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength )
+bool FileBaseImpl::GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const
 {
-	if ( !_children || !bufferLength ) {
+	if ( !bufferLength ) {
 		*bufferLength = 0;
-		return 0;
+		return false;
+	}
+
+	{
+		boost::mutex::scoped_lock lock( _mutex );
+		if ( !_children ) {
+			*bufferLength = 0;
+			return false;
+		}
 	}
 
 	size_t size = 0;
@@ -75,10 +88,11 @@ void FileBaseImpl::AddChild( IFile *file )
 	_children->insert( std::pair<const wchar_t *, IFile *> ( file->GetName(), file ) );
 }
 
-const wchar_t *FileBaseImpl::GetLogicalPath()
+const wchar_t *FileBaseImpl::GetLogicalPath() const
 {
-	if ( _logicalPath.empty() && this->GetParent() ) {
+	boost::mutex::scoped_lock lock( _mutex );
 
+	if ( _logicalPath.empty() && this->GetParent() ) {
 		std::vector<const IFile *> path;
 		const IFile *node = this;
 		while ( node ) {
@@ -93,6 +107,7 @@ const wchar_t *FileBaseImpl::GetLogicalPath()
 		}
 		_logicalPath = ss.str();
 	}
+
 	return _logicalPath.c_str();
 }
 

@@ -71,7 +71,7 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
             const string gameContent = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""0.1"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",
@@ -95,7 +95,7 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
             const string gmeContent = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""0.1"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",
@@ -120,7 +120,7 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
             const string gmeContent = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""0.1"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",
@@ -157,7 +157,7 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
             const string gmeContent = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""0.1"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",

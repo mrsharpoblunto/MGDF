@@ -11,7 +11,7 @@ namespace core
 {
 
 /**
-this class provides a single repository for MGDF system components based on the servicelocator pattern
+this class provides a single repository for MGDF  components based on the servicelocator pattern
 */
 class Components
 {

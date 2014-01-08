@@ -170,16 +170,16 @@
   <ItemGroup>
     <ClCompile Include="MGDFGameBuilder.cpp" />
     <ClCompile Include="MGDFGameImpl.cpp" />
-    <ClCompile Include="MGDFGraphicsManagerImpl.cpp" />
+    <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp" />
     <ClCompile Include="MGDFModuleFactory.cpp" />
     <ClCompile Include="MGDFStatisticsManagerImpl.cpp" />
-    <ClCompile Include="MGDFSystemBuilder.cpp" />
-    <ClCompile Include="MGDFSystemImpl.cpp" />
+    <ClCompile Include="MGDFHostBuilder.cpp" />
+    <ClCompile Include="MGDFHostImpl.cpp" />
     <ClCompile Include="MGDFCurrentDirectoryHelper.cpp" />
     <ClCompile Include="MGDFComponents.cpp" />
     <ClCompile Include="MGDFParameterConstants.cpp" />
     <ClCompile Include="MGDFPreferenceConstants.cpp" />
-    <ClCompile Include="MGDFSystemStats.cpp" />
+    <ClCompile Include="MGDFHostStats.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -191,16 +191,16 @@
   <ItemGroup>
     <ClInclude Include="MGDFGameBuilder.hpp" />
     <ClInclude Include="MGDFGameImpl.hpp" />
-    <ClInclude Include="MGDFGraphicsManagerImpl.hpp" />
+    <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp" />
     <ClInclude Include="MGDFModuleFactory.hpp" />
     <ClInclude Include="MGDFStatisticsManagerImpl.hpp" />
-    <ClInclude Include="MGDFSystemBuilder.hpp" />
-    <ClInclude Include="MGDFSystemImpl.hpp" />
+    <ClInclude Include="MGDFHostBuilder.hpp" />
+    <ClInclude Include="MGDFHostImpl.hpp" />
     <ClInclude Include="MGDFCurrentDirectoryHelper.hpp" />
     <ClInclude Include="MGDFComponents.hpp" />
     <ClInclude Include="MGDFParameterConstants.hpp" />
     <ClInclude Include="MGDFPreferenceConstants.hpp" />
-    <ClInclude Include="MGDFSystemStats.hpp" />
+    <ClInclude Include="MGDFHostStats.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

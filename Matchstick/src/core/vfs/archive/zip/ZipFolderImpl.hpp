@@ -25,15 +25,15 @@ public:
 	}
 	virtual ~ZipFolderImpl();
 
-	virtual bool IsArchive() const {
+	bool IsArchive() const override {
 		return true;
 	}
 
-	virtual const wchar_t *GetArchiveName() const {
+	const wchar_t *GetArchiveName() const override {
 		return _handler->GetArchiveRoot()->GetName();
 	}
 
-	virtual time_t GetLastWriteTime() const {
+	time_t GetLastWriteTime() const override {
 		return _handler->GetArchiveRoot()->GetLastWriteTime();
 	}
 

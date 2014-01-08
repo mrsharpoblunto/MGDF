@@ -1,5 +1,5 @@
 #include "StdAfx.h"
-#include "MGDFSystemStats.hpp"
+#include "MGDFHostStats.hpp"
 
 
 namespace MGDF
@@ -7,7 +7,7 @@ namespace MGDF
 namespace core
 {
 
-SystemStats::SystemStats( UINT32 maxSamples )
+HostStats::HostStats( UINT32 maxSamples )
 	: _avgActiveRenderTime( 0 )
 	, _avgRenderTime( 0 )
 	, _avgActiveSimTime( 0 )
@@ -18,7 +18,7 @@ SystemStats::SystemStats( UINT32 maxSamples )
 	_maxSamples = maxSamples;
 }
 
-void SystemStats::GetTimings( Timings &timings )
+void HostStats::GetTimings( Timings &timings ) const
 {
 	boost::mutex::scoped_lock lock( _statsMutex );
 	timings.AvgActiveRenderTime = _avgActiveRenderTime;
@@ -30,43 +30,43 @@ void SystemStats::GetTimings( Timings &timings )
 	timings.ExpectedSimTime = _expectedSimTime;
 }
 
-void SystemStats::SetExpectedSimTime( double value )
+void HostStats::SetExpectedSimTime( double value )
 {
 	_expectedSimTime = value;
 }
 
-double SystemStats::ExpectedSimTime()
+double HostStats::ExpectedSimTime() const
 {
 	return _expectedSimTime;
 }
 
-void SystemStats::AppendRenderTimes( double renderValue, double activeRenderValue )
+void HostStats::AppendRenderTimes( double renderValue, double activeRenderValue )
 {
 	boost::mutex::scoped_lock lock( _statsMutex );
 	Append( renderValue, _avgRenderTime, _renderTime );
 	Append( activeRenderValue, _avgActiveRenderTime, _activeRenderTime );
 }
 
-void SystemStats::AppendActiveSimTime( double value )
+void HostStats::AppendActiveSimTime( double value )
 {
 	boost::mutex::scoped_lock lock( _statsMutex );
 	Append( value - *_simInputTime.begin() - *_simAudioTime.begin(), _avgActiveSimTime, _activeSimTime );
 }
 
-void SystemStats::AppendSimTime( double value )
+void HostStats::AppendSimTime( double value )
 {
 	boost::mutex::scoped_lock lock( _statsMutex );
 	Append( value, _avgSimTime, _simTime );
 }
 
-void SystemStats::AppendSimInputAndAudioTimes( double inputValue, double audioValue )
+void HostStats::AppendSimInputAndAudioTimes( double inputValue, double audioValue )
 {
 	boost::mutex::scoped_lock lock( _statsMutex );
 	Append( inputValue, _avgSimInputTime, _simInputTime );
 	Append( audioValue, _avgSimAudioTime, _simAudioTime );
 }
 
-void SystemStats::Append( double value, double &averageValue, std::list<double> &list )
+void HostStats::Append( double value, double &averageValue, std::list<double> &list )
 {
 	list.push_front( value );
 	averageValue += ( value / _maxSamples );

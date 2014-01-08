@@ -25,20 +25,25 @@ namespace zip
 
 ZipFileImpl::~ZipFileImpl()
 {
-	CloseFile();
+	Close();
 }
 
-bool ZipFileImpl::OpenFile()
+MGDFError ZipFileImpl::OpenFile( IFileReader **reader )
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	if ( !_isOpen ) {
-		_isOpen = _handler->GetFileData( _header, _data );
-		return _isOpen;
+		MGDFError result = _handler->GetFileData( _header, _data );
+		if ( result == MGDF_OK ) {
+			*reader = this;
+		}
+		return result;
 	}
-	return false;
+	return MGDF_ERR_FILE_IN_USE;
 }
 
-void ZipFileImpl::CloseFile()
+void ZipFileImpl::Close()
 {
+	boost::mutex::scoped_lock lock( _mutex );
 	if ( _isOpen ) {
 		free( _data.data );
 		_isOpen = false;
@@ -47,6 +52,8 @@ void ZipFileImpl::CloseFile()
 
 UINT32 ZipFileImpl::Read( void* buffer, UINT32 length )
 {
+	if ( !buffer ) return 0;
+
 	UINT32 maxRead = 0;
 	if ( _isOpen ) {
 		maxRead = std::min<UINT32> ( length, static_cast<UINT32>( _header.size - _data.readPosition ) );

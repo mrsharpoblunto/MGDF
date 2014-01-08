@@ -13,7 +13,7 @@ class StatisticsManager: public IStatisticsManager
 public:
 	StatisticsManager();
 	virtual ~StatisticsManager();
-	virtual void SaveStatistic( const char * name, const char *  value );
+	void SaveStatistic( const char * name, const char *  value ) override;
 private:
 	std::vector<std::pair<std::string,std::string> > _saveBuffer;
 	std::wstring _statisticsFile;

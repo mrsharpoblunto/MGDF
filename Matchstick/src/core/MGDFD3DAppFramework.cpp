@@ -8,7 +8,6 @@
 #include "common/MGDFExceptions.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"
-#include "core.impl/MGDFSystemImpl.hpp"
 
 
 #if defined(_DEBUG)
@@ -21,11 +20,13 @@ namespace MGDF
 namespace core
 {
 
+#define DONT_SWITCH_MODE 0U
+#define SWITCH_TO_FULLSCREEN_MODE 1U
+#define SWITCH_TO_WINDOWED_MODE 2U
 #define WINDOW_CLASS_NAME "MGDFD3DAppFrameworkWindowClass"
 
 D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
-	: _stats( TIMER_SAMPLES )
-	, _applicationInstance( hInstance )
+	: _applicationInstance( hInstance )
 	, _window( nullptr )
 	, _swapChain( nullptr )
 	, _factory( nullptr )
@@ -35,14 +36,22 @@ D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
 	, _renderTargetView( nullptr )
 	, _depthStencilView( nullptr )
 	, _depthStencilBuffer( nullptr )
-	, _minimized( false )
 	, _maximized( false )
 	, _resizing( false )
+	, _awaitingResize( false )
 	, _renderThread( nullptr )
 	, _internalShutDown( false )
+	, _levels( nullptr )
+	, _levelsSize( 0 )
 {
-	_drawSystemOverlay.store( false );
+	_minimized.store( false );
 	_resize.store( false );
+	_screenMode.store( 0U );
+
+	ZeroMemory( &_windowRect, sizeof( RECT ) );
+	ZeroMemory( &_currentSize, sizeof( POINT ) );
+	ZeroMemory( &_swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC1) );
+	ZeroMemory( &_fullscreenSwapDesc, sizeof(DXGI_SWAP_CHAIN_FULLSCREEN_DESC) );
 }
 
 D3DAppFramework::~D3DAppFramework()
@@ -61,44 +70,15 @@ D3DAppFramework::~D3DAppFramework()
 		_swapChain->SetFullscreenState( false, nullptr );
 	}
 
-	SAFE_RELEASE( _backBuffer );
-	SAFE_RELEASE( _renderTargetView );
-	SAFE_RELEASE( _depthStencilView );
-	SAFE_RELEASE( _depthStencilBuffer );
-	SAFE_RELEASE( _swapChain );
-	SAFE_RELEASE( _factory );
-	SAFE_RELEASE( _immediateContext );
-	SAFE_RELEASE( _d3dDevice );
-	SAFE_RELEASE( _context );
-	SAFE_RELEASE( _d2dDevice );
+	UninitD3D();
+	delete[] _levels;
 }
 
-HINSTANCE D3DAppFramework::GetApplicationInstance()
-{
-	return _applicationInstance;
-}
-
-HWND D3DAppFramework::GetWindow()
-{
-	return _window;
-}
-
-ID3D11Device *D3DAppFramework::GetD3DDevice() const
-{
-	return _d3dDevice;
-}
-
-void D3DAppFramework::InitDirect3D( const std::string &caption, WNDPROC windowProcedure, D3D_FEATURE_LEVEL *levels, UINT32 levelsSize )
-{
-	InitMainWindow( caption, windowProcedure );
-	InitRawInput();
-	InitD3D( levels, levelsSize );
-}
-
-void D3DAppFramework::InitMainWindow( const std::string &caption, WNDPROC windowProcedure )
+void D3DAppFramework::InitWindow( const std::string &caption, WNDPROC windowProcedure )
 {
 	//if the window has not already been created
-	if ( _window == nullptr ) {
+	if ( !_window ) {
+		LOG( "Initializing window...", LOG_LOW );
 		WNDCLASS wc;
 		wc.style         = CS_HREDRAW | CS_VREDRAW;
 		wc.lpfnWndProc   = windowProcedure;
@@ -107,7 +87,7 @@ void D3DAppFramework::InitMainWindow( const std::string &caption, WNDPROC window
 		wc.hInstance     = _applicationInstance;
 		wc.hIcon         = LoadIcon( 0, IDI_APPLICATION );
 		wc.hCursor       = LoadCursor( 0, IDC_ARROW );
-		wc.hbrBackground = ( HBRUSH ) GetStockObject( WHITE_BRUSH );
+		wc.hbrBackground = ( HBRUSH ) GetStockObject( BLACK_BRUSH );
 		wc.lpszMenuName  = 0;
 		wc.lpszClassName = WINDOW_CLASS_NAME;
 
@@ -115,25 +95,49 @@ void D3DAppFramework::InitMainWindow( const std::string &caption, WNDPROC window
 			FATALERROR( this, "RegisterClass FAILED" );
 		}
 
-		RECT R = {0, 0, Resources::MIN_SCREEN_X, Resources::MIN_SCREEN_Y};
-		AdjustWindowRect( &R, WS_OVERLAPPEDWINDOW, false );
-		INT32 width  = R.right - R.left;
-		INT32 height = R.bottom - R.top;
+		_windowRect.top = 0;
+		_windowRect.left = 0;
+		_windowRect.right = Resources::MIN_SCREEN_X;
+		_windowRect.bottom = Resources::MIN_SCREEN_Y;
+
+		auto windowStyle = WindowResizingEnabled() ? WS_OVERLAPPEDWINDOW : WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
+
+		if ( !AdjustWindowRect( &_windowRect, windowStyle, false ) ) {
+			FATALERROR( this, "AdjustWindowRect FAILED" );
+		}
+
+		INT32 width  = _windowRect.right - _windowRect.left;
+		INT32 height = _windowRect.bottom - _windowRect.top;
 
 		_window = CreateWindow( WINDOW_CLASS_NAME, caption.c_str(),
-		                        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, _applicationInstance, 0 );
-
+		                        windowStyle, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, _applicationInstance, 0 ); 
+		
 		if ( !_window ) {
 			FATALERROR( this, "CreateWindow FAILED" );
 		}
 
 		ShowWindow( _window, SW_SHOW );
-		UpdateWindow( _window );
+		if ( !UpdateWindow( _window ) ) {
+			FATALERROR( this, "UpdateWindow FAILED" );
+		}
+
+		InitRawInput();
+
+		LOG( "Getting compatible D3D feature levels...", LOG_LOW );
+		_levels = nullptr;
+		_levelsSize = 0;
+		if ( GetCompatibleD3DFeatureLevels( _levels, &_levelsSize ) ) {
+			_levels = new D3D_FEATURE_LEVEL[_levelsSize];
+			GetCompatibleD3DFeatureLevels( _levels, &_levelsSize );
+		}
+
+		InitD3D();
 	}
 }
 
 void D3DAppFramework::InitRawInput()
 {
+	LOG( "Initializing Raw Input...", LOG_LOW );
 	RAWINPUTDEVICE Rid[2] ;
 
 	Rid[0].usUsagePage = 0x01 ;  // desktop input
@@ -151,130 +155,172 @@ void D3DAppFramework::InitRawInput()
 	}
 }
 
-void D3DAppFramework::InitD3D( D3D_FEATURE_LEVEL *levels, UINT32 levelsSize )
+void D3DAppFramework::InitD3D()
 {
-	if ( _window != nullptr ) {
-		UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+	LOG( "Initializing Direct3D...", LOG_LOW );
+	UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #if defined(DEBUG) || defined(_DEBUG)
-		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-		if ( FAILED( CreateDXGIFactory1( __uuidof( IDXGIFactory1 ), ( void** ) &_factory ) ) ) {
-			FATALERROR( this, "Failed to create IDXGIFactory." );
-		}
+	IDXGIFactory1 *tempFactory;
+	if ( FAILED( CreateDXGIFactory1( __uuidof( IDXGIFactory1 ), ( void** ) &tempFactory ) ) ) {
+		FATALERROR( this, "Failed to create IDXGIFactory1." );
+	}
+	if ( FAILED( tempFactory->QueryInterface( __uuidof( IDXGIFactory2 ), ( void **) &_factory ) ) ) {
+		FATALERROR( this, "Failed to query IDXGIFactory1 for IDXGIFactory2." );
+	}
+	SAFE_RELEASE( tempFactory );
 
-		IDXGIAdapter1 *adapter = nullptr;
-		IDXGIAdapter1 *bestAdapter = nullptr;
-		char videoCardDescription[128];
-		DXGI_ADAPTER_DESC1 adapterDesc;
-		size_t stringLength;
+	IDXGIAdapter1 *adapter = nullptr;
+	IDXGIAdapter1 *bestAdapter = nullptr;
+	char videoCardDescription[128];
+	DXGI_ADAPTER_DESC1 adapterDesc;
+	size_t stringLength;
 
-		// step through the adapters and ensure we use the best one to create our device
-		for ( INT32 i = 0; _factory->EnumAdapters1( i, &adapter ) != DXGI_ERROR_NOT_FOUND; i++ ) {
-			adapter->GetDesc1( &adapterDesc );
-			size_t length = wcslen( adapterDesc.Description );
-			INT32 error = wcstombs_s( &stringLength, videoCardDescription, 128, adapterDesc.Description, length );
-			std::string message( videoCardDescription, videoCardDescription + length );
-			message.insert( 0, "Attempting to create device for adapter " );
-			LOG( message, LOG_LOW );
+	// step through the adapters and ensure we use the best one to create our device
+	LOG( "Enumerating display adapters...", LOG_LOW );
+	for ( INT32 i = 0; _factory->EnumAdapters1( i, &adapter ) != DXGI_ERROR_NOT_FOUND; i++ ) {
+		adapter->GetDesc1( &adapterDesc );
+		size_t length = wcslen( adapterDesc.Description );
+		INT32 error = wcstombs_s( &stringLength, videoCardDescription, 128, adapterDesc.Description, length );
+		std::string message( videoCardDescription, videoCardDescription + length );
+		message.insert( 0, "Attempting to create device for adapter " );
+		LOG( message, LOG_LOW );
 
-			D3D_FEATURE_LEVEL featureLevel;
-			ID3D11Device *device = nullptr;
-			ID3D11DeviceContext *context = nullptr;
+		D3D_FEATURE_LEVEL featureLevel;
+		ID3D11Device *device = nullptr;
+		ID3D11DeviceContext *context = nullptr;
 
-			if ( FAILED( D3D11CreateDevice(
-			                 adapter,
-			                 D3D_DRIVER_TYPE_UNKNOWN,// as we're specifying an adapter to use, we must specify that the driver type is unknown!!!
-			                 0, // no software device
-			                 createDeviceFlags,
-			                 levels, levelsSize,  // default feature level array
-			                 D3D11_SDK_VERSION,
-			                 &device,
-			                 &featureLevel,
-			                 &context ) ) ||
-			        featureLevel == 0 ) {
-				//if we couldn't create the device, or it doesn't support one of our specified feature sets
+		if ( FAILED( D3D11CreateDevice(
+			                adapter,
+			                D3D_DRIVER_TYPE_UNKNOWN,// as we're specifying an adapter to use, we must specify that the driver type is unknown!!!
+			                0, // no software device
+			                createDeviceFlags,
+			                _levels, _levelsSize,  // default feature level array
+			                D3D11_SDK_VERSION,
+			                &device,
+			                &featureLevel,
+			                &context ) ) ||
+			    featureLevel == 0 ) {
+			//if we couldn't create the device, or it doesn't support one of our specified feature sets
+			SAFE_RELEASE( context );
+			SAFE_RELEASE( device );
+			SAFE_RELEASE( adapter );
+		} else {
+			//this is the first acceptable adapter, or the best one so far
+			if ( _d3dDevice == nullptr || featureLevel > _d3dDevice->GetFeatureLevel() ) {
+				//clear out the previous best adapter
+				SAFE_RELEASE( _immediateContext );
+				SAFE_RELEASE( _d3dDevice );
+				SAFE_RELEASE( bestAdapter );
+
+				//store the new best adapter
+				bestAdapter = adapter;
+				_d3dDevice = device;
+				_immediateContext = context;
+				LOG( "Adapter is the best found so far", LOG_LOW );
+			}
+			//this adapter is no better than what we already have, so ignore it
+			else {
 				SAFE_RELEASE( context );
 				SAFE_RELEASE( device );
 				SAFE_RELEASE( adapter );
-			} else {
-				//this is the first acceptable adapter, or the best one so far
-				if ( _d3dDevice == nullptr || featureLevel > _d3dDevice->GetFeatureLevel() ) {
-					//clear out the previous best adapter
-					SAFE_RELEASE( _immediateContext );
-					SAFE_RELEASE( _d3dDevice );
-					SAFE_RELEASE( bestAdapter );
-
-					//store the new best adapter
-					bestAdapter = adapter;
-					_d3dDevice = device;
-					_immediateContext = context;
-					LOG( "Adapter is the best found so far", LOG_LOW );
-				}
-				//this adapter is no better than what we already have, so ignore it
-				else {
-					SAFE_RELEASE( context );
-					SAFE_RELEASE( device );
-					SAFE_RELEASE( adapter );
-					LOG( "A better adapter has already been found - Ignoring", LOG_LOW );
-				}
+				LOG( "A better adapter has already been found - Ignoring", LOG_LOW );
 			}
 		}
+	}
 
-		if ( !_d3dDevice ) {
-			FATALERROR( this, "No adapters found supporting The specified D3D Feature set" );
-		} else {
-			LOG( "Created device with D3D Feature level: " << _d3dDevice->GetFeatureLevel(), LOG_LOW );
-		}
+	if ( !_d3dDevice ) {
+		FATALERROR( this, "No adapters found supporting The specified D3D Feature set" );
+	} else {
+		LOG( "Created device with D3D Feature level: " << _d3dDevice->GetFeatureLevel(), LOG_LOW );
+	}
 
-		D2D1_FACTORY_OPTIONS options;
+	D2D1_FACTORY_OPTIONS options;
 #if defined(DEBUG) || defined(_DEBUG)
-		options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+	options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 #else
-		options.debugLevel = D2D1_DEBUG_LEVEL_NONE;
+	options.debugLevel = D2D1_DEBUG_LEVEL_NONE;
 #endif
 
-		ID2D1Factory1 *d2dFactory;
-		if ( FAILED( D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, options,&d2dFactory ) ) ) {
-			FATALERROR( this, "Unable to create ID2DFactory1" );
-		}
-
-		IDXGIDevice1 *dxgiDevice;
-		if ( FAILED(_d3dDevice->QueryInterface<IDXGIDevice1>(&dxgiDevice))) {
-			FATALERROR( this, "Unable to acquire IDXGIDevice from ID3D11Device" );
-		}
-
-		if ( FAILED( d2dFactory->CreateDevice( dxgiDevice, &_d2dDevice ) )) {
-			FATALERROR( this, "Unable to create ID2D1Device" );
-		}
-
-		if ( FAILED( _d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,&_context))) {
-			FATALERROR( this, "Unable to create ID2D1DeviceContext" );
-		}
-
-		OnInit( _d3dDevice, _d2dDevice, bestAdapter );
-		SAFE_RELEASE( bestAdapter );
-
-		SAFE_RELEASE( dxgiDevice );
-		SAFE_RELEASE( d2dFactory );
-
-		OnResetSwapChain( &_swapDesc, nullptr );
-		_swapDesc.OutputWindow = _window;
-
-		CreateSwapChain();
-		OnResize();
+	if ( FAILED( D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, options,&_d2dFactory ) ) ) {
+		FATALERROR( this, "Unable to create ID2DFactory1" );
 	}
+
+	IDXGIDevice1 *dxgiDevice;
+	if ( FAILED(_d3dDevice->QueryInterface<IDXGIDevice1>(&dxgiDevice))) {
+		FATALERROR( this, "Unable to acquire IDXGIDevice from ID3D11Device" );
+	}
+
+	if ( FAILED( _d2dFactory->CreateDevice( dxgiDevice, &_d2dDevice ) )) {
+		FATALERROR( this, "Unable to create ID2D1Device" );
+	}
+
+	IDXGIOutput *output;
+	if ( FAILED( bestAdapter->EnumOutputs( 0, &output ) ) ) {
+		return;
+	}
+	if ( FAILED( output->QueryInterface( __uuidof(IDXGIOutput1), (void **)&_output ) ) ) {
+		FATALERROR( this, "Unable to query IDXGIOutput for IDXGIOutput1" );		
+	}
+	SAFE_RELEASE( output );
+
+	OnInitDevices( _d3dDevice, _d2dDevice, bestAdapter );
+	SAFE_RELEASE( bestAdapter );
+	SAFE_RELEASE( dxgiDevice );
+
+	RECT windowSize;
+	if ( !GetClientRect( _window, &windowSize ) ) {
+		FATALERROR( this, "GetClientRect failed" );
+	}
+
+	OnResetSwapChain( _swapDesc, _fullscreenSwapDesc, windowSize );
+
+	_fullScreen = !_fullscreenSwapDesc.Windowed;
+	CreateSwapChain();
+	Resize();
+}
+
+void D3DAppFramework::ReinitD3D()
+{
+	HRESULT reason = _d3dDevice->GetDeviceRemovedReason();
+	LOG( "Device removed! DXGI_ERROR code " << reason, LOG_ERROR );
+
+	OnBeforeDeviceReset();
+	UninitD3D();
+	InitD3D();
+}
+
+void D3DAppFramework::UninitD3D() {
+	LOG( "Cleaning up Direct3D resources...", LOG_LOW );
+	SAFE_RELEASE( _output );
+	SAFE_RELEASE( _backBuffer );
+	SAFE_RELEASE( _renderTargetView );
+	SAFE_RELEASE( _depthStencilView );
+	SAFE_RELEASE( _depthStencilBuffer );
+	SAFE_RELEASE( _swapChain );
+	SAFE_RELEASE( _factory );
+	SAFE_RELEASE( _immediateContext );
+	SAFE_RELEASE( _d3dDevice );
+	SAFE_RELEASE( _d2dDevice );
+	SAFE_RELEASE( _d2dFactory );
 }
 
 void D3DAppFramework::CreateSwapChain()
 {
-	if ( FAILED( _factory->CreateSwapChain( _d3dDevice, &_swapDesc, &_swapChain ) ) ) {
+	LOG( "Creating swapchain...", LOG_LOW );
+	if ( FAILED( _factory->CreateSwapChainForHwnd( _d3dDevice, _window, &_swapDesc, &_fullscreenSwapDesc, nullptr, &_swapChain ) ) ) {
 		FATALERROR( this, "Failed to create swap chain" );
 	}
 }
 
-void D3DAppFramework::OnResize()
+void D3DAppFramework::Resize()
 {
+	OnBeforeBackBufferChange();
+	ID3D11RenderTargetView *nullRTView = nullptr;
+	_immediateContext->OMSetRenderTargets( 1, &nullRTView, nullptr );
+
 	// Release the old views, as they hold references to the buffers we
 	// will be destroying.  Also release the old depth/stencil buffer.
 	SAFE_RELEASE( _backBuffer );
@@ -282,13 +328,24 @@ void D3DAppFramework::OnResize()
 	SAFE_RELEASE( _depthStencilView );
 	SAFE_RELEASE( _depthStencilBuffer );
 
+	LOG( "Setting screen resolution to " <<_swapDesc.Width << "x" << _swapDesc.Height, LOG_MEDIUM );
+
+	_currentSize.x = _swapDesc.Width;
+	_currentSize.y = _swapDesc.Height;
+
+	// TODO if fullscreen, set width & height to current adapter size
+	HRESULT result = _swapChain->ResizeBuffers(
+					 0,
+	                 _swapDesc.Width,
+	                 _swapDesc.Height,
+					 DXGI_FORMAT_UNKNOWN,
+	                 DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH );
+
 	// Resize the swap chain and recreate the render target view.
-	if ( FAILED( _swapChain->ResizeBuffers(
-	                 1,
-	                 _swapDesc.BufferDesc.Width,
-	                 _swapDesc.BufferDesc.Height,
-	                 DXGI_FORMAT_R8G8B8A8_UNORM,
-	                 DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH ) ) ) {
+	if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
+		ReinitD3D();
+		return;
+	} else if ( FAILED( result ) ) {
 		FATALERROR( this, "Failed to resize swapchain buffers" );
 	}
 
@@ -301,8 +358,8 @@ void D3DAppFramework::OnResize()
 
 	// Create the depth/stencil buffer and view.
 	D3D11_TEXTURE2D_DESC depthStencilDesc;
-	depthStencilDesc.Width     = _swapDesc.BufferDesc.Width;
-	depthStencilDesc.Height    = _swapDesc.BufferDesc.Height;
+	depthStencilDesc.Width     = _swapDesc.Width;
+	depthStencilDesc.Height    = _swapDesc.Height;
 	depthStencilDesc.MipLevels = 1;
 	depthStencilDesc.ArraySize = 1;
 	depthStencilDesc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -328,30 +385,22 @@ void D3DAppFramework::OnResize()
 	D3D11_VIEWPORT viewPort;
 	viewPort.TopLeftX = 0;
 	viewPort.TopLeftY = 0;
-	viewPort.Width    = static_cast<float>( _swapDesc.BufferDesc.Width );
-	viewPort.Height   = static_cast<float>( _swapDesc.BufferDesc.Height );
+	viewPort.Width    = static_cast<float>( _swapDesc.Width );
+	viewPort.Height   = static_cast<float>( _swapDesc.Height );
 	viewPort.MinDepth = 0.0f;
 	viewPort.MaxDepth = 1.0f;
 
 	_immediateContext->RSSetViewports( 1, &viewPort );
 
-	OnBackBufferChanged( _backBuffer );
+	OnBackBufferChange( _backBuffer );
 }
 
-INT32 D3DAppFramework::Run( UINT32 simulationFps )
+INT32 D3DAppFramework::Run()
 {
 	//if the window or d3d has not been initialised, quit with an error
-	if ( _window == nullptr && _d3dDevice == nullptr ) {
+	if ( !_window && !_d3dDevice ) {
 		return -1;
 	}
-
-	try {
-		_frameLimiter = new FrameLimiter( simulationFps );
-	} catch ( MGDFException ex ) {
-		FATALERROR( this, ex.what() );
-	}
-
-	_stats.SetExpectedSimTime( 1 / ( double ) simulationFps );
 
 	std::atomic_flag runSimThread;
 	std::atomic_flag waitOnRenderThread;
@@ -362,71 +411,128 @@ INT32 D3DAppFramework::Run( UINT32 simulationFps )
 	boost::thread simThread( [this, &runSimThread, &waitOnRenderThread]() {
 		runSimThread.test_and_set();
 
+		LOG( "Starting sim thread...", LOG_LOW );
 		while ( runSimThread.test_and_set() ) {
-			LARGE_INTEGER simulationStart = _timer.GetCurrentTimeTicks();
-
-			UpdateScene( _stats.ExpectedSimTime() );
-
+			OnUpdateSim();
 			//run a frame of game logic before starting the render thread
 			waitOnRenderThread.clear();
-
-			//wait until the next frame to begin if we have any spare time left over
-			_frameLimiter->LimitFps();
-
-			LARGE_INTEGER simulationEnd = _timer.GetCurrentTimeTicks();
-			_stats.AppendSimTime( _timer.ConvertDifferenceToSeconds( simulationEnd, simulationStart ) );
 		}
+		LOG( "Stopping sim thread...", LOG_LOW );
 	} );
 
 	//run the renderer in its own thread
 	_renderThread = new boost::thread( [this, &waitOnRenderThread]() {
 		while ( waitOnRenderThread.test_and_set() ) Sleep( 1 );   //ensure the simulation runs at least one tick before rendering begins.
 
+		LOG( "Starting render thread...", LOG_LOW );
+		OnBeforeFirstDraw();
+
+		DXGI_PRESENT_PARAMETERS presentParams;
+		ZeroMemory( &presentParams, sizeof(DXGI_PRESENT_PARAMETERS) );
+
 		while ( _runRenderThread.test_and_set() ) {
 			bool exp=true;
+			UINT32 fullScreen = SWITCH_TO_FULLSCREEN_MODE;
+			UINT32 windowed = SWITCH_TO_WINDOWED_MODE;
 
 			//the game logic step may force the device to reset, so lets check
 			if ( IsBackBufferChangePending() ) {
+				LOG( "Module has scheduled a backbuffer change...", LOG_LOW );
 				//clean up the old swap chain, then recreate it with the new settings
-				//also when setting display settings, we'll switch back to fullscreen
-				BOOL fullScreen = 1;
 				SAFE_RELEASE( _swapChain );
-				OnResetSwapChain( &_swapDesc, &fullScreen );
+	
+				RECT windowSize;
+				if ( !GetClientRect( _window, &windowSize ) ) {
+					FATALERROR( this, "GetClientRect failed" );
+				}
+				OnResetSwapChain( _swapDesc, _fullscreenSwapDesc, windowSize );
 				CreateSwapChain();
-				OnResize();
+				Resize();
 			}
 			//a window event may also have triggered a resize event.
 			else if ( _resize.compare_exchange_strong( exp, false ) ) {
-				OnResize();
-			}
+				OnResize( _swapDesc.Width, _swapDesc.Height );
+				Resize();
+			} 
+			// going from windowed mode to fullscreen
+			else if ( _screenMode.compare_exchange_strong( fullScreen, DONT_SWITCH_MODE ) ) {
+				LOG( "Switching to fullscreen mode...", LOG_MEDIUM );
 
-			if ( !_minimized ) { //don't bother rendering if the window is minimzed
+				DXGI_MODE_DESC1 matching;
+				DXGI_MODE_DESC1 desc;
+				ZeroMemory( &matching, sizeof( DXGI_MODE_DESC1 ) );
+				ZeroMemory( &desc, sizeof( DXGI_MODE_DESC1 ) );
+
+				OnSwitchToFullScreen( desc );
+
+				if ( FAILED( _output->FindClosestMatchingMode1( &desc, &matching, _d3dDevice ) ) ) {
+					FATALERROR( this, "Direct3d FindClosestMatchingMode1 failed" );
+				}
+
+				// for some reason IDxgiSwapChain1 doesn't have a resizeTarget method
+				// that takes a DXGI_MODE_DESC1 structure, so we have to copy the settings
+				// to the older DXGI_MODE_DESC structure
+				DXGI_MODE_DESC targetDesc;
+				targetDesc.Format = matching.Format;
+				targetDesc.Height = matching.Height;
+				targetDesc.RefreshRate.Numerator = matching.RefreshRate.Numerator;
+				targetDesc.RefreshRate.Denominator = matching.RefreshRate.Denominator;
+				targetDesc.Scaling = matching.Scaling;
+				targetDesc.ScanlineOrdering = matching.ScanlineOrdering;
+				targetDesc.Width = matching.Width;
+
+				HRESULT result = _swapChain->ResizeTarget( &targetDesc );
+				if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
+					ReinitD3D();
+				}
+				else if ( FAILED( result ) ) {
+					FATALERROR( this, "Direct3d ResizeTarget failed" );
+				} else {
+					result = _swapChain->SetFullscreenState( true, _output );
+					if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
+						ReinitD3D();
+					}
+					else if ( FAILED( result ) ) {
+						FATALERROR( this, "Direct3d SetFullscreenState failed" );
+					}
+				}
+			} 
+			// going from fullscreen back to windowed mode
+			else if ( _screenMode.compare_exchange_strong( windowed, DONT_SWITCH_MODE ) ) {
+				LOG( "Switching to windowed mode...", LOG_MEDIUM );
+				OnSwitchToWindowed();
+				HRESULT result = _swapChain->SetFullscreenState( false, nullptr );
+				if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
+					ReinitD3D();
+				}
+				else if ( FAILED( result ) ) {
+					FATALERROR( this, "Direct3d SetFullscreenState failed" );
+				}
+			}
+			
+			if ( !_minimized.load() ) { //don't bother rendering if the window is minimzed
 				const float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; //RGBA
 				_immediateContext->ClearRenderTargetView( _renderTargetView, reinterpret_cast<const float*>( &black ) );
 				_immediateContext->ClearDepthStencilView( _depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0 );
 
-				LARGE_INTEGER renderStart = _timer.GetCurrentTimeTicks();
-				LARGE_INTEGER activeRenderEnd;
+				OnDraw();
+				HRESULT result = _swapChain->Present1( VSyncEnabled() ? 1 : 0 , 0, &presentParams );
+				OnAfterPresent();
 
-				// Render the scene
-				double alpha = _frameLimiter->ProgressThroughCurrentFrame();
-				DrawScene( alpha );  //render as per the current active module
-				activeRenderEnd = _timer.GetCurrentTimeTicks();
-
-				if ( FAILED( _swapChain->Present( _swapDesc.BufferDesc.RefreshRate.Numerator != 1U, 0 ) ) ) {
-					FATALERROR( this, "Direct3d Present() failed" );
+				if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
+					ReinitD3D();
 				}
-
-				LARGE_INTEGER renderEnd = _timer.GetCurrentTimeTicks();
-				_stats.AppendRenderTimes(
-				    _timer.ConvertDifferenceToSeconds( renderEnd, renderStart ),
-				    _timer.ConvertDifferenceToSeconds( activeRenderEnd, renderStart ) );
+				else if ( FAILED( result ) ) {
+					FATALERROR( this, "Direct3d Present1 failed" );
+				}
 			}
 		}
+		LOG( "Stopping render thread...", LOG_LOW );
 	} );
 
 	MSG  msg;
 	msg.message = WM_NULL;
+	LOG( "Starting input loop...", LOG_LOW );
 	while ( msg.message != WM_QUIT ) {
 		//deal with any windows messages on the main thread, this allows us
 		//to ensure that any user input is handled with as little latency as possible
@@ -440,18 +546,26 @@ INT32 D3DAppFramework::Run( UINT32 simulationFps )
 			Sleep( 1 );
 		}
 	}
+	LOG( "Stopping input loop...", LOG_LOW );
 
 	runSimThread.clear();
 	simThread.join();
 
 	delete _renderThread;
-	delete _frameLimiter;
 	return ( int ) msg.wParam;
+}
+
+void D3DAppFramework::CloseWindow()
+{
+	LOG( "Sending WM_CLOSE message...", LOG_HIGH );
+	_internalShutDown = true;
+	PostMessage( _window, WM_CLOSE, 0, 0 );
 }
 
 LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam )
 {
 	switch ( msg ) {
+	// handle player mouse input
 	case WM_MOUSEMOVE: {
 		INT32 x = GET_X_LPARAM( lParam );
 		INT32 y = GET_Y_LPARAM( lParam );
@@ -459,9 +573,9 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 	}
 	return 0;
 
+	// Handle player keyboard input
 	case WM_INPUT: {
 		UINT32 dwSize = 0U;
-
 		GetRawInputData( ( HRAWINPUT ) lParam, RID_INPUT, NULL, &dwSize, sizeof( RAWINPUTHEADER ) );
 		LPBYTE lpb = new BYTE[dwSize];
 		if ( lpb != nullptr ) {
@@ -476,71 +590,73 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 			}
 		}
 	}
-	// Even if you handle the event, you have to call DefWindowProx after a WM_Input message so the system can perform cleanup
+	// Even if you handle the event, you have to call DefWindowProx after a WM_Input message so the  can perform cleanup
 	// http://msdn.microsoft.com/en-us/library/windows/desktop/ms645590%28v=vs.85%29.aspx
 	return DefWindowProc( hwnd, msg, wParam, lParam );
 
 	// WM_SIZE is sent when the user resizes the window.
 	case WM_SIZE:
-		//TODO need member variable for size, so setting full screen doesn't overwrite it,
-		_swapDesc.BufferDesc.Width  = LOWORD( lParam ) < Resources::MIN_SCREEN_X ? Resources::MIN_SCREEN_X : LOWORD( lParam );
-		_swapDesc.BufferDesc.Height = HIWORD( lParam ) < Resources::MIN_SCREEN_Y ? Resources::MIN_SCREEN_Y : HIWORD( lParam );
+		_swapDesc.Width  = LOWORD( lParam );
+		_swapDesc.Height = HIWORD( lParam );
 
-		if ( _d3dDevice ) {
-			if ( wParam == SIZE_MINIMIZED ) {
-				_minimized = true;
-				_maximized = false;
-			} else if ( wParam == SIZE_MAXIMIZED ) {
-				_maximized = true;
-				_minimized = false;
-				//tell the render thread to resize at the start of the next frame
-				_resize.store( true );
-			}
+		if ( wParam == SIZE_MINIMIZED ) {
+			_minimized.store( true );
+		} 
+		else if ( wParam == SIZE_MAXIMIZED ) {
+			_minimized.store( false );
+			_resize.store( true );
+		}
+		else if ( wParam == SIZE_RESTORED ) {
 			// Restored is any resize that is not a minimize or maximize.
 			// For example, restoring the window to its default size
 			// after a minimize or maximize, or from dragging the resize
 			// bars.
-			else if ( wParam == SIZE_RESTORED ) {
-				// Are we restoring from a mimimized or maximized state,
-				if ( _minimized ) {
-					_minimized = false;
-					//tell the render thread to resize at the start of the next frame
-					_resize.store( true );
-				} else if ( _maximized ) {
-					_maximized = false;
-					//tell the render thread to resize at the start of the next frame
-					_resize.store( true );
-				} else if ( _resizing ) {
-					// No, which implies the user is resizing by dragging
-					// the resize bars.  However, we do not reset the device
-					// here because as the user continuously drags the resize
-					// bars, a stream of WM_SIZE messages is sent to the window,
-					// and it would be pointless (and slow) to reset for each
-					// WM_SIZE message received from dragging the resize bars.
-					// So instead, we reset after the user is done resizing the
-					// window and releases the resize bars, which sends a
-					// WM_EXITSIZEMOVE message.
-				} else { // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
-					//tell the render thread to resize at the start of the next frame
-					_resize.store( true );
-				}
+			bool exp = true;
+			if ( _resizing || _minimized.compare_exchange_strong( exp, false ) ) {
+				// Don't resize until the user has finished resizing or if we
+				// are simply restoring the window view without changing the size
+			} else {
+				_resize.store( true );
 			}
 		}
 		return 0;
 
-		// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+	// handle alt-enter manually. D3D can do this automatically, but
+	// it retains the same window resolution in fullscreen, rather
+	// than allowing us to switch to a fullscreen adapter as per the
+	// users settings
+	case WM_SYSKEYDOWN:
+		if(wParam == VK_RETURN && GetAsyncKeyState(VK_MENU)) {
+			_fullScreen = !_fullScreen;
+			_screenMode.store( _fullScreen ? SWITCH_TO_FULLSCREEN_MODE : SWITCH_TO_WINDOWED_MODE );
+			return 0;
+		}
+		break;
+
+	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
 	case WM_ENTERSIZEMOVE:
 		_resizing  = true;
 		return 0;
 
-		// Here we reset everything based on the new window dimensions.
+	// Here we reset everything based on the new window dimensions.
 	case WM_EXITSIZEMOVE:
 		_resizing = false;
-		_resize.store( true );
+		if ( _currentSize.x != _swapDesc.Width || _currentSize.y != _swapDesc.Height ) {
+			_resize.store( true );
+		}
 		return 0;
 
-		// WM_CLOSE is sent when the user presses the 'X' button in the
-		// caption bar menu. or when the MGDF system schedules a shutdown
+	// Don't allow window sizes smaller than the min required screen resolution
+	case WM_GETMINMAXINFO: 
+		{
+			PMINMAXINFO info = (PMINMAXINFO) lParam;
+			info->ptMinTrackSize.x = _windowRect.right - _windowRect.left;
+			info->ptMinTrackSize.y = _windowRect.bottom - _windowRect.top;
+		}
+		return 0;
+
+	// WM_CLOSE is sent when the user presses the 'X' button in the
+	// caption bar menu, when the host schedules a shutdown
 	case WM_CLOSE:
 		if ( _internalShutDown ) {
 			//make sure we stop rendering before disposing of the window
@@ -549,38 +665,22 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 			//if we triggered this, then shut down
 			DestroyWindow( _window );
 		} else {
-			//otherwise just inform the rest of the system that
+			//otherwise just inform the rest of the  that
 			//it should shut down ASAP, but give it time to shut down cleanly
-			ExternalClose();
+			OnExternalClose();
 		}
 		return 0;
 
-		// WM_DESTROY is sent when the window is being destroyed.
+	// WM_DESTROY is sent when the window is being destroyed.
 	case WM_DESTROY:
 		PostQuitMessage( 0 );
 		return 0;
 
+	// Don't beep when we alt-enter.
 	case WM_MENUCHAR:
-		// Don't beep when we alt-enter.
 		return MAKELRESULT( 0, MNC_CLOSE );
-
-	case WM_SYSKEYDOWN:
-		switch ( wParam ) {
-		case VK_F12: {
-			//Toggle system stats overlay with alt f12
-			bool exp = true;
-			//if its true set it to false.
-			if ( !_drawSystemOverlay.compare_exchange_weak( exp, false ) ) {
-				//otherwise it must be false so set it to true
-				_drawSystemOverlay.store( true );
-			}
-		}
-		break;
-		}
-		return 0;
-	default:
-		return DefWindowProc( hwnd, msg, wParam, lParam );
 	}
+	return OnHandleMessage( hwnd, msg, wParam, lParam );
 }
 
 }

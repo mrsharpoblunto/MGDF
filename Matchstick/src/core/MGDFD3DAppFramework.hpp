@@ -1,9 +1,9 @@
 #pragma once
 
+#include <d3d11.h>
+#include <d3d11_1.h>
 #include <atomic>
 #include "core.impl/MGDFTimer.hpp"
-#include "core.impl/MGDFSystemStats.hpp"
-#include "MGDFFrameLimiter.hpp"
 
 namespace MGDF
 {
@@ -15,67 +15,87 @@ class D3DAppFramework
 public:
 	D3DAppFramework( HINSTANCE hInstance );
 	virtual ~D3DAppFramework();
-	
-	HINSTANCE GetApplicationInstance();
-	HWND GetWindow();
-	ID3D11Device *GetD3DDevice() const;
 
-	virtual void OnInit( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) = 0;
-	virtual void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC *, BOOL *fullScreen ) = 0;
-	virtual bool IsBackBufferChangePending() = 0;
-	virtual void OnBackBufferChanged( ID3D11Texture2D *backBuffer ) = 0;
-	virtual void UpdateScene( double elapsedTime ) = 0;
-	virtual void DrawScene( double alpha ) = 0;
-	virtual void FatalError( const char *sender, const char *message ) = 0;
-	virtual void ExternalClose() = 0;
+	void InitWindow( const std::string &caption, WNDPROC windowProcedure );
+	LRESULT MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam );
+	INT32 Run();
+
+protected:
+	virtual void OnBeforeFirstDraw() = 0;
+	virtual void OnBeforeDeviceReset() = 0;
+	virtual void OnInitDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) = 0;
+	virtual void OnBeforeBackBufferChange() = 0;
+	virtual void OnBackBufferChange( ID3D11Texture2D *backBuffer ) = 0;
+	virtual void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& , const RECT& windowSize ) = 0;
+	virtual void OnSwitchToFullScreen( DXGI_MODE_DESC1 & ) = 0;
+	virtual void OnSwitchToWindowed() = 0;
+	virtual void OnResize( UINT32 width, UINT32 height ) = 0;
+
+	virtual void OnDraw() = 0;
+	virtual void OnAfterPresent() = 0;
+
+	virtual void OnUpdateSim() = 0;
+
+	virtual void OnExternalClose() = 0;
 	virtual void OnMouseInput( INT32 x, INT32 y ) = 0;
 	virtual void OnRawInput( RAWINPUT *input ) = 0;
 	virtual void OnInputIdle() = 0;
-	virtual void InitDirect3D( const std::string &caption, WNDPROC windowProcedure, D3D_FEATURE_LEVEL *levels, UINT32 levelsSize );
+	virtual LRESULT OnHandleMessage( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam ) = 0;
 
-	LRESULT MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam );
+	virtual UINT32 GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *featureLevelsSize ) = 0;
+	virtual bool IsBackBufferChangePending() = 0;
+	virtual bool VSyncEnabled() const = 0;
+	virtual bool WindowResizingEnabled() const = 0;
+	virtual void FatalError( const char *sender, const char *message ) = 0;
+	void CloseWindow();
 
-	INT32 Run( UINT32 simulationFps );
-protected:
+private:
+	void InitD3D();
+	void ReinitD3D();
+	void UninitD3D();
+	void InitRawInput();
+	void ToggleFullScreenMode();
+	void CreateSwapChain();
+	void Resize();
+	void ResetDevice();
 
 	// Application, Windows, and Direct3D data members.
 	ID3D11Device*			_d3dDevice;
 	ID3D11DeviceContext*	_immediateContext;
 
 	ID2D1Device*			_d2dDevice;
-	ID2D1DeviceContext *	_context;
+	ID2D1Factory1 *			_d2dFactory;
 
-	IDXGISwapChain*			_swapChain;
-	IDXGIFactory1*			_factory;
+	IDXGISwapChain1*		_swapChain;
+	IDXGIFactory2*			_factory;
+	IDXGIOutput1*			_output;
 
 	ID3D11RenderTargetView *_renderTargetView;
 	ID3D11DepthStencilView *_depthStencilView;
 	ID3D11Texture2D		   *_depthStencilBuffer;
 	ID3D11Texture2D		   *_backBuffer;
 
-	DXGI_SWAP_CHAIN_DESC	_swapDesc;
+	DXGI_SWAP_CHAIN_DESC1	_swapDesc;
+	DXGI_SWAP_CHAIN_FULLSCREEN_DESC _fullscreenSwapDesc;
+	D3D_FEATURE_LEVEL *_levels;
+	UINT32 _levelsSize;
+
 	HINSTANCE				_applicationInstance;
 	HWND					_window;
+	RECT					_windowRect;
+	POINT					_currentSize;
 
-	Timer _timer;
-	FrameLimiter *_frameLimiter;
-	std::atomic_bool _drawSystemOverlay;
-	std::atomic_bool _resize;
-	bool _internalShutDown;
-
-	SystemStats _stats;
-
-private:
-	void InitMainWindow( const std::string &caption, WNDPROC windowProcedure );
-	void InitD3D( D3D_FEATURE_LEVEL *levels, UINT32 levelsSize );
-	void InitRawInput();
-	void ToggleFullScreenMode();
-	void CreateSwapChain();
-	void OnResize();
-
-	bool _minimized, _maximized, _resizing;
-	boost::thread *_renderThread;
+	std::atomic_bool _resize, _minimized;
+	std::atomic_uint32_t _screenMode;
 	std::atomic_flag _runRenderThread;
+	
+	boost::thread *_renderThread;
+
+	bool _maximized;
+	bool _resizing;
+	bool _awaitingResize;
+	bool _fullScreen;
+	bool _internalShutDown;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc

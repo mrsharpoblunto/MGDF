@@ -1,6 +1,5 @@
 #pragma once
 #include <map>
-#include <MGDF/MGDFSystem.hpp>
 #include <MGDF/MGDFGame.hpp>
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"
@@ -20,27 +19,27 @@ public:
 	Game( const std::string &uid, const std::string &name, INT32 interfaceVersion, const Version *version, storage::IStorageFactoryComponent *xmlFactory );
 	virtual ~Game( void ) {}
 
-	virtual const char *GetUid() const {
+	const char *GetUid() const override {
 		return _uid.c_str();
 	}
 
-	virtual const char *GetName() const {
+	const char *GetName() const override {
 		return _name.c_str();
 	}
 
-	virtual INT32 GetInterfaceVersion() const {
+	INT32 GetInterfaceVersion() const override {
 		return _interfaceVersion;
 	}
 
-	virtual const Version *GetVersion() const {
+	const Version *GetVersion() const override {
 		return &_version;
 	}
 
-	virtual bool HasPreference( const char * name ) const;
-	virtual const char *GetPreference( const char * name ) const;
-	virtual void SetPreference( const char * name, const char * value );
-	virtual void SavePreferences() const;
-	virtual void ResetPreferences();
+	bool HasPreference( const char * name ) const override;
+	const char *GetPreference( const char * name ) const override;
+	void SetPreference( const char * name, const char * value ) override;
+	void SavePreferences() const override;
+	void ResetPreferences() override;
 
 	void SavePreferences( const std::wstring &filename );
 	void LoadPreferences( const std::wstring &filename );

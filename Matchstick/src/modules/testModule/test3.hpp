@@ -15,7 +15,7 @@ namespace Test
 {
 
 /**
-this class acts as a command console to the lua system interfaces
+this class acts as a command console to the lua  interfaces
 */
 class Test3: public TestModule
 {
@@ -23,9 +23,9 @@ public:
 	virtual ~Test3( void );
 	Test3();
 
-	virtual void Update( ISystem *system, TextManagerState *state );
+	void Update( ISimHost *host, TextManagerState *state )  override;
 
-	virtual TestModule *NextTestModule();
+	TestModule *NextTestModule() override;
 private:
 	INT32 _testState;
 

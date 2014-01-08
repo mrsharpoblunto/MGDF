@@ -18,9 +18,9 @@ public:
 	JsonCppStorageFactoryComponent() {}
 	virtual ~JsonCppStorageFactoryComponent() {}
 
-	virtual IGameStorageHandler *CreateGameStorageHandler() const;
-	virtual IGameStateStorageHandler *CreateGameStateStorageHandler( const std::string &, const Version * ) const;
-	virtual IPreferenceConfigStorageHandler *CreatePreferenceConfigStorageHandler() const;
+	IGameStorageHandler *CreateGameStorageHandler() const override;
+	IGameStateStorageHandler *CreateGameStateStorageHandler( const std::string &, const Version * ) const override;
+	IPreferenceConfigStorageHandler *CreatePreferenceConfigStorageHandler() const override;
 };
 
 IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent();

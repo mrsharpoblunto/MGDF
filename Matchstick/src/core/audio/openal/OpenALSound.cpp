@@ -39,11 +39,10 @@ OpenALSound::OpenALSound( IFile *source, OpenALSoundManagerComponentImpl *manage
 	, _wasPlaying( false )
 	, _startPlaying( false )
 {
+	_ASSERTE( source );
+	_ASSERTE( manager );
+
 	_bufferId = _soundManager->GetSoundBuffer( source );
-	if ( _bufferId == ALUT_ERROR_AL_ERROR_ON_ENTRY || _bufferId == ALUT_ERROR_ALC_ERROR_ON_ENTRY ) {
-		SETLASTERROR( _soundManager->GetComponentErrorHandler(), MGDF_ERR_ERROR_ALLOCATING_BUFFER, "Error allocating sound buffer" );
-		throw MGDFException( "Error allocating sound buffer" );
-	}
 
 	Reactivate();
 }

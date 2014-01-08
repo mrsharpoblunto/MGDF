@@ -28,10 +28,10 @@ TestModule *Test3::NextTestModule()
 	return NULL;
 }
 
-void Test3::Update( ISystem *system, TextManagerState *state )
+void Test3::Update( ISimHost *host, TextManagerState *state )
 {
-	if ( system->GetInput()->IsKeyPress( VK_ESCAPE ) ) {
-		system->ShutDown();
+	if ( host->GetInput()->IsKeyPress( VK_ESCAPE ) ) {
+		host->ShutDown();
 	}
 
 	if ( _testState == 0 ) {
@@ -39,62 +39,70 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 		state->AddLine( "Load/Save Tests" );
 		state->AddLine( "" );
 
-		system->RemoveSave( "testsave" );
+		host->RemoveSave( "testsave" );
 		state->AddLine( "Save game state" );
 
 		UINT32 size = 0;
-		system->BeginSave( "testsave", NULL, &size );
-		wchar_t *saveDir = new wchar_t[size];
-		if ( system->BeginSave( "testsave", saveDir, &size ) == 0 ) {
-			std::wstring saveFile( saveDir );
-			saveFile += L"currentState.txt";
-			std::ofstream out( saveFile.c_str(), std::ios::out );
-			out << 2;
-			out.close();
-			state->SetStatus( GREEN, "[Test Passed]" );
-			state->AddLine( "Search saved game state" );
-			_testState = 1;
-		} else {
+		if ( MGDF_ERR_BUFFER_TOO_SMALL != host->BeginSave( "testsave", NULL, &size ) ) {
 			state->SetStatus( RED, "[Test Failed]" );
 			_testState = 999;
+		} else {
+			wchar_t *saveDir = new wchar_t[size];
+			if ( host->BeginSave( "testsave", saveDir, &size ) == MGDF_OK ) {
+				std::wstring saveFile( saveDir );
+				saveFile += L"currentState.txt";
+				std::ofstream out( saveFile.c_str(), std::ios::out );
+				out << 2;
+				out.close();
+				state->SetStatus( GREEN, "[Test Passed]" );
+				state->AddLine( "Search saved game state" );
+				_testState = 1;
+			} else {
+				state->SetStatus( RED, "[Test Failed]" );
+				_testState = 999;
+			}
+			delete[] saveDir;
 		}
-		delete[] saveDir;
 	} else if ( _testState == 1 ) {
 		//we didn't complete saving yet so it shouldn't appear in the list
-		if ( system->GetSaves()->Size() != 0 ) {
+		if ( host->GetSaves()->Size() != 0 ) {
 			state->SetStatus( RED, "[Test Failed]" );
 			_testState = 999;
 		} else {
-			if ( system->CompleteSave( "testsave" ) && system->GetSaves()->Size() == 1 && strcmp( system->GetSaves()->Get( 0 ), "testsave" ) == 0 ) {
+			if ( host->CompleteSave( "testsave" ) == MGDF_OK && host->GetSaves()->Size() == 1 && strcmp( host->GetSaves()->Get( 0 ), "testsave" ) == 0 ) {
 				state->SetStatus( GREEN, "[Test Passed]" );
 				state->AddLine( "Load game state" );
 
 				unsigned size = 0;
 				MGDF::Version version;
-				system->Load( "testsave", NULL, &size, version );
-				wchar_t *saveDir = new wchar_t[size];
-				if ( system->Load( "testsave", saveDir, &size, version ) == 0 ) {
-					//make sure the version we loaded is the same that we saved.
-					if ( version.Major != 0 || version.Minor != 1 ) {
-						state->SetStatus( RED, "[Test Failed - Invalid version]" );
-						_testState = 999;
-					} else {
-						std::wstring saveFile( saveDir );
-						saveFile += L"currentState.txt";
-						std::ifstream in( saveFile.c_str(), std::ios::in );
-						if ( in.fail() ) {
-							_testState = 3;
-						} else {
-							in >> _testState;
-							in.close();
-							if ( _testState != 2 ) _testState = 3;
-						}
-					}
-				} else {
-					state->SetStatus( RED, "[Test Failed - Unable to load]" );
+				if ( MGDF_ERR_BUFFER_TOO_SMALL != host->Load( "testsave", NULL, &size, version ) ) {
+					state->SetStatus( RED, "[Test Failed]" );
 					_testState = 999;
+				} else {
+					wchar_t *saveDir = new wchar_t[size];
+					if ( host->Load( "testsave", saveDir, &size, version ) == MGDF_OK ) {
+						//make sure the version we loaded is the same that we saved.
+						if ( version.Major != 0 || version.Minor != 1 ) {
+							state->SetStatus( RED, "[Test Failed - Invalid version]" );
+							_testState = 999;
+						} else {
+							std::wstring saveFile( saveDir );
+							saveFile += L"currentState.txt";
+							std::ifstream in( saveFile.c_str(), std::ios::in );
+							if ( in.fail() ) {
+								_testState = 3;
+							} else {
+								in >> _testState;
+								in.close();
+								if ( _testState != 2 ) _testState = 3;
+							}
+						}
+					} else {
+						state->SetStatus( RED, "[Test Failed - Unable to load]" );
+						_testState = 999;
+					}
+					delete[] saveDir;
 				}
-				delete[] saveDir;
 			} else {
 				state->SetStatus( RED, "[Test Failed]" );
 				_testState = 999;
@@ -110,14 +118,17 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 		state->AddLine( "Testing custom VFS archive handler registration" );
 
 		bool success = false;
-		IFile *file = system->GetVFS()->GetFile( L"test.fakearchive/testfile.txt" );
+		IFile *file = host->GetVFS()->GetFile( L"test.fakearchive/testfile.txt" );
 		if ( file != NULL ) {
-			file->OpenFile();
-			UINT32 size = static_cast<UINT32>( file->GetSize() );
-			char *data = new char[size];
-			file->Read( data, size );
-			success = strncmp( data, "hello world", size ) == 0;
-			delete[] data;
+			IFileReader *reader = nullptr;
+			if ( MGDF_OK == file->OpenFile( &reader ) ) {
+				UINT32 size = static_cast<UINT32>( reader->GetSize() );
+				char *data = new char[size];
+				reader->Read( data, size );
+				success = strncmp( data, "hello world", size ) == 0;
+				delete[] data;
+				reader->Close();
+			}
 		}
 
 		if ( !success ) {
@@ -130,17 +141,17 @@ void Test3::Update( ISystem *system, TextManagerState *state )
 	} else if ( _testState == 5 ) {
 		state->AddLine( "Press [ALT]+[ENTER] to toggle fullscreen/windowed mode. Then press [Y/N] if this works correctly" );
 		_testState++;
-	} else if ( _testState == 6 && system->GetInput()->IsKeyPress( 'Y' ) ) {
+	} else if ( _testState == 6 && host->GetInput()->IsKeyPress( 'Y' ) ) {
 		++_testState;
 		state->SetStatus( GREEN, "[Test Passed]" );
-		state->AddLine( "Press [ALT]+[F12] to toggle the system information overlay. Then press [Y/N] if this works correctly" );
-	} else if ( _testState == 6 && system->GetInput()->IsKeyPress( 'N' ) ) {
+		state->AddLine( "Press [ALT]+[F12] to toggle the  information overlay. Then press [Y/N] if this works correctly" );
+	} else if ( _testState == 6 && host->GetInput()->IsKeyPress( 'N' ) ) {
 		_testState = 999;
 		state->SetStatus( RED, "[Test Failed]" );
-	} else if ( _testState == 7 && system->GetInput()->IsKeyPress( 'Y' ) ) {
+	} else if ( _testState == 7 && host->GetInput()->IsKeyPress( 'Y' ) ) {
 		_testState = 999;
 		state->SetStatus( GREEN, "[Test Passed]" );
-	} else if ( _testState == 7 && system->GetInput()->IsKeyPress( 'N' ) ) {
+	} else if ( _testState == 7 && host->GetInput()->IsKeyPress( 'N' ) ) {
 		_testState = 999;
 		state->SetStatus( RED, "[Test Failed]" );
 	} else if ( _testState == 999 ) {

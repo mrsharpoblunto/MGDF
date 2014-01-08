@@ -1,6 +1,10 @@
 {
   "preferences":
   [
+	{
+		"name":"windowResize",
+		"value":"1"
+	},
     {
         "name":"simFps",
         "value":"120"

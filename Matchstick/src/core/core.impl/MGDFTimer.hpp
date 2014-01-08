@@ -18,10 +18,10 @@ public:
 	virtual ~CPUPerformanceCounter();
 	CPUPerformanceCounter( const char *name, Timer *timer );
 
-	virtual void Dispose();
-	virtual const char *GetName() const;
-	virtual void Begin();
-	virtual void End();
+	void Dispose() override;
+	const char *GetName() const override;
+	void Begin() override;
+	void End() override;
 
 	double GetAvgValue();
 private:
@@ -40,11 +40,12 @@ public:
 	virtual ~GPUPerformanceCounter();
 	GPUPerformanceCounter( const char *name, Timer *timer );
 
-	virtual void Dispose();
-	virtual const char *GetName() const;
-	virtual void Begin();
-	virtual void End();
+	void Dispose() override;
+	const char *GetName() const override;
+	void Begin() override;
+	void End() override;
 
+	void Reinit();
 	double GetAvgValue();
 	void SetSample( UINT32 previousFrame, UINT64 frequency );
 private:
@@ -63,7 +64,7 @@ private:
 /**
 this class is used for timing
 */
-class Timer: public ITimer
+class Timer: public ITimer, public IRenderTimer
 {
 	friend class GPUPerformanceCounter;
 	friend class CPUPerformanceCounter;
@@ -71,20 +72,22 @@ public:
 	Timer();
 	virtual ~Timer( void );
 
-	virtual LARGE_INTEGER GetCurrentTimeTicks() const;
-	virtual LARGE_INTEGER GetTimerFrequency() const;
-	virtual double ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER oldTime ) const;
+	LARGE_INTEGER GetCurrentTimeTicks() const override;
+	LARGE_INTEGER GetTimerFrequency() const override;
+	double ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER oldTime ) const override;
 
-	virtual IPerformanceCounter *CreateCPUCounter( const char *name );
-	virtual IPerformanceCounter *CreateGPUCounter( const char *name );
+	IPerformanceCounter *CreateCPUCounter( const char *name ) override;
+	IPerformanceCounter *CreateGPUCounter( const char *name ) override;
 
-	void InitGPUTimer( ID3D11Device *device, UINT32 bufferSize, INT32 frameSamples );
+	void InitFromDevice( ID3D11Device *device, UINT32 bufferSize, INT32 frameSamples );
 
 	void Begin();
 	void End();
-	void GetCounterInformation( std::stringstream &outputStream );
+	void GetCounterInformation( std::wstringstream &outputStream ) const;
 
 private:
+	void UninitGPUTimer();
+
 	ID3D11Device *_device;
 	ID3D11DeviceContext *_context;
 	LARGE_INTEGER _freq;
@@ -96,7 +99,7 @@ private:
 	UINT32 _initialized;
 	bool _gpuTimersSupported;
 
-	boost::mutex _mutex;
+	mutable boost::mutex _mutex;
 	std::vector<CPUPerformanceCounter *> _cpuCounters;
 	std::vector<GPUPerformanceCounter *> _gpuCounters;
 	void RemoveCounter( IPerformanceCounter *counter );

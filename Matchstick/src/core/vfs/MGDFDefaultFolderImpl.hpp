@@ -21,11 +21,10 @@ public:
 	DefaultFolderImpl( const std::wstring &name, const std::wstring &physicalPath, IFile *parent, VirtualFileSystemComponent *vfs );
 	virtual ~DefaultFolderImpl( void );
 
-	virtual IFile *GetChild( const wchar_t *name );
-	virtual size_t GetChildCount();
-	virtual bool GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength );
+	IFile *GetChild( const wchar_t *name ) const override;
+	size_t GetChildCount() const override;
+	bool GetAllChildren( const IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const override;
 private:
-	bool _mappedChildren;
 	VirtualFileSystemComponent *_vfs;
 	IFileFilter *_filter;
 

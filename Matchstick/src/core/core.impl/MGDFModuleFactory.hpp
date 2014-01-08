@@ -8,7 +8,7 @@ namespace core
 {
 
 typedef bool ( *GetCustomArchiveHandlersPtr )( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler );
-typedef IModule * ( *GetModulePtr )( ISystem * );
+typedef IModule * ( *GetModulePtr )();
 typedef bool ( *IsCompatibleInterfaceVersionPtr )( int );
 typedef UINT32( *GetCompatibleFeatureLevelsPtr )( D3D_FEATURE_LEVEL *, UINT32 * );
 
@@ -19,7 +19,7 @@ public:
 	ModuleFactory( IGame * );
 
 	bool GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler ) const;
-	IModule *GetModule( ISystem *system ) const;
+	IModule *GetModule() const;
 	bool IsCompatibleInterfaceVersion( int ) const;
 	UINT32 GetCompatibleFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *levelSize ) const;
 	bool GetLastError( std::string& error ) const;

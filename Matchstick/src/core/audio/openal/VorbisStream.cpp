@@ -2,6 +2,7 @@
 
 #include <limits.h>
 #include "../../common/MGDFExceptions.hpp"
+#include "../../common/MGDFLoggerImpl.hpp"
 #include "OpenALSoundSystem.hpp"
 
 #include "VorbisStream.hpp"
@@ -46,6 +47,7 @@ void VorbisStream::Dispose()
 
 void VorbisStream::UninitStream()
 {
+	LOG( "Disposing of sound stream...", LOG_MEDIUM );
 	if ( _initLevel == 5 ) {
 		alSourceStop( _source );
 		alSourcei( _source, AL_BUFFER, 0 );
@@ -65,8 +67,8 @@ void VorbisStream::UninitStream()
 	}
 
 	//close the datasource
-	if ( _initLevel >= 1 && _dataSource->IsOpen() ) {
-		_dataSource->CloseFile();
+	if ( _initLevel >= 1 && _reader ) {
+		_reader->Close();
 	}
 	_initLevel = 0;
 }
@@ -93,7 +95,14 @@ bool VorbisStream::IsPlaying() const
 
 VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *manager )
 {
+	_ASSERTE( source );
+	_ASSERTE( manager );
+
 	_dataSource = source;
+	if ( MGDF_OK != source->OpenFile( &_reader ) ) {
+		throw MGDFException( "Stream file could not be opened or is already open for reading" );	
+	}
+
 	_soundManager = manager;
 	_globalVolume = _soundManager->GetStreamVolume();
 	_volume = 1.0;
@@ -101,7 +110,6 @@ VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *mana
 	if ( _references++ == 0 ) {
 		if ( !InitVorbis() ) {
 			_references--;
-			SETLASTERROR( _soundManager->GetComponentErrorHandler(), MGDF_ERR_VORBIS_LIB_LOAD_FAILED, "Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)" );
 			throw MGDFException( "Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)" );
 		}
 	}
@@ -111,13 +119,11 @@ VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *mana
 
 void VorbisStream::InitStream()
 {
+	LOG( "Initializing stream...", LOG_MEDIUM );
 	_initLevel = 0;
 	try {
 		_state = NOT_STARTED;
 
-		if ( !_dataSource->IsOpen() ) {
-			_dataSource->OpenFile();
-		}
 		_initLevel++;//data source open
 
 		_totalBuffersProcessed = 0;
@@ -131,7 +137,7 @@ void VorbisStream::InitStream()
 		callbacks.close_func = &VorbisStream::ov_close_func;
 		callbacks.tell_func = &VorbisStream::ov_tell_func;
 
-		INT32 retVal = fn_ov_open_callbacks( _dataSource, &_vorbisFile, nullptr, 0, callbacks );
+		INT32 retVal = fn_ov_open_callbacks( _reader, &_vorbisFile, nullptr, 0, callbacks );
 
 		// Create an OggVorbis file stream
 		if ( retVal == 0 ) {
@@ -179,8 +185,7 @@ void VorbisStream::InitStream()
 
 				bool createdSource = OpenALSoundSystem::Instance()->AcquireSource( &_source );
 				if ( !createdSource ) {
-					SETLASTERROR( _soundManager->GetComponentErrorHandler(), MGDF_ERR_NO_FREE_SOURCES, "No free sound sources to create stream" );
-					throw MGDFException( "No free sound sources" );
+					throw MGDFException( "No free sound sources to create stream" );
 				}
 				_initLevel++;//sound source created
 
@@ -194,21 +199,22 @@ void VorbisStream::InitStream()
 					}
 				}
 			} else {
-				SETLASTERROR( _soundManager->GetComponentErrorHandler(), MGDF_ERR_INVALID_FORMAT, "Failed to find format information, or unsupported format" );
 				throw MGDFException( "Failed to find format information, or unsupported format" );
 			}
 		}
-	} catch ( ... ) {
+	} catch ( MGDFException ex ) {
 		if ( --_references == 0 ) {
 			UninitVorbis();
 		}
 		UninitStream();
+		throw ex;
 	}
 	SetVolume( _volume );
 }
 
 bool VorbisStream::InitVorbis()
 {
+	LOG( "Loading Vorbis library...", LOG_LOW );
 	_vorbisInstance = LoadLibrary( "vorbisfile.dll" );
 	if ( _vorbisInstance != nullptr ) {
 		fn_ov_clear = ( LPOVCLEAR ) GetProcAddress( _vorbisInstance, "ov_clear" );
@@ -229,6 +235,7 @@ bool VorbisStream::InitVorbis()
 void VorbisStream::UninitVorbis()
 {
 	if ( _vorbisInstance != nullptr ) {
+		LOG( "Disposing Vorbis library...", LOG_LOW );
 		FreeLibrary( _vorbisInstance );
 		_vorbisInstance = nullptr;
 	}
@@ -347,6 +354,8 @@ void VorbisStream::Update()
 
 unsigned long VorbisStream::DecodeOgg( OggVorbis_File *vorbisFile, char *decodeBuffer, unsigned long bufferSize, unsigned long channels )
 {
+	_ASSERTE( vorbisFile );
+
 	INT32 currentSection;
 	long decodeSize;
 	short *samples;
@@ -389,39 +398,46 @@ void VorbisStream::Swap( short &s1, short &s2 )
 
 size_t VorbisStream::ov_read_func( void *ptr, size_t size, size_t nmemb, void *datasource )
 {
-	IFile *file = ( IFile * ) datasource;
+	_ASSERTE( ptr );
+	_ASSERTE( datasource );
+
+	IFileReader *reader = reinterpret_cast<IFileReader *>( datasource );
+	_ASSERTE( reader );
+
 	if ( ( size * nmemb ) > UINT32_MAX ) return 0; //can't read as much as was requested
-	return file->Read( ptr, static_cast<UINT32>( size * nmemb ) );
+	return reader->Read( ptr, static_cast<UINT32>( size * nmemb ) );
 }
 
 int VorbisStream::ov_seek_func( void *datasource, ogg_int64_t offset, int whence )
 {
-	IFile *file = ( IFile * ) datasource;
+	_ASSERTE( datasource );
+	IFileReader *reader = reinterpret_cast<IFileReader *>( datasource );
+	_ASSERTE( reader );
 
 	if ( offset > ULONG_MAX ) return -1;
 	unsigned long lOffset = ( unsigned long ) offset;
 	switch ( whence ) {
 	case SEEK_SET:
-		if ( offset > file->GetSize() ) {
+		if ( offset > reader->GetSize() ) {
 			return -1;
 		} else {
-			file->SetPosition( lOffset );
+			reader->SetPosition( lOffset );
 			return 0;
 		}
 		break;
 	case SEEK_CUR:
-		if ( ( lOffset + file->GetPosition() ) > file->GetSize() ) {
+		if ( ( lOffset + reader->GetPosition() ) > reader->GetSize() ) {
 			return -1;
 		} else {
-			file->SetPosition( file->GetPosition() + lOffset );
+			reader->SetPosition( reader->GetPosition() + lOffset );
 			return 0;
 		}
 		break;
 	case SEEK_END:
-		if ( ( file->GetSize() - lOffset ) < 0 ) {
+		if ( ( reader->GetSize() - lOffset ) < 0 ) {
 			return -1;
 		} else {
-			file->SetPosition( file->GetSize() - lOffset );
+			reader->SetPosition( reader->GetSize() - lOffset );
 			return 0;
 		}
 		break;
@@ -431,17 +447,23 @@ int VorbisStream::ov_seek_func( void *datasource, ogg_int64_t offset, int whence
 
 int VorbisStream::ov_close_func( void *datasource )
 {
-	IFile *file = ( IFile * ) datasource;
-	file->CloseFile();
+	_ASSERTE( datasource );
+	IFileReader *reader = reinterpret_cast<IFileReader *>( datasource );
+	_ASSERTE( reader );
+
+	reader->Close();
 	return 0;
 }
 
 long VorbisStream::ov_tell_func( void *datasource )
 {
-	IFile *file = ( IFile * ) datasource;
-	INT64 pos = file->GetPosition();
+	_ASSERTE( datasource );
+	IFileReader *reader = reinterpret_cast<IFileReader *>( datasource );
+	_ASSERTE( reader );
+
+	INT64 pos = reader->GetPosition();
 	if ( pos > LONG_MAX ) return LONG_MAX;
-	return static_cast<long>( file->GetPosition() );
+	return static_cast<long>( reader->GetPosition() );
 }
 
 

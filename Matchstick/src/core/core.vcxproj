@@ -318,7 +318,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     <ClInclude Include="..\..\include\MGDF\MGDFError.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFErrorHandler.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFGame.hpp" />
-    <ClInclude Include="..\..\include\MGDF\MGDFGraphicsManager.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFRenderSettingsManager.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFInputManager.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFList.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFLogger.hpp" />
@@ -328,14 +328,13 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     <ClInclude Include="..\..\include\MGDF\MGDFSoundManager.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFSoundStream.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFStatisticsManager.hpp" />
-    <ClInclude Include="..\..\include\MGDF\MGDFSystem.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFHost.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFTimer.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFVersion.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFVirtualFileSystem.hpp" />
     <ClInclude Include="MGDFApp.hpp" />
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
-    <ClInclude Include="MGDFQuad.hpp" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
@@ -343,7 +342,6 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     <ClCompile Include="MGDFApp.cpp" />
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
-    <ClCompile Include="MGDFQuad.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -375,28 +373,6 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <Project>{60a53eec-b17e-4bb8-9626-064ada85cfc7}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="quad_ps.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0_level_9_1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0_level_9_1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0_level_9_1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0_level_9_1</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="quad_vs.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0_level_9_1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0_level_9_1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0_level_9_1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0_level_9_1</ShaderModel>
-    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

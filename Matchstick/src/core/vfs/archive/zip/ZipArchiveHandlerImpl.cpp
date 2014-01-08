@@ -55,6 +55,8 @@ void ZipArchiveHandlerImpl::Dispose()
 
 void ZipArchiveHandlerImpl::DisposeArchive( IFile *archive )
 {
+	if ( !archive ) return;
+
 	auto it = _archives.find( static_cast<ZipFileRoot *>( archive ) );
 	_ASSERTE( it != _archives.end() );
 	if ( it != _archives.end() ) {
@@ -67,6 +69,8 @@ void ZipArchiveHandlerImpl::DisposeArchive( IFile *archive )
 bool ZipArchiveHandlerImpl::IsArchive( const wchar_t *path ) const
 {
 	_ASSERTE( path );
+	if ( !path ) return false;
+
 	const wchar_t *extension = GetFileExtension( path );
 	if ( !extension ) return false;
 
@@ -81,6 +85,8 @@ bool ZipArchiveHandlerImpl::IsArchive( const wchar_t *path ) const
 const wchar_t *ZipArchiveHandlerImpl::GetFileExtension( const wchar_t *filename ) const
 {
 	_ASSERTE( filename );
+	if ( !filename ) return nullptr;
+
 	size_t index = wcslen( filename );
 	while ( index >= 0 ) {
 		if ( filename[index] == '.' ) return &filename[index];

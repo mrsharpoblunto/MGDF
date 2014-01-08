@@ -16,12 +16,14 @@ namespace core
 
 bool ParameterManager::HasParameter( const char * param ) const
 {
+	_ASSERTE( param );
 	std::string p = param;
 	return _parameters.find( p ) != _parameters.end();
 }
 
 const char *ParameterManager::GetParameter( const char * param ) const
 {
+	_ASSERTE( param );
 	std::string p = param;
 	auto iter = _parameters.find( p );
 	if ( iter != _parameters.end() ) {
@@ -32,6 +34,7 @@ const char *ParameterManager::GetParameter( const char * param ) const
 
 bool ParameterManager::AddParameterString( const char * paramString )
 {
+	_ASSERTE( paramString );
 	try {
 		std::string ps = paramString;
 		ParseParameters( ps, _parameters );

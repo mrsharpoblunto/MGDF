@@ -45,10 +45,10 @@ UINT32 MGDF::GetCompatibleFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *feat
 	}
 }
 
-//create module instances as they are requested by the system.
-MGDF::IModule *MGDF::GetModule( MGDF::ISystem *system )
+//create module instances as they are requested by the framework
+MGDF::IModule *MGDF::GetModule()
 {
-	return new Module( system );
+	return new Module();
 }
 
 //register custom archive handlers

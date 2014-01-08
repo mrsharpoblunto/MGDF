@@ -41,7 +41,7 @@ std::string Win32Exception::TranslateError( unsigned code )
 	case EXCEPTION_ILLEGAL_INSTRUCTION:
 		return "The thread tried to execute an invalid instruction.";
 	case EXCEPTION_IN_PAGE_ERROR:
-		return "The thread tried to access a page that was not present, and the system was unable to load the page.\r\nFor example, this exception might occur if a network connection is lost while running a program over the network.";
+		return "The thread tried to access a page that was not present, and the  was unable to load the page.\r\nFor example, this exception might occur if a network connection is lost while running a program over the network.";
 	case EXCEPTION_INT_DIVIDE_BY_ZERO:
 		return "The thread tried to divide an integer value by an integer divisor of zero.";
 	case EXCEPTION_INT_OVERFLOW:

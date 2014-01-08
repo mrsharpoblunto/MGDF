@@ -52,24 +52,27 @@ VirtualFileSystemComponent::~VirtualFileSystemComponent()
 
 bool VirtualFileSystemComponent::Mount( const wchar_t *physicalDirectory )
 {
+	_ASSERTE( physicalDirectory );
 	_ASSERTE( !_root );
 	_root = Map( physicalDirectory, nullptr );
 	return _root != nullptr;
 }
 
 //used by folders to lazily enumerate thier children as needed.
-void VirtualFileSystemComponent::MapChildren( DefaultFolderImpl *parent )
+void VirtualFileSystemComponent::MapChildren( DefaultFolderImpl *parent, std::map<const wchar_t *, IFile *, WCharCmp> &children )
 {
 	_ASSERTE( parent );
 	boost::filesystem::wpath path( parent->GetPhysicalPath(), boost::filesystem::native );
 	_ASSERTE( boost::filesystem::is_directory( path ) );
+
+	boost::mutex::scoped_lock( _mutex );
 
 	boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
 	for ( boost::filesystem::directory_iterator itr( path ); itr != end_itr; ++itr ) {
 		const wchar_t *childName = ( *itr ).path().native().c_str();
 		IFile *mappedChild = Map( childName, parent );
 		_ASSERTE( mappedChild );
-		parent->AddChild( mappedChild );
+		children.insert( std::pair<const wchar_t *, IFile *> ( mappedChild->GetName(), mappedChild ) );
 	}
 }
 

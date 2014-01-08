@@ -9,7 +9,8 @@
 #include <AL/alut.h>
 #include "OpenALSound.hpp"
 #include "VorbisStream.hpp"
-
+#include "../../common/MGDFExceptions.hpp"
+#include "../../common/MGDFLoggerImpl.hpp"
 #include "OpenALSoundManagerComponent.hpp"
 
 
@@ -29,6 +30,8 @@ namespace openal_audio
 
 ISoundManagerComponent *CreateOpenALSoundManagerComponent( IVirtualFileSystem *vfs )
 {
+	_ASSERTE( vfs );
+
 	try {
 		return new OpenALSoundManagerComponentImpl( vfs );
 	} catch ( ... ) {
@@ -44,7 +47,11 @@ OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl( IVirtualFileSy
 	, _position( XMFLOAT3( 0.0f, 0.0f, 0.0f ) )
 	, _velocity( XMFLOAT3( 0.0f, 0.0f, 0.0f ) )
 {
+	_ASSERTE( vfs );
+
 	_context = OpenALSoundSystem::Instance()->GetContext();
+	_ASSERTE( _context );
+	
 	alDistanceModel( AL_NONE );
 }
 
@@ -80,6 +87,7 @@ void OpenALSoundManagerComponentImpl::Update()
 
 	INT32 deactivatedSoundsCount = 0;
 
+	LOG( "Updating sounds...", LOG_HIGH );
 	for ( auto sound : _sounds ) {
 		if ( !sound->IsActive() ) {
 			deactivatedSoundsCount++;
@@ -188,45 +196,60 @@ void OpenALSoundManagerComponentImpl::SetSpeedOfSound( float speedOfSound )
 	alSpeedOfSound( speedOfSound );
 }
 
-ISoundStream *OpenALSoundManagerComponentImpl::CreateSoundStream( IFile *file )
+MGDFError OpenALSoundManagerComponentImpl::CreateSoundStream( IFile *file, ISoundStream **stream )
 {
+	if ( !file ) {
+		LOG( "The stream datasource cannot be null", LOG_ERROR );
+		return MGDF_ERR_INVALID_FILE;
+	}
+
 	//try to deactivate a sound in order to free up a source for the new sound
 	//however it may not be possible to deactivate any of the current sounds so the
 	//new sound may have to be created as inactive.
 	if ( OpenALSoundSystem::Instance()->GetFreeSources() == 0 ) {
+		LOG( "Trying to free up audio source by deactivating low priority sound...", LOG_MEDIUM );
 		DeactivateSound( INT_MAX );
 	}
 
 	//if we couldn't deactivate any sources then we cannot create the stream
 	if ( OpenALSoundSystem::Instance()->GetFreeSources() == 0 ) {
-		SETLASTERROR( GetComponentErrorHandler(), MGDF_ERR_NO_FREE_SOURCES, "No free sound sources to create stream" );
-		return nullptr;
+		return MGDF_ERR_NO_FREE_SOURCES;
 	} else {
 		try {
-			VorbisStream *stream = new VorbisStream( file, this );
-			_soundStreams.push_back( stream );
-			return stream;
-		} catch ( ... ) {
-			return nullptr;
+			VorbisStream *s = new VorbisStream( file, this );
+			_soundStreams.push_back( s );
+			*stream = s;
+			return MGDF_OK;
+		} catch ( MGDFException ex ) {
+			LOG( ex.what(), LOG_ERROR );
+			return MGDF_ERR_INVALID_FILE;
 		}
 	}
 }
 
-ISound *OpenALSoundManagerComponentImpl::CreateSound( IFile *file, INT32 priority )
+MGDFError OpenALSoundManagerComponentImpl::CreateSound( IFile *file, INT32 priority, ISound **sound )
 {
+	if ( !file ) {
+		LOG( "The stream datasource cannot be null", LOG_ERROR );
+		return MGDF_ERR_INVALID_FILE;
+	}
+
 	//try to deactivate a sound in order to free up a source for the new sound
 	//however it may not be possible to deactivate any of the current sounds so the
 	//new sound may have to be created as inactive.
 	if ( OpenALSoundSystem::Instance()->GetFreeSources() == 0 ) {
+		LOG( "Trying to free up audio source by deactivating low priority sound...", LOG_MEDIUM );
 		DeactivateSound( priority );
 	}
 
 	try {
-		OpenALSound *sound = new OpenALSound( file, this, priority );
-		_sounds.push_back( sound );
-		return sound;
-	} catch ( ... ) {
-		return nullptr;
+		OpenALSound *s = new OpenALSound( file, this, priority );
+		_sounds.push_back( s );
+		*sound = s;
+		return MGDF_OK;
+	} catch ( MGDFException ex ) {
+		LOG( ex.what(), LOG_ERROR );
+		return MGDF_ERR_INVALID_FILE;
 	}
 
 }
@@ -240,6 +263,7 @@ void OpenALSoundManagerComponentImpl::DeactivateSound( INT32 priority )
 			sounds.push_back( sound );
 		}
 	}
+	LOG( "Deactivating " << sounds.size() << " sounds...", LOG_MEDIUM );
 	if ( sounds.size() > 0 ) {
 		sort( sounds.begin(), sounds.end(), &OpenALSoundManagerComponentImpl::Sort );
 		sounds[0]->Deactivate();
@@ -249,6 +273,7 @@ void OpenALSoundManagerComponentImpl::DeactivateSound( INT32 priority )
 //ensure as many samples are active as possible, with the highest precedence samples being activated first
 void OpenALSoundManagerComponentImpl::PrioritizeSounds( INT32 deactivatedSoundsCount )
 {
+	LOG( "Prioritizing sounds...", LOG_MEDIUM );
 	//copy the sounds into a local list so sorting won't mess up the external ordering of the samples
 	std::vector<OpenALSound *> sounds;
 	for ( auto s : _sounds ) {
@@ -278,6 +303,9 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds( INT32 deactivatedSoundsC
 //sort sounds into the lowest->highest priority
 bool OpenALSoundManagerComponentImpl::Sort( OpenALSound *a, OpenALSound *b )
 {
+	_ASSERTE( a );
+	_ASSERTE( b );
+
 	if ( a->GetPriority() < b->GetPriority() ) {
 		return true;
 	} else if ( a->GetAttenuatedVolume() < b->GetAttenuatedVolume() ) {
@@ -291,6 +319,10 @@ bool OpenALSoundManagerComponentImpl::Sort( OpenALSound *a, OpenALSound *b )
 
 ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer( IFile *dataSource )
 {
+	_ASSERTE( dataSource );
+
+	LOG( "Getting sound buffer...", LOG_MEDIUM );
+
 	std::wstring dataSourceName = dataSource->GetLogicalPath();
 	dataSourceName.append( L"/" );
 	dataSourceName.append( dataSource->GetName() );
@@ -298,34 +330,37 @@ ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer( IFile *dataSource )
 	//see if the buffer already exists in memory before trying to create it
 	for ( auto buffer : _sharedBuffers ) {
 		if ( buffer.second->BufferSource == dataSourceName ) {
+			LOG( "Sound buffer already loaded into memory - re-using", LOG_MEDIUM );
 			++buffer.second->References;
 			return buffer.first;
 		}
 	}
 
-	//if the buffer doesn't exist, then load it off the vfs.
-	if ( dataSource->IsOpen() ) {
-		dataSource->SetPosition( 0 );
-	} else {
-		dataSource->OpenFile();
-	}
-	INT64 size = dataSource->GetSize();
+	IFileReader *reader = nullptr;
+	if ( MGDF_OK != dataSource->OpenFile( &reader ) ) {
+		throw MGDFException( "Buffer file could not be opened or is already open for reading" );
+	} 
+
+	INT64 size = reader->GetSize();
 	UINT32 truncSize = size > UINT_MAX ? UINT_MAX : static_cast<UINT32>( size );
 	char *data = new char[truncSize];
-	dataSource->Read( ( void * ) data, truncSize );
-	dataSource->CloseFile();
+	reader->Read( ( void * ) data, truncSize );
+	reader->Close();
 
 	ALuint bufferId = alutCreateBufferFromFileImage( ( ALvoid * ) data, truncSize );
 	delete[] data;
 
 	//if the buffer loaded ok, add it to the list of loaded shared buffers
-	if ( bufferId != ALUT_ERROR_AL_ERROR_ON_ENTRY && bufferId != ALUT_ERROR_ALC_ERROR_ON_ENTRY ) {
+	if ( bufferId != ALUT_ERROR_AL_ERROR_ON_ENTRY && bufferId != ALUT_ERROR_ALC_ERROR_ON_ENTRY && bufferId != AL_NONE) {
+		LOG( "Loaded shared sound buffer into memory", LOG_MEDIUM );
 		SharedBuffer *sharedBuffer = new SharedBuffer();
 		sharedBuffer->BufferSource = dataSourceName;
 		sharedBuffer->References = 1;
 		_sharedBuffers[bufferId] = sharedBuffer;
-	}
-	return bufferId;
+		return bufferId;
+	} 
+
+	throw MGDFException( "Error allocating sound buffer" );
 }
 
 void OpenALSoundManagerComponentImpl::RemoveSoundBuffer( ALuint bufferId )
@@ -334,6 +369,7 @@ void OpenALSoundManagerComponentImpl::RemoveSoundBuffer( ALuint bufferId )
 		--_sharedBuffers[bufferId]->References;
 		//if there are no more references to this buffer, remove it.
 		if ( _sharedBuffers[bufferId]->References == 0 ) {
+			LOG( "No more references to shared sound buffer - removing...", LOG_MEDIUM );
 			alDeleteBuffers( 1, &bufferId );
 			delete _sharedBuffers[bufferId];
 			_sharedBuffers.erase( bufferId );
@@ -343,6 +379,9 @@ void OpenALSoundManagerComponentImpl::RemoveSoundBuffer( ALuint bufferId )
 
 void OpenALSoundManagerComponentImpl::RemoveSoundStream( ISoundStream *stream )
 {
+	if ( !stream ) return;
+
+	LOG( "Removing sound stream", LOG_MEDIUM );
 	auto iter = find( _soundStreams.begin(), _soundStreams.end(), stream );
 	if ( iter != _soundStreams.end() ) {
 		_soundStreams.erase( iter );
@@ -351,6 +390,9 @@ void OpenALSoundManagerComponentImpl::RemoveSoundStream( ISoundStream *stream )
 
 void OpenALSoundManagerComponentImpl::RemoveSound( ISound *sound )
 {
+	if ( !sound ) return;
+
+	LOG( "Removing sound", LOG_MEDIUM );
 	auto iter = find( _sounds.begin(), _sounds.end(), sound );
 	if ( iter != _sounds.end() ) {
 		_sounds.erase( iter );

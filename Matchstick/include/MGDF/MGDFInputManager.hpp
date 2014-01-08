@@ -108,9 +108,7 @@ DECLARE_LIST( IGamepadList, IGamepad * )
 
 /**
 this class provides a means for modules to access information regarding user input
-the purpose of providing this interface is to abstract away the details of
-initialisation and management of low level key and mouse routines. The module can
-simply extract user input data without knowledge of the particular input implementation
+from the mouse, keyboard, and xinput controllers
 \author gcconner
 */
 class IInputManager
@@ -196,8 +194,8 @@ public:
 	virtual bool  IsButtonClicked( Mouse mouseButton ) = 0;
 
 	/**
-	gets a list of all compatible gamepads connected to the system
-	\return a list of all compatible gamepads connected to the system
+	gets a list of all compatible gamepads connected to the 
+	\return a list of all compatible gamepads connected to the 
 	*/
 	virtual const  IGamepadList * GetGamepads() const = 0;
 };

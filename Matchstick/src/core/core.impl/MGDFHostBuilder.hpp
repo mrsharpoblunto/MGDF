@@ -1,17 +1,17 @@
 #pragma once
 
-#include "MGDFSystemImpl.hpp"
+#include "MGDFHostImpl.hpp"
 
 namespace MGDF
 {
 namespace core
 {
 
-class SystemBuilder
+class HostBuilder
 {
 public:
-	static System *CreateSystem();
-	static void DisposeSystem( System *system );
+	static Host *CreateHost();
+	static void DisposeHost( Host * );
 private:
 	static bool RegisterBaseComponents();
 	static bool RegisterAdditionalComponents( std::string gameUid );

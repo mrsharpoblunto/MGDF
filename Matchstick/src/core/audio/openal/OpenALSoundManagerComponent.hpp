@@ -34,27 +34,27 @@ class OpenALSoundManagerComponentImpl: public ISoundManagerComponent
 public:
 	OpenALSoundManagerComponentImpl( IVirtualFileSystem *vfs );
 	virtual ~OpenALSoundManagerComponentImpl();
-	virtual void Update();
+	void Update() override;
 
-	virtual XMFLOAT3 *GetListenerPosition();
-	virtual XMFLOAT3 *GetListenerVelocity();
-	virtual XMFLOAT3 *GetListenerOrientationForward();
-	virtual XMFLOAT3 *GetListenerOrientationUp();
+	XMFLOAT3 *GetListenerPosition() override;
+	XMFLOAT3 *GetListenerVelocity() override;
+	XMFLOAT3 *GetListenerOrientationForward() override;
+	XMFLOAT3 *GetListenerOrientationUp() override;
 
-	virtual float GetSoundVolume() const;
-	virtual void SetSoundVolume( float volume );
-	virtual float GetStreamVolume() const;
-	virtual void SetStreamVolume( float volume );
+	float GetSoundVolume() const override;
+	void SetSoundVolume( float volume ) override;
+	float GetStreamVolume() const override;
+	void SetStreamVolume( float volume ) override;
 
-	virtual bool GetEnableAttenuation() const;
-	virtual void SetEnableAttenuation( bool enableAttenuation );
-	virtual float GetDopplerShiftFactor() const;
-	virtual void SetDopplerShiftFactor( float dopplerShiftFactor );
-	virtual float GetSpeedOfSound() const;
-	virtual void SetSpeedOfSound( float speedOfSound );
+	bool GetEnableAttenuation() const override;
+	void SetEnableAttenuation( bool enableAttenuation ) override;
+	float GetDopplerShiftFactor() const override;
+	void SetDopplerShiftFactor( float dopplerShiftFactor ) override;
+	float GetSpeedOfSound() const override;
+	void SetSpeedOfSound( float speedOfSound ) override;
 
-	virtual ISound *CreateSound( IFile *source, INT32 priority );
-	virtual ISoundStream *CreateSoundStream( IFile *source );
+	MGDFError CreateSound( IFile *source, INT32 priority, ISound **sound ) override;
+	MGDFError CreateSoundStream( IFile *source, ISoundStream **stream ) override;
 private:
 	ALuint GetSoundBuffer( IFile *dataSource );
 	void RemoveSoundBuffer( ALuint bufferId );

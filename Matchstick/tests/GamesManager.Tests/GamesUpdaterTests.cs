@@ -390,7 +390,7 @@ namespace MGDF.GamesManager.Tests
             //assert the shortcuts are in the right place
             key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
             Assert.IsNotNull(key);
-            Assert.AreEqual("c:\\program files\\MGDF\\resources\\gamesystemicon.ico", key.GetValue("DisplayIcon"));
+            Assert.AreEqual("c:\\program files\\MGDF\\resources\\gameicon.ico", key.GetValue("DisplayIcon"));
             Assert.AreEqual("Lua Console", key.GetValue("DisplayName"));
             Assert.AreEqual("http://www.junkship.org", key.GetValue("URLInfoAbout"));
             Assert.AreEqual(1, key.GetDwordValue("NoModify"));
@@ -440,7 +440,7 @@ namespace MGDF.GamesManager.Tests
             new MockArchiveFile(archive, "game.json", @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
-  ""description"":""A Lua command console for interacting with the MGDF system"",
+  ""description"":""A Lua command console for interacting with the MGDF "",
   ""version"":""1.0.0.0"",
   ""interfaceversion"":""1"",
   ""developeruid"":""no-8"",
@@ -479,7 +479,7 @@ namespace MGDF.GamesManager.Tests
             //assert the shortcuts are in the right place
             var key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
             Assert.IsNotNull(key);
-            Assert.AreEqual("c:\\program files\\MGDF\\resources\\gamesystemicon.ico", key.GetValue("DisplayIcon"));
+            Assert.AreEqual("c:\\program files\\MGDF\\resources\\gameicon.ico", key.GetValue("DisplayIcon"));
             Assert.AreEqual("Lua Console", key.GetValue("DisplayName"));
             Assert.AreEqual("http://www.junkship.org", key.GetValue("URLInfoAbout"));
             Assert.AreEqual(1, key.GetDwordValue("NoModify"));

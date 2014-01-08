@@ -48,16 +48,18 @@ class TESTCOMMON_DLL TextManager
 {
 public:
 	virtual ~TextManager();
-	TextManager( ISystem *system );
+	TextManager( IRenderHost *renderHost );
 	void SetState( boost::shared_ptr<TextManagerState> state );
-	void BackBufferChanged();
+	void BackBufferChange();
+	void BeforeBackBufferChange();
+	void BeforeDeviceReset();
 	void DrawText();
 private:
 #pragma warning(push)
 #pragma warning(disable: 4251)
 	boost::shared_ptr<TextManagerState> _state;
 #pragma warning(pop)
-	ISystem *_system;
+	IRenderHost *_renderHost;
 	ID2D1SolidColorBrush *_whiteBrush;
 	ID2D1SolidColorBrush *_redBrush;
 	ID2D1SolidColorBrush *_greenBrush;

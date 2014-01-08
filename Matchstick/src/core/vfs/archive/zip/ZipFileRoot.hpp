@@ -24,10 +24,10 @@ public:
 		, _archiveName( name ) {
 	}
 	virtual ~ZipFileRoot();
-	virtual bool IsArchive() const {
+	bool IsArchive() const override{
 		return true;
 	}
-	virtual const wchar_t *GetArchiveName() const {
+	const wchar_t *GetArchiveName() const override{
 		return _archiveName.c_str();
 	}
 private:

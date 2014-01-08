@@ -65,13 +65,16 @@ SUITE( VFSTests )
 		_vfs->Mount( ( Resources::Instance().RootDir() + L"../../../tests/content/test.zip" ).c_str() );
 
 		IFile *file = _vfs->GetFile( L"content/test.lua" );
-		file->OpenFile();
-		UINT32 size = static_cast<UINT32>( file->GetSize() );
+		IFileReader *reader = nullptr;
+		CHECK_EQUAL( MGDF_OK, file->OpenFile( &reader ) );
+		CHECK( reader != nullptr );
+
+		UINT32 size = static_cast<UINT32>( reader->GetSize() );
 		char* data = new char[size];
-		file->Read( ( void * ) data, size );
+		reader->Read( ( void * ) data, size );
 		std::string contents( data, size );
 		delete[] data;
-		file->CloseFile();
+		reader->Close();
 
 		std::vector<std::string> list;
 		boost::algorithm::replace_all( contents, "\r", "" );
@@ -130,7 +133,7 @@ SUITE( VFSTests )
 	}
 
 	/**
-	check that the standard filesystem is enumerated correctly by the vfs
+	check that the standard file is enumerated correctly by the vfs
 	*/
 	TEST_FIXTURE( VFSTestFixture, FileSystemTests ) {
 		_vfs->Mount( ( Resources::Instance().RootDir() + L"../../../tests/content" ).c_str() );
@@ -145,19 +148,22 @@ SUITE( VFSTests )
 	}
 
 	/**
-	check that files in the standard filesystem can be read from the vfs correctly
+	check that files in the standard file can be read from the vfs correctly
 	*/
 	TEST_FIXTURE( VFSTestFixture, FileSystemContentTests ) {
 		_vfs->Mount( ( Resources::Instance().RootDir() + L"../../../tests/content" ).c_str() );
 
 		IFile *file = _vfs->GetFile( L"console.json" );
-		file->OpenFile();
-		UINT32 size = static_cast<UINT32>( file->GetSize() );
+		IFileReader *reader = nullptr;
+		CHECK_EQUAL( MGDF_OK, file->OpenFile( &reader ) );
+		CHECK( reader != nullptr );
+
+		UINT32 size = static_cast<UINT32>( reader->GetSize() );
 		char *data = new char[size];
-		file->Read( data, size );
+		reader->Read( data, size );
 		std::string contents( data, size );
 		delete[] data;
-		file->CloseFile();
+		reader->Close();
 
 		std::vector<std::string> list;
 		boost::algorithm::replace_all( contents, "\r", "" );

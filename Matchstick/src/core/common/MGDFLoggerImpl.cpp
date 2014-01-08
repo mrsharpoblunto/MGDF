@@ -21,6 +21,9 @@ namespace core
 
 void Logger::Add( const char *sender, const char *message, LogLevel level )
 {
+	_ASSERTE( sender );
+	_ASSERTE( message );
+
 	boost::mutex::scoped_lock l( _mutex );
 	if ( level <= _level ) {
 		std::ostringstream stream;

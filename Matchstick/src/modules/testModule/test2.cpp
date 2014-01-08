@@ -31,10 +31,10 @@ TestModule *Test2::NextTestModule()
 	}
 }
 
-void Test2::Update( ISystem *system, TextManagerState *state )
+void Test2::Update( ISimHost *host, TextManagerState *state )
 {
-	if ( system->GetInput()->IsKeyPress( VK_ESCAPE ) ) {
-		system->ShutDown();
+	if ( host->GetInput()->IsKeyPress( VK_ESCAPE ) ) {
+		host->ShutDown();
 	}
 
 	if ( _testState == 0 ) {
@@ -44,7 +44,7 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 
 		_testState++;
 		state->AddLine( "Checking SoundManager is initialized" );
-		if ( system->GetSound() != NULL ) {
+		if ( host->GetSound() != NULL ) {
 			state->SetStatus( GREEN, "[Test Passed]" );
 		} else {
 			_testState = 1000;
@@ -52,9 +52,8 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 		}
 	} else if ( _testState == 1 ) {
 		state->AddLine( "Loading sound chimes.wav" );
-		_sound = system->GetSound()->CreateSound( system->GetVFS()->GetFile( L"chimes.wav" ), 0 );
-		system->GetSound()->SetEnableAttenuation( true );
-		if ( _sound == NULL ) {
+		host->GetSound()->SetEnableAttenuation( true );
+		if ( MGDF_OK != host->GetSound()->CreateSound( host->GetVFS()->GetFile( L"chimes.wav" ), 0, &_sound ) ) {
 			_testState = 1000;
 			state->SetStatus( RED, "[Test Failed]" );
 		} else {
@@ -68,34 +67,34 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 		_sound->Play();
 		state->AddLine( "Is a sound playing? [Y/N]" );
 		++_testState;
-	} else if ( _testState == 3 && system->GetInput()->IsKeyPress( 'Y' ) ) {
+	} else if ( _testState == 3 && host->GetInput()->IsKeyPress( 'Y' ) ) {
 		++_testState;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Use arrow keys to change sounds position, press [Y/N] if the sound adjusts accordingly" );
-	} else if ( _testState == 3 && system->GetInput()->IsKeyPress( 'N' ) ) {
+	} else if ( _testState == 3 && host->GetInput()->IsKeyPress( 'N' ) ) {
 		_testState = 1000;
 		_sound->Dispose();
 		state->SetStatus( RED, "[Test Failed]" );
 	} else if ( _testState == 4 ) {
-		if ( system->GetInput()->IsKeyDown( VK_UP ) ) {
+		if ( host->GetInput()->IsKeyDown( VK_UP ) ) {
 			_sound->GetPosition()->y += 1;
 		}
-		if ( system->GetInput()->IsKeyDown( VK_DOWN ) ) {
+		if ( host->GetInput()->IsKeyDown( VK_DOWN ) ) {
 			_sound->GetPosition()->y -= 1;
 		}
-		if ( system->GetInput()->IsKeyDown( VK_LEFT ) ) {
+		if ( host->GetInput()->IsKeyDown( VK_LEFT ) ) {
 			_sound->GetPosition()->x -= 1;
 		}
-		if ( system->GetInput()->IsKeyDown( VK_RIGHT ) ) {
+		if ( host->GetInput()->IsKeyDown( VK_RIGHT ) ) {
 			_sound->GetPosition()->x += 1;
 		}
 
-		if ( system->GetInput()->IsKeyPress( 'Y' ) ) {
+		if ( host->GetInput()->IsKeyPress( 'Y' ) ) {
 			++_testState;
 			_sound->Stop();
 			_sound->Dispose();
 			state->SetStatus( GREEN, "[Test Passed]" );
-		} else if ( system->GetInput()->IsKeyPress( 'N' ) ) {
+		} else if ( host->GetInput()->IsKeyPress( 'N' ) ) {
 			_testState = 1000;
 			_sound->Stop();
 			_sound->Dispose();
@@ -103,8 +102,7 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 		}
 	} else if ( _testState == 5 ) {
 		state->AddLine( "Loading stream stream.ogg" );
-		_stream = system->GetSound()->CreateSoundStream( system->GetVFS()->GetFile( L"Stream.ogg" ) );
-		if ( _stream == NULL ) {
+		if ( MGDF_OK != host->GetSound()->CreateSoundStream( host->GetVFS()->GetFile( L"Stream.ogg" ), &_stream ) ) {
 			_testState = 1000;
 			state->SetStatus( RED, "[Test Failed]" );
 		} else {
@@ -116,24 +114,24 @@ void Test2::Update( ISystem *system, TextManagerState *state )
 		++_testState;
 		_stream->Play();
 		state->AddLine( "Playing stream, press [Y/N] if the stream is actually playing" );
-	} else if ( _testState == 7 && system->GetInput()->IsKeyPress( 'Y' ) ) {
+	} else if ( _testState == 7 && host->GetInput()->IsKeyPress( 'Y' ) ) {
 		++_testState;
 		state->SetStatus( GREEN, "[Test Passed]" );
 		state->AddLine( "Use [P] to toggle pause/play, press [Y/N] if this is working." );
-	} else if ( _testState == 7 && system->GetInput()->IsKeyPress( 'N' ) ) {
+	} else if ( _testState == 7 && host->GetInput()->IsKeyPress( 'N' ) ) {
 		_testState = 1000;
 		_stream->Dispose();
 		state->SetStatus( RED, "[Test Failed]" );
 	} else if ( _testState == 8 ) {
-		if ( system->GetInput()->IsKeyPress( 'Y' ) ) {
+		if ( host->GetInput()->IsKeyPress( 'Y' ) ) {
 			_testState = 1000;
 			_stream->Dispose();
 			state->SetStatus( GREEN, "[Test Passed]" );
-		} else if ( system->GetInput()->IsKeyPress( 'N' ) ) {
+		} else if ( host->GetInput()->IsKeyPress( 'N' ) ) {
 			_testState = 1000;
 			_stream->Dispose();
 			state->SetStatus( RED, "[Test Failed]" );
-		} else if ( system->GetInput()->IsKeyPress( 'P' ) ) {
+		} else if ( host->GetInput()->IsKeyPress( 'P' ) ) {
 			if ( _stream->IsPaused() ) _stream->Play();
 			else _stream->Pause();
 		}
