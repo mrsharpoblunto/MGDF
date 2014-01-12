@@ -20,9 +20,6 @@
     <ClInclude Include="MGDFMockLogger.hpp">
       <Filter>Mocks</Filter>
     </ClInclude>
-    <ClInclude Include="Mocks\MGDFMockModule.hpp">
-      <Filter>Mocks</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
 </Project>

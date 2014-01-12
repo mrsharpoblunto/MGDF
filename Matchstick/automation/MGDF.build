@@ -61,7 +61,7 @@
 
 		<nunit2report out="${project::get-base-directory()}\GamesManager.Tests-Results.html">
   			<fileset>
-    				<includes name="${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
+    				<include name="${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
   			</fileset>
 		</nunit2report>
 		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.Tests-Results.html']"/>

@@ -14,11 +14,11 @@ class MockLogger: public ILogger
 public:
 	MockLogger() {}
 	virtual ~MockLogger() {}
-	virtual void  SetLoggingLevel( LogLevel level ) { }
-	virtual LogLevel GetLoggingLevel() const {
+	void  SetLoggingLevel( LogLevel level ) override { }
+	LogLevel GetLoggingLevel() const override {
 		return LOG_ERROR;
 	}
-	virtual void Add( const char *sender, const char *message, LogLevel level ) {}
+	void Add( const char *sender, const char *message, LogLevel level ) override {}
 };
 
 }

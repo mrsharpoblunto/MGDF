@@ -240,7 +240,6 @@
   <ItemGroup>
     <ClInclude Include="MGDFMockErrorHandler.hpp" />
     <ClInclude Include="MGDFMockLogger.hpp" />
-    <ClInclude Include="Mocks\MGDFMockModule.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
