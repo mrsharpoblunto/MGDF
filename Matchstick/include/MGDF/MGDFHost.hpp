@@ -61,7 +61,7 @@ public:
  This class provides a callback interface for a module to interact with the MGDF host
  from module methods run off the render thread.
 */
-class IRenderHost: public virtual ICommonHost
+class IRenderHost: public ICommonHost
 {
 	public:
 	/**
