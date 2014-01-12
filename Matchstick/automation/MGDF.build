@@ -176,8 +176,7 @@
     <mkdir dir="Package/SDK/Prereqs" />
     <copy todir="Package/SDK/Prereqs">
       <fileset basedir="..\Installers">
-        <include name="**/dxredist/**" />
-        <include name="vcredist_x86.exe" />
+        <include name="vc2012redist_x86.exe" />
         <include name="DotNetFx35ClientSetup.exe" />
       </fileset>
     </copy>
