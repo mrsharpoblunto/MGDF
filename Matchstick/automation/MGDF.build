@@ -8,7 +8,7 @@
 
 	<property name="builddate" value="${year.now}-${month.now}-${day.now}"/>
 	<!-- Update the major.minor version number here whenever a new release is planned -->
-	<property name="buildnumber" value="0.9.${year.since2007}${month.now}${day.now}.${hour.now}${minute.now}"/>
+	<property name="buildnumber" value="0.10.${year.since2014}${month.now}${day.now}.${hour.now}${minute.now}"/>
 
 	<property name="msbuild_target" value="debug"/>
   <property name="msplatform_target" value="Win32"/>
