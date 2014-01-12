@@ -2,7 +2,7 @@
 
 #include <al.h>
 #include <alc.h>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <stack>
 
 namespace MGDF
@@ -32,7 +32,7 @@ public:
 	bool AcquireSource( ALuint *source );
 	void ReleaseSource( ALuint source );
 private:
-	boost::unordered_map<ALuint, bool> _allocatedSources;
+	std::unordered_map<ALuint, bool> _allocatedSources;
 	std::stack<ALuint> _freeSources;
 
 	ALCcontext *_context;

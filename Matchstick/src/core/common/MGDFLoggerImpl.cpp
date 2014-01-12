@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
+#include <filesystem>
 #include <sstream>
 #include <fstream>
-#include <boost/filesystem.hpp>
 #include "MGDFLoggerImpl.hpp"
 #include "MGDFResources.hpp"
 
@@ -24,7 +24,7 @@ void Logger::Add( const char *sender, const char *message, LogLevel level )
 	_ASSERTE( sender );
 	_ASSERTE( message );
 
-	boost::mutex::scoped_lock l( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( level <= _level ) {
 		std::ostringstream stream;
 		stream << sender << " " << message << "\n";
@@ -61,10 +61,11 @@ void Logger::MoveOutputFile()
 {
 	std::wstring newFile = Resources::Instance().LogFile();
 	if ( newFile != _filename ) {
-		boost::filesystem::path from( _filename );
-		boost::filesystem::path to( Resources::Instance().LogFile() );
-		boost::filesystem::copy_file( from, to, boost::filesystem::copy_option::overwrite_if_exists );
-		boost::filesystem::remove( _filename );
+
+		std::tr2::sys::wpath from( _filename );
+		std::tr2::sys::wpath to( Resources::Instance().LogFile() );
+		std::tr2::sys::copy_file( from, to, std::tr2::sys::copy_option::overwrite_if_exists );
+		std::tr2::sys::remove( from );
 
 		_filename = newFile;
 	}
@@ -82,7 +83,7 @@ void Logger::SetOutputFile( const std::wstring &filename )
 
 void Logger::SetLoggingLevel( LogLevel level )
 {
-	boost::mutex::scoped_lock l( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	_level = level;
 }
 

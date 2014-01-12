@@ -1,5 +1,6 @@
 #pragma once
 
+#include <thread>
 #include <d3d11.h>
 #include <d3d11_1.h>
 #include <atomic>
@@ -89,7 +90,7 @@ private:
 	std::atomic_uint32_t _screenMode;
 	std::atomic_flag _runRenderThread;
 	
-	boost::thread *_renderThread;
+	std::thread *_renderThread;
 
 	bool _maximized;
 	bool _resizing;

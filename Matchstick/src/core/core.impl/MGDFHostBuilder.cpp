@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 
-#include <boost/filesystem/operations.hpp>
-
+#include <filesystem>
 #include <MGDF/MGDF.hpp>
 
 #include "MGDFHostBuilder.hpp"
@@ -23,6 +22,8 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
+
+using namespace std::tr2::sys;
 
 namespace MGDF
 {
@@ -154,9 +155,9 @@ void HostBuilder::InitParameterManager()
 
 	//use the supplied params.txt in the application path (if provided)
 	//providing a params.txt can be useful for debugging purposes.
-	boost::filesystem::path paramsTxt( Resources::Instance().ParamsFile(), boost::filesystem::native );
-	if ( boost::filesystem::exists( paramsTxt ) ) {
-		std::ifstream input( paramsTxt.native().c_str(), std::ios::in );
+	wpath paramsTxt( Resources::Instance().ParamsFile() );
+	if ( exists( paramsTxt ) ) {
+		std::ifstream input( paramsTxt.string().c_str(), std::ios::in );
 		std::stringstream buffer;
 		buffer << input.rdbuf();
 		paramString = buffer.str();

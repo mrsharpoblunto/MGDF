@@ -2,7 +2,7 @@
 
 #include <string>
 #include <map>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
@@ -47,7 +47,7 @@ public:
 	const wchar_t *GetName() const override;
 	time_t GetLastWriteTime() const override;
 protected:
-	mutable boost::mutex _mutex;
+	mutable std::mutex _mutex;
 	mutable std::wstring _logicalPath;
 
 	std::map<const wchar_t *, FakeFile *,WCharCmp> *_children;

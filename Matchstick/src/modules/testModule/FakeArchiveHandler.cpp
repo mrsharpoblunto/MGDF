@@ -1,8 +1,5 @@
 #include "StdAfx.h"
 
-#include <algorithm>
-#include <cctype>//std::tolower
-#include <boost/filesystem.hpp>
 #include "FakeArchiveHandler.hpp"
 #include "FakeFile.hpp"
 

@@ -1,9 +1,10 @@
 #include "StdAfx.h"
 
+#include <Dbghelp.h>
+#include <filesystem>
+
 #include "MGDFModuleFactory.hpp"
 
-#include "Dbghelp.h"
-#include <boost/filesystem/operations.hpp>
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "MGDFCurrentDirectoryHelper.hpp"
@@ -18,6 +19,8 @@
 //leaving this commented out leaves the unloading of the dlls to the OS
 //NOTE: with FREE_UNUSED_LIBRARIES enabled memory leaks in external modules are not reported correctly
 //#define FREE_UNUSED_LIBRARIES
+
+using namespace std::tr2::sys;
 
 namespace MGDF
 {
@@ -43,8 +46,8 @@ ModuleFactory::ModuleFactory( IGame *game )
 {
 	_ASSERTE( game );
 
-	boost::filesystem::wpath globalModule( Resources::Instance().Module(), boost::filesystem::native );
-	if ( boost::filesystem::exists( globalModule ) ) {
+	wpath globalModule( Resources::Instance().Module() );
+	if ( exists( globalModule ) ) {
 		LOG( "Loading Module.dll", LOG_LOW );
 		CurrentDirectoryHelper::Instance().Push( Resources::Instance().BinDir() );
 		_moduleInstance = LoadLibraryW( Resources::Instance().Module().c_str() );

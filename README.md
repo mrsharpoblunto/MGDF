@@ -4,7 +4,7 @@ MGDF - Matchstick game development framework
 What is it
 ----------
 
-MGDF is a framework designed to make developing, installing, distributing, and updating games easier. The framework uses DirectX 11 for graphics, RawInput/XInput for user input (has full support for the xbox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual filesystem which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
+MGDF is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 7+ supported) easier. The framework uses DirectX 11 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
 
 * MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game.
 * MGDF makes distributing games easier as it includes an auto update mechanism with full versioning support.
@@ -37,13 +37,8 @@ This is written in c# (.NET 3.5) and is a WCF web service that allows games to s
 
 Building Source
 ---------------
-MGDF can be built with Microsoft Visual Studio 2012 on windows. To build MGDF you will need to have installed and built the following prerequisites.
 
-* [boost 1.51](http://www.boost.org/users/history/version_1_51_0.html) (For a prebuilt installer go [here](http://www.boostpro.com/download/))
-* DirectX SDK [June 2010 version](http://www.microsoft.com/download/en/details.aspx?id=6812).
-* create an environment variable called BOOST_DIR and point it to the location you installed the boost library to. (also ensure the boost library files exist in BOOST_DIR\lib\x86 or BOOST_DIR\lib\x64)
-* create an environment variable called DXSDK_DIR and point it to the location you installed the DirectX SDK to.
-* build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
+* Using Microsoft Visual Studio 2012 build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
 
 Running unit tests
 ------------------

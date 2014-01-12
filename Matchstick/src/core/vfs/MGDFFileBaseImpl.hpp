@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <string>
 #include <map>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
@@ -35,7 +35,7 @@ public:
 
 	size_t GetChildCount() const override {
 		if ( !_children ) {
-			boost::mutex::scoped_lock lock( _mutex );
+			std::lock_guard<std::mutex> lock( _mutex );
 			if ( !_children ) {
 				return 0;
 			}
@@ -58,7 +58,7 @@ public:
 	void AddChild( IFile *newNode );
 	void SetParent( IFile *file );
 protected:
-	mutable boost::mutex _mutex;
+	mutable std::mutex _mutex;
 	mutable std::map<const wchar_t *, IFile *, WCharCmp> *_children;
 	mutable std::wstring _logicalPath;
 

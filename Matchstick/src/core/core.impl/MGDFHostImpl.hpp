@@ -3,7 +3,7 @@
 #include <atomic>
 #include <functional>
 #include <sstream>
-#include <boost/thread/thread.hpp>
+#include <mutex>
 
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFHost.hpp>
@@ -133,7 +133,7 @@ private:
 	ID2D1Device *_d2dDevice;
 	ID3D11Texture2D *_backBuffer;
 
-	boost::mutex _mutex;
+	std::mutex _mutex;
 	Version _version;
 	Timer _timer;
 	std::atomic<bool> _shutdownQueued;

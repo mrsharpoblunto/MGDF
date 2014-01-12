@@ -1,7 +1,6 @@
 #pragma once
 
 #include <list>
-#include <boost/unordered_map.hpp>
 #include <unzip.h>
 
 #include "ZipFileRoot.hpp"

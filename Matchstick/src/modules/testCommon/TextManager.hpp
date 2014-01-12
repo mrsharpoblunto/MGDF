@@ -3,7 +3,7 @@
 #include "d3d11.h"
 #include <dwrite_1.h>
 #include "Common.hpp"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <MGDF/MGDF.hpp>
 
 namespace MGDF
@@ -36,7 +36,7 @@ public:
 	TextManagerState( const TextManagerState *state );
 	void AddLine( const std::string &line );
 	void SetStatus( TextColor color, const std::string &text );
-	boost::shared_ptr<TextManagerState> Interpolate( const TextManagerState *state, double alpha );
+	std::shared_ptr<TextManagerState> Interpolate( const TextManagerState *state, double alpha );
 private:
 #pragma warning(push)
 #pragma warning(disable: 4251)
@@ -49,7 +49,7 @@ class TESTCOMMON_DLL TextManager
 public:
 	virtual ~TextManager();
 	TextManager( IRenderHost *renderHost );
-	void SetState( boost::shared_ptr<TextManagerState> state );
+	void SetState( std::shared_ptr<TextManagerState> state );
 	void BackBufferChange();
 	void BeforeBackBufferChange();
 	void BeforeDeviceReset();
@@ -57,7 +57,7 @@ public:
 private:
 #pragma warning(push)
 #pragma warning(disable: 4251)
-	boost::shared_ptr<TextManagerState> _state;
+	std::shared_ptr<TextManagerState> _state;
 #pragma warning(pop)
 	IRenderHost *_renderHost;
 	ID2D1SolidColorBrush *_whiteBrush;

@@ -6,7 +6,6 @@
 #include <map>
 #include <TestReporterStdout.h>
 #include <vector>
-#include <boost/algorithm/string.hpp>
 
 //this snippet ensures that the location of memory leaks is reported correctly
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
@@ -128,7 +127,16 @@ void ParseArguments( Node<Test> &tree, TestFlags &flags, int argc, char **argv )
 		bool execute = directive[0] == '+';
 
 		std::vector<std::string> components;
-		boost::split( components, directive.substr( 1 ), boost::is_any_of( "/" ) );
+
+		char *copy = new char[directive.size()];
+		strcpy_s( copy, directive.size(), directive.c_str() + 1 );
+		char *context = 0;
+		char *ptr = strtok_s( copy, "/", &context );
+		while ( ptr ) {
+			components.push_back( std::string( ptr ) );
+			ptr = strtok_s( 0, "/", &context );
+		}
+		delete[] copy;
 
 		//all tests
 		if ( components.size() == 1 && components[0] == "all" ) {

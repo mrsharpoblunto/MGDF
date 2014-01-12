@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
@@ -12,6 +12,7 @@ using namespace MGDF;
 using namespace MGDF::core;
 using namespace MGDF::core::vfs;
 using namespace MGDF::core::storage;
+using namespace std::tr2::sys;
 
 SUITE( StorageTests )
 {
@@ -87,7 +88,7 @@ SUITE( StorageTests )
 		CHECK_EQUAL( "Console", handler->GetGameUid() );
 		CHECK_EQUAL( 0, VersionHelper::Compare( handler->GetVersion(), &expected ) );
 
-		boost::filesystem::remove( boost::filesystem::wpath( savePath, boost::filesystem::native ) );   //remove the temp file
+		remove( wpath( savePath ) );   //remove the temp file
 		delete handler;
 	}
 
@@ -118,8 +119,8 @@ SUITE( StorageTests )
 		CHECK_EQUAL( 9, count );
 
 		std::wstring savePath = Resources::Instance().RootDir() + L"../../../tests/content/temp.json";
-		if ( boost::filesystem::exists( boost::filesystem::wpath( savePath, boost::filesystem::native ) ) ) {
-			boost::filesystem::remove( boost::filesystem::wpath( savePath, boost::filesystem::native ) );   //remove the temp file
+		if ( exists( wpath( savePath ) ) ) {
+			remove( wpath( savePath ) );   //remove the temp file
 		}
 		handler->Save( savePath );
 		delete handler;
@@ -145,7 +146,7 @@ SUITE( StorageTests )
 		CHECK( foundScreenX );
 		CHECK_EQUAL( 9, count );
 
-		boost::filesystem::remove( boost::filesystem::wpath( savePath, boost::filesystem::native ) );   //remove the temp file
+		remove( wpath( savePath ) );   //remove the temp file
 		delete handler;
 	}
 

@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 
-#include <boost/lexical_cast.hpp>
+#include <sstream>
 
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
@@ -20,6 +20,13 @@ namespace MGDF
 namespace core
 {
 
+std::string ToString( UINT32 i )
+{
+	std::ostringstream ss;
+	ss << i;
+	return ss.str();
+}
+
 RenderSettingsManager::RenderSettingsManager( )
 	: _currentMultiSampleLevel( 1 )
 	, _backBufferMultiSampleLevel( 1 )
@@ -35,7 +42,7 @@ void RenderSettingsManager::InitFromDevice( ID3D11Device *d3dDevice, IDXGIAdapte
 	_ASSERTE( d3dDevice );
 	_ASSERTE( adapter );
 
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	Cleanup();
 
 	IDXGIOutput *temp;
@@ -118,13 +125,13 @@ RenderSettingsManager::~RenderSettingsManager( void )
 
 UINT32 RenderSettingsManager::GetMultiSampleLevelCount() const 
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return static_cast<UINT32>( _multiSampleLevels.size() );
 }
 
 bool RenderSettingsManager::GetMultiSampleLevel( UINT32 index, UINT32 * level ) const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( !level ) return false;
 	if ( index < _multiSampleLevels.size() ) {
 		*level = _multiSampleLevels[index];
@@ -135,7 +142,7 @@ bool RenderSettingsManager::GetMultiSampleLevel( UINT32 index, UINT32 * level ) 
 
 bool RenderSettingsManager::SetCurrentMultiSampleLevel( UINT32 multisampleLevel )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _multiSampleQuality.find( multisampleLevel ) != _multiSampleQuality.end() ) {
 		_currentMultiSampleLevel = multisampleLevel;
 		return true;
@@ -146,14 +153,14 @@ bool RenderSettingsManager::SetCurrentMultiSampleLevel( UINT32 multisampleLevel 
 
 UINT32 RenderSettingsManager::GetCurrentMultiSampleLevel( UINT32 *quality ) const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( quality ) *quality = _multiSampleQuality.find( _currentMultiSampleLevel )->second - 1;
 	return _currentMultiSampleLevel;
 }
 
 bool RenderSettingsManager::SetBackBufferMultiSampleLevel( UINT32 multisampleLevel )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _multiSampleQuality.find( multisampleLevel ) != _multiSampleQuality.end() ) {
 		_backBufferMultiSampleLevel = multisampleLevel;
 		return true;
@@ -164,44 +171,44 @@ bool RenderSettingsManager::SetBackBufferMultiSampleLevel( UINT32 multisampleLev
 
 UINT32 RenderSettingsManager::GetBackBufferMultiSampleLevel() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return _backBufferMultiSampleLevel;
 }
 
 bool RenderSettingsManager::GetVSync() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return _vsync;
 }
 
 void RenderSettingsManager::SetVSync( bool vsync )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	_vsync = vsync;
 }
 
 bool RenderSettingsManager::GetFullscreen() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return _fullScreen;
 }
 
 void RenderSettingsManager::SetFullscreen( bool fullScreen )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	_fullScreen = fullScreen;
 }
 
 UINT32 RenderSettingsManager::GetAdaptorModeCount() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return static_cast<UINT32>( _adaptorModes.size() );
 }
 
 bool RenderSettingsManager::GetAdaptorMode( UINT32 index, AdaptorMode * mode ) const
 {
 	if ( !mode ) return false;
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( index < _adaptorModes.size() ) {
 		auto m = _adaptorModes.at(index);
 		mode->Width = m.Width;
@@ -216,7 +223,7 @@ bool RenderSettingsManager::GetAdaptorMode( UINT32 index, AdaptorMode * mode ) c
 bool RenderSettingsManager::GetAdaptorMode( UINT32 width, UINT32 height, AdaptorMode * mode ) const
 {
 	if ( !mode ) return false;
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	bool result = false;
 	for ( auto currentMode : _adaptorModes ) {
 		if ( currentMode.Width == width && currentMode.Height == height ) {
@@ -240,7 +247,7 @@ bool RenderSettingsManager::GetAdaptorMode( UINT32 width, UINT32 height, Adaptor
 void RenderSettingsManager::GetCurrentAdaptorMode( AdaptorMode * mode ) const
 {
 	if ( !mode ) return;
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	mode->Width = _currentAdaptorMode.Width;
 	mode->Height = _currentAdaptorMode.Height;
 	mode->RefreshRateNumerator = _currentAdaptorMode.RefreshRateNumerator;
@@ -249,20 +256,20 @@ void RenderSettingsManager::GetCurrentAdaptorMode( AdaptorMode * mode ) const
 
 UINT32 RenderSettingsManager::GetScreenX() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return _screenX;
 }
 
 UINT32 RenderSettingsManager::GetScreenY() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return _screenY;
 }
 
 bool RenderSettingsManager::SetCurrentAdaptorMode( const AdaptorMode *mode )
 {
 	if (!mode) return false;
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	for ( auto currentMode : _adaptorModes ) {
 		if ( currentMode.Width == mode->Width && 
@@ -279,7 +286,7 @@ bool RenderSettingsManager::SetCurrentAdaptorMode( const AdaptorMode *mode )
 
 void RenderSettingsManager::ApplyChanges()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	_changePending.store( true );
 }
 
@@ -291,7 +298,7 @@ bool RenderSettingsManager::IsBackBufferChangePending()
 
 void RenderSettingsManager::OnSwitchToFullScreen( DXGI_MODE_DESC1 &desc )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	desc.Width  = _currentAdaptorMode.Width;
 	desc.Height = _currentAdaptorMode.Height;
@@ -309,7 +316,7 @@ void RenderSettingsManager::OnSwitchToFullScreen( DXGI_MODE_DESC1 &desc )
 
 void RenderSettingsManager::OnResize( UINT32 width, UINT32 height )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	_screenX = width;
 	_screenY = height;
@@ -317,7 +324,7 @@ void RenderSettingsManager::OnResize( UINT32 width, UINT32 height )
 
 void RenderSettingsManager::OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& fullscreenDesc, const RECT& windowSize )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	fullscreenDesc.Windowed = !_fullScreen;
 	fullscreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
@@ -387,8 +394,8 @@ void RenderSettingsManager::LoadPreferences( IGame *game )
 		}
 
 		LOG( "No screen resolution preferences found, using " << _currentAdaptorMode.Width << "x" << _currentAdaptorMode.Height, LOG_LOW );
-		game->SetPreference( PreferenceConstants::SCREEN_X, boost::lexical_cast<std::string> ( _currentAdaptorMode.Width ).c_str() );
-		game->SetPreference( PreferenceConstants::SCREEN_Y, boost::lexical_cast<std::string> ( _currentAdaptorMode.Height ).c_str() );
+		game->SetPreference( PreferenceConstants::SCREEN_X, ToString( _currentAdaptorMode.Width ).c_str() );
+		game->SetPreference( PreferenceConstants::SCREEN_Y, ToString( _currentAdaptorMode.Height ).c_str() );
 		savePreferences = true;
 	} else {
 		LOG( "Loaded screen resolution preference for " << _currentAdaptorMode.Width << "x" << _currentAdaptorMode.Height, LOG_LOW );
@@ -399,14 +406,14 @@ void RenderSettingsManager::LoadPreferences( IGame *game )
 	if ( _currentMultiSampleLevel > _multiSampleLevels.at( _multiSampleLevels.size() - 1 ) ) {
 		_currentMultiSampleLevel = _multiSampleLevels.at( _multiSampleLevels.size() - 1 );
 		LOG( "RT multisample preference is not supported, using " << _currentMultiSampleLevel << " instead", LOG_LOW );
-		game->SetPreference( PreferenceConstants::RT_MULTISAMPLE_LEVEL, boost::lexical_cast<std::string> ( _currentMultiSampleLevel ).c_str() );
+		game->SetPreference( PreferenceConstants::RT_MULTISAMPLE_LEVEL, ToString( _currentMultiSampleLevel ).c_str() );
 		savePreferences = true;
 	}
 	_backBufferMultiSampleLevel = atoi( game->GetPreference( PreferenceConstants::MULTISAMPLE_LEVEL ) );
 	if ( _backBufferMultiSampleLevel > _multiSampleLevels.at( _multiSampleLevels.size() - 1 ) ) {
 		_backBufferMultiSampleLevel = _multiSampleLevels.at( _multiSampleLevels.size() - 1 );
 		LOG( "Backbuffer multisample preference is not supported, using " << _backBufferMultiSampleLevel << " instead", LOG_LOW );
-		game->SetPreference( PreferenceConstants::MULTISAMPLE_LEVEL, boost::lexical_cast<std::string> ( _backBufferMultiSampleLevel ).c_str() );
+		game->SetPreference( PreferenceConstants::MULTISAMPLE_LEVEL, ToString( _backBufferMultiSampleLevel ).c_str() );
 		savePreferences = true;
 	}
 

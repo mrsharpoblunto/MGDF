@@ -31,6 +31,9 @@ D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
 	, _swapChain( nullptr )
 	, _factory( nullptr )
 	, _immediateContext( nullptr )
+	, _output( nullptr )
+	, _d2dDevice( nullptr )
+	, _d2dFactory( nullptr )
 	, _d3dDevice( nullptr )
 	, _backBuffer( nullptr )
 	, _renderTargetView( nullptr )
@@ -408,7 +411,7 @@ INT32 D3DAppFramework::Run()
 	_runRenderThread.test_and_set();
 
 	//run the simulation in its own thread
-	boost::thread simThread( [this, &runSimThread, &waitOnRenderThread]() {
+	std::thread simThread( [this, &runSimThread, &waitOnRenderThread]() {
 		runSimThread.test_and_set();
 
 		LOG( "Starting sim thread...", LOG_LOW );
@@ -421,7 +424,7 @@ INT32 D3DAppFramework::Run()
 	} );
 
 	//run the renderer in its own thread
-	_renderThread = new boost::thread( [this, &waitOnRenderThread]() {
+	_renderThread = new std::thread( [this, &waitOnRenderThread]() {
 		while ( waitOnRenderThread.test_and_set() ) Sleep( 1 );   //ensure the simulation runs at least one tick before rendering begins.
 
 		LOG( "Starting render thread...", LOG_LOW );

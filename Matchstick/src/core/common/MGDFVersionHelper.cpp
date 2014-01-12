@@ -1,9 +1,6 @@
 #include "StdAfx.h"
 
 #include <sstream>
-#include <boost/lexical_cast.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
 #include "MGDFVersionHelper.hpp"
 
 
@@ -36,16 +33,31 @@ Version VersionHelper::Create( const std::string &version )
 {
 	Version result;
 	result.Major = result.Minor = result.Build = result.Revision = -1;
-	try {
-		std::vector<std::string> versionSplit;
-		boost::split( versionSplit, version, boost::is_any_of( "." ) );
-		result.Major = boost::lexical_cast<int> ( versionSplit[0] );
-		result.Minor = boost::lexical_cast<int> ( versionSplit[1] );
-		result.Build = versionSplit.size() > 2 ? boost::lexical_cast<int> ( versionSplit[2] ) : -1;
-		result.Revision = versionSplit.size() > 3 ? boost::lexical_cast<int> ( versionSplit[3] ) : -1;
-	} catch ( ... ) {
-		_ASSERTE( 0 );
+
+	char *copy = new char[version.size() + 1];
+	strcpy_s( copy, version.size() + 1, version.c_str() );
+
+	char *context = 0;
+
+	char *ptr = strtok_s( copy, ".", &context );
+	_ASSERTE( ptr );
+	result.Major = atoi( ptr );
+
+	ptr = strtok_s( 0, ".", &context );
+	_ASSERTE( ptr );
+	result.Minor = atoi( ptr );
+
+	ptr = strtok_s( 0, ".", &context );
+	if ( ptr ) {
+		result.Build = atoi( ptr );
+
+		ptr = strtok_s( 0, ".", &context );
+		if ( ptr ) {
+			result.Revision = atoi( ptr );
+		}
 	}
+
+	delete[] copy;
 	return result;
 }
 

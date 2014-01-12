@@ -110,7 +110,7 @@ void FakeFile::AddChild( FakeFile *file )
 
 const wchar_t *FakeFile::GetLogicalPath() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _logicalPath.empty() ) {
 		std::vector<const IFile *> path;
 		const IFile *node = this;
@@ -132,13 +132,13 @@ const wchar_t *FakeFile::GetLogicalPath() const
 
 bool FakeFile::IsOpen() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return _isOpen;
 }
 
 MGDF::MGDFError FakeFile::OpenFile( IFileReader **reader )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _data && !_isOpen ) {
 		_isOpen = true;
 		_position = 0;
@@ -150,7 +150,7 @@ MGDF::MGDFError FakeFile::OpenFile( IFileReader **reader )
 
 void FakeFile::Close()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _data && _isOpen ) {
 		_isOpen = false;
 	}

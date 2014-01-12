@@ -1,7 +1,7 @@
 #pragma once
 
 #include <list>
-#include <boost/thread.hpp>
+#include <mutex>
 
 namespace MGDF
 {
@@ -33,7 +33,7 @@ public:
 	void AppendSimTime( double value );
 	void AppendSimInputAndAudioTimes( double inputValue, double audioValue );
 private:
-	mutable boost::mutex _statsMutex;
+	mutable std::mutex _statsMutex;
 	UINT32 _maxSamples;
 	double _expectedSimTime;
 

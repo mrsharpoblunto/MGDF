@@ -1,7 +1,7 @@
 #pragma once
 
-#include <boost/thread.hpp>
-#include <boost/shared_ptr.hpp>
+#include <mutex>
+#include <memory>
 
 template<typename T>
 class BufferedGameState
@@ -23,16 +23,16 @@ public:
 		return _pendingState;
 	}
 
-	boost::shared_ptr<T> Interpolate( double alpha ) {
-		boost::mutex::scoped_lock lock( _stateMutex );
+	std::shared_ptr<T> Interpolate( double alpha ) {
+		std::lock_guard<std::mutex> lock( _stateMutex );
 		if ( _previousState != nullptr && _currentState != nullptr ) {
-			return boost::shared_ptr<T> ( _previousState->Interpolate( _currentState, alpha ) );
+			return std::shared_ptr<T> ( _previousState->Interpolate( _currentState, alpha ) );
 		}
-		return boost::shared_ptr<T>();
+		return std::shared_ptr<T>();
 	}
 
 	void Flip() {
-		boost::mutex::scoped_lock lock( _stateMutex );
+		std::lock_guard<std::mutex> lock( _stateMutex );
 		if ( _previousState ) delete _previousState;
 		_previousState = _currentState;
 		_currentState = new T( _pendingState );
@@ -40,7 +40,7 @@ public:
 	}
 
 private:
-	boost::mutex _stateMutex;
+	std::mutex _stateMutex;
 	T *_pendingState;
 	T *_currentState;
 	T *_previousState;

@@ -34,7 +34,7 @@ DefaultFileImpl::~DefaultFileImpl( void )
 
 MGDFError DefaultFileImpl::OpenFile( IFileReader **reader )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( !_fileStream ) {
 		_fileStream = new std::ifstream( _path.c_str(), std::ios::in | std::ios::binary | std::ios::ate );
 
@@ -56,7 +56,7 @@ MGDFError DefaultFileImpl::OpenFile( IFileReader **reader )
 
 void DefaultFileImpl::Close()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _fileStream ) {
 		_fileStream->close();
 		delete _fileStream;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "../../common/MGDFListImpl.hpp"
 #include "../MGDFInputManagerComponent.hpp"
@@ -47,8 +47,8 @@ public:
 	const IGamepadList *  GetGamepads() const override;
 
 private:
-	boost::mutex _simMutex;
-	boost::mutex _inputMutex;
+	std::mutex _simMutex;
+	std::mutex _inputMutex;
 
 	//pending keyboard state (input thread)
 	UINT8 _pendingKeyDown[256];

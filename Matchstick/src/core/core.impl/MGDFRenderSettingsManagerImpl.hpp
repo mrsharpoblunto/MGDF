@@ -1,12 +1,13 @@
 #pragma once
 
 #include <vector>
-#include <boost/thread.hpp>
-#include <MGDF/MGDF.hpp>
-#include <MGDF/MGDFRenderSettingsManager.hpp>
+#include <mutex>
 #include <d3d11.h>
 #include <d3d11_1.h>
 #include <atomic>
+#include <map>
+#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDFRenderSettingsManager.hpp>
 
 #include "../common/MGDFListImpl.hpp"
 
@@ -71,7 +72,7 @@ private:
 	bool _vsync;
 	bool _fullScreen;
 
-	mutable boost::mutex _mutex;
+	mutable std::mutex _mutex;
 };
 
 }

@@ -2,8 +2,9 @@
 
 #include "d3d11.h"
 #include <vector>
+#include <list>
+#include <mutex>
 #include <MGDF/MGDFTimer.hpp>
-#include <boost/thread/thread.hpp>
 
 namespace MGDF
 {
@@ -25,7 +26,7 @@ public:
 
 	double GetAvgValue();
 private:
-	boost::mutex _mutex;
+	std::mutex _mutex;
 	std::string _name;
 	LARGE_INTEGER _start;
 	std::list<double> _samples;
@@ -99,7 +100,7 @@ private:
 	UINT32 _initialized;
 	bool _gpuTimersSupported;
 
-	mutable boost::mutex _mutex;
+	mutable std::mutex _mutex;
 	std::vector<CPUPerformanceCounter *> _cpuCounters;
 	std::vector<GPUPerformanceCounter *> _gpuCounters;
 	void RemoveCounter( IPerformanceCounter *counter );

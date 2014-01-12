@@ -1,6 +1,9 @@
 #include "StdAfx.h"
 #include "MGDFHostStats.hpp"
 
+#if defined(_DEBUG)
+#define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
+#endif
 
 namespace MGDF
 {
@@ -20,7 +23,7 @@ HostStats::HostStats( UINT32 maxSamples )
 
 void HostStats::GetTimings( Timings &timings ) const
 {
-	boost::mutex::scoped_lock lock( _statsMutex );
+	std::lock_guard<std::mutex> lock( _statsMutex );
 	timings.AvgActiveRenderTime = _avgActiveRenderTime;
 	timings.AvgRenderTime = _avgRenderTime;
 	timings.AvgActiveSimTime = _avgActiveSimTime;
@@ -42,26 +45,26 @@ double HostStats::ExpectedSimTime() const
 
 void HostStats::AppendRenderTimes( double renderValue, double activeRenderValue )
 {
-	boost::mutex::scoped_lock lock( _statsMutex );
+	std::lock_guard<std::mutex> lock( _statsMutex );
 	Append( renderValue, _avgRenderTime, _renderTime );
 	Append( activeRenderValue, _avgActiveRenderTime, _activeRenderTime );
 }
 
 void HostStats::AppendActiveSimTime( double value )
 {
-	boost::mutex::scoped_lock lock( _statsMutex );
+	std::lock_guard<std::mutex> lock( _statsMutex );
 	Append( value - *_simInputTime.begin() - *_simAudioTime.begin(), _avgActiveSimTime, _activeSimTime );
 }
 
 void HostStats::AppendSimTime( double value )
 {
-	boost::mutex::scoped_lock lock( _statsMutex );
+	std::lock_guard<std::mutex> lock( _statsMutex );
 	Append( value, _avgSimTime, _simTime );
 }
 
 void HostStats::AppendSimInputAndAudioTimes( double inputValue, double audioValue )
 {
-	boost::mutex::scoped_lock lock( _statsMutex );
+	std::lock_guard<std::mutex> lock( _statsMutex );
 	Append( inputValue, _avgSimInputTime, _simInputTime );
 	Append( audioValue, _avgSimAudioTime, _simAudioTime );
 }

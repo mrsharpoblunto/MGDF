@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <vector>
 #include <map>
 
@@ -45,8 +46,8 @@ private:
 	IFile *_root;
 	bool _rootIsArchive;
 
-	IFile *Map( const wchar_t *physicalPath, IFile *parent );
-	IArchiveHandler *GetArchiveHandler( const wchar_t *filename );
+	IFile *Map( const std::tr2::sys::wpath &path, IFile *parent );
+	IArchiveHandler *GetArchiveHandler( const std::wstring &path );
 };
 
 IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl();

@@ -1,12 +1,12 @@
 #include "StdAfx.h"
 
+#include <iostream>
+#include <fstream>
+
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFResources.hpp"
 
 #include "MGDFStatisticsManagerImpl.hpp"
-#include <boost/foreach.hpp>
-#include <iostream>
-#include <fstream>
 
 
 #if defined(_DEBUG)

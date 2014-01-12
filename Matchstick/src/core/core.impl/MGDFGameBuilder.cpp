@@ -1,7 +1,8 @@
 #include "StdAfx.h"
 
+#include <filesystem>
+
 #include "MGDFGameBuilder.hpp"
-#include <boost/filesystem/operations.hpp>
 #include "MGDFGameImpl.hpp"
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFParameterManager.hpp"
@@ -12,6 +13,8 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
+
+using namespace std::tr2::sys;
 
 namespace MGDF
 {
@@ -47,29 +50,25 @@ Game *GameBuilder::CreateGame( const std::string &uid, const std::string &name, 
 	game->LoadPreferences( Resources::Instance().CorePreferencesFile() );
 
 	//load the defaults for the game (OPTIONAL)
-	boost::filesystem::wpath bootDefaultPref(
-	    Resources::Instance().GameDefaultPreferencesFile(), boost::filesystem::native
-	);
+	wpath bootDefaultPref( Resources::Instance().GameDefaultPreferencesFile() );
 
 	if ( exists( bootDefaultPref ) ) {
-		game->LoadPreferences( bootDefaultPref.native() );
+		game->LoadPreferences( bootDefaultPref.string() );
 	}
 
 	//load customised preferences for this game (OPTIONAL)
-	boost::filesystem::wpath customPref(
-	    Resources::Instance().GameUserPreferencesFile(), boost::filesystem::native
-	);
+	wpath customPref( Resources::Instance().GameUserPreferencesFile() );
 
 	//then if a settings file exists, override these defaults where present
 	//this creates a prefs file with the union of all preferences included but only the
 	//most recent values kept (this means it auto updates the preferences listing to include newly added prefs)
 	if ( exists( customPref ) ) {
-		game->LoadPreferences( customPref.native() );
+		game->LoadPreferences( customPref.string() );
 	}
 
 	//then save the current preferences as a custom preference file
 	//any subsequent changes made by modules will be saved to this file
-	game->SavePreferences( customPref.native() );
+	game->SavePreferences( customPref.string() );
 
 	return game;
 }

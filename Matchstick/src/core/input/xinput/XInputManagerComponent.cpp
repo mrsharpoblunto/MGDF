@@ -65,7 +65,7 @@ XInputManagerComponent::~XInputManagerComponent( void )
 
 void XInputManagerComponent::HandleInput( INT32 mouseX, INT32 mouseY )
 {
-	boost::mutex::scoped_lock lock( _simMutex );
+	std::lock_guard<std::mutex> lock( _simMutex );
 	_pendingMouseX = mouseX;
 	_pendingMouseY = mouseY;
 }
@@ -75,7 +75,7 @@ void XInputManagerComponent::HandleInput( RAWINPUT *input )
 	_ASSERTE( input );
 
 	if ( input->header.dwType == RIM_TYPEKEYBOARD ) {
-		boost::mutex::scoped_lock lock( _simMutex );
+		std::lock_guard<std::mutex> lock( _simMutex );
 
 		//we only know how to deal with keys
 		if ( input->data.keyboard.VKey > UINT8_MAX ) return;
@@ -95,7 +95,7 @@ void XInputManagerComponent::HandleInput( RAWINPUT *input )
 			_pendingKeyPressEventsLength++;
 		}
 	} else if ( input->header.dwType == RIM_TYPEMOUSE ) {
-		boost::mutex::scoped_lock lock( _simMutex );
+		std::lock_guard<std::mutex> lock( _simMutex );
 
 		if ( ( input->data.mouse.usFlags & MOUSE_MOVE_RELATIVE ) == MOUSE_MOVE_RELATIVE ) {
 			_pendingMouseDX += input->data.mouse.lLastX;
@@ -134,7 +134,7 @@ void XInputManagerComponent::HandleInput( RAWINPUT *input )
 void XInputManagerComponent::ProcessInput()
 {
 	if ( _pendingShowCursor ) {
-		boost::mutex::scoped_lock lock( _inputMutex );
+		std::lock_guard<std::mutex> lock( _inputMutex );
 		if ( _pendingShowCursor ) {
 			_pendingShowCursor = false;
 			::ShowCursor( _showCursor );
@@ -147,7 +147,7 @@ void XInputManagerComponent::ProcessSim()
 	//handleinput occurs on a different thread to processinput so
 	//we need to sync any access to the pending input state
 	{
-		boost::mutex::scoped_lock lock( _simMutex );
+		std::lock_guard<std::mutex> lock( _simMutex );
 		//update keyboard and mouse state
 
 		//mouse position
@@ -208,7 +208,7 @@ void XInputManagerComponent::ProcessSim()
 
 void XInputManagerComponent::ShowCursor( bool show )
 {
-	boost::mutex::scoped_lock lock( _inputMutex );
+	std::lock_guard<std::mutex> lock( _inputMutex );
 	_pendingShowCursor = true;
 	_showCursor = show;
 }

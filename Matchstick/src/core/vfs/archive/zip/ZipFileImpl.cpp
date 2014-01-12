@@ -30,10 +30,11 @@ ZipFileImpl::~ZipFileImpl()
 
 MGDFError ZipFileImpl::OpenFile( IFileReader **reader )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( !_isOpen ) {
 		MGDFError result = _handler->GetFileData( _header, _data );
 		if ( result == MGDF_OK ) {
+			_isOpen = true;
 			*reader = this;
 		}
 		return result;
@@ -43,7 +44,7 @@ MGDFError ZipFileImpl::OpenFile( IFileReader **reader )
 
 void ZipFileImpl::Close()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _isOpen ) {
 		free( _data.data );
 		_isOpen = false;

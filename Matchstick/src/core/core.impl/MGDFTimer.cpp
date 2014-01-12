@@ -6,6 +6,10 @@
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFExceptions.hpp"
 
+#if defined(_DEBUG)
+#define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
+#endif
+
 namespace MGDF
 {
 namespace core
@@ -38,14 +42,14 @@ const char *CPUPerformanceCounter::GetName() const
 
 void CPUPerformanceCounter::Begin()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	QueryPerformanceCounter( &_start );
 }
 
 void CPUPerformanceCounter::End()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	LARGE_INTEGER newTime;
 	QueryPerformanceCounter( &newTime );
@@ -63,7 +67,7 @@ void CPUPerformanceCounter::End()
 
 double CPUPerformanceCounter::GetAvgValue()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	return _avg;
 }
 
@@ -278,7 +282,7 @@ IPerformanceCounter *Timer::CreateCPUCounter( const char *name )
 
 	CPUPerformanceCounter *counter = new CPUPerformanceCounter( name, this );
 
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	_cpuCounters.push_back( counter );
 	return counter;
 }
@@ -288,7 +292,7 @@ IPerformanceCounter *Timer::CreateGPUCounter( const char *name )
 	if ( !_gpuTimersSupported || !name ) return nullptr;
 	GPUPerformanceCounter *counter = new GPUPerformanceCounter( name, this );
 
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	_gpuCounters.push_back( counter );
 	return counter;
 }
@@ -298,7 +302,7 @@ void Timer::RemoveCounter( IPerformanceCounter *counter )
 	if ( !counter ) return;
 	CPUPerformanceCounter *cpuCounter = dynamic_cast<CPUPerformanceCounter *>( counter );
 
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( cpuCounter ) {
 		for ( auto iter = _cpuCounters.begin(); iter != _cpuCounters.end(); ++iter ) {
 			if ( *iter == counter ) {
@@ -326,7 +330,7 @@ void Timer::Begin()
 
 			if ( _context->GetData( _disjointQueries[_currentFrame], &disjoint, sizeof( D3D11_QUERY_DATA_TIMESTAMP_DISJOINT ), 0 ) == S_OK ) {
 				if ( !disjoint.Disjoint ) {
-					boost::mutex::scoped_lock lock( _mutex );
+					std::lock_guard<std::mutex> lock( _mutex );
 					for ( auto iter = _gpuCounters.begin(); iter != _gpuCounters.end(); ++iter ) {
 						( *iter )->SetSample( _currentFrame, disjoint.Frequency );
 					}
@@ -347,7 +351,7 @@ void Timer::End()
 
 void Timer::GetCounterInformation( std::wstringstream &outputStream ) const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	if ( _gpuCounters.size() > 0 ) {
 		outputStream << "\r\nGPU\r\n";

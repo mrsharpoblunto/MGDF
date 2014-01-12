@@ -1,8 +1,9 @@
 #include "StdAfx.h"
 
+#include <vector>
+#include <filesystem>
 #include <sstream>
 #include <algorithm>
-#include <boost/filesystem.hpp>
 #include "MGDFFileBaseImpl.hpp"
 
 
@@ -31,8 +32,8 @@ FileBaseImpl::~FileBaseImpl()
 
 time_t FileBaseImpl::GetLastWriteTime() const
 {
-	boost::filesystem::path path( GetPhysicalPath() );
-	return boost::filesystem::last_write_time( path );
+	std::tr2::sys::wpath path( GetPhysicalPath() );
+	return std::tr2::sys::last_write_time( path );
 }
 
 IFile *FileBaseImpl::GetChild( const wchar_t * name ) const
@@ -40,7 +41,7 @@ IFile *FileBaseImpl::GetChild( const wchar_t * name ) const
 	if ( !name ) return nullptr;
 
 	{
-		boost::mutex::scoped_lock lock( _mutex );
+		std::lock_guard<std::mutex> lock( _mutex );
 		if ( !_children ) return nullptr;
 	}
 
@@ -59,7 +60,7 @@ bool FileBaseImpl::GetAllChildren( const IFileFilter *filter, IFile **childBuffe
 	}
 
 	{
-		boost::mutex::scoped_lock lock( _mutex );
+		std::lock_guard<std::mutex> lock( _mutex );
 		if ( !_children ) {
 			*bufferLength = 0;
 			return false;
@@ -90,7 +91,7 @@ void FileBaseImpl::AddChild( IFile *file )
 
 const wchar_t *FileBaseImpl::GetLogicalPath() const
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	if ( _logicalPath.empty() && this->GetParent() ) {
 		std::vector<const IFile *> path;

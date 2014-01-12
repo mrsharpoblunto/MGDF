@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <boost/thread/thread.hpp>
+#include <mutex>
 
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFLogger.hpp>
@@ -45,7 +45,7 @@ private:
 
 	void SetOutputFile( const std::wstring & );
 
-	boost::mutex _mutex;
+	std::mutex _mutex;
 	std::vector<std::string> _events;
 	std::wstring _filename;
 	LogLevel _level;

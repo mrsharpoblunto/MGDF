@@ -1,9 +1,5 @@
 #include "stdafx.h"
 
-#include <algorithm>
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include "../../../common/MGDFExceptions.hpp"
 #include "../../../common/MGDFResources.hpp"
 #include "../../../common/MGDFLoggerImpl.hpp"

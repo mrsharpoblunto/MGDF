@@ -38,7 +38,7 @@ DefaultFolderImpl::~DefaultFolderImpl()
 
 void DefaultFolderImpl::MapChildren()
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 	if ( !_children ) {
 		auto children = new std::map<const wchar_t *, IFile *, WCharCmp>();
 		_vfs->MapChildren( this, *children );

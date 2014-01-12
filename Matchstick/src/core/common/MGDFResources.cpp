@@ -2,11 +2,7 @@
 
 #include <shlobj.h>
 #include <shlwapi.h>
-
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem/convenience.hpp>
+#include <filesystem>
 
 #include "MGDFVersionInfo.hpp"
 #include "MGDFResources.hpp"
@@ -16,6 +12,8 @@
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
 #pragma warning(disable:4291)
 #endif
+
+using namespace std::tr2::sys;
 
 namespace MGDF
 {
@@ -35,8 +33,8 @@ void Resources::SetUserBaseDir( bool useRootDir, const std::string &gameUid )
 {
 	if ( useRootDir ) {
 		if ( !_gameBaseDir.empty() ) {
-			boost::filesystem::wpath gamesDirPath( _gameBaseDir, boost::filesystem::native );
-			_userBaseDir = gamesDirPath.parent_path().parent_path().native() + L"/user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
+			wpath gamesDirPath( _gameBaseDir );
+			_userBaseDir = gamesDirPath.parent_path().parent_path().string() + L"/user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
 		} else {
 			_userBaseDir = _applicationDirectory + L"user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
 		}
@@ -60,14 +58,18 @@ std::wstring Resources::GetApplicationDirectory( HINSTANCE instance )
 	//get the application directory
 	wchar_t *pStr, szPath[MAX_PATH];
 	GetModuleFileNameW( instance, szPath, MAX_PATH );
-	pStr = wcsrchr( szPath, L'\\' ) - 1;
+	pStr = wcsrchr( szPath, L'\\' );
+	for ( wchar_t *chr = pStr; chr >= &szPath[0]; --chr )
+	{
+		if ( *chr == L'\\' ) {
+			*chr = L'/';
+		}
+	}
 	if ( pStr != nullptr )
 		* ( ++pStr ) = L'\0';
 
 	std::wstring appDir = szPath;
-	boost::algorithm::replace_all( appDir, L"\\", L"/" );
-
-	return appDir + L"/";
+	return appDir;
 }
 
 const UINT32 Resources::MIN_SCREEN_X = 1024;
@@ -136,14 +138,14 @@ std::wstring Resources::SaveDataDir( const std::string &saveName )
 
 void Resources::CreateRequiredDirectories()
 {
-	boost::filesystem::wpath userBaseDir( UserBaseDir(), boost::filesystem::native );
-	boost::filesystem::create_directories( userBaseDir );
+	wpath userBaseDir( UserBaseDir() );
+	create_directories( userBaseDir );
 
-	boost::filesystem::wpath saveBaseDir( SaveBaseDir(), boost::filesystem::native );
-	boost::filesystem::create_directories( saveBaseDir );
+	wpath saveBaseDir( SaveBaseDir() );
+	create_directories( saveBaseDir );
 
-	boost::filesystem::wpath workingDir( WorkingDir(), boost::filesystem::native );
-	boost::filesystem::create_directories( workingDir );
+	wpath workingDir( WorkingDir() );
+	create_directories( workingDir );
 }
 
 std::wstring Resources::CorePreferencesFile()

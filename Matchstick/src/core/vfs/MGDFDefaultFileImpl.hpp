@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <boost/filesystem/operations.hpp>
 #include "MGDFFileBaseImpl.hpp"
 
 namespace MGDF
@@ -19,7 +18,7 @@ public:
 	virtual ~DefaultFileImpl();
 
 	bool IsOpen() const override {
-		boost::mutex::scoped_lock( _mutex );
+		std::lock_guard<std::mutex> lock( _mutex );
 		return ( _fileStream != nullptr );
 	}
 

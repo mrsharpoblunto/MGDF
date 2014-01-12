@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/thread.hpp>
+#include <mutex>
 
 namespace MGDF
 {
@@ -28,7 +28,7 @@ private:
 	INT64 _frameTime;
 	UINT32 _maxFps;
 
-	boost::mutex _frameEndMutex;
+	std::mutex _frameEndMutex;
 };
 
 }

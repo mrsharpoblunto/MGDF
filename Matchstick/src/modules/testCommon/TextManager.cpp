@@ -38,10 +38,10 @@ void TextManagerState::SetStatus( TextColor color, const std::string &text )
 	_lines[0].StatusColor = color;
 }
 
-boost::shared_ptr<TextManagerState> TextManagerState::Interpolate( const TextManagerState *endState, double alpha )
+std::shared_ptr<TextManagerState> TextManagerState::Interpolate( const TextManagerState *endState, double alpha )
 {
 	//interpolation isn't really possible with this type of gamestate, so just use the most recent.
-	return boost::shared_ptr<TextManagerState> ( new TextManagerState( endState ) );
+	return std::shared_ptr<TextManagerState> ( new TextManagerState( endState ) );
 }
 
 TextManager::~TextManager()
@@ -86,7 +86,7 @@ TextManager::TextManager( IRenderHost *renderHost )
 {
 }
 
-void TextManager::SetState( boost::shared_ptr<TextManagerState> state )
+void TextManager::SetState( std::shared_ptr<TextManagerState> state )
 {
 	_state = state;
 }

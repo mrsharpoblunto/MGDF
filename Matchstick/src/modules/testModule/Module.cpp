@@ -17,7 +17,7 @@ namespace Test
 Module::~Module( void )
 {
 	delete _textManager;
-	if ( _testModule != nullptr ) delete _testModule;
+	delete _testModule;
 
 	if ( _textManagerCounter ) _textManagerCounter->Dispose();
 	if ( _testModuleCounter ) _testModuleCounter->Dispose();
@@ -26,6 +26,8 @@ Module::~Module( void )
 Module::Module( )
 	: _textManagerCounter( nullptr )
 	, _testModuleCounter( nullptr )
+	, _textManager( nullptr )
+	, _testModule( nullptr )
 {
 	_stateBuffer.Pending()->AddLine( "MGDF functional test suite started" );
 }
@@ -78,7 +80,7 @@ bool Module::RTBeforeFirstDraw( MGDF::IRenderHost *host )
 
 bool Module::RTDraw( IRenderHost* host, double alpha )
 {
-	boost::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate( alpha );
+	std::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate( alpha );
 	if ( state ) {
 		if ( _textManagerCounter ) _textManagerCounter->Begin();
 		_textManager->SetState( state );

@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-#include <boost/lexical_cast.hpp>
-
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFVersionHelper.hpp"
 #include "../../common/MGDFExceptions.hpp"
@@ -54,7 +52,7 @@ void JsonCppGameStorageHandler::Load( const std::wstring &filename )
 		_gameUid = root["gameuid"].asString();
 		_version = VersionHelper::Create( root["version"].asString() );
 		_parameterString = root["parameters"].asString();
-		_interfaceVersion = boost::lexical_cast<int> ( root["interfaceversion"].asString() );
+		_interfaceVersion = atoi( root["interfaceversion"].asString().c_str() );
 	} else {
 		throw MGDFException( reader.getFormatedErrorMessages() );
 	}

@@ -24,6 +24,7 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 	, _textFormat( nullptr )
 	, _dWriteFactory( nullptr )
 	, _initialized( false )
+	, _context( nullptr )
 {
 	_ASSERTE( host );
 

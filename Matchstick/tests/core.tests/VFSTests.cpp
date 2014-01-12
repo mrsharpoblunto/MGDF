@@ -1,10 +1,5 @@
 #include "stdafx.h"
 
-#pragma warning( push )
-#pragma warning( disable:4996 )
-#include <boost/algorithm/string.hpp>
-#pragma warning( pop )
-
 #include "MGDFMockLogger.hpp"
 #include "MGDFMockErrorHandler.hpp"
 #include "../../src/core/common/MGDFResources.hpp"
@@ -58,6 +53,32 @@ SUITE( VFSTests )
 		CHECK( _vfs->GetFile( L"content" )->IsFolder() );
 	}
 
+	void ReadLines( IFileReader *reader, std::vector<std::string> &list )
+	{
+		UINT32 size = static_cast<UINT32>( reader->GetSize() );
+		char* data = new char[size];
+		char* copy = new char[size + 1];
+		reader->Read( ( void * ) data, size );
+		reader->Close();
+
+		size_t index = 0;
+		for (size_t i = 0 ;i < size; ++i) {
+			if ( data[i] != '\r' && data[i] != '\t' ) {
+				copy[index++] = data[i];
+			}
+		}
+		copy[index] = '\0';
+		delete[] data;
+
+		char *context = 0;
+		char *ptr = strtok_s( copy, "\n", &context );
+		while ( ptr ) {
+			list.push_back( std::string( ptr ) );
+			ptr = strtok_s( 0, "\n", &context );
+		}
+		delete[] copy;
+	}
+
 	/*
 	check that files inside enumeratoed archives can be read correctly
 	*/
@@ -69,23 +90,14 @@ SUITE( VFSTests )
 		CHECK_EQUAL( MGDF_OK, file->OpenFile( &reader ) );
 		CHECK( reader != nullptr );
 
-		UINT32 size = static_cast<UINT32>( reader->GetSize() );
-		char* data = new char[size];
-		reader->Read( ( void * ) data, size );
-		std::string contents( data, size );
-		delete[] data;
-		reader->Close();
-
 		std::vector<std::string> list;
-		boost::algorithm::replace_all( contents, "\r", "" );
-		boost::algorithm::replace_all( contents, "\t", "" );
-		boost::split( list, contents, boost::is_any_of( "\n" ) );
+		ReadLines( reader, list );
 
 		//see if the file has as many lines as we expect
-		CHECK_EQUAL( 27, list.size() );
+		CHECK_EQUAL( 20, list.size() );
 		//check to see the first and last lines are as expected
 		CHECK_EQUAL( "class 'ConsoleStorageListener'(MGDF.StorageListener)", list[0] );
-		CHECK_EQUAL( "end", list[26] );
+		CHECK_EQUAL( "end", list[19] );
 	}
 
 	class ContainsFilter: public MGDF::IFileFilter
@@ -158,17 +170,8 @@ SUITE( VFSTests )
 		CHECK_EQUAL( MGDF_OK, file->OpenFile( &reader ) );
 		CHECK( reader != nullptr );
 
-		UINT32 size = static_cast<UINT32>( reader->GetSize() );
-		char *data = new char[size];
-		reader->Read( data, size );
-		std::string contents( data, size );
-		delete[] data;
-		reader->Close();
-
 		std::vector<std::string> list;
-		boost::algorithm::replace_all( contents, "\r", "" );
-		boost::algorithm::replace_all( contents, "\t", "" );
-		boost::split( list, contents, boost::is_any_of( "\n" ) );
+		ReadLines( reader, list );
 
 		//see if the file has as many lines as we expect
 		CHECK_EQUAL( 14, list.size() );

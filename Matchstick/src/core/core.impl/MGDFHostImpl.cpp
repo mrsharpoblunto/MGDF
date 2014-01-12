@@ -1,8 +1,7 @@
 #include "StdAfx.h"
 
 #include <iomanip>
-#include <boost/filesystem/operations.hpp>
-#include <boost/foreach.hpp>
+#include <filesystem>
 
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFVersionHelper.hpp"
@@ -23,6 +22,8 @@
 #endif
 
 #define PENDING_SAVE_PREFIX "__"
+
+using namespace std::tr2::sys;
 
 namespace MGDF
 {
@@ -382,7 +383,7 @@ bool Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context)
 
 void Host::FatalError( const char *sender, const char *message )
 {
-	boost::mutex::scoped_lock lock( _mutex );
+	std::lock_guard<std::mutex> lock( _mutex );
 
 	if ( sender && message ) {
 		std::ostringstream ss;
@@ -502,7 +503,7 @@ MGDFError Host::BeginSave( const char *save, wchar_t *saveBuffer, UINT32 *size )
 
 	try {
 		//create the subdir for the names save files
-		boost::filesystem::wpath saveDir( Resources::Instance().SaveDir( saveName ), boost::filesystem::native );
+		wpath saveDir( Resources::Instance().SaveDir( saveName ) );
 		if ( !exists( saveDir ) )
 			create_directory( saveDir );
 		else {
@@ -510,7 +511,7 @@ MGDFError Host::BeginSave( const char *save, wchar_t *saveBuffer, UINT32 *size )
 			create_directory( saveDir );  //recreate it
 		}
 		//create the save data sub-folder
-		boost::filesystem::wpath saveDataDir( saveBufferContent, boost::filesystem::native );
+		wpath saveDataDir( saveBufferContent );
 		create_directory( saveDataDir );
 
 		std::auto_ptr<storage::IGameStateStorageHandler> handler( _storage->CreateGameStateStorageHandler( _game->GetUid(), _game->GetVersion() ) );
@@ -536,8 +537,8 @@ MGDFError Host::CompleteSave( const char *save )
 		std::string pendingSave( save );
 		pendingSave.insert( 0, PENDING_SAVE_PREFIX );
 
-		boost::filesystem::wpath pendingSaveDir( Resources::Instance().SaveDir( pendingSave ), boost::filesystem::native );
-		boost::filesystem::wpath saveDir( Resources::Instance().SaveDir( saveName ), boost::filesystem::native );
+		wpath pendingSaveDir( Resources::Instance().SaveDir( pendingSave ) );
+		wpath saveDir( Resources::Instance().SaveDir( saveName ) );
 
 		if ( !exists( pendingSaveDir ) ) {
 			LOG( saveName << " is not a pending save. Ensure that BeginSave is called with a matching save name before calling CompleteSave", LOG_ERROR );
@@ -548,8 +549,7 @@ MGDFError Host::CompleteSave( const char *save )
 			remove_all( saveDir );
 		}
 		//swap the pending with the completed save
-		boost::system::error_code ec;
-		boost::filesystem::rename( pendingSaveDir, saveDir );
+		rename( pendingSaveDir, saveDir );
 
 		//update the list of save games
 		GetSaves();
@@ -579,12 +579,12 @@ const IStringList *Host::GetSaves() const
 		LOG( "Enumerating saves...", LOG_MEDIUM );
 		const_cast<StringList *>( _saves ) = new StringList();
 
-		boost::filesystem::wpath savePath( Resources::Instance().SaveBaseDir(), boost::filesystem::native );
+		wpath savePath( Resources::Instance().SaveBaseDir() );
 
-		boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
-		for ( boost::filesystem::directory_iterator itr( savePath ); itr != end_itr; ++itr ) {
-			if ( is_directory( *itr ) ) {
-				std::string saveName( itr->path().filename().string() );
+		wdirectory_iterator end_itr; // default construction yields past-the-end
+		for ( wdirectory_iterator itr( savePath ); itr != end_itr; ++itr ) {
+			if ( is_directory( itr->path() ) ) {
+				std::string saveName( Resources::ToString( itr->path().filename() ) );
 				if ( saveName.find( PENDING_SAVE_PREFIX ) != 0 ) {
 					char *copy = new char[saveName.size() + 1];
 					strcpy_s( copy, saveName.size() + 1, saveName.c_str() );
@@ -607,8 +607,8 @@ void Host::RemoveSave( const char *saveName )
 			LOG( "Removing save " << saveName << "...", LOG_MEDIUM );
 			delete[] _saves->Get( i );
 			_saves->Remove( i );
-			boost::filesystem::wpath savePath( Resources::Instance().UserBaseDir() + Resources::ToWString( saveName ), boost::filesystem::native );
-			boost::filesystem::remove_all( savePath );
+			wpath savePath( Resources::Instance().UserBaseDir() + Resources::ToWString( saveName ) );
+			remove_all( savePath );
 			return;
 		}
 	}
@@ -642,7 +642,7 @@ ISoundManager *Host::GetSound() const
 void Host::ClearWorkingDirectory()
 {
 	LOG( "Clearing working directory...", LOG_HIGH );
-	boost::filesystem::wpath workingDir( Resources::Instance().WorkingDir(), boost::filesystem::native );
+	wpath workingDir( Resources::Instance().WorkingDir() );
 	if ( exists( workingDir ) ) {
 		remove_all( workingDir );
 	} else {

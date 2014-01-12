@@ -7,6 +7,10 @@
 #include "common/MGDFLoggerImpl.hpp"
 #include "MGDFFrameLimiter.hpp"
 
+#if defined(_DEBUG)
+#define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
+#endif
+
 namespace MGDF
 {
 namespace core
@@ -38,7 +42,7 @@ an estimate of how far through the current frame we are (0 is the beginning and 
 */
 double FrameLimiter::ProgressThroughCurrentFrame()
 {
-	boost::mutex::scoped_lock lock( _frameEndMutex );
+	std::lock_guard<std::mutex> lock( _frameEndMutex );
 
 	LARGE_INTEGER currentTime;
 	QueryPerformanceCounter( &currentTime );
@@ -89,7 +93,7 @@ void FrameLimiter::LimitFps()
 		} while ( !done );
 	}
 
-	boost::mutex::scoped_lock lock( _frameEndMutex );
+	std::lock_guard<std::mutex> lock( _frameEndMutex );
 	_previousFrameEnd = currentTime;
 }
 

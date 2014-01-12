@@ -2,7 +2,7 @@
 
 #include <al.h>
 #include <alc.h>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <vector>
 #include <string>
 
@@ -74,7 +74,7 @@ private:
 	ALCcontext *_context;
 	float _soundVolume, _streamVolume;
 	bool _enableAttenuation;
-	boost::unordered_map<ALuint, SharedBuffer *> _sharedBuffers;
+	std::unordered_map<ALuint, SharedBuffer *> _sharedBuffers;
 	std::vector<OpenALSound *> _sounds;
 	std::vector<VorbisStream *> _soundStreams;
 	IVirtualFileSystem *_vfs;

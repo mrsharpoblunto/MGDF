@@ -34,7 +34,7 @@ public:
 	}
 
 	bool IsOpen() const override {
-		boost::mutex::scoped_lock lock( _mutex );
+		std::lock_guard<std::mutex> lock( _mutex );
 		return _isOpen;
 	}
 
