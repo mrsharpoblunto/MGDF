@@ -35,7 +35,7 @@ bool Game::HasPreference( const char *name ) const
 
 const char *Game::GetPreference( const char *name ) const
 {
-	if ( !name ) return false;
+	if ( !name ) return nullptr;
 
 	auto iter = _preferences.find( name );
 	if ( iter != _preferences.end() ) {

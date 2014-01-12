@@ -18,7 +18,6 @@ to events.
 Methods prefixed with ST will be invoked by the host from the sim thread, methods 
 prefixed with RT will be invoked by the host from the render thread, and methods 
 without a prefix may be invoked by the host from either thread.
-\author gcconner
 */
 class IModule
 {
@@ -26,6 +25,7 @@ public:
 	/**
 	 This method is required to setup the modulestate and manager callback aswell as do
 	 any initialisation required by the module before it can be used
+	 \param host the simulation thread host
 	 \param workingFolder a folder that the module can read/write data to while its running
 	 \return false if the module experiences a fatal error on initialization
 	 */
@@ -33,7 +33,8 @@ public:
 
 	/**
 	 This method is called once per simulation timestep once the game is running and represents the
-	 main loop
+	 main game logic loop
+	 \param host the simulation thread host
 	 \param elpasedTime the simulation timestep
 	 \return false if the module experiences a fatal error updating the scene
 	*/
@@ -44,23 +45,27 @@ public:
 	 such as clicking the windows close button try to close the application. After being invoked it is the modules
 	 responsibility to call the ->Shutdown() function as soon as possible in order to actually terminate the
 	 application. This function may be called multiple times.
+	 \param host the simulation thread host
 	 */
 	virtual void STShutDown( ISimHost *host ) = 0;
 
 	/**
 	 cleans up the module
+	 \param host the simulation thread host
 	 \return false if the module experiences a fatal error cleaning up
 	*/
 	virtual bool STDispose( ISimHost *host ) = 0;
 
 	/**
 	 runs immediately before the first call to RTDrawScene
+	 \param host the render thread host
 	 \return false if the module experiences a fatal error
 	*/
 	virtual bool RTBeforeFirstDraw( IRenderHost *host ) = 0;
 
 	/**
 	 renders the current gamestate
+	 \param host the render thread host
 	 \param alpha how far between the current and next simulation frame (0-1)
 	 \return false if the module experiences a fatal error drawing the scene
 	*/
@@ -69,6 +74,7 @@ public:
 	/**
 	If the swap chain options have been changed, or the display window has been resized. The module should
 	clear out all references to the previous back buffer so a new resized backbuffer can be set
+	\param host the render thread host
 	\return false if the module experiences a fatal error
 	*/
 	virtual bool RTBeforeBackBufferChange( IRenderHost *host ) = 0;
@@ -76,6 +82,7 @@ public:
 	/**
 	If the swap chain options have been changed, or the display window has been resized. The module should
 	re-acquire references to the new backbuffer or resize any backbuffer size dependent resources
+ 	\param host the render thread host
 	\return false if the module experiences a fatal error
 	*/
 	virtual bool RTBackBufferChange( IRenderHost *host ) = 0;
@@ -83,6 +90,7 @@ public:
 	/**
 	If the dxgi device has been removed. The module should clean out all device dependent resources and
 	references to the old d3d device, which will now be invalid.
+	\param host the render thread host
 	\return false if the module experiences a fatal error
 	*/
 	virtual bool RTBeforeDeviceReset( IRenderHost *host ) = 0;
@@ -90,6 +98,7 @@ public:
 	/**
 	After the dxgi device has been reset, the module should recreate any device dependent resources that
 	were removed in RTBeforeDeviceReset
+	\param host the render thread host
 	\return false if the module experiences a fatal error
 	*/
 	virtual bool RTDeviceReset( IRenderHost *host ) = 0;
@@ -121,7 +130,6 @@ extern "C" __declspec( dllexport ) UINT32 GetCompatibleFeatureLevels( D3D_FEATUR
 /**
 exports the getmodule function so the  can get access to instances
 of a module
-\param  a pointer to the MGDF  interface
 \return an instance of the module interface
 */
 extern "C" __declspec( dllexport ) IModule * GetModule();
@@ -130,6 +138,8 @@ extern "C" __declspec( dllexport ) IModule * GetModule();
 gets a list of all custom handler factories to pass to the vfs.
 \param list a pointer to an array of characters to store the saves in.
 \param length the length of the list array
+\param logger a callback interface allowing the archive handler to write to the MGDF logs
+\param errorHandler a callback interface allowing the archive handler to trigger fatal errors
 \return returns true if the supplied list is large enough to contain all the items in the list, otherwise returns false and sets the required size in the length parameter.
 */
 extern "C" __declspec( dllexport ) bool GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler );

@@ -34,7 +34,7 @@ namespace core
 this class represents a slightly more functional version of the host interface with a number of internal
 implementation additions, this class should be inherited to create mock host objects
 */
-class IHostImpl: public IRenderHost, public ISimHost, public IErrorHandler
+class IHostImpl: public IRenderHost, public ISimHost
 {
 public:
 	virtual ~IHostImpl( void ) {};

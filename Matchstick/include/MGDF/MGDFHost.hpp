@@ -1,9 +1,10 @@
 #pragma once
 
-#include "d3d11.h"
+#include <d3d11.h>
 
 #include <MGDF/MGDFVersion.hpp>
 #include <MGDF/MGDFError.hpp>
+#include <MGDF/MGDFErrorHandler.hpp>
 #include <MGDF/MGDFModule.hpp>
 #include <MGDF/MGDFGame.hpp>
 #include <MGDF/MGDFList.hpp>
@@ -19,7 +20,11 @@ namespace MGDF
 
 DECLARE_LIST( IStringList, const char * )
 
-class ICommonHost
+/**
+ This class provides a callback interface for a module to interact with the MGDF host
+ that are safe to be used from any thread
+*/
+class ICommonHost: public virtual IErrorHandler
 {
 public:
 	/**
@@ -33,12 +38,6 @@ public:
 	\return the host logger
 	*/
 	virtual ILogger * GetLogger() const = 0;
-	
-	/**
-	inform the  a fatal error has occured which will result in immediate closure of the program.
-	\param message a description of the error encountered
-	*/
-	virtual void FatalError( const char *sender, const char *message ) = 0;
 
 	/**
 	get the host timer
@@ -61,9 +60,8 @@ public:
 /**
  This class provides a callback interface for a module to interact with the MGDF host
  from module methods run off the render thread.
- \author gcconner
 */
-class IRenderHost: public ICommonHost
+class IRenderHost: public virtual ICommonHost
 {
 	public:
 	/**
@@ -94,7 +92,7 @@ class IRenderHost: public ICommonHost
 	set the current back buffer as the render target for the specified d2d device context
 	\return true if the back buffer can be set as the render target for the device context
 	*/
-	virtual bool SetBackBufferRenderTarget( ID2D1DeviceContext *context ) =0;
+	virtual bool SetBackBufferRenderTarget( ID2D1DeviceContext *context ) = 0;
 
 	/**
 	Gets the current back buffer texture. The pointer returned by this method becomes invalid when the modules OnReset event is fired
@@ -111,7 +109,6 @@ class IRenderHost: public ICommonHost
  This class provides a callback interface for a module to interact with the MGDF host
  from module methods run off the sim thread. These methods should not be called from
  any thread other than the sim thread
- \author gcconner
 */
 class ISimHost: public ICommonHost
 {
@@ -167,7 +164,7 @@ public:
 
 	/**
 	get the audio manager
-	\return the audio manager, nullptr if the audio sub failed to initialize
+	\return the audio manager, nullptr if the audio subsystem failed to initialize
 	*/
 	virtual ISoundManager * GetSound() const = 0;
 

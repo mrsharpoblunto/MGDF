@@ -8,7 +8,6 @@ namespace MGDF
 /**
 this class provides information regarding the current game being run
 and the preferences associated with that game
-\author gcconner
 */
 class IGame
 {
@@ -47,7 +46,7 @@ public:
 	/**
 	determine if the game has a preference for the given key and return its value
 	\param name the preference name
-	\return the value associated with the key (or "" if there is no such key)
+	\return the value associated with the key or nullptr if there is no such key
 	*/
 	virtual const char* GetPreference( const char *name ) const = 0;
 
@@ -64,9 +63,7 @@ public:
 	virtual void  SavePreferences() const = 0;
 
 	/**
-	reset all preferences to the settings they had when the engine was first booted up
-	(Depending on the design of some modules the effects of this may be
-	unpredictable and some of the reset settings may not be applied until the engine is restarted)
+	reload all preferences to thier user independent default values
 	*/
 	virtual void  ResetPreferences() = 0;
 };

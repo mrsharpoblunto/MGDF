@@ -32,9 +32,9 @@ public:
 	XMFLOAT3 *GetPosition() override;
 	XMFLOAT3 *GetVelocity() override;
 	float GetInnerRange() const override;
-	void SetInnerRange( float sourceRelative ) override;
+	void SetInnerRange( float innerRange ) override;
 	float GetOuterRange() const override;
-	void SetOuterRange( float sourceRelative ) override;
+	void SetOuterRange( float outerRange ) override;
 	bool GetSourceRelative() const override;
 	void SetSourceRelative( bool sourceRelative ) override;
 	float GetVolume() const override;

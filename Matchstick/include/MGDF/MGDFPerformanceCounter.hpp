@@ -6,7 +6,6 @@ namespace MGDF
 /**
  Represents a names performance counter that can be used to time the duration of
  events. The results of these counters are shown in the MGDF stats overlay (press alt-f12 to see in game)
- \author gconner
  */
 class IPerformanceCounter
 {
@@ -28,6 +27,9 @@ public:
 	 */
 	virtual void End() = 0;
 
+	/**
+	 Dispose of the performance counter. After calling this, the object can no longer be used
+	 */
 	virtual void Dispose() = 0;
 };
 

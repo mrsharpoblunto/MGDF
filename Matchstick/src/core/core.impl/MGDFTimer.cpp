@@ -276,25 +276,28 @@ double Timer::ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER o
 	return ( double ) diff / _freq.QuadPart;
 }
 
-IPerformanceCounter *Timer::CreateCPUCounter( const char *name )
+MGDFError Timer::CreateCPUCounter( const char *name, IPerformanceCounter **counter )
 {
-	if ( !name ) return nullptr;
+	if ( !name ) return MGDF_ERR_INVALID_TIMER_NAME;
 
-	CPUPerformanceCounter *counter = new CPUPerformanceCounter( name, this );
+	CPUPerformanceCounter *c = new CPUPerformanceCounter( name, this );
 
 	std::lock_guard<std::mutex> lock( _mutex );
-	_cpuCounters.push_back( counter );
-	return counter;
+	_cpuCounters.push_back( c );
+	*counter = c;
+	return MGDF_OK;
 }
 
-IPerformanceCounter *Timer::CreateGPUCounter( const char *name )
+MGDFError Timer::CreateGPUCounter( const char *name, IPerformanceCounter **counter )
 {
-	if ( !_gpuTimersSupported || !name ) return nullptr;
-	GPUPerformanceCounter *counter = new GPUPerformanceCounter( name, this );
+	if ( !_gpuTimersSupported) return MGDF_ERR_GPU_TIMER_UNSUPPORTED;
+	if (!name ) return MGDF_ERR_INVALID_TIMER_NAME;
+	GPUPerformanceCounter *c = new GPUPerformanceCounter( name, this );
 
 	std::lock_guard<std::mutex> lock( _mutex );
-	_gpuCounters.push_back( counter );
-	return counter;
+	_gpuCounters.push_back( c );
+	*counter = c;
+	return MGDF_OK;
 }
 
 void Timer::RemoveCounter( IPerformanceCounter *counter )

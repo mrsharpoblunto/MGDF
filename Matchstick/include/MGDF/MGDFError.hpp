@@ -3,13 +3,9 @@
 namespace MGDF
 {
 
-//struct Error {
-//	UINT32 Code;
-//	char *Sender;
-//	char *Description;
-//};
-
-//error codes
+/**
+ * Various error codes returned by the MGDF api
+ */
 enum MGDFError {
 	MGDF_OK = 0,
 	MGDF_ERR_ERROR_ALLOCATING_BUFFER = 1,
@@ -25,7 +21,9 @@ enum MGDFError {
 	MGDF_ERR_FILE_IN_USE = 11,
 	MGDF_ERR_BUFFER_TOO_SMALL = 12,
 	MGDF_ERR_FATAL = 13,
-	MGDF_ERR_IS_FOLDER = 14
+	MGDF_ERR_IS_FOLDER = 14,
+	MGDF_ERR_GPU_TIMER_UNSUPPORTED = 15,
+	MGDF_ERR_INVALID_TIMER_NAME = 16
 };
 
 }

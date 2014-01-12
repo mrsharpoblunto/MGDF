@@ -5,7 +5,6 @@ namespace MGDF
 
 /**
  this class provides a simple readonly wrapper for the std library vector class to enable implementation independant lists to be passed to modules
- \author gcconner
 */
 #define DECLARE_LIST(className,typeName) class className## \
 { \

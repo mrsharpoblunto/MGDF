@@ -5,7 +5,6 @@ namespace MGDF
 
 /**
 this class represents an audio stream
-\author gcconner
 */
 class ISoundStream
 {
@@ -27,7 +26,16 @@ public:
 	*/
 	virtual void  SetVolume( float volume ) = 0;
 
+	/**
+	The position of playback in the stream (0 -> GetLength)
+	\return The position of playback in the stream
+	*/
 	virtual UINT32 GetPosition() = 0;
+
+	/**
+	The total length of the stream
+	\return The total length of the stream
+	*/
 	virtual UINT32 GetLength() = 0;
 
 	/**

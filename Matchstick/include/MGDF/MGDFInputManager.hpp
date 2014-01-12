@@ -6,11 +6,13 @@ namespace MGDF
 {
 
 /**
-this is represents all the various mouse clicks that are recognised by the input
-manager
+this is represents all the various mouse clicks that are recognised by the input manager
 */
 enum Mouse {MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE};
 
+/**
+All the gamepad button types recognized by the input manager
+*/
 enum GamepadButton {
     GAMEPAD_DPAD_UP = 0x00000001,
     GAMEPAD_DPAD_DOWN = 0x00000002,
@@ -109,7 +111,6 @@ DECLARE_LIST( IGamepadList, IGamepad * )
 /**
 this class provides a means for modules to access information regarding user input
 from the mouse, keyboard, and xinput controllers
-\author gcconner
 */
 class IInputManager
 {

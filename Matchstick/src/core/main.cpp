@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 
-#include "dbghelp.h"
+#include <dbghelp.h>
+
 #include "common/win32Exception.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"

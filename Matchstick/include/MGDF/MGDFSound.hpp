@@ -8,41 +8,121 @@ namespace MGDF
 
 /**
 this class represents an audio source in 3d space
-\author gcconner
 */
 class ISound
 {
 public:
+	/**
+	The name of the sound
+	\return the name of the sound
+	*/
 	virtual const wchar_t * GetName() const = 0;
+
+	/**
+	The position of the sound
+	\return the position of the sound
+	*/
 	virtual DirectX::XMFLOAT3 * GetPosition() = 0;
+
+	/**
+	The velocity of the sound 
+	\return the velocity of the sound
+	*/
 	virtual DirectX::XMFLOAT3 * GetVelocity() = 0;
 
+	/**
+	The distance (from the observer) at which the sound intensity reaches its maximum. Getting closer than this will
+	 not cause the sound intensity to get any greater
+	 \return The distance (from the observer) at which the sound intensity reaches its maximum. Getting closer than this will
+	 not cause the sound intensity to get any greater
+	 */
 	virtual float  GetInnerRange() const = 0;
-	virtual void  SetInnerRange( float sourceRelative ) = 0;
-	virtual float  GetOuterRange() const = 0;
-	virtual void  SetOuterRange( float sourceRelative ) = 0;
 
+	/**
+	 Set The distance (from the observer) at which the sound intensity reaches its maximum. Getting closer than this will
+	 not cause the sound intensity to get any greater
+	 \param innerRange The distance (from the observer) at which the sound intensity reaches its maximum. Getting closer than this will
+	 not cause the sound intensity to get any greater
+	 */
+	virtual void  SetInnerRange( float innerRange ) = 0;
+
+	/**
+	The distance (from the observer) at which the sound intensity reaches 0
+	 \return The distance (from the observer) at which the sound intensity reaches its 0
+	 */
+	virtual float  GetOuterRange() const = 0;
+
+	/**
+	 Set The distance (from the observer) at which the sound intensity reaches 0
+	 \param outerRange The distance (from the observer) at which the sound intensity reaches 0
+	 */
+	virtual void  SetOuterRange( float outerRange ) = 0;
+
+	/**
+	 Does the sound stay relative to the listeners position or is it fixed in absolute space
+	 \return true if the sound is always relative to the listeners position
+	 */
 	virtual bool  GetSourceRelative() const = 0;
+
+	/**
+	 Does the sound stay relative to the listeners position or is it fixed in absolute space
+	 \param sourceRelative true if the sound is always relative to the listeners position
+	 */
 	virtual void  SetSourceRelative( bool sourceRelative ) = 0;
 
+	/**
+	Get the current volume of the sound (ignoring attenuation due to position)
+	\return the current volume of the sound (ignoring attenuation due to position)
+	*/
 	virtual float  GetVolume() const = 0;
+
+	/**
+	Set the current volume of the sound (ignoring attenuation due to position)
+	\param volume the current volume of the sound (ignoring attenuation due to position)
+	*/
 	virtual void  SetVolume( float volume ) = 0;
+
+	/**
+	Get the pitch of the current sound
+	\return 1.0 if the pitch is unchanged. between 0.5 and 1.0 is lower, and between 1.0 and 2.0 is higher pitched
+	*/
 	virtual float  GetPitch() const = 0;
+
+	/**
+	Set the pitch of the current sound
+	\param pitch 1.0 if the pitch is unchanged. between 0.5 and 1.0 is lower, and between 1.0 and 2.0 is higher pitched
+	*/
 	virtual void  SetPitch( float pitch ) = 0;
 
 	/**
-	disposes of the sound
+	disposes of the sound. After calling this, the object cannot be used
 	*/
 	virtual void Dispose() = 0;
 
 	/**
-	priority is used by the sound  to determine which sounds get deactivated if not enough sound sources
+	Set the priority used by the sound system to determine which sounds get deactivated if not enough sound sources
 	are available to play all sounds
+	\param priority the priority to use for the sound. Higher values mean higher priority
 	*/
 	virtual void  SetPriority( INT32 priority ) = 0;
+	
+	/**
+	Get the priority used by the sound system to determine which sounds get deactivated if not enough sound sources
+	are available to play all sounds
+	\return priority the priority to use for the sound. Higher values mean higher priority
+	*/
 	virtual INT32  GetPriority() const = 0;
 
+	/**
+	 Get whether the sound will loop playback continously
+	 \return true if the sound should loop continously
+	 */
 	virtual bool  GetLooping() const = 0;
+	
+	/**
+	 Set whether the sound will loop playback continously
+	 \return looping true if the sound should loop continously
+	 */
 	virtual void  SetLooping( bool looping ) = 0;
 
 	/**

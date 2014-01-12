@@ -43,10 +43,10 @@ bool Module::STNew( ISimHost* host, const wchar_t *workingFolder )
 bool Module::STUpdate( ISimHost* host, double elapsedTime )
 {
 	if ( !_testModuleCounter ) {
-		_testModuleCounter = host->GetTimer()->CreateCPUCounter( "Test Module" );
+		host->GetTimer()->CreateCPUCounter( "Test Module", &_testModuleCounter );
 	}
 
-	_testModuleCounter->Begin();
+	if ( _testModuleCounter ) _testModuleCounter->Begin();
 	_testModule->Update( host, _stateBuffer.Pending() );
 
 	TestModule *next = _testModule->NextTestModule();
@@ -54,7 +54,7 @@ bool Module::STUpdate( ISimHost* host, double elapsedTime )
 		delete _testModule;
 		_testModule = next;
 	}
-	_testModuleCounter->End();
+	if ( _testModuleCounter ) _testModuleCounter->End();
 
 	_stateBuffer.Flip();
 	return true;
@@ -74,7 +74,7 @@ bool Module::STDispose( ISimHost* host )
 bool Module::RTBeforeFirstDraw( MGDF::IRenderHost *host )
 {
 	_textManager = new TextManager( host );
-	_textManagerCounter = host->GetRenderTimer()->CreateGPUCounter( "Text Rendering" );
+	host->GetRenderTimer()->CreateGPUCounter( "Text Rendering", &_textManagerCounter );
 	return true;
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "d3d11.h"
+#include <d3d11.h>
 #include <vector>
 #include <list>
 #include <mutex>
@@ -77,8 +77,8 @@ public:
 	LARGE_INTEGER GetTimerFrequency() const override;
 	double ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER oldTime ) const override;
 
-	IPerformanceCounter *CreateCPUCounter( const char *name ) override;
-	IPerformanceCounter *CreateGPUCounter( const char *name ) override;
+	MGDFError CreateCPUCounter( const char *name, IPerformanceCounter **counter ) override;
+	MGDFError CreateGPUCounter( const char *name, IPerformanceCounter **counter ) override;
 
 	void InitFromDevice( ID3D11Device *device, UINT32 bufferSize, INT32 frameSamples );
 
