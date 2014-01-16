@@ -70,7 +70,7 @@ void ParameterManager::ParseParameters( const std::string &paramString, std::map
 
 		//check that the key is valid (i.e non null)
 		if ( key.length() == 0 ) {
-			throw MGDFException( "empty flag found, cancelling parsing of command line" );
+			throw MGDFException( MGDF_ERR_INVALID_PARAMETER, "empty flag found, cancelling parsing of command line" );
 		}
 
 		//parse the value (if present)
@@ -84,7 +84,7 @@ void ParameterManager::ParseParameters( const std::string &paramString, std::map
 
 			//check that the key is valid (i.e non null)
 			if ( key.length() == 0 ) {
-				throw MGDFException( "empty value found for flag '" + key + "', , cancelling parsing of command line" );
+				throw MGDFException( MGDF_ERR_INVALID_PARAMETER, "empty value found for flag '" + key + "', , cancelling parsing of command line" );
 			}
 
 			//erase trailing whitespace

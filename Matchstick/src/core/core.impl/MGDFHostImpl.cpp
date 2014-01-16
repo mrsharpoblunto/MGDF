@@ -650,5 +650,147 @@ void Host::ClearWorkingDirectory()
 	}
 }
 
+const char* Host::GetErrorDescription( MGDFError err ) const
+{
+	static std::string ok( "No error" );
+	static std::string allocatingBuffer( "Error allocating audio buffer" );
+	static std::string noFreeSources( "No free audio sources" );
+	static std::string vorbisFailed( "Failed to load vorbis audio library" );
+	static std::string invalidFormat( "Invalid audio file format" );
+	static std::string invalidArchive( "Invalid archive file" );
+	static std::string invalidFile( "Not a valid VFS file" );
+	static std::string noPending( "This save name does not match any pending save created by BeginSave" );
+	static std::string invalidSave( "Invalid save name - only alphanumeric characters and the space character are permitted" );
+	static std::string archiveToLarge( "Archive file is too large - archive files cannot be over 4GB in size" );
+	static std::string fileInUse( "File is already open for reading elsewhere" );
+	static std::string bufferTooSmall( "Target buffer is too small to hold all required data" );
+	static std::string fatal( "Fatal error - shutting down" );
+	static std::string folder( "Cannot open a folder for reading" );
+	static std::string gpuTimer( "GPU Timers are not supported at this DirectX feature level, only 10 and up is supported" );
+	static std::string invalidTimerName( "Timer names cannot be null" );
+	static std::string invalidJson( "Invalid JSON data" );
+	static std::string invalidParam( "Invalid parameter format" );
+	static std::string audioInitFailed( "Failed to initialize audio system" );
+	static std::string cpuTimer( "High resolution timers are unsupported on this system" );
+	static std::string unknown( "Unknown error" );
+
+	switch ( err )
+	{
+	case MGDF_OK:
+		return ok.c_str();
+	case MGDF_ERR_ERROR_ALLOCATING_BUFFER:
+		return allocatingBuffer.c_str();
+	case MGDF_ERR_NO_FREE_SOURCES:
+		return noFreeSources.c_str();
+	case MGDF_ERR_VORBIS_LIB_LOAD_FAILED:
+		return vorbisFailed.c_str();
+	case MGDF_ERR_INVALID_FORMAT:
+		return invalidFormat.c_str();
+	case MGDF_ERR_INVALID_ARCHIVE_FILE:
+		return invalidArchive.c_str();
+	case MGDF_ERR_INVALID_FILE:
+		return invalidFile.c_str();
+	case MGDF_ERR_NO_PENDING_SAVE:
+		return noPending.c_str();
+	case MGDF_ERR_INVALID_SAVE_NAME:
+		return invalidSave.c_str();
+	case MGDF_ERR_ARCHIVE_FILE_TOO_LARGE:
+		return archiveToLarge.c_str();
+	case MGDF_ERR_FILE_IN_USE:
+		return fileInUse.c_str();
+	case MGDF_ERR_BUFFER_TOO_SMALL:
+		return bufferTooSmall.c_str();
+	case MGDF_ERR_FATAL:
+		return fatal.c_str();
+	case MGDF_ERR_IS_FOLDER:
+		return folder.c_str();
+	case MGDF_ERR_GPU_TIMER_UNSUPPORTED:
+		return gpuTimer.c_str();
+	case MGDF_ERR_INVALID_TIMER_NAME:
+		return invalidTimerName.c_str();
+	case MGDF_ERR_INVALID_JSON:
+		return invalidJson.c_str();
+	case MGDF_ERR_INVALID_PARAMETER:
+		return invalidParam.c_str();
+	case MGDF_ERR_AUDIO_INIT_FAILED:
+		return audioInitFailed.c_str();
+	case MGDF_ERR_CPU_TIMER_UNSUPPORTED:
+		return cpuTimer.c_str();
+	default:
+		return unknown.c_str();
+	}
+}
+
+const char* Host::GetErrorString( MGDFError err ) const
+{
+	static std::string ok( "MGDF_OK" );
+	static std::string allocatingBuffer( "MGDF_ERR_ERROR_ALLOCATING_BUFFER" );
+	static std::string noFreeSources( "MGDF_ERR_NO_FREE_SOURCES" );
+	static std::string vorbisFailed( "MGDF_ERR_VORBIS_LIB_LOAD_FAILED" );
+	static std::string invalidFormat( "MGDF_ERR_INVALID_FORMAT" );
+	static std::string invalidArchive( "MGDF_ERR_INVALID_ARCHIVE_FILE" );
+	static std::string invalidFile( "MGDF_ERR_INVALID_FILE" );
+	static std::string noPending( "MGDF_ERR_NO_PENDING_SAVE" );
+	static std::string invalidSave( "MGDF_ERR_INVALID_SAVE_NAME" );
+	static std::string archiveToLarge( "MGDF_ERR_ARCHIVE_FILE_TOO_LARGE" );
+	static std::string fileInUse( "MGDF_ERR_FILE_IN_USE" );
+	static std::string bufferTooSmall( "MGDF_ERR_BUFFER_TOO_SMALL" );
+	static std::string fatal( "MGDF_ERR_FATAL" );
+	static std::string folder( "MGDF_ERR_IS_FOLDER" );
+	static std::string gpuTimer( "MGDF_ERR_GPU_TIMER_UNSUPPORTED" );
+	static std::string invalidTimerName( "MGDF_ERR_INVALID_TIMER_NAME" );
+	static std::string invalidJson( "MGDF_ERR_INVALID_JSON" );
+	static std::string invalidParam( "MGDF_ERR_INVALID_PARAMETER" );
+	static std::string audioInitFailed( "MGDF_ERR_AUDIO_INIT_FAILED" );
+	static std::string cpuTimer( "MGDF_ERR_CPU_TIMER_UNSUPPORTED" );
+	static std::string unknown( "MGDF_ERR_UNKNOWN" );
+
+	switch ( err )
+	{
+	case MGDF_OK:
+		return ok.c_str();
+	case MGDF_ERR_ERROR_ALLOCATING_BUFFER:
+		return allocatingBuffer.c_str();
+	case MGDF_ERR_NO_FREE_SOURCES:
+		return noFreeSources.c_str();
+	case MGDF_ERR_VORBIS_LIB_LOAD_FAILED:
+		return vorbisFailed.c_str();
+	case MGDF_ERR_INVALID_FORMAT:
+		return invalidFormat.c_str();
+	case MGDF_ERR_INVALID_ARCHIVE_FILE:
+		return invalidArchive.c_str();
+	case MGDF_ERR_INVALID_FILE:
+		return invalidFile.c_str();
+	case MGDF_ERR_NO_PENDING_SAVE:
+		return noPending.c_str();
+	case MGDF_ERR_INVALID_SAVE_NAME:
+		return invalidSave.c_str();
+	case MGDF_ERR_ARCHIVE_FILE_TOO_LARGE:
+		return archiveToLarge.c_str();
+	case MGDF_ERR_FILE_IN_USE:
+		return fileInUse.c_str();
+	case MGDF_ERR_BUFFER_TOO_SMALL:
+		return bufferTooSmall.c_str();
+	case MGDF_ERR_FATAL:
+		return fatal.c_str();
+	case MGDF_ERR_IS_FOLDER:
+		return folder.c_str();
+	case MGDF_ERR_GPU_TIMER_UNSUPPORTED:
+		return gpuTimer.c_str();
+	case MGDF_ERR_INVALID_TIMER_NAME:
+		return invalidTimerName.c_str();
+	case MGDF_ERR_INVALID_JSON:
+		return invalidJson.c_str();
+	case MGDF_ERR_INVALID_PARAMETER:
+		return invalidParam.c_str();
+	case MGDF_ERR_AUDIO_INIT_FAILED:
+		return audioInitFailed.c_str();
+	case MGDF_ERR_CPU_TIMER_UNSUPPORTED:
+		return cpuTimer.c_str();
+	default:
+		return unknown.c_str();
+	}
+}
+
 }
 }

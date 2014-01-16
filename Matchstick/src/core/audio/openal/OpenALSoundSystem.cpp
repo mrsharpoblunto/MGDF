@@ -43,19 +43,19 @@ OpenALSoundSystem::OpenALSoundSystem()
 	ALCdevice *device = alcOpenDevice( nullptr );
 	if ( device == nullptr ) {
 		LOG( "Unable to open audio device", LOG_ERROR );
-		throw MGDFException( "Unable to open audio device" );
+		throw MGDFException( MGDF_ERR_AUDIO_INIT_FAILED, "Unable to open audio device" );
 	}
 
 	_context = alcCreateContext( device, nullptr );
 	if ( _context == nullptr ) {
 		LOG( "Failed to initialize OpenAL", LOG_ERROR );
-		throw MGDFException( "Failed to initialize OpenAL" );
+		throw MGDFException( MGDF_ERR_AUDIO_INIT_FAILED, "Failed to initialize OpenAL" );
 	}
 
 	alcMakeContextCurrent( _context );
 	if ( alcGetError( device ) != AL_NO_ERROR ) {
 		LOG( "Failed to make OpenAL context current", LOG_ERROR );
-		throw MGDFException( "Failed to make OpenAL context current" );
+		throw MGDFException( MGDF_ERR_AUDIO_INIT_FAILED, "Failed to make OpenAL context current" );
 	}
 
 	alutInitWithoutContext( nullptr, nullptr );

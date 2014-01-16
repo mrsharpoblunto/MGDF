@@ -141,18 +141,18 @@ MGDFError ZipArchive::GetFileData( ZipFileHeader &header, ZipFileData &data )
 	try 
 	{
 		if ( unzOpenCurrentFile( _zip ) != UNZ_OK )
-			throw MGDFException( "Unable to open zip archive" );
+			throw MGDFException( MGDF_ERR_INVALID_ARCHIVE_FILE, "Unable to open zip archive" );
 		if ( unzReadCurrentFile( _zip, data.data, static_cast<UINT32>( header.size ) ) < 0 )
-			throw MGDFException( "Unable to read zip archive" );
+			throw MGDFException( MGDF_ERR_INVALID_ARCHIVE_FILE, "Unable to read zip archive" );
 		if ( unzCloseCurrentFile( _zip ) == UNZ_CRCERROR )
-			throw MGDFException( "Unable to close zip archive" );
+			throw MGDFException( MGDF_ERR_INVALID_ARCHIVE_FILE, "Unable to close zip archive" );
 		return MGDF_OK;
 	} catch ( MGDFException e ) {
 		std::string message = e.what();
 		LOG( e.what() << ' ' << Resources::ToString( header.name ), LOG_ERROR );
 		free( data.data );
 		data.data = nullptr;
-		return MGDF_ERR_INVALID_ARCHIVE_FILE;
+		return e.Code();
 	}
 }
 

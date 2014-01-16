@@ -134,6 +134,9 @@ Host *HostBuilder::CreateHost()
 		Components::Instance().RegisterComponentErrorHandler( host );  //register the hosterror handlers with all components
 
 		return host;
+	} catch ( MGDFException ex ) {
+		LOG( "FATAL ERROR: Unable to create host - " << ex.what(), LOG_ERROR );
+		return nullptr;
 	} catch ( ... ) {
 		LOG( "FATAL ERROR: Unable to create host", LOG_ERROR );
 		return nullptr;

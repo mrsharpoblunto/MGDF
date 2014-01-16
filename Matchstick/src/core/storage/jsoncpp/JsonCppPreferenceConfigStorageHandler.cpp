@@ -49,7 +49,7 @@ void JsonCppPreferenceConfigStorageHandler::Load( const std::wstring &filename )
 			_preferences[preferences[index]["name"].asString()] = preferences[index]["value"].asString();
 		}
 	} else {
-		throw MGDFException( reader.getFormatedErrorMessages() );
+		throw MGDFException( MGDF_ERR_INVALID_JSON, reader.getFormatedErrorMessages() );
 	}
 }
 

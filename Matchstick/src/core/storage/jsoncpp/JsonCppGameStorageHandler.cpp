@@ -54,7 +54,7 @@ void JsonCppGameStorageHandler::Load( const std::wstring &filename )
 		_parameterString = root["parameters"].asString();
 		_interfaceVersion = atoi( root["interfaceversion"].asString().c_str() );
 	} else {
-		throw MGDFException( reader.getFormatedErrorMessages() );
+		throw MGDFException( MGDF_ERR_INVALID_JSON, reader.getFormatedErrorMessages() );
 	}
 }
 

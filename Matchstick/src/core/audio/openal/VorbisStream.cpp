@@ -100,7 +100,7 @@ VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *mana
 
 	_dataSource = source;
 	if ( MGDF_OK != source->OpenFile( &_reader ) ) {
-		throw MGDFException( "Stream file could not be opened or is already open for reading" );	
+		throw MGDFException( MGDF_ERR_FILE_IN_USE, "Stream file could not be opened or is already open for reading" );	
 	}
 
 	_soundManager = manager;
@@ -110,7 +110,7 @@ VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *mana
 	if ( _references++ == 0 ) {
 		if ( !InitVorbis() ) {
 			_references--;
-			throw MGDFException( "Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)" );
+			throw MGDFException( MGDF_ERR_VORBIS_LIB_LOAD_FAILED, "Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)" );
 		}
 	}
 
@@ -185,7 +185,7 @@ void VorbisStream::InitStream()
 
 				bool createdSource = OpenALSoundSystem::Instance()->AcquireSource( &_source );
 				if ( !createdSource ) {
-					throw MGDFException( "No free sound sources to create stream" );
+					throw MGDFException( MGDF_ERR_NO_FREE_SOURCES, "No free sound sources to create stream" );
 				}
 				_initLevel++;//sound source created
 
@@ -199,7 +199,7 @@ void VorbisStream::InitStream()
 					}
 				}
 			} else {
-				throw MGDFException( "Failed to find format information, or unsupported format" );
+				throw MGDFException( MGDF_ERR_INVALID_FORMAT, "Failed to find format information, or unsupported format" );
 			}
 		}
 	} catch ( MGDFException ex ) {
@@ -241,7 +241,7 @@ void VorbisStream::UninitVorbis()
 	}
 }
 
-void VorbisStream::Play()
+MGDFError VorbisStream::Play()
 {
 	if ( _state == NOT_STARTED ) {
 		alSourcef( _source, AL_GAIN, _volume * _globalVolume );
@@ -250,12 +250,21 @@ void VorbisStream::Play()
 		alSourcePlay( _source );
 	} else if ( _state == STOP ) {
 		UninitStream();
-		InitStream();
+		try 
+		{
+			InitStream();
+		}
+		catch ( MGDFException ex ) 
+		{
+			LOG( ex.what(), LOG_ERROR );
+			return ex.Code();
+		}
 		alSourcef( _source, AL_GAIN, _volume * _globalVolume );
 		alSourcePlay( _source );
 	}
 
 	_state = PLAY;
+	return MGDF_OK;
 }
 
 void VorbisStream::Pause()

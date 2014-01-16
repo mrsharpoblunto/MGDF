@@ -222,7 +222,7 @@ MGDFError OpenALSoundManagerComponentImpl::CreateSoundStream( IFile *file, ISoun
 			return MGDF_OK;
 		} catch ( MGDFException ex ) {
 			LOG( ex.what(), LOG_ERROR );
-			return MGDF_ERR_INVALID_FILE;
+			return ex.Code();
 		}
 	}
 }
@@ -249,7 +249,7 @@ MGDFError OpenALSoundManagerComponentImpl::CreateSound( IFile *file, INT32 prior
 		return MGDF_OK;
 	} catch ( MGDFException ex ) {
 		LOG( ex.what(), LOG_ERROR );
-		return MGDF_ERR_INVALID_FILE;
+		return ex.Code();
 	}
 
 }
@@ -338,7 +338,7 @@ ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer( IFile *dataSource )
 
 	IFileReader *reader = nullptr;
 	if ( MGDF_OK != dataSource->OpenFile( &reader ) ) {
-		throw MGDFException( "Buffer file could not be opened or is already open for reading" );
+		throw MGDFException( MGDF_ERR_FILE_IN_USE, "Buffer file could not be opened or is already open for reading" );
 	} 
 
 	INT64 size = reader->GetSize();
@@ -360,7 +360,7 @@ ALuint OpenALSoundManagerComponentImpl::GetSoundBuffer( IFile *dataSource )
 		return bufferId;
 	} 
 
-	throw MGDFException( "Error allocating sound buffer" );
+	throw MGDFException( MGDF_ERR_ERROR_ALLOCATING_BUFFER, "Error allocating sound buffer" );
 }
 
 void OpenALSoundManagerComponentImpl::RemoveSoundBuffer( ALuint bufferId )

@@ -55,6 +55,30 @@ public:
 	\return the virtual filesystem
 	*/
 	virtual IVirtualFileSystem * GetVFS() const = 0;
+
+	/**
+	get the direct3d device object from the host
+	\return the direct3d device object from the host
+	*/
+	virtual ID3D11Device * GetD3DDevice() const = 0;
+
+	/**
+	get the direct2d device object from the host
+	\return the direct2d device object from the host
+	*/
+	virtual ID2D1Device * GetD2DDevice() const = 0;
+
+	/**
+	get a text description for an MGDF error code
+	\return a text description for an MGDF error code
+	*/
+	virtual const char* GetErrorDescription( MGDFError err ) const = 0;
+
+	/**
+	get a text name for an MGDF error code
+	\return a text name for an MGDF error code
+	*/
+	virtual const char* GetErrorString( MGDFError err ) const = 0;
 };
 
 /**
@@ -65,22 +89,10 @@ class IRenderHost: public ICommonHost
 {
 	public:
 	/**
-	get the direct3d device object from the host
-	\return the direct3d device object from the host
-	*/
-	virtual ID3D11Device * GetD3DDevice() const = 0;
-
-	/**
 	get the direct3d device immediate context object from the host
 	\return the direct3d deviceimmediate context object from the host
 	*/
 	virtual ID3D11DeviceContext * GetD3DImmediateContext() const = 0;
-
-	/**
-	get the direct2d device object from the host
-	\return the direct2d device object from the host
-	*/
-	virtual ID2D1Device * GetD2DDevice() const = 0;
 
 	/**
 	get the direct3d timer object from the host

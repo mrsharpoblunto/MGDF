@@ -39,7 +39,7 @@ public:
 	void SetVolume( float volume ) override;
 	void Stop() override;
 	void Pause() override;
-	void Play() override;
+	MGDFError Play() override;
 	bool IsStopped() const override;
 	bool IsPaused() const override;
 	bool IsPlaying() const override;

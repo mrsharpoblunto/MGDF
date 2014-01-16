@@ -89,6 +89,8 @@ public:
 	IRenderSettingsManager *GetRenderSettings() const override;
 	ITimer * GetTimer() const override;
 	const Version * GetMGDFVersion() const override;
+	const char* GetErrorDescription( MGDFError err ) const override;
+	const char* GetErrorString( MGDFError err ) const override;
 
 	// ISimHost methods
 	void QueueShutDown() override;

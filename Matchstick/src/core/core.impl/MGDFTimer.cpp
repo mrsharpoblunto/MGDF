@@ -194,7 +194,7 @@ Timer::Timer()
 	// exit if the  does not support a high performance timer
 	if ( !QueryPerformanceFrequency( &_freq ) ) {
 		LOG( "High performance timer unsupported", LOG_ERROR );
-		throw MGDFException( "High performance timer unsupported" );
+		throw MGDFException( MGDF_ERR_CPU_TIMER_UNSUPPORTED, "High performance timer unsupported" );
 	}
 }
 

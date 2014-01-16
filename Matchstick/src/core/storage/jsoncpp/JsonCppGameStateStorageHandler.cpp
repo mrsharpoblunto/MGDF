@@ -32,7 +32,7 @@ void JsonCppGameStateStorageHandler::Load( const std::wstring &filename )
 		_gameUid = root["gameuid"].asString();
 		_version = VersionHelper::Create( root["gameversion"].asString() );
 	} else {
-		throw MGDFException( reader.getFormatedErrorMessages() );
+		throw MGDFException( MGDF_ERR_INVALID_JSON, reader.getFormatedErrorMessages() );
 	}
 }
 

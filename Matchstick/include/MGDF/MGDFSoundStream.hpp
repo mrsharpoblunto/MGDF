@@ -1,5 +1,7 @@
 #pragma once
 
+#include <MGDF/MGDFError.hpp>
+
 namespace MGDF
 {
 
@@ -55,8 +57,9 @@ public:
 
 	/**
 	resume the playing of the current playlist (if it was paused or stopped)
+	\return MGDF_OK if the sound could resume playing, otherwise returns an error code.
 	*/
-	virtual void  Play() = 0;
+	virtual MGDFError Play() = 0;
 
 	/**
 	determines if the stream has stopped play

@@ -112,8 +112,13 @@ void Test2::Update( ISimHost *host, TextManagerState *state )
 
 	} else if ( _testState == 6 ) {
 		++_testState;
-		_stream->Play();
-		state->AddLine( "Playing stream, press [Y/N] if the stream is actually playing" );
+		if ( MGDF_OK != _stream->Play() ) {
+			_testState = 1000;
+			state->SetStatus( RED, "[Test Failed]" );
+		}
+		else {
+			state->AddLine( "Playing stream, press [Y/N] if the stream is actually playing" );
+		}
 	} else if ( _testState == 7 && host->GetInput()->IsKeyPress( 'Y' ) ) {
 		++_testState;
 		state->SetStatus( GREEN, "[Test Passed]" );
@@ -132,7 +137,12 @@ void Test2::Update( ISimHost *host, TextManagerState *state )
 			_stream->Dispose();
 			state->SetStatus( RED, "[Test Failed]" );
 		} else if ( host->GetInput()->IsKeyPress( 'P' ) ) {
-			if ( _stream->IsPaused() ) _stream->Play();
+			if ( _stream->IsPaused() ) {
+				if ( MGDF_OK != _stream->Play() ) {
+					_testState = 1000;
+					state->SetStatus( RED, "[Test Failed]" );
+				}
+			}
 			else _stream->Pause();
 		}
 	}

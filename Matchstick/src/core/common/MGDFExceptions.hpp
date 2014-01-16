@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MGDF/MGDFError.hpp>
 #include <string>
 #include <exception>
 
@@ -15,8 +16,15 @@ error classes
 class MGDFException: public std::exception
 {
 public:
-	MGDFException( const std::string &message ) : std::exception( message.c_str() ) {};
+	MGDFException( MGDFError code, const std::string &message ) 
+		: std::exception( message.c_str() )
+		, _code( code )
+	{}
 	virtual ~MGDFException() {}
+
+	MGDFError Code() const { return _code ; }
+private:
+	MGDFError _code;
 };
 
 }

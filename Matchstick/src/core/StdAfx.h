@@ -47,6 +47,14 @@
         #endif
 #endif 
 
+#define FATALERROR(obj,msg) {\
+	std::ostringstream ss;\
+	ss << __FILE__ <<  ':' <<__LINE__;\
+	std::ostringstream ms;\
+	ms << msg;\
+	obj->FatalError(ss.str().c_str(),ms.str().c_str());\
+}
+
 #include <MGDF/MGDF.hpp>
 
 #define TIMER_SAMPLES 60
