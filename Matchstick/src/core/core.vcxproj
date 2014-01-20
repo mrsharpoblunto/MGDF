@@ -138,6 +138,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -192,6 +194,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -242,6 +246,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -295,6 +301,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>

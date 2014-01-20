@@ -5,7 +5,6 @@
 #include <mmsystem.h>
 #include "windowsx.h"
 #include "MGDFD3DAppFramework.hpp"
-#include "common/MGDFExceptions.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"
 

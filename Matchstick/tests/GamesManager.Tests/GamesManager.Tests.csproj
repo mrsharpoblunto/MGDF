@@ -115,19 +115,19 @@
   <ItemGroup>
     <None Include="..\content\console.json">
       <Link>GamesManager.Tests.Content\console.json</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\content\gameState.json">
       <Link>GamesManager.Tests.Content\gameState.json</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\content\preferences.json">
       <Link>GamesManager.Tests.Content\preferences.json</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\content\Update.json">
       <Link>GamesManager.Tests.Content\Update.json</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="App.Config" />
   </ItemGroup>

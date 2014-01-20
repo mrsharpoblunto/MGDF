@@ -13,7 +13,7 @@ this class is used for timing and frame limiting
 class FrameLimiter
 {
 public:
-	FrameLimiter( UINT32 maxFps );
+	static MGDFError TryCreate( UINT32 maxFps, FrameLimiter **limiter );
 	~FrameLimiter( void );
 
 	/**
@@ -24,6 +24,8 @@ public:
 	double ProgressThroughCurrentFrame();
 
 private:
+	FrameLimiter( UINT32 maxFps );
+	MGDFError Init();
 	LARGE_INTEGER _freq, _previousFrameEnd;
 	INT64 _frameTime;
 	UINT32 _maxFps;

@@ -2,7 +2,6 @@
 
 #include "../../common/MGDFResources.hpp"
 #include "../../common/MGDFLoggerImpl.hpp"
-#include "../../common/MGDFExceptions.hpp"
 
 #include "JsonCppPreferenceConfigStorageHandler.hpp"
 
@@ -36,7 +35,7 @@ IPreferenceConfigStorageHandler::iterator JsonCppPreferenceConfigStorageHandler:
 	return _preferences.end();
 }
 
-void JsonCppPreferenceConfigStorageHandler::Load( const std::wstring &filename )
+MGDFError JsonCppPreferenceConfigStorageHandler::Load( const std::wstring &filename )
 {
 	std::ifstream input( filename.c_str(), std::ios::in );
 
@@ -48,8 +47,10 @@ void JsonCppPreferenceConfigStorageHandler::Load( const std::wstring &filename )
 		for ( UINT32 index = 0; index < preferences.size(); ++index ) {
 			_preferences[preferences[index]["name"].asString()] = preferences[index]["value"].asString();
 		}
+		return MGDF_OK;
 	} else {
-		throw MGDFException( MGDF_ERR_INVALID_JSON, reader.getFormatedErrorMessages() );
+		LOG( reader.getFormatedErrorMessages(), LOG_ERROR );
+		return MGDF_ERR_INVALID_JSON;
 	}
 }
 

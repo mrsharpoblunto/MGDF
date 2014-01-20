@@ -14,7 +14,7 @@ namespace audio
 {
 
 #ifdef USE_OPENAL_AUDIO
-#define CreateSoundManagerComponentImpl openal_audio::CreateOpenALSoundManagerComponent
+#define CreateSoundManagerComponentImpl openal_audio::OpenALSoundManagerComponentImpl::CreateOpenALSoundManagerComponent
 #endif
 
 }

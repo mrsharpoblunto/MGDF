@@ -22,38 +22,53 @@ namespace core
 {
 
 //loads a game from the game.json file stored in the game folder
-Game *GameBuilder::LoadGame( storage::IGameStorageHandler *handler )
+MGDFError GameBuilder::LoadGame( storage::IGameStorageHandler *handler, Game **game )
 {
 	_ASSERTE( handler );
 
-	ParameterManager::Instance().AddParameterString( handler->GetParameterString().c_str() );
-	Game *game = CreateGame(
+	MGDFError result = ParameterManager::Instance().AddParameterString( handler->GetParameterString().c_str() );
+	if ( MGDF_OK != result ) {
+		return result;
+	}
+
+	return CreateGame(
 	                 handler->GetGameUid(),
 	                 handler->GetGameName(),
 	                 handler->GetInterfaceVersion(),
-	                 handler->GetVersion() );
-	return game;
+	                 handler->GetVersion(),
+					 game );
 }
 
 
 //loads the configuration preferences from the core preferences directory as well as the
 //particular configuration defaults, and synchs them up with any customized user preferences
-Game *GameBuilder::CreateGame( const std::string &uid, const std::string &name, INT32 interfaceVersion, const Version *version )
+MGDFError GameBuilder::CreateGame( const std::string &uid, const std::string &name, INT32 interfaceVersion, const Version *version, Game **game )
 {
 	_ASSERTE( version );
 
 	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
 
-	Game *game = new Game( uid, name, interfaceVersion, version, storageFactory );
+	*game = new Game( uid, name, interfaceVersion, version, storageFactory );
 
 	//load the defaults from the core settings and the game settings (REQUIRED)
-	game->LoadPreferences( Resources::Instance().CorePreferencesFile() );
+	MGDFError err = (*game)->LoadPreferences( Resources::Instance().CorePreferencesFile() );
+
+	if ( MGDF_OK != err ) {
+		delete *game;
+		*game = nullptr;
+		return err;
+	}
 
 	//load the defaults for the game (OPTIONAL)
 	wpath bootDefaultPref( Resources::Instance().GameDefaultPreferencesFile() );
 
 	if ( exists( bootDefaultPref ) ) {
-		game->LoadPreferences( bootDefaultPref.string() );
+		err = (*game)->LoadPreferences( bootDefaultPref.string() );
+		if ( MGDF_OK != err ) {
+			delete *game;
+			*game = nullptr;
+			return err;
+		}
 	}
 
 	//load customised preferences for this game (OPTIONAL)
@@ -63,14 +78,19 @@ Game *GameBuilder::CreateGame( const std::string &uid, const std::string &name, 
 	//this creates a prefs file with the union of all preferences included but only the
 	//most recent values kept (this means it auto updates the preferences listing to include newly added prefs)
 	if ( exists( customPref ) ) {
-		game->LoadPreferences( customPref.string() );
+		err = (*game)->LoadPreferences( customPref.string() );
+		if ( MGDF_OK != err ) {
+			delete *game;
+			*game = nullptr;
+			return err;
+		}
 	}
 
 	//then save the current preferences as a custom preference file
 	//any subsequent changes made by modules will be saved to this file
-	game->SavePreferences( customPref.string() );
+	(*game)->SavePreferences( customPref.string() );
 
-	return game;
+	return MGDF_OK;
 }
 
 

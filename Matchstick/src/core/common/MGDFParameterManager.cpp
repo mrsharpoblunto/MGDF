@@ -1,6 +1,5 @@
 #include "StdAfx.h"
 
-#include "MGDFExceptions.hpp"
 #include "MGDFParameterManager.hpp"
 
 
@@ -32,19 +31,14 @@ const char *ParameterManager::GetParameter( const char * param ) const
 	return nullptr;
 }
 
-bool ParameterManager::AddParameterString( const char * paramString )
+MGDFError ParameterManager::AddParameterString( const char * paramString )
 {
 	_ASSERTE( paramString );
-	try {
-		std::string ps = paramString;
-		ParseParameters( ps, _parameters );
-		return true;
-	} catch ( MGDFException ex ) {
-		return false;
-	}
+	std::string ps = paramString;
+	return ParseParameters( ps, _parameters );
 }
 
-void ParameterManager::ParseParameters( const std::string &paramString, std::map<std::string, std::string> &paramMap )
+MGDFError ParameterManager::ParseParameters( const std::string &paramString, std::map<std::string, std::string> &paramMap )
 {
 	auto iter = paramString.begin();
 
@@ -70,7 +64,7 @@ void ParameterManager::ParseParameters( const std::string &paramString, std::map
 
 		//check that the key is valid (i.e non null)
 		if ( key.length() == 0 ) {
-			throw MGDFException( MGDF_ERR_INVALID_PARAMETER, "empty flag found, cancelling parsing of command line" );
+			return MGDF_ERR_INVALID_PARAMETER;
 		}
 
 		//parse the value (if present)
@@ -84,7 +78,7 @@ void ParameterManager::ParseParameters( const std::string &paramString, std::map
 
 			//check that the key is valid (i.e non null)
 			if ( key.length() == 0 ) {
-				throw MGDFException( MGDF_ERR_INVALID_PARAMETER, "empty value found for flag '" + key + "', , cancelling parsing of command line" );
+				return MGDF_ERR_INVALID_PARAMETER;		
 			}
 
 			//erase trailing whitespace
@@ -101,6 +95,7 @@ void ParameterManager::ParseParameters( const std::string &paramString, std::map
 
 		paramMap[key] = value;
 	}
+	return MGDF_OK;
 }
 
 }

@@ -70,7 +70,7 @@ class Timer: public ITimer, public IRenderTimer
 	friend class GPUPerformanceCounter;
 	friend class CPUPerformanceCounter;
 public:
-	Timer();
+	static MGDFError TryCreate( Timer **timer );
 	virtual ~Timer( void );
 
 	LARGE_INTEGER GetCurrentTimeTicks() const override;
@@ -87,6 +87,8 @@ public:
 	void GetCounterInformation( std::wstringstream &outputStream ) const;
 
 private:
+	Timer();
+	MGDFError Init();
 	void UninitGPUTimer();
 
 	ID3D11Device *_device;

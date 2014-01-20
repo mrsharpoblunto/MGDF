@@ -29,10 +29,9 @@ enum VorbisStreamState {NOT_STARTED, PLAY, PAUSE, STOP};
 
 class VorbisStream: public ISoundStream
 {
-	friend class OpenALSoundManagerComponentImpl;
 public:
 	virtual ~VorbisStream();
-	VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *manager );
+	static MGDFError TryCreate( IFile *source, OpenALSoundManagerComponentImpl *manager, VorbisStream **stream );
 
 	const wchar_t * GetName() const override;
 	float GetVolume() const override;
@@ -47,8 +46,15 @@ public:
 	UINT32 GetLength() override;
 
 	void Dispose() override;
+
 	void Update();
+	void SetGlobalVolume( float globalVolume );
+
 private:
+	VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *manager );
+	MGDFError InitStream();
+	void UninitStream();
+
 	IFile			*_dataSource;
 	IFileReader		*_reader;
 	ALuint		    _buffers[VORBIS_BUFFER_COUNT];
@@ -62,15 +68,12 @@ private:
 	OggVorbis_File	_vorbisFile;
 	vorbis_info		*_vorbisInfo;
 
-	INT32 _initLevel;
+	INT32			_initLevel;
 	VorbisStreamState _state;
-	float _volume, _globalVolume;
+	float			_volume;
+	float			_globalVolume;
 
 	OpenALSoundManagerComponentImpl *_soundManager;
-
-	void InitStream();
-	void UninitStream();
-	void SetGlobalVolume( float globalVolume );
 
 	static INT32 _references;
 	static HINSTANCE _vorbisInstance;
@@ -83,7 +86,7 @@ private:
 
 	static unsigned long DecodeOgg( OggVorbis_File *vorbisFile, char *decodeBuffer, unsigned long bufferSize, unsigned long channels );
 
-	static bool InitVorbis();
+	static MGDFError InitVorbis();
 	static void UninitVorbis();
 	static void Swap( short &s1, short &s2 );
 

@@ -42,7 +42,7 @@ public:
 	void ResetPreferences() override;
 
 	void SavePreferences( const std::wstring &filename );
-	void LoadPreferences( const std::wstring &filename );
+	MGDFError LoadPreferences( const std::wstring &filename );
 
 private:
 	storage::IStorageFactoryComponent *_storageFactory;

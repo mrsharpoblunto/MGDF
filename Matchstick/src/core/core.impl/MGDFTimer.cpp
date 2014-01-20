@@ -4,7 +4,6 @@
 #include <mmsystem.h>
 #include "MGDFTimer.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFExceptions.hpp"
 
 #if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
@@ -180,6 +179,18 @@ void GPUPerformanceCounter::SetSample( UINT32 frame, UINT64 frequency )
 }
 
 /** -------------- Timer ------------*/
+
+MGDFError Timer::TryCreate( Timer **timer )
+{
+	*timer = new Timer();
+	MGDFError error = (*timer)->Init();
+	if ( MGDF_OK != error ) {
+		delete *timer;
+		*timer = nullptr;
+	}
+	return error;
+}
+
 Timer::Timer()
 	: _currentFrame( 0 )
 	, _device( nullptr )
@@ -189,13 +200,18 @@ Timer::Timer()
 	, _initialized( 0 )
 	, _gpuTimersSupported( true )
 {
+}
+
+MGDFError Timer::Init()
+{
 	timeBeginPeriod( 1 );  //set a higher resolution for timing calls
 
 	// exit if the  does not support a high performance timer
 	if ( !QueryPerformanceFrequency( &_freq ) ) {
 		LOG( "High performance timer unsupported", LOG_ERROR );
-		throw MGDFException( MGDF_ERR_CPU_TIMER_UNSUPPORTED, "High performance timer unsupported" );
+		return MGDF_ERR_CPU_TIMER_UNSUPPORTED;
 	}
+	return MGDF_OK;
 }
 
 Timer::~Timer( void )

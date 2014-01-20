@@ -9,7 +9,6 @@
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
-#include "../common/MGDFExceptions.hpp"
 #include "MGDFParameterConstants.hpp"
 #include "../storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
@@ -85,62 +84,58 @@ void HostBuilder::UnregisterComponents()
 	Components::Instance().UnregisterComponent<vfs::IVirtualFileSystemComponent>();
 }
 
-Host *HostBuilder::CreateHost()
+MGDFError HostBuilder::TryCreateHost( Host **host )
 {
 	//do the bare minimum setup required to be able to
 	//load up the game configuration file
 	if ( !RegisterBaseComponents() ) {
-		return nullptr;
+		return MGDF_ERR_FATAL;
 	}
 
-	Game *game = nullptr;
-	try {
-		//try and load the game configuration file
-		storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
-		_ASSERTE( storageFactory );
+	//try and load the game configuration file
+	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
+	_ASSERTE( storageFactory );
 
-		std::auto_ptr<storage::IGameStorageHandler> handler( storageFactory->CreateGameStorageHandler() );
-		handler->Load( Resources::Instance().GameFile() );
+	std::auto_ptr<storage::IGameStorageHandler> handler( storageFactory->CreateGameStorageHandler() );
+	_ASSERTE( handler.get() );
 
-		//now that we know the UID for the game, we'll set up the user resources paths again
-		//and shift the logfile over to the new user directory
-		InitResources( handler->GetGameUid() );
-		Logger::Instance().MoveOutputFile();
+	MGDFError result = handler->Load( Resources::Instance().GameFile() );
+	if ( MGDF_OK != result ) return result;
 
-		game = GameBuilder::LoadGame( handler.get() );
-	} catch ( MGDFException ex ) {
-		LOG( "FATAL ERROR: Unable to load game configuration - " << ex.what(), LOG_ERROR );
-		return nullptr;
-	} catch ( ... ) {
+	//now that we know the UID for the game, we'll set up the user resources paths again
+	//and shift the logfile over to the new user directory
+	InitResources( handler->GetGameUid() );
+	Logger::Instance().MoveOutputFile();
+
+	Game *game;
+	result = GameBuilder::LoadGame( handler.get(), &game );
+	if ( MGDF_OK != result ) {
 		LOG( "FATAL ERROR: Unable to load game configuration", LOG_ERROR );
-		return nullptr;
+		return result;
 	}
 
 	//now that the game file loaded, initialize everything else
 	//and set the log directory correctly.
 	if ( !RegisterAdditionalComponents( game->GetUid() ) ) {
-		return nullptr;
+		return MGDF_ERR_FATAL;
 	}
 
 	if ( MGDFVersionInfo::MGDF_INTERFACE_VERSION != game->GetInterfaceVersion() ) {
 		LOG( "FATAL ERROR: Unsupported MGDF Interface version", LOG_ERROR );
 		delete game;
-		return nullptr;
+		return MGDF_ERR_FATAL;
 	}
 
-	try {
-		LOG( "Creating host...", LOG_LOW );
-		Host *host = new Host( game );
-		Components::Instance().RegisterComponentErrorHandler( host );  //register the hosterror handlers with all components
-
-		return host;
-	} catch ( MGDFException ex ) {
-		LOG( "FATAL ERROR: Unable to create host - " << ex.what(), LOG_ERROR );
-		return nullptr;
-	} catch ( ... ) {
+	LOG( "Creating host...", LOG_LOW );
+	result = Host::TryCreate( game, host );
+	if ( MGDF_OK != result ) {
 		LOG( "FATAL ERROR: Unable to create host", LOG_ERROR );
-		return nullptr;
+		delete game;
+		return result;
 	}
+
+	Components::Instance().RegisterComponentErrorHandler( *host );  //register the hosterror handlers with all components
+	return MGDF_OK;
 }
 
 void HostBuilder::DisposeHost( Host *host )

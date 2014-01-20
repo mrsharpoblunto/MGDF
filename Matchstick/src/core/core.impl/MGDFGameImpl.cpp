@@ -76,14 +76,19 @@ void Game::SavePreferences( const std::wstring &filename )
 	SavePreferences();
 }
 
-void Game::LoadPreferences( const std::wstring &filename )
+MGDFError Game::LoadPreferences( const std::wstring &filename )
 {
 	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler( _storageFactory->CreatePreferenceConfigStorageHandler() );
-	handler->Load( filename );
-	for ( auto storedPreference : *handler ) {
-		_preferences[storedPreference.first] = storedPreference.second;
+	MGDFError result = handler->Load( filename );
+	if ( MGDF_OK != result ) {
+		return result;
+	} else {
+		for ( auto storedPreference : *handler ) {
+			_preferences[storedPreference.first] = storedPreference.second;
+		}
+		LOG( "Loaded preferences from '" + Resources::ToString( filename ) + "' successfully", LOG_LOW );
+		return MGDF_OK;
 	}
-	LOG( "Loaded preferences from '" + Resources::ToString( filename ) + "' successfully", LOG_LOW );
 }
 
 }

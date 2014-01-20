@@ -10,7 +10,7 @@ namespace core
 class HostBuilder
 {
 public:
-	static Host *CreateHost();
+	static MGDFError TryCreateHost( Host ** host );
 	static void DisposeHost( Host * );
 private:
 	static bool RegisterBaseComponents();

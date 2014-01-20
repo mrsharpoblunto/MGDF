@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
 #include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFExceptions.hpp"
 #include "../common/MGDFResources.hpp"
 #include "MGDFVirtualFileSystemComponentImpl.hpp"
 #include "MGDFDefaultFileImpl.hpp"

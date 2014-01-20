@@ -11,9 +11,9 @@ namespace core
 class GameBuilder
 {
 public:
-	static Game *LoadGame( storage::IGameStorageHandler *handler );
+	static MGDFError LoadGame( storage::IGameStorageHandler *handler, Game **game );
 private:
-	static Game *CreateGame( const std::string &uid, const std::string &name, INT32 interfaceVersion, const Version *version );
+	static MGDFError CreateGame( const std::string &uid, const std::string &name, INT32 interfaceVersion, const Version *version, Game **game );
 };
 
 }

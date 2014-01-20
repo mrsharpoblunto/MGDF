@@ -22,7 +22,7 @@ public:
 	IPreferenceConfigStorageHandler::iterator begin() const override;
 	IPreferenceConfigStorageHandler::iterator end() const override;
 
-	void Load( const std::wstring & ) override;
+	MGDFError Load( const std::wstring & ) override;
 	void Save( const std::wstring & ) const override;
 private:
 	std::map<std::string, std::string> _preferences;

@@ -3,7 +3,6 @@
 #include <math.h>
 #include <mmsystem.h>
 
-#include "common/MGDFExceptions.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "MGDFFrameLimiter.hpp"
 
@@ -16,20 +15,36 @@ namespace MGDF
 namespace core
 {
 
+MGDFError FrameLimiter::TryCreate( UINT32 maxFps, FrameLimiter **limiter )
+{
+	*limiter = new FrameLimiter( maxFps );
+	MGDFError error = (*limiter)->Init();
+	if ( MGDF_OK != error ) {
+		delete *limiter;
+		*limiter = nullptr;
+	}
+	return error;
+}
+
 FrameLimiter::FrameLimiter( UINT32 maxFps )
+	: _maxFps( maxFps )
+{
+}
+
+MGDFError FrameLimiter::Init()
 {
 	timeBeginPeriod( 1 );  //set a higher resolution for timing calls
-	_maxFps = maxFps;
 
 	// exit if the  does not support a high performance timer
 	if ( !QueryPerformanceFrequency( &_freq ) ) {
 		LOG( "High performance timer unsupported", LOG_ERROR );
-		throw MGDFException( MGDF_ERR_CPU_TIMER_UNSUPPORTED, "High performance timer unsupported" );
+		return MGDF_ERR_CPU_TIMER_UNSUPPORTED;
 	}
 
 	QueryPerformanceCounter( &_previousFrameEnd );
-
 	_frameTime = ( LONGLONG ) _freq.QuadPart / _maxFps; // set the frame diff in ticks for fps times per second
+
+	return MGDF_OK;
 }
 
 FrameLimiter::~FrameLimiter( void )

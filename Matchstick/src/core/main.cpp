@@ -29,6 +29,7 @@ using namespace MGDF::core;
 HANDLE _dumpEvent = nullptr;
 HANDLE _dumpThread = nullptr;
 bool _hasDumped = false;
+
 _MINIDUMP_EXCEPTION_INFORMATION *_dumpInfo = nullptr;
 MGDFApp *_application = nullptr;
 
@@ -54,18 +55,20 @@ INT32 WINAPI WinMain(
 
 	SetErrorMode( SEM_NOGPFAULTERRORBOX );
 
-	//create the host object and related components
-	Host *host = HostBuilder::CreateHost();
-
 	LOG( "starting up...", LOG_LOW );
-	if ( host ) {
-		host->SetFatalErrorHandler( FatalErrorCallBack );
 
-		//create the application instance and initialise the window
-		_application = new MGDFApp( host, hInstance );
-		_application->InitWindow( "MGDF", MGDFAppWndProc );
-		_application->Run();
+	//create the host object and related components
+	Host *host;
+	if ( MGDF_OK != HostBuilder::TryCreateHost( &host ) ) {
+		LOG( "failed to start up", LOG_ERROR );
+		return -1;
 	}
+
+	//create the application instance and initialise the window
+	host->SetFatalErrorHandler( FatalErrorCallBack );
+	_application = new MGDFApp( host, hInstance );
+	_application->InitWindow( "MGDF", MGDFAppWndProc );
+	_application->Run();
 
 	//dispose of the  and related components
 	HostBuilder::DisposeHost( host );

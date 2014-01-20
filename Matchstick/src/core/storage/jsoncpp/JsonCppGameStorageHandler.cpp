@@ -2,7 +2,6 @@
 
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFVersionHelper.hpp"
-#include "../../common/MGDFExceptions.hpp"
 #include "JsonCppGameStorageHandler.hpp"
 
 
@@ -40,7 +39,7 @@ const Version *JsonCppGameStorageHandler::GetVersion() const
 	return &_version;
 }
 
-void JsonCppGameStorageHandler::Load( const std::wstring &filename )
+MGDFError JsonCppGameStorageHandler::Load( const std::wstring &filename )
 {
 	std::ifstream input( filename.c_str(), std::ios::in );
 
@@ -53,8 +52,10 @@ void JsonCppGameStorageHandler::Load( const std::wstring &filename )
 		_version = VersionHelper::Create( root["version"].asString() );
 		_parameterString = root["parameters"].asString();
 		_interfaceVersion = atoi( root["interfaceversion"].asString().c_str() );
+		return MGDF_OK;
 	} else {
-		throw MGDFException( MGDF_ERR_INVALID_JSON, reader.getFormatedErrorMessages() );
+		LOG( reader.getFormatedErrorMessages(), LOG_ERROR );
+		return MGDF_ERR_INVALID_JSON;
 	}
 }
 

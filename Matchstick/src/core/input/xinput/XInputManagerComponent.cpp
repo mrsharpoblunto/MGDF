@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include "../../common/MGDFExceptions.hpp"
 #include "../../common/MGDFLoggerImpl.hpp"
 
 #include "XInputManagerComponent.hpp"

@@ -11,8 +11,6 @@
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundSystem.hpp"
 
-using namespace DirectX;
-
 namespace MGDF
 {
 namespace core
@@ -27,19 +25,20 @@ typedef struct {
 	INT32 References;
 } SharedBuffer;
 
-class OpenALSoundManagerComponentImpl: public ISoundManagerComponent
+class OpenALSoundManagerComponentImpl: public OpenALSoundSystem, public ISoundManagerComponent
 {
 	friend class OpenALSound;
 	friend class VorbisStream;
 public:
-	OpenALSoundManagerComponentImpl( IVirtualFileSystem *vfs );
+	static ISoundManagerComponent *CreateOpenALSoundManagerComponent( IVirtualFileSystem *vfs );
+
 	virtual ~OpenALSoundManagerComponentImpl();
 	void Update() override;
 
-	XMFLOAT3 *GetListenerPosition() override;
-	XMFLOAT3 *GetListenerVelocity() override;
-	XMFLOAT3 *GetListenerOrientationForward() override;
-	XMFLOAT3 *GetListenerOrientationUp() override;
+	DirectX::XMFLOAT3 *GetListenerPosition() override;
+	DirectX::XMFLOAT3 *GetListenerVelocity() override;
+	DirectX::XMFLOAT3 *GetListenerOrientationForward() override;
+	DirectX::XMFLOAT3 *GetListenerOrientationUp() override;
 
 	float GetSoundVolume() const override;
 	void SetSoundVolume( float volume ) override;
@@ -55,23 +54,27 @@ public:
 
 	MGDFError CreateSound( IFile *source, INT32 priority, ISound **sound ) override;
 	MGDFError CreateSoundStream( IFile *source, ISoundStream **stream ) override;
-private:
-	ALuint GetSoundBuffer( IFile *dataSource );
-	void RemoveSoundBuffer( ALuint bufferId );
-
+	
 	void RemoveSoundStream( ISoundStream *stream );
 	void RemoveSound( ISound *sound );
+
+	MGDFError CreateSoundBuffer( IFile *dataSource, ALuint *bufferId );
+	void RemoveSoundBuffer( ALuint bufferId );
+
+private:
+	OpenALSoundManagerComponentImpl( IVirtualFileSystem *vfs );
+	MGDFError Init() override;
 
 	void DeactivateSound( INT32 priority );
 	void PrioritizeSounds( INT32 deactivatedSoundsCount );
 
 	static bool Sort( OpenALSound *a, OpenALSound *b );
 
-	XMFLOAT3 _position;
-	XMFLOAT3 _velocity;
-	XMFLOAT3 _orientationForward;
-	XMFLOAT3 _orientationUp;
-	ALCcontext *_context;
+	DirectX::XMFLOAT3 _position;
+	DirectX::XMFLOAT3 _velocity;
+	DirectX::XMFLOAT3 _orientationForward;
+	DirectX::XMFLOAT3 _orientationUp;
+
 	float _soundVolume, _streamVolume;
 	bool _enableAttenuation;
 	std::unordered_map<ALuint, SharedBuffer *> _sharedBuffers;
@@ -79,8 +82,6 @@ private:
 	std::vector<VorbisStream *> _soundStreams;
 	IVirtualFileSystem *_vfs;
 };
-
-ISoundManagerComponent *CreateOpenALSoundManagerComponent( IVirtualFileSystem *vfs );
 
 }
 }

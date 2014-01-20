@@ -24,7 +24,7 @@ public:
 	const Version *GetVersion() const override;
 	std::string GetParameterString() const override;
 
-	void Load( const std::wstring & ) override;
+	MGDFError Load( const std::wstring & ) override;
 
 private:
 	std::string _gameName, _gameUid, _parameterString;

@@ -17,27 +17,24 @@ namespace openal_audio
 class OpenALSoundSystem
 {
 public:
+	virtual ~OpenALSoundSystem( void );
+
+	MGDFError AcquireSource( ALuint *source );
+	void ReleaseSource( ALuint source );
+
+protected:
 	OpenALSoundSystem( void );
-	~OpenALSoundSystem( void );
+	virtual MGDFError Init();
 
-	static OpenALSoundSystem *Instance();
-
-	ALCcontext *GetContext() const {
-		return _context;
-	}
 	size_t GetFreeSources() const {
 		return _freeSources.size();
 	}
 
-	bool AcquireSource( ALuint *source );
-	void ReleaseSource( ALuint source );
 private:
 	std::unordered_map<ALuint, bool> _allocatedSources;
 	std::stack<ALuint> _freeSources;
 
 	ALCcontext *_context;
-
-	static OpenALSoundSystem *_instance;
 };
 
 }

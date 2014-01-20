@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 
 #include <limits.h>
-#include "../../common/MGDFExceptions.hpp"
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "OpenALSoundSystem.hpp"
 
@@ -33,9 +32,7 @@ LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks = nullptr;
 
 VorbisStream::~VorbisStream()
 {
-	if ( --_references == 0 ) {
-		UninitVorbis();
-	}
+	UninitVorbis();
 	UninitStream();
 	_soundManager->RemoveSoundStream( this );
 }
@@ -45,13 +42,151 @@ void VorbisStream::Dispose()
 	delete this;
 }
 
+MGDFError VorbisStream::TryCreate( IFile *source, OpenALSoundManagerComponentImpl *manager, VorbisStream **stream )
+{
+	*stream = new VorbisStream( source, manager );
+	MGDFError error = (*stream)->InitStream();
+	if ( MGDF_OK != error ) {
+		delete *stream;
+		*stream = nullptr;
+	}
+	return error;
+}
+
+VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *manager )
+	: _soundManager( manager )
+	, _globalVolume( manager->GetStreamVolume() )
+	, _volume( 1.0 )
+	, _dataSource( source )
+	, _initLevel( 0 )
+	, _state( NOT_STARTED )
+	, _totalBuffersProcessed( 0 )
+	, _frequency( 0 )
+	, _format( 0 )
+	, _channels( 0 )
+{
+	_ASSERTE( source );
+	_ASSERTE( manager );
+}
+
+MGDFError VorbisStream::InitStream()
+{
+	_initLevel = 0;
+	_state = NOT_STARTED;
+	_totalBuffersProcessed = 0;
+	_frequency = 0;
+	_format = 0;
+	_channels = 0;
+
+	MGDFError error = InitVorbis();
+	if (MGDF_OK != error ) {
+		return error;
+	}
+
+	error = _dataSource->OpenFile( &_reader );
+	if ( MGDF_OK != error ) {
+		LOG( "Stream file could not be opened or is already open for reading", LOG_ERROR );
+		UninitVorbis(); 
+		return error;	
+	}
+
+	_initLevel++; //data source open
+
+	LOG( "Initializing stream...", LOG_MEDIUM );
+	ov_callbacks callbacks;
+	callbacks.read_func = &VorbisStream::ov_read_func;
+	callbacks.seek_func = &VorbisStream::ov_seek_func;
+	callbacks.close_func = &VorbisStream::ov_close_func;
+	callbacks.tell_func = &VorbisStream::ov_tell_func;
+
+	INT32 retVal = fn_ov_open_callbacks( _reader, &_vorbisFile, nullptr, 0, callbacks );
+
+	// Create an OggVorbis file stream
+	if ( retVal != 0 ) {
+		LOG( "Unable to create Vorbis stream", LOG_ERROR );
+		UninitVorbis(); 
+		UninitStream();
+		return MGDF_ERR_INVALID_FORMAT;
+	}
+
+	_initLevel++;//vorbis file stream created
+
+	// Get some information about the file (Channels, Format, and Frequency)
+	_vorbisInfo = fn_ov_info( &_vorbisFile, -1 );
+	if ( _vorbisInfo != nullptr ) {
+		_frequency = _vorbisInfo->rate;
+		_channels = _vorbisInfo->channels;
+		if ( _vorbisInfo->channels == 1 ) {
+			_format = AL_FORMAT_MONO16;
+			// Set BufferSize to 250ms (Frequency * 2 (16bit) divided by 4 (quarter of a second))
+			_bufferSize = _frequency >> 1;
+			// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
+			_bufferSize -= ( _bufferSize % 2 );
+		} else if ( _vorbisInfo->channels == 2 ) {
+			_format = AL_FORMAT_STEREO16;
+			// Set BufferSize to 250ms (Frequency * 4 (16bit stereo) divided by 4 (quarter of a second))
+			_bufferSize = _frequency;
+			// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
+			_bufferSize -= ( _bufferSize % 4 );
+		} else if ( _vorbisInfo->channels == 4 ) {
+			_format = alGetEnumValue( "AL_FORMAT_QUAD16" );
+			// Set BufferSize to 250ms (Frequency * 8 (16bit 4-channel) divided by 4 (quarter of a second))
+			_bufferSize = _frequency * 2;
+			// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
+			_bufferSize -= ( _bufferSize % 8 );
+		} else if ( _vorbisInfo->channels == 6 ) {
+			_format = alGetEnumValue( "AL_FORMAT_51CHN16" );
+			// Set BufferSize to 250ms (Frequency * 12 (16bit 6-channel) divided by 4 (quarter of a second))
+			_bufferSize = _frequency * 3;
+			// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
+			_bufferSize -= ( _bufferSize % 12 );
+		}
+	}
+
+	if ( _format == 0 ) {
+		LOG( "Failed to find format information, or unsupported format", LOG_ERROR );
+		UninitVorbis(); 
+		UninitStream();
+		return MGDF_ERR_INVALID_FORMAT;
+	}
+
+	// Allocate a buffer to be used to store decoded data for all Buffers
+	_decodeBuffer = new char[_bufferSize];
+	_initLevel++;//decode buffer allocated
+
+	alGenBuffers( VORBIS_BUFFER_COUNT, _buffers );
+	_initLevel++;//vorbis stream buffers generated
+
+	error = _soundManager->AcquireSource( &_source );
+	if ( MGDF_OK != error ) {
+		UninitVorbis(); 
+		UninitStream();
+		return error;
+	}
+
+	_initLevel++;//sound source created
+
+	// Fill all the Buffers with decoded audio data from the OggVorbis file
+	INT32 bytesWritten;
+	for ( INT32 i = 0; i < VORBIS_BUFFER_COUNT; ++i ) {
+		bytesWritten = DecodeOgg( &_vorbisFile, _decodeBuffer, _bufferSize, _channels );
+		if ( bytesWritten ) {
+			alBufferData( _buffers[i], _format, _decodeBuffer, bytesWritten, _frequency );
+			alSourceQueueBuffers( _source, 1, &_buffers[i] );
+		}
+	}
+
+	SetVolume( _volume );
+	return MGDF_OK;
+}
+
 void VorbisStream::UninitStream()
 {
 	LOG( "Disposing of sound stream...", LOG_MEDIUM );
 	if ( _initLevel == 5 ) {
 		alSourceStop( _source );
 		alSourcei( _source, AL_BUFFER, 0 );
-		OpenALSoundSystem::Instance()->ReleaseSource( _source );
+		_soundManager->ReleaseSource( _source );
 	}
 
 	if ( _initLevel >= 4 ) {
@@ -71,6 +206,42 @@ void VorbisStream::UninitStream()
 		_reader->Close();
 	}
 	_initLevel = 0;
+}
+
+MGDFError VorbisStream::InitVorbis()
+{
+	if ( _references++ > 0 ) {
+		return MGDF_OK;
+	}
+
+	LOG( "Loading Vorbis library...", LOG_LOW );
+	_vorbisInstance = LoadLibrary( "vorbisfile.dll" );
+	if ( _vorbisInstance != nullptr ) {
+		fn_ov_clear = ( LPOVCLEAR ) GetProcAddress( _vorbisInstance, "ov_clear" );
+		fn_ov_read = ( LPOVREAD ) GetProcAddress( _vorbisInstance, "ov_read" );
+		fn_ov_pcm_total = ( LPOVPCMTOTAL ) GetProcAddress( _vorbisInstance, "ov_pcm_total" );
+		fn_ov_info = ( LPOVINFO ) GetProcAddress( _vorbisInstance, "ov_info" );
+		fn_ov_comment = ( LPOVCOMMENT ) GetProcAddress( _vorbisInstance, "ov_comment" );
+		fn_ov_open_callbacks = ( LPOVOPENCALLBACKS ) GetProcAddress( _vorbisInstance, "ov_open_callbacks" );
+
+		if ( fn_ov_clear && fn_ov_read && fn_ov_pcm_total && fn_ov_info &&
+		        fn_ov_comment && fn_ov_open_callbacks ) {
+			return MGDF_OK;
+		}
+	}
+
+	--_references;
+	LOG( "Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)", LOG_ERROR );
+	return MGDF_ERR_VORBIS_LIB_LOAD_FAILED;
+}
+
+void VorbisStream::UninitVorbis()
+{
+	if ( --_references == 0 && _vorbisInstance != nullptr ) {
+		LOG( "Disposing Vorbis library...", LOG_LOW );
+		FreeLibrary( _vorbisInstance );
+		_vorbisInstance = nullptr;
+	}
 }
 
 const wchar_t * VorbisStream::GetName() const
@@ -93,154 +264,6 @@ bool VorbisStream::IsPlaying() const
 	return _state == PLAY;
 }
 
-VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *manager )
-{
-	_ASSERTE( source );
-	_ASSERTE( manager );
-
-	_dataSource = source;
-	if ( MGDF_OK != source->OpenFile( &_reader ) ) {
-		throw MGDFException( MGDF_ERR_FILE_IN_USE, "Stream file could not be opened or is already open for reading" );	
-	}
-
-	_soundManager = manager;
-	_globalVolume = _soundManager->GetStreamVolume();
-	_volume = 1.0;
-
-	if ( _references++ == 0 ) {
-		if ( !InitVorbis() ) {
-			_references--;
-			throw MGDFException( MGDF_ERR_VORBIS_LIB_LOAD_FAILED, "Failed to find OggVorbis DLLs (vorbisfile.dll, ogg.dll, or vorbis.dll)" );
-		}
-	}
-
-	InitStream();
-}
-
-void VorbisStream::InitStream()
-{
-	LOG( "Initializing stream...", LOG_MEDIUM );
-	_initLevel = 0;
-	try {
-		_state = NOT_STARTED;
-
-		_initLevel++;//data source open
-
-		_totalBuffersProcessed = 0;
-		_frequency = 0;
-		_format = 0;
-		_channels = 0;
-
-		ov_callbacks callbacks;
-		callbacks.read_func = &VorbisStream::ov_read_func;
-		callbacks.seek_func = &VorbisStream::ov_seek_func;
-		callbacks.close_func = &VorbisStream::ov_close_func;
-		callbacks.tell_func = &VorbisStream::ov_tell_func;
-
-		INT32 retVal = fn_ov_open_callbacks( _reader, &_vorbisFile, nullptr, 0, callbacks );
-
-		// Create an OggVorbis file stream
-		if ( retVal == 0 ) {
-			_initLevel++;//vorbis file stream created
-
-			// Get some information about the file (Channels, Format, and Frequency)
-			_vorbisInfo = fn_ov_info( &_vorbisFile, -1 );
-			if ( _vorbisInfo != nullptr ) {
-				_frequency = _vorbisInfo->rate;
-				_channels = _vorbisInfo->channels;
-				if ( _vorbisInfo->channels == 1 ) {
-					_format = AL_FORMAT_MONO16;
-					// Set BufferSize to 250ms (Frequency * 2 (16bit) divided by 4 (quarter of a second))
-					_bufferSize = _frequency >> 1;
-					// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
-					_bufferSize -= ( _bufferSize % 2 );
-				} else if ( _vorbisInfo->channels == 2 ) {
-					_format = AL_FORMAT_STEREO16;
-					// Set BufferSize to 250ms (Frequency * 4 (16bit stereo) divided by 4 (quarter of a second))
-					_bufferSize = _frequency;
-					// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
-					_bufferSize -= ( _bufferSize % 4 );
-				} else if ( _vorbisInfo->channels == 4 ) {
-					_format = alGetEnumValue( "AL_FORMAT_QUAD16" );
-					// Set BufferSize to 250ms (Frequency * 8 (16bit 4-channel) divided by 4 (quarter of a second))
-					_bufferSize = _frequency * 2;
-					// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
-					_bufferSize -= ( _bufferSize % 8 );
-				} else if ( _vorbisInfo->channels == 6 ) {
-					_format = alGetEnumValue( "AL_FORMAT_51CHN16" );
-					// Set BufferSize to 250ms (Frequency * 12 (16bit 6-channel) divided by 4 (quarter of a second))
-					_bufferSize = _frequency * 3;
-					// IMPORTANT : The Buffer Size must be an exact multiple of the BlockAlignment ...
-					_bufferSize -= ( _bufferSize % 12 );
-				}
-			}
-
-			if ( _format != 0 ) {
-				// Allocate a buffer to be used to store decoded data for all Buffers
-				_decodeBuffer = new char[_bufferSize];
-				_initLevel++;//decode buffer allocated
-
-				alGenBuffers( VORBIS_BUFFER_COUNT, _buffers );
-				_initLevel++;//vorbis stream buffers generated
-
-				bool createdSource = OpenALSoundSystem::Instance()->AcquireSource( &_source );
-				if ( !createdSource ) {
-					throw MGDFException( MGDF_ERR_NO_FREE_SOURCES, "No free sound sources to create stream" );
-				}
-				_initLevel++;//sound source created
-
-				// Fill all the Buffers with decoded audio data from the OggVorbis file
-				INT32 bytesWritten;
-				for ( INT32 i = 0; i < VORBIS_BUFFER_COUNT; ++i ) {
-					bytesWritten = DecodeOgg( &_vorbisFile, _decodeBuffer, _bufferSize, _channels );
-					if ( bytesWritten ) {
-						alBufferData( _buffers[i], _format, _decodeBuffer, bytesWritten, _frequency );
-						alSourceQueueBuffers( _source, 1, &_buffers[i] );
-					}
-				}
-			} else {
-				throw MGDFException( MGDF_ERR_INVALID_FORMAT, "Failed to find format information, or unsupported format" );
-			}
-		}
-	} catch ( MGDFException ex ) {
-		if ( --_references == 0 ) {
-			UninitVorbis();
-		}
-		UninitStream();
-		throw ex;
-	}
-	SetVolume( _volume );
-}
-
-bool VorbisStream::InitVorbis()
-{
-	LOG( "Loading Vorbis library...", LOG_LOW );
-	_vorbisInstance = LoadLibrary( "vorbisfile.dll" );
-	if ( _vorbisInstance != nullptr ) {
-		fn_ov_clear = ( LPOVCLEAR ) GetProcAddress( _vorbisInstance, "ov_clear" );
-		fn_ov_read = ( LPOVREAD ) GetProcAddress( _vorbisInstance, "ov_read" );
-		fn_ov_pcm_total = ( LPOVPCMTOTAL ) GetProcAddress( _vorbisInstance, "ov_pcm_total" );
-		fn_ov_info = ( LPOVINFO ) GetProcAddress( _vorbisInstance, "ov_info" );
-		fn_ov_comment = ( LPOVCOMMENT ) GetProcAddress( _vorbisInstance, "ov_comment" );
-		fn_ov_open_callbacks = ( LPOVOPENCALLBACKS ) GetProcAddress( _vorbisInstance, "ov_open_callbacks" );
-
-		if ( fn_ov_clear && fn_ov_read && fn_ov_pcm_total && fn_ov_info &&
-		        fn_ov_comment && fn_ov_open_callbacks ) {
-			return true;
-		}
-	}
-	return false;
-}
-
-void VorbisStream::UninitVorbis()
-{
-	if ( _vorbisInstance != nullptr ) {
-		LOG( "Disposing Vorbis library...", LOG_LOW );
-		FreeLibrary( _vorbisInstance );
-		_vorbisInstance = nullptr;
-	}
-}
-
 MGDFError VorbisStream::Play()
 {
 	if ( _state == NOT_STARTED ) {
@@ -250,14 +273,9 @@ MGDFError VorbisStream::Play()
 		alSourcePlay( _source );
 	} else if ( _state == STOP ) {
 		UninitStream();
-		try 
-		{
-			InitStream();
-		}
-		catch ( MGDFException ex ) 
-		{
-			LOG( ex.what(), LOG_ERROR );
-			return ex.Code();
+		MGDFError error = InitStream();
+		if ( MGDF_OK != error ) {
+			return error;
 		}
 		alSourcef( _source, AL_GAIN, _volume * _globalVolume );
 		alSourcePlay( _source );

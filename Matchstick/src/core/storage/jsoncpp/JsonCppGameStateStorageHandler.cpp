@@ -3,7 +3,6 @@
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFResources.hpp"
 #include "../../common/MGDFVersionHelper.hpp"
-#include "../../common/MGDFExceptions.hpp"
 #include "JsonCppGameStateStorageHandler.hpp"
 
 
@@ -21,7 +20,7 @@ namespace storage
 namespace jsoncppImpl
 {
 
-void JsonCppGameStateStorageHandler::Load( const std::wstring &filename )
+MGDFError JsonCppGameStateStorageHandler::Load( const std::wstring &filename )
 {
 	std::ifstream input( filename.c_str(), std::ios::in );
 
@@ -31,8 +30,10 @@ void JsonCppGameStateStorageHandler::Load( const std::wstring &filename )
 	if ( reader.parse( input, root ) ) {
 		_gameUid = root["gameuid"].asString();
 		_version = VersionHelper::Create( root["gameversion"].asString() );
+		return MGDF_OK;
 	} else {
-		throw MGDFException( MGDF_ERR_INVALID_JSON, reader.getFormatedErrorMessages() );
+		LOG( reader.getFormatedErrorMessages(), LOG_ERROR );
+		return MGDF_ERR_INVALID_JSON;
 	}
 }
 

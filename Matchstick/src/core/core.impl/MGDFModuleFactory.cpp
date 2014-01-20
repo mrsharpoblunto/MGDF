@@ -36,16 +36,28 @@ ModuleFactory::~ModuleFactory()
 #endif
 }
 
-ModuleFactory::ModuleFactory( IGame *game )
-	: _game( game )
-	, _moduleInstance( nullptr )
+MGDFError ModuleFactory::TryCreate( ModuleFactory **factory )
+{
+	*factory = new ModuleFactory();
+	MGDFError error = (*factory)->Init();
+	if ( MGDF_OK != error ) {
+		delete *factory;
+		*factory = nullptr;
+	}
+	return error;
+}
+
+ModuleFactory::ModuleFactory()
+	: _moduleInstance( nullptr )
 	, _getCustomArchiveHandlers( nullptr )
 	, _getModule( nullptr )
 	, _isCompatibleInterfaceVersion( nullptr )
 	, _getCompatibleFeatureLevels( nullptr )
 {
-	_ASSERTE( game );
+}
 
+MGDFError ModuleFactory::Init()
+{
 	wpath globalModule( Resources::Instance().Module() );
 	if ( exists( globalModule ) ) {
 		LOG( "Loading Module.dll", LOG_LOW );
@@ -59,14 +71,16 @@ ModuleFactory::ModuleFactory( IGame *game )
 			if ( _getModule != nullptr ) {
 				LOG( "Loaded GetModule from Module.dll", LOG_LOW );
 			} else {
-				_lastError = "Module has no exported GetModule function";
+				LOG( "Module has no exported GetModule function", LOG_ERROR );
+				return MGDF_ERR_FATAL;
 			}
 
 			_isCompatibleInterfaceVersion = ( IsCompatibleInterfaceVersionPtr ) GetProcAddress( _moduleInstance, "IsCompatibleInterfaceVersion" );
 			if ( _isCompatibleInterfaceVersion != nullptr ) {
 				LOG( "Loaded IsCompatibleInterfaceVersion from Module.dll", LOG_LOW );
 			} else {
-				_lastError = "Module has no exported IsCompatibleInterfaceVersion function";
+				LOG( "Module has no exported IsCompatibleInterfaceVersion function", LOG_ERROR );
+				return MGDF_ERR_FATAL;
 			}
 
 			// optional exported functions
@@ -83,6 +97,8 @@ ModuleFactory::ModuleFactory( IGame *game )
 			} else {
 				LOG( "Module has no exported GetCompatibleFeatureLevels function", LOG_LOW );
 			}
+
+			return MGDF_OK;
 		} else {
 			LOG( "Failed to load Module.dll", LOG_ERROR );
 
@@ -107,17 +123,17 @@ ModuleFactory::ModuleFactory( IGame *game )
 
 			if (peHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_I386 && win64)
 			{
-				_lastError = "Failed to load Module.dll - MGDF core is 64 bit and Module is 32 bit";
+				LOG( "Failed to load Module.dll - MGDF core is 64 bit and Module is 32 bit", LOG_ERROR );
 				loggedMessage = true;
 			}
 			else if (peHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64 && !win64)
 			{
-				_lastError = "Failed to load Module.dll - MGDF core is 32 bit and Module is 64 bit";
+				LOG( "Failed to load Module.dll - MGDF core is 32 bit and Module is 64 bit", LOG_ERROR );
 				loggedMessage = true;		
 			}
 cleanup:
 			if (!loggedMessage) {
-				_lastError = "Failed to load Module.dll - It doesn't appear to be a valid dll";
+				LOG( "Failed to load Module.dll - It doesn't appear to be a valid dll", LOG_ERROR );
 			}
 			if (file != INVALID_HANDLE_VALUE) {
 				CloseHandle(file);
@@ -127,6 +143,7 @@ cleanup:
 			}
 		}
 	}
+	return MGDF_ERR_FATAL;
 }
 
 

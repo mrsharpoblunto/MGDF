@@ -10,8 +10,6 @@
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundManagerComponent.hpp"
 
-using namespace DirectX;
-
 namespace MGDF
 {
 namespace core
@@ -23,14 +21,13 @@ namespace openal_audio
 
 class OpenALSound: public ISound
 {
-	friend class OpenALSoundManagerComponentImpl;
 public:
 	virtual ~OpenALSound();
-	OpenALSound( IFile *source, OpenALSoundManagerComponentImpl *manager, INT32 priority );
+	static MGDFError TryCreate( IFile *source, OpenALSoundManagerComponentImpl *manager, INT32 priority, OpenALSound **sound );
 
 	const wchar_t *GetName() const override;
-	XMFLOAT3 *GetPosition() override;
-	XMFLOAT3 *GetVelocity() override;
+	DirectX::XMFLOAT3 *GetPosition() override;
+	DirectX::XMFLOAT3 *GetVelocity() override;
 	float GetInnerRange() const override;
 	void SetInnerRange( float innerRange ) override;
 	float GetOuterRange() const override;
@@ -53,12 +50,16 @@ public:
 	bool IsPlaying() const override;
 	bool IsActive() const override;
 	void Dispose() override;
-private:
-	float GetAttenuatedVolume();
+
+	float GetAttenuatedVolume() const;
 	void Reactivate();
 	void Deactivate();
 	void SetGlobalVolume( float globalVolume );
 	void Update( float attenuationFactor );
+
+private:
+	OpenALSound( OpenALSoundManagerComponentImpl *manager, INT32 priority );
+	MGDFError Init( IFile *source );
 
 	const wchar_t *_name;
 	OpenALSoundManagerComponentImpl *_soundManager;
@@ -66,8 +67,8 @@ private:
 	float _innerRange, _outerRange, _volume, _globalVolume, _attenuationFactor, _pitch;
 	bool _isActive, _isSourceRelative, _isLooping, _wasPlaying, _startPlaying;
 	INT32 _priority;
-	XMFLOAT3 _position;
-	XMFLOAT3 _velocity;
+	DirectX::XMFLOAT3 _position;
+	DirectX::XMFLOAT3 _velocity;
 };
 
 }

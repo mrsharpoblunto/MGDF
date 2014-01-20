@@ -26,7 +26,7 @@ public:
 	TestModule *NextTestModule() override;
 private:
 	INT32 _testState;
-	time_t _time;
+	LARGE_INTEGER _time;
 };
 
 }

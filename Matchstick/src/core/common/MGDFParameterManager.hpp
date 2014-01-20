@@ -26,11 +26,11 @@ public:
 	 NOTE: flags and values are case sensitive
 	 NOTE: leading and trailing whitespace are stripped from values
 	*/
-	virtual void ParseParameters( const std::string &, std::map<std::string, std::string> & );
+	virtual MGDFError ParseParameters( const std::string &, std::map<std::string, std::string> & );
 
 	virtual bool HasParameter( const char * param ) const;
 	virtual const char *GetParameter( const char * param ) const;
-	virtual bool AddParameterString( const char *  paramString );
+	virtual MGDFError AddParameterString( const char *  paramString );
 
 private:
 	virtual ~ParameterManager() {}

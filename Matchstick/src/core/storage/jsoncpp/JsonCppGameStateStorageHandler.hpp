@@ -22,7 +22,7 @@ public:
 	}
 	virtual ~JsonCppGameStateStorageHandler() {}
 
-	void Load( const std::wstring & ) override;
+	MGDFError Load( const std::wstring & ) override;
 	void Save( const std::wstring & ) const override;
 
 	std::string GetGameUid() const {

@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 
 #include "MGDFApp.hpp"
-#include "common/MGDFExceptions.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
 #include "core.impl/MGDFParameterConstants.hpp"
 
@@ -35,11 +34,8 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 		FATALERROR( _host, "simFps was not found in preferences or is not an integer" );
 	}
 
-	try 
-	{
-		_frameLimiter = new FrameLimiter( simulationFps );
-	} catch ( MGDFException ex ) {
-		FATALERROR( _host, ex.what() );
+	if ( MGDF_OK != FrameLimiter::TryCreate( simulationFps, &_frameLimiter ) ) {
+		FATALERROR( _host, "Unable to create frame limiter" );
 	}
 	_stats.SetExpectedSimTime( 1 / ( double ) simulationFps );
 

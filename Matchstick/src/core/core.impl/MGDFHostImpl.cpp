@@ -6,7 +6,6 @@
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
-#include "../common/MGDFExceptions.hpp"
 #include "MGDFHostImpl.hpp"
 #include "MGDFParameterConstants.hpp"
 #include "MGDFPreferenceConstants.hpp"
@@ -41,8 +40,20 @@ void IHostImpl::SetFatalErrorHandler( const FatalErrorFunction handler )
 	_fatalErrorHandler = handler;
 }
 
+MGDFError Host::TryCreate( Game *game, Host **host )
+{
+	*host = new Host( game );
+	MGDFError error = (*host)->Init();
+	if ( MGDF_OK != error ) {
+		delete *host;
+		*host = nullptr;
+	}
+	return error;
+}
+
 Host::Host( Game *game )
 	: _game( game )
+	, _timer( nullptr )
 	, _saves( nullptr )
 	, _module( nullptr )
 	, _version( VersionHelper::Create( MGDFVersionInfo::MGDF_VERSION() ) )
@@ -57,11 +68,17 @@ Host::Host( Game *game )
 	, _backBuffer( nullptr )
 {
 	_shutdownQueued.store( false );
-
 	_ASSERTE( game );
+}
 
+MGDFError Host::Init()
+{
 	LOG( "Creating Module factory...", LOG_LOW );
-	_moduleFactory = new ModuleFactory( _game );
+	MGDFError error = ModuleFactory::TryCreate( &_moduleFactory );
+	if ( MGDF_OK != error ) return error;
+
+	error = Timer::TryCreate( &_timer );
+	if (MGDF_OK != error ) return error;
 
 	//map essential directories to the vfs
 	//ensure the vfs automatically enumerates zip files
@@ -96,6 +113,7 @@ Host::Host( Game *game )
 	}
 
 	LOG( "Initialised host components successfully", LOG_LOW );
+	return MGDF_OK;
 }
 
 Host::~Host( void )
@@ -108,6 +126,7 @@ Host::~Host( void )
 		}
 		delete _saves;
 	}
+	delete _timer;
 	delete _game;
 	delete _stats;
 	delete _moduleFactory;
@@ -155,7 +174,7 @@ void Host::GetHostInfo( const HostStats &stats, std::wstringstream &ss ) const
 	ss << " Other CPU : " << timings.AvgActiveSimTime << "\r\n";
 	ss << " Idle CPU : " << ( timings.AvgSimTime - timings.AvgActiveSimTime - timings.AvgSimInputTime - timings.AvgSimAudioTime ) << "\r\n";
 
-	_timer.GetCounterInformation( ss );
+	_timer->GetCounterInformation( ss );
 }
 
 RenderSettingsManager &Host::GetRenderSettingsImpl()
@@ -210,17 +229,17 @@ void Host::STUpdate( double simulationTime, HostStats &stats )
 		_module->STShutDown( this );
 	}
 
-	LARGE_INTEGER inputStart = _timer.GetCurrentTimeTicks();
+	LARGE_INTEGER inputStart = _timer->GetCurrentTimeTicks();
 	_input->ProcessSim();
-	LARGE_INTEGER inputEnd = _timer.GetCurrentTimeTicks();
+	LARGE_INTEGER inputEnd = _timer->GetCurrentTimeTicks();
 
-	LARGE_INTEGER audioStart = _timer.GetCurrentTimeTicks();
+	LARGE_INTEGER audioStart = _timer->GetCurrentTimeTicks();
 	if ( _sound != nullptr ) _sound->Update();
-	LARGE_INTEGER audioEnd = _timer.GetCurrentTimeTicks();
+	LARGE_INTEGER audioEnd = _timer->GetCurrentTimeTicks();
 
 	stats.AppendSimInputAndAudioTimes(
-	    _timer.ConvertDifferenceToSeconds( inputEnd, inputStart ),
-	    _timer.ConvertDifferenceToSeconds( audioEnd, audioStart ) );
+	    _timer->ConvertDifferenceToSeconds( inputEnd, inputStart ),
+	    _timer->ConvertDifferenceToSeconds( audioEnd, audioStart ) );
 
 	if ( _module != nullptr ) {
 		LOG( "Calling module STUpdate...", LOG_HIGH );
@@ -265,7 +284,7 @@ void Host::RTSetDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIA
 {
 	LOG( "Initializing render settings and GPU timers...", LOG_LOW );
 	_renderSettings.InitFromDevice( d3dDevice, adapter );
-	_timer.InitFromDevice( d3dDevice, GPU_TIMER_BUFFER, TIMER_SAMPLES );
+	_timer->InitFromDevice( d3dDevice, GPU_TIMER_BUFFER, TIMER_SAMPLES );
 
 	if ( _renderSettings.GetAdaptorModeCount() == 0 ) {
 		FATALERROR( this, "No compatible adaptor modes found" );
@@ -284,14 +303,14 @@ void Host::RTSetDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIA
 
 void Host::RTDraw( double alpha )
 {
-	_timer.Begin();
+	_timer->Begin();
 	if ( _module != nullptr ) {
 		LOG( "Calling module RTDraw...", LOG_HIGH );
 		if ( !_module->RTDraw( this, alpha ) ) {
 			FATALERROR( this, "Error drawing scene in module" );
 		}
 	}
-	_timer.End();
+	_timer->End();
 }
 
 void Host::RTBeforeBackBufferChange()
@@ -347,7 +366,7 @@ IRenderSettingsManager* Host::GetRenderSettings() const
 
 IRenderTimer* Host::GetRenderTimer() const 
 {
-	return ( IRenderTimer * ) &_timer;
+	return _timer;
 }
 
 bool Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context)
@@ -414,7 +433,7 @@ ILogger *Host::GetLogger() const
 
 ITimer * Host::GetTimer() const
 {
-	return ( ITimer * ) &_timer;
+	return _timer;
 }
 
 void Host::QueueShutDown()
@@ -453,16 +472,16 @@ MGDFError Host::Load( const char *saveName, wchar_t *loadBuffer, UINT32 *size, V
 		memcpy( loadBuffer, loadDataDir.c_str(), sizeof( wchar_t ) * ( *size ) );
 
 		std::auto_ptr<storage::IGameStateStorageHandler> handler( _storage->CreateGameStateStorageHandler( _game->GetUid(), _game->GetVersion() ) );
-		try {
-			handler->Load( loadFile );
-			version = *handler->GetVersion();
-			return MGDF_OK;
-		} catch ( MGDFException ex ) {
-			FATALERROR( this, "Unable to load game state data from " + Resources::ToString( loadDir ) + " - " + ex.what() );
-		} catch ( ... ) {
+		_ASSERTE( handler.get() );
+
+		MGDFError error = handler->Load( loadFile );
+		if ( MGDF_OK != error ) {
 			FATALERROR( this, "Unable to load game state data from " + Resources::ToString( loadDir ) );
+			return error;
 		}
-		return MGDF_ERR_FATAL;
+
+		version = *handler->GetVersion();
+		return MGDF_OK;
 	}
 }
 

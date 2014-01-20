@@ -3,7 +3,6 @@
 #include <AL/alut.h>
 
 #include "../../common/MGDFLoggerImpl.hpp"
-#include "../../common/MGDFExceptions.hpp"
 
 #include "OpenALSoundSystem.hpp"
 
@@ -25,42 +24,42 @@ namespace audio
 namespace openal_audio
 {
 
-OpenALSoundSystem *OpenALSoundSystem::_instance = nullptr;
-
-OpenALSoundSystem *OpenALSoundSystem::Instance()
-{
-	if ( _instance == nullptr ) {
-		_instance = new OpenALSoundSystem();
-	}
-	return _instance;
-}
-
 /**
 initialise the openAL sound 
 */
 OpenALSoundSystem::OpenALSoundSystem()
+	: _context( nullptr )
+{
+}
+
+MGDFError OpenALSoundSystem::Init()
 {
 	ALCdevice *device = alcOpenDevice( nullptr );
 	if ( device == nullptr ) {
 		LOG( "Unable to open audio device", LOG_ERROR );
-		throw MGDFException( MGDF_ERR_AUDIO_INIT_FAILED, "Unable to open audio device" );
+		return MGDF_ERR_AUDIO_INIT_FAILED;
 	}
 
 	_context = alcCreateContext( device, nullptr );
 	if ( _context == nullptr ) {
 		LOG( "Failed to initialize OpenAL", LOG_ERROR );
-		throw MGDFException( MGDF_ERR_AUDIO_INIT_FAILED, "Failed to initialize OpenAL" );
+		return MGDF_ERR_AUDIO_INIT_FAILED;
 	}
 
 	alcMakeContextCurrent( _context );
 	if ( alcGetError( device ) != AL_NO_ERROR ) {
 		LOG( "Failed to make OpenAL context current", LOG_ERROR );
-		throw MGDFException( MGDF_ERR_AUDIO_INIT_FAILED, "Failed to make OpenAL context current" );
+		return MGDF_ERR_AUDIO_INIT_FAILED;
 	}
 
-	alutInitWithoutContext( nullptr, nullptr );
+	if ( !alutInitWithoutContext( nullptr, nullptr ) ) {
+		ALenum alError = alutGetError();
+		LOG( "Failed to initialize alut" << alutGetErrorString( alError ), LOG_ERROR );
+		return MGDF_ERR_AUDIO_INIT_FAILED;	
+	}
 
-	//allocate as many sources as we can (or until we reach a hard coded limit) and add them to the free sources pool.
+	//allocate as many sources as we can (or until we reach a hard coded limit) 
+	// and add them to the free sources pool.
 	do {
 		ALuint sourceId;
 		alGenSources( 1, &sourceId );
@@ -71,11 +70,37 @@ OpenALSoundSystem::OpenALSoundSystem()
 		}
 	} while ( _freeSources.size() < MAX_SOURCES );
 
+	// check that we could create at least one audio source
+	if ( !_freeSources.size() ) {
+		LOG( "Unable to create any audio sources", LOG_ERROR );
+		return MGDF_ERR_AUDIO_INIT_FAILED;	
+	}
+
 	LOG( "max audio sources determined - " << _freeSources.size(), LOG_LOW );
 	LOG( "initialised successfully", LOG_LOW );
+	return MGDF_OK;
 }
 
-bool OpenALSoundSystem::AcquireSource( ALuint *source )
+
+OpenALSoundSystem::~OpenALSoundSystem()
+{
+	if ( _context ) {
+		ALCdevice *device = alcGetContextsDevice( _context );
+		alcMakeContextCurrent( nullptr );
+		alcDestroyContext( _context );
+		alcCloseDevice( device );
+
+		while ( _freeSources.size() > 0 ) {
+			ALuint source = _freeSources.top();
+			_freeSources.pop();
+			alDeleteSources( 1, &source );
+		}
+
+		LOG( "uninitialised successfully", LOG_LOW );
+	}
+}
+
+MGDFError OpenALSoundSystem::AcquireSource( ALuint *source )
 {
 	_ASSERTE( source );
 	size_t freeSources = GetFreeSources();
@@ -92,9 +117,10 @@ bool OpenALSoundSystem::AcquireSource( ALuint *source )
 		alSourcei( freeSource, AL_LOOPING, AL_FALSE );
 
 		*source = freeSource;
-		return true;
+		return MGDF_OK;
 	} else {
-		return false;
+		LOG ( "No free sound sources to create stream", LOG_ERROR );
+		return MGDF_ERR_NO_FREE_SOURCES;
 	}
 }
 
@@ -109,26 +135,6 @@ void OpenALSoundSystem::ReleaseSource( ALuint source )
 		_allocatedSources.erase( iter );
 		_freeSources.push( source );
 	}
-}
-
-/**
-uninitialise the openAL sound 
-*/
-OpenALSoundSystem::~OpenALSoundSystem()
-{
-	//Get device for active context
-	ALCdevice *device = alcGetContextsDevice( _context );
-	alcMakeContextCurrent( nullptr );
-	alcDestroyContext( _context );
-	alcCloseDevice( device );
-
-	while ( _freeSources.size() > 0 ) {
-		ALuint source = _freeSources.top();
-		_freeSources.pop();
-		alDeleteSources( 1, &source );
-	}
-
-	LOG( "uninitialised successfully", LOG_LOW );
 }
 
 }

@@ -179,7 +179,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="MGDFComponents.hpp" />
-    <ClInclude Include="MGDFExceptions.hpp" />
     <ClInclude Include="MGDFListImpl.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />

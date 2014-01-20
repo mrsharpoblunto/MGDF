@@ -16,7 +16,7 @@ class ModuleFactory
 {
 public:
 	virtual ~ModuleFactory();
-	ModuleFactory( IGame * );
+	static MGDFError TryCreate( ModuleFactory ** );
 
 	bool GetCustomArchiveHandlers( IArchiveHandler **list, UINT32 *length, ILogger *logger, IErrorHandler *errorHandler ) const;
 	IModule *GetModule() const;
@@ -25,7 +25,9 @@ public:
 	bool GetLastError( std::string& error ) const;
 
 private:
-	IGame *_game;
+	ModuleFactory();
+	MGDFError Init();
+
 	HINSTANCE _moduleInstance;
 	GetCustomArchiveHandlersPtr _getCustomArchiveHandlers;
 	GetModulePtr _getModule;

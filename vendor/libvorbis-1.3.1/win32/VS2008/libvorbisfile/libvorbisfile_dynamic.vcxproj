@@ -226,7 +226,7 @@
     <ClCompile Include="..\..\..\lib\vorbisfile.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\include\vorbis\vorbisfile.h" />
+    <ClInclude Include="..\..\..\include\Vorbis\vorbisfile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

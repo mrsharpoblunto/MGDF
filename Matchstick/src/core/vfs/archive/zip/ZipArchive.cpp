@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include "../../../common/MGDFExceptions.hpp"
 #include "../../../common/MGDFResources.hpp"
 #include "../../../common/MGDFLoggerImpl.hpp"
 #include "ZipFileRoot.hpp"
@@ -137,23 +136,26 @@ MGDFError ZipArchive::GetFileData( ZipFileHeader &header, ZipFileData &data )
 	data.readPosition = 0;
 	data.data = ( char * ) malloc( static_cast<UINT32>( header.size ) );
 
-	// If anything fails, we abort and return false
-	try 
-	{
-		if ( unzOpenCurrentFile( _zip ) != UNZ_OK )
-			throw MGDFException( MGDF_ERR_INVALID_ARCHIVE_FILE, "Unable to open zip archive" );
-		if ( unzReadCurrentFile( _zip, data.data, static_cast<UINT32>( header.size ) ) < 0 )
-			throw MGDFException( MGDF_ERR_INVALID_ARCHIVE_FILE, "Unable to read zip archive" );
-		if ( unzCloseCurrentFile( _zip ) == UNZ_CRCERROR )
-			throw MGDFException( MGDF_ERR_INVALID_ARCHIVE_FILE, "Unable to close zip archive" );
-		return MGDF_OK;
-	} catch ( MGDFException e ) {
-		std::string message = e.what();
-		LOG( e.what() << ' ' << Resources::ToString( header.name ), LOG_ERROR );
-		free( data.data );
-		data.data = nullptr;
-		return e.Code();
+	MGDFError result = MGDF_OK;
+	if ( unzOpenCurrentFile( _zip ) != UNZ_OK ) {
+		result = MGDF_ERR_INVALID_ARCHIVE_FILE;
+		goto cleanup;
 	}
+	if ( unzReadCurrentFile( _zip, data.data, static_cast<UINT32>( header.size ) ) < 0 )  {
+		result = MGDF_ERR_INVALID_ARCHIVE_FILE;
+		goto cleanup;
+	}
+	if ( unzCloseCurrentFile( _zip ) == UNZ_CRCERROR ) {
+		result = MGDF_ERR_INVALID_ARCHIVE_FILE;
+		goto cleanup;
+	}
+	return result;
+
+cleanup:
+	LOG( "Invalid archive file " << Resources::ToString( header.name ), LOG_ERROR );
+	free( data.data );
+	data.data = nullptr;
+	return result;
 }
 
 }

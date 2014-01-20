@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <MGDF/MGDFError.hpp>
 
 namespace MGDF
 {
@@ -20,7 +21,7 @@ public:
 	virtual iterator begin() const = 0;
 	virtual iterator end() const = 0;
 
-	virtual void Load( const std::wstring &load ) = 0;
+	virtual MGDF::MGDFError Load( const std::wstring &load ) = 0;
 	virtual void Save( const std::wstring &save ) const = 0;
 };
 

@@ -1,6 +1,5 @@
 #include "StdAfx.h"
 
-#include "../../common/MGDFExceptions.hpp"
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "OpenALSoundSystem.hpp"
 #include "OpenALSound.hpp"
@@ -13,6 +12,8 @@
 
 #pragma warning(disable:4345) //disable irrelevant warning about initializing POD types via new() syntax.
 
+using namespace DirectX;
+
 namespace MGDF
 {
 namespace core
@@ -22,9 +23,19 @@ namespace audio
 namespace openal_audio
 {
 
-OpenALSound::OpenALSound( IFile *source, OpenALSoundManagerComponentImpl *manager, INT32 priority )
+MGDFError OpenALSound::TryCreate( IFile *source, OpenALSoundManagerComponentImpl *manager, INT32 priority, OpenALSound **sound )
+{
+	*sound = new OpenALSound( manager, priority );
+	MGDFError error = (*sound)->Init( source );
+	if ( MGDF_OK != error ) {
+		delete *sound;
+		*sound = nullptr;
+	}
+	return error;
+}
+
+OpenALSound::OpenALSound( OpenALSoundManagerComponentImpl *manager, INT32 priority )
 	: _soundManager( manager )
-	, _name( source->GetName() )
 	, _priority( priority )
 	, _position( XMFLOAT3( 0.0f, 0.0f, 0.0f ) )
 	, _velocity( XMFLOAT3( 0.0f, 0.0f, 0.0f ) )
@@ -39,12 +50,20 @@ OpenALSound::OpenALSound( IFile *source, OpenALSoundManagerComponentImpl *manage
 	, _wasPlaying( false )
 	, _startPlaying( false )
 {
-	_ASSERTE( source );
 	_ASSERTE( manager );
+}
 
-	_bufferId = _soundManager->GetSoundBuffer( source );
+MGDFError OpenALSound::Init( IFile *source )
+{
+	_ASSERTE( source );
+	_name = source->GetName();
 
+	MGDFError error = _soundManager->CreateSoundBuffer( source, &_bufferId );
+	if ( MGDF_OK != error ) {
+		return error;
+	}
 	Reactivate();
+	return MGDF_OK;
 }
 
 OpenALSound::~OpenALSound()
@@ -61,9 +80,7 @@ void OpenALSound::Dispose()
 
 void OpenALSound::Reactivate()
 {
-	_isActive = OpenALSoundSystem::Instance()->AcquireSource( &_sourceId );
-
-	if ( _isActive ) {
+	if ( MGDF_OK == _soundManager->AcquireSource( &_sourceId ) ) {
 		alSourcei( _sourceId, AL_BUFFER, _bufferId );
 		if ( alGetError() != AL_NO_ERROR ) {
 			LOG( "Unable to allocate buffer to audio source", LOG_ERROR );
@@ -88,7 +105,7 @@ void OpenALSound::Deactivate()
 		} else {
 			_wasPlaying = false;
 		}
-		OpenALSoundSystem::Instance()->ReleaseSource( _sourceId );
+		_soundManager->ReleaseSource( _sourceId );
 		_startPlaying = false;
 		_isActive = false;
 	}
@@ -155,7 +172,7 @@ float OpenALSound::GetVolume() const
 	return _volume;
 }
 
-float OpenALSound::GetAttenuatedVolume()
+float OpenALSound::GetAttenuatedVolume() const
 {
 	return _volume * _attenuationFactor;
 }

@@ -60,7 +60,7 @@ typedef ListImpl<IStringList, const char *> StringList;
 class Host: public IHostImpl
 {
 public:
-	Host( Game *game );
+	static MGDFError TryCreate( Game *game, Host **host );
 
 	virtual ~Host( void );
 
@@ -116,6 +116,9 @@ public:
 	void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const override;
 
 private:
+	Host( Game *game );
+	MGDFError Init();
+
 	void ClearWorkingDirectory();
 
 	IModule * _module; //the currently executing module
@@ -137,7 +140,7 @@ private:
 
 	std::mutex _mutex;
 	Version _version;
-	Timer _timer;
+	Timer *_timer;
 	std::atomic<bool> _shutdownQueued;
 };
 
