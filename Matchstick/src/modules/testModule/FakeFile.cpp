@@ -136,7 +136,7 @@ bool FakeFile::IsOpen() const
 	return _isOpen;
 }
 
-MGDF::MGDFError FakeFile::OpenFile( IFileReader **reader )
+MGDF::MGDFError FakeFile::Open( IFileReader **reader )
 {
 	std::lock_guard<std::mutex> lock( _mutex );
 	if ( _data && !_isOpen ) {

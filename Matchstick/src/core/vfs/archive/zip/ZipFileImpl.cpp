@@ -28,7 +28,7 @@ ZipFileImpl::~ZipFileImpl()
 	Close();
 }
 
-MGDFError ZipFileImpl::OpenFile( IFileReader **reader )
+MGDFError ZipFileImpl::Open( IFileReader **reader )
 {
 	std::lock_guard<std::mutex> lock( _mutex );
 	if ( !_isOpen ) {

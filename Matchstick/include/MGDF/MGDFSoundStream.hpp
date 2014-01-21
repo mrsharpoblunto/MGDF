@@ -8,7 +8,8 @@ namespace MGDF
 /**
 this class represents an audio stream
 */
-class ISoundStream
+class __declspec(uuid("2F0555E6-B5C3-40C4-9399-F74699A38811"))
+ISoundStream: public IUnknown
 {
 public:
 	/**
@@ -39,11 +40,6 @@ public:
 	\return The total length of the stream
 	*/
 	virtual UINT32 GetLength() = 0;
-
-	/**
-	removes the soundstream
-	*/
-	virtual void Dispose() = 0;
 
 	/**
 	stop the playing of the current stream if it was playing or paused (resets it to the beginning aswell)

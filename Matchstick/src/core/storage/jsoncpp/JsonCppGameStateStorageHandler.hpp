@@ -22,16 +22,16 @@ public:
 	}
 	virtual ~JsonCppGameStateStorageHandler() {}
 
-	MGDFError Load( const std::wstring & ) override;
-	void Save( const std::wstring & ) const override;
+	MGDFError Load( const std::wstring & ) override final;
+	void Save( const std::wstring & ) const override final;
 
-	std::string GetGameUid() const {
+	std::string GetGameUid() const override final {
 		return _gameUid;
 	};
-	void SetVersion( const Version *version ) {
+	void SetVersion( const Version *version ) override final {
 		_version =  VersionHelper::Copy( version );
 	};
-	const Version *GetVersion() const {
+	const Version *GetVersion() const override final {
 		return &_version;
 	};
 

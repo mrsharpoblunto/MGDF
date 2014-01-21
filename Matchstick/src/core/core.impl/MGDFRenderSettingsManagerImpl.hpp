@@ -23,29 +23,29 @@ public:
 	RenderSettingsManager();
 	virtual ~RenderSettingsManager();
 
-	bool GetVSync() const override;
-	void SetVSync( bool vsync ) override;
+	bool GetVSync() const override final;
+	void SetVSync( bool vsync ) override final;
 
-	bool GetFullscreen() const override;
-	void SetFullscreen( bool fullscreen ) override;
+	bool GetFullscreen() const override final;
+	void SetFullscreen( bool fullscreen ) override final;
 
-	UINT32 GetMultiSampleLevelCount() const override;
-	bool GetMultiSampleLevel( UINT32 index, UINT32* level ) const override;
+	UINT32 GetMultiSampleLevelCount() const override final;
+	bool GetMultiSampleLevel( UINT32 index, UINT32* level ) const override final;
 
-	bool SetBackBufferMultiSampleLevel( UINT32 multisampleLevel ) override;
-	UINT32 GetBackBufferMultiSampleLevel() const override;
-	bool SetCurrentMultiSampleLevel( UINT32 multisampleLevel ) override;
-	UINT32 GetCurrentMultiSampleLevel( UINT32 *quality ) const override;
+	bool SetBackBufferMultiSampleLevel( UINT32 multisampleLevel ) override final;
+	UINT32 GetBackBufferMultiSampleLevel() const override final;
+	bool SetCurrentMultiSampleLevel( UINT32 multisampleLevel ) override final;
+	UINT32 GetCurrentMultiSampleLevel( UINT32 *quality ) const override final;
 
-	UINT32 GetAdaptorModeCount() const override;
-	bool GetAdaptorMode( UINT32 index, AdaptorMode *mode ) const override;
-	bool GetAdaptorMode( UINT32 width, UINT32 height, AdaptorMode *mode ) const override;
-	void GetCurrentAdaptorMode( AdaptorMode *mode ) const override;
-	bool SetCurrentAdaptorMode( const AdaptorMode *mode ) override;
+	UINT32 GetAdaptorModeCount() const override final;
+	bool GetAdaptorMode( UINT32 index, AdaptorMode *mode ) const override final;
+	bool GetAdaptorMode( UINT32 width, UINT32 height, AdaptorMode *mode ) const override final;
+	void GetCurrentAdaptorMode( AdaptorMode *mode ) const override final;
+	bool SetCurrentAdaptorMode( const AdaptorMode *mode ) override final;
 
-	UINT32 GetScreenX() const override;
-	UINT32 GetScreenY() const override;
-	void ApplyChanges() override;
+	UINT32 GetScreenX() const override final;
+	UINT32 GetScreenY() const override final;
+	void ApplyChanges() override final;
 
 	void LoadPreferences( IGame *game );
 

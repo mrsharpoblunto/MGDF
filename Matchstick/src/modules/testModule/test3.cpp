@@ -121,7 +121,7 @@ void Test3::Update( ISimHost *host, TextManagerState *state )
 		IFile *file = host->GetVFS()->GetFile( L"test.fakearchive/testfile.txt" );
 		if ( file != NULL ) {
 			IFileReader *reader = nullptr;
-			if ( MGDF_OK == file->OpenFile( &reader ) ) {
+			if ( MGDF_OK == file->Open( &reader ) ) {
 				UINT32 size = static_cast<UINT32>( reader->GetSize() );
 				char *data = new char[size];
 				reader->Read( data, size );
@@ -156,7 +156,7 @@ void Test3::Update( ISimHost *host, TextManagerState *state )
 		state->SetStatus( RED, "[Test Failed]" );
 	} else if ( _testState == 999 ) {
 		_testState++;
-		state->AddLine( "All tests complete. Press the [ESC] key to exit" );
+		state->AddLine( "All tests complete. Press the [ESC] key to exit (then make sure there were no memory leaks)" );
 	}
 }
 

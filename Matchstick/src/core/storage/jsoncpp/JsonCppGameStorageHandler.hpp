@@ -18,13 +18,13 @@ public:
 	JsonCppGameStorageHandler() {}
 	virtual ~JsonCppGameStorageHandler() {}
 
-	std::string GetGameName() const override;
-	std::string GetGameUid() const override;
-	INT32 GetInterfaceVersion() const override;
-	const Version *GetVersion() const override;
-	std::string GetParameterString() const override;
+	std::string GetGameName() const override final;
+	std::string GetGameUid() const override final;
+	INT32 GetInterfaceVersion() const override final;
+	const Version *GetVersion() const override final;
+	std::string GetParameterString() const override final;
 
-	MGDFError Load( const std::wstring & ) override;
+	MGDFError Load( const std::wstring & ) override final;
 
 private:
 	std::string _gameName, _gameUid, _parameterString;

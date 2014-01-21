@@ -23,9 +23,9 @@ public:
 	virtual ~Test3( void );
 	Test3();
 
-	void Update( ISimHost *host, TextManagerState *state )  override;
+	void Update( ISimHost *host, TextManagerState *state )  override final;
 
-	TestModule *NextTestModule() override;
+	TestModule *NextTestModule() override final;
 private:
 	INT32 _testState;
 

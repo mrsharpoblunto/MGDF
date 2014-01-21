@@ -9,7 +9,8 @@ namespace MGDF
 /**
 this class represents an audio source in 3d space
 */
-class ISound
+class __declspec(uuid("EBCC1B73-815F-4870-BC80-67A5379E65FC"))
+ISound: public IUnknown
 {
 public:
 	/**
@@ -93,11 +94,6 @@ public:
 	\param pitch 1.0 if the pitch is unchanged. between 0.5 and 1.0 is lower, and between 1.0 and 2.0 is higher pitched
 	*/
 	virtual void  SetPitch( float pitch ) = 0;
-
-	/**
-	disposes of the sound. After calling this, the object cannot be used
-	*/
-	virtual void Dispose() = 0;
 
 	/**
 	Set the priority used by the sound system to determine which sounds get deactivated if not enough sound sources

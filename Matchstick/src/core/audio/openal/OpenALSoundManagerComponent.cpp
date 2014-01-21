@@ -343,7 +343,7 @@ MGDFError OpenALSoundManagerComponentImpl::CreateSoundBuffer( IFile *dataSource,
 	}
 
 	IFileReader *reader = nullptr;
-	MGDFError error = dataSource->OpenFile( &reader );
+	MGDFError error = dataSource->Open( &reader );
 	if ( MGDF_OK != error ) {
 		LOG( "Buffer file could not be opened or is already open for reading", LOG_ERROR );
 		return error;

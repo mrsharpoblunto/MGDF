@@ -17,35 +17,35 @@ public:
 	DefaultFileImpl( const std::wstring &name, const std::wstring &physicalPath, IFile *parent, IErrorHandler *handler );
 	virtual ~DefaultFileImpl();
 
-	bool IsOpen() const override {
+	bool IsOpen() const override final {
 		std::lock_guard<std::mutex> lock( _mutex );
 		return ( _fileStream != nullptr );
 	}
 
-	MGDFError OpenFile( IFileReader **reader ) override;
+	MGDFError Open( IFileReader **reader ) override final;
 
-	bool IsFolder() const override{
+	bool IsFolder() const override final {
 		return false;
 	}
-	bool IsArchive() const override{
+	bool IsArchive() const override {
 		return false;
 	}
-	const wchar_t *GetArchiveName() const override{
+	const wchar_t *GetArchiveName() const override {
 		return nullptr;
 	}
-	const wchar_t *GetPhysicalPath() const override{
+	const wchar_t *GetPhysicalPath() const override final {
 		return _path.c_str();
 	}
-	const wchar_t *GetName() const override{
+	const wchar_t *GetName() const override final {
 		return _name.c_str();
 	}
 	
-	void Close() override;
-	UINT32 Read( void* buffer, UINT32 length ) override;
-	void SetPosition( INT64 pos ) override;
-	INT64 GetPosition() const override;
-	bool EndOfFile() const override;
-	INT64 GetSize() const override;
+	void Close() override final;
+	UINT32 Read( void* buffer, UINT32 length ) override final;
+	void SetPosition( INT64 pos ) override final;
+	INT64 GetPosition() const override final;
+	bool EndOfFile() const override final;
+	INT64 GetSize() const override final;
 
 private:
 	std::ifstream *_fileStream;

@@ -33,12 +33,12 @@ public:
 		return log;
 	}
 
-	void SetLoggingLevel( LogLevel level ) override;
-	LogLevel GetLoggingLevel() const override;
-	void Add( const char * sender, const char * message, LogLevel level ) override;
+	void SetLoggingLevel( LogLevel level ) override final;
+	LogLevel GetLoggingLevel() const override final;
+	void Add( const char * sender, const char * message, LogLevel level ) override final;
 
-	void MoveOutputFile() override;
-	void Flush() override;
+	void MoveOutputFile() override final;
+	void Flush() override final;
 private:
 	Logger();
 	virtual ~Logger();

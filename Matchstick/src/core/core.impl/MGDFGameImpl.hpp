@@ -19,27 +19,27 @@ public:
 	Game( const std::string &uid, const std::string &name, INT32 interfaceVersion, const Version *version, storage::IStorageFactoryComponent *xmlFactory );
 	virtual ~Game( void ) {}
 
-	const char *GetUid() const override {
+	const char *GetUid() const override final {
 		return _uid.c_str();
 	}
 
-	const char *GetName() const override {
+	const char *GetName() const override final {
 		return _name.c_str();
 	}
 
-	INT32 GetInterfaceVersion() const override {
+	INT32 GetInterfaceVersion() const override final {
 		return _interfaceVersion;
 	}
 
-	const Version *GetVersion() const override {
+	const Version *GetVersion() const override final {
 		return &_version;
 	}
 
-	bool HasPreference( const char * name ) const override;
-	const char *GetPreference( const char * name ) const override;
-	void SetPreference( const char * name, const char * value ) override;
-	void SavePreferences() const override;
-	void ResetPreferences() override;
+	bool HasPreference( const char * name ) const override final;
+	const char *GetPreference( const char * name ) const override final;
+	void SetPreference( const char * name, const char * value ) override final;
+	void SavePreferences() const override final;
+	void ResetPreferences() override final;
 
 	void SavePreferences( const std::wstring &filename );
 	MGDFError LoadPreferences( const std::wstring &filename );

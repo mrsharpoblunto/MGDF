@@ -100,7 +100,7 @@ public:
 	virtual void  SetSpeedOfSound( float speedOfSound ) = 0;
 
 	/**
-	create a sound by loading a file in the VFS into memory
+	create a sound by loading a file in the VFS into memory. When no longer used it should be Released
 	\param file the data source for the sound
 	\param priority the priority of the sound (used to determine what should play if no free audio sources are available
 	\param sound If the sound is created successfully, this will point to the created sound
@@ -109,7 +109,7 @@ public:
 	virtual MGDFError CreateSound( IFile *file, INT32 priority, ISound **sound ) = 0;
 
 	/**
-	create a sound stream from a file in the VFS
+	create a sound stream from a file in the VFS. When no longer used it should be Released
 	\param file the data source for the sound stream
 	\param stream If the stream is created successfully, this will point to the created stream
 	\return MGDF_OK if the stream was created successfully, otherwise an error code will be returned

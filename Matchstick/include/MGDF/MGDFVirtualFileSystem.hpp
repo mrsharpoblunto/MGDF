@@ -7,7 +7,8 @@ namespace MGDF
 {
 
 /**
-provides a means to filter files from result sets
+provides a means to filter files from result sets. Clients should implement this interface
+and pass instances into the relevant VFS methods in order to filter results
 */
 class IFileFilter
 {
@@ -125,7 +126,7 @@ public:
 	\param reader will point to any reader that is created
 	\return nullptr if the file cannot be opened or is already open
 	*/
-	virtual MGDFError OpenFile( IFileReader **reader ) = 0;
+	virtual MGDFError Open( IFileReader **reader ) = 0;
 
 	/**
 	determines if the file is a (or is a member of) an archive file

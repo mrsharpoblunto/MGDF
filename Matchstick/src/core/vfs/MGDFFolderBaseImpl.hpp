@@ -35,26 +35,26 @@ public:
 
 	virtual ~FolderBaseImpl() {}
 
-	virtual bool FolderBaseImpl::IsOpen() const {
+	bool FolderBaseImpl::IsOpen() const override final {
 		return false;
 	}
-	virtual MGDFError FolderBaseImpl::OpenFile( IFileReader **reader ) {
+	MGDFError FolderBaseImpl::Open( IFileReader **reader ) override final {
 		return MGDF_ERR_IS_FOLDER;
 	}
 	
-	virtual bool FolderBaseImpl::IsFolder() const {
+	bool FolderBaseImpl::IsFolder() const override final {
 		return true;
 	}
-	virtual bool FolderBaseImpl::IsArchive() const {
+	bool FolderBaseImpl::IsArchive() const override {
 		return false;
 	}
-	virtual const wchar_t *FolderBaseImpl::GetArchiveName() const {
+	const wchar_t *FolderBaseImpl::GetArchiveName() const override {
 		return nullptr;
 	}
-	virtual const wchar_t *FolderBaseImpl::GetPhysicalPath() const {
+	const wchar_t *FolderBaseImpl::GetPhysicalPath() const override final {
 		return _path.c_str();
 	}
-	virtual const wchar_t *GetName() const {
+	const wchar_t *GetName() const override final {
 		return _name.c_str();
 	}
 private:

@@ -32,19 +32,19 @@ public:
 	virtual ~Module( void );
 	Module();
 
-	bool STNew( ISimHost * simHost, const wchar_t *workingFolder ) override;
-	bool STDispose( ISimHost * simHost ) override;
-	bool STUpdate( ISimHost * simHost, double elapsedTime ) override;
-	void STShutDown( ISimHost * simHost ) override;
+	bool STNew( ISimHost * simHost, const wchar_t *workingFolder ) override final;
+	bool STDispose( ISimHost * simHost ) override final;
+	bool STUpdate( ISimHost * simHost, double elapsedTime ) override final;
+	void STShutDown( ISimHost * simHost ) override final;
 
-	bool RTBeforeFirstDraw( MGDF::IRenderHost *renderHost ) override;
-	bool RTDraw( IRenderHost *renderHost, double alpha ) override;
-	bool RTBeforeBackBufferChange( IRenderHost *renderHost ) override;
-	bool RTBackBufferChange( IRenderHost *renderHost ) override;
-	bool RTBeforeDeviceReset( IRenderHost *renderHost ) override;
-	bool RTDeviceReset( IRenderHost *renderHost ) override;
+	bool RTBeforeFirstDraw( MGDF::IRenderHost *renderHost ) override final;
+	bool RTDraw( IRenderHost *renderHost, double alpha ) override final;
+	bool RTBeforeBackBufferChange( IRenderHost *renderHost ) override final;
+	bool RTBackBufferChange( IRenderHost *renderHost ) override final;
+	bool RTBeforeDeviceReset( IRenderHost *renderHost ) override final;
+	bool RTDeviceReset( IRenderHost *renderHost ) override final;
 
-	void Panic() override;
+	void Panic() override final;
 private:
 	std::wstring _workingFolder;
 

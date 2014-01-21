@@ -33,19 +33,21 @@ public:
 	virtual ~VorbisStream();
 	static MGDFError TryCreate( IFile *source, OpenALSoundManagerComponentImpl *manager, VorbisStream **stream );
 
-	const wchar_t * GetName() const override;
-	float GetVolume() const override;
-	void SetVolume( float volume ) override;
-	void Stop() override;
-	void Pause() override;
-	MGDFError Play() override;
-	bool IsStopped() const override;
-	bool IsPaused() const override;
-	bool IsPlaying() const override;
-	UINT32 GetPosition() override;
-	UINT32 GetLength() override;
+	const wchar_t * GetName() const override final;
+	float GetVolume() const override final;
+	void SetVolume( float volume ) override final;
+	void Stop() override final;
+	void Pause() override final;
+	MGDFError Play() override final;
+	bool IsStopped() const override final;
+	bool IsPaused() const override final;
+	bool IsPlaying() const override final;
+	UINT32 GetPosition() override final;
+	UINT32 GetLength() override final;
 
-	void Dispose() override;
+	HRESULT QueryInterface( REFIID riid, void **ppvObject ) override final;
+	ULONG AddRef() override final;
+	ULONG Release() override final;
 
 	void Update();
 	void SetGlobalVolume( float globalVolume );
@@ -55,6 +57,7 @@ private:
 	MGDFError InitStream();
 	void UninitStream();
 
+	ULONG			_streamReferences;
 	IFile			*_dataSource;
 	IFileReader		*_reader;
 	ALuint		    _buffers[VORBIS_BUFFER_COUNT];

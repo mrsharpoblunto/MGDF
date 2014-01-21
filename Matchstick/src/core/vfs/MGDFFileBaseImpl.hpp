@@ -28,10 +28,10 @@ public:
 	FileBaseImpl( IFile *parent );
 	virtual ~FileBaseImpl();
 
-	IFile *GetParent() const override {
+	IFile *GetParent() const override final {
 		return _parent;
 	}
-	IFile *GetChild( const wchar_t *name ) const override ;
+	IFile *GetChild( const wchar_t *name ) const override;
 
 	size_t GetChildCount() const override {
 		if ( !_children ) {
@@ -49,7 +49,7 @@ public:
 		return false;
 	}
 
-	const wchar_t* GetLogicalPath() const override; 
+	const wchar_t* GetLogicalPath() const override final; 
 	time_t GetLastWriteTime() const override;
 
 	// These internal methods are not threadsafe, so ensure 

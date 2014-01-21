@@ -21,9 +21,9 @@ public:
 	virtual ~Test1( void );
 	Test1();
 
-	void Update( ISimHost *host, TextManagerState *state ) override;
+	void Update( ISimHost *host, TextManagerState *state ) override final;
 
-	TestModule *NextTestModule() override;
+	TestModule *NextTestModule() override final;
 private:
 	INT32 _testState;
 	LARGE_INTEGER _time;

@@ -32,7 +32,7 @@ public:
 	virtual double ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER oldTime ) const = 0;
 
 	/**
-	 create a performance counter for profiling CPU time taken.
+	 create a performance counter for profiling CPU time taken. When no longer used it should be Released
 	 \param name the name of the counter
 	 \param counter points to the created counter
 	 \return MGDF_OK if the counter could be created, otherwise an error code is returned
@@ -47,7 +47,7 @@ class IRenderTimer
 {
 public:
 	/**
-	 * create a performance counter for profiling GPU time taken in DirectX API calls.
+	 * create a performance counter for profiling GPU time taken in DirectX API calls. When no longer used it should be Released
 	 * \param name the name of the counter
 	 * \param counter points to the created counter
 	 * \return MGDF_ERR_GPU_TIMER_UNSUPPORTED if GPU counters are unsupported (using D3D_FEATURE_LEVEL_9_3 or less) otherwise

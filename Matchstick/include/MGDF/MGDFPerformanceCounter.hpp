@@ -7,7 +7,8 @@ namespace MGDF
  Represents a names performance counter that can be used to time the duration of
  events. The results of these counters are shown in the MGDF stats overlay (press alt-f12 to see in game)
  */
-class IPerformanceCounter
+class __declspec(uuid("E2E9FE7E-4D07-40FE-9858-8E583D73CB37"))
+IPerformanceCounter : public IUnknown
 {
 public:
 	/**
@@ -26,11 +27,6 @@ public:
 	 and when End was called
 	 */
 	virtual void End() = 0;
-
-	/**
-	 Dispose of the performance counter. After calling this, the object can no longer be used
-	 */
-	virtual void Dispose() = 0;
 };
 
 }

@@ -26,10 +26,10 @@ class ZipArchiveHandlerImpl: public IArchiveHandler
 public:
 	ZipArchiveHandlerImpl( IErrorHandler *errorHandler );
 	virtual ~ZipArchiveHandlerImpl() {}
-	void Dispose() override;
-	void DisposeArchive( IFile *archive ) override;
-	bool IsArchive( const wchar_t *physicalPath ) const override;
-	IFile *MapArchive( const wchar_t * name, const wchar_t * physicalPath, IFile *parent ) override;
+	void Dispose() override final;
+	void DisposeArchive( IFile *archive ) override final;
+	bool IsArchive( const wchar_t *physicalPath ) const override final;
+	IFile *MapArchive( const wchar_t * name, const wchar_t * physicalPath, IFile *parent ) override final;
 
 private:
 	std::map<ZipFileRoot *, ZipArchive *> _archives;

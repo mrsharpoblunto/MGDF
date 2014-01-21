@@ -30,31 +30,9 @@ LPOVINFO VorbisStream::fn_ov_info = nullptr;
 LPOVCOMMENT VorbisStream::fn_ov_comment = nullptr;
 LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks = nullptr;
 
-VorbisStream::~VorbisStream()
-{
-	UninitVorbis();
-	UninitStream();
-	_soundManager->RemoveSoundStream( this );
-}
-
-void VorbisStream::Dispose()
-{
-	delete this;
-}
-
-MGDFError VorbisStream::TryCreate( IFile *source, OpenALSoundManagerComponentImpl *manager, VorbisStream **stream )
-{
-	*stream = new VorbisStream( source, manager );
-	MGDFError error = (*stream)->InitStream();
-	if ( MGDF_OK != error ) {
-		delete *stream;
-		*stream = nullptr;
-	}
-	return error;
-}
-
 VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *manager )
 	: _soundManager( manager )
+	, _streamReferences( 1UL )
 	, _globalVolume( manager->GetStreamVolume() )
 	, _volume( 1.0 )
 	, _dataSource( source )
@@ -67,6 +45,49 @@ VorbisStream::VorbisStream( IFile *source, OpenALSoundManagerComponentImpl *mana
 {
 	_ASSERTE( source );
 	_ASSERTE( manager );
+}
+
+VorbisStream::~VorbisStream()
+{
+	UninitVorbis();
+	UninitStream();
+	_soundManager->RemoveSoundStream( this );
+}
+
+HRESULT VorbisStream::QueryInterface( REFIID riid, void **ppvObject )
+{
+	if ( !ppvObject ) return E_POINTER;
+	if ( riid == IID_IUnknown || riid == __uuidof( ISoundStream ) ) {
+		AddRef();
+		*ppvObject = this;
+		return S_OK;
+	}
+	return E_NOINTERFACE;
+}
+
+ULONG VorbisStream::AddRef()
+{
+	return ++_streamReferences;
+}
+
+ULONG VorbisStream::Release()
+{
+	if ( --_streamReferences == 0UL ) {
+		delete this;
+		return 0UL;
+	}
+	return _streamReferences;
+}
+
+MGDFError VorbisStream::TryCreate( IFile *source, OpenALSoundManagerComponentImpl *manager, VorbisStream **stream )
+{
+	*stream = new VorbisStream( source, manager );
+	MGDFError error = (*stream)->InitStream();
+	if ( MGDF_OK != error ) {
+		delete *stream;
+		*stream = nullptr;
+	}
+	return error;
 }
 
 MGDFError VorbisStream::InitStream()
@@ -83,7 +104,7 @@ MGDFError VorbisStream::InitStream()
 		return error;
 	}
 
-	error = _dataSource->OpenFile( &_reader );
+	error = _dataSource->Open( &_reader );
 	if ( MGDF_OK != error ) {
 		LOG( "Stream file could not be opened or is already open for reading", LOG_ERROR );
 		UninitVorbis(); 

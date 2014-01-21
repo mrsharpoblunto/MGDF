@@ -24,28 +24,28 @@ public:
 	void AddChild( FakeFile *file );
 	virtual ~FakeFile( void );
 
-	MGDF::IFile *GetParent() const override;
-	MGDF::IFile *GetChild( const wchar_t *name ) const override;
-	bool GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const override;
-	size_t GetChildCount() const override;
-	const wchar_t* GetLogicalPath() const override;
+	MGDF::IFile *GetParent() const override final;
+	MGDF::IFile *GetChild( const wchar_t *name ) const override final;
+	bool GetAllChildren( const MGDF::IFileFilter *filter, IFile **childBuffer, size_t *bufferLength ) const override final;
+	size_t GetChildCount() const override final;
+	const wchar_t* GetLogicalPath() const override final;
 
-	MGDF::MGDFError OpenFile( IFileReader **reader ) override;
+	MGDF::MGDFError Open( IFileReader **reader ) override final;
 
-	bool IsOpen() const override;
-	void Close() override;
-	UINT32 Read( void* buffer, UINT32 length ) override;
-	void SetPosition( INT64 pos ) override;
-	INT64 GetPosition() const override;
-	bool EndOfFile() const override;
-	INT64 GetSize() const override;
+	bool IsOpen() const override final;
+	void Close() override final;
+	UINT32 Read( void* buffer, UINT32 length ) override final;
+	void SetPosition( INT64 pos ) override final;
+	INT64 GetPosition() const override final;
+	bool EndOfFile() const override final;
+	INT64 GetSize() const override final;
 
-	bool IsFolder() const override;
-	bool IsArchive() const override;
-	const wchar_t *GetArchiveName() const override;
-	const wchar_t *GetPhysicalPath() const override;
-	const wchar_t *GetName() const override;
-	time_t GetLastWriteTime() const override;
+	bool IsFolder() const override final;
+	bool IsArchive() const override final;
+	const wchar_t *GetArchiveName() const override final;
+	const wchar_t *GetPhysicalPath() const override final;
+	const wchar_t *GetName() const override final;
+	time_t GetLastWriteTime() const override final;
 protected:
 	mutable std::mutex _mutex;
 	mutable std::wstring _logicalPath;

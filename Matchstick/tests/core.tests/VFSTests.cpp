@@ -87,7 +87,7 @@ SUITE( VFSTests )
 
 		IFile *file = _vfs->GetFile( L"content/test.lua" );
 		IFileReader *reader = nullptr;
-		CHECK_EQUAL( MGDF_OK, file->OpenFile( &reader ) );
+		CHECK_EQUAL( MGDF_OK, file->Open( &reader ) );
 		CHECK( reader != nullptr );
 
 		std::vector<std::string> list;
@@ -167,7 +167,7 @@ SUITE( VFSTests )
 
 		IFile *file = _vfs->GetFile( L"console.json" );
 		IFileReader *reader = nullptr;
-		CHECK_EQUAL( MGDF_OK, file->OpenFile( &reader ) );
+		CHECK_EQUAL( MGDF_OK, file->Open( &reader ) );
 		CHECK( reader != nullptr );
 
 		std::vector<std::string> list;

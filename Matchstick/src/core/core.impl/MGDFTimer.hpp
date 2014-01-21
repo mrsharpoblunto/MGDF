@@ -19,13 +19,17 @@ public:
 	virtual ~CPUPerformanceCounter();
 	CPUPerformanceCounter( const char *name, Timer *timer );
 
-	void Dispose() override;
-	const char *GetName() const override;
-	void Begin() override;
-	void End() override;
+	const char *GetName() const override final;
+	void Begin() override final;
+	void End() override final;
+
+	HRESULT QueryInterface( REFIID riid, void **ppvObject ) override final;
+	ULONG AddRef() override final;
+	ULONG Release() override final;
 
 	double GetAvgValue();
 private:
+	ULONG _references;
 	std::mutex _mutex;
 	std::string _name;
 	LARGE_INTEGER _start;
@@ -41,15 +45,19 @@ public:
 	virtual ~GPUPerformanceCounter();
 	GPUPerformanceCounter( const char *name, Timer *timer );
 
-	void Dispose() override;
-	const char *GetName() const override;
-	void Begin() override;
-	void End() override;
+	const char *GetName() const override final;
+	void Begin() override final;
+	void End() override final;
+
+	HRESULT QueryInterface( REFIID riid, void **ppvObject ) override final;
+	ULONG AddRef() override final;
+	ULONG Release() override final;
 
 	void Reinit();
 	double GetAvgValue();
 	void SetSample( UINT32 previousFrame, UINT64 frequency );
 private:
+	ULONG _references;
 	std::string _name;
 	std::vector<ID3D11Query *> _beginQueries;
 	std::vector<ID3D11Query *> _endQueries;
@@ -73,12 +81,12 @@ public:
 	static MGDFError TryCreate( Timer **timer );
 	virtual ~Timer( void );
 
-	LARGE_INTEGER GetCurrentTimeTicks() const override;
-	LARGE_INTEGER GetTimerFrequency() const override;
-	double ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER oldTime ) const override;
+	LARGE_INTEGER GetCurrentTimeTicks() const override final;
+	LARGE_INTEGER GetTimerFrequency() const override final;
+	double ConvertDifferenceToSeconds( LARGE_INTEGER newTime, LARGE_INTEGER oldTime ) const override final;
 
-	MGDFError CreateCPUCounter( const char *name, IPerformanceCounter **counter ) override;
-	MGDFError CreateGPUCounter( const char *name, IPerformanceCounter **counter ) override;
+	MGDFError CreateCPUCounter( const char *name, IPerformanceCounter **counter ) override final;
+	MGDFError CreateGPUCounter( const char *name, IPerformanceCounter **counter ) override final;
 
 	void InitFromDevice( ID3D11Device *device, UINT32 bufferSize, INT32 frameSamples );
 

@@ -19,8 +19,8 @@ Module::~Module( void )
 	delete _textManager;
 	delete _testModule;
 
-	if ( _textManagerCounter ) _textManagerCounter->Dispose();
-	if ( _testModuleCounter ) _testModuleCounter->Dispose();
+	if ( _textManagerCounter ) _textManagerCounter->Release();
+	if ( _testModuleCounter ) _testModuleCounter->Release();
 }
 
 Module::Module( )

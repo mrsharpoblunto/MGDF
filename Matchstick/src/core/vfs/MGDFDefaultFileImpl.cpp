@@ -32,7 +32,7 @@ DefaultFileImpl::~DefaultFileImpl( void )
 	Close();
 }
 
-MGDFError DefaultFileImpl::OpenFile( IFileReader **reader )
+MGDFError DefaultFileImpl::Open( IFileReader **reader )
 {
 	std::lock_guard<std::mutex> lock( _mutex );
 	if ( !_fileStream ) {

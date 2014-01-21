@@ -36,6 +36,7 @@ MGDFError OpenALSound::TryCreate( IFile *source, OpenALSoundManagerComponentImpl
 
 OpenALSound::OpenALSound( OpenALSoundManagerComponentImpl *manager, INT32 priority )
 	: _soundManager( manager )
+	, _references( 1UL )
 	, _priority( priority )
 	, _position( XMFLOAT3( 0.0f, 0.0f, 0.0f ) )
 	, _velocity( XMFLOAT3( 0.0f, 0.0f, 0.0f ) )
@@ -73,9 +74,29 @@ OpenALSound::~OpenALSound()
 	Deactivate();
 }
 
-void OpenALSound::Dispose()
+HRESULT OpenALSound::QueryInterface( REFIID riid, void **ppvObject )
 {
-	delete this;
+	if ( !ppvObject ) return E_POINTER;
+	if ( riid == IID_IUnknown || riid == __uuidof( ISound ) ) {
+		AddRef();
+		*ppvObject = this;
+		return S_OK;
+	}
+	return E_NOINTERFACE;
+}
+
+ULONG OpenALSound::AddRef()
+{
+	return ++_references;
+}
+
+ULONG OpenALSound::Release()
+{
+	if ( --_references == 0UL ) {
+		delete this;
+		return 0UL;
+	}
+	return _references;
 }
 
 void OpenALSound::Reactivate()

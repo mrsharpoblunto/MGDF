@@ -33,27 +33,27 @@ public:
 	static ISoundManagerComponent *CreateOpenALSoundManagerComponent( IVirtualFileSystem *vfs );
 
 	virtual ~OpenALSoundManagerComponentImpl();
-	void Update() override;
+	void Update() override final;
 
-	DirectX::XMFLOAT3 *GetListenerPosition() override;
-	DirectX::XMFLOAT3 *GetListenerVelocity() override;
-	DirectX::XMFLOAT3 *GetListenerOrientationForward() override;
-	DirectX::XMFLOAT3 *GetListenerOrientationUp() override;
+	DirectX::XMFLOAT3 *GetListenerPosition() override final;
+	DirectX::XMFLOAT3 *GetListenerVelocity() override final;
+	DirectX::XMFLOAT3 *GetListenerOrientationForward() override final;
+	DirectX::XMFLOAT3 *GetListenerOrientationUp() override final;
 
-	float GetSoundVolume() const override;
-	void SetSoundVolume( float volume ) override;
-	float GetStreamVolume() const override;
-	void SetStreamVolume( float volume ) override;
+	float GetSoundVolume() const override final;
+	void SetSoundVolume( float volume ) override final;
+	float GetStreamVolume() const override final;
+	void SetStreamVolume( float volume ) override final;
 
-	bool GetEnableAttenuation() const override;
-	void SetEnableAttenuation( bool enableAttenuation ) override;
-	float GetDopplerShiftFactor() const override;
-	void SetDopplerShiftFactor( float dopplerShiftFactor ) override;
-	float GetSpeedOfSound() const override;
-	void SetSpeedOfSound( float speedOfSound ) override;
+	bool GetEnableAttenuation() const override final;
+	void SetEnableAttenuation( bool enableAttenuation ) override final;
+	float GetDopplerShiftFactor() const override final;
+	void SetDopplerShiftFactor( float dopplerShiftFactor ) override final;
+	float GetSpeedOfSound() const override final;
+	void SetSpeedOfSound( float speedOfSound ) override final;
 
-	MGDFError CreateSound( IFile *source, INT32 priority, ISound **sound ) override;
-	MGDFError CreateSoundStream( IFile *source, ISoundStream **stream ) override;
+	MGDFError CreateSound( IFile *source, INT32 priority, ISound **sound ) override final;
+	MGDFError CreateSoundStream( IFile *source, ISoundStream **stream ) override final;
 	
 	void RemoveSoundStream( ISoundStream *stream );
 	void RemoveSound( ISound *sound );
@@ -63,7 +63,7 @@ public:
 
 private:
 	OpenALSoundManagerComponentImpl( IVirtualFileSystem *vfs );
-	MGDFError Init() override;
+	MGDFError Init() override final;
 
 	void DeactivateSound( INT32 priority );
 	void PrioritizeSounds( INT32 deactivatedSoundsCount );

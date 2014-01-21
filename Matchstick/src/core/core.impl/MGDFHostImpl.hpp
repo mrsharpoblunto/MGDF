@@ -82,38 +82,38 @@ public:
 	void GetHostInfo( const HostStats &stats, std::wstringstream &ss ) const;
 
 	//error handling functions
-	void FatalError( const char *, const char * ) override;
+	void FatalError( const char *, const char * ) override final;
 
 	// ICommonHost methods
-	ILogger *GetLogger() const override;
-	IRenderSettingsManager *GetRenderSettings() const override;
-	ITimer * GetTimer() const override;
-	const Version * GetMGDFVersion() const override;
-	const char* GetErrorDescription( MGDFError err ) const override;
-	const char* GetErrorString( MGDFError err ) const override;
+	ILogger *GetLogger() const override final;
+	IRenderSettingsManager *GetRenderSettings() const override final;
+	ITimer * GetTimer() const override final;
+	const Version * GetMGDFVersion() const override final;
+	const char* GetErrorDescription( MGDFError err ) const override final;
+	const char* GetErrorString( MGDFError err ) const override final;
 
 	// ISimHost methods
-	void QueueShutDown() override;
-	MGDFError Load( const char *saveName, wchar_t *loadBuffer, UINT32 *size, Version &version ) override;
-	MGDFError BeginSave( const char *saveName, wchar_t *saveBuffer, UINT32 *size ) override;
-	MGDFError CompleteSave( const char *saveName ) override;
-	IVirtualFileSystem *GetVFS() const override;
-	ISoundManager *GetSound() const override;
-	IStatisticsManager *GetStatistics() const override;
-	IGame *GetGame() const override;
-	IInputManager *GetInput() const override;
-	void ShutDown() override;
-	const IStringList *GetSaves() const override;
-	void RemoveSave( const char *saveName ) override;
+	void QueueShutDown() override final;
+	MGDFError Load( const char *saveName, wchar_t *loadBuffer, UINT32 *size, Version &version ) override final;
+	MGDFError BeginSave( const char *saveName, wchar_t *saveBuffer, UINT32 *size ) override final;
+	MGDFError CompleteSave( const char *saveName ) override final;
+	IVirtualFileSystem *GetVFS() const override final;
+	ISoundManager *GetSound() const override final;
+	IStatisticsManager *GetStatistics() const override final;
+	IGame *GetGame() const override final;
+	IInputManager *GetInput() const override final;
+	void ShutDown() override final;
+	const IStringList *GetSaves() const override final;
+	void RemoveSave( const char *saveName ) override final;
 
 	// IRenderHost methods
-	ID3D11Device * GetD3DDevice() const override;
-	ID3D11DeviceContext * GetD3DImmediateContext() const override;
-	ID2D1Device * GetD2DDevice() const override;
-	IRenderTimer * GetRenderTimer() const override;
-	bool SetBackBufferRenderTarget( ID2D1DeviceContext *context ) override;
-	ID3D11Texture2D * GetBackBuffer() const override;
-	void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const override;
+	ID3D11Device * GetD3DDevice() const override final;
+	ID3D11DeviceContext * GetD3DImmediateContext() const override final;
+	ID2D1Device * GetD2DDevice() const override final;
+	IRenderTimer * GetRenderTimer() const override final;
+	bool SetBackBufferRenderTarget( ID2D1DeviceContext *context ) override final;
+	ID3D11Texture2D * GetBackBuffer() const override final;
+	void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const override final;
 
 private:
 	Host( Game *game );

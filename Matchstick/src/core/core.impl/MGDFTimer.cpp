@@ -24,14 +24,35 @@ CPUPerformanceCounter::CPUPerformanceCounter( const char *name, Timer *timer )
 	: _name( name )
 	, _avg( 0 )
 	, _timer( timer )
+	, _references( 1UL )
 {
 	_ASSERTE( name );
 	_ASSERTE( timer );
 }
 
-void CPUPerformanceCounter::Dispose()
+ULONG CPUPerformanceCounter::AddRef()
 {
-	delete this;
+	return ++_references;
+}
+
+ULONG CPUPerformanceCounter::Release()
+{
+	if ( --_references == 0UL ) {
+		delete this;
+		return 0UL;
+	}
+	return _references;
+}
+
+HRESULT CPUPerformanceCounter::QueryInterface( REFIID riid, void **ppvObject )
+{
+	if ( !ppvObject ) return E_POINTER;
+	if ( riid == IID_IUnknown || riid == __uuidof( IPerformanceCounter ) ) {
+		AddRef();
+		*ppvObject = this;
+		return S_OK;
+	}
+	return E_NOINTERFACE;
 }
 
 const char *CPUPerformanceCounter::GetName() const
@@ -83,15 +104,36 @@ GPUPerformanceCounter::GPUPerformanceCounter( const char *name, Timer *timer )
 	, _timer( timer )
 	, _avg( 0 )
 	, _initialized( 0 )
+	, _references( 1UL )
 {
 	_ASSERTE( name );
 	_ASSERTE( timer );
 	Init();
 }
 
-void GPUPerformanceCounter::Dispose()
+ULONG GPUPerformanceCounter::AddRef()
 {
-	delete this;
+	return ++_references;
+}
+
+ULONG GPUPerformanceCounter::Release()
+{
+	if ( --_references == 0UL ) {
+		delete this;
+		return 0UL;
+	}
+	return _references;
+}
+
+HRESULT GPUPerformanceCounter::QueryInterface( REFIID riid, void **ppvObject )
+{
+	if ( !ppvObject ) return E_POINTER;
+	if ( riid == IID_IUnknown || riid == __uuidof( IPerformanceCounter ) ) {
+		AddRef();
+		*ppvObject = this;
+		return S_OK;
+	}
+	return E_NOINTERFACE;
 }
 
 const char *GPUPerformanceCounter::GetName() const

@@ -33,10 +33,10 @@ public:
 	VirtualFileSystemComponent();
 	virtual ~VirtualFileSystemComponent();
 
-	IFile *GetFile( const wchar_t *logicalPath ) const override;
-	IFile *GetRoot() const override;
-	bool Mount( const wchar_t * physicalDirectory ) override;
-	void RegisterArchiveHandler( IArchiveHandler * ) override;
+	IFile *GetFile( const wchar_t *logicalPath ) const override final;
+	IFile *GetRoot() const override final;
+	bool Mount( const wchar_t * physicalDirectory ) override final;
+	void RegisterArchiveHandler( IArchiveHandler * ) override final;
 
 	void MapChildren( DefaultFolderImpl *parent, std::map<const wchar_t *, IFile *, WCharCmp> &children );
 private:
