@@ -261,9 +261,11 @@ Timer::~Timer( void )
 	timeEndPeriod( 1 );
 
 	while ( _cpuCounters.size() > 0 ) {
+		LOG( "CPUTimer '" << _cpuCounters.back()->GetName() << "' still has " << _cpuCounters.back()->RefCount() << " live references", LOG_ERROR );
 		delete _cpuCounters.back();
 	}
 	while ( _gpuCounters.size() > 0 ) {
+		LOG( "GPUTimer '" << _gpuCounters.back()->GetName() << "' still has " << _gpuCounters.back()->RefCount() << " live references", LOG_ERROR );
 		delete _gpuCounters.back();
 	}
 

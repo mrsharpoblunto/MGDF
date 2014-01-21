@@ -26,6 +26,7 @@ public:
 	HRESULT QueryInterface( REFIID riid, void **ppvObject ) override final;
 	ULONG AddRef() override final;
 	ULONG Release() override final;
+	ULONG RefCount() const { return _references; }
 
 	double GetAvgValue();
 private:
@@ -52,6 +53,7 @@ public:
 	HRESULT QueryInterface( REFIID riid, void **ppvObject ) override final;
 	ULONG AddRef() override final;
 	ULONG Release() override final;
+	ULONG RefCount() const { return _references; }
 
 	void Reinit();
 	double GetAvgValue();

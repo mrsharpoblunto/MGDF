@@ -1,16 +1,18 @@
 #include "StdAfx.h"
 
+#include "OpenALSoundManagerComponent.hpp"
+
 #include <math.h>
 #include <algorithm>
-
 #include <limits.h>
 #include <al.h>
 #include <alc.h>
 #include <AL/alut.h>
+
 #include "OpenALSound.hpp"
 #include "VorbisStream.hpp"
 #include "../../common/MGDFLoggerImpl.hpp"
-#include "OpenALSoundManagerComponent.hpp"
+#include "../../common/MGDFResources.hpp"
 
 
 #if defined(_DEBUG)
@@ -68,9 +70,11 @@ MGDFError OpenALSoundManagerComponentImpl::Init()
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl()
 {
 	while ( _sounds.size() > 0 ) {
+		LOG( "Sound '" << Resources::ToString( _sounds.back()->GetName() ) << "' still has " << _sounds.back()->RefCount() << " live references", LOG_ERROR );
 		delete _sounds.back();
 	}
 	while ( _soundStreams.size() > 0 ) {
+		LOG( "SoundStream '" << Resources::ToString( _soundStreams.back()->GetName() ) << "' still has " << _soundStreams.back()->RefCount() << " live references", LOG_ERROR );
 		delete _soundStreams.back();
 	}
 	for ( auto buffer : _sharedBuffers ) {
