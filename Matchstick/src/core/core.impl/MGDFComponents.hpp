@@ -2,7 +2,7 @@
 
 #include <MGDF/MGDF.hpp>
 #include <map>
-#include <typeinfo>
+#include <typeindex>
 #include "../common/MGDFSystemComponent.hpp"
 
 namespace MGDF
@@ -33,9 +33,9 @@ public:
 	*/
 	template<class T>
 	void RegisterComponent( T *component ) {
-		std::string t = typeid( T ).name();
+		std::type_index t = std::type_index( typeid( T ) );
 		if ( _components.find( t ) == _components.end() ) {
-			_components.insert( std::pair<std::string,void *>( t, component) );
+			_components.insert( std::pair<std::type_index,ISystemComponent *>( t, component) );
 		}
 	}
 
@@ -44,9 +44,10 @@ public:
 	*/
 	template<class T>
 	T *Get() {
-		auto component = _components.find( typeid( T ).name() );
+		std::type_index t = std::type_index( typeid( T ) );
+		auto component = _components.find( t );
 		if ( component != _components.end() ) {
-			return static_cast <T *>(component->second);
+			return static_cast<T *>(component->second);
 		}
 		return nullptr;
 	}
@@ -57,22 +58,23 @@ public:
 	*/
 	template<class T>
 	void UnregisterComponent() {
-		auto component = _components.find( typeid( T ).name() );
+		std::type_index t = std::type_index( typeid( T ) );
+		auto component = _components.find( t );
 		if ( component != _components.end() ) {
-			delete static_cast <ISystemComponent *>(component->second);
+			delete component->second;
 			_components.erase( component );
 		}
 	}
 
 	void RegisterComponentErrorHandler( IErrorHandler *errorHandler ) {
 		for ( auto component : _components ) {
-			static_cast <ISystemComponent *>(component.second)->SetComponentErrorHandler( errorHandler );
+			component.second->SetComponentErrorHandler( errorHandler );
 		}
 	}
 
 private:
 	Components();
-	std::map<std::string, void *> _components;
+	std::map<std::type_index, ISystemComponent *> _components;
 };
 
 }

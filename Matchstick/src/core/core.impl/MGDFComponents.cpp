@@ -22,7 +22,7 @@ Components::~Components()
 {
 	//warnings output for components that have not been properly cleaned up
 	for ( auto &component : _components ) {
-		LOG( "component " << component.first << " has not been unregistered on shutdown", LOG_ERROR );
+		LOG( "component " << component.first.name() << " has not been unregistered on shutdown", LOG_ERROR );
 	}
 }
 
