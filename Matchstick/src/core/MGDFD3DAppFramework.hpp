@@ -36,6 +36,7 @@ protected:
 	virtual void OnAfterPresent() = 0;
 
 	virtual void OnUpdateSim() = 0;
+	virtual void OnSimIdle() = 0;
 
 	virtual void OnExternalClose() = 0;
 	virtual void OnMouseInput( INT32 x, INT32 y ) = 0;

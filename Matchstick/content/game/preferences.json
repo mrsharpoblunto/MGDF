@@ -8,6 +8,10 @@
     {
         "name":"simFps",
         "value":"120"
+    },
+	{
+        "name":"interpolateFrames",
+        "value":"1"
     }
   ]
 }

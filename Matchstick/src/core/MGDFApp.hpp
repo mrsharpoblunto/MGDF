@@ -36,6 +36,7 @@ protected:
 	void OnAfterPresent() override final;
 
 	void OnUpdateSim() override final;
+	void OnSimIdle() override final;
 
 	LRESULT OnHandleMessage( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam ) override final;
 	void OnExternalClose() override final;
@@ -56,7 +57,10 @@ private:
 	HostStats _stats;
 	LARGE_INTEGER _renderStart;
 	LARGE_INTEGER _activeRenderEnd;
+	LARGE_INTEGER _simulationStart;
 
+	bool _interpolateFrames;
+	std::atomic_flag _awaitFrame;
 	std::atomic_bool _drawSystemOverlay;
 
 	ID2D1DeviceContext *_context;

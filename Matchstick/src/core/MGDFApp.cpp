@@ -30,6 +30,10 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 	const char *simFps = host->GetGame()->GetPreference( "simFps" );
 	UINT32 simulationFps = atoi( simFps );
 
+	const char *interpolateFrames = host->GetGame()->GetPreference( "interpolateFrames" );
+	_interpolateFrames = atoi( interpolateFrames ) == 1;
+	_awaitFrame.test_and_set();
+
 	if ( !simFps || !simulationFps ) {
 		FATALERROR( _host, "simFps was not found in preferences or is not an integer" );
 	}
@@ -161,6 +165,11 @@ void MGDFApp::OnBackBufferChange( ID3D11Texture2D *backBuffer )
 
 void MGDFApp::OnBeforeFirstDraw()
 {
+	// wait for one sim frame to finish before
+	// we start drawing
+	while ( _awaitFrame.test_and_set() ) {
+		Sleep( 1 );
+	}
 	_host->RTBeforeFirstDraw();
 }
 
@@ -168,8 +177,21 @@ void MGDFApp::OnDraw()
 {
 	_renderStart = _host->GetTimer()->GetCurrentTimeTicks();
 
-	// Render the scene
-	double alpha = _frameLimiter->ProgressThroughCurrentFrame();
+	// We can minimize visual 'stuttering' due to the fact that 
+	// the sim and render threads may not be in sync using two methods.
+	// We can either interpolate between render frames or we can
+	// prevent rendering until we guarentee that a new frame is ready.
+	// if the sim FPS is greater than or equal to 60FPS then the latter
+	// is preferred. However if sim FPS is much lower than 60FPS, then 
+	// the former method may be a better option.
+	double alpha = 0;
+	if ( _interpolateFrames ) {
+		alpha = _frameLimiter->ProgressThroughCurrentFrame();
+	} else {
+		while ( _awaitFrame.test_and_set() ) {
+			Sleep( 1 );
+		}
+	}
 	_host->RTDraw( alpha ); 
 
 	bool exp = true;
@@ -256,7 +278,7 @@ void MGDFApp::InitBrushes()
 
 void MGDFApp::OnUpdateSim()
 {
-	LARGE_INTEGER simulationStart = _host->GetTimer()->GetCurrentTimeTicks();
+	_simulationStart = _host->GetTimer()->GetCurrentTimeTicks();
 
 	if ( !_initialized ) {
 		LOG( "Creating Module...", LOG_LOW );
@@ -266,15 +288,20 @@ void MGDFApp::OnUpdateSim()
 
 	//execute one frame of game logic as per the current module
 	_host->STUpdate( _stats.ExpectedSimTime(), _stats );
+	_awaitFrame.clear();
 
 	LARGE_INTEGER activeSimulationEnd = _host->GetTimer()->GetCurrentTimeTicks();
-	_stats.AppendActiveSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( activeSimulationEnd, simulationStart ) );
+	_stats.AppendActiveSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( activeSimulationEnd, _simulationStart ) );
+}
 
+
+void MGDFApp::OnSimIdle()
+{
 	//wait until the next frame to begin if we have any spare time left over
 	_frameLimiter->LimitFps();
 
 	LARGE_INTEGER simulationEnd = _host->GetTimer()->GetCurrentTimeTicks();
-	_stats.AppendSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( simulationEnd, simulationStart ) );
+	_stats.AppendSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( simulationEnd, _simulationStart ) );
 }
 
 

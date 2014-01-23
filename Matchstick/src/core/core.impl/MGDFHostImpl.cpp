@@ -77,7 +77,7 @@ MGDFError Host::Init()
 	MGDFError error = ModuleFactory::TryCreate( &_moduleFactory );
 	if ( MGDF_OK != error ) return error;
 
-	error = Timer::TryCreate( &_timer );
+	error = Timer::TryCreate( TIMER_SAMPLES, &_timer );
 	if (MGDF_OK != error ) return error;
 
 	//map essential directories to the vfs
@@ -284,7 +284,7 @@ void Host::RTSetDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIA
 {
 	LOG( "Initializing render settings and GPU timers...", LOG_LOW );
 	_renderSettings.InitFromDevice( d3dDevice, adapter );
-	_timer->InitFromDevice( d3dDevice, GPU_TIMER_BUFFER, TIMER_SAMPLES );
+	_timer->InitFromDevice( d3dDevice, GPU_TIMER_BUFFER );
 
 	if ( _renderSettings.GetAdaptorModeCount() == 0 ) {
 		FATALERROR( this, "No compatible adaptor modes found" );

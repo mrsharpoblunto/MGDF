@@ -405,26 +405,22 @@ INT32 D3DAppFramework::Run()
 	}
 
 	std::atomic_flag runSimThread;
-	std::atomic_flag waitOnRenderThread;
-	waitOnRenderThread.test_and_set();
 	_runRenderThread.test_and_set();
 
 	//run the simulation in its own thread
-	std::thread simThread( [this, &runSimThread, &waitOnRenderThread]() {
+	std::thread simThread( [this, &runSimThread]() {
 		runSimThread.test_and_set();
 
 		LOG( "Starting sim thread...", LOG_LOW );
 		while ( runSimThread.test_and_set() ) {
 			OnUpdateSim();
-			//run a frame of game logic before starting the render thread
-			waitOnRenderThread.clear();
+			OnSimIdle();
 		}
 		LOG( "Stopping sim thread...", LOG_LOW );
 	} );
 
 	//run the renderer in its own thread
-	_renderThread = new std::thread( [this, &waitOnRenderThread]() {
-		while ( waitOnRenderThread.test_and_set() ) Sleep( 1 );   //ensure the simulation runs at least one tick before rendering begins.
+	_renderThread = new std::thread( [this]() {
 
 		LOG( "Starting render thread...", LOG_LOW );
 		OnBeforeFirstDraw();
@@ -432,6 +428,7 @@ INT32 D3DAppFramework::Run()
 		DXGI_PRESENT_PARAMETERS presentParams;
 		ZeroMemory( &presentParams, sizeof(DXGI_PRESENT_PARAMETERS) );
 
+		UINT i = 0;
 		while ( _runRenderThread.test_and_set() ) {
 			bool exp=true;
 			UINT32 fullScreen = SWITCH_TO_FULLSCREEN_MODE;
@@ -518,6 +515,7 @@ INT32 D3DAppFramework::Run()
 				_immediateContext->ClearDepthStencilView( _depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0 );
 
 				OnDraw();
+
 				HRESULT result = _swapChain->Present1( VSyncEnabled() ? 1 : 0 , 0, &presentParams );
 				OnAfterPresent();
 
