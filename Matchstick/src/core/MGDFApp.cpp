@@ -234,7 +234,7 @@ void MGDFApp::DrawSystemOverlay()
 	}
 
 	DWRITE_TEXT_METRICS metrics;
-	ZeroMemory(&metrics,sizeof(metrics));
+	SecureZeroMemory(&metrics,sizeof(metrics));
 	if (FAILED(textLayout->GetMetrics(&metrics))) {
 		FATALERROR(_host,"Unable to get text overhang metrics");
 	}

@@ -226,6 +226,10 @@ void GPUPerformanceCounter::Reset()
 		_endQueries.pop();
 		SAFE_RELEASE( counter );
 	}
+	for ( auto pending : _pendingQueries ) {
+		SAFE_RELEASE( pending.second.first );
+		SAFE_RELEASE( pending.second.second );
+	}
 	_pendingQueries.clear();
 	_currentDisjoint = nullptr;
 }
@@ -313,10 +317,12 @@ Timer::~Timer( void )
 	while ( _cpuCounters.size() > 0 ) {
 		LOG( "CPUTimer '" << _cpuCounters.back()->GetName() << "' still has " << _cpuCounters.back()->RefCount() << " live references", LOG_ERROR );
 		delete _cpuCounters.back();
+		_cpuCounters.pop_back();
 	}
 	while ( _gpuCounters.size() > 0 ) {
 		LOG( "GPUTimer '" << _gpuCounters.back()->GetName() << "' still has " << _gpuCounters.back()->RefCount() << " live references", LOG_ERROR );
 		delete _gpuCounters.back();
+		_gpuCounters.pop_back();
 	}
 
 	ResetGPUTimers();
@@ -429,24 +435,22 @@ MGDFError Timer::CreateGPUCounter( const char *name, IPerformanceCounter **count
 void Timer::RemoveCounter( IPerformanceCounter *counter )
 {
 	if ( !counter ) return;
-	CPUPerformanceCounter *cpuCounter = dynamic_cast<CPUPerformanceCounter *>( counter );
 
 	std::lock_guard<std::mutex> lock( _mutex );
-	if ( cpuCounter ) {
-		for ( auto iter = _cpuCounters.begin(); iter != _cpuCounters.end(); ++iter ) {
-			if ( *iter == counter ) {
-				_cpuCounters.erase( iter );
-				return;
-			}
-		}
-	} else {
-		for ( auto iter = _gpuCounters.begin(); iter != _gpuCounters.end(); ++iter ) {
-			if ( *iter == counter ) {
-				_gpuCounters.erase( iter );
-				return;
-			}
+	for ( auto iter = _cpuCounters.begin(); iter != _cpuCounters.end(); ++iter ) {
+		if ( *iter == counter ) {
+			_cpuCounters.erase( iter );
+			return;
 		}
 	}
+	for ( auto iter = _gpuCounters.begin(); iter != _gpuCounters.end(); ++iter ) {
+		if ( *iter == counter ) {
+			_gpuCounters.erase( iter );
+			return;
+		}
+	}
+
+	_ASSERTE( 0 );
 }
 
 void Timer::Begin()

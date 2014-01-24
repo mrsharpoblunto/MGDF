@@ -50,10 +50,10 @@ D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
 	_resize.store( false );
 	_screenMode.store( 0U );
 
-	ZeroMemory( &_windowRect, sizeof( RECT ) );
-	ZeroMemory( &_currentSize, sizeof( POINT ) );
-	ZeroMemory( &_swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC1) );
-	ZeroMemory( &_fullscreenSwapDesc, sizeof(DXGI_SWAP_CHAIN_FULLSCREEN_DESC) );
+	SecureZeroMemory( &_windowRect, sizeof( RECT ) );
+	SecureZeroMemory( &_currentSize, sizeof( POINT ) );
+	SecureZeroMemory( &_swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC1) );
+	SecureZeroMemory( &_fullscreenSwapDesc, sizeof(DXGI_SWAP_CHAIN_FULLSCREEN_DESC) );
 }
 
 D3DAppFramework::~D3DAppFramework()
@@ -304,9 +304,21 @@ void D3DAppFramework::UninitD3D() {
 	SAFE_RELEASE( _swapChain );
 	SAFE_RELEASE( _factory );
 	SAFE_RELEASE( _immediateContext );
-	SAFE_RELEASE( _d3dDevice );
 	SAFE_RELEASE( _d2dDevice );
 	SAFE_RELEASE( _d2dFactory );
+
+#if defined(_DEBUG)
+	ID3D11Debug *debug;
+	bool failed = FAILED( _d3dDevice->QueryInterface( __uuidof( ID3D11Debug ), reinterpret_cast<void**>( &debug ) ) );
+#endif
+	SAFE_RELEASE( _d3dDevice );
+#if defined(_DEBUG)
+	if ( !failed ) {
+		debug->ReportLiveDeviceObjects( D3D11_RLDO_DETAIL );
+		SAFE_RELEASE( debug );
+	}
+#endif
+
 }
 
 void D3DAppFramework::CreateSwapChain()
@@ -426,7 +438,7 @@ INT32 D3DAppFramework::Run()
 		OnBeforeFirstDraw();
 
 		DXGI_PRESENT_PARAMETERS presentParams;
-		ZeroMemory( &presentParams, sizeof(DXGI_PRESENT_PARAMETERS) );
+		SecureZeroMemory( &presentParams, sizeof(DXGI_PRESENT_PARAMETERS) );
 
 		UINT i = 0;
 		while ( _runRenderThread.test_and_set() ) {
@@ -459,8 +471,8 @@ INT32 D3DAppFramework::Run()
 
 				DXGI_MODE_DESC1 matching;
 				DXGI_MODE_DESC1 desc;
-				ZeroMemory( &matching, sizeof( DXGI_MODE_DESC1 ) );
-				ZeroMemory( &desc, sizeof( DXGI_MODE_DESC1 ) );
+				SecureZeroMemory( &matching, sizeof( DXGI_MODE_DESC1 ) );
+				SecureZeroMemory( &desc, sizeof( DXGI_MODE_DESC1 ) );
 
 				OnSwitchToFullScreen( desc );
 
