@@ -50,9 +50,9 @@ public:
 	bool IsPlaying() const override final;
 	bool IsActive() const override final;
 
-	HRESULT QueryInterface( REFIID riid, void **ppvObject ) override final;
-	ULONG AddRef() override final;
-	ULONG Release() override final;
+	HRESULT STDMETHODCALLTYPE QueryInterface( REFIID riid, void **ppvObject ) override final;
+	ULONG STDMETHODCALLTYPE AddRef() override final;
+	ULONG STDMETHODCALLTYPE Release() override final;
 	ULONG RefCount() const { return _references; }
 
 	float GetAttenuatedVolume() const;
