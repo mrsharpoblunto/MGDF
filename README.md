@@ -29,22 +29,22 @@ The framework is composed of three main parts (the second two of which are not r
 ### The core
 This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before boostrapping the user supplied game dll and passing control on to that dll. Once up and running the game dll can then access the frameworks functionality via a series of c++ interfaces (graphics, audio, input, virtual filesystem etc...)
 
-### The GamesManager
-This is written in C# (.NET 2.0) and consists a winforms application which provides a graphical user interface for launching and updating games.
+### The GamesManager (Optional)
+This is written in C# (.NET 2.0) and consists a windows forms application which provides a graphical user interface for launching and updating games.
 
-### Statistics services
+### Statistics services (Optional)
 This is written in c# (.NET 3.5) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user. This service exposes a simple json API and could be implemented using a non .NET backend if required.
 
 Building Source
 ---------------
 
-* Using Microsoft Visual Studio 2012 build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
+* Using Microsoft Visual Studio 2013 build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
 
 Running unit tests
 ------------------
-All managed code projects use nunit 2.5.2 and providing nunit is installed (use testdriven.net for integration into the visual studio UI) they should work once the solution is compiled
+All managed code projects use nunit 2.6.3 and providing nunit is installed (use testdriven.net for integration into the visual studio UI) they should work once the solution is compiled
 
-all unmanaged code tests are contined within the core.tests.exe binary which must first be compiled as part of the Matchstick/Matchstick.sln project Once built, running this exe from the command line will run the test suite.
+all unmanaged code tests are contained within the core.tests.exe binary which must first be compiled as part of the Matchstick/Matchstick.sln project Once built, running this exe from the command line will run the test suite.
 
 To make running the unmanaged unit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
 

@@ -64,7 +64,7 @@ void VirtualFileSystemComponent::MapChildren( DefaultFolderImpl *parent, std::ma
 
 	wdirectory_iterator end_itr; // default construction yields past-the-end
 	for ( wdirectory_iterator itr( path ); itr != end_itr; ++itr ) {
-		IFile *mappedChild = Map( path / ( *itr ).path(), parent );
+		IFile *mappedChild = Map( ( *itr ).path(), parent );
 		_ASSERTE( mappedChild );
 		children.insert( std::pair<const wchar_t *, IFile *> ( mappedChild->GetName(), mappedChild ) );
 	}

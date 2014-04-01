@@ -121,7 +121,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="default-Web.config" />
+    <Content Include="default-Web.config">
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="error.htm" />
     <Content Include="Statistics.svc" />
   </ItemGroup>

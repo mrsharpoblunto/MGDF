@@ -1,4 +1,5 @@
 #include "StdAfx.h"
+#include <algorithm>
 
 #include "ZipFileImpl.hpp"
 
