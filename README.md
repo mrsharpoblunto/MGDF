@@ -30,10 +30,10 @@ The framework is composed of three main parts (the second two of which are not r
 This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before boostrapping the user supplied game dll and passing control on to that dll. Once up and running the game dll can then access the frameworks functionality via a series of c++ interfaces (graphics, audio, input, virtual filesystem etc...)
 
 ### The GamesManager (Optional)
-This is written in C# (.NET 2.0) and consists a windows forms application which provides a graphical user interface for launching and updating games.
+This is written in C# (.NET 4.5) and consists a windows forms application which provides a graphical user interface for launching and updating games.
 
 ### Statistics services (Optional)
-This is written in c# (.NET 3.5) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user. This service exposes a simple json API and could be implemented using a non .NET backend if required.
+This is written in c# (.NET 4.5) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user. This service exposes a simple json API and could be implemented using a non .NET backend if required.
 
 Building Source
 ---------------
