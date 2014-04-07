@@ -121,7 +121,8 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>%DXSDK_DIR%Lib\x86\xinput.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -172,7 +173,8 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>%DXSDK_DIR%Lib\x86\xinput.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -195,7 +197,8 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>%DXSDK_DIR%Lib\x64\xinput.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
