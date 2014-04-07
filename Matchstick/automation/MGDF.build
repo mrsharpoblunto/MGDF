@@ -10,7 +10,7 @@
 	<!-- Update the major.minor version number here whenever a new release is planned -->
 	<property name="buildnumber" value="0.10.${year.since2014}${month.now}${day.now}.${hour.now}${minute.now}"/>
 
-	<property name="output_dir" value="c:\builds"/>
+	<property name="output_dir" value="c:\builds\MGDF"/>
 	<property name="msbuild_target" value="debug"/>
   <property name="msplatform_target" value="Win32"/>
   <property name="program_files_path" value="${environment::get-variable('ProgramFiles(x86)')}" />
@@ -205,9 +205,9 @@
     <delete dir="Package\SDK"/>
 
 		<!-- copy the completed build to the output folder -->
-		<mkdir dir="${output_dir}\MGDF" />
-		<mkdir dir="${output_dir}\MGDF\${buildnumber}" />
-		<copy todir="${output_dir}\MGDF\${buildnumber}">
+		<mkdir dir="${output_dir}" />
+		<mkdir dir="${output_dir}\${buildnumber}" />
+		<copy todir="${output_dir}\${buildnumber}">
 			<fileset basedir="${project::get-base-directory()}\Package">
 				<include name="**/*.*" />
 			</fileset>
