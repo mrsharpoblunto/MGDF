@@ -17,7 +17,7 @@
 	<property name="nunit_exe_path" value="${program_files_path}\NUnit 2.6.3\bin\nunit-console.exe"/>
 	<property name="nantcontrib_path" value="${program_files_path}\NantContrib-0.92\bin"/>
   <property name="vc_install_path" value="${program_files_path}\Microsoft Visual Studio 12.0" />
-  <property name="windows_sdk_path" value="${program_files_path}\Microsoft SDKs\Windows\v8.1A" />
+  <property name="windows_sdk_path" value="${program_files_path}\Microsoft SDKs\Windows\v7.1A" />
   <property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
   <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
   <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>
