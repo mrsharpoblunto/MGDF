@@ -5,6 +5,7 @@ using System.Text;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
+using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.Model.Helpers;
 
 namespace MGDF.GamesManager.Model
@@ -39,7 +40,7 @@ namespace MGDF.GamesManager.Model
 
         private void UpdateFramework()
         {
-            using (var archive = ArchiveFactory.Current.OpenArchive(_installer))
+			using (var archive = ArchiveFactory.Current.OpenArchive(_installer))
             {
                 long total = ArchiveFileHelper.GetSubTreeData(archive).BytesCount;
                 uint uTotal = total > uint.MaxValue ? uint.MaxValue : (uint)total;

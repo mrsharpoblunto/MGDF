@@ -149,7 +149,12 @@ namespace MGDF.GamesManager.MVP.Presenters
                             {
                                 //show an error message, though we may still be able to download a game update, so don't bail out yet.
                                 ShowError("Install failed", "Failed to install MGDF framework update");
-                            }
+							}
+							else
+							{
+								View.Invoke(() => View.Details = "Installing framework dependancies...");
+								DependancyInstaller.Install();
+							}
                         }
                     }
                     finally

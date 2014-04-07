@@ -10,6 +10,7 @@
 	<!-- Update the major.minor version number here whenever a new release is planned -->
 	<property name="buildnumber" value="0.10.${year.since2014}${month.now}${day.now}.${hour.now}${minute.now}"/>
 
+	<property name="build_output" value="c:\builds"/>
 	<property name="msbuild_target" value="debug"/>
   <property name="msplatform_target" value="Win32"/>
   <property name="program_files_path" value="${environment::get-variable('ProgramFiles(x86)')}" />
@@ -20,7 +21,6 @@
   <property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
   <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
   <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>
-  <property name="ilmerge_exe_path" value="${program_files_path}\Microsoft\Ilmerge\Ilmerge.exe"/>
   
 	<!-- default target  -->
 	<target name="all" depends="build, test, documentation, distro" description="build, test, and create distro"/>
@@ -85,52 +85,12 @@
 
   <target name="distro" description="Generates the MGDF distributable package">
     <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\core.tests.exe" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\nunit.framework.dll" />
-    
-    <!-- bundle up gamesmanager dependancies so the gamesmanager can update all dlls while running -->
-    <exec program="${ilmerge_exe_path}">
-      <arg value="/out:${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Merged.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Common.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Controls.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Model.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\IconLib.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
-    </exec>
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.exe" />
-    <copy file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Merged.exe" tofile="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.exe" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Merged.exe" />
 
-    <!-- bundle up gamesmanager framework updater dependancies -->
-    <exec program="${ilmerge_exe_path}">
-      <arg value="/out:${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Common.dll" />
-      <arg value="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Model.dll" />
-    </exec>
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-    <copy file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" tofile="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.exe" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.FrameworkUpdater.Merged.exe" />
-
-    <!-- remove individual assemblies -->
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Common.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Controls.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.Model.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\IconLib.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
-    <delete file="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
-    
     <!-- create the main distribution file which will be put on the auto update site -->
     <mkdir dir="Package" />
     <mkdir dir="Package/Distro" />
     <copy todir="Package/Distro">
       <fileset basedir="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}">
-        <exclude name=".svn" />
         <exclude name="*.exp"/>
         <exclude name="*.lib"/>
         <exclude name="*.pdb"/>
@@ -139,6 +99,7 @@
         <include name="**/*.*" />
       </fileset>
     </copy>
+		
     <exec program="${sevenzip_path}" failonerror="false" workingdir="${project::get-base-directory()}\Package">
       <arg value="a" />
       <arg value="-r" />
@@ -172,14 +133,6 @@
     </copy>
     
     <mkdir dir="Package/SDK" />
-
-    <mkdir dir="Package/SDK/Prereqs" />
-    <copy todir="Package/SDK/Prereqs">
-      <fileset basedir="..\Installers">
-        <include name="vc2012redist_x86.exe" />
-        <include name="DotNetFx35ClientSetup.exe" />
-      </fileset>
-    </copy>
     
     <!-- copy distro to SDK-->
     <copy file="Package/MGDF_${buildnumber}.zip" todir="Package/SDK" overwrite="true"/>
@@ -190,32 +143,20 @@
     <mkdir dir="Package/SDK/Include" />
     <copy todir="Package/SDK/Include">
       <fileset basedir="include">
-        <exclude name=".svn" />
         <include name="**/*.*" />
       </fileset>
     </copy>  
     
     <mkdir dir="Package/SDK/Bin" />
     
-    <!-- ilmerge and copy packagegen to SDK bin dir -->
-    <exec program="${ilmerge_exe_path}">
-      <arg value="/out:Package\SDK\Bin\PackageGen.exe" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Common.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.Model.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.StatisticsService.Contracts.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\IconLib.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\ICSharpCode.SharpZipLib.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\Interop.IWshRuntimeLibrary.dll" />
-      <arg value="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\Newtonsoft.Json.Net35.dll" />
-    </exec>
-    <copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\SDK\Bin\PackageGen.exe.config" overwrite="true"/>
+    <!-- copy packagegen to SDK bin dir -->
+		<copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe" tofile="Package\SDK\Bin\PackageGen.exe" overwrite="true"/>
+		<copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\SDK\Bin\PackageGen.exe.config" overwrite="true"/>
 
     <!-- copy docs to SDK/Documentation -->
     <mkdir dir="Package/SDK/Documentation" />
     <copy todir="Package/SDK/Documentation">
       <fileset basedir="documentation">
-        <exclude name=".svn" />
         <include name="**/*.*" />
       </fileset>
     </copy>
@@ -273,5 +214,14 @@
     </exec>
 
     <delete dir="Package\SDK"/>
+
+		<!-- copy the completed build to the output folder -->
+		<mkdir dir="${output_dir}\MGDF" />
+		<mkdir dir="${output_dir}\MGDF\${buildnumber}" />
+		<copy todir="${output_dir}\MGDF\${buildnumber}">
+			<fileset basedir="${project::get-base-directory()}\Package">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
 </target>
 </project>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Configuration;
 using System.Drawing;
 using System.IO;
@@ -106,7 +107,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
                 }
 
-                Launch();
+				Launch();
             }
             catch (ThreadAbortException)
             {

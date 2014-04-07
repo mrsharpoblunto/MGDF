@@ -16,7 +16,7 @@ namespace MGDF.GamesManager.Common.Framework
         IDirectory Parent { get; }
         void CopyTo(string path);
         void Empty(params string[] exclusions);
-    }
+	}
 
     public class Directory : IDirectory
     {

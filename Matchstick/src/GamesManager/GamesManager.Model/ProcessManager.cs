@@ -11,6 +11,7 @@ namespace MGDF.GamesManager.Model
     public interface IProcessManager
     {
         void StartProcess(string filePath, string args, ProcessExited callback,object context);
+		int WaitForProcess(string filePath, string args);
     }
 
     /// <summary>
@@ -48,5 +49,25 @@ namespace MGDF.GamesManager.Model
                 callback(context, -1);
             }
         }
+
+		public int WaitForProcess(string filePath, string args)
+		{
+			try
+			{
+				var proc = new Process();
+				proc.EnableRaisingEvents = false;
+				proc.StartInfo.FileName = filePath;
+				proc.StartInfo.Arguments = args;
+				proc.StartInfo.UseShellExecute = false;
+				proc.Start();
+				proc.WaitForExit();
+				return proc.ExitCode;
+			}
+			catch (Exception ex)
+			{
+				Logger.Current.Write(ex, "Failed to launch process " + filePath + " " + args);
+				return -1;
+			}
+		}
     }
 }

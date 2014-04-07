@@ -96,7 +96,8 @@ namespace MGDF.GamesManager.Model.Entities
                             writer.WriteRequiredValue("statisticsserviceenabled", Settings.StatisticsServiceEnabled.ToString());
                         }
                         writer.WriteRequiredValue("username", Settings.UserName ?? string.Empty);
-                        writer.WriteRequiredValue("passwordhash",DPAPI.Encrypt(Settings.Password ?? string.Empty));           
+                        writer.WriteRequiredValue("passwordhash",DPAPI.Encrypt(Settings.Password ?? string.Empty));
+
                         writer.WriteEndObject();
 
                         writer.WriteEndObject();

@@ -11,5 +11,10 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
         public void StartProcess(string filePath, string args, ProcessExited callback, object context)
         {
         }
-    }
+		
+		public int WaitForProcess(string filePath,string args)
+		{
+			return 0;
+		}
+	}
 }

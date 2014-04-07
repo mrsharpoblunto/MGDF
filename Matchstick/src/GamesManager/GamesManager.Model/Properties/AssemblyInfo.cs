@@ -6,5 +6,3 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("GamesManager.model")]
-
-[assembly: InternalsVisibleTo("GamesManager.GameSource.DataLoader")]

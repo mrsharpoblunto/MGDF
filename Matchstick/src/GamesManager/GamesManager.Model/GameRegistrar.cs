@@ -1,11 +1,13 @@
 ﻿
 using System;
+using System.Collections.Generic;
 using System.IO;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Entities;
-using File=MGDF.GamesManager.Common.Framework.File;
-using InstalledProgramsHelper=MGDF.GamesManager.Model.Helpers.InstalledProgramsHelper;
+using MGDF.GamesManager.Common.Extensions;
+using File = MGDF.GamesManager.Common.Framework.File;
+using InstalledProgramsHelper = MGDF.GamesManager.Model.Helpers.InstalledProgramsHelper;
 
 namespace MGDF.GamesManager.Model
 {
@@ -31,6 +33,7 @@ namespace MGDF.GamesManager.Model
                 AddToGamesExplorer();
                 AddToStartMenu();
                 AddDesktopShortcut();
+				DependancyInstaller.Install();
             }
             catch (Exception ex)
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.Tests.Common.Mocks;
@@ -102,5 +103,24 @@ namespace MGDF.GamesManager.Tests
             Assert.AreEqual(false, game.IsValid);
             Assert.AreEqual(1, game.ErrorCollection.Count);
         }
+
+		[Test]
+		public void LoadDependanciesFile()
+		{
+			const string json = @"{
+	""dependancies"":[
+		{ ""command"": ""vc2013redist_x86.exe"", ""arguments"":""/q"" }
+	]
+}";
+
+			MockDirectory depsDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory));
+			depsDirectory = depsDirectory.AddDirectory("dependancies");
+			depsDirectory.AddFile("dependancies.json", json);
+			var deps = new FrameworkDependancies(Resources.DependanciesFile);
+			Assert.AreEqual(true, deps.IsValid);
+			Assert.AreEqual(0, deps.ErrorCollection.Count);
+			Assert.AreEqual(1, deps.Dependencies.Count);
+			Assert.AreEqual("/q", deps.Dependencies["vc2013redist_x86.exe"]);
+		}
     }
 }

@@ -23,6 +23,7 @@ namespace MGDF.GamesManager.Common
         public const int InterfaceVersion = 1;
         public const string SupportEmail = "support@matchstickframework.org";
 
+		public const string DependancyConfig = @"dependancies.json";
         public const string UpdateConfig = @"update.json";
         public const string GameConfig = @"game.json";
         public const string PreferencesConfig = @"preferences.json";
@@ -30,6 +31,7 @@ namespace MGDF.GamesManager.Common
         public const string GameIcon = "gameicon.png";
         public const string GameSystemIcon = "gamesystemicon.ico";
         public const string GameDefinitionFileBinary = "gdf.dll";
+		public const string LastUpdate = ".lastupdate";
 
         public const string CoreResources = "resources";
         public const string ContentDir = @"content";
@@ -129,6 +131,22 @@ namespace MGDF.GamesManager.Common
             }
         }
 
+		public static string DependanciesDir
+		{
+			get
+			{
+				return FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, "Dependancies");
+			}
+		}
+
+		public static string DependanciesFile
+		{
+			get
+			{
+				return FileSystem.Combine(DependanciesDir, DependancyConfig);
+			}
+		}
+
         public static void InitUpdaterDirectories()
         {
             var downloadsDir = FileSystem.Current.GetDirectory(DownloadsDir);
@@ -148,7 +166,7 @@ namespace MGDF.GamesManager.Common
 
         public static string UserGameLastUpdateFile()
         {
-            return FileSystem.Combine(GameUserDir, ".lastupdate");
+            return FileSystem.Combine(GameUserDir, LastUpdate);
         }
 
         public static string UserStatistics()
