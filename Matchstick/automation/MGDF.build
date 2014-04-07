@@ -46,6 +46,7 @@
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
       <property name="Platform" value="${msplatform_target}"/>
+			<property name="VisualStudioVersion" value="12.0" />
 		</msbuild>
 	</target>
 
