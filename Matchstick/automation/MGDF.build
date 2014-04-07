@@ -47,6 +47,7 @@
 			<property name="Configuration" value="${msbuild_target}"/>
       <property name="Platform" value="${msplatform_target}"/>
 			<property name="VisualStudioVersion" value="12.0" />
+			<property name="VCTargetsPath" value="${program_files_path}\MSBuild\Microsoft.Cpp\v4.0\V120" />
 		</msbuild>
 	</target>
 
