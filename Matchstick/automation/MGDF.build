@@ -49,30 +49,17 @@
 		</msbuild>
 	</target>
 
-	<target name="test" description="Runs the MGDF core unit tests">
+	<target name="test" description="Runs the MGDF unit tests">
 		<echo message="Running MGDF GamesManager unit tests..."/>
-		<exec program="${nunit_exe_path}" output="${project::get-base-directory()}\GamesManager.Tests-Results.txt" failonerror="false" resultproperty="testresult.gamesmanager" workingdir="tests\GamesManager.Tests\bin\${msbuild_target}">
-			<arg value="GamesManager.Tests.dll" />
-			<arg value="/xml=${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
-			<arg value="/nologo" />
-			<arg value="/nodots" />
-		</exec>
-		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.Tests-Results.txt']"/>
-
-		<nunit2report out="${project::get-base-directory()}\GamesManager.Tests-Results.html">
-  			<fileset>
-    				<include name="${project::get-base-directory()}\GamesManager.Tests-Results.xml" />
-  			</fileset>
-		</nunit2report>
-		<echo message="##teamcity[publishArtifacts '${project::get-base-directory()}\GamesManager.Tests-Results.html']"/>
+		<nunit2>
+			<formatter type="Plain" />
+			<test assemblyname="tests\GamesManager.Tests\bin\${msbuild_target}\GamesManager.Tests.dll" />
+		</nunit2>
 
 		<echo message="Running MGDF core unit tests..."/>
 		<exec program="${project::get-base-directory()}\bin\${msplatform_target}\${msbuild_target}\core.tests.exe" failonerror="false" resultproperty="testresult.core" workingdir="bin\${msplatform_target}\${msbuild_target}">
       <arg value="--teamcity" />
 		</exec>
-
-		<!-- Check the results and fail if necessary -->
-		<fail message="Failures reported in MGDF GamesManager unit tests." unless="${int::parse(testresult.gamesmanager)==0}" />
 		<fail message="Failures reported in MGDF core unit tests." unless="${int::parse(testresult.core)==0}" />
 
 	</target>
