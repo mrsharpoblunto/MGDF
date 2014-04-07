@@ -20,7 +20,7 @@
   <property name="windows_sdk_path" value="${program_files_path}\Microsoft SDKs\Windows\v7.1A" />
   <property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
   <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
-  <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v2.0.50727\aspnet_compiler.exe"/>
+  <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v4.0.30319\aspnet_compiler.exe"/>
   
 	<!-- default target  -->
 	<target name="all" depends="build, test, documentation, distro" description="build, test, and create distro"/>
@@ -171,12 +171,12 @@
     <mkdir dir="Package/SDK/Server/StatisticsService" />
     <echo message="Packaging MGDF Statistics Service"/>
     <exec program="${aspnetcompiler_exe_path}">
-      <arg value="/v" />
-      <arg value="/" />
-      <arg value="/p" />
+      <arg value="-v" />
+			<arg value="/" />
+      <arg value="-p" />
       <arg value="Src\GamesManager\GamesManager.StatisticsService" />
-      <arg value="/u" />
-      <arg value="/f" />
+      <arg value="-u" />
+      <arg value="-f" />
       <arg value="Package/SDK/Server/StatisticsService" />
     </exec>
     <copy file="Src\GamesManager\GamesManager.StatisticsService.Model\schema.sql" todir="Package/SDK/Server/StatisticsService" overwrite="true"/>
