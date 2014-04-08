@@ -3,7 +3,6 @@
 
 	<property name="nant.settings.currentframework" value="net-4.5"/>
 	<include buildfile="Automation\Functions.include"/>
-	<loadtasks assembly="${nantcontrib_path}\NAnt.Contrib.Tasks.dll" /> 
 	
 	<description>MGDF Build Script</description>
 
@@ -41,6 +40,8 @@
 	
 	<!-- Builds the MGDF core component -->
 	<target name="build" description="Compiles the MGDF core (x86)">
+		<loadtasks assembly="${nantcontrib_path}\NAnt.Contrib.Tasks.dll" />
+		
 		<echo message="Building MGDF core (x86)..."/>
 		<msbuild verbose="true" verbosity="Detailed" failonerror="true" project="Matchstick.sln">
 			<property name="Configuration" value="${msbuild_target}"/>
