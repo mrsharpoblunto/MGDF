@@ -256,7 +256,7 @@
     </exec>
 
     <delete dir="Package\SDK"/>
-
+		
 		<!-- copy the completed build to the output folder -->
 		<mkdir dir="${output_dir}" />
 		<mkdir dir="${output_dir}\${buildnumber}" />

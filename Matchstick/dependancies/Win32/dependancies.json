@@ -1,0 +1,5 @@
+{
+	"dependancies":[
+		{ "command": "vc2013redist_x86.exe", "arguments":"/q" }
+	]
+}

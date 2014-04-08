@@ -103,8 +103,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>echo copying MGDF content to bin dir
+      <Command>echo copying MGDF dependancies to bin dir
+XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependancies" /E /Y /I
+echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
+echo copying MGDF vendor libs to bin dir
 XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
@@ -121,6 +124,7 @@ exit 1
 :BuildEventOK
 
 echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
+
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -159,8 +163,11 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>echo copying MGDF content to bin dir
+      <Command>echo copying MGDF dependancies to bin dir
+XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependancies" /E /Y /I
+echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
+echo copying MGDF vendor libs to bin dir
 XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
@@ -177,6 +184,7 @@ exit 1
 :BuildEventOK
 
 echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
+
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -214,8 +222,11 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>echo copying MGDF content to bin dir
+      <Command>echo copying MGDF dependancies to bin dir
+XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependancies" /E /Y /I
+echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
+echo copying MGDF vendor libs to bin dir
 XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
@@ -269,8 +280,11 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>echo copying MGDF content to bin dir
+      <Command>echo copying MGDF dependancies to bin dir
+XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependancies" /E /Y /I
+echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
+echo copying MGDF vendor libs to bin dir
 XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
@@ -287,6 +301,7 @@ exit 1
 :BuildEventOK
 
 echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
+
 </Command>
     </PreBuildEvent>
     <ClCompile>
