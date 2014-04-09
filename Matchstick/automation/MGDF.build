@@ -192,11 +192,13 @@
     
     <mkdir dir="Package/SDK/Bin" />
     
-    <!-- copy packagegen to SDK bin dir -->
+    <!-- copy packagegen to SDK bin dir & package dir  -->
 		<copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe" tofile="Package\SDK\Bin\PackageGen.exe" overwrite="true"/>
 		<copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\SDK\Bin\PackageGen.exe.config" overwrite="true"/>
+		<copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe" tofile="Package\PackageGen.exe" overwrite="true"/>
+		<copy file="Src\GamesManager\GamesManager.PackageGen\bin\${msbuild_target}\GamesManager.PackageGen.exe.config" tofile="Package\PackageGen.exe.config" overwrite="true"/>
 
-    <!-- copy docs to SDK/Documentation -->
+		<!-- copy docs to SDK/Documentation -->
     <mkdir dir="Package/SDK/Documentation" />
     <copy todir="Package/SDK/Documentation">
       <fileset basedir="documentation">
