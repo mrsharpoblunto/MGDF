@@ -7,7 +7,7 @@
 	<description>MGDF Build Script</description>
 
 	<!-- Update the major.minor version number here whenever a new release is planned -->
-	<property name="buildnumber" value="0.11.${environment::get-variable('BUILD_NUMBER')}'"/>
+	<property name="buildnumber" value="0.11.${environment::get-variable('BUILD_NUMBER')}"/>
 
 	<property name="output_dir" value="c:\builds\MGDF"/>
 	<property name="msbuild_target" value="debug"/>
