@@ -6,9 +6,8 @@
 	
 	<description>MGDF Build Script</description>
 
-	<property name="builddate" value="${year.now}-${month.now}-${day.now}"/>
 	<!-- Update the major.minor version number here whenever a new release is planned -->
-	<property name="buildnumber" value="0.10.${year.since2014}${month.now}${day.now}.${hour.now}${minute.now}"/>
+	<property name="buildnumber" value="0.11.${environment::get-variable('BUILD_NUMBER')}'"/>
 
 	<property name="output_dir" value="c:\builds\MGDF"/>
 	<property name="msbuild_target" value="debug"/>
