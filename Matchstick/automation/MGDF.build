@@ -199,11 +199,18 @@
 
 		<!-- copy docs to SDK/Documentation -->
     <mkdir dir="Package/SDK/Documentation" />
-    <copy todir="Package/SDK/Documentation">
-      <fileset basedir="documentation">
-        <include name="**/*.*" />
-      </fileset>
-    </copy>
+		<copy todir="Package/SDK/Documentation">
+			<fileset basedir="documentation/html">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+		<!-- copy xml docs so we can generate the website documentation -->
+		<mkdir dir="Package/XmlDocs" />
+		<copy todir="Package/XmlDocs">
+			<fileset basedir="documentation/xml">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
 
     <!-- copy SDK samples -->
     <mkdir dir="Package/SDK/Src" />
