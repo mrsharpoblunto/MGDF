@@ -39,6 +39,11 @@ const Version *JsonCppGameStorageHandler::GetVersion() const
 	return &_version;
 }
 
+const std::map<std::string, std::string> &JsonCppGameStorageHandler::GetPreferences() const
+{
+	return _preferences;
+}
+
 MGDFError JsonCppGameStorageHandler::Load( const std::wstring &filename )
 {
 	std::ifstream input( filename.c_str(), std::ios::in );
@@ -52,6 +57,12 @@ MGDFError JsonCppGameStorageHandler::Load( const std::wstring &filename )
 		_version = VersionHelper::Create( root["version"].asString() );
 		_parameterString = root["parameters"].asString();
 		_interfaceVersion = atoi( root["interfaceversion"].asString().c_str() );
+		Json::Value preferences = root["preferences"];
+		if (!preferences.isNull()) {
+			for (const auto &key : preferences.getMemberNames()) {
+				_preferences.insert(std::make_pair(key, preferences[key].asString()));
+			}
+		}
 		return MGDF_OK;
 	} else {
 		LOG( reader.getFormatedErrorMessages(), LOG_ERROR );

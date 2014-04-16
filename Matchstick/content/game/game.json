@@ -1,10 +1,14 @@
 {
   "gameuid":"Test",
   "gamename":"Test Game",
-  "description":"A series of semi-automated tests designed to provide good test coverage over MGDF",
   "version":"0.1",
   "interfaceversion":"1",
   "developername":"Team Junkship",
   "homepage":"http://www.junkship.net",
-  "supportemail":"support@matchstickframework.org"
+  "supportemail":"support@matchstickframework.org",
+  "preferences":{
+	"host.windowResize":"1",
+	"host.simFps":"120",
+	"host.interpolateFrames":"1"
+  }
 }

@@ -23,11 +23,13 @@ public:
 	INT32 GetInterfaceVersion() const override final;
 	const Version *GetVersion() const override final;
 	std::string GetParameterString() const override final;
+	const std::map<std::string, std::string> &GetPreferences() const override final;
 
 	MGDFError Load( const std::wstring & ) override final;
 
 private:
 	std::string _gameName, _gameUid, _parameterString;
+	std::map<std::string, std::string> _preferences;
 	INT32 _interfaceVersion;
 	Version _version;
 };

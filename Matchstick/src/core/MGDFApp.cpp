@@ -3,6 +3,7 @@
 #include "MGDFApp.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
 #include "core.impl/MGDFParameterConstants.hpp"
+#include "core.impl/MGDFPreferenceConstants.hpp"
 
 #if defined(_DEBUG)
 #define new new(_NORMAL_BLOCK,__FILE__, __LINE__)
@@ -27,15 +28,15 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 {
 	_ASSERTE( host );
 
-	const char *simFps = host->GetGame()->GetPreference( "simFps" );
+	const char *simFps = host->GetGame()->GetPreference( PreferenceConstants::SIM_FPS );
 	UINT32 simulationFps = atoi( simFps );
 
-	const char *interpolateFrames = host->GetGame()->GetPreference( "interpolateFrames" );
+	const char *interpolateFrames = host->GetGame()->GetPreference( PreferenceConstants::INTERPOLATE_FRAMES );
 	_interpolateFrames = atoi( interpolateFrames ) == 1;
 	_awaitFrame.test_and_set();
 
 	if ( !simFps || !simulationFps ) {
-		FATALERROR( _host, "simFps was not found in preferences or is not an integer" );
+	FATALERROR(_host, PreferenceConstants::SIM_FPS << " was not found in preferences or is not an integer");
 	}
 
 	if ( MGDF_OK != FrameLimiter::TryCreate( simulationFps, &_frameLimiter ) ) {
@@ -117,7 +118,7 @@ bool MGDFApp::VSyncEnabled() const
 
 bool MGDFApp::WindowResizingEnabled() const 
 {
-	const char *windowResize = _host->GetGame()->GetPreference( "windowResize" );
+	const char *windowResize = _host->GetGame()->GetPreference( PreferenceConstants::WINDOW_RESIZE );
 	return atoi( windowResize ) == 1;
 }
 

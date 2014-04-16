@@ -38,7 +38,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "game", "game", "{46E01EE4-7
 	ProjectSection(SolutionItems) = preProject
 		content\game\game.json = content\game\game.json
 		content\game\gameIcon.png = content\game\gameIcon.png
-		content\game\preferences.json = content\game\preferences.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resources", "resources", "{EDB71625-AF75-4DA5-BBA0-D85971251DD6}"

@@ -91,5 +91,12 @@ MGDFError Game::LoadPreferences( const std::wstring &filename )
 	}
 }
 
+void Game::LoadPreferences(const std::map<std::string, std::string> &preferences)
+{
+	for ( auto &pref : preferences ) {
+		_preferences[pref.first] = pref.second;
+	}
+}
+
 }
 }

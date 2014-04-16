@@ -108,7 +108,7 @@ SUITE( StorageTests )
 			if ( pref.first == "resolution" ) {
 				CHECK_EQUAL( "800*600", pref.second );
 				foundResolution = true;
-			} else if ( pref.first == "screenX" ) {
+			} else if ( pref.first == "host.screenX" ) {
 				CHECK_EQUAL( "800", pref.second );
 				foundScreenX = true;
 			}
@@ -136,7 +136,7 @@ SUITE( StorageTests )
 			if ( pref.first == "resolution" ) {
 				CHECK_EQUAL( "800*600", pref.second );
 				foundResolution = true;
-			} else if ( pref.first == "screenX" ) {
+			} else if ( pref.first == "host.screenX" ) {
 				CHECK_EQUAL( "800", pref.second );
 				foundScreenX = true;
 			}

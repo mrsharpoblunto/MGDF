@@ -22,7 +22,6 @@ namespace MGDF.GamesManager.Tests
             Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory,"game\\game.json"));
             Assert.AreEqual("Console",game.Uid);
             Assert.AreEqual("Lua Console", game.Name);
-			Assert.AreEqual("A Lua command console for interacting with the MGDF system", game.Description);
             Assert.AreEqual(new Version(0,1), game.Version);
             Assert.AreEqual("http://www.junkship.org", game.Homepage);
             Assert.AreEqual(1, game.InterfaceVersion);

@@ -12,14 +12,16 @@ namespace MGDF
 namespace core
 {
 
-const char *PreferenceConstants::MUSIC_VOLUME = "musicVolume";
-const char *PreferenceConstants::SOUND_VOLUME = "soundVolume";
-const char *PreferenceConstants::RESOLUTION = "resolution";
-const char *PreferenceConstants::SCREEN_X = "screenX";
-const char *PreferenceConstants::SCREEN_Y = "screenY";
-const char *PreferenceConstants::FULL_SCREEN = "fullScreen";
-const char *PreferenceConstants::MULTISAMPLE_LEVEL = "multiSampleLevel";
-const char *PreferenceConstants::RT_MULTISAMPLE_LEVEL = "RTMultiSampleLevel";
-const char *PreferenceConstants::VSYNC = "vsync";
+const char *PreferenceConstants::MUSIC_VOLUME = "host.musicVolume";
+const char *PreferenceConstants::SOUND_VOLUME = "host.soundVolume";
+const char *PreferenceConstants::SIM_FPS = "host.simFps";
+const char *PreferenceConstants::SCREEN_X = "host.screenX";
+const char *PreferenceConstants::SCREEN_Y = "host.screenY";
+const char *PreferenceConstants::FULL_SCREEN = "host.fullScreen";
+const char *PreferenceConstants::MULTISAMPLE_LEVEL = "host.multiSampleLevel";
+const char *PreferenceConstants::RT_MULTISAMPLE_LEVEL = "host.RTMultiSampleLevel";
+const char *PreferenceConstants::VSYNC = "host.vsync";
+const char *PreferenceConstants::INTERPOLATE_FRAMES = "host.interpolateFrames";
+const char *PreferenceConstants::WINDOW_RESIZE = "host.windowResize";
 }
 }

@@ -63,7 +63,6 @@ namespace MGDF.GamesManager.Model.Entities
         public string Name { get; private set; }
         public Version Version { get; private set; }
         public int InterfaceVersion { get; private set; }
-        public string Description { get; private set; }
         public string DeveloperName { get; private set; }
 
         public string Homepage { get; private set; }
@@ -72,6 +71,7 @@ namespace MGDF.GamesManager.Model.Entities
         public string UpdateService { get; private set; }
         public string StatisticsService { get; private set; }
         public string StatisticsPrivacyPolicy { get; private set; }
+		public Dictionary<string, string> Preferences { get; private set; }
 
         public byte[] GameIconData
         {
@@ -93,7 +93,6 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-            Description = json.ReadRequiredValue("description");
             DeveloperName = json.ReadRequiredValue("developername");
             Version = new Version(json.ReadRequiredValue("version"));
             Name = json.ReadRequiredValue("gamename");
@@ -105,6 +104,15 @@ namespace MGDF.GamesManager.Model.Entities
             StatisticsService = json.ReadOptionalValue("statisticsservice");
             StatisticsPrivacyPolicy = json.ReadOptionalValue("statisticsprivacypolicy");
             SupportEmail = json.ReadOptionalValue("supportemail");
+
+			Preferences = new Dictionary<string, string>();
+			if (json["preferences"] != null)
+			{
+				foreach (JProperty pref in json["preferences"])
+				{
+					Preferences.Add(pref.Name, pref.Value<string>());
+				}
+			}
         }
 
         public bool Equals(Game other)
@@ -116,47 +124,5 @@ namespace MGDF.GamesManager.Model.Entities
         {
             return (Uid + Version).GetHashCode();
         }
-
-        public void Save(string filename)
-        {
-            IFile file = FileSystem.Current.GetFile(filename);
-
-            //write out the game icon file along with the game definition file.
-            if (GameIconData!=null)
-            {
-                var iconFile = FileSystem.Current.GetFile(Path.Combine(file.Parent.FullName,Resources.GameIcon));
-                using (var stream = iconFile.OpenStream(FileMode.Create,FileAccess.Write,FileShare.None))
-                {
-                    stream.Write(GameIconData,0,GameIconData.Length);
-                }
-            }
-
-            using (var stream = FileSystem.Current.GetFile(filename).OpenStream(FileMode.Create))
-            {
-                using (var textWriter = new StreamWriter(stream))
-                {
-                    using (JsonWriter writer = new JsonTextWriter(textWriter))
-                    {
-                        writer.Formatting = Formatting.Indented;
-                        writer.WriteStartObject();
-
-                        writer.WriteRequiredValue("gameuid",Uid);
-                        writer.WriteRequiredValue("gamename",Name);
-                        writer.WriteRequiredValue("description",Description);
-                        writer.WriteRequiredValue("version",Version.ToString());
-                        writer.WriteRequiredValue("interfaceversion",InterfaceVersion.ToString());
-                        writer.WriteRequiredValue("developername",DeveloperName);
-                        writer.WriteOptionalValue("supportemail", SupportEmail);
-                        writer.WriteOptionalValue("homepage", Homepage);
-                        writer.WriteOptionalValue("updateservice", UpdateService);
-                        writer.WriteOptionalValue("statisticsservice", StatisticsService);
-                        writer.WriteOptionalValue("statisticsprivacypolicy", StatisticsPrivacyPolicy);
-
-                        writer.WriteEndObject();
-                    }
-                }
-            }
-        }
-
     }
 }

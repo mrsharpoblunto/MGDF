@@ -16,7 +16,6 @@ namespace MGDF.GamesManager.PackageGen
 {
     class UpdateDetails
     {
-        public string UpdateDescription;
         public Version UpdateVersion;
     }
 
@@ -80,7 +79,6 @@ namespace MGDF.GamesManager.PackageGen
 
                     var details = new UpdateDetails
                                       {
-                                          UpdateDescription = newInstall.Game.Description,
                                           UpdateVersion = oldInstall.Game.Version
                                       };
 
@@ -365,7 +363,6 @@ namespace MGDF.GamesManager.PackageGen
                         writer.Formatting = Formatting.Indented;
                         writer.WriteStartObject();
 
-                        writer.WriteRequiredValue("updatedescription", details.UpdateDescription);
                         writer.WriteRequiredValue("updateminversion", details.UpdateVersion.ToString());
                         writer.WriteRequiredValue("updatemaxversion", details.UpdateVersion.ToString());
                         writer.WritePropertyName("removefiles");

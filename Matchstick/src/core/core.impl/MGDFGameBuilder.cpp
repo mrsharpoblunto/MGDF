@@ -31,26 +31,25 @@ MGDFError GameBuilder::LoadGame( storage::IGameStorageHandler *handler, Game **g
 		return result;
 	}
 
-	return CreateGame(
-	                 handler->GetGameUid(),
-	                 handler->GetGameName(),
-	                 handler->GetInterfaceVersion(),
-	                 handler->GetVersion(),
-					 game );
+	return CreateGame( handler, game );
 }
 
 
 //loads the configuration preferences from the core preferences directory as well as the
 //particular configuration defaults, and synchs them up with any customized user preferences
-MGDFError GameBuilder::CreateGame( const std::string &uid, const std::string &name, INT32 interfaceVersion, const Version *version, Game **game )
+MGDFError GameBuilder::CreateGame( storage::IGameStorageHandler *handler, Game **game)
 {
-	_ASSERTE( version );
+	_ASSERTE( handler->GetVersion() );
 
 	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
 
-	*game = new Game( uid, name, interfaceVersion, version, storageFactory );
+	*game = new Game( handler->GetGameUid(),
+					  handler->GetGameName(), 
+					  handler->GetInterfaceVersion(),
+					  handler->GetVersion(), 
+					  storageFactory );
 
-	//load the defaults from the core settings and the game settings (REQUIRED)
+	//load the defaults from the core settings (REQUIRED)
 	MGDFError err = (*game)->LoadPreferences( Resources::Instance().CorePreferencesFile() );
 
 	if ( MGDF_OK != err ) {
@@ -59,19 +58,10 @@ MGDFError GameBuilder::CreateGame( const std::string &uid, const std::string &na
 		return err;
 	}
 
-	//load the defaults for the game (OPTIONAL)
-	wpath bootDefaultPref( Resources::Instance().GameDefaultPreferencesFile() );
+	//load the defaults for the game if any are present
+	(*game)->LoadPreferences( handler->GetPreferences() );
 
-	if ( exists( bootDefaultPref ) ) {
-		err = (*game)->LoadPreferences( bootDefaultPref.string() );
-		if ( MGDF_OK != err ) {
-			delete *game;
-			*game = nullptr;
-			return err;
-		}
-	}
-
-	//load customised preferences for this game (OPTIONAL)
+	//load customised preferences for this game if any are present
 	wpath customPref( Resources::Instance().GameUserPreferencesFile() );
 
 	//then if a settings file exists, override these defaults where present
@@ -80,9 +70,7 @@ MGDFError GameBuilder::CreateGame( const std::string &uid, const std::string &na
 	if ( exists( customPref ) ) {
 		err = (*game)->LoadPreferences( customPref.string() );
 		if ( MGDF_OK != err ) {
-			delete *game;
-			*game = nullptr;
-			return err;
+			LOG("Unable to parse customized preferences " << Resources::ToString(customPref.string()), LOG_ERROR)
 		}
 	}
 

@@ -43,9 +43,12 @@ MGDFError JsonCppPreferenceConfigStorageHandler::Load( const std::wstring &filen
 	Json::Reader reader;
 
 	if ( reader.parse( input, root ) ) {
-		Json::Value preferences = root["preferences"];
-		for ( UINT32 index = 0; index < preferences.size(); ++index ) {
-			_preferences[preferences[index]["name"].asString()] = preferences[index]["value"].asString();
+		for (const auto& name : root.getMemberNames()) {
+			if (!root[name].isString()) {
+				LOG(reader.getFormatedErrorMessages(), LOG_ERROR);
+				return MGDF_ERR_INVALID_JSON;
+			}
+			_preferences[name] = root[name].asString();
 		}
 		return MGDF_OK;
 	} else {
@@ -59,15 +62,10 @@ void JsonCppPreferenceConfigStorageHandler::Save( const std::wstring &filename )
 	std::ofstream file( filename.c_str(), std::ios::out );
 
 	Json::Value root;
-	Json::Value preferences;
 
 	for ( auto &pref : _preferences ) {
-		Json::Value json;
-		json["name"] = pref.first;
-		json["value"] = pref.second;
-		preferences.append( json );
+		root[pref.first] = pref.second;
 	}
-	root["preferences"] = preferences;
 
 	file << root;
 	file.close();

@@ -735,7 +735,7 @@ MAN_LINKS = NO
 #--------------------------------------------------------------------------- # If the GENERATE_XML tag is set to YES Doxygen will 
 # generate an XML file that captures the structure of 
 # the code including all documentation. 
-GENERATE_XML = NO
+GENERATE_XML = YES
 
 # The XML_OUTPUT tag is used to specify where the XML pages will be put. 
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be 
@@ -756,7 +756,7 @@ XML_DTD =
 # dump the program listings (including syntax highlighting 
 # and cross-referencing information) to the XML output. Note that 
 # enabling this will significantly increase the size of the XML output. 
-XML_PROGRAMLISTING = YES
+XML_PROGRAMLISTING = NO
 
 #---------------------------------------------------------------------------
 # configuration options for the AutoGen Definitions output
