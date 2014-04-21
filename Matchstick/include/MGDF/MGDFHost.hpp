@@ -21,8 +21,7 @@ namespace MGDF
 DECLARE_LIST( IStringList, const char * )
 
 /**
- This class provides a callback interface for a module to interact with the MGDF host
- that are safe to be used from any thread
+ Provides an entrypoint for a module to interact with the MGDF host. Methods in this interface are safe to be used from any thread
 */
 class ICommonHost: public virtual IErrorHandler
 {
@@ -70,20 +69,21 @@ public:
 
 	/**
 	get a text description for an MGDF error code
+	\param err the error code to get a description for
 	\return a text description for an MGDF error code
 	*/
 	virtual const char* GetErrorDescription( MGDFError err ) const = 0;
 
 	/**
 	get a text name for an MGDF error code
+	\param err the error code to get the name of
 	\return a text name for an MGDF error code
 	*/
 	virtual const char* GetErrorString( MGDFError err ) const = 0;
 };
 
 /**
- This class provides a callback interface for a module to interact with the MGDF host
- from module methods run off the render thread.
+ Provides an entrypoint for a module to interact with the MGDF host. This interface inherits from ICommonHost and provides additional methods which are safe to be used ONLY from the render thread.
 */
 class IRenderHost: public ICommonHost
 {
@@ -102,6 +102,7 @@ class IRenderHost: public ICommonHost
 
 	/**
 	set the current back buffer as the render target for the specified d2d device context
+	\param context the d2d device context to set the render target for
 	\return true if the back buffer can be set as the render target for the device context
 	*/
 	virtual bool SetBackBufferRenderTarget( ID2D1DeviceContext *context ) = 0;
@@ -113,14 +114,13 @@ class IRenderHost: public ICommonHost
 
 	/**
 	Gets the description of the backbuffer texture
+	\param desc the backbuffer description to populate
 	*/
 	virtual void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const = 0;
 };
 
 /**
- This class provides a callback interface for a module to interact with the MGDF host
- from module methods run off the sim thread. These methods should not be called from
- any thread other than the sim thread
+Provides an entrypoint for a module to interact with the MGDF host. This interface inherits from ICommonHost and provides additional methods which are safe to be used ONLY from the sim thread.
 */
 class ISimHost: public ICommonHost
 {
@@ -139,6 +139,7 @@ public:
 
 	/**
 	 finalizes the save data for a matching call to BeginSave
+	 \param saveName the save to complete
 	 \return MGDF_OK if the saveName was in a pending state and was completed successfully, if there was a problem, or the saveName
 	 didn't exist then an error code is returned.
 	 */
@@ -154,6 +155,7 @@ public:
 
 	/**
 	 deletes a selected save game from the hard drive
+	 \param saveName the save to remove
 	 */
 	virtual void RemoveSave( const char *saveName ) = 0;
 

@@ -6,7 +6,7 @@ namespace MGDF
 {
 
 /**
-This class represents the display settings for a particular adaptor mode
+The display settings for a particular adaptor mode
 */
 struct AdaptorMode
 {
@@ -17,7 +17,7 @@ struct AdaptorMode
 };
 
 /**
-this class allows you to get and set the engines various display settings
+Provides an interface for getting and setting the hosts various display settings
 */
 class IRenderSettingsManager
 {
@@ -42,7 +42,7 @@ public:
 
 	/**
 	sets the current fullscreen setting
-	\param true if the game should display in fullscreen mode
+	\param fullscreen true if the game should display in fullscreen mode
 	*/
 	virtual void SetFullscreen( bool fullscreen ) = 0;
 	
@@ -53,7 +53,7 @@ public:
 	virtual UINT32 GetMultiSampleLevelCount() const = 0;
 
 	/**
-	get the available multisample level supported by the display adaptor at the given index ( 0 to GetMultiSampleLevelCount - 1 )
+	get the available multisample level supported by the display adaptor at the given index ( 0 to GetMultiSampleLevelCount() - 1 )
 	\param index the multisample index
 	\param level returns the multisample level at the given index
 	\return true if a supported multisample level is present at the given index, false otherwise.
@@ -76,7 +76,7 @@ public:
 	/**
 	set the desired multisample level for off screen render targets. This setting is not used directly
 	by the framework but any client code should query this property when creating render targets that
-	may require multisampling (see also GetCurrentMultiSampleLevel)
+	may require multisampling (see also GetCurrentMultiSampleLevel() )
 	\param multisampleLevel the desired multisample level for off screen render targets
 	\return returns false if the desired multisample level cannot be set.
 	*/

@@ -6,7 +6,7 @@ namespace MGDF
 {
 
 /**
-this class provides information regarding the current game being run
+Provides information regarding the current game being run
 and the preferences associated with that game
 */
 class IGame
@@ -38,13 +38,13 @@ public:
 
 	/**
 	determine if the game has a preference for the given key
-	\name the preference name
+	\param name the preference name
 	\return true if the key has an associated value
 	*/
 	virtual bool  HasPreference( const char *name ) const = 0;
 
 	/**
-	determine if the game has a preference for the given key and return its value
+	determine if the game has a preference for the given key and return its value. Preferences can be defined in a games game.json file, or new ones can be added/overwritten by calling SetPreference
 	\param name the preference name
 	\return the value associated with the key or nullptr if there is no such key
 	*/

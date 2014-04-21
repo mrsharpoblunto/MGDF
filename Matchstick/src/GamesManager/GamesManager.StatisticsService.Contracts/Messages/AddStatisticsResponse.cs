@@ -16,5 +16,8 @@ namespace MGDF.GamesManager.StatisticsService.Contracts.Messages
             get { return _errors; }
             set { _errors = value; }
         }
+
+		[DataMember]
+		public bool Success { get { return _errors.Count == 0; } }
     }
 }

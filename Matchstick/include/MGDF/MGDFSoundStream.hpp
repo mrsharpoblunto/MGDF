@@ -6,7 +6,7 @@ namespace MGDF
 {
 
 /**
-this class represents an audio stream
+An audio stream
 */
 class __declspec(uuid("2F0555E6-B5C3-40C4-9399-F74699A38811"))
 ISoundStream: public IUnknown
@@ -26,6 +26,7 @@ public:
 	
 	/**
 	Set the volume level (0-1)
+	\param volume the volume level to set
 	*/
 	virtual void  SetVolume( float volume ) = 0;
 

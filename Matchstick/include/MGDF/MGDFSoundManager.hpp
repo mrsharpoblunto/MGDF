@@ -10,7 +10,7 @@ namespace MGDF
 {
 
 /**
- this interface provides the functionality for processing sounds in 3d space
+ Provides an interface for processing sounds in 3d space
 */
 class ISoundManager
 {

@@ -7,7 +7,7 @@ namespace MGDF
 {
 
 /**
-this class represents an audio source in 3d space
+An audio source in 3d space
 */
 class __declspec(uuid("EBCC1B73-815F-4870-BC80-67A5379E65FC"))
 ISound: public IUnknown
@@ -117,6 +117,7 @@ public:
 	
 	/**
 	 Set whether the sound will loop playback continously
+	 \param looping true if the sound should loop playback, false otherwise
 	 \return looping true if the sound should loop continously
 	 */
 	virtual void  SetLooping( bool looping ) = 0;

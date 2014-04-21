@@ -6,7 +6,7 @@ namespace MGDF
 {
 
 /**
-this interface allows subscribers to shut down the host when a fatal error is encountered
+Provides a means to shut down the host when a fatal error is encountered
 */
 class IErrorHandler
 {

@@ -7,7 +7,7 @@ namespace MGDF
 {
 
 /**
-provides a means to filter files from result sets. Clients should implement this interface
+Provides an interface for filtering files from result sets. Clients should implement this interface
 and pass instances into the relevant VFS methods in order to filter results
 */
 class IFileFilter
@@ -22,7 +22,7 @@ public:
 };
 
 /**
- An interface used to read data from a file
+ Provides an interface for reading data from a file
  */
 class IFileReader 
 {
@@ -66,7 +66,7 @@ public:
 };
 
 /**
-represents a file/directory structure in the virtual file . Directories have no data but can have subfiles
+Provides an interface for navigating a file/directory structure in the virtual filesystem. Directories have no data but can have subfiles
 Files have no subfiles (except for archives) but may have data. Archives that have been added to the vfs are mapped
 as files with the same name as the archive filename, but unlike normal files they also have a tree of subdirectories
 containing the uncompressed archive data
@@ -81,8 +81,8 @@ public:
 	virtual const wchar_t * GetName() const = 0;
 
 	/**
-	Gets the parent of this file. If this file is the root of the virtual file , then this will be nullptr
-	\return the parent of this file. If this file is the root of the virtual file , then this will be nullptr
+	Gets the parent of this file. If this file is the root of the virtual filesystem, then this will be nullptr
+	\return the parent of this file. If this file is the root of the virtual filesystem, then this will be nullptr
 	*/
 	virtual IFile * GetParent() const = 0;
 
@@ -104,7 +104,7 @@ public:
 
 	/**
 	Get how many children this file has
-	\return how many children this file  has
+	\return how many children this file has
 	*/
 	virtual size_t GetChildCount() const = 0;
 
@@ -141,8 +141,8 @@ public:
 	virtual const wchar_t * GetArchiveName() const = 0;
 
 	/**
-	get the pyshical path to the IFile in the file
-	\return the pyshical path to the IFile in the file, in the case of an archive submember this will be the address to the containing archive
+	get the pyshical path to the IFile in the filesystem
+	\return the pyshical path to the IFile in the filesystem, in the case of an archive submember this will be the address to the containing archive
 	*/
 	virtual const wchar_t * GetPhysicalPath() const = 0;
 
@@ -160,7 +160,7 @@ public:
 };
 
 /**
-this interface encapsulates the functionality required for creating portions of the vfs tree from archive files
+Provides an interface for creating portions of the vfs tree from archive files
 */
 class IArchiveHandler
 {
@@ -176,7 +176,7 @@ public:
 
 	/**
 	whether this file/directory is recognised as an archive type
-	\param the physical path on disk of a possible achive file
+	\param physicalPath the physical path on disk of a possible achive file
 	\return true if the file is a recognized archive file to be handled by this handler
 	*/
 	virtual bool  IsArchive( const wchar_t *physicalPath ) const = 0;
@@ -194,7 +194,8 @@ public:
 };
 
 /**
-this interface provides facilities for accessing the virtual file system
+Provides an interface for accessing the virtual filesystem, which is a fast read only interface to access game content files. 
+The root MGDF virtual filesystem is mounted from the game/content folder.
 */
 class IVirtualFileSystem
 {
@@ -207,8 +208,8 @@ public:
 	virtual IFile * GetFile( const wchar_t *logicalPath ) const = 0;
 
 	/**
-	Get the root node of the virtual file system
-	\return the root node of the virtual file system
+	Get the root node of the virtual filesystem
+	\return the root node of the virtual filesystem
 	*/
 	virtual IFile * GetRoot() const = 0;
 };

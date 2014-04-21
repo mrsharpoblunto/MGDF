@@ -24,7 +24,7 @@ namespace MGDF.GamesManager.StatisticsService
                     Statistic stat = new Statistic
                                          {
                                              Id = Guid.NewGuid(),
-                                             GameUid = statistic.GameUid,
+                                             GameUid = request.GameUid,
                                              Name = statistic.Name,
                                              Value = statistic.Value
                                          };

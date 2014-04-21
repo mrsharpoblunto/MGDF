@@ -13,7 +13,14 @@ using MGDF.GamesManager.StatisticsService.Contracts.Messages;
 
 namespace MGDF.GamesManager.Model
 {
-    public class StatisticsBundle: List<Statistic> {}
+    public class StatisticsBundle: List<Statistic> {
+		public StatisticsBundle(string gameUid) : base()
+		{
+			GameUid = gameUid;
+		}
+
+		public string GameUid { get; private set; }
+	}
 
     public class GetStatsPermissionEventArgs: EventArgs
     {
@@ -70,7 +77,7 @@ namespace MGDF.GamesManager.Model
 
             if (gameUid.Length > 255) return;
 
-            var currentBundle = new StatisticsBundle();
+            var currentBundle = new StatisticsBundle(gameUid);
             using (var stream = FileSystem.Current.GetFile(filename).OpenStream(FileMode.Open,FileAccess.Read,FileShare.Read))
             {
                 using (var reader = new StreamReader(stream))
@@ -84,7 +91,6 @@ namespace MGDF.GamesManager.Model
                                        {
                                            Name = line.Substring(0, index),
                                            Value = line.Substring(index + 1),
-                                           GameUid = gameUid
                                        };
                         if (stat.Name.Length > 127) stat.Name = stat.Name.Substring(0, 127);
                         if (stat.Value.Length > 127) stat.Value = stat.Value.Substring(0, 127);
@@ -93,7 +99,7 @@ namespace MGDF.GamesManager.Model
                         if (currentBundle.Count == 255)
                         {
                             Bundles.Add(currentBundle);
-                            currentBundle = new StatisticsBundle();
+                            currentBundle = new StatisticsBundle(gameUid);
                         }
                     } while (!reader.EndOfStream);
                     if (currentBundle.Count > 0) Bundles.Add(currentBundle);
@@ -128,6 +134,7 @@ namespace MGDF.GamesManager.Model
                 foreach (var bundle in _session.Bundles)
                 {
                     var request = new AddStatisticsRequest();
+					request.GameUid = bundle.GameUid;
 
                     foreach (var statistic in bundle)
                     {

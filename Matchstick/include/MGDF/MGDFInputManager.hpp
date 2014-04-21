@@ -6,7 +6,7 @@ namespace MGDF
 {
 
 /**
-this is represents all the various mouse clicks that are recognised by the input manager
+this is represents all the various mouse buttons that are recognised by the input manager
 */
 enum Mouse {MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE};
 
@@ -31,7 +31,7 @@ enum GamepadButton {
 };
 
 /**
-this represents an xinput compatible gamepad connected to the PC
+Provides the ability to query the state of and control other properties of an XInput compatible gamepad connected to the PC
 \author gcconner
 */
 class IGamepad
@@ -44,22 +44,22 @@ public:
 	virtual bool  IsConnected() const = 0;
 
 	/**
-	determines if a button is presed
-	\param key the gamepad button code representing the desired button
+	determines if a button is pressed
+	\param button the gamepad button code representing the desired button
 	\return true if the button is being held down
 	*/
 	virtual bool  IsButtonDown( GamepadButton button ) const = 0;
 
 	/**
 	determines if a button is NOT pressed
-	\param key the gamepad button code representing the desired button
+	\param button the gamepad button code representing the desired button
 	\return true if the button is not being pressed
 	*/
 	virtual bool  IsButtonUp( GamepadButton button ) const = 0;
 
 	/**
 	determines if a button press has occured
-	\param key the gamepad button code representing the desired button
+	\param button the gamepad button code representing the desired button
 	\return true if the button has been pressed (i.e pressed down then released)
 	*/
 	virtual bool  IsButtonPress( GamepadButton button ) = 0;
@@ -102,6 +102,8 @@ public:
 
 	/**
 	sets the vibration intensity in the left and right vibrator motors of the controller, valid values are 0-65535
+	\param left the intensity of the left vibrator motor
+	\param right the intensity of the right vibrator motor
 	*/
 	virtual void  SetVibrationSpeed( INT32 left, INT32 right ) = 0;
 };
@@ -109,7 +111,7 @@ public:
 DECLARE_LIST( IGamepadList, IGamepad * )
 
 /**
-this class provides a means for modules to access information regarding user input
+Provides a means for modules to access information regarding user input
 from the mouse, keyboard, and xinput controllers
 */
 class IInputManager
@@ -195,8 +197,8 @@ public:
 	virtual bool  IsButtonClicked( Mouse mouseButton ) = 0;
 
 	/**
-	gets a list of all compatible gamepads connected to the 
-	\return a list of all compatible gamepads connected to the 
+	gets a list of all compatible gamepads connected to the PC
+	\return a list of all compatible gamepads connected to the PC
 	*/
 	virtual const  IGamepadList * GetGamepads() const = 0;
 };

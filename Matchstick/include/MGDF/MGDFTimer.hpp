@@ -6,7 +6,7 @@ namespace MGDF
 {
 
 /**
- this provides an interface to the engines high resolution CPU timer
+ Provides an interface to the hosts high resolution CPU timer
  */
 class ITimer 
 {

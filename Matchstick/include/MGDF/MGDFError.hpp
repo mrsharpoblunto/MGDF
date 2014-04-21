@@ -4,7 +4,7 @@ namespace MGDF
 {
 
 /**
- * Various error codes returned by the MGDF api
+ * Various error codes returned by the MGDF API
  */
 enum MGDFError {
 	MGDF_OK = 0,

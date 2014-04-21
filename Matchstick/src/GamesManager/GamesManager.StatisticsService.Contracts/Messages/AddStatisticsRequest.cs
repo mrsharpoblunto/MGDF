@@ -11,6 +11,9 @@ namespace MGDF.GamesManager.StatisticsService.Contracts.Messages
     {
         private List<Statistic> _statistics = new List<Statistic>();
 
+		[DataMember]
+		public string GameUid { get; set; }
+
         [DataMember]
         public List<Statistic> Statistics
         {
