@@ -71,3 +71,5 @@ Matchstick\ipch\core.audio.openal-d3b8cb44*/
 /vendor/lib/Win32/Release/FW1FontWrapper.lib
 /Matchstick/src/GamesManager/GamesManager.StatisticsService/Log/log.txt
 /Matchstick/src/samples/EmptyGame/user
+/vendor/GameuxInstallHelper/Win32
+/vendor/GameuxInstallHelper/x64

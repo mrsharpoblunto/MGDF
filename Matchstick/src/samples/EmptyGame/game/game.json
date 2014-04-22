@@ -1,0 +1,12 @@
+{
+"gameuid":"EmptyGame",
+"gamename":"Empty Game",
+"version":"1.0.0",
+"interfaceversion":"1",
+"developername":"Unknown",
+"homepage":"http://www.example.com"
+"supportemail":"support@example.com", 
+"preferences": {
+	"simFps":"120"
+}
+}

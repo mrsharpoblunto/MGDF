@@ -11,7 +11,7 @@ namespace MGDF.GamesManager.StatisticsService.Contracts
     public interface IStatisticsService
     {
         [OperationContract]
-        [WebInvoke(RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, Method = "POST")]
+        [WebInvoke(RequestFormat = WebMessageFormat.Json, UriTemplate = "/statistics", ResponseFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, Method = "POST")]
         AddStatisticsResponse AddStatistics(AddStatisticsRequest request);
     }
 }

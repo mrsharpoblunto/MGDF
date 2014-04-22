@@ -201,14 +201,15 @@ class IVirtualFileSystem
 {
 public:
 	/**
-	Get the file/folder/archive in the denoted logical directory. paths are delimited using the / character and names are case sensitive
+	Get the file/folder/archive in the specified logical directory. paths are delimited using the / character and names are case sensitive. 
+	The /game/content folder in the MGDF install root folder is mounted as the root of the logical filesystem, and no access outside of this folder is permitted.
 	\param logicalPath the vfs path to the file
-	\return the file/folder/archive in the denoted logical directory. paths are delimited using the / character and names are case sensitive
+	\return the file/folder/archive in the specified logical directory. paths are delimited using the / character and names are case sensitive
 	*/
 	virtual IFile * GetFile( const wchar_t *logicalPath ) const = 0;
 
 	/**
-	Get the root node of the virtual filesystem
+	Get the root node of the virtual filesystem. In the physical filesystem this corresponds to the /game/content folder.
 	\return the root node of the virtual filesystem
 	*/
 	virtual IFile * GetRoot() const = 0;
