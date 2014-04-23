@@ -100,7 +100,10 @@ MGDFError HostBuilder::TryCreateHost( Host **host )
 	_ASSERTE( handler.get() );
 
 	MGDFError result = handler->Load( Resources::Instance().GameFile() );
-	if ( MGDF_OK != result ) return result;
+	if (MGDF_OK != result) {
+		UnregisterComponents();
+		return result;
+	}
 
 	//now that we know the UID for the game, we'll set up the user resources paths again
 	//and shift the logfile over to the new user directory
@@ -111,18 +114,21 @@ MGDFError HostBuilder::TryCreateHost( Host **host )
 	result = GameBuilder::LoadGame( handler.get(), &game );
 	if ( MGDF_OK != result ) {
 		LOG( "FATAL ERROR: Unable to load game configuration", LOG_ERROR );
+		UnregisterComponents();
 		return result;
 	}
 
 	//now that the game file loaded, initialize everything else
 	//and set the log directory correctly.
 	if ( !RegisterAdditionalComponents( game->GetUid() ) ) {
+		UnregisterComponents();
 		return MGDF_ERR_FATAL;
 	}
 
 	if ( MGDFVersionInfo::MGDF_INTERFACE_VERSION != game->GetInterfaceVersion() ) {
 		LOG( "FATAL ERROR: Unsupported MGDF Interface version", LOG_ERROR );
 		delete game;
+		UnregisterComponents();
 		return MGDF_ERR_FATAL;
 	}
 
@@ -130,7 +136,7 @@ MGDFError HostBuilder::TryCreateHost( Host **host )
 	result = Host::TryCreate( game, host );
 	if ( MGDF_OK != result ) {
 		LOG( "FATAL ERROR: Unable to create host", LOG_ERROR );
-		delete game;
+		UnregisterComponents();
 		return result;
 	}
 

@@ -1,6 +1,5 @@
 #include "StdAfx.h"
 
-#include <MGDF/MGDF.hpp>
 #include "Module.hpp"
 
 
@@ -45,7 +44,7 @@ UINT32 MGDF::GetCompatibleFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *feat
 	}
 }
 
-//create module instances as they are requested by the framework
+//create a module instance when requested by the host
 MGDF::IModule *MGDF::GetModule()
 {
 	return new Module();

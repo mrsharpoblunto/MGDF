@@ -108,7 +108,6 @@ XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 echo copying MGDF vendor libs to bin dir
-XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 if errorlevel 1 goto BuildEventFailed
@@ -168,7 +167,6 @@ XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 echo copying MGDF vendor libs to bin dir
-XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 if errorlevel 1 goto BuildEventFailed
@@ -227,7 +225,6 @@ XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 echo copying MGDF vendor libs to bin dir
-XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 if errorlevel 1 goto BuildEventFailed
@@ -285,7 +282,6 @@ XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 echo copying MGDF vendor libs to bin dir
-XCOPY  "$(SolutionDir)..\vendor\lib\Release\GameuxInstallHelper.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 if errorlevel 1 goto BuildEventFailed

@@ -42,23 +42,27 @@ MGDFError ParameterManager::ParseParameters( const std::string &paramString, std
 {
 	auto iter = paramString.begin();
 
-	std::string key, value;
 	for ( ;; ) {
-		key.clear();
-		value.clear();
+		std::string key, value;
 
 		// Skip past any white space preceding the next token
-		while ( iter != paramString.end() && *iter <= ' ' )
+		while (iter != paramString.end() && *iter <= ' ') {
 			++iter;
-		if ( iter == paramString.end() )
-			break;
+		}
+
+		if ( iter == paramString.end() ) break;
 
 		// Skip past the flag marker
-		if ( *iter == '-' )
+		if (*iter == '-') {
 			++iter;
+		}
+		else {
+			// expected to get a flag marker
+			return MGDF_ERR_INVALID_PARAMETER;
+		}
 
 		//get the flag string
-		while ( iter != paramString.end() && ( *iter > ' ' ) && ( *iter != ':' ) ) {
+		while ( iter != paramString.end() && ( *iter > ' ' ) ) {
 			key += * ( iter++ );
 		}
 
@@ -67,17 +71,19 @@ MGDFError ParameterManager::ParseParameters( const std::string &paramString, std
 			return MGDF_ERR_INVALID_PARAMETER;
 		}
 
-		//parse the value (if present)
-		if ( iter != paramString.end() && *iter == ':' ) {
+		//get up until the next non-whitespace character
+		while (iter != paramString.end() && (*iter <= ' ')) {
 			++iter;
+		}
+
+		//parse the value (if present)
+		if ( iter != paramString.end() && *iter != '-' ) {
 			while ( iter != paramString.end() && ( *iter != '-' ) ) {
 				value += * ( iter++ );
 			}
-			if ( iter != paramString.end() )
-				--iter;
 
 			//check that the key is valid (i.e non null)
-			if ( key.length() == 0 ) {
+			if ( key.size() == 0 ) {
 				return MGDF_ERR_INVALID_PARAMETER;		
 			}
 
@@ -86,10 +92,13 @@ MGDFError ParameterManager::ParseParameters( const std::string &paramString, std
 			if ( pos != std::string::npos ) {
 				value.erase( pos + 1 );
 			}
-			//erase leading whitespace
-			pos = value.find_first_not_of( ' ' );
-			if ( pos != std::string::npos ) {
-				value.erase( 0, pos );
+			//erase leading quotes
+			if (value.front() == '"' || value.front() == '\'') {
+				value.erase(0, 1);
+			}
+			//erase trailing quotes
+			if (value.back() == '"' || value.back() == '\'') {
+				value.erase(value.size()-1);
 			}
 		}
 
