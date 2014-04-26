@@ -174,10 +174,10 @@ SUITE( VFSTests )
 		ReadLines( reader, list );
 
 		//see if the file has as many lines as we expect
-		CHECK_EQUAL( 13, list.size() );
+		CHECK_EQUAL( 17, list.size() );
 		//check to see the first and last lines are as expected
 		CHECK_EQUAL( "{", list[0] );
-		CHECK_EQUAL( "}", list[12] );
+		CHECK_EQUAL( "}", list[16] );
 	}
 
 }
