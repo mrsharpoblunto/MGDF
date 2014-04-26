@@ -110,7 +110,7 @@ namespace MGDF.GamesManager.Model.Entities
 			{
 				foreach (JProperty pref in json["preferences"])
 				{
-					Preferences.Add(pref.Name, pref.Value<string>());
+					Preferences.Add(pref.Name, pref.Value.ToString());
 				}
 			}
         }

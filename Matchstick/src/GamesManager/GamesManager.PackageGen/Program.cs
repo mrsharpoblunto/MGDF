@@ -19,6 +19,12 @@ namespace MGDF.GamesManager.PackageGen
         public Version UpdateVersion;
     }
 
+	class PackageMetadata
+	{
+		public Version Version;
+		public string MD5;
+	}
+
     class Program
     {
         //specify packagefile to create a new package
@@ -33,7 +39,7 @@ namespace MGDF.GamesManager.PackageGen
             {
                 try
                 {
-                    Console.WriteLine("Creating installer package...");
+                    Console.WriteLine("Creating installer package");
 
                     if (!Directory.Exists(args[0]))
                     {
@@ -43,21 +49,24 @@ namespace MGDF.GamesManager.PackageGen
 
                     CreateInstaller(args[0], args[2], file => file.StartsWith(".svn",StringComparison.OrdinalIgnoreCase));
 
-                    if (!ValidateInstaller(args[2])) return 1;
+					PackageMetadata metadata = new PackageMetadata();
+                    if (!ValidateInstaller(args[2],metadata)) return 1;
 
-                    Console.WriteLine("Installer package created.");
+                    Console.WriteLine("Installer package created");
+					Console.WriteLine("    Version: " + metadata.Version);
+					Console.WriteLine("    MD5: " + metadata.MD5);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("Error: "+ex);
-                    Console.WriteLine("Installer package creation failed.");
+                    Console.WriteLine("Installer package creation failed");
                 }
             }
             else if (args.Length == 5 && args[0] == "-u" && args[3] == "-o")
             {
                 try
                 {
-                    Console.WriteLine("Creating update installer package...");
+                    Console.WriteLine("Creating update installer package");
 
                     if (!File.Exists(args[1]))
                     {
@@ -87,14 +96,17 @@ namespace MGDF.GamesManager.PackageGen
 
                     CreateUpdateInstaller(details, args[1], args[2], args[4]);
 
-                    if (!ValidateInstaller(args[4])) return 1;
+					PackageMetadata metadata = new PackageMetadata();
+                    if (!ValidateInstaller(args[4],metadata)) return 1;
                     
-                    Console.WriteLine("Installer update package created.");
+                    Console.WriteLine("Installer update package created");
+					Console.WriteLine("    Version: " + metadata.Version);
+					Console.WriteLine("    MD5: " + metadata.MD5);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("Error: " + ex);
-                    Console.WriteLine("Installer update package creation failed.");
+                    Console.WriteLine("Installer update package creation failed");
                 }
             }
             else if (args.Length == 0)
@@ -109,20 +121,24 @@ namespace MGDF.GamesManager.PackageGen
             return 0;
         }
 
-        private static bool ValidateInstaller(string installerFile)
+        private static bool ValidateInstaller(string installerFile, PackageMetadata data)
         {
-            Console.WriteLine("Validating installer package "+installerFile+"...");
+            Console.WriteLine("Validating installer package "+installerFile );
             using (GameInstall install = new GameInstall(installerFile))
             {
-                return ValidateInstaller(install);
+				using (Stream stream = new FileStream(installerFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+				{
+					data.MD5 = stream.ComputeMD5();
+				}
+                return ValidateInstaller(install,data);
             }
         }
 
         private static bool ValidateNonUpdateInstaller(string installerFile,out GameInstall install)
         {
-            Console.WriteLine("Validating installer package " + installerFile + "...");
+            Console.WriteLine("Validating installer package " + installerFile);
             install = new GameInstall(installerFile);
-            if (ValidateInstaller(install))
+            if (ValidateInstaller(install,null))
             {
                 if (install.IsUpdate)
                 {
@@ -136,7 +152,7 @@ namespace MGDF.GamesManager.PackageGen
             return false;
         }
 
-        private static bool ValidateInstaller(GameInstall install)
+		private static bool ValidateInstaller(GameInstall install, PackageMetadata data)
         {
             if (install.ErrorCollection.Count > 0)
             {
@@ -147,12 +163,16 @@ namespace MGDF.GamesManager.PackageGen
                 Console.WriteLine("Error: Installer package creation failed.");
                 return false;
             }
+			else if ( data !=null )
+			{
+				data.Version = install.Game.Version;
+			}
             return true;
         }
 
         public static void CreateInstaller(string input, string output,Func<string, bool> excludeFromCompression)
         {
-            Console.WriteLine("Creating install package "+output+"...");
+            Console.Write("Creating install package "+output+" ");
 
             if (!input.EndsWith("\\",StringComparison.OrdinalIgnoreCase)) input += "\\";
             int trimOffset = (string.IsNullOrEmpty(input) ? Path.GetPathRoot(input).Length : input.Length);
@@ -161,14 +181,23 @@ namespace MGDF.GamesManager.PackageGen
             fileSystemEntries.AddRange(Directory.GetDirectories(input, "*", SearchOption.AllDirectories).Select(d => d + "\\"));
             fileSystemEntries.AddRange(Directory.GetFiles(input, "*", SearchOption.AllDirectories));
 
+
             using (var outputStream = new FileStream(output, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 using (var compressor = new ZipOutputStream(outputStream))
                 {
                     compressor.SetLevel(9);
+					var data = new byte[4194304];
+					int milestone = fileSystemEntries.Count / 10;
+					int i = 0;
 
                     foreach (var filePath in fileSystemEntries)
                     {
+						if (i++ % milestone == 0)
+						{
+							Console.Write('.');
+						}
+
                         if (excludeFromCompression(filePath))
                         {
                             continue;
@@ -193,18 +222,16 @@ namespace MGDF.GamesManager.PackageGen
                                                         });                            
                         }
 
-                        var data = new byte[2048];
                         using (var inputStream = File.OpenRead(filePath))
                         {
                             int bytesRead;
-
                             while ((bytesRead = inputStream.Read(data, 0, data.Length)) > 0)
                             {
                                 compressor.Write(data, 0, bytesRead);
                             }
                         }
                     }
-
+					Console.WriteLine();
                     compressor.Finish();
                 }
             }
@@ -212,7 +239,7 @@ namespace MGDF.GamesManager.PackageGen
 
         public static void CreateUpdateInstaller(UpdateDetails updateDetails, string oldArchiveFile, string newArchiveFile, string updateArchiveFile)
         {
-            Console.WriteLine("Creating Update install package " + updateArchiveFile + "...");
+            Console.Write("Creating Update install package " + updateArchiveFile + " ");
 
             //list all files/directories in the old archive
             var oldDirectories = new Dictionary<string, ZipEntry>();
@@ -315,15 +342,21 @@ namespace MGDF.GamesManager.PackageGen
                             }
 
                             //add new or updated files
+							var data = new byte[4194304];
+							int milestone = addFiles.Count / 10;
+							int i = 0;
                             foreach (var file in addFiles)
                             {
+								if (i++ % milestone == 0)
+								{
+									Console.Write('.');
+								}
                                 compressor.PutNextEntry(new ZipEntry(file.Value.Name)
                                                             {
                                                                 DateTime = file.Value.DateTime,
                                                                 Size = file.Value.Size
                                                             });
 
-                                var data = new byte[2048];
                                 using (var inputStream = newArchive.GetInputStream(file.Value))
                                 {
                                     int bytesRead = inputStream.Read(data, 0, data.Length);
@@ -350,6 +383,7 @@ namespace MGDF.GamesManager.PackageGen
                     }
                 }
             }
+			Console.WriteLine();
         }
 
         public static byte[] CreateUpdateFileData(UpdateDetails details, List<string> removeFiles)
