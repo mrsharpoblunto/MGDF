@@ -343,7 +343,7 @@ namespace MGDF.GamesManager.PackageGen
 
                             //add new or updated files
 							var data = new byte[4194304];
-							int milestone = addFiles.Count / 10;
+							int milestone = Math.Max(1,addFiles.Count / 10);
 							int i = 0;
                             foreach (var file in addFiles)
                             {
