@@ -11,16 +11,7 @@ MGDF is a framework designed to make developing, installing, distributing, and u
 
 How do I build games using MGDF?
 --------------------------------
-To download everything you will need in order to begin building your own MGDF based games or hosting a Statistics Service, please download the MGDF SDK from matchstickframework.org (or alternatively download the source). Open the EmptyGame project from the Samples directory in the SDK (or Matchstick\src\samples\EmptyGame if you downloaded the source). 
-
-Provided that the MGDF headers are on visual studio's include path the EmptyGame should compile and provide you with a stub implementation and all necessary files required to build an MGDF module. The EmptyGame project copies these files into a Package subfolder, to run the newly built game you have three options
-
-* Copy the contents of /Package into the /Game directory of either the MGDF Distro you got from the SDK, or the bin directory of the MGDF framework that you built from source then run core.exe.
-* You can invoke core.exe (from the MGDF distro or the one you built from source) and add the following command line parameter to point the framework to the location of your game files
-```core.exe -gamediroverride:"<path to EmptyProject\Package>"```.
-* You can create a file in the MGDF framework directory called params.txt and put the following text into the file ```-gamediroverride:"<path to EmptyProject\Package>"``` (this file overrides the frameworks default behavior of loading whatever is in its /game folder), you can then invoke core.exe with no arguments to start your game.
-
-NOTE: The second and third options are recommended for development as it means you won't have to copy files over every time you do a build of your game. However when distributing your game you should bundle all your files together with the framework and distribute it in one package.
+To download the SDK, or view the getting started and API reference, go to www.matchstickframework.org. Alternatively you can clone this repo instead of downloading the pre-built SDK.
 
 Features
 --------
