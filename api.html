@@ -44,7 +44,7 @@ Installer package created
 </pre>
         <h2 id="gamemanifeset">Game.json configuration</h2>
         <p>The game.json file is where all configuration for a game is stored. The full schema for a game.json file is as follows</p>
-        <pre class="prettyprint lang-js linenums">
+{% highlight json %}
 {
     "gameuid":"a unique id",
     "gamename":"A human readable name",
@@ -60,7 +60,7 @@ Installer package created
         "key":"value",
     }
 }
-        </pre>
+{% endhighlight %}
         <h4>Game.json schema</h4>
         <dl class="dl-horizontal">
             <dt>gameuid</dt>
@@ -116,7 +116,8 @@ Installer package created
         <h2 id="updatemanifest">Game update manifest</h2>
         <p>The game update manifest file is a json file whose location is specified in the updateservice property of the game.json file. This file is used to determine if updates to a game are available. The full schema for an update manifest file is shown below.</p>
         <p class="alert alert-info"><strong>NOTE</strong> The GamesManager supports downloading game updates from urls that use http authentication (either basic or digest) if you want to restrict download access to paid users. The GamesManager will pop up a username/password prompt in this case before the update will proceed.</p>
-        <pre class="prettyprint lang-js linenums">{
+{% highlight json %}
+{
   "Framework": {
     "Version": "0.11.22",
     "Url": "http://s3.amazonaws.com/matchstickframework.org/MGDF_0.11.22_x86.zip",
@@ -135,7 +136,8 @@ Installer package created
       "ToVersion": "0.2.3"
     }
   ]
-}</pre>
+}
+{% endhighlight %}
 
         <h4>Game update manifest schema</h4>
         <dl class ="dl-horizontal">
@@ -401,7 +403,6 @@ Content-Length: 29
 <script type="text/javascript">
     $(function() {
         $(document).ready(function () {
-            prettyPrint();
             $('.side-nav').biscroll({
                 main: '.main',
                 footer: 'footer'

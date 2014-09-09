@@ -109,7 +109,7 @@ layout: default
 
         <h2 id="gamemanifest">Game.json</h2>
         <p>As mentioned above, this file is responsible for telling the GamesManager and core everything they need to know about running your game. A basic manifest file is shown below. For full information on all the fields and their meanings, check out the <a href="{{ site.baseurl }}/api.html#gamemanifeset">API reference</a> for more information.</p>
-        <pre class="prettyprint lang-js linenums">
+{% highlight json %}
 {
     "gameuid":"a unique id",
     "gamename":"A human readable name",
@@ -119,7 +119,7 @@ layout: default
     "homepage":"http://www.example.com",
     "supportemail":"support@example.com",
 }
-        </pre>
+{% endhighlight %}
 
         <h2 id="gamemodule">Module.dll</h2>
         <p>Module.dll is the actual entry point into your game. This dll requires a <a href="{{ site.baseurl }}/api.html#functions">number of functions</a> to be exported, and must be able to provide the mgdf host with an instance of the <a href="{{ site.baseurl }}/api.html#class_m_g_d_f_1_1_i_module">IModule</a> interface in order for the host to be able to run your game code.</p>
@@ -131,9 +131,9 @@ layout: default
         <h4>Implementing the IModule interface</h4>
         <p>Below is a stub implmentation of the IModule interface. Once a module instance is created, the host communicates events to the module by calling into the various methods provided. You may notice that all methods except Panic are prefixed with ST or RT - RT methods will be called by the host from the render thread, and ST methods will be called by the host from the sim thread. Panic may be called from either thread.</p>
         <h5>Module.h</h5>
-        <pre class="prettyprint lang-cc linenums">
+{% highlight c++ %}
 #pragma once
-#include &lt;MGDF/MGDF.hpp&gt;
+#include <MGDF/MGDF.hpp>;
 
 class Module: public MGDF::IModule
 {
@@ -152,9 +152,9 @@ public:
 	bool RTDeviceReset( MGDF::IRenderHost *host ) override final;
 	void Panic() override final;
 };
-</pre>
+{% endhighlight %}
         <h5>Module.cpp</h5>
-        <pre class="prettyprint lang-cc linenums">
+{% highlight c++ %}
 #include "Module.hpp"
 
 Module::~Module( void )
@@ -232,13 +232,13 @@ void Module::Panic()
 {
     // Called by the host after any module event fails
 }
-</pre>
+{% endhighlight %}
 
     <h4>Implementing main.cpp</h4>
     <p>Now that we have a module implementation, we need to make it available to the host. Below is a sample main.cpp file for a module dll. When the host starts up, it will first call the 
        IsCompatibleInterfaceVersion function and will pass in the version of the interface it supports (currently always 1). If this function returns true, it will then call GetModule, and 
         will invoke events on that module instance for the rest of the hosts lifetime.</p>
-<pre class="prettyprint lang-cci linenums">
+{% highlight c++ %}
 #include "Module.hpp"
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -259,7 +259,7 @@ MGDF::IModule *MGDF::GetModule()
 {
 	return new Module();
 }
-</pre>   
+{% endhighlight %}
     <h1 id="running" class="page-header">Running a game</h1>
     <p>When distributing a game to users, one simply has to put the game content and module in the prescribed locations inside the framework redistributable (as shown <a href="#folderstructure">here</a>). Users can then run the game by running GamesManager.exe.</p>
     <p>However, having to keep your game inside the redistributable folder can be annoying during development, so there are a few other options available to make running the game in development easier.</p>
@@ -403,7 +403,8 @@ FunctionEnd
     <h2 id="updating">Updating</h2>
     <p>The MGDF GamesManager can check for available updates to either the game or framework upon launching the game (this update check will occur at most once per day). To enable this feature, you need to add an <strong>updateservice</strong> property to your game.json file, the value for this property should be
        a url pointing to a <a href="{{ site.baseurl }}/api.html#updatemanifest">game update manifest</a> file. This update manifest is a small JSON file which lists the latest version of your game, and the MGDF framework version your games supports. An example update manifest is shown below.</p>
-<pre class="prettyprint lang-js linenums">{
+{% highlight json %}
+{
   "Framework": {
     "Version": "0.11.22",
     "Url": "http://s3.amazonaws.com/matchstickframework.org/MGDF_0.11.22_x86.zip",
@@ -422,7 +423,8 @@ FunctionEnd
       "ToVersion": "0.2.3"
     }
   ]
-}</pre>
+}
+{% endhighlight %}
     <p>There are three main objects in the update manifest, the first is the Framework object which allows you to specify which version of the MGDF framework your game supports, this allows you to upgrade the framework independantly to your own game module and content. The url used for this object should point to an MGDF redistributable zip file (such as those included in the SDK)</p>
     <p>The other two objects are the Latest object which should point to a zipped game package (more on how to create these packages shortly). Finally the UpdateOlderVersions is an optional object which lists an array of zipped partial update packages that include only the files to upgrade from a particular version (or range of versions) to the version specified in the Latest object.</p>
 
@@ -473,7 +475,6 @@ FunctionEnd
 <script type="text/javascript">
     $(function() {
         $(document).ready(function () {
-            prettyPrint();
             $('.side-nav').biscroll({
                 main: '.main',
                 footer: 'footer'
