@@ -1,0 +1,66 @@
+---
+layout: default
+---
+<div class="jumbotron">
+    <div class="logo hidden-xs hidden-sm hidden-md">
+        <div id="flame"></div>
+        <div id="flame-glow"></div>
+    </div>
+    <p><img src="{{ site.baseurl }}/assets/images/MGDF.jpg" class="hidden-lg" style="width:100%" /></p>
+    <div class="jumbotron-content">
+        <p>A Game development framework designed to make developing &amp; distributing c++ based games on windows easier. <span class="hidden-sm hidden-xs">Don't waste time writing the same boilerplate code over and over when we've done it for you.</span></p>
+        <p><a class="btn btn-primary sdk-download" href="{{ site.sdkdownloadurl }}">Download SDK<small class="hidden-xs"> - Version {{ site.sdkversion }}</small></a></p>
+    </div>
+    </div>
+
+<div class="row">
+    <div class="col-md-4">
+        <h2>Modern and efficient</h2>
+        <p>MGDF has a multithreaded architecture and uses DirectX 11 for graphics, DirectInput/XInput for user input (including xbox 360 controller support), and OpenAL for audio.</p>
+        <p><a class="btn btn-default" href="{{ site.baseurl }}/getting-started#overview">Learn more</a></p>
+    </div>
+    <div class="col-md-4">
+        <h2>Open source and free</h2>
+        <p>MGDF is MIT licensed and totally free for either commercial or personal use. The full source code is available on Github.</p>
+        <p><a class="btn btn-default" href="https://github.com/mrsharpoblunto/MGDF">View source</a></p>
+    </div>
+    <div class="col-md-4">
+        <h2>Updates and stats tracking</h2>
+        <p>MGDF was designed around the idea of making it easy to push updates to your players. These features are optional, but the framework provides optional tools and API's if you wish to take advantage of them.</p>
+        <p><a class="btn btn-default" href="{{ site.baseurl }}/getting-started#updating">Learn more</a></p>
+    </div>
+</div>
+
+<script type="text/javascript">
+$(function() {
+    var flame = $("#flame");
+    var glow = $("#flame-glow");
+    var logo = $('.logo');
+    var mouseX = 0;
+    var mouseY = 0;
+    var movementX = 0;
+
+    $('body').mousemove(function(e) {
+        movementX = e.pageX - mouseX;
+        mouseX = e.pageX;
+        mouseY = e.pageY;
+    });
+
+    var animate = function () {
+        if (logo.css('display') !== 'none')
+        {
+            // get the flame to sway as if the cursor is creating a breeze
+            var position = glow.offset();
+            var distance = 1 / (Math.sqrt(Math.pow(mouseX - position.left, 2) + Math.pow(mouseY - position.top, 2))) * 100;
+            var sway = Math.max(Math.min(movementX * distance, 3), -3);
+
+            glow.css('transform', 'scale(' + ((Math.random() * 0.1) + 1.1) + ')');
+            flame.css('opacity', (Math.random() * 0.2) + 0.6);
+            flame.css('transform', 'skewX(' + ((Math.random() * 2.5) - 1.25 - sway) + 'deg)');
+        }
+        requestAnimationFrame(animate);
+        movementX *= 0.9;
+    }
+    requestAnimationFrame(animate);
+    });
+</script>

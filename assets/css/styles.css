@@ -1,0 +1,154 @@
+﻿.icon {
+    float:left;
+    width:22px;
+    margin-right:4px;
+}
+
+.logo
+{
+	background-image: url('../images/mgdf-text.png');
+	width:1020px;
+	height:316px;
+	background-repeat: no-repeat;
+}
+
+#flame-glow
+{
+	background-image: url('../images/flame-glow.png');
+	background-repeat: no-repeat;
+	width:180px;
+	height:170px;
+	position:absolute;
+	margin-left: 671px;
+	z-index: 99;
+	margin-top: -5px;
+}
+
+#flame
+{
+	background-image: url('../images/flame.png');
+	background-repeat: no-repeat;
+	width:31px;
+	height:114px;
+	position:absolute;
+	margin-left: 745px;
+	margin-top: 15px;
+	z-index: 100;
+	transform-origin: 50% 90%;
+}
+
+.sdk-download
+{
+	text-shadow: 1px 1px 5px #000;
+	padding: 15px;
+	border-radius: 12px;
+	font-size: 100%;
+	margin-top: 20px;
+}
+
+.body-content {
+	position:relative;
+	margin-top:50px;
+}
+
+.jumbotron-content {
+	margin-top:-35px;
+	text-align:center;
+}
+
+@media (max-width: 360px) {
+	.jumbotron img
+	{
+		margin-bottom:30px;
+	}
+}
+
+.side-nav {
+	margin-top:10px;
+}
+
+.side-nav a {
+	color:#fff;
+}
+
+.side-nav li.active a {
+	border-left: 2px solid #0ea158;
+	color:#0ea158;
+	font-weight:700;
+}
+
+.side-nav li.active li a {
+	font-weight: normal;
+	border-left: none;
+	color:#fff;
+}
+
+.side-nav li.active li.active {
+	border-left: 2px solid #0ea158;
+}
+
+.side-nav li.active li.active a {
+	color:#0ea158;
+}
+
+.side-nav ul ul {
+	font-size: 90%;
+}
+
+.side-nav ul ul li {
+	padding-left:15px;
+	line-height:8px;
+}
+
+.affix {
+  top: 60px;
+}
+
+.panel code
+{
+	display:block;
+	font-size:100%;
+	margin:10px;
+	padding:0px;
+	color:#fff;
+	background: none;
+	white-space: normal;
+	font-family: Consolas,Menlo,Monaco,Consolas,"Courier New",monospace;
+}
+
+.panel code .keyword, code .type
+{
+	color:#bbb;
+	font-weight:700;
+}
+
+.panel strong
+{
+	color:#bbb;
+}
+
+.panel-body dl,.list-group dl
+{
+	margin-left:10px;
+}
+
+.alert-info
+{
+	background-color: #D9EDF7;
+	border-color: #BCE8F1;
+	color: #31708F;
+}
+
+.architecture
+{
+	text-align:center;
+	text-shadow: 0px 0px 5px #000;
+}
+
+.fs-layout li
+{
+	list-style:none;
+}
+
+.prettyprint ol.linenums > li { list-style-type: decimal; }
+

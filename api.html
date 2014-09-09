@@ -1,0 +1,413 @@
+---
+layout: default
+---
+<div class="row">
+    <div class="col-md-9 main">
+        <h1 id="configuration" class="page-header">Configuration Options</h1>
+        
+        <h2 id="commandline">Command line options and tools</h2>
+        <h4>Running core.exe from command line</h4>
+        <p>core.exe can be invoked either via the GamesManager or directly via the command line. For ease of debugging command line parameters can also be placed in a params.txt file in the MGDF root directory (the contents of this file will have preference over anything specified on the command line)</p>
+        <dl class ="dl-horizontal">
+            <dt>-logLevel</dt>
+            <dd><em>[Optional]</em> Allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error</dd>
+            <dt>-userdiroverride</dt>
+            <dd><em>[Optional]</em> If specified, the directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\uid folder</dd>
+            <dt>-gamediroverride</dt><dd><em>[Optional]</em> Allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory)</dd>
+         </dl>
+
+        <h4>Running GamesManager.exe from command line</h4>
+        <p>GamesManager.exe run without any arguments will check for updates and launch the game in its /game folder. However it also has a couple of arguments which can be useful to run as part of a games installer such as <a href="http://nsis.sourceforge.net/Main_Page">NSIS</a></p>
+        <dl class="dl-horizontal">
+            <dt>-register</dt>
+            <dd><em>[Optional]</em> In order to make installing/uninstalling your game easier. When invoked will install any framework dependancies (for example the Visual C++ runtime), as well as any installed program registry entries, desktop shortcuts, start menu shortcuts and windows games explorer integration required.</dd>
+            <dt>-deregister</dt>
+            <dd><em>[Optional]</em> Removes anything added via the register argument (with the exception of framework dependancies)</dd>
+        </dl>
+
+        <h4 id="packageGen">PackageGen.exe</h4>
+        <p>PackageGen.exe is a tool supplied in the SDK (Found in the Bin folder of the SDK) and allows you to create MGDF game packages or create a game update package based upon the difference between two existing game packages.
+Packages created by this tool can then be posted for download by the GamesManager as updates. Full game packages are simply a zip file containing the contents of the /game folder. Game update packages are similar, though they include an extra update.json file which specifies which old files should be removed before installing, and only includes files which have changed since the last full package was installed - as such they typically result in smaller download sizes.</p>
+        <p><strong>Usage</strong></p>
+        <pre>PackageGen "framework /game folder" -o "game package file"</pre>
+        <p>Creates a new installer package from a directory.</p>
+        <pre>PackageGen -u "older game package file" "newer game package file" -o "game update package file"</pre>
+        <p>Creates a new update installer package that contains the differences between the old version to the new one.</p>
+        <h5>Example output</h5>
+        <pre>
+Creating installer package
+Creating install package c:\users\glenn\desktop\game.zip ...........
+Validating installer package c:\users\glenn\desktop\game.zip
+Installer package created
+    Version: 0.1
+    MD5: bd226dd32804d683348e2708b7288087
+</pre>
+        <h2 id="gamemanifeset">Game.json configuration</h2>
+        <p>The game.json file is where all configuration for a game is stored. The full schema for a game.json file is as follows</p>
+        <pre class="prettyprint lang-js linenums">
+{
+    "gameuid":"a unique id",
+    "gamename":"A human readable name",
+    "version":"0.1",
+    "interfaceversion":"1",
+    "developername":"Human readable developer name",
+    "homepage":"http://www.example.com",
+    "supportemail":"support@example.com",
+    "updateservice":"http://www.example.com/update.json",
+    "statisticsservice":"http://www.example.com/stats.svc",
+    "statisticsprivacypolicy":"http://www.example.com/privacy",
+    "preferences":{
+        "key":"value",
+    }
+}
+        </pre>
+        <h4>Game.json schema</h4>
+        <dl class="dl-horizontal">
+            <dt>gameuid</dt>
+            <dd><em>[Required]</em> A unique identifier used to partition away game data from other MGDF games. It is important that this value is unique, so we recommend a GUID or similar string which is unlikely to collide with other MGDF games installed on a users system</dd>
+            <dt>gamename</dt>
+            <dd><em>[Required]</em> A human readable name of the game. This will be used for any user visible display of the game in the GamesManager user interface</dd>
+            <dt>version</dt>
+            <dd><em>[Required]</em> A version string in the format major.minor.revision.build.</dd>
+            <dt>interfaceversion</dt>
+            <dd><em>[Required]</em> The host interface version supported by the module. Currently, this should always be "1"</dd>
+            <dt>developername</dt>
+            <dd><em>[Required]</em> A human readable description of the games developer. This will be displayed when the GamesManager requires the users permission to do something, for example to collect game statistics.</dd>
+            <dt>homepage</dt>
+            <dd><em>[Optional]</em> A url to the game's homepage, this will be added to the entry for the game in the Windows installed programs list if provided</dd>
+            <dt>supportemail</dt>
+            <dd><em>[Optional]</em> An email address shown to users when crashes and other errors occur so that they can submit error reports</dd>
+            <dt>updateservice</dt>
+            <dd><em>[Optional]</em> A url used to check for updates (see <a href="#updatemanifest">Update manifest configuration</a> for more information)</dd>
+            <dt>statisticsservice</dt>
+            <dd><em>[Optional]</em> A url used to post game statistics information to (see <a href="#statsservice">Statistics service configuration</a> for more information)</dd>
+            <dt>statisticsprivacypolicy</dt>
+            <dd><em>[Required if statisticsservice is set]</em> A url containing the privacy policy information for a developer who wishes to collect game statistics. This url is shown to the user when the GamesManager asks thier permission to gather statistics. If it is not specified, then no statistics can be collected</dd>
+            <dt>preferences</dt>
+            <dd><em>[Optional]</em> A dictionary of strings specifying any preferences used by the game. These can be accessed via the <a href="#class_m_g_d_f_1_1_i_game">IGame</a> Get/Set/HasPreference methods. A number of built in preferences are also used by the MGDF host and are always prefixed with <strong>host.</strong> The full list of built in preferences is shown below. These built in preferences can be overridden by specifying them in the game.json file.</dd>
+        </dl>
+
+        <h4>Built in host preferences</h4>
+        <dl class ="dl-horizontal">
+            <dt>host.musicVolume</dt>
+            <dd>A string value between 0 and 1 that sets the volume for all music played using <a href="#class_m_g_d_f_1_1_i_sound_stream">ISoundStreams</a>. Defaults to "1.0"</dd>
+            <dt>host.soundVolume</dt>
+            <dd>A string value between 0 and 1 that sets the volume for all sounds played using <a href="#class_m_g_d_f_1_1_i_sound">ISounds</a>. defaults to "1.0"</dd>
+            <dt>host.simFps</dt>
+            <dd>The target framerate of the sim thread. If the sim thread is able to run faster than this, the host will add in sleeps between timesteps to ensure that the sim is limited to this framerate (note the render thread framerate is unaffected by this setting). Defaults to "60"</dd>
+            <dt>host.screenX</dt>
+            <dd>The desired horizontal resolution to display the game at. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "1024"</dd>
+            <dt>host.screenY</dt>
+            <dd>The desired vertical resolution to display the game at. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "768"</dd>
+            <dt>host.fullScreen</dt>
+            <dd>Whether to start the game in fullscreen ("1") or in windowed mode ("0"). Defaults to "0"</dd>
+            <dt>host.multiSampleLevel</dt>
+            <dd>The desired multisample level to use for the backbuffer, if this is not supported on the current display device, then the next highest level that is supported will be used instead. Defaults to "1"</dd>
+            <dt>host.RTMultiSampleLevel</dt>
+            <dd>The desired multisample level to use for render target buffers. Modules don't have to use this setting, though it is recommended. Defaults to "1"</dd>
+            <dt>host.vsync</dt>
+            <dd>Whether or not to use vsync on the render thread ("1"), or whether to render frames fast as possible ("0"). Defaults to "1"</dd>
+            <dt>host.interpolateFrames</dt>
+            <dd>Determines whether the render thread waits at least 1 simulation tick before rendering a new frame ("0"), or whether it should render multiple frames or the same simulation state ("1") and have an interpolation factor passed in by the host. Defaults to "0". Games which have a simulation fps that is the same or higher than the render framerate should typically pick "0", however for games with a simulation fps slower than the renderer frame rate, using "1", may be the only way to prevent slow or 'janky' animation</dd>
+            <dt>host.windowResize</dt>
+            <dd>Whether to allow resizing of the game window in windowed mode ("1") or to have a fixed size window ("0"). This setting is provided as resizing the window may cause a D3D device reset. Because of this, having a resizable window means your game will have to be able to handle this. If you don't want to worry about this, leave it at the default of "0"</dd>
+        </dl>
+
+        <h2 id="updatemanifest">Game update manifest</h2>
+        <p>The game update manifest file is a json file whose location is specified in the updateservice property of the game.json file. This file is used to determine if updates to a game are available. The full schema for an update manifest file is shown below.</p>
+        <p class="alert alert-info"><strong>NOTE</strong> The GamesManager supports downloading game updates from urls that use http authentication (either basic or digest) if you want to restrict download access to paid users. The GamesManager will pop up a username/password prompt in this case before the update will proceed.</p>
+        <pre class="prettyprint lang-js linenums">{
+  "Framework": {
+    "Version": "0.11.22",
+    "Url": "http://s3.amazonaws.com/matchstickframework.org/MGDF_0.11.22_x86.zip",
+    "MD5": "be4573e2058fa6106093443e6c7857d1"
+  },
+  "Latest": {
+    "Version": "0.2.4",
+    "Url": "http://www.example.com/game_0.2.4.zip",
+    "MD5": "8059891b6663315a72a954c282a963c8"
+  },
+  "UpdateOlderVersions": [
+    {
+      "Url": "http://www.example.com/game_0.2.4_update.zip",
+      "MD5": "eac5db79ad1fa8f61d20283fef37ad33",
+      "FromVersion": "0.2.2",
+      "ToVersion": "0.2.3"
+    }
+  ]
+}</pre>
+
+        <h4>Game update manifest schema</h4>
+        <dl class ="dl-horizontal">
+            <dt>Framework</dt>
+            <dd><em>[Optional]</em> Used to specify which version of the MGDF framework the game should use. This is useful as it gives you control over which framework version you want your game to run on and can update the framework as you require. The framework .zip file should be a framework distributable which can be found in the MGDF SDK download</dd>
+            <dt>Latest</dt>
+            <dd><em>[Required]</em> Specifies the latest version of your game which is available. This zip file must be a game package built by the MGDF SDK <a href="#packageGen">PackageGen</a> tool</dd>
+            <dt>UpdateOlderVersions</dt>
+            <dd><em>[Optional]</em> Specifies a list of partial upgrade packages which can upgrade a version FromVersion - ToVersion up to the latest version. The partial update zip file should be an update package built by the MGDF SDK <a href="#packageGen">PackageGen</a> tool</dd>
+        </dl>
+
+        <h2 id="statsservice">Statistics service</h2>
+        <p>The MGDF statistics service works by having the GamesManager upload lists of statistics (created by calls to the <a href="#class_m_g_d_f_1_1_i_statistics_manager">IStatisticsManager</a> inside a running game) to a restful json web service endpoint specified in a games game.json file. the sdk includes a c# implementation of an mgdf statistics service (found in the server />StatisticsService folder of the SDK). In order to run this service you will need to have a SQL server database and IIS 7+ for hosting the service.</p>
+        <p>To run the provided service, first you will have to create the database schema by running schema.sql. Then you will have to create a web.config file (you can do this by renaming the supplied default-web.config) and replace the following values with your own.</p>
+        <ul>
+            <li><strong>${ConnectionString}</strong> - A connection string to a SQL server database</li>
+            <li><strong> ${Host}</strong> - the hostname the service will be hosted at.</li>
+        </ul>
+        <p class="alert alert-info"><strong>NOTE</strong> If you can't or don't want to use the provided service, the interface to the service is simple enough that you should be able to implement your own. The schema for requests to the service endpoint is shown below.</p>
+
+        <p><strong>Sample HTTP request</strong> to http://example.com/service.svc/statistics (Note the statisticsservice url in game.json would be http://example.com/service.svc in this case)</p>
+        <pre>
+POST http://example.com/service.svc/statistics HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Host: example.com
+Content-Length: 99
+{"GameUid":"blah","Statistics":[{"Name":"key1","Value":"value1"},{"Name":"key2","Value":"value2"}]}
+        </pre>
+        <p><strong>Sample HTTP response</strong></p>
+        <pre>
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=UTF-8
+Content-Length: 29
+{"Errors":[], "Success":true}
+        </pre>
+
+        <h1 id="functions" class="page-header">Functions</h1>
+        <p>There are a number of functions which can be exported by a module which are used by the host to create the module instance and to query the requirements of the module.</p>
+        {% for f in site.data.api.Functions %}
+            <div class="panel panel-default" id="@f.Id">
+                <div class="panel-heading"><h4>{{ f.Name }} <small>{{ f.Description }}</small></h4></div>
+                <div class="panel-body">
+                    <code>
+                        <span class="type">
+                            {% if f.ReturnTypeRefId != null and f.ReturnTypeRefId != empty %}
+                                <a href="#{{ f.ReturnTypeRefId }}">{{ f.ReturnType }}</a>
+                            {% else %}
+                                {{ f.ReturnType }}
+                            {% endif %}
+                        </span>
+                        <span class="identifier">{{ f.Name }}</span>
+                        <span class="keyword">(</span>
+                        {% capture arg_size %}{{ f.Args | size }}{% endcapture %}
+                        {% if arg_size != '0' %}
+                            {% for arg in f.Args %}
+                                {% if forloop.index > 1 %}
+                                    <span class="keyword">, </span>
+                                {% endif %}
+                                <span class="type">
+                                    {% if arg.TypeRefId != null and arg.TypeRefId != empty %}
+                                        <a href="#{{ arg.TypeRefId }}">{{ arg.Type }}</a>
+                                    {% else %}
+                                        {{ arg.Type }}
+                                    {% endif %}
+                                </span>
+                                <span class="identifier">{{ arg.Name }}</span>
+                            {% endfor %}
+                        {% endif %}
+                        <span class="keyword">)</span>
+                    </code>
+                    {% if arg_size != '0'  %}
+                        <dl>
+                            <dt>Parameters</dt>
+                            {% for arg in f.Args %}
+                                <dd><strong>{{ arg.Name }}</strong> {{ arg.Description }}</dd>
+                            {% endfor %}
+                        </dl>
+                    {% endif %}
+                    {% if f.ReturnDescription != null and f.ReturnDescription != empty %}
+                        <dl>
+                            <dt>Returns</dt>
+                            <dd>{{ f.ReturnDescription }}</dd>
+                        </dl>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        <h1 id="interfaces" class="page-header">Interfaces</h1>
+        <p>Once the module has been created, it can access the MGDF host's functionality using the following interfaces. Most of these interfaces are not directly accessible to a module, but are instead properties of the ISimHost and IRenderHost interfaces.</p>
+        {% for c in site.data.api.Classes %}
+            <div class="panel panel-default" id="{{ c.Id }}">
+                <div class="panel-heading">
+                    <h4>{{ c.Name}} <small>{{ c.Description }}</small></h4>
+                    {% capture inherits_size %}{{ c.InheritsFromTypeRefIds | size }}{% endcapture %}
+                    {% if inherits_size != '0' %}
+                        <h4>
+                            <small>Inherits from:</small>
+                            {% for i in c.InheritsFromTypeRefIds %}
+                                <span class="label label-default"><a href="#{{ i }}">{{ site.data.api.Mappings[i] }}</a></span>
+                            {% endfor %}
+                        </h4>
+                    {% endif %}
+                </div>
+                <ul class="list-group">
+                    {% for m in c.Members %}
+                        <li class="list-group-item">
+                            <h4 id="{{ m.Id }}">{{ m.Name }} <small>{{ m.Description }}</small></h4>
+                            <code>
+                                <span class="type">
+                                    {% if m.ReturnTypeRefId != null and m.ReturnTypeRefId != empty %}
+                                        <a href="#{{ m.ReturnTypeRefId }}">{{ m.ReturnType }}</a>
+                                    {% else %}
+                                        {{ m.ReturnType }}
+                                    {% endif %}
+                                </span>
+                                <span class="identifier">{{ m.Name }}</span>
+                                <span class="keyword">(</span>
+                                {% capture args_size %}{{ m.Args | size }}{% endcapture %}
+                                {% if args_size != '0'  %}
+                                    {% for arg in m.Args %}
+                                        {% if forloop.index > 1 %}
+                                            <span class="keyword">, </span>
+                                        {% endif %}
+                                        <span class="type">
+                                            {% if arg.TypeRefId != null and arg.TypeRefId != empty %}
+                                                <a href="#{{ arg.TypeRefId }}">{{ arg.Type }}</a>
+                                            {% else %}
+                                                {{ arg.Type }}
+                                            {% endif %}
+                                        </span>
+                                        <span class="identifier">{{ arg.Name }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                                <span class="keyword">)</span>
+                                {% if m.Const %}
+                                    <span class="keyword"> const</span>
+                                {% endif %}
+                            </code>
+                            {% if args_size != '0' %}
+                                <dl>
+                                    <dt>Parameters</dt>
+                                    {% for arg in m.Args) %}
+                                        <dd><strong>{{ arg.Name }}</strong> {{ arg.Description }}</dd>
+                                    {% endfor %}
+                                </dl>
+                            {% endif %}
+                            {% if m.ReturnDescription != null and m.ReturnDescription != empty %}
+                                <dl>
+                                    <dt>Returns</dt>
+                                    <dd>{{ m.ReturnDescription }}</dd>
+                                </dl>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+        <h1 id="structs" class="page-header">Structs</h1>
+        {% for c in site.data.api.Structs %}
+            <div class="panel panel-default" id="{{ c.Id }}">
+                <div class="panel-heading"><h4>{{ c.Name }} <small>{{ c.Description }}</small></h4></div>
+                <ul class="list-group">
+                    {% for m in c.Members %}
+                        <li class="list-group-item">
+                            <h4 id="{{ m.Id }}">{{ m.Name }} <small>{{ m.Description }}</small></h4>
+                            <code>
+                                <span class="type">
+                                    {% if m.ReturnTypeRefId != null and m.ReturnTypeRefId != empty %}
+                                        <a href="#{{ m.ReturnTypeRefId }}">{{ m.ReturnType }}</a>
+                                    {% else %}
+                                        {{ m.ReturnType }}
+                                    {% endif %}
+                                </span>
+                                <span class="identifier">{{ m.Name }}</span>
+                            </code>
+                            {% capture args_size %}{{ m.Args | size }}{% endcapture %}
+                            {% if args_size != '0' %}
+                                <dl>
+                                    <dt>Parameters</dt>
+                                    {% for arg in m.Args %}
+                                        <dd><strong>{{ arg.Name }}</strong> {{ arg.Description }}</dd>
+                                    {% endfor %}
+                                </dl>
+                            {% endif %}
+                            {% if m.ReturnDescription != null and m.ReturnDescription != empty %}
+                                <dl>
+                                    <dt>Returns</dt>
+                                    <dd>{{ m.ReturnDescription }}</dd>
+                                </dl>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+        <h1 id="enums" class="page-header">Enumerations</h1>
+        {% for e in site.data.api.Enums %}
+            <div class="panel panel-default" id="{{ e.Id }}">
+                <div class="panel-heading"><h4>{{ e.Name }} <small>{{ e.Description }}</small></h4></div>
+                <div class="panel-body">
+                    {% capture value_count %}{{e.Values | size }}{% endcapture %}
+                    {% if value_count != '0' %}
+                        <dl>
+                            <dt>Values</dt>
+                            {% for value in e.Values %}
+                                <dd><span class="param-name">{{ value }}</span></dd>
+                            {% endfor %}
+                        </dl>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+</div>
+    <div class="col-md-3 hidden-xs hidden-sm">
+        <div class="side-nav">
+            <ul class="nav nav-stacked">
+                <li class="active">
+                    <a href="#configuration">Configuration</a>
+                    <ul class="nav">
+                        <li><a href="#commandline">Command line options and tools</a></li>
+                        <li><a href="#gamemanifeset">Game.json configuration</a></li>
+                        <li><a href="#updatemanifest">Game update manifest</a></li>
+                        <li><a href="#statsservice">Statistics service</a></li>
+                    </ul>
+                </li> 
+                <li>
+                    <a href="#functions">Functions</a>
+                    <ul class="nav">
+                        {% for f in site.data.api.Functions %}
+                            <li><a href="#{{ f.Id }}">{{ f.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li> 
+                <li>
+                    <a href="#interfaces">Interfaces</a>
+                    <ul class="nav">
+                        {% for c in site.data.api.Classes %}
+                            <li><a href="#{{ c.Id }}">{{ c.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li>
+                    <a href="#structs">Structs</a>
+                    <ul class="nav">
+                        {% for s in site.data.api.Structs %}
+                            <li><a href="#{{ s.Id }}">{{ s.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li>
+                    <a href="#enums">Enumerations</a>
+                    <ul class="nav">
+                        {% for e in site.data.api.Enums %}
+                            <li><a href="#{{ e.Id }}">{{ e.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function() {
+        $(document).ready(function () {
+            prettyPrint();
+            $('.side-nav').biscroll({
+                main: '.main',
+                footer: 'footer'
+            });
+            $('body').scrollspy({ target: '.side-nav',offset:60 });
+        });
+    });
+</script>
+
