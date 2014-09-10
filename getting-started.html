@@ -11,7 +11,7 @@ layout: default
         <p>MGDF is comprised of two main components (the second of which is not required for running games, but for online updating/distribution)</p>
 
         <h2>The core <small>(core.exe)</small></h2>
-        <p>This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before loading the user supplied game dll (known as a game module) and passing control on to that module. Once up and running the game module can then access the framework's functionality via a series of c++ interfaces (see the <a href="{{ site.baseurl }}/api.html#interfaces">API reference</a> for more details)</p>
+        <p>This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before loading the user supplied game dll (known as a game module) and passing control on to that module. Once up and running the game module can then access the framework's functionality via a series of c++ interfaces (see the <a href="{{ site.baseurl }}/api#interfaces">API reference</a> for more details)</p>
         <p>These interfaces include the ability to create audio samples and streams which under the hood are powered by the openAL audio system. Also included is the ability to access user interfaces devices including the mouse, keyboard, and any connected xbox 360 controllers. File system access is performed by a virtual file system wrapper which allows simple access to normal files on disk as well as files within compressed archives. Unlike the previous services, Direct3D 11 is directly accessible by the game module
         so as to negate the need to wrap the entire Direct3D API, though a number of helper interfaces are made available to make changing graphics settings easier.</p>
 
@@ -67,7 +67,7 @@ layout: default
 
         <h2>The GamesManager <small>(GamesManager.exe)</small></h2>
         <p>This is written in C# (.NET 4.5) and consists a windows forms application which provides a minimalist launcher that checks for game updates and displays friendly error messages if the core crashes. It is also responsible for sending game statistics if this feature is used. 
-           In addition to this, the GamesManager also can be used by an installer to handle the usual tasks of windows program installation such as adding a installed programs entry in the registry, a start menu entry, and a desktop icon (see the <a href="{{ site.baseurl }}/api.html#commandline">command line options</a> for more details)</p>
+           In addition to this, the GamesManager also can be used by an installer to handle the usual tasks of windows program installation such as adding a installed programs entry in the registry, a start menu entry, and a desktop icon (see the <a href="{{ site.baseurl }}/api#commandline">command line options</a> for more details)</p>
         <p class="alert alert-info"  ><strong>NOTE</strong> This component is optional. If you plan on using your own solution for launching the game and managing updates (Steam, Desura, etc.), you can omit this piece of the framework from your game and start your game by running core.exe directly instead of launching it via GamesManager.exe</p>
     
         <h1 id="newgame" class="page-header">Building a new game</h1>
@@ -108,7 +108,7 @@ layout: default
         </ul>
 
         <h2 id="gamemanifest">Game.json</h2>
-        <p>As mentioned above, this file is responsible for telling the GamesManager and core everything they need to know about running your game. A basic manifest file is shown below. For full information on all the fields and their meanings, check out the <a href="{{ site.baseurl }}/api.html#gamemanifeset">API reference</a> for more information.</p>
+        <p>As mentioned above, this file is responsible for telling the GamesManager and core everything they need to know about running your game. A basic manifest file is shown below. For full information on all the fields and their meanings, check out the <a href="{{ site.baseurl }}/api#gamemanifeset">API reference</a> for more information.</p>
 {% highlight json %}
 {
     "gameuid":"a unique id",
@@ -122,11 +122,11 @@ layout: default
 {% endhighlight %}
 
         <h2 id="gamemodule">Module.dll</h2>
-        <p>Module.dll is the actual entry point into your game. This dll requires a <a href="{{ site.baseurl }}/api.html#functions">number of functions</a> to be exported, and must be able to provide the mgdf host with an instance of the <a href="{{ site.baseurl }}/api.html#class_m_g_d_f_1_1_i_module">IModule</a> interface in order for the host to be able to run your game code.</p>
+        <p>Module.dll is the actual entry point into your game. This dll requires a <a href="{{ site.baseurl }}/api#functions">number of functions</a> to be exported, and must be able to provide the mgdf host with an instance of the <a href="{{ site.baseurl }}/api#class_m_g_d_f_1_1_i_module">IModule</a> interface in order for the host to be able to run your game code.</p>
         <p>MGDF is multithreaded and runs two main threads, the <em>Sim thread</em> and the <em>Render thread</em>. The Render thread is responsible for all rendering, and the Sim thread is responsible for handling input, audio, game logic. It is important to handle the sharing of data between these threads in a threadsafe manner for a game to work correctly. For the most part this means minimizing the amount of
         shared state between the Sim and Rendering parts of your game and ensuring that appropriate locking strategies are in place. </p>
         <p>One method for managing this is to use a Double Buffered game state, i.e. the Sim thread modifies the game state and on each tick makes a copy of the current game state (or as much of a copy as the renderer needs to do its job) and copies it into a buffer which the Render thread can pick up when it's ready to render the next frame. In this way the Sim and Render threads can operate mostly independantly of each
-        other without having to worry about concurrency issues. By default the Render thread will not run more than once per Sim tick, so you don't have to worry about buffer underrun in this case either (though this behaviour is configurable - if you have a very slow Sim framerate and want to interpolate a single game state over several render frames - check out the host.interpolateFrames preference option in the <a href="{{ site.baseurl }}/api.html#gamemanifeset">Game.json API reference</a>)</p>
+        other without having to worry about concurrency issues. By default the Render thread will not run more than once per Sim tick, so you don't have to worry about buffer underrun in this case either (though this behaviour is configurable - if you have a very slow Sim framerate and want to interpolate a single game state over several render frames - check out the host.interpolateFrames preference option in the <a href="{{ site.baseurl }}/api#gamemanifeset">Game.json API reference</a>)</p>
         <p class="alert alert-info"><strong>NOTE</strong> The SDK includes a sample visual studio game project in Src/Samples/EmptyGame. This project contains a game.json file and will create a compatible module.dll with a stub module class.</p>
         <h4>Implementing the IModule interface</h4>
         <p>Below is a stub implmentation of the IModule interface. Once a module instance is created, the host communicates events to the module by calling into the various methods provided. You may notice that all methods except Panic are prefixed with ST or RT - RT methods will be called by the host from the render thread, and ST methods will be called by the host from the sim thread. Panic may be called from either thread.</p>
@@ -402,7 +402,7 @@ FunctionEnd
 </pre>
     <h2 id="updating">Updating</h2>
     <p>The MGDF GamesManager can check for available updates to either the game or framework upon launching the game (this update check will occur at most once per day). To enable this feature, you need to add an <strong>updateservice</strong> property to your game.json file, the value for this property should be
-       a url pointing to a <a href="{{ site.baseurl }}/api.html#updatemanifest">game update manifest</a> file. This update manifest is a small JSON file which lists the latest version of your game, and the MGDF framework version your games supports. An example update manifest is shown below.</p>
+       a url pointing to a <a href="{{ site.baseurl }}/api#updatemanifest">game update manifest</a> file. This update manifest is a small JSON file which lists the latest version of your game, and the MGDF framework version your games supports. An example update manifest is shown below.</p>
 {% highlight json %}
 {
   "Framework": {
@@ -430,7 +430,7 @@ FunctionEnd
 
     <h4>Building update packages with PackageGen.exe</h4>
     <p>As mentioned above, in order to provide updates to your game, it has to be packaged into an update package. There are two types of update packages, full, and partial. A full update package is just a zip file containing everything in the /game folder whereas a partial update package contains only files which are different between two full update packages.</p>
-    <p>In order to make it easier to create these packages, the SDK includes a tool that can generate either full or partial update packages. In the simplest case of creating a full update package, the usage is as shown below (for more information see the <a href="{{ site.baseurl }}/api.html#packageGen">API reference</a>)</p>
+    <p>In order to make it easier to create these packages, the SDK includes a tool that can generate either full or partial update packages. In the simplest case of creating a full update package, the usage is as shown below (for more information see the <a href="{{ site.baseurl }}/api#packageGen">API reference</a>)</p>
 <pre>PackageGen "framework /game folder" -o "game package file"</pre>
 <p class="alert alert-info"><strong>NOTE</strong> The program output includes the version number and MD5 hash of the generated package, which you can use to fill out the field information in the game update manifest.</p>
         
@@ -438,10 +438,10 @@ FunctionEnd
     <p>MGDF also has the ability to record and upload statistics from users play sessions. The user is prompted if a game wishes to gather statistics and can allow or deny the statistics gathering.</p>
     <p>In order to enable statistics tracking you need to add the following properties to your game.json file</p>
     <ol>
-        <li><strong>statisticsservice</strong> - This value should point to a url where a compatible statistics web service is hosted (for more information on hosting a statistics service, or implementing your own see the <a href="{{ site.baseurl }}/api.html#statsservice">API reference</a>)</li>
+        <li><strong>statisticsservice</strong> - This value should point to a url where a compatible statistics web service is hosted (for more information on hosting a statistics service, or implementing your own see the <a href="{{ site.baseurl }}/api#statsservice">API reference</a>)</li>
         <li><strong>statisticsprivacypolicy</strong> - This value should point to a url containing your privacy policy for usage of the statistics. This will be displayed to the user when they are prompted if they want to accept the statistics tracking or not. If this value is not present, no statistics tracking will be performed.</li>
     </ol>
-    <p>You can then upload statistics (as key value pairs) using the <a href="{{ site.baseurl }}/api.html#class_m_g_d_f_1_1_i_statistics_manager">IStatisticsManager</a> API. The GamesManager will upload any statistics recorded once a users play session has ended.</p>
+    <p>You can then upload statistics (as key value pairs) using the <a href="{{ site.baseurl }}/api#class_m_g_d_f_1_1_i_statistics_manager">IStatisticsManager</a> API. The GamesManager will upload any statistics recorded once a users play session has ended.</p>
     </div>
     <div class="col-md-3 hidden-xs hidden-sm">
         <div class="side-nav">
