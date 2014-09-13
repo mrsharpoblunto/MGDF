@@ -436,6 +436,7 @@ FunctionEnd
         
     <h2 id="statistics">Statistics tracking</h2>
     <p>MGDF also has the ability to record and upload statistics from users play sessions. The user is prompted if a game wishes to gather statistics and can allow or deny the statistics gathering.</p>
+    <p>If permitted, statistics are recorded as key/value pairs. These pairs also include a timestamp which represents the time in seconds since that game session began. All statistics gathered in a game session also include a unique non-identifiable session identifier id so that all the statistics that were posted in a given session can be correlated.</p> 
     <p>In order to enable statistics tracking you need to add the following properties to your game.json file</p>
     <ol>
         <li><strong>statisticsservice</strong> - This value should point to a url where a compatible statistics web service is hosted (for more information on hosting a statistics service, or implementing your own see the <a href="{{ site.baseurl }}/api#statsservice">API reference</a>)</li>

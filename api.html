@@ -150,22 +150,43 @@ Installer package created
         </dl>
 
         <h2 id="statsservice">Statistics service</h2>
-        <p>The MGDF statistics service works by having the GamesManager upload lists of statistics (created by calls to the <a href="#class_m_g_d_f_1_1_i_statistics_manager">IStatisticsManager</a> inside a running game) to a restful json web service endpoint specified in a games game.json file. the sdk includes a c# implementation of an mgdf statistics service (found in the server />StatisticsService folder of the SDK). In order to run this service you will need to have a SQL server database and IIS 7+ for hosting the service.</p>
-        <p>To run the provided service, first you will have to create the database schema by running schema.sql. Then you will have to create a web.config file (you can do this by renaming the supplied default-web.config) and replace the following values with your own.</p>
-        <ul>
-            <li><strong>${ConnectionString}</strong> - A connection string to a SQL server database</li>
-            <li><strong> ${Host}</strong> - the hostname the service will be hosted at.</li>
-        </ul>
-        <p class="alert alert-info"><strong>NOTE</strong> If you can't or don't want to use the provided service, the interface to the service is simple enough that you should be able to implement your own. The schema for requests to the service endpoint is shown below.</p>
+        <p>The MGDF statistics service works by having the GamesManager upload lists of statistics (created by calls to the <a href="#class_m_g_d_f_1_1_i_statistics_manager">IStatisticsManager</a> inside a running game) to a restful json web service endpoint specified in a games game.json file. In order to use this feature you will need to implement a compatible web service that implements the methods shown below</p> 
 
-        <p><strong>Sample HTTP request</strong> to http://example.com/service.svc/statistics (Note the statisticsservice url in game.json would be http://example.com/service.svc in this case)</p>
+        <h4>Request fields</h4>
+        <dl class="dl-horizontal">
+            <dt>GameUid</dt>
+            <dd>A string value of up to 255 characters in length.</dd>
+            <dt>SessionId</dt>
+            <dd>A string value of up to 255 characters in length. All statistic key/values should be associated with this session id.</dd>
+            <dt>Statistics</dt>
+            <dd>
+                An array of statistic objects containing the fields below.
+                <ul>
+                    <li><em>Timestamp</em> An unsigned integer value marking the time the statistic was recorded. The time interval is measured in seconds since the beginning of the current session.</li>
+                    <li><em>Name</em> A string value of up to 255 characters in length.</li>
+                    <li><em>Value</em> A string value of up to 255 characters in length.</li>
+                </ul>
+            </dd>
+        </dl>
+
+        <p><strong>Sample HTTP request</strong> to http://example.com/statistics (Note the statisticsservice url in game.json would be http://example.com in this case)</p>
         <pre>
-POST http://example.com/service.svc/statistics HTTP/1.1
+POST http://example.com/statistics HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Host: example.com
-Content-Length: 99
-{"GameUid":"blah","Statistics":[{"Name":"key1","Value":"value1"},{"Name":"key2","Value":"value2"}]}
+Content-Length: 146
+{"GameUid":"blah","SessionId":"xxxx","Statistics":[{"Timestamp":0,"Name":"key1","Value":"value1"},{"Timestamp":1,"Name":"key2","Value":"value2"}]}
         </pre>
+
+
+        <h4>Response fields</h4>
+        <dl class="dl-horizontal">
+            <dt>Errors</dt>
+            <dd>An array of strings containing any errors caused in processing the request. If the request is successful, this array will be empty.
+            <dt>Success</dt>
+            <dd>A boolean value that is true if the request was successfully processed, false otherwise.</dd>
+        </dl>
+ 
         <p><strong>Sample HTTP response</strong></p>
         <pre>
 HTTP/1.1 200 OK
@@ -173,7 +194,7 @@ Content-Type: application/json; charset=UTF-8
 Content-Length: 29
 {"Errors":[], "Success":true}
         </pre>
-
+       
         <h1 id="functions" class="page-header">Functions</h1>
         <p>There are a number of functions which can be exported by a module which are used by the host to create the module instance and to query the requirements of the module.</p>
         {% for f in site.data.api.Functions %}
