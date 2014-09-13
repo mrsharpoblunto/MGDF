@@ -7,9 +7,7 @@ using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model;
 using MGDF.GamesManager.Model.Entities;
-using MGDF.GamesManager.ServerCommon;
 using MGDF.GamesManager.StatisticsService.Contracts;
-using MGDF.GamesManager.StatisticsService.Model;
 using MGDF.GamesManager.Tests.Common.Mocks;
 using NUnit.Framework;
 
@@ -28,9 +26,6 @@ namespace MGDF.GamesManager.Tests
             Logger.Current = new MockLogger();
             SettingsManager.Dispose();
             Resources.UninitUserDirectory();
-
-            StatisticsServiceRepository.Context = new RepositoryContext(() => new MockStatisticsServiceRepository());
-
             base.Setup();
         }
 
@@ -44,7 +39,8 @@ namespace MGDF.GamesManager.Tests
 ");
             StatisticsSession session = new StatisticsSession("game1", "http://stats.junkship.org", "c:\\stats.txt");
 
-            StatisticsServiceClient.ServiceFactory = uri => new MockWCFClient<IStatisticsService>(new StatisticsService.StatisticsService());
+			var statisticsService = new MockStatisticsService();
+			StatisticsServiceClient.ServiceFactory = uri => new MockWCFClient<IStatisticsService>(statisticsService);
             StatisticsServiceClient client = new StatisticsServiceClient(session);
 
             List<string> errors = new List<string>();
@@ -52,7 +48,7 @@ namespace MGDF.GamesManager.Tests
 
             Assert.AreEqual(0, errors.Count);
 
-            var uploadedStats = new List<Statistic>(StatisticsServiceRepository.Current.Get<Statistic>().Where(s => s.GameUid == "game1"));
+			var uploadedStats = statisticsService.Statistics;
             Assert.AreEqual(4, uploadedStats.Count);
             Assert.AreEqual("key", uploadedStats[0].Name);
             Assert.AreEqual("value", uploadedStats[0].Value);

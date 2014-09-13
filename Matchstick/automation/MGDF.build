@@ -218,34 +218,7 @@
         <include name="**/*.*" />
       </fileset>
     </copy>
-    
-    <mkdir dir="Package/SDK/Server" />
-
-    <!-- add statistics service to the SDK package -->
-    <mkdir dir="Package/SDK/Server/StatisticsService" />
-    <echo message="Packaging MGDF Statistics Service"/>
-    <exec program="${aspnetcompiler_exe_path}">
-      <arg value="-v" />
-			<arg value="/" />
-      <arg value="-p" />
-      <arg value="Src\GamesManager\GamesManager.StatisticsService" />
-      <arg value="-u" />
-      <arg value="-f" />
-      <arg value="Package/SDK/Server/StatisticsService" />
-    </exec>
-    <copy file="Src\GamesManager\GamesManager.StatisticsService.Model\schema.sql" todir="Package/SDK/Server/StatisticsService" overwrite="true"/>
-    <copy file="Src\GamesManager\GamesManager.StatisticsService\Global.asax" todir="Package/SDK/Server/StatisticsService" overwrite="true"/>
-    <delete>
-      <fileset basedir="Package/SDK/Server/StatisticsService">
-        <include name="GamesManager.StatisticsService.csproj"/>
-        <include name="GamesManager.StatisticsService.csproj.user"/>
-        <include name="PrecompiledApp.config"/>
-        <include name="bin\App_global.asax.*"/>
-      </fileset>
-    </delete>
-    <delete dir="Package\SDK\Server\StatisticsService\obj"/>
-    <delete dir="Package\SDK\Server\StatisticsService\Log"/>
-    
+  
     <!-- zip up the SDK-->
     <exec program="${sevenzip_path}" failonerror="false" workingdir="${project::get-base-directory()}\Package">
       <arg value="a" />
