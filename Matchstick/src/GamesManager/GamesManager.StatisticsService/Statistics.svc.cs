@@ -25,8 +25,10 @@ namespace MGDF.GamesManager.StatisticsService
                                          {
                                              Id = Guid.NewGuid(),
                                              GameUid = request.GameUid,
+											 SessionId = request.SessionId,
                                              Name = statistic.Name,
-                                             Value = statistic.Value
+                                             Value = statistic.Value,
+											 Timestamp = statistic.Timestamp
                                          };
 
                     StatisticsServiceRepository.Current.Insert(stat);

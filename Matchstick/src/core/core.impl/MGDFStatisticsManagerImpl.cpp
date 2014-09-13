@@ -22,6 +22,7 @@ namespace core
 #define SEND_THRESHOLD 25
 
 StatisticsManager::StatisticsManager()
+	: _startTime(time(NULL) )
 {
 	_statisticsFile = Resources::Instance().GameUserStatisticsFile();
 
@@ -38,15 +39,17 @@ StatisticsManager::~StatisticsManager()
 	}
 }
 
-void StatisticsManager::SaveStatistic( const char *  name, const char *  value )
+MGDFError StatisticsManager::SaveStatistic( const char * name, const char *  value )
 {
-	if ( !name || !value ) return;
+	if ( !name || strchr(name, ' ')!=NULL || strlen(name)>255) return MGDF_ERR_INVALID_STATS_KEY;
+	if ( !value || strlen(value) > 255) return MGDF_ERR_INVALID_STATS_VALUE;
 
-	_saveBuffer.push_back(std::pair<std::string,std::string>(name,value));
+	_saveBuffer.push_back(std::tuple<time_t,std::string,std::string>(time(NULL)-_startTime,name,value));
 
 	if ( _saveBuffer.size() >= SEND_THRESHOLD ) {
 		SaveAll();
 	}
+	return MGDF_OK;
 }
 
 void StatisticsManager::SaveAll()
@@ -55,7 +58,7 @@ void StatisticsManager::SaveAll()
 	{
 		std::ofstream file( _statisticsFile.c_str(), std::ios_base::out | std::ios_base::app );
 		for ( auto &pair : _saveBuffer ) {
-			file << pair.first + " " << pair.second << "\r\n";
+			file << std::get<0>(pair) + ":" << std::get<1>(pair) << " " << std::get<2>(pair) << "\r\n";
 		}
 		file.close();
 	} catch ( const std::exception& e ) {

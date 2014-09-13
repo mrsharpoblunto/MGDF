@@ -37,10 +37,10 @@ namespace MGDF.GamesManager.Tests
         [Test]
         public void TestStatisticsManager()
         {
-            FileSystem.Current.GetFile("C:\\stats.txt").WriteText(@"key value
-key1 value1
-key2 value2
-key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key11111112222222222 value11111value11111value11111value11111value11111value11111value11111value11111value11111value11111value11111value111112222222222
+            FileSystem.Current.GetFile("C:\\stats.txt").WriteText(@"0:key value
+1223:key1 value1
+122444:key2 value2
+122445:"+new String('a',256)+" "+new String('b',256)+@"
 ");
             StatisticsSession session = new StatisticsSession("game1", "http://stats.junkship.org", "c:\\stats.txt");
 
@@ -56,13 +56,18 @@ key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111
             Assert.AreEqual(4, uploadedStats.Count);
             Assert.AreEqual("key", uploadedStats[0].Name);
             Assert.AreEqual("value", uploadedStats[0].Value);
+			Assert.AreEqual(0, uploadedStats[0].Timestamp);
             Assert.AreEqual("key1", uploadedStats[1].Name);
             Assert.AreEqual("value1", uploadedStats[1].Value);
+			Assert.AreEqual(1223, uploadedStats[1].Timestamp);
             Assert.AreEqual("key2", uploadedStats[2].Name);
             Assert.AreEqual("value2", uploadedStats[2].Value);
-            Assert.AreEqual("key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key1111111key11111112222222", uploadedStats[3].Name);
-            Assert.AreEqual("value11111value11111value11111value11111value11111value11111value11111value11111value11111value11111value11111value111112222222", uploadedStats[3].Value);
-
+			Assert.AreEqual(122444, uploadedStats[2].Timestamp);
+			Assert.AreEqual(new String('a', 255), uploadedStats[3].Name);
+			Assert.AreEqual(new String('b', 255), uploadedStats[3].Value);
+			Assert.AreEqual(122445, uploadedStats[3].Timestamp);
+			Assert.AreEqual(uploadedStats[0].SessionId, uploadedStats[3].SessionId);
+			Assert.IsTrue(!string.IsNullOrEmpty(uploadedStats[0].SessionId));
         }
 
         [Test]

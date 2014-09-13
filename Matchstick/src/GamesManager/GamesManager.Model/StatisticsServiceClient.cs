@@ -14,11 +14,13 @@ using MGDF.GamesManager.StatisticsService.Contracts.Messages;
 namespace MGDF.GamesManager.Model
 {
     public class StatisticsBundle: List<Statistic> {
-		public StatisticsBundle(string gameUid) : base()
+		public StatisticsBundle(string gameUid,string sessionId) : base()
 		{
 			GameUid = gameUid;
+			SessionId = sessionId;
 		}
 
+		public string SessionId { get; private set; }
 		public string GameUid { get; private set; }
 	}
 
@@ -77,7 +79,10 @@ namespace MGDF.GamesManager.Model
 
             if (gameUid.Length > 255) return;
 
-            var currentBundle = new StatisticsBundle(gameUid);
+			// correlate all the statistics in this session with a random id
+			Guid sessionId = Guid.NewGuid();
+
+            var currentBundle = new StatisticsBundle(gameUid,sessionId.ToString());
             using (var stream = FileSystem.Current.GetFile(filename).OpenStream(FileMode.Open,FileAccess.Read,FileShare.Read))
             {
                 using (var reader = new StreamReader(stream))
@@ -85,21 +90,23 @@ namespace MGDF.GamesManager.Model
                     do
                     {
                         string line = reader.ReadLine();
-                        int index = line.IndexOf(' ');
+						int index = line.IndexOf(' ');
+						string[] prefix = line.Substring(0,index).Split(new[]{':'});
 
                         var stat = new Statistic
                                        {
-                                           Name = line.Substring(0, index),
+										   Timestamp = uint.Parse(prefix[0]),
+                                           Name = prefix[1],
                                            Value = line.Substring(index + 1),
                                        };
-                        if (stat.Name.Length > 127) stat.Name = stat.Name.Substring(0, 127);
-                        if (stat.Value.Length > 127) stat.Value = stat.Value.Substring(0, 127);
+                        if (stat.Name.Length > 255) stat.Name = stat.Name.Substring(0, 255);
+                        if (stat.Value.Length > 255) stat.Value = stat.Value.Substring(0, 255);
                         
                         currentBundle.Add(stat);
                         if (currentBundle.Count == 255)
                         {
                             Bundles.Add(currentBundle);
-                            currentBundle = new StatisticsBundle(gameUid);
+                            currentBundle = new StatisticsBundle(gameUid,sessionId.ToString());
                         }
                     } while (!reader.EndOfStream);
                     if (currentBundle.Count > 0) Bundles.Add(currentBundle);
@@ -135,7 +142,7 @@ namespace MGDF.GamesManager.Model
                 {
                     var request = new AddStatisticsRequest();
 					request.GameUid = bundle.GameUid;
-
+					request.SessionId = bundle.SessionId;
                     foreach (var statistic in bundle)
                     {
                         request.Statistics.Add(statistic);

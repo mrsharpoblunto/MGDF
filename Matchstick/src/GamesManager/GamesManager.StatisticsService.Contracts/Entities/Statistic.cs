@@ -8,6 +8,8 @@ namespace MGDF.GamesManager.StatisticsService.Contracts.Entities
     [DataContract]
     public class Statistic
     {
+		[DataMember]
+		public uint Timestamp { get; set; }
         [DataMember]
         public string Name { get; set; }
 

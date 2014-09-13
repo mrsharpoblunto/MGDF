@@ -88,6 +88,10 @@ namespace MGDF.GamesManager.StatisticsService.Model
 		
 		private string _GameUid;
 		
+		private uint _Timestamp;
+		
+		private string _SessionId;
+		
     #region Extensibility Method Definitions
     partial void OnLoaded();
     partial void OnValidate(System.Data.Linq.ChangeAction action);
@@ -100,6 +104,10 @@ namespace MGDF.GamesManager.StatisticsService.Model
     partial void OnValueChanged();
     partial void OnGameUidChanging(string value);
     partial void OnGameUidChanged();
+    partial void OnTimestampChanging(uint value);
+    partial void OnTimestampChanged();
+    partial void OnSessionIdChanging(string value);
+    partial void OnSessionIdChanged();
     #endregion
 		
 		public Statistic()
@@ -167,7 +175,7 @@ namespace MGDF.GamesManager.StatisticsService.Model
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_GameUid", CanBeNull=false)]
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_GameUid", DbType="VarChar(255) NOT NULL", CanBeNull=false)]
 		public string GameUid
 		{
 			get
@@ -183,6 +191,46 @@ namespace MGDF.GamesManager.StatisticsService.Model
 					this._GameUid = value;
 					this.SendPropertyChanged("GameUid");
 					this.OnGameUidChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Timestamp", DbType="Int")]
+		public uint Timestamp
+		{
+			get
+			{
+				return this._Timestamp;
+			}
+			set
+			{
+				if ((this._Timestamp != value))
+				{
+					this.OnTimestampChanging(value);
+					this.SendPropertyChanging();
+					this._Timestamp = value;
+					this.SendPropertyChanged("Timestamp");
+					this.OnTimestampChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_SessionId", DbType="VarChar(255) NOT NULL", CanBeNull=false)]
+		public string SessionId
+		{
+			get
+			{
+				return this._SessionId;
+			}
+			set
+			{
+				if ((this._SessionId != value))
+				{
+					this.OnSessionIdChanging(value);
+					this.SendPropertyChanging();
+					this._SessionId = value;
+					this.SendPropertyChanged("SessionId");
+					this.OnSessionIdChanged();
 				}
 			}
 		}
