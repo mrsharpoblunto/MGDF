@@ -18,8 +18,7 @@
   <property name="windows_sdk_path" value="${program_files_path}\Microsoft SDKs\Windows\v7.1A" />
   <property name="doxygen_path" value="${program_files_path}\doxygen\bin\doxygen.exe" />
   <property name="sevenzip_path" value="${program_files_path}\7zip\7za.exe" />
-  <property name="aspnetcompiler_exe_path" value="C:\Windows\Microsoft.Net\Framework\v4.0.30319\aspnet_compiler.exe"/>
-  
+
 	<!-- default target  -->
 	<target name="all" depends="version, build, test, documentation, distro" description="version, build, test, and create distro"/>
 
