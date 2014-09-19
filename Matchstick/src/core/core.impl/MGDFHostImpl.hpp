@@ -69,7 +69,7 @@ public:
 	void STDisposeModule();
 
 	void RTBeforeFirstDraw();
-	void RTSetDevices( ID3D11Device *device, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter );
+	void RTSetDevices( HWND window, ID3D11Device *device, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter );
 	void RTDraw( double alpha );
 	void RTBeforeBackBufferChange();
 	void RTBackBufferChange( ID3D11Texture2D *backBuffer );

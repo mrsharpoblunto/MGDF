@@ -280,10 +280,10 @@ void Host::RTBeforeDeviceReset()
 	}
 }
 
-void Host::RTSetDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter )
+void Host::RTSetDevices( HWND window, ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter )
 {
 	LOG( "Initializing render settings and GPU timers...", LOG_LOW );
-	_renderSettings.InitFromDevice( d3dDevice, adapter );
+	_renderSettings.InitFromDevice( window, d3dDevice, adapter );
 	_timer->InitFromDevice( d3dDevice, GPU_TIMER_BUFFER );
 
 	if ( _renderSettings.GetAdaptorModeCount() == 0 ) {

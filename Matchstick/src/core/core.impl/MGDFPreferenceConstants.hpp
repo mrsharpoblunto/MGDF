@@ -19,6 +19,8 @@ public:
 	static const char *VSYNC;
 	static const char *INTERPOLATE_FRAMES;
 	static const char *WINDOW_RESIZE;
+	static const char *WINDOW_SIZEX;
+	static const char *WINDOW_SIZEY;
 };
 
 }

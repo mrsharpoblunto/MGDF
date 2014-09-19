@@ -9,5 +9,7 @@
 	"host.musicVolume":"1.0",
 	"host.soundVolume":"1.0",
 	"host.interpolateFrames":"0",
-	"host.windowResize":"1"
+    "host.windowResize": "1",
+    "host.windowSizeX": "1024",
+    "host.windowSizeY": "768"
 }

@@ -114,17 +114,30 @@ public:
 	virtual bool GetAdaptorMode( UINT32 width, UINT32 height, AdaptorMode * mode ) const = 0;
 
 	/**
-	get the current adaptor mode being used
+	get the current adaptor mode being used when running in fullscreen mode
 	\param mode will be set to the current adaptor mode being used.
 	*/
 	virtual void GetCurrentAdaptorMode( AdaptorMode * mode ) const = 0;
 
 	/**
-	sets the current display adaptor mode, this changed setting is not applied until ApplyChanges is called.
+	sets the current display adaptor mode when running in fullscreen mode, this changed setting is not applied until ApplyChanges is called.
 	\param mode the adaptor mode to use
 	\return true if the adaptor mode is supported and can be applied, false otherwise
 	*/
 	virtual bool SetCurrentAdaptorMode( const AdaptorMode * mode ) = 0;
+
+	/**
+	sets the current display adaptor mode when running in fullscreen mode to the screens native fullscreen resolution. GetCurrentAdaptorMode should be called afterward to determine what adaptor was chosen
+	\return true if the adaptor mode could be changed, false otherwise
+	*/
+	virtual bool SetCurrentAdaptorModeToNative() = 0;
+
+	/**
+	sets the size of the window when running in windowed mode. While running in fullscreen, this function has no effect.
+	\param width the width of the window
+	\param height the height of the window
+	*/
+	virtual void SetWindowSize(UINT32 width, UINT32 height) const = 0;
 
 	/**
 	get the current screen width, based on the current adaptor mode in fullscreen, or on the window dimensions otherwise

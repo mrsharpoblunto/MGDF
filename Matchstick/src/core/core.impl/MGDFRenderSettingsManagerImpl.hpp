@@ -42,6 +42,8 @@ public:
 	bool GetAdaptorMode( UINT32 width, UINT32 height, AdaptorMode *mode ) const override final;
 	void GetCurrentAdaptorMode( AdaptorMode *mode ) const override final;
 	bool SetCurrentAdaptorMode( const AdaptorMode *mode ) override final;
+	bool SetCurrentAdaptorModeToNative() override final;
+	void SetWindowSize(UINT32 width, UINT32 height) const override final;
 
 	UINT32 GetScreenX() const override final;
 	UINT32 GetScreenY() const override final;
@@ -49,7 +51,7 @@ public:
 
 	void LoadPreferences( IGame *game );
 
-	void InitFromDevice(  ID3D11Device *d3dDevice, IDXGIAdapter1 *adapter );
+	void InitFromDevice( HWND window, ID3D11Device *d3dDevice, IDXGIAdapter1 *adapter );
 	bool IsBackBufferChangePending();
 	void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& fullscreenDesc, const RECT& windowSize );
 	void OnSwitchToFullScreen( DXGI_MODE_DESC1 &desc );
@@ -68,6 +70,7 @@ private:
 	UINT32 _backBufferMultiSampleLevel;
 
 	UINT32 _screenX, _screenY;
+	HWND _window;
 
 	bool _vsync;
 	bool _fullScreen;

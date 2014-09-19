@@ -97,12 +97,13 @@ void D3DAppFramework::InitWindow( const std::string &caption, WNDPROC windowProc
 			FATALERROR( this, "RegisterClass FAILED" );
 		}
 
-		_windowRect.top = 0;
-		_windowRect.left = 0;
-		_windowRect.right = Resources::MIN_SCREEN_X;
-		_windowRect.bottom = Resources::MIN_SCREEN_Y;
-
-		auto windowStyle = WindowResizingEnabled() ? WS_OVERLAPPEDWINDOW : WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
+		auto windowStyle = OnInitWindow(_windowRect) ? WS_OVERLAPPEDWINDOW : WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
+		if (_windowRect.right < (LONG)Resources::MIN_SCREEN_X) {
+			_windowRect.right = Resources::MIN_SCREEN_X;
+		}
+		if (_windowRect.right < (LONG)Resources::MIN_SCREEN_Y) {
+			_windowRect.right = Resources::MIN_SCREEN_Y;
+		}
 
 		if ( !AdjustWindowRect( &_windowRect, windowStyle, false ) ) {
 			FATALERROR( this, "AdjustWindowRect FAILED" );
@@ -268,7 +269,7 @@ void D3DAppFramework::InitD3D()
 	}
 	SAFE_RELEASE( output );
 
-	OnInitDevices( _d3dDevice, _d2dDevice, bestAdapter );
+	OnInitDevices( _window, _d3dDevice, _d2dDevice, bestAdapter );
 	SAFE_RELEASE( bestAdapter );
 	SAFE_RELEASE( dxgiDevice );
 
@@ -347,7 +348,6 @@ void D3DAppFramework::Resize()
 	_currentSize.x = _swapDesc.Width;
 	_currentSize.y = _swapDesc.Height;
 
-	// TODO if fullscreen, set width & height to current adapter size
 	HRESULT result = _swapChain->ResizeBuffers(
 					 0,
 	                 _swapDesc.Width,
@@ -460,7 +460,7 @@ INT32 D3DAppFramework::Run()
 				CreateSwapChain();
 				Resize();
 			}
-			//a window event may also have triggered a resize event.
+			// a window event may also have triggered a resize event.
 			else if ( _resize.compare_exchange_strong( exp, false ) ) {
 				OnResize( _swapDesc.Width, _swapDesc.Height );
 				Resize();

@@ -93,7 +93,7 @@ UINT32 MGDFApp::GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32
 	return _host->GetCompatibleD3DFeatureLevels( levels, featureLevelsSize );
 }
 
-void MGDFApp::OnInitDevices(  ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter )
+void MGDFApp::OnInitDevices( HWND window, ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter )
 {
 	_ASSERTE( d3dDevice );
 	_ASSERTE( d2dDevice );
@@ -103,7 +103,7 @@ void MGDFApp::OnInitDevices(  ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, I
 		FATALERROR( this, "Unable to create ID2D1DeviceContext" );
 	}
 
-	_host->RTSetDevices( d3dDevice, d2dDevice, adapter );
+	_host->RTSetDevices( window, d3dDevice, d2dDevice, adapter );
 }
 
 bool MGDFApp::IsBackBufferChangePending()
@@ -116,8 +116,12 @@ bool MGDFApp::VSyncEnabled() const
 	return _host->GetRenderSettingsImpl().GetVSync();
 }
 
-bool MGDFApp::WindowResizingEnabled() const 
+bool MGDFApp::OnInitWindow( RECT &window )
 {
+	window.top = 0;
+	window.left = 0;
+	window.right = atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEX ));
+	window.bottom = atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEY ));
 	const char *windowResize = _host->GetGame()->GetPreference( PreferenceConstants::WINDOW_RESIZE );
 	return atoi( windowResize ) == 1;
 }

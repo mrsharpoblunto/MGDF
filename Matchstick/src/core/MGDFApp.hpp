@@ -20,14 +20,14 @@ public:
 
 protected:
 	UINT32 GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *featureLevelsSize ) override final;
-	void OnInitDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) override final;
+	bool OnInitWindow(RECT& windowSize) override final;
+	void OnInitDevices( HWND window, ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) override final;
 	void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC&, const RECT& windowSize ) override final;
 	void OnSwitchToFullScreen( DXGI_MODE_DESC1 & ) override final;
 	void OnSwitchToWindowed() override final;
 	void OnResize( UINT32 width, UINT32 height ) override final;
 	bool IsBackBufferChangePending() override final;
 	bool VSyncEnabled() const override final;
-	bool WindowResizingEnabled() const override final;
 	void OnBeforeBackBufferChange() override final;
 	void OnBackBufferChange( ID3D11Texture2D *backBuffer ) override final;
 	void OnBeforeDeviceReset() override final;

@@ -23,5 +23,8 @@ const char *PreferenceConstants::RT_MULTISAMPLE_LEVEL = "host.RTMultiSampleLevel
 const char *PreferenceConstants::VSYNC = "host.vsync";
 const char *PreferenceConstants::INTERPOLATE_FRAMES = "host.interpolateFrames";
 const char *PreferenceConstants::WINDOW_RESIZE = "host.windowResize";
+const char *PreferenceConstants::WINDOW_SIZEX = "host.windowSizeX";
+const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
+
 }
 }

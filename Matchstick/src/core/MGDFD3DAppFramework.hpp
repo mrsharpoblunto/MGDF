@@ -24,7 +24,8 @@ public:
 protected:
 	virtual void OnBeforeFirstDraw() = 0;
 	virtual void OnBeforeDeviceReset() = 0;
-	virtual void OnInitDevices( ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) = 0;
+	virtual bool OnInitWindow(RECT& windowSize) = 0;
+	virtual void OnInitDevices( HWND window, ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) = 0;
 	virtual void OnBeforeBackBufferChange() = 0;
 	virtual void OnBackBufferChange( ID3D11Texture2D *backBuffer ) = 0;
 	virtual void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& , const RECT& windowSize ) = 0;
@@ -47,7 +48,6 @@ protected:
 	virtual UINT32 GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *featureLevelsSize ) = 0;
 	virtual bool IsBackBufferChangePending() = 0;
 	virtual bool VSyncEnabled() const = 0;
-	virtual bool WindowResizingEnabled() const = 0;
 	virtual void FatalError( const char *sender, const char *message ) = 0;
 	void CloseWindow();
 

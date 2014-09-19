@@ -33,16 +33,18 @@ RenderSettingsManager::RenderSettingsManager( )
 	, _vsync( true )
 	, _screenX( 0 )
 	, _screenY( 0 )
+	, _window( NULL )
 {
 	ZeroMemory( &_currentAdaptorMode, sizeof( AdaptorMode ) );
 }
 
-void RenderSettingsManager::InitFromDevice( ID3D11Device *d3dDevice, IDXGIAdapter1 *adapter )
+void RenderSettingsManager::InitFromDevice( HWND window, ID3D11Device *d3dDevice, IDXGIAdapter1 *adapter )
 {
 	_ASSERTE( d3dDevice );
 	_ASSERTE( adapter );
 
 	std::lock_guard<std::mutex> lock( _mutex );
+	_window = window;
 	Cleanup();
 
 	IDXGIOutput *temp;
@@ -284,6 +286,25 @@ bool RenderSettingsManager::SetCurrentAdaptorMode( const AdaptorMode *mode )
 	return false;
 }
 
+bool RenderSettingsManager::SetCurrentAdaptorModeToNative() 
+{
+	INT32 nativeWidth = GetSystemMetrics( SM_CXSCREEN );
+	INT32 nativeHeight = GetSystemMetrics( SM_CYSCREEN );
+	AdaptorMode mode;
+	if (GetAdaptorMode(nativeWidth, nativeHeight, &mode)) {
+		_currentAdaptorMode = mode;
+		return true;
+	}
+	return false;
+}
+
+void RenderSettingsManager::SetWindowSize(UINT32 width, UINT32 height) const
+{
+	if (!_fullScreen && _window) {
+		SetWindowPos(_window, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+}
+
 void RenderSettingsManager::ApplyChanges()
 {
 	std::lock_guard<std::mutex> lock( _mutex );
@@ -384,14 +405,7 @@ void RenderSettingsManager::LoadPreferences( IGame *game )
 		}
 
 		//try to find the native resolution if possible, otherwise stick to the default found above if none are found.
-		INT32 nativeWidth = GetSystemMetrics( SM_CXSCREEN );
-		INT32 nativeHeight = GetSystemMetrics( SM_CYSCREEN );
-		for ( auto mode : _adaptorModes ) {
-			if ( mode.Width == nativeWidth && mode.Height == nativeHeight ) {
-				_currentAdaptorMode = mode;
-				break;
-			}
-		}
+		SetCurrentAdaptorModeToNative();
 
 		LOG( "No screen resolution preferences found, using " << _currentAdaptorMode.Width << "x" << _currentAdaptorMode.Height, LOG_LOW );
 		game->SetPreference( PreferenceConstants::SCREEN_X, ToString( _currentAdaptorMode.Width ).c_str() );
