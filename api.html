@@ -111,7 +111,12 @@ Installer package created
             <dd>Determines whether the render thread waits at least 1 simulation tick before rendering a new frame ("0"), or whether it should render multiple frames or the same simulation state ("1") and have an interpolation factor passed in by the host. Defaults to "0". Games which have a simulation fps that is the same or higher than the render framerate should typically pick "0", however for games with a simulation fps slower than the renderer frame rate, using "1", may be the only way to prevent slow or 'janky' animation</dd>
             <dt>host.windowResize</dt>
             <dd>Whether to allow resizing of the game window in windowed mode ("1") or to have a fixed size window ("0"). This setting is provided as resizing the window may cause a D3D device reset. Because of this, having a resizable window means your game will have to be able to handle this. If you don't want to worry about this, leave it at the default of "0"</dd>
-        </dl>
+            <dt>host.windowSizeX</dt>
+            <dd>The desired horizontal size of the window when in windowed mode. Defaults to "1024"</dd>
+            <dt>host.windowSizeY</dt>
+            <dd>The desired vertical size of the window when in windowed mode. Defaults to "768"</dd>
+
+		</dl>
 
         <h2 id="updatemanifest">Game update manifest</h2>
         <p>The game update manifest file is a json file whose location is specified in the updateservice property of the game.json file. This file is used to determine if updates to a game are available. The full schema for an update manifest file is shown below.</p>
