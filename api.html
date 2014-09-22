@@ -43,7 +43,7 @@ Installer package created
     MD5: bd226dd32804d683348e2708b7288087
 </pre>
         <h2 id="gamemanifeset">Game.json configuration</h2>
-        <p>The game.json file is where all configuration for a game is stored. The full schema for a game.json file is as follows</p>
+        <p>The game.json file is where all configuration and default preferences for a game is stored. The full schema for a game.json file is as follows</p>
 {% highlight json %}
 {
     "gameuid":"a unique id",
@@ -96,9 +96,9 @@ Installer package created
             <dt>host.simFps</dt>
             <dd>The target framerate of the sim thread. If the sim thread is able to run faster than this, the host will add in sleeps between timesteps to ensure that the sim is limited to this framerate (note the render thread framerate is unaffected by this setting). Defaults to "60"</dd>
             <dt>host.screenX</dt>
-            <dd>The desired horizontal resolution to display the game at. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "1024"</dd>
+            <dd>The desired horizontal resolution to display the game at when running in fullscreen. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "1024"</dd>
             <dt>host.screenY</dt>
-            <dd>The desired vertical resolution to display the game at. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "768"</dd>
+            <dd>The desired vertical resolution to display the game at when running in fullscreen. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "768"</dd>
             <dt>host.fullScreen</dt>
             <dd>Whether to start the game in fullscreen ("1") or in windowed mode ("0"). Defaults to "0"</dd>
             <dt>host.multiSampleLevel</dt>

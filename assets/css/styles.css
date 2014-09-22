@@ -150,5 +150,8 @@
 	list-style:none;
 }
 
-.prettyprint ol.linenums > li { list-style-type: decimal; }
-
+.dl-horizontal dt
+{
+    overflow: visible;
+    text-overflow: clip;
+}
