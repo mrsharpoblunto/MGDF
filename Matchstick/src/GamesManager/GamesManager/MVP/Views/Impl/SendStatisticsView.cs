@@ -37,7 +37,7 @@ namespace MGDF.GamesManager.MVP.Views.Impl
                 _game = value;
                 Uri statsUrl = new Uri(_game.StatisticsService);
                 label3.Text = _game.Name + " is requesting permission to send gameplay statistics to " + statsUrl.Host;
-                label1.Text = _game.Name + " is requesting permission to send anonymous gameplay statistics to its developer "+_game.DeveloperName+@" in order to help improve this game.
+                label1.Text = _game.Name + " is requesting permission to send gameplay statistics to its developer "+_game.DeveloperName+@" in order to help improve this game.
 
 Do you give your permission for these statistics to be sent?";
             }
