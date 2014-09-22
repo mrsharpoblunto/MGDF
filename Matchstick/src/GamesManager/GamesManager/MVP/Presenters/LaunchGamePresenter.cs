@@ -194,7 +194,11 @@ namespace MGDF.GamesManager.MVP.Presenters
                         statisticsFile.DeleteWithTimeout();
                     }
                 }
-            }
+			}
+			else if (!string.IsNullOrEmpty(Game.Current.StatisticsService))
+			{
+				Logger.Current.Write(LogInfoLevel.Warning, "Cannot send statistics due to missing privacy policy url");
+			}
 
             View.Invoke(() =>
             {

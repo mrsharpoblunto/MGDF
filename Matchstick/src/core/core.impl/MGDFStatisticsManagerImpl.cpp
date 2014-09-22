@@ -58,7 +58,7 @@ void StatisticsManager::SaveAll()
 	{
 		std::ofstream file( _statisticsFile.c_str(), std::ios_base::out | std::ios_base::app );
 		for ( auto &pair : _saveBuffer ) {
-			file << std::get<0>(pair) + ":" << std::get<1>(pair) << " " << std::get<2>(pair) << "\r\n";
+			file << std::get<0>(pair) << ":" << std::get<1>(pair) << " " << std::get<2>(pair) << "\r\n";
 		}
 		file.close();
 	} catch ( const std::exception& e ) {
