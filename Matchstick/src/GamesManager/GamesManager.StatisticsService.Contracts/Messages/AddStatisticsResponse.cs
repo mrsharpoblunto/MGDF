@@ -18,6 +18,6 @@ namespace MGDF.GamesManager.StatisticsService.Contracts.Messages
         }
 
 		[DataMember]
-		public bool Success { get { return _errors.Count == 0; } }
+		public bool Success { get; set; }
     }
 }

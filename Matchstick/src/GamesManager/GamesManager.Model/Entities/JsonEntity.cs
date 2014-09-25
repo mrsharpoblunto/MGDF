@@ -119,9 +119,8 @@ namespace MGDF.GamesManager.Model.Entities
 
         public static string ReadRequiredValue(this JToken json, string name)
         {
-            string result = json[name].Value<string>();
-            if (string.IsNullOrEmpty(result)) throw new Exception("Required attribute '" + name + "' missing");
-            return result;
+            if (json[name] == null) throw new Exception("Required attribute '" + name + "' missing");
+            return json[name].Value<string>();
         }
     }
 }

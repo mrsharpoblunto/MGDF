@@ -89,7 +89,9 @@ namespace MGDF.GamesManager.Model
                 {
                     do
                     {
-                        string line = reader.ReadLine();
+                        string line = reader.ReadLine().Trim();
+						if (string.IsNullOrEmpty(line)) continue;
+
 						int index = line.IndexOf(' ');
 						string[] prefix = line.Substring(0,index).Split(new[]{':'});
 

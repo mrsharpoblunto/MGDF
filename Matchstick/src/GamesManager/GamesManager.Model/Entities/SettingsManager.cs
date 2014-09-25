@@ -60,7 +60,7 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-            var game = json["game"].First;
+            var game = json["game"];
             if (game!=null)
             {
                  var gameSource = new GameSettings
@@ -71,7 +71,7 @@ namespace MGDF.GamesManager.Model.Entities
                  };
                  if (game["statisticsserviceenabled"]!=null)
                  {
-                     gameSource.StatisticsServiceEnabled = bool.Parse(game["statisticsserviceenabled"].Value<string>());
+                     gameSource.StatisticsServiceEnabled = game["statisticsserviceenabled"].Value<bool>();
                  }
                  Settings = gameSource;
             }
@@ -93,7 +93,8 @@ namespace MGDF.GamesManager.Model.Entities
                         writer.WriteRequiredValue("uid", Settings.GameUid);
                         if (Settings.StatisticsServiceEnabled.HasValue)
                         {
-                            writer.WriteRequiredValue("statisticsserviceenabled", Settings.StatisticsServiceEnabled.ToString());
+							writer.WritePropertyName("statisticsserviceenabled");
+                            writer.WriteValue(Settings.StatisticsServiceEnabled.Value);
                         }
                         writer.WriteRequiredValue("username", Settings.UserName ?? string.Empty);
                         writer.WriteRequiredValue("passwordhash",DPAPI.Encrypt(Settings.Password ?? string.Empty));

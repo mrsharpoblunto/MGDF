@@ -47,8 +47,8 @@ Do you give your permission for these statistics to be sent?";
         {
             try
             {
-                Uri statisticsPrviacyPolicy = new Uri(_game.StatisticsPrivacyPolicy);
-                Process.Start(statisticsPrviacyPolicy.ToString());
+                Uri statisticsPrivacyPolicy = new Uri(_game.StatisticsPrivacyPolicy);
+                Process.Start(statisticsPrivacyPolicy.ToString());
             }
             catch (Exception)
             {
