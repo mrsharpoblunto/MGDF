@@ -53,6 +53,9 @@ void Game::SetPreference( const char *name, const char *value )
 	if ( it != _preferences.end() ) {
 		it->second = value;
 	}
+	else {
+		_preferences.insert(std::make_pair(name, value));
+	}
 }
 
 void Game::ResetPreferences()
