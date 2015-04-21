@@ -136,7 +136,7 @@
     <!-- generate the latest.json file for use by other games -->
     <generateupdatescript output="${project::get-base-directory()}\Package\latest.json"
                           version="${buildnumber}" 
-                          url="http://s3.amazonaws.com/matchstickframework.org/MGDF_${buildnumber}_x86.zip" 
+                          url="https://s3.matchstickframework.org/MGDF_${buildnumber}_x86.zip" 
                           file="${project::get-base-directory()}\Package\MGDF_${buildnumber}_x86.zip" />
     
     <!-- copy debugging symbols + binaries to the package directory so that we can debug minidumps later -->
