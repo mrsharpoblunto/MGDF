@@ -183,6 +183,7 @@ namespace MGDF.GamesManager.MVP.Presenters
                                     Logger.Current.Write(LogInfoLevel.Error, error);
                                 }
                             }
+							Logger.Current.Write(LogInfoLevel.Info, "Statistics sent." );
                         }
                     }
                     catch (Exception ex)

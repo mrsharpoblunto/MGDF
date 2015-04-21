@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.ServiceModel;
 using System.ServiceModel.Description;
+using System.ServiceModel.Web;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Entities;
@@ -117,22 +118,40 @@ namespace MGDF.GamesManager.Model
         }
     }
 
+	public class WebWCFClient<TChannel> : IWCFClient<TChannel> where TChannel: class
+	{
+		public TReturn Use<TReturn>(Uri uri,Func<TChannel, TReturn> code)
+		{
+			var factory = new WebChannelFactory<TChannel>(uri);
+			TChannel channel = factory.CreateChannel();
+			bool error = true;
+			try
+			{
+				TReturn result = code(channel);
+				((IClientChannel)channel).Close();
+				error = false;
+				return result;
+			}
+			finally
+			{
+				if (error)
+				{
+					((IClientChannel)channel).Abort();
+				}
+			}
+		}
+	}
+
     public class StatisticsServiceClient
     {
         private readonly IWCFClient<IStatisticsService> _service;
         private readonly StatisticsSession _session;
 
-        public static Func<Uri, IWCFClient<IStatisticsService>> ServiceFactory = uri =>
-                                                                                     {
-                                                                                         var factory = new ChannelFactory<IStatisticsService>(new WebHttpBinding(), new EndpointAddress(uri));
-                                                                                         factory.Endpoint.Behaviors.Add(new WebHttpBehavior());
-
-                                                                                         return new WCFClient<IStatisticsService>(factory);
-                                                                                     };
+        public static Func<IWCFClient<IStatisticsService>> ServiceFactory = ()=> new WebWCFClient<IStatisticsService>();
 
         public StatisticsServiceClient(StatisticsSession session)
         {
-            _service = ServiceFactory(session.ServiceUrl);
+            _service = ServiceFactory();
             _session = session;
         }
 
@@ -150,7 +169,7 @@ namespace MGDF.GamesManager.Model
                         request.Statistics.Add(statistic);
                     }
 
-                    var response = _service.Use(s=>s.AddStatistics(request));
+                    var response = _service.Use(_session.ServiceUrl,s=>s.AddStatistics(request));
                     if (response.Errors.Count > 0)
                     {
                         errors.AddRange(response.Errors);
@@ -158,9 +177,9 @@ namespace MGDF.GamesManager.Model
                 }
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                errors.Add("Unable to access StatisticsService at " + _session.ServiceUrl);
+                errors.Add("Unable to access StatisticsService at " + _session.ServiceUrl+": "+ex.ToString());
             }
         }
 

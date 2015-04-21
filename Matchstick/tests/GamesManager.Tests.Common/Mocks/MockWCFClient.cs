@@ -6,16 +6,16 @@ using MGDF.GamesManager.Common;
 
 namespace MGDF.GamesManager.Tests.Common.Mocks
 {
-    public class MockWCFClient<TCHannel>:IWCFClient<TCHannel>
+    public class MockWCFClient<TChannel>:IWCFClient<TChannel> where TChannel: class
     {
-        private readonly TCHannel _service;
+        private readonly TChannel _service;
 
-        public MockWCFClient(TCHannel service)
+        public MockWCFClient(TChannel service)
         {
             _service = service;
         }
 
-        public TReturn Use<TReturn>(Func<TCHannel, TReturn> code)
+        public TReturn Use<TReturn>(Uri uri,Func<TChannel, TReturn> code)
         {
             return code(_service);
         }

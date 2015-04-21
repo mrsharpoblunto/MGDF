@@ -60,7 +60,7 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-            var game = json["game"];
+			var game = json["game"];
             if (game!=null)
             {
                  var gameSource = new GameSettings

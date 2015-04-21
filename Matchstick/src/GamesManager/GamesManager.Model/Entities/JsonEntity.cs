@@ -52,6 +52,7 @@ namespace MGDF.GamesManager.Model.Entities
             catch (Exception ex)
             {
                 _errorCollection.Add("Unable to load data from "+filename+" - "+ex);
+				Logger.Current.Write(ex, "Unable to load data from " + filename);
             }
         }
 
@@ -71,6 +72,7 @@ namespace MGDF.GamesManager.Model.Entities
             catch (Exception ex)
             {
                 _errorCollection.Add("Unable to load data from " + file.Name + " - " + ex);
+				Logger.Current.Write(ex, "Unable to load data from " + file.Name);
             }
         }
 
@@ -83,6 +85,7 @@ namespace MGDF.GamesManager.Model.Entities
             catch (Exception e)
             {
                 _errorCollection.Add(e.Message);
+				Logger.Current.Write(e, "Unable to load JSON data " + e.Message);
             }          
         }
 

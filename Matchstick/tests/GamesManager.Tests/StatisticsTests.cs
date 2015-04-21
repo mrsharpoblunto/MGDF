@@ -40,7 +40,7 @@ namespace MGDF.GamesManager.Tests
             StatisticsSession session = new StatisticsSession("game1", "http://stats.junkship.org", "c:\\stats.txt");
 
 			var statisticsService = new MockStatisticsService();
-			StatisticsServiceClient.ServiceFactory = uri => new MockWCFClient<IStatisticsService>(statisticsService);
+			StatisticsServiceClient.ServiceFactory = ()=>new MockWCFClient<IStatisticsService>(statisticsService);
             StatisticsServiceClient client = new StatisticsServiceClient(session);
 
             List<string> errors = new List<string>();
