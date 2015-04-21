@@ -8,7 +8,7 @@ url: "http://matchstickframework.org" # the base hostname & protocol for your si
 twitter_username: mr_sharpoblunto
 github_username:  mrsharpoblunto
 sdkversion: "0.12.43"
-sdkdownloadurl: "https://s3.amazonaws.com/matchstickframework.org/MGDF_0.12.43_SDK.zip" 
+sdkdownloadurl: "https://s3.matchstickframework.org/MGDF_0.12.43_SDK.zip" 
 
 # Build settings
 markdown: kramdown
