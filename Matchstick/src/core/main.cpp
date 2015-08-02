@@ -1,6 +1,9 @@
 #include "StdAfx.h"
 
-#include <dbghelp.h>
+#pragma warning(push)
+#pragma warning(disable:4091)
+#include <Dbghelp.h>
+#pragma warning(pop)
 
 #include "common/win32Exception.hpp"
 #include "common/MGDFLoggerImpl.hpp"
