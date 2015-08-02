@@ -1,6 +1,9 @@
 #include "StdAfx.h"
 
+#pragma warning(push)
+#pragma warning(disable:4091)
 #include <Dbghelp.h>
+#pragma warning(pop)
 #include <filesystem>
 
 #include "MGDFModuleFactory.hpp"
