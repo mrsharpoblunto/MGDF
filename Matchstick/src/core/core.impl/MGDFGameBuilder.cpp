@@ -62,21 +62,21 @@ MGDFError GameBuilder::CreateGame( storage::IGameStorageHandler *handler, Game *
 	(*game)->LoadPreferences( handler->GetPreferences() );
 
 	//load customised preferences for this game if any are present
-	wpath customPref( Resources::Instance().GameUserPreferencesFile() );
+	path customPref( Resources::Instance().GameUserPreferencesFile() );
 
 	//then if a settings file exists, override these defaults where present
 	//this creates a prefs file with the union of all preferences included but only the
 	//most recent values kept (this means it auto updates the preferences listing to include newly added prefs)
 	if ( exists( customPref ) ) {
-		err = (*game)->LoadPreferences( customPref.string() );
+		err = (*game)->LoadPreferences( customPref.wstring() );
 		if ( MGDF_OK != err ) {
-			LOG("Unable to parse customized preferences " << Resources::ToString(customPref.string()), LOG_ERROR)
+			LOG("Unable to parse customized preferences " << Resources::ToString(customPref.wstring()), LOG_ERROR)
 		}
 	}
 
 	//then save the current preferences as a custom preference file
 	//any subsequent changes made by modules will be saved to this file
-	(*game)->SavePreferences( customPref.string() );
+	(*game)->SavePreferences( customPref.wstring() );
 
 	return MGDF_OK;
 }

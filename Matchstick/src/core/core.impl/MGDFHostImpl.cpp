@@ -522,7 +522,7 @@ MGDFError Host::BeginSave( const char *save, wchar_t *saveBuffer, UINT32 *size )
 
 	try {
 		//create the subdir for the names save files
-		wpath saveDir( Resources::Instance().SaveDir( saveName ) );
+		path saveDir( Resources::Instance().SaveDir( saveName ) );
 		if ( !exists( saveDir ) )
 			create_directory( saveDir );
 		else {
@@ -530,7 +530,7 @@ MGDFError Host::BeginSave( const char *save, wchar_t *saveBuffer, UINT32 *size )
 			create_directory( saveDir );  //recreate it
 		}
 		//create the save data sub-folder
-		wpath saveDataDir( saveBufferContent );
+		path saveDataDir( saveBufferContent );
 		create_directory( saveDataDir );
 
 		std::auto_ptr<storage::IGameStateStorageHandler> handler( _storage->CreateGameStateStorageHandler( _game->GetUid(), _game->GetVersion() ) );
@@ -556,8 +556,8 @@ MGDFError Host::CompleteSave( const char *save )
 		std::string pendingSave( save );
 		pendingSave.insert( 0, PENDING_SAVE_PREFIX );
 
-		wpath pendingSaveDir( Resources::Instance().SaveDir( pendingSave ) );
-		wpath saveDir( Resources::Instance().SaveDir( saveName ) );
+		path pendingSaveDir( Resources::Instance().SaveDir( pendingSave ) );
+		path saveDir( Resources::Instance().SaveDir( saveName ) );
 
 		if ( !exists( pendingSaveDir ) ) {
 			LOG( saveName << " is not a pending save. Ensure that BeginSave is called with a matching save name before calling CompleteSave", LOG_ERROR );
@@ -598,10 +598,10 @@ const IStringList *Host::GetSaves() const
 		LOG( "Enumerating saves...", LOG_MEDIUM );
 		const_cast<StringList *>( _saves ) = new StringList();
 
-		wpath savePath( Resources::Instance().SaveBaseDir() );
+		path savePath( Resources::Instance().SaveBaseDir() );
 
-		wdirectory_iterator end_itr; // default construction yields past-the-end
-		for ( wdirectory_iterator itr( savePath ); itr != end_itr; ++itr ) {
+		directory_iterator end_itr; // default construction yields past-the-end
+		for ( directory_iterator itr( savePath ); itr != end_itr; ++itr ) {
 			if ( is_directory( itr->path() ) ) {
 				std::string saveName( Resources::ToString( itr->path().filename() ) );
 				if ( saveName.find( PENDING_SAVE_PREFIX ) != 0 ) {
@@ -626,7 +626,7 @@ void Host::RemoveSave( const char *saveName )
 			LOG( "Removing save " << saveName << "...", LOG_MEDIUM );
 			delete[] _saves->Get( i );
 			_saves->Remove( i );
-			wpath savePath( Resources::Instance().UserBaseDir() + Resources::ToWString( saveName ) );
+			path savePath( Resources::Instance().UserBaseDir() + Resources::ToWString( saveName ) );
 			remove_all( savePath );
 			return;
 		}
@@ -661,7 +661,7 @@ ISoundManager *Host::GetSound() const
 void Host::ClearWorkingDirectory()
 {
 	LOG( "Clearing working directory...", LOG_HIGH );
-	wpath workingDir( Resources::Instance().WorkingDir() );
+	path workingDir( Resources::Instance().WorkingDir() );
 	if ( exists( workingDir ) ) {
 		remove_all( workingDir );
 	} else {

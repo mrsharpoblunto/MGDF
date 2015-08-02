@@ -46,7 +46,7 @@ private:
 	IFile *_root;
 	bool _rootIsArchive;
 
-	IFile *Map( const std::tr2::sys::wpath &path, IFile *parent );
+	IFile *Map( const std::tr2::sys::path &path, IFile *parent );
 	IArchiveHandler *GetArchiveHandler( const std::wstring &path );
 };
 

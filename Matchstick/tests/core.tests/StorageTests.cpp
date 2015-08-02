@@ -88,7 +88,7 @@ SUITE( StorageTests )
 		CHECK_EQUAL( "Console", handler->GetGameUid() );
 		CHECK_EQUAL( 0, VersionHelper::Compare( handler->GetVersion(), &expected ) );
 
-		remove( wpath( savePath ) );   //remove the temp file
+		remove(std::tr2::sys::path( savePath ) );   //remove the temp file
 		delete handler;
 	}
 
@@ -119,8 +119,8 @@ SUITE( StorageTests )
 		CHECK_EQUAL( 9, count );
 
 		std::wstring savePath = Resources::Instance().RootDir() + L"../../../tests/content/temp.json";
-		if ( exists( wpath( savePath ) ) ) {
-			remove( wpath( savePath ) );   //remove the temp file
+		if ( exists(std::tr2::sys::path( savePath ) ) ) {
+			remove( std::tr2::sys::path( savePath ) );   //remove the temp file
 		}
 		handler->Save( savePath );
 		delete handler;
@@ -146,7 +146,7 @@ SUITE( StorageTests )
 		CHECK( foundScreenX );
 		CHECK_EQUAL( 9, count );
 
-		remove( wpath( savePath ) );   //remove the temp file
+		remove( std::tr2::sys::path( savePath ) );   //remove the temp file
 		delete handler;
 	}
 

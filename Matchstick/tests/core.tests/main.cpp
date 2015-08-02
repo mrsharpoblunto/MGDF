@@ -121,7 +121,7 @@ void ParseArguments( Node<Test> &tree, TestFlags &flags, int argc, char **argv )
 		}
 
 		if ( directive[0] != '-' && directive[0] != '+' ) {
-			printf( "Invalid test directive '%s'\n", directive );
+			printf( "Invalid test directive '%s'\n", directive.c_str() );
 			exit( 1 );
 		}
 		bool execute = directive[0] == '+';
@@ -147,7 +147,7 @@ void ParseArguments( Node<Test> &tree, TestFlags &flags, int argc, char **argv )
 
 		auto suite = tree.Children.find( components[0] );
 		if ( suite == tree.Children.end() ) {
-			printf( "No test or suite with name '%s'\n", components[0] );
+			printf( "No test or suite with name '%s'\n", components[0].c_str() );
 			exit( 1 );
 		}
 
@@ -159,7 +159,7 @@ void ParseArguments( Node<Test> &tree, TestFlags &flags, int argc, char **argv )
 
 		auto test = suite->second.Children.find( components[1] );
 		if ( test == suite->second.Children.end() ) {
-			printf( "No test with name '%s'\n", components[1] );
+			printf( "No test with name '%s'\n", components[1].c_str() );
 			exit( 1 );
 		}
 
@@ -172,7 +172,7 @@ void ParseArguments( Node<Test> &tree, TestFlags &flags, int argc, char **argv )
 
 		auto row = test->second.Children.find( components[2] );
 		if ( row == test->second.Children.end() ) {
-			printf( "No row test with name '%s'\n", components[2] );
+			printf( "No row test with name '%s'\n", components[2].c_str());
 			exit( 1 );
 		}
 
@@ -184,7 +184,7 @@ void ParseArguments( Node<Test> &tree, TestFlags &flags, int argc, char **argv )
 			continue;
 		}
 
-		printf( "Invalid test directive %s\n", directive );
+		printf( "Invalid test directive %s\n", directive.c_str());
 		exit( 1 );
 	}
 }

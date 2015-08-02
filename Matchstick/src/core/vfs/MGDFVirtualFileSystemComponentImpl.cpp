@@ -59,11 +59,11 @@ bool VirtualFileSystemComponent::Mount( const wchar_t *physicalDirectory )
 void VirtualFileSystemComponent::MapChildren( DefaultFolderImpl *parent, std::map<const wchar_t *, IFile *, WCharCmp> &children )
 {
 	_ASSERTE( parent );
-	wpath path( parent->GetPhysicalPath() );
+	path path( parent->GetPhysicalPath() );
 	_ASSERTE( is_directory( path ) );
 
-	wdirectory_iterator end_itr; // default construction yields past-the-end
-	for ( wdirectory_iterator itr( path ); itr != end_itr; ++itr ) {
+	directory_iterator end_itr; // default construction yields past-the-end
+	for ( directory_iterator itr( path ); itr != end_itr; ++itr ) {
 		IFile *mappedChild = Map( ( *itr ).path(), parent );
 		_ASSERTE( mappedChild );
 		children.insert( std::pair<const wchar_t *, IFile *> ( mappedChild->GetName(), mappedChild ) );
@@ -71,17 +71,17 @@ void VirtualFileSystemComponent::MapChildren( DefaultFolderImpl *parent, std::ma
 }
 
 
-IFile *VirtualFileSystemComponent::Map( const wpath &path, IFile *parent )
+IFile *VirtualFileSystemComponent::Map( const path &path, IFile *parent )
 {
 	//wpath path( physicalPath );
 	if ( is_directory( path ) ) {
-		return new DefaultFolderImpl( path.filename(), path.string(), parent, this );
+		return new DefaultFolderImpl( path.filename(), path.wstring(), parent, this );
 	} else {
 		//if its an archive
-		IArchiveHandler *archiveHandler = GetArchiveHandler( path.string() );
+		IArchiveHandler *archiveHandler = GetArchiveHandler( path.wstring() );
 		if ( archiveHandler ) {
 			auto filename = path.filename();
-			auto fullpath = path.string();
+			auto fullpath = path.wstring();
 			IFile *mappedFile = archiveHandler->MapArchive(
 									filename.c_str(),
 			                        fullpath.c_str(),
@@ -92,12 +92,12 @@ IFile *VirtualFileSystemComponent::Map( const wpath &path, IFile *parent )
 				_mappedArchives.insert( std::pair<IArchiveHandler *, IFile *> ( archiveHandler, mappedFile ) );
 				return mappedFile;
 			} else {
-				LOG( "Unable to map archive " << Resources::ToString( path.string() ), LOG_ERROR );
+				LOG( "Unable to map archive " << Resources::ToString( path.wstring() ), LOG_ERROR );
 			}
 		}
 
 		//otherwise its just a plain old file
-		return new DefaultFileImpl( path.filename(), path.string(), parent, _errorHandler );
+		return new DefaultFileImpl( path.filename(), path.wstring(), parent, _errorHandler );
 	}
 }
 

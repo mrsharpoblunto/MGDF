@@ -32,8 +32,8 @@ FileBaseImpl::~FileBaseImpl()
 
 time_t FileBaseImpl::GetLastWriteTime() const
 {
-	std::tr2::sys::wpath path( GetPhysicalPath() );
-	return std::tr2::sys::last_write_time( path );
+	std::tr2::sys::path path( GetPhysicalPath() );
+	return std::tr2::sys::file_time_type::clock::to_time_t(std::tr2::sys::last_write_time(path));
 }
 
 IFile *FileBaseImpl::GetChild( const wchar_t * name ) const

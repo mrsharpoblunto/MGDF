@@ -29,11 +29,11 @@ This is written in c# (.NET 4.5) and is a WCF web service that allows games to s
 Building Source
 ---------------
 
-* Using Microsoft Visual Studio 2013 build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
+* Using Microsoft Visual Studio 2015 build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
 
 Running unit tests
 ------------------
-All managed code projects use nunit 2.6.3 and providing nunit is installed (use testdriven.net for integration into the visual studio UI) they should work once the solution is compiled
+All managed code projects use nunit 2.6.3 and providing nunit is installed they should work once the solution is compiled
 
 all unmanaged code tests are contained within the core.tests.exe binary which must first be compiled as part of the Matchstick/Matchstick.sln project Once built, running this exe from the command line will run the test suite.
 

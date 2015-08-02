@@ -33,8 +33,8 @@ void Resources::SetUserBaseDir( bool useRootDir, const std::string &gameUid )
 {
 	if ( useRootDir ) {
 		if ( !_gameBaseDir.empty() ) {
-			wpath gamesDirPath( _gameBaseDir );
-			_userBaseDir = gamesDirPath.parent_path().parent_path().string() + L"/user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
+			std::tr2::sys::path gamesDirPath( _gameBaseDir );
+			_userBaseDir = gamesDirPath.parent_path().parent_path().wstring() + L"/user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
 		} else {
 			_userBaseDir = _applicationDirectory + L"user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
 		}
@@ -138,13 +138,13 @@ std::wstring Resources::SaveDataDir( const std::string &saveName )
 
 void Resources::CreateRequiredDirectories()
 {
-	wpath userBaseDir( UserBaseDir() );
+	std::tr2::sys::path userBaseDir( UserBaseDir() );
 	create_directories( userBaseDir );
 
-	wpath saveBaseDir( SaveBaseDir() );
+	std::tr2::sys::path saveBaseDir( SaveBaseDir() );
 	create_directories( saveBaseDir );
 
-	wpath workingDir( WorkingDir() );
+	std::tr2::sys::path workingDir( WorkingDir() );
 	create_directories( workingDir );
 }
 

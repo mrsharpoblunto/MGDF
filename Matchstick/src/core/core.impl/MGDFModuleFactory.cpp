@@ -58,7 +58,7 @@ ModuleFactory::ModuleFactory()
 
 MGDFError ModuleFactory::Init()
 {
-	wpath globalModule( Resources::Instance().Module() );
+	path globalModule( Resources::Instance().Module() );
 	if ( exists( globalModule ) ) {
 		LOG( "Loading Module.dll", LOG_LOW );
 		CurrentDirectoryHelper::Instance().Push( Resources::Instance().BinDir() );

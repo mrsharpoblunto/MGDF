@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 
 #include <filesystem>
+#include <fstream>
 #include <MGDF/MGDF.hpp>
 
 #include "MGDFHostBuilder.hpp"
@@ -159,9 +160,9 @@ void HostBuilder::InitParameterManager()
 
 	//use the supplied params.txt in the application path (if provided)
 	//providing a params.txt can be useful for debugging purposes.
-	wpath paramsTxt( Resources::Instance().ParamsFile() );
+	path paramsTxt( Resources::Instance().ParamsFile() );
 	if ( exists( paramsTxt ) ) {
-		std::ifstream input( paramsTxt.string().c_str(), std::ios::in );
+		std::ifstream input( paramsTxt.wstring().c_str(), std::ios::in );
 		std::stringstream buffer;
 		buffer << input.rdbuf();
 		paramString = buffer.str();

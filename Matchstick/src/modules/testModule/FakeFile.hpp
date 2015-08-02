@@ -7,7 +7,7 @@
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
 struct WCharCmp {
-	bool operator()( const wchar_t *a, const wchar_t *b ) {
+	bool operator()( const wchar_t *a, const wchar_t *b ) const {
 		return std::wcscmp( a, b ) < 0;
 	}
 };

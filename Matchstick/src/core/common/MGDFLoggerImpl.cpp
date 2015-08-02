@@ -62,9 +62,9 @@ void Logger::MoveOutputFile()
 	std::wstring newFile = Resources::Instance().LogFile();
 	if ( newFile != _filename ) {
 
-		std::tr2::sys::wpath from( _filename );
-		std::tr2::sys::wpath to( Resources::Instance().LogFile() );
-		std::tr2::sys::copy_file( from, to, std::tr2::sys::copy_option::overwrite_if_exists );
+		std::tr2::sys::path from( _filename );
+		std::tr2::sys::path to( Resources::Instance().LogFile() );
+		std::tr2::sys::copy_file( from, to, std::tr2::sys::copy_options::overwrite_existing );
 		std::tr2::sys::remove( from );
 
 		_filename = newFile;
