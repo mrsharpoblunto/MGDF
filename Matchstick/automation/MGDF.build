@@ -90,6 +90,8 @@
         <exclude name="*.exp"/>
         <exclude name="*.lib"/>
         <exclude name="*.pdb"/>
+        <exclude name="*.iobj"/>
+        <exclude name="*.ipdb"/>
         <exclude name="**/game/**" />
         <exclude name="**/user/**" />
         <include name="**/*.*" />
@@ -101,6 +103,8 @@
 				<exclude name="*.exp"/>
 				<exclude name="*.lib"/>
 				<exclude name="*.pdb"/>
+        <exclude name="*.iobj"/>
+        <exclude name="*.ipdb"/>
 				<exclude name="**/game/**" />
 				<exclude name="**/user/**" />
 				<include name="**/*.*" />
