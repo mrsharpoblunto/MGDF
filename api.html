@@ -53,6 +53,9 @@ Installer package created
     "developername":"Human readable developer name",
     "homepage":"http://www.example.com",
     "supportemail":"support@example.com",
+    "supports3bucket":"game-crash-reports",
+    "supports3bucketaccesskey":"myawsaccesskey",
+    "supports3bucketsecretkey":"myawssecretkey",
     "updateservice":"http://www.example.com/update.json",
     "statisticsservice":"http://www.example.com/stats.svc",
     "statisticsprivacypolicy":"http://www.example.com/privacy",
@@ -77,6 +80,12 @@ Installer package created
             <dd><em>[Optional]</em> A url to the game's homepage, this will be added to the entry for the game in the Windows installed programs list if provided</dd>
             <dt>supportemail</dt>
             <dd><em>[Optional]</em> An email address shown to users when crashes and other errors occur so that they can submit error reports</dd>
+            <dt>supports3bucket</dt>
+            <dd><em>[Optional]</em> An Amazon S3 Bucket which MGDF can automatically upload crash reports to. If specified this mode of error reporting is used instead of prompting the user to send a report to the support email address.</dd>
+            <dt>supports3bucketaccesskey</dt>
+            <dd><em>[Optional]</em> Access key for an S3 user with access to the support S3 bucket. Note: For security you should ensure this user has the minimum possible permissions, ideally write only access to the support bucket and nothing else.</dd>
+            <dt>supports3bucketsecretkey</dt>
+            <dd><em>[Optional]</em> Secret key for an S3 user with access to the support S3 bucket.</dd>
             <dt>updateservice</dt>
             <dd><em>[Optional]</em> A url used to check for updates (see <a href="#updatemanifest">Update manifest configuration</a> for more information)</dd>
             <dt>statisticsservice</dt>
