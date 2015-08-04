@@ -14,7 +14,8 @@ namespace MGDF.GamesManager.MVP.Views.Impl
             ViewFactory.Current.RegisterView<IGetUpdatePermissionView, GetUpdatePermissionView>();
             ViewFactory.Current.RegisterView<IProgressView, ProgressView>();
             ViewFactory.Current.RegisterView<ISendStatisticsView, SendStatisticsView>();
-            ViewFactory.Current.RegisterView<ISubmitErrorView, SubmitErrorView>();
+            ViewFactory.Current.RegisterView<ISubmitErrorEmailView, SubmitErrorEmailView>();
+            ViewFactory.Current.RegisterView<ISubmitErrorS3View, SubmitErrorS3View>();
         }
     }
 }

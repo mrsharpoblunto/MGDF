@@ -18,7 +18,8 @@ namespace MGDF.GamesManager.Common
             public const string GameUpdateHashArgument = "gameupdatehash";
             public const string FrameworkUpdateHashArgument = "frameworkupdatehash";
             public const string UserDirOverrideArgument = "userdiroverride";
-        }
+			public const string GameDirOverrideArgument = "gamediroverride";
+		}
 
         public const int InterfaceVersion = 1;
         public const string SupportEmail = "support@matchstickframework.org";
@@ -40,6 +41,7 @@ namespace MGDF.GamesManager.Common
         public const string SchemaDir = @"schemas";
 
         private static string _gameUserDir;
+		private static string _gameDir;
         private static bool _userDirOverridden;
 
         public static string MGDFExecutable
@@ -76,7 +78,7 @@ namespace MGDF.GamesManager.Common
 
         public static string CoreBootArguments()
         {
-            return "-hideerrors";
+            return "-hideerrors" + (!string.IsNullOrEmpty(_gameDir) ? (" -gamediroverride \""+_gameDir+"\"") : string.Empty) + (_userDirOverridden ? " -userdiroverride" : string.Empty);
         }
 
         public static string GamesManagerBootArguments(string gameUpdate,string gameUpdateHash,string frameworkUpdate,string frameworkUpdateHash)
@@ -119,7 +121,7 @@ namespace MGDF.GamesManager.Common
         {
             get
             {
-                return FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, GameDir);
+                return !string.IsNullOrEmpty(_gameDir) ? _gameDir : FileSystem.Combine( EnvironmentSettings.Current.AppDirectory, GameDir);
             }
         }
 
@@ -180,10 +182,16 @@ namespace MGDF.GamesManager.Common
             _gameUserDir = null;
         }
 
+		public static void InitGameDirectory(string gameDirOverride)
+		{
+			_gameDir = gameDirOverride;
+		}
+
         public static void InitUserDirectory(string gameUid,bool useApplicationRoot)
         {
             if (useApplicationRoot) _gameUserDir = EnvironmentSettings.Current.AppDirectory;
             _userDirOverridden = useApplicationRoot;
+
 
             _gameUserDir = !string.IsNullOrEmpty(_gameUserDir) ? (_gameUserDir + "\\user") : EnvironmentSettings.Current.UserDirectory;
             var userGamesBaseDir = FileSystem.Current.GetDirectory(_gameUserDir);

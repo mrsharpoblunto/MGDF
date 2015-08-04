@@ -55,12 +55,13 @@ namespace MGDF.GamesManager
         static int RunMain()
         {
             var commandLine = new CommandLineParser(Environment.GetCommandLineArgs());
+ 			Resources.InitGameDirectory(commandLine[Resources.GamesManagerArguments.GameDirOverrideArgument]);
 
-            Application.ThreadException += Application_ThreadException;
+			Application.ThreadException += Application_ThreadException;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            Game game = new Game(FileSystem.Combine(Resources.GameBaseDir,Resources.GameConfig));
+			Game game = new Game(FileSystem.Combine(Resources.GameBaseDir,Resources.GameConfig));
             if (game.ErrorCollection.Count>0)
             {
                 ViewFactory.Current.CreateView<IMessage>().Show("Game configuration invalid " + game.ErrorCollection[0], "Game configuration invalid");

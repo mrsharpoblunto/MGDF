@@ -67,6 +67,9 @@ namespace MGDF.GamesManager.Model.Entities
 
         public string Homepage { get; private set; }
         public string SupportEmail { get; private set; }
+		public string SupportS3Bucket { get; private set; }
+		public string SupportS3BucketAccessKey { get; private set; }
+		public string SupportS3BucketSecretKey { get; private set; }
 
         public string UpdateService { get; private set; }
         public string StatisticsService { get; private set; }
@@ -104,6 +107,9 @@ namespace MGDF.GamesManager.Model.Entities
             StatisticsService = json.ReadOptionalValue("statisticsservice");
             StatisticsPrivacyPolicy = json.ReadOptionalValue("statisticsprivacypolicy");
             SupportEmail = json.ReadOptionalValue("supportemail");
+			SupportS3Bucket = json.ReadOptionalValue("supports3bucket");
+			SupportS3BucketAccessKey = json.ReadOptionalValue("supports3bucketaccesskey");
+			SupportS3BucketSecretKey = json.ReadOptionalValue("supports3bucketsecretkey");
 
 			Preferences = new Dictionary<string, string>();
 			if (json["preferences"] != null)

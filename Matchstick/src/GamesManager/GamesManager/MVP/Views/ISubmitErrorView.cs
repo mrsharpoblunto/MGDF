@@ -6,7 +6,7 @@ using MGDF.GamesManager.Controls;
 
 namespace MGDF.GamesManager.MVP.Views
 {
-    public interface ISubmitErrorView : IView
+    public interface ISubmitErrorEmailView : IView
     {
         event EventHandler CopyLogOutput;
         event EventHandler EmailLogOutput;
@@ -14,4 +14,10 @@ namespace MGDF.GamesManager.MVP.Views
         string Message { set; }
         string SupportEmail { set; }
     }
+
+	public interface ISubmitErrorS3View : IView
+	{
+		event EventHandler SendLogOutput;
+		bool Sending { set; }
+	}
 }

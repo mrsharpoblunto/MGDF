@@ -14,7 +14,7 @@ using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
-    class SubmitErrorPresenter: PresenterBase<ISubmitErrorView>
+    class SubmitErrorPresenter: PresenterBase<ISubmitErrorEmailView>
     {
         private readonly string _detail;
 

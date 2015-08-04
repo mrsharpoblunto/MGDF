@@ -156,7 +156,7 @@ namespace MGDF.GamesManager.MVP.Presenters
             {
                 View.Invoke(() =>
                 {
-                    SubmitCoreErrorPresenter presenter = new SubmitCoreErrorPresenter(game,game.Name + " has ended unexpectedly",
+                    var presenter = SubmitCoreErrorPresenter.Create(game,game.Name + " has ended unexpectedly",
                                                                                       "An unhandled exception or fatal MGDF error has occurred");
                     presenter.ShowView(View);
                 });

@@ -87,6 +87,10 @@
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AWSSDK, Version=2.3.50.0, Culture=neutral, PublicKeyToken=9f476d3089b52be3, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\AWSSDK.2.3.50.0\lib\net45\AWSSDK.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core">
@@ -145,11 +149,17 @@
     <Compile Include="MVP\Views\Impl\SendStatisticsView.Designer.cs">
       <DependentUpon>SendStatisticsView.cs</DependentUpon>
     </Compile>
-    <Compile Include="MVP\Views\Impl\SubmitErrorView.cs">
+    <Compile Include="MVP\Views\Impl\SubmitErrorS3View.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="MVP\Views\Impl\SubmitErrorView.Designer.cs">
-      <DependentUpon>SubmitErrorView.cs</DependentUpon>
+    <Compile Include="MVP\Views\Impl\SubmitErrorS3View.Designer.cs">
+      <DependentUpon>SubmitErrorS3View.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\SubmitErrorEmailView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MVP\Views\Impl\SubmitErrorEmailView.Designer.cs">
+      <DependentUpon>SubmitErrorEmailView.cs</DependentUpon>
     </Compile>
     <Compile Include="MVP\Views\Impl\ViewImpl.cs" />
     <Compile Include="MVP\Views\IProgressView.cs" />
@@ -177,8 +187,12 @@
       <DependentUpon>SendStatisticsView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="MVP\Views\Impl\SubmitErrorView.resx">
-      <DependentUpon>SubmitErrorView.cs</DependentUpon>
+    <EmbeddedResource Include="MVP\Views\Impl\SubmitErrorS3View.resx">
+      <DependentUpon>SubmitErrorS3View.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MVP\Views\Impl\SubmitErrorEmailView.resx">
+      <DependentUpon>SubmitErrorEmailView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -194,6 +208,7 @@
     <None Include="app.config" />
     <None Include="app.manifest" />
     <None Include="key.snk" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -223,6 +238,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Images\ajax-loader.gif" />
     <Content Include="Images\error.png" />
     <Content Include="Images\lock.png" />
     <Content Include="Images\gameIcon.png" />
