@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+#include "../common/MGDFResources.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "MGDFDefaultFileImpl.hpp"
 
@@ -46,11 +47,11 @@ MGDFError DefaultFileImpl::Open( IFileReader **reader )
 		} else {
 			delete _fileStream;
 			_fileStream = nullptr;
-			LOG( "Unable to open file stream for " << _path.c_str(), LOG_ERROR );
+			LOG( "Unable to open file stream for " << Resources::ToString(_path) << " - " << GetLastError(), LOG_ERROR );
 			return MGDF_ERR_INVALID_FILE;
 		}
 	}
-	LOG( "File " << _path.c_str() << " currently in use", LOG_ERROR );
+	LOG( "File " << Resources::ToString(_path) << " currently in use", LOG_ERROR );
 	return MGDF_ERR_FILE_IN_USE;
 }
 
