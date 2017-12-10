@@ -3,6 +3,15 @@
 //
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
+
+// If app hasn't choosen, set to work with Windows 7 and beyond
+#ifndef WINVER
+#define WINVER         0x0601
+#endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT   0x0601
+#endif
+
 #include <windows.h>
 #include <gameux.h>
 #include <msi.h>

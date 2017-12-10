@@ -48,6 +48,8 @@ INT32 WINAPI WinMain(
 	//Catch memory leaks
 #if defined(_DEBUG)
 	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+	_CrtDumpMemoryLeaks();
 #endif
 
 	Resources::Instance( hInstance );	//initialise the core resource locator
