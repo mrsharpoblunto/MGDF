@@ -1,4 +1,5 @@
-
+scripts/tools/*
+!scripts/tools/packages.config
 *.ncb
 bin/
 *_ReSharper*/

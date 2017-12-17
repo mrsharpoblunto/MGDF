@@ -103,7 +103,8 @@ MGDFError ModuleFactory::Init()
 
 			return MGDF_OK;
 		} else {
-			LOG( "Failed to load Module.dll", LOG_ERROR );
+			DWORD errorCode = ::GetLastError();
+			LOG( "Failed to load Module.dll " << errorCode, LOG_ERROR );
 
 #if defined (_WIN64) 
 			bool win64 = true;	

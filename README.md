@@ -29,7 +29,7 @@ This is written in c# (.NET 4.5) and is a WCF web service that allows games to s
 Building Source
 ---------------
 
-* Using Microsoft Visual Studio 2015 build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
+* Using Microsoft Visual Studio 2017 build Matchstick/Matchstick.sln in win32 debug/release and x64 debug/release configurations
 
 Running unit tests
 ------------------
@@ -61,3 +61,8 @@ Running GamesManager.exe from command line
 * -register: In order to make installing/uninstalling your game easier, you can use the gamesManager register argument to create installed program registry entries, desktop shortcuts, start menu shortcuts and windows games explorer integration.
 
 * -deregister: Removes anything added via the register argument
+
+Building a release package
+--------------------------
+
+* run `Matchstick\scripts\build.ps1` from a powershell prompt.
