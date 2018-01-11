@@ -149,7 +149,7 @@ public:
 	 populates the supplied vector with the names of all saved instances of this configuration
 	 The names returned in this list represent all the valid arguments to queueLoadState for the
 	 current configuration
-	 \param list the list to fill with save names
+	 \return the list to fill with save names
 	*/
 	virtual const IStringList * GetSaves() const = 0;
 

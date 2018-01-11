@@ -1,16 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Security.Cryptography;
-using System.Text;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model;
 using MGDF.GamesManager.Tests.Common.Mocks;
 using NUnit.Framework;
-using File=MGDF.GamesManager.Common.Framework.File;
 
 namespace MGDF.GamesManager.Tests
 {
@@ -65,13 +62,14 @@ namespace MGDF.GamesManager.Tests
         {
             get
             {
-                return "GamesManager.Tests.Content\\";
+                string dir = Path.GetDirectoryName(typeof(BaseTest).Assembly.Location);
+                return dir + "\\GamesManager.Tests.Content\\";
             }
         }
 
         protected static string ReadTextFile(string filename)
         {
-            string testDataPath = string.Format("GamesManager.Tests.Content\\{0}",filename);
+            string testDataPath = string.Format("{0}{1}",TestDataPath, filename);
             
             using (FileStream stream = new FileStream(testDataPath,FileMode.Open,FileAccess.Read))
             {
@@ -84,7 +82,7 @@ namespace MGDF.GamesManager.Tests
 
         protected static byte[] ReadBinaryFile(string filename)
         {
-            string testDataPath = string.Format("GamesManager.Tests.Content\\{0}",filename);
+            string testDataPath = string.Format("{0}{1}",TestDataPath, filename);
             Console.WriteLine("Loading file " + testDataPath);
             
             using (FileStream stream = new FileStream(testDataPath,FileMode.Open,FileAccess.Read))

@@ -1,11 +1,10 @@
 Debug/
 Release/
-web.config
-*.Publish.xml
-PublishProfiles/
 log.txt
 Win32/
 x64/
 ipch/
-/Matchstick/src/samples/EmptyGame/user
+Matchstick/src/samples/EmptyGame/user
+Matchstick/documentation
+Matchstick/dist
 .vs/
