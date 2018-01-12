@@ -7,13 +7,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{7DB5
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GamesManager", "GamesManager", "{3FAF788A-9BFB-413C-A85B-197BEE7F1321}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Automation", "Automation", "{54B32E7E-A90E-4043-A9FB-12219CF42108}"
-	ProjectSection(SolutionItems) = preProject
-		automation\documentation.Doxyfile = automation\documentation.Doxyfile
-		automation\Functions.include = automation\Functions.include
-		automation\MGDF.build = automation\MGDF.build
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B2911380-5E76-457A-AC80-A24B1EECA0BB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Src", "Src", "{5656FE26-2995-4842-B088-D8E29338C13E}"
