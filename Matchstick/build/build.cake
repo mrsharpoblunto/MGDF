@@ -52,7 +52,6 @@ Task("Documentation").Does(() => {
 });
 
 Task("TestGamesManager")
-	.IsDependentOn("BuildX86")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
 	NUnit3($@"../tests/GamesManager.Tests/bin/{buildConfiguration}/GamesManager.Tests.dll", new NUnit3Settings() {
@@ -63,7 +62,6 @@ Task("TestGamesManager")
 });	
 
 Task("TestCoreX64")
-	.IsDependentOn("BuildX86")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
 	int result = StartProcess($@"../bin/x64/{buildConfiguration}/core.tests.exe", new ProcessSettings() {
@@ -75,17 +73,23 @@ Task("TestCoreX64")
 	}
 });
 
+Task("Clean").Does(() => {
+	DeleteDirectory("../dist", new DeleteDirectorySettings() {
+		Force = true,
+		Recursive = true,
+	});
+	CreateDirectory("../dist");
+});
+
 Task("Dist")
+	.IsDependentOn("Clean")
 	.IsDependentOn("BuildX64")
 	.IsDependentOn("TestGamesManager")
 	.IsDependentOn("TestCoreX64")
 	.IsDependentOn("Documentation")
 	.Does(() => {
-		CreateDirectory("../dist");
-		CleanDirectory("../dist");
-
 		// zip up the SDK binaries
-		CreateDirectory("dist/tmp");
+		CreateDirectory("../dist/tmp");
 		CreateDirectory("../dist/SDK");
 		CreateDirectory("../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/tmp/x64");
@@ -126,10 +130,6 @@ Task("Dist")
 		CreateDirectory("../dist/SDK/bin");
 		CopyFile($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/GamesManager.PackageGen.exe", "../dist/SDK/bin/PackageGen.exe");
 		CopyFile($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/GamesManager.PackageGen.exe.config", "../dist/SDK/bin/PackageGen.exe.config");
-
-		// Copy xml docs so we can generate the website documentation
-		CreateDirectory("../dist/XmlDocs");
-		CopyDirectory("../documentation/xml", "../dist/XmlDocs");
 
 		// copy SDK samples
 		CreateDirectory("../dist/SDK/src/samples");
