@@ -21,7 +21,7 @@ public:
 	/**
 	 parse a parameter string into the given string,string hashmap
 	 the parameter string must be in the following format
-	     -flag[:value] -flag[:value]
+	     -flag [value] -flag ["value"]
 	 where [] indicates optional components of the parameter string
 	 NOTE: flags and values are case sensitive
 	 NOTE: leading and trailing whitespace are stripped from values

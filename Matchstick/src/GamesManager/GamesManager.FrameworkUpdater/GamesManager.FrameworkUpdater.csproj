@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\..\..\packages\ILRepack.2.0.15\build\ILRepack.props" Condition="Exists('..\..\..\packages\ILRepack.2.0.15\build\ILRepack.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -36,6 +37,8 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -55,28 +58,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>..\..\..\bin\Win32\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>full</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <OutputPath>..\..\..\bin\Win32\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
@@ -167,9 +148,15 @@
       <ReferenceAssemblies>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1</ReferenceAssemblies>
     </PropertyGroup>
     <Message Importance="high" Text="Executing ILMerge with target platform from $(ReferenceAssemblies)" />
-    <Exec Condition="'$(Configuration)'=='Debug'" Command="&quot;$(MSBuildProjectPath)..\..\..\packages\ILMerge.2.14.1208\tools\IlMerge.exe&quot; /out:@(MainAssembly) /targetplatform:v4,&quot;$(ReferenceAssemblies)&quot; /keyfile:$(AssemblyOriginatorKeyFile) &quot;@(IntermediateAssembly)&quot; @(AssembliesToMerge->'&quot;%(FullPath)&quot;', ' ')" />
-    <Exec Condition="'$(Configuration)'=='Release'" Command="&quot;$(MSBuildProjectPath)..\..\..\packages\ILMerge.2.14.1208\tools\IlMerge.exe&quot; /out:@(MainAssembly) /ndebug /targetplatform:v4,&quot;$(ReferenceAssemblies)&quot; /keyfile:$(AssemblyOriginatorKeyFile) &quot;@(IntermediateAssembly)&quot; @(AssembliesToMerge->'&quot;%(FullPath)&quot;', ' ')" />
+    <Exec Condition="'$(Configuration)'=='Debug'" Command="&quot;$(MSBuildProjectPath)..\..\..\packages\ILRepack.2.0.15\tools\ILRepack.exe&quot; /out:@(MainAssembly) /targetplatform:v4,&quot;$(ReferenceAssemblies)&quot; /keyfile:$(AssemblyOriginatorKeyFile) &quot;@(IntermediateAssembly)&quot; @(AssembliesToMerge->'&quot;%(FullPath)&quot;', ' ')" />
+    <Exec Condition="'$(Configuration)'=='Release'" Command="&quot;$(MSBuildProjectPath)..\..\..\packages\ILRepack.2.0.15\tools\ILRepack.exe&quot; /out:@(MainAssembly) /ndebug /targetplatform:v4,&quot;$(ReferenceAssemblies)&quot; /keyfile:$(AssemblyOriginatorKeyFile) &quot;@(IntermediateAssembly)&quot; @(AssembliesToMerge->'&quot;%(FullPath)&quot;', ' ')" />
     <Delete Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
+  </Target>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\..\packages\ILRepack.2.0.15\build\ILRepack.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\ILRepack.2.0.15\build\ILRepack.props'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

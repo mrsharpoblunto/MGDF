@@ -19,18 +19,6 @@ Task("BuildX64")
   });
 });
 
-Task("BuildX86")
-  .IsDependentOn("VersionInfo")
-  .IsDependentOn("SolutionInfo")
-  .Does(() => {
-  MSBuild("../Matchstick.sln", new MSBuildSettings{
-	Verbosity = Verbosity.Minimal,
-	ToolVersion = MSBuildToolVersion.VS2017,
-    Configuration = buildConfiguration,
-    PlatformTarget = PlatformTarget.x86
-  });
-});
-
 Task("SolutionInfo").Does(() => {
 	string solutionInfo = FileReadText("../src/GamesManager/SolutionInfo.cs");
 
@@ -74,19 +62,6 @@ Task("TestGamesManager")
 	});
 });	
 
-Task("TestCoreX86")
-	.IsDependentOn("BuildX86")
-	.IsDependentOn("BuildX64")
-	.Does(() => {
-	int result = StartProcess($@"../bin/Win32/{buildConfiguration}/core.tests.exe", new ProcessSettings() {
-		WorkingDirectory = new DirectoryPath($@"../bin/Win32/{buildConfiguration}"),
-		Arguments = new ProcessArgumentBuilder().Append("--teamcity")
-	});
-	if (result != 0) {
-		throw new Exception("Failures reported in the x86 unit tests");
-	}
-});
- 
 Task("TestCoreX64")
 	.IsDependentOn("BuildX86")
 	.IsDependentOn("BuildX64")
@@ -101,10 +76,8 @@ Task("TestCoreX64")
 });
 
 Task("Dist")
-	.IsDependentOn("BuildX86")
 	.IsDependentOn("BuildX64")
 	.IsDependentOn("TestGamesManager")
-	.IsDependentOn("TestCoreX86")
 	.IsDependentOn("TestCoreX64")
 	.IsDependentOn("Documentation")
 	.Does(() => {
@@ -114,11 +87,6 @@ Task("Dist")
 		// zip up the SDK binaries
 		CreateDirectory("dist/tmp");
 		CreateDirectory("../dist/SDK");
-		CreateDirectory("../dist/tmp/x86");
-		CopyFiles(GetFiles($@"../bin/Win32/{buildConfiguration}/*.dll"), "../dist/tmp/x86");
-		CopyFiles(GetFiles($@"../bin/Win32/{buildConfiguration}/*.exe"), "../dist/tmp/x86");
-		CopyDirectory($@"../dependancies/Win32", "../dist/tmp/x86/dependancies");
-		CopyDirectory($@"../content/resources", "../dist/tmp/x86/resources");
 		CreateDirectory("../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/tmp/x64");
@@ -126,7 +94,6 @@ Task("Dist")
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));
-		Zip("../dist/tmp/x86", $@"../dist/SDK/MGDF_{buildNumber}_x86.zip");
 		Zip("../dist/tmp/x64", $@"../dist/SDK/MGDF_{buildNumber}_x64.zip");
 		DeleteDirectory("../dist/tmp", new DeleteDirectorySettings() { 
 			Force = true,
@@ -144,13 +111,6 @@ Task("Dist")
 
 		// copy debug symbols
 		CreateDirectory("../dist/Symbols");
-		CreateDirectory("../dist/Symbols/x86");
-		CopyFiles(GetFiles($@"../bin/Win32/{buildConfiguration}/*.dll"), "../dist/Symbols/x86");
-		CopyFiles(GetFiles($@"../bin/Win32/{buildConfiguration}/*.exe"), "../dist/Symbols/x86");
-		CopyFiles(GetFiles($@"../bin/Win32/{buildConfiguration}/*.pdb"), "../dist/Symbols/x86");
-		CopyFiles(GetFiles($@"../vendor/lib/Win32/{buildConfiguration}/*.dll"), "../dist/Symbols/x86");
-		CopyFiles(GetFiles($@"../vendor/lib/Win32/{buildConfiguration}/*.exe"), "../dist/Symbols/x86");
-		CopyFiles(GetFiles($@"../vendor/lib/Win32/{buildConfiguration}/*.pdb"), "../dist/Symbols/x86");
 		CreateDirectory("../dist/Symbols/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/Symbols/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/Symbols/x64");

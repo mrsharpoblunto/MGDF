@@ -52,6 +52,14 @@ namespace MGDF.GamesManager.Common
             }
         }
 
+        public static string ParamsOverrideFile
+        {
+            get
+            {
+                return FileSystem.Combine(EnvironmentSettings.Current.AppDirectory,"params.txt");
+            }
+        }
+
         public static string FrameworkUpdaterExecutable
         {
             get
@@ -83,8 +91,8 @@ namespace MGDF.GamesManager.Common
 
         public static string GamesManagerBootArguments(string gameUpdate,string gameUpdateHash,string frameworkUpdate,string frameworkUpdateHash)
         {
-            return (!string.IsNullOrEmpty(gameUpdate) ? (" -updategame:\"" + gameUpdate + "\" -gameupdatehash:\"" + gameUpdateHash + "\"") : string.Empty) +
-                   (!string.IsNullOrEmpty(frameworkUpdate) ? (" -updateframework:\"" + frameworkUpdate + "\" -frameworkupdatehash:\"" + frameworkUpdateHash + "\"") : string.Empty) +
+            return (!string.IsNullOrEmpty(gameUpdate) ? (" -updategame \"" + gameUpdate + "\" -gameupdatehash \"" + gameUpdateHash + "\"") : string.Empty) +
+                   (!string.IsNullOrEmpty(frameworkUpdate) ? (" -updateframework \"" + frameworkUpdate + "\" -frameworkupdatehash \"" + frameworkUpdateHash + "\"") : string.Empty) +
                    (_userDirOverridden ? "-userdiroverride" : string.Empty);
         }
 

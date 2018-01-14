@@ -51,10 +51,25 @@ namespace MGDF.GamesManager
             }
             return -1;
         }
-
+        
         static int RunMain()
         {
-            var commandLine = new CommandLineParser(Environment.GetCommandLineArgs());
+            CommandLineParser commandLine;
+            if (FileSystem.Current.FileExists(Resources.ParamsOverrideFile))
+            {
+                using (var stream = FileSystem.Current.GetFile(Resources.ParamsOverrideFile).OpenStream(FileMode.Open))
+                {
+                    using (var reader = new StreamReader(stream))
+                    {
+                        commandLine = new CommandLineParser(reader.ReadToEnd().Split(), false);
+                    }
+                }
+            }
+            else
+            {
+                commandLine = new CommandLineParser(Environment.GetCommandLineArgs());
+            }
+
  			Resources.InitGameDirectory(commandLine[Resources.GamesManagerArguments.GameDirOverrideArgument]);
 
 			Application.ThreadException += Application_ThreadException;
