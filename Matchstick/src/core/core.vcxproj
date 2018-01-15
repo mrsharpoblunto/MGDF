@@ -63,8 +63,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>echo copying MGDF dependancies to bin dir
-XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependancies" /E /Y /I
+      <Command>echo copying MGDF dependencies to bin dir
+XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 echo copying MGDF vendor libs to bin dir
@@ -121,8 +121,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>echo copying MGDF dependancies to bin dir
-XCOPY  "$(SolutionDir)dependancies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependancies" /E /Y /I
+      <Command>echo copying MGDF dependencies to bin dir
+XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 echo copying MGDF vendor libs to bin dir

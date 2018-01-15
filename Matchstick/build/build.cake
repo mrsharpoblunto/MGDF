@@ -80,6 +80,10 @@ Task("Clean").Does(() => {
 		Recursive = true,
 	});
 	CreateDirectory("../dist");
+	DeleteDirectory($@"../bin/x64/{buildConfiguration}", new DeleteDirectorySettings() {
+		Force = true,
+		Recursive = true,
+	});
 });
 
 Task("Dist")
@@ -100,6 +104,7 @@ Task("Dist")
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));
 		Zip("../dist/tmp/x64", $@"../dist/SDK/MGDF_{buildNumber}_x64.zip");
+		CopyFile($@"../dist/SDK/MGDF_{buildNumber}_x64.zip", $@"../dist/MGDF_{buildNumber}_x64.zip");
 		DeleteDirectory("../dist/tmp", new DeleteDirectorySettings() { 
 			Force = true,
 			Recursive = true
@@ -160,25 +165,36 @@ Task("UploadDist").Does(() => {
 	var s3SecretKey = Argument<string>("s3secretkey");
 	var dist = Argument<string>("dist");
 
-	if (!FileExists(dist)) {
-		throw new Exception($@"The specified dist file {dist} to publish does not exist");
+	string distVersion = null;
+	var distFiles = GetFiles($@"{dist}/MGDF_*.zip");
+	Regex SDKMatcher = new Regex("^.*MGDF_(([0-9]\\.?)*)_(SDK|x64).zip$");
+	foreach (var file in distFiles) {
+		Match m = SDKMatcher.Match(file.FullPath);
+		if (!m.Success) {
+			throw new Exception($@"{file.FullPath} to publish doesn't appear to be a valid MGDF SDK or redistributable");
+		}
+		
+		string dv = m.Groups[1].Captures[0].ToString();
+		if (distVersion == null) {
+			distVersion = dv;
+			Information($@"MGDF SDK is version {distVersion}");
+		} else if (dv != distVersion) {
+			throw new Exception($@"The specified SDK & redistributable files in {dist} don't have matching version numbers.");
+		}
 	}
 
-	Regex SDKMatcher = new Regex("^.*MGDF_(([0-9]\\.?)*)_SDK.zip$");
-	Match m = SDKMatcher.Match(dist);
-	if (!m.Success) {
-		throw new Exception($@"The specified dist file {dist} to publish doesn't appear to be a valid MGDF SDK dist archive");
+	if (distVersion == null) {
+		throw new Exception($@"The specified dist folder {dist} doesn't appear to be valid, no SDK or redistributable found.");
 	}
-	
-	var distVersion = m.Groups[1].Captures[0];
-	Information($@"MGDF SDK is version {distVersion}");
-	
-	/*S3Upload(dist, new FilePath(dist).GetFilename().ToString(), new UploadSettings() {
-		AccessKey = s3AccessKey,
-		SecretKey = s3SecretKey,
-		BucketName = "s3.matchstickframework.org",
-		CannedACL = S3CannedACL.PublicRead,
-	});*/
+
+	foreach (var file in distFiles) {
+		S3Upload(file, file.GetFilename().ToString(), new UploadSettings() {
+			AccessKey = s3AccessKey,
+			SecretKey = s3SecretKey,
+			BucketName = "s3.matchstickframework.org",
+			CannedACL = S3CannedACL.PublicRead,
+		});
+	}
 });
 
 Task("UpdateWebsite").Does(() => {

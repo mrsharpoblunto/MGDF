@@ -1,5 +1,5 @@
 {
 	"dependencies":[
-		{ "command": "vc2015redist_x64.exe", "arguments":"/q" }
+		{ "command": "VC2017_redist.x64.exe", "arguments":"/q /norestart" }
 	]
 }

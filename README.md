@@ -67,4 +67,5 @@ Running GamesManager.exe from command line
 Building a release package
 --------------------------
 
-* run `Matchstick\scripts\build.ps1` from a powershell prompt.
+* To build a release package, run `Matchstick\scripts\build.ps1 -buildnumber=x.x.x` from a powershell prompt. This will put the generated release in /dist
+* To publish the release, locate /dist from the previous step and run `Matchstick\scripts\build.ps1 -Target Publish -dist=<dist_folder_from_previous_step> -s3accesskey=xxxx -s3secretkey=yyyy` from a powershell prompt.

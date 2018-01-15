@@ -3,6 +3,7 @@ Release/
 log.txt
 Win32/
 x64/
+!Matchstick/dependencies/x64
 ipch/
 Matchstick/src/samples/EmptyGame/user
 Matchstick/dist
