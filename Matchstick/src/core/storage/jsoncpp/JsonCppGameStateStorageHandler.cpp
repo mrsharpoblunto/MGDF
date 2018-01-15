@@ -28,8 +28,8 @@ MGDFError JsonCppGameStateStorageHandler::Load( const std::wstring &filename )
 	Json::Reader reader;
 
 	if ( reader.parse( input, root ) ) {
-		_gameUid = root["gameUid"].asString();
-		_version = VersionHelper::Create( root["gameVersion"].asString() );
+		_gameUid = GetJsonValue(root, "gameUid");
+		_version = VersionHelper::Create(GetJsonValue(root, "gameVersion"));
 		return MGDF_OK;
 	} else {
 		LOG( reader.getFormatedErrorMessages(), LOG_ERROR );

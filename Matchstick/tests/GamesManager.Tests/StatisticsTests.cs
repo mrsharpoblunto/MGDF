@@ -70,17 +70,17 @@ namespace MGDF.GamesManager.Tests
         public void TestCanSendStatisticsDeniedNoPrivacyPolicy()
         {
             const string gameContent = @"{
-  ""gameuid"":""Console"",
-  ""gamename"":""Lua Console"",
+  ""gameUid"":""Console"",
+  ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""0.1"",
-  ""interfaceversion"":""1"",
-  ""developeruid"":""no-8"",
-  ""developername"":""no8 interactive"",
+  ""interfaceVersion"":""1"",
+  ""developerUid"":""no-8"",
+  ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
-  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
-  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
-  ""supportemail"":""support@junkship.org""
+  ""gamesourceService"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsService"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""supportEmail"":""support@junkship.org""
 }";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
@@ -116,9 +116,41 @@ namespace MGDF.GamesManager.Tests
         }
 
         [Test]
+        public void TestLoadSaveStatisticsPermission()
+        {
+            Resources.InitUserDirectory("foo", false);
+            MockDirectory userDirectory = ((MockDirectory)MockFileSystem.GetDirectory(Resources.GameUserDir));
+            var file = userDirectory.AddFile("GamesManagerSettings.json", @"{
+    ""game"": {
+        ""uid"": ""foo"",
+        ""userName"": ""bar"",
+        ""passwordHash"": """ + DPAPI.Encrypt("baz") + @""",
+        ""statisticsServiceEnabled"": true
+    }
+}");
+            Assert.AreEqual(SettingsManager.Instance.Settings.GameUid, "foo");
+            Assert.AreEqual(SettingsManager.Instance.Settings.UserName, "bar");
+            Assert.AreEqual(SettingsManager.Instance.Settings.Password , "baz");
+            Assert.IsTrue(SettingsManager.Instance.Settings.StatisticsServiceEnabled.HasValue);
+            Assert.IsTrue(SettingsManager.Instance.Settings.StatisticsServiceEnabled.Value);
+
+            SettingsManager.Dispose();
+
+            file.WriteText(@"{
+    ""game"": {
+        ""uid"": ""foo"",
+        ""userName"": ""bar"",
+        ""passwordHash"": """ + DPAPI.Encrypt("baz") + @""",
+    }
+}");
+
+            Assert.IsFalse(SettingsManager.Instance.Settings.StatisticsServiceEnabled.HasValue);
+        }
+
+        [Test]
         public void TestGetStatisticsPermissionCachedPermission()
         {
-            const string gmeContent = @"{
+            const string gameContent = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
@@ -134,7 +166,7 @@ namespace MGDF.GamesManager.Tests
 }";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.json", gmeContent);
+            gameDirectory.AddFile("game.json", gameContent);
             Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
             Resources.InitUserDirectory("Console", false);

@@ -109,21 +109,63 @@ namespace MGDF.GamesManager.Model.Entities
             writer.WriteValue(value);
         }
 
-        public static string ReadRequiredValue(this JObject json, string name)
+        public static T ReadRequiredValue<T>(this JObject json, string name)
         {
-            if (json[name] == null) throw new Exception("Required attribute '" + name + "' missing");
-            return json[name].Value<string>();
+            if (json[name] == null)
+            {
+                name = name.ToLowerInvariant();
+            }
+            if (json[name] == null)
+            {
+                throw new Exception("Required attribute '" + name + "' missing");
+            }
+            return json[name].Value<T>();
         }
 
-        public static string ReadOptionalValue(this JObject json, string name)
+        public static T ReadOptionalValue<T>(this JObject json, string name) where T: class
         {
-            return json[name] == null ? null : json[name].Value<string>();
+            if (json[name] == null)
+            {
+                name = name.ToLowerInvariant();
+            }
+            return json[name] == null ? null : json[name].Value<T>();
         }
 
-        public static string ReadRequiredValue(this JToken json, string name)
+        public static T ReadRequiredValue<T>(this JToken json, string name)
         {
-            if (json[name] == null) throw new Exception("Required attribute '" + name + "' missing");
-            return json[name].Value<string>();
+            if (json[name] == null)
+            {
+                name = name.ToLowerInvariant();
+            }
+            if (json[name] == null)
+            {
+                throw new Exception("Required attribute '" + name + "' missing");
+            }
+            return json[name].Value<T>();
+        }
+
+        public static bool ReadOptionalValue<T>(this JToken json, string name, ref T value)
+        {
+            if (json[name] == null)
+            {
+                name = name.ToLowerInvariant();
+            }
+            if (json[name] != null)
+            {
+                value = json[name].Value<T>();
+                return true;
+            }
+            return false;
+        }
+
+
+        public static JToken ReadToken(this JToken json, string name)
+        {
+            if (json[name] == null)
+            {
+                name = name.ToLowerInvariant();
+            }
+            return json[name];
         }
     }
 }

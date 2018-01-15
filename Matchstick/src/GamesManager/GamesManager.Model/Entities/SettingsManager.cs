@@ -12,10 +12,10 @@ namespace MGDF.GamesManager.Model.Entities
 {
     public class GameSettings
     {
-        public string GameUid { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
-        public bool? StatisticsServiceEnabled { get; set; }
+        public string GameUid;
+        public string UserName;
+        public string Password;
+        public bool? StatisticsServiceEnabled;
     }
 
     public class SettingsManager: JsonEntity
@@ -60,19 +60,16 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-			var game = json["game"];
+			var game = json.ReadToken("game");
             if (game!=null)
             {
                  var gameSource = new GameSettings
                  {
-                     GameUid = game.ReadRequiredValue("uid"),
-                     UserName = game.ReadRequiredValue("userName"),
-                     Password = DPAPI.Decrypt(game.ReadRequiredValue("passwordHash"))
+                     GameUid = game.ReadRequiredValue<string>("uid"),
+                     UserName = game.ReadRequiredValue<string>("userName"),
+                     Password = DPAPI.Decrypt(game.ReadRequiredValue<string>("passwordHash"))
                  };
-                 if (game["statisticsServiceEnabled"]!=null)
-                 {
-                     gameSource.StatisticsServiceEnabled = game["statisticsServiceEnabled"].Value<bool>();
-                 }
+                 game.ReadOptionalValue("statisticsServiceEnabled", ref gameSource.StatisticsServiceEnabled);
                  Settings = gameSource;
             }
         }

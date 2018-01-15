@@ -12,8 +12,6 @@ class GameBuilder
 {
 public:
 	static MGDFError LoadGame( storage::IGameStorageHandler *handler, Game **game );
-private:
-	static MGDFError CreateGame( storage::IGameStorageHandler *handler, Game **game);
 };
 
 }

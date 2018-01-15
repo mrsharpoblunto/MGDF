@@ -32,15 +32,15 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-			var dependencies = json["dependencies"]; 
+			var dependencies = json.ReadToken("dependencies"); 
 			if (dependencies == null) throw new Exception("Required attribute 'dependencies' missing");
 			if (dependencies.Type != JTokenType.Array) throw new Exception("Required attribute 'dependencies' is not an array");
 
 			foreach (var dep in dependencies)
 			{
 				_dependencies.Add(
-					dep.ReadRequiredValue("command"),
-					dep.ReadRequiredValue("arguments")
+					dep.ReadRequiredValue<string>("command"),
+					dep.ReadRequiredValue<string>("arguments")
 				);
 			}
         }

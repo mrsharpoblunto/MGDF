@@ -21,24 +21,11 @@ namespace MGDF
 namespace core
 {
 
-//loads a game from the game.json file stored in the game folder
+//loads the configuration preferences from the core preferences directory as well as the
+//particular configuration defaults, and synchs them up with any customized user preferences
 MGDFError GameBuilder::LoadGame( storage::IGameStorageHandler *handler, Game **game )
 {
 	_ASSERTE( handler );
-
-	MGDFError result = ParameterManager::Instance().AddParameterString( handler->GetParameterString().c_str() );
-	if ( MGDF_OK != result ) {
-		return result;
-	}
-
-	return CreateGame( handler, game );
-}
-
-
-//loads the configuration preferences from the core preferences directory as well as the
-//particular configuration defaults, and synchs them up with any customized user preferences
-MGDFError GameBuilder::CreateGame( storage::IGameStorageHandler *handler, Game **game)
-{
 	_ASSERTE( handler->GetVersion() );
 
 	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();

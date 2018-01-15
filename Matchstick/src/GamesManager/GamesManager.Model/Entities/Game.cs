@@ -96,25 +96,25 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-            DeveloperName = json.ReadRequiredValue("developerName");
-            Version = new Version(json.ReadRequiredValue("version"));
-            Name = json.ReadRequiredValue("gameName");
-            Uid = json.ReadRequiredValue("gameUid");
-            InterfaceVersion = int.Parse(json.ReadRequiredValue("interfaceVersion"));
+            DeveloperName = json.ReadRequiredValue<string>("developerName");
+            Version = new Version(json.ReadRequiredValue<string>("version"));
+            Name = json.ReadRequiredValue<string>("gameName");
+            Uid = json.ReadRequiredValue<string>("gameUid");
+            InterfaceVersion = int.Parse(json.ReadRequiredValue<string>("interfaceVersion"));
 
-            Homepage = json.ReadOptionalValue("homepage");
-            UpdateService = json.ReadOptionalValue("updateService");
-            StatisticsService = json.ReadOptionalValue("statisticsService");
-            StatisticsPrivacyPolicy = json.ReadOptionalValue("statisticsPrivacyPolicy");
-            SupportEmail = json.ReadOptionalValue("supportEmail");
-			SupportS3Bucket = json.ReadOptionalValue("supportS3Bucket");
-			SupportS3BucketAccessKey = json.ReadOptionalValue("supportS3BucketAccessKey");
-			SupportS3BucketSecretKey = json.ReadOptionalValue("supportS3BucketSecretKey");
+            Homepage = json.ReadOptionalValue<string>("homepage");
+            UpdateService = json.ReadOptionalValue<string>("updateService");
+            StatisticsService = json.ReadOptionalValue<string>("statisticsService");
+            StatisticsPrivacyPolicy = json.ReadOptionalValue<string>("statisticsPrivacyPolicy");
+            SupportEmail = json.ReadOptionalValue<string>("supportEmail");
+			SupportS3Bucket = json.ReadOptionalValue<string>("supportS3Bucket");
+			SupportS3BucketAccessKey = json.ReadOptionalValue<string>("supportS3BucketAccessKey");
+			SupportS3BucketSecretKey = json.ReadOptionalValue<string>("supportS3BucketSecretKey");
 
 			Preferences = new Dictionary<string, string>();
-			if (json["preferences"] != null)
+			if (json.ReadToken("preferences") != null)
 			{
-				foreach (JProperty pref in json["preferences"])
+				foreach (JProperty pref in json.ReadToken("preferences"))
 				{
 					Preferences.Add(pref.Name, pref.Value.ToString());
 				}

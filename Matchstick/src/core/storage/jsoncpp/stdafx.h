@@ -19,4 +19,6 @@
 #include <fstream>
 #include <json/json.h>
 
+std::string GetJsonValue(const Json::Value &json, const std::string &name);
+
 #include <MGDF/MGDF.hpp>

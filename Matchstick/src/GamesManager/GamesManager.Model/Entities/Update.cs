@@ -36,10 +36,10 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-            UpdateMinVersion = new Version(json.ReadRequiredValue("updateMinVersion"));
-            UpdateMaxVersion = new Version(json.ReadRequiredValue("updateMaxVersion"));
+            UpdateMinVersion = new Version(json.ReadRequiredValue<string>("updateMinVersion"));
+            UpdateMaxVersion = new Version(json.ReadRequiredValue<string>("updateMaxVersion"));
              
-            foreach (var child in json["removeFiles"].Values<string>())
+            foreach (var child in json.ReadToken("removeFiles").Values<string>())
             {
                 RemoveFiles.Add(child);
             }
