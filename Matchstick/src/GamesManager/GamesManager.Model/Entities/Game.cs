@@ -96,20 +96,20 @@ namespace MGDF.GamesManager.Model.Entities
 
         protected override void Load(JObject json)
         {
-            DeveloperName = json.ReadRequiredValue("developername");
+            DeveloperName = json.ReadRequiredValue("developerName");
             Version = new Version(json.ReadRequiredValue("version"));
-            Name = json.ReadRequiredValue("gamename");
-            Uid = json.ReadRequiredValue("gameuid");
-            InterfaceVersion = int.Parse(json.ReadRequiredValue("interfaceversion"));
+            Name = json.ReadRequiredValue("gameName");
+            Uid = json.ReadRequiredValue("gameUid");
+            InterfaceVersion = int.Parse(json.ReadRequiredValue("interfaceVersion"));
 
             Homepage = json.ReadOptionalValue("homepage");
-            UpdateService = json.ReadOptionalValue("updateservice");
-            StatisticsService = json.ReadOptionalValue("statisticsservice");
-            StatisticsPrivacyPolicy = json.ReadOptionalValue("statisticsprivacypolicy");
-            SupportEmail = json.ReadOptionalValue("supportemail");
-			SupportS3Bucket = json.ReadOptionalValue("supports3bucket");
-			SupportS3BucketAccessKey = json.ReadOptionalValue("supports3bucketaccesskey");
-			SupportS3BucketSecretKey = json.ReadOptionalValue("supports3bucketsecretkey");
+            UpdateService = json.ReadOptionalValue("updateService");
+            StatisticsService = json.ReadOptionalValue("statisticsService");
+            StatisticsPrivacyPolicy = json.ReadOptionalValue("statisticsPrivacyPolicy");
+            SupportEmail = json.ReadOptionalValue("supportEmail");
+			SupportS3Bucket = json.ReadOptionalValue("supportS3Bucket");
+			SupportS3BucketAccessKey = json.ReadOptionalValue("supportS3BucketAccessKey");
+			SupportS3BucketSecretKey = json.ReadOptionalValue("supportS3BucketSecretKey");
 
 			Preferences = new Dictionary<string, string>();
 			if (json["preferences"] != null)

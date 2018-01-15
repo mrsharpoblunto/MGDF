@@ -548,7 +548,7 @@ INT32 D3DAppFramework::Run()
 	while ( msg.message != WM_QUIT ) {
 		//deal with any windows messages on the main thread, this allows us
 		//to ensure that any user input is handled with as little latency as possible
-		//independant of the update rate for the sim and render threads.
+		//independent of the update rate for the sim and render threads.
 		if ( PeekMessage( &msg, 0, 0, 0, PM_REMOVE ) ) {
 			TranslateMessage( &msg );
 			DispatchMessage( &msg );

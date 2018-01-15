@@ -1,7 +1,7 @@
 ﻿{
-  "updateminversion":"0.1",
-  "updatemaxversion":"0.2",
-  "removefiles":[
+  "updateMinVersion":"0.1",
+  "updateMaxVersion":"0.2",
+  "removeFiles":[
     "content/test.json"
    ]
 }

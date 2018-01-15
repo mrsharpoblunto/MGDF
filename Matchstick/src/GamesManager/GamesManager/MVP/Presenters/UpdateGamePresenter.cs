@@ -152,8 +152,8 @@ namespace MGDF.GamesManager.MVP.Presenters
 							}
 							else
 							{
-								View.Invoke(() => View.Details = "Installing framework dependancies...");
-								DependancyInstaller.Install();
+								View.Invoke(() => View.Details = "Installing framework dependencies...");
+								DependencyInstaller.Install();
 							}
                         }
                     }

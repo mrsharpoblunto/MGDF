@@ -52,11 +52,11 @@ MGDFError JsonCppGameStorageHandler::Load( const std::wstring &filename )
 	Json::Reader reader;
 
 	if ( reader.parse( input, root ) ) {
-		_gameName = root["gamename"].asString();
-		_gameUid = root["gameuid"].asString();
+		_gameName = root["gameName"].asString();
+		_gameUid = root["gameUid"].asString();
 		_version = VersionHelper::Create( root["version"].asString() );
 		_parameterString = root["parameters"].asString();
-		_interfaceVersion = atoi( root["interfaceversion"].asString().c_str() );
+		_interfaceVersion = atoi( root["interfaceVersion"].asString().c_str() );
 		Json::Value preferences = root["preferences"];
 		if (!preferences.isNull()) {
 			for (const auto &key : preferences.getMemberNames()) {

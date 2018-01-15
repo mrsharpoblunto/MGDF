@@ -43,10 +43,10 @@ namespace MGDF.GamesManager.Tests
 
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""Latest"":{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.junkship.net/downloads/console.zip"",
-""MD5"":""" + gameMd5 + @"""
+""latest"":{
+""version"":""1.1.2.4"",
+""url"":""http://www.junkship.net/downloads/console.zip"",
+""md5"":""" + gameMd5 + @"""
 }
 }");
 
@@ -90,10 +90,10 @@ namespace MGDF.GamesManager.Tests
             ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""Latest"":{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.junkship.net/downloads/console.zip"",
-""MD5"":""" + gameMd5 + @"""
+""latest"":{
+""version"":""1.1.2.4"",
+""url"":""http://www.junkship.net/downloads/console.zip"",
+""md5"":""" + gameMd5 + @"""
 }
 }");
 
@@ -135,10 +135,10 @@ namespace MGDF.GamesManager.Tests
             ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""Latest"":{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.junkship.net/downloads/console.zip"",
-""MD5"":""" + gameMd5 + @"""
+""latest"":{
+""version"":""1.1.2.4"",
+""url"":""http://www.junkship.net/downloads/console.zip"",
+""md5"":""" + gameMd5 + @"""
 }
 }");
 
@@ -192,10 +192,10 @@ namespace MGDF.GamesManager.Tests
             ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""Latest"":{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.junkship.net/downloads/console.zip"",
-""MD5"":""" + gameMd5 + @"""
+""latest"":{
+""version"":""1.1.2.4"",
+""url"":""http://www.junkship.net/downloads/console.zip"",
+""md5"":""" + gameMd5 + @"""
 }
 }");
 
@@ -239,21 +239,21 @@ namespace MGDF.GamesManager.Tests
             var gameMd5 = GenerateMd5Hash(newGameData);
 
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""Latest"":{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.junkship.net/downloads/console.zip"",
-""MD5"":""" + gameMd5 + @"""
+""latest"":{
+""version"":""1.1.2.4"",
+""url"":""http://www.junkship.net/downloads/console.zip"",
+""md5"":""" + gameMd5 + @"""
 },
-""UpdateOlderVersions"":[
+""updateOlderVersions"":[
     {
-        ""Url"":""http://www.junkship.net/downloads/console-update.zip"",
-        ""MD5"":""" + gameMd5 + @""",
-        ""FromVersion"":""0.1""
+        ""url"":""http://www.junkship.net/downloads/console-update.zip"",
+        ""md5"":""" + gameMd5 + @""",
+        ""fromVersion"":""0.1""
     },
     {
-        ""Url"":""http://www.junkship.net/downloads/console-update1.zip"",
-        ""MD5"":""" + gameMd5 + @""",
-        ""FromVersion"":""0.1.1.1""
+        ""url"":""http://www.junkship.net/downloads/console-update1.zip"",
+        ""md5"":""" + gameMd5 + @""",
+        ""fromVersion"":""0.1.1.1""
     }
 ]
 }");
@@ -279,16 +279,16 @@ namespace MGDF.GamesManager.Tests
             var gameMd5 = GenerateMd5Hash(newGameData);
 
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
-""Latest"":{
-""Version"":""0.1"",
-""Url"":""http://www.junkship.net/downloads/console.zip"",
-""MD5"":""" + gameMd5 + @"""
+""latest"":{
+""version"":""0.1"",
+""url"":""http://www.junkship.net/downloads/console.zip"",
+""md5"":""" + gameMd5 + @"""
 },
-""UpdateOlderVersions"":[
+""updateOlderVersions"":[
     {
-        ""Url"":""http://www.junkship.net/downloads/console-update.zip"",
-        ""MD5"":""" + gameMd5 + @""",
-        ""FromVersion"":""0.1""
+        ""url"":""http://www.junkship.net/downloads/console-update.zip"",
+        ""md5"":""" + gameMd5 + @""",
+        ""fromVersion"":""0.1""
     },
 ]
 }");
@@ -311,16 +311,16 @@ namespace MGDF.GamesManager.Tests
             var gameMd5 = GenerateMd5Hash(newGameData);
 
             ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""Latest"":{
-""Version"":""1.1.2.4"",
-""Url"":""http://www.junkship.net/downloads/console.zip"",
-""MD5"":""" + gameMd5 + @"""
+""latest"":{
+""version"":""1.1.2.4"",
+""url"":""http://www.junkship.net/downloads/console.zip"",
+""md5"":""" + gameMd5 + @"""
 },
-""UpdateOlderVersions"":[
+""updateOlderVersions"":[
     {
-        ""Url"":""http://www.junkship.net/downloads/console-update1.zip"",
-        ""MD5"":""" + gameMd5 + @""",
-        ""FromVersion"":""0.1.1.1""
+        ""url"":""http://www.junkship.net/downloads/console-update1.zip"",
+        ""md5"":""" + gameMd5 + @""",
+        ""fromVersion"":""0.1.1.1""
     }
 ]
 }");
@@ -438,18 +438,18 @@ namespace MGDF.GamesManager.Tests
 
             MockArchiveFile archive = new MockArchiveFile(null, "C:\\Documents and Settings\\user\\desktop\\game.zip");
             new MockArchiveFile(archive, "game.json", @"{
-  ""gameuid"":""Console"",
-  ""gamename"":""Lua Console"",
+  ""gameUid"":""Console"",
+  ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""1.0.0.0"",
-  ""interfaceversion"":""1"",
-  ""developeruid"":""no-8"",
-  ""developername"":""no8 interactive"",
+  ""interfaceVersion"":""1"",
+  ""developerUid"":""no-8"",
+  ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
-  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
-  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
-  ""statisticsprivacypolicy"":""We wont use ur informationz"",
-  ""supportemail"":""support@junkship.org""
+  ""gamesourceService"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsService"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""statisticsPrivacyPolicy"":""We wont use ur informationz"",
+  ""supportEmail"":""support@junkship.org""
 }");
             new MockArchiveFile(archive, "update.json", ReadTextFile("update.json"));
             new MockArchiveFile(archive, "content");

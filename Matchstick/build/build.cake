@@ -1,11 +1,12 @@
 using System.Text.RegularExpressions;
 #addin nuget:?package=Cake.FileHelpers
 #addin nuget:?package=Cake.Json
+#addin nuget:?package=Cake.AWS.S3
 #addin nuget:?package=Newtonsoft.Json&version=9.0.1
 
 var target = Argument("target", "Default");
-var buildConfiguration = Argument("build_configuration", "Release");
-var buildNumber = Argument("build_number", "1.0.0");
+var buildConfiguration = Argument("configuration", "Release");
+var buildNumber = Argument("buildnumber", "1.0.0");
 
 Task("BuildX64")
   .IsDependentOn("VersionInfo")
@@ -94,7 +95,7 @@ Task("Dist")
 		CreateDirectory("../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/tmp/x64");
-		CopyDirectory($@"../dependancies/x64", "../dist/tmp/x64/dependancies");
+		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));
@@ -106,25 +107,25 @@ Task("Dist")
 
 		// generate the latest.json file for use by other games
 		SerializeJsonToPrettyFile("../dist/latest.json", new {
-			Framework = new {
-				Version = buildNumber,
-				Url = $@"https://s3.matchstickframework.org/MGDF_{buildNumber}_x64.zip",
-				MD5 = CalculateFileHash($@"../dist/SDK/MGDF_{buildNumber}_x64.zip", HashAlgorithm.MD5).ToHex(),
+			framework = new {
+				version = buildNumber,
+				url = $@"https://s3.matchstickframework.org/MGDF_{buildNumber}_x64.zip",
+				md5 = CalculateFileHash($@"../dist/SDK/MGDF_{buildNumber}_x64.zip", HashAlgorithm.MD5).ToHex(),
 			}
 		});
 
 		// copy debug symbols
-		CreateDirectory("../dist/Symbols");
-		CreateDirectory("../dist/Symbols/x64");
-		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/Symbols/x64");
-		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/Symbols/x64");
-		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.pdb"), "../dist/Symbols/x64");
-		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.dll"), "../dist/Symbols/x64");
-		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.exe"), "../dist/Symbols/x64");
-		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.pdb"), "../dist/Symbols/x64");
+		CreateDirectory("../dist/symbols");
+		CreateDirectory("../dist/symbols/x64");
+		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/symbols/x64");
+		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/symbols/x64");
+		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.pdb"), "../dist/symbols/x64");
+		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.dll"), "../dist/symbols/x64");
+		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.exe"), "../dist/symbols/x64");
+		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.pdb"), "../dist/symbols/x64");
 
 		// copy MGDF headers
-		CopyDirectory("../include", "../dist/SDK/Include");
+		CopyDirectory("../include", "../dist/SDK/include");
     
 		// copy packagegen to SDK bin dir
 		CreateDirectory("../dist/SDK/bin");
@@ -154,10 +155,46 @@ Task("Dist")
 		});
 	});
 
+Task("UploadDist").Does(() => {
+	var s3AccessKey = Argument<string>("s3accesskey");
+	var s3SecretKey = Argument<string>("s3secretkey");
+	var dist = Argument<string>("dist");
+
+	if (!FileExists(dist)) {
+		throw new Exception($@"The specified dist file {dist} to publish does not exist");
+	}
+
+	Regex SDKMatcher = new Regex("^.*MGDF_(([0-9]\\.?)*)_SDK.zip$");
+	Match m = SDKMatcher.Match(dist);
+	if (!m.Success) {
+		throw new Exception($@"The specified dist file {dist} to publish doesn't appear to be a valid MGDF SDK dist archive");
+	}
+	
+	var distVersion = m.Groups[1].Captures[0];
+	Information($@"MGDF SDK is version {distVersion}");
+	
+	/*S3Upload(dist, new FilePath(dist).GetFilename().ToString(), new UploadSettings() {
+		AccessKey = s3AccessKey,
+		SecretKey = s3SecretKey,
+		BucketName = "s3.matchstickframework.org",
+		CannedACL = S3CannedACL.PublicRead,
+	});*/
+});
+
+Task("UpdateWebsite").Does(() => {
+});
+
+Task("Publish")
+	.IsDependentOn("UploadDist")
+	.IsDependentOn("UpdateWebsite")
+	.Does(() => {
+	});
+
 Task("Default")
 	.IsDependentOn("Dist")
 	.Does(() => {
 	});
+
 
 // TODO need a publish task that uploads the latest dist to S3 and updates the links & docs on the github website
 

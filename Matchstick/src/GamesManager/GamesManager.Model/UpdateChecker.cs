@@ -10,6 +10,7 @@ using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Entities;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace MGDF.GamesManager.Model
 {
@@ -55,6 +56,10 @@ namespace MGDF.GamesManager.Model
                     {
                         using (var reader = new StreamReader(responseStream))
                         {
+                            var jsonSerializerSettings = new JsonSerializerSettings {
+                                ContractResolver = new CamelCasePropertyNamesContractResolver()
+                            };
+
                             availableUpdates = JsonConvert.DeserializeObject<GameUpdate>(reader.ReadToEnd());
                         }
                     }

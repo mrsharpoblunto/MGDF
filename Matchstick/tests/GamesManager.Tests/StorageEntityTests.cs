@@ -35,17 +35,17 @@ namespace MGDF.GamesManager.Tests
         public void LoadInvalidGameNoUid()
         {
             const string NoUid = @"{
-  ""gamename"":""Lua Console"",
+  ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""0.1"",
-  ""interfaceversion"":""1"",
-  ""developeruid"":""no-8"",
-  ""developername"":""no8 interactive"",
+  ""interfaceVersion"":""1"",
+  ""developerUid"":""no-8"",
+  ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
-  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
-  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
-  ""statisticsprivacypolicy"":""We wont use ur informationz"",
-  ""supportemail"":""support@junkship.org""
+  ""gamesourceService"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsService"":""http://statistics.junkship.org/statisticsService.asmx"",
+  ""statisticsPrivacyPolicy"":""We wont use ur informationz"",
+  ""supportEmail"":""support@junkship.org""
 }";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
@@ -59,18 +59,18 @@ namespace MGDF.GamesManager.Tests
         public void LoadInvalidGameInvalidVersion()
         {
             const string InvalidVersion = @"{
-  ""gameuid"":""Console"",
-  ""gamename"":""Lua Console"",
+  ""gameUid"":""Console"",
+  ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""1.0 Beta 2"",
-  ""interfaceversion"":""1"",
-  ""developeruid"":""no-8"",
-  ""developername"":""no8 interactive"",
+  ""interfaceVersion"":""1"",
+  ""developerUid"":""no-8"",
+  ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
-  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
-  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
-  ""statisticsprivacypolicy"":""We wont use ur informationz"",
-  ""supportemail"":""support@junkship.org""
+  ""gameSourceService"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsService"":""http://statistics.junkship.org/statisticsService.asmx"",
+  ""statisticsPrivacyPolicy"":""We wont use ur informationz"",
+  ""supportEmail"":""support@junkship.org""
 }";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
@@ -84,17 +84,17 @@ namespace MGDF.GamesManager.Tests
         public void LoadInvalidGameInvalidXML()
         {
             const string InvalidXml = @"{
-  ""gameuid"":""Console"",
-  ""gamename"":""Lua Console"",
+  ""gameUid"":""Console"",
+  ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""1.0 Beta 2"",
-  ""interfaceversion"":""1"",
-  ""developeruid"":""no-8"",
-  ""developername"":""no8 interactive"",
+  ""interfaceVersion"":""1"",
+  ""developerUid"":""no-8"",
+  ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
-  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
-  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
-  ""statisticsprivacypolicy"":""We wont use ur informationz""";
+  ""gameSourceService"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsService"":""http://statistics.junkship.org/statisticsService.asmx"",
+  ""statisticsPrivacyPolicy"":""We wont use ur informationz""";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory+"\\game"));
             gameDirectory.AddFile("game.json", InvalidXml);
@@ -104,18 +104,18 @@ namespace MGDF.GamesManager.Tests
         }
 
 		[Test]
-		public void LoadDependanciesFile()
+		public void LoadDependenciesFile()
 		{
 			const string json = @"{
-	""dependancies"":[
+	""dependencies"":[
 		{ ""command"": ""vc2013redist_x86.exe"", ""arguments"":""/q"" }
 	]
 }";
 
 			MockDirectory depsDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory));
-			depsDirectory = depsDirectory.AddDirectory("dependancies");
-			depsDirectory.AddFile("dependancies.json", json);
-			var deps = new FrameworkDependancies(Resources.DependanciesFile);
+			depsDirectory = depsDirectory.AddDirectory("dependencies");
+			depsDirectory.AddFile("dependencies.json", json);
+			var deps = new FrameworkDependencies(Resources.DependenciesFile);
 			Assert.AreEqual(true, deps.IsValid);
 			Assert.AreEqual(0, deps.ErrorCollection.Count);
 			Assert.AreEqual(1, deps.Dependencies.Count);

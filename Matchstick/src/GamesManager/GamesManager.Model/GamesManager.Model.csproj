@@ -99,8 +99,8 @@
     </Compile>
     <Compile Include="Archive.cs" />
     <Compile Include="Config.cs" />
-    <Compile Include="DependancyInstaller.cs" />
-    <Compile Include="Entities\FrameworkDependancies.cs" />
+    <Compile Include="DependencyInstaller.cs" />
+    <Compile Include="Entities\FrameworkDependencies.cs" />
     <Compile Include="LongRunningTask.cs" />
     <Compile Include="Entities\Game.cs" />
     <Compile Include="Entities\GameInstall.cs" />

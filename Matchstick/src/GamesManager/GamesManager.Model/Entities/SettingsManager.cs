@@ -66,12 +66,12 @@ namespace MGDF.GamesManager.Model.Entities
                  var gameSource = new GameSettings
                  {
                      GameUid = game.ReadRequiredValue("uid"),
-                     UserName = game.ReadRequiredValue("username"),
-                     Password = DPAPI.Decrypt(game.ReadRequiredValue("passwordhash"))
+                     UserName = game.ReadRequiredValue("userName"),
+                     Password = DPAPI.Decrypt(game.ReadRequiredValue("passwordHash"))
                  };
-                 if (game["statisticsserviceenabled"]!=null)
+                 if (game["statisticsServiceEnabled"]!=null)
                  {
-                     gameSource.StatisticsServiceEnabled = game["statisticsserviceenabled"].Value<bool>();
+                     gameSource.StatisticsServiceEnabled = game["statisticsServiceEnabled"].Value<bool>();
                  }
                  Settings = gameSource;
             }
@@ -93,11 +93,11 @@ namespace MGDF.GamesManager.Model.Entities
                         writer.WriteRequiredValue("uid", Settings.GameUid);
                         if (Settings.StatisticsServiceEnabled.HasValue)
                         {
-							writer.WritePropertyName("statisticsserviceenabled");
+							writer.WritePropertyName("statisticsServiceEnabled");
                             writer.WriteValue(Settings.StatisticsServiceEnabled.Value);
                         }
                         writer.WriteRequiredValue("username", Settings.UserName ?? string.Empty);
-                        writer.WriteRequiredValue("passwordhash",DPAPI.Encrypt(Settings.Password ?? string.Empty));
+                        writer.WriteRequiredValue("passwordHash",DPAPI.Encrypt(Settings.Password ?? string.Empty));
 
                         writer.WriteEndObject();
 

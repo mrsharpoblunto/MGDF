@@ -4,7 +4,7 @@ namespace MGDF
 {
 
 /**
- this class provides a simple readonly wrapper for the std library vector class to enable implementation independant lists to be passed to modules
+ this class provides a simple readonly wrapper for the std library vector class to enable implementation independent lists to be passed to modules
 */
 #define DECLARE_LIST(className,typeName) class className## \
 { \

@@ -1,5 +1,0 @@
-{
-	"dependancies":[
-		{ "command": "vc2015redist_x64.exe", "arguments":"/q" }
-	]
-}

@@ -94,18 +94,18 @@ namespace MGDF.GamesManager.Tests
         public void TestCanSendStatistics()
         {
             const string gmeContent = @"{
-  ""gameuid"":""Console"",
-  ""gamename"":""Lua Console"",
+  ""gameUid"":""Console"",
+  ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""0.1"",
-  ""interfaceversion"":""1"",
-  ""developeruid"":""no-8"",
-  ""developername"":""no8 interactive"",
+  ""interfaceVersion"":""1"",
+  ""developerUid"":""no-8"",
+  ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
-  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
-  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
-  ""statisticsprivacypolicy"":""We wont use ur informationz"",
-  ""supportemail"":""support@junkship.org""
+  ""gamesourceService"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsService"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""statisticsPrivacyPolicy"":""We wont use ur informationz"",
+  ""supportEmail"":""support@junkship.org""
 }";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
@@ -156,18 +156,18 @@ namespace MGDF.GamesManager.Tests
         public void TestGetStatisticsPermissionNoCachedPermission(bool allow)
         {
             const string gmeContent = @"{
-  ""gameuid"":""Console"",
-  ""gamename"":""Lua Console"",
+  ""gameUid"":""Console"",
+  ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""0.1"",
-  ""interfaceversion"":""1"",
-  ""developeruid"":""no-8"",
-  ""developername"":""no8 interactive"",
+  ""interfaceVersion"":""1"",
+  ""developerUid"":""no-8"",
+  ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
-  ""gamesourceservice"":""http://games.junkship.org/gamesource.asmx"",
-  ""statisticsservice"":""http://statistics.junkship.org/statisticsservice.asmx"",
-  ""statisticsprivacypolicy"":""http://www.junkship.org/privacy"",
-  ""supportemail"":""support@junkship.org""
+  ""gamesourceService"":""http://games.junkship.org/gamesource.asmx"",
+  ""statisticsService"":""http://statistics.junkship.org/statisticsservice.asmx"",
+  ""statisticsPrivacyPolicy"":""http://www.junkship.org/privacy"",
+  ""supportEmail"":""support@junkship.org""
 }";
 
             MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));

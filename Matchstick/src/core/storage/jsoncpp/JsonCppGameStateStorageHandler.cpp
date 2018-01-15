@@ -28,8 +28,8 @@ MGDFError JsonCppGameStateStorageHandler::Load( const std::wstring &filename )
 	Json::Reader reader;
 
 	if ( reader.parse( input, root ) ) {
-		_gameUid = root["gameuid"].asString();
-		_version = VersionHelper::Create( root["gameversion"].asString() );
+		_gameUid = root["gameUid"].asString();
+		_version = VersionHelper::Create( root["gameVersion"].asString() );
 		return MGDF_OK;
 	} else {
 		LOG( reader.getFormatedErrorMessages(), LOG_ERROR );
@@ -43,8 +43,8 @@ void JsonCppGameStateStorageHandler::Save( const std::wstring &filename ) const
 
 	Json::Value root;
 
-	root["gameuid"] = _gameUid;
-	root["gameversion"] = VersionHelper::Format( &_version );
+	root["gameUid"] = _gameUid;
+	root["gameVersion"] = VersionHelper::Format( &_version );
 
 	file << root;
 	file.close();

@@ -1,14 +1,14 @@
 {
-  "gameuid":"Test",
-  "gamename":"Test Game",
+  "gameUid":"Test",
+  "gameName":"Test Game",
   "version":"0.1",
-  "interfaceversion":"1",
-  "developername":"Team Junkship",
+  "interfaceVersion":"1",
+  "developerName":"Team Junkship",
   "homepage":"http://www.junkship.net",
-  "supportemail":"support@matchstickframework.org",
+  "supportEmail":"support@matchstickframework.org",
   "preferences":{
-	"host.windowResize":"1",
-	"host.simFps":"120",
-	"host.interpolateFrames":"1"
+    "host.windowResize":"1",
+    "host.simFps":"120",
+    "host.interpolateFrames":"1"
   }
 }

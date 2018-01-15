@@ -24,7 +24,7 @@ namespace MGDF.GamesManager.Common
         public const int InterfaceVersion = 1;
         public const string SupportEmail = "support@matchstickframework.org";
 
-		public const string DependancyConfig = @"dependancies.json";
+		public const string DependencyConfig = @"dependencies.json";
         public const string UpdateConfig = @"update.json";
         public const string GameConfig = @"game.json";
         public const string PreferencesConfig = @"preferences.json";
@@ -141,19 +141,19 @@ namespace MGDF.GamesManager.Common
             }
         }
 
-		public static string DependanciesDir
+		public static string DependenciesDir
 		{
 			get
 			{
-				return FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, "Dependancies");
+				return FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, "Dependencies");
 			}
 		}
 
-		public static string DependanciesFile
+		public static string DependenciesFile
 		{
 			get
 			{
-				return FileSystem.Combine(DependanciesDir, DependancyConfig);
+				return FileSystem.Combine(DependenciesDir, DependencyConfig);
 			}
 		}
 

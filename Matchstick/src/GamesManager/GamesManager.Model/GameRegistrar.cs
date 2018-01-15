@@ -33,7 +33,7 @@ namespace MGDF.GamesManager.Model
                 AddToGamesExplorer();
                 AddToStartMenu();
                 AddDesktopShortcut();
-				DependancyInstaller.Install();
+				DependencyInstaller.Install();
             }
             catch (Exception ex)
             {
