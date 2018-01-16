@@ -45,6 +45,7 @@ namespace MatchstickFramework.Docgen.Model
 	public class ClassDoc
 	{
 		public List<string> InheritsFromTypeRefIds;
+        public List<string> InheritsFromUnreferencedType;
 		public string Id;
 		public string Name;
 		public string Description;

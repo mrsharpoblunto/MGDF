@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 #addin nuget:?package=Cake.FileHelpers
 #addin nuget:?package=Cake.Json
 #addin nuget:?package=Cake.AWS.S3
+#addin nuget:?package=Cake.Git
 #addin nuget:?package=Newtonsoft.Json&version=9.0.1
 
 var target = Argument("target", "Default");
@@ -160,7 +161,7 @@ Task("Dist")
 		});
 	});
 
-Task("UploadDist").Does(() => {
+Task("Publish").Does(async () => {
 	var s3AccessKey = Argument<string>("s3accesskey");
 	var s3SecretKey = Argument<string>("s3secretkey");
 	var dist = Argument<string>("dist");
@@ -188,23 +189,75 @@ Task("UploadDist").Does(() => {
 	}
 
 	foreach (var file in distFiles) {
-		S3Upload(file, file.GetFilename().ToString(), new UploadSettings() {
+		Information("Uploading " + file.FullPath);
+		await S3Upload(file, file.GetFilename().ToString(), new UploadSettings() {
 			AccessKey = s3AccessKey,
 			SecretKey = s3SecretKey,
+			Region = RegionEndpoint.USEast1,
 			BucketName = "s3.matchstickframework.org",
 			CannedACL = S3CannedACL.PublicRead,
 		});
 	}
-});
 
-Task("UpdateWebsite").Does(() => {
-});
-
-Task("Publish")
-	.IsDependentOn("UploadDist")
-	.IsDependentOn("UpdateWebsite")
-	.Does(() => {
+	DeleteDirectory("gh-pages", new DeleteDirectorySettings() { 
+		Force = true,
+		Recursive = true
 	});
+	StartProcess("git", new ProcessSettings() {
+		WorkingDirectory = new DirectoryPath("."),
+		Arguments = new ProcessArgumentBuilder()
+			.Append("clone")
+			.Append("-b")
+			.Append("gh-pages")
+			.Append("--single-branch")
+			.Append("git@github.com:mrsharpoblunto/MGDF.git")
+			.Append("gh-pages")
+	});
+
+	// Generate docs
+	StartProcess($@"../src/Docgen/MatchstickFramework.Docgen/bin/{buildConfiguration}/MatchstickFramework.Docgen.exe", new ProcessSettings() {
+		WorkingDirectory = new DirectoryPath(".."),
+		Arguments = new ProcessArgumentBuilder()
+			.AppendQuoted("dist/documentation/xml")
+			.AppendQuoted("build/gh-pages/_data/api.json")
+	});
+
+	// Update the website download link
+	string configYaml = FileReadText("gh-pages/_config.yml");
+	var versionRegex = new Regex("sdkversion:\\s\"(.*?)\"");
+	configYaml = versionRegex.Replace(configYaml, "sdkversion: \"" + distVersion + "\"");
+	var urlRegex = new Regex("sdkdownloadurl:\\s\"https://s3.matchstickframework.org/MGDF_(.*?)_SDK.zip");
+	configYaml = urlRegex.Replace(configYaml, "sdkdownloadurl: \"https://s3.matchstickframework.org/MGDF_" + distVersion + "_SDK.zip");
+	FileWriteText("gh-pages/_config.yml", configYaml);
+
+	// commit the website changes
+	StartProcess("git", new ProcessSettings() {
+		WorkingDirectory = new DirectoryPath("gh-pages"),
+		Arguments = new ProcessArgumentBuilder()
+			.Append("add")
+			.Append("-A")
+	});
+	if (StartProcess("git", new ProcessSettings() {
+		WorkingDirectory = new DirectoryPath("gh-pages"),
+		Arguments = new ProcessArgumentBuilder()
+			.Append("commit")
+			.Append("-m")
+			.AppendQuoted($@"Publishing release {distVersion}")
+	}) == 0) {
+		// only push if changes were committed
+		StartProcess("git", new ProcessSettings() {
+			WorkingDirectory = new DirectoryPath("gh-pages"),
+			Arguments = new ProcessArgumentBuilder()
+				.Append("push")
+				.Append("origin")
+				.Append("gh-pages")
+		});
+	}
+	DeleteDirectory("gh-pages", new DeleteDirectorySettings() { 
+		Force = true,
+		Recursive = true
+	});
+});
 
 Task("Default")
 	.IsDependentOn("Dist")

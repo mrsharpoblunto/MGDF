@@ -53,37 +53,53 @@ namespace MatchstickFramework.Docgen
 			foreach (var c in classElements)
 			{
 				XDocument classDoc = XDocument.Load(Path.Combine(xmlDocsPath, c.Ref + ".xml"));
-				var newClass = new ClassDoc
-				{
-					Id = c.Ref,
-					Name = c.Name.Replace("MGDF::", string.Empty),
-					Description = classDoc.Descendants("compounddef").First().Element("briefdescription").Value.Capitalize(),
-					Members = new List<MemberDoc>(),
-					InheritsFromTypeRefIds = new List<string>()
+                var newClass = new ClassDoc
+                {
+                    Id = c.Ref,
+                    Name = c.Name.Replace("MGDF::", string.Empty),
+                    Description = classDoc.Descendants("compounddef").First().Element("briefdescription").Value.Capitalize(),
+                    Members = new List<MemberDoc>(),
+                    InheritsFromTypeRefIds = new List<string>(),
+                    InheritsFromUnreferencedType = new List<string>()
 				};
+                Console.WriteLine($@"Processing class {newClass.Name}");
+
 				if (classDoc.Descendants("compounddef").First().Element("detaileddescription") != null)
 				{
 					newClass.Description += classDoc.Descendants("compounddef").First().Element("detaileddescription").Value;
 				}
 
+                Console.WriteLine($@"  computing inheritance tree...");
 				// figure out what classes this class inherits from
 				var inherits = classDoc.Descendants("compounddef").First().Element("inheritancegraph");
 				if ( inherits !=null) {
-					var self = inherits.Descendants("node").Single(n=>n.Element("link").Attribute("refid").Value == newClass.Id);
+					var self = inherits.Descendants("node").Single(n=>
+                    {
+                        var link = n.Element("link");
+                        return link != null && link.Attribute("refid").Value == newClass.Id;
+                    });
 					if (self.Elements("childnode").Count() != 0)
 					{
-						var parent = inherits.Descendants("node").SingleOrDefault(n => n.Attribute("id").Value == self.Elements("childnode").First().Attribute("refid").Value);
+                        var parent = inherits.Descendants("node").SingleOrDefault(n => n.Attribute("id").Value == self.Elements("childnode").First().Attribute("refid").Value);
 						while (true)
 						{
-							newClass.InheritsFromTypeRefIds.Add(parent.Element("link").Attribute("refid").Value);
+                            if (parent.Element("link") != null)
+                            {
+                                newClass.InheritsFromTypeRefIds.Add(parent.Element("link").Attribute("refid").Value);
+                            }
+                            else
+                            {
+                                newClass.InheritsFromUnreferencedType.Add(parent.Element("label").Value);
+                            }
 							if (parent.Elements("childnode").Count() == 0) break;
-							parent = inherits.Descendants("node").SingleOrDefault(n => n.Attribute("id").Value == parent.Elements("childnode").First().Attribute("refid").Value);
+                            parent = inherits.Descendants("node").SingleOrDefault(n => n.Attribute("id").Value == parent.Elements("childnode").First().Attribute("refid").Value);
 						}
 					}
 				}
 
 				api.Mappings.Add(newClass.Id, newClass.Name);
 
+                Console.WriteLine($@"  parsing members...");
 				foreach (var m in classDoc.Descendants("memberdef")) {
 					var newMember = ParseMemberDoc(m);
 					newClass.Members.Add(newMember);
@@ -105,6 +121,7 @@ namespace MatchstickFramework.Docgen
 			{
 				var m = ParseMemberDoc(f);
 				api.Functions.Add(m);
+                Console.WriteLine($@"Processing function {m.Name}");
 			}
 
 			// parse out all enum information
@@ -118,6 +135,7 @@ namespace MatchstickFramework.Docgen
 					Description = e.Element("briefdescription").Value.Capitalize(),
 					Values = new List<string>()
 				};
+                Console.WriteLine($@"Processing enum {newEnum.Name}");
 				api.Mappings.Add(newEnum.Id, newEnum.Name);
 
 				foreach (var value in e.Descendants("enumvalue"))
