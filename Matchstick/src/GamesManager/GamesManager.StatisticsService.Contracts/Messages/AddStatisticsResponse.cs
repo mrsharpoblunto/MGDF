@@ -10,14 +10,14 @@ namespace MGDF.GamesManager.StatisticsService.Contracts.Messages
     {
         private List<string> _errors = new List<string>();
 
-        [DataMember]
+        [DataMember(Name = "errors")]
         public List<string> Errors
         {
             get { return _errors; }
             set { _errors = value; }
         }
 
-		[DataMember]
+		[DataMember(Name = "success")]
 		public bool Success { get; set; }
     }
 }

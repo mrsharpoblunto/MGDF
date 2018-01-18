@@ -11,13 +11,13 @@ namespace MGDF.GamesManager.StatisticsService.Contracts.Messages
     {
         private List<Statistic> _statistics = new List<Statistic>();
 
-		[DataMember]
+		[DataMember(Name = "gameUid")]
 		public string GameUid { get; set; }
 
-		[DataMember]
+		[DataMember(Name = "sessionId")]
 		public string SessionId { get; set; }
 
-        [DataMember]
+        [DataMember(Name = "statistics")]
         public List<Statistic> Statistics
         {
             get { return _statistics; }
