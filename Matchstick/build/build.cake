@@ -76,10 +76,12 @@ Task("TestCoreX64")
 });
 
 Task("Clean").Does(() => {
-	DeleteDirectory("../dist", new DeleteDirectorySettings() {
-		Force = true,
-		Recursive = true,
-	});
+  if (DirectoryExists("../dist")) {
+    DeleteDirectory("../dist", new DeleteDirectorySettings() {
+      Force = true,
+      Recursive = true,
+    });
+  }
 	CreateDirectory("../dist");
 	DeleteDirectory($@"../bin/x64/{buildConfiguration}", new DeleteDirectorySettings() {
 		Force = true,
@@ -199,10 +201,12 @@ Task("Publish").Does(async () => {
 		});
 	}
 
-	DeleteDirectory("gh-pages", new DeleteDirectorySettings() { 
-		Force = true,
-		Recursive = true
-	});
+  if (DirectoryExists("gh-pages")) {
+    DeleteDirectory("gh-pages", new DeleteDirectorySettings() { 
+      Force = true,
+      Recursive = true
+    });
+  }
 	StartProcess("git", new ProcessSettings() {
 		WorkingDirectory = new DirectoryPath("."),
 		Arguments = new ProcessArgumentBuilder()
