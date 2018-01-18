@@ -66,7 +66,7 @@ layout: default
         </div>
 
         <h2>The GamesManager <small>(GamesManager.exe)</small></h2>
-        <p>This is written in C# (.NET 4.5) and consists a windows forms application which provides a minimalist launcher that checks for game updates and displays friendly error messages if the core crashes. It is also responsible for sending game statistics if this feature is used. 
+        <p>This is written in C# (.NET 4.6) and consists a windows forms application which provides a minimalist launcher that checks for game updates and displays friendly error messages if the core crashes. It is also responsible for sending game statistics if this feature is used. 
            In addition to this, the GamesManager also can be used by an installer to handle the usual tasks of windows program installation such as adding a installed programs entry in the registry, a start menu entry, and a desktop icon (see the <a href="{{ site.baseurl }}/api#commandline">command line options</a> for more details)</p>
         <p class="alert alert-info"  ><strong>NOTE</strong> This component is optional. If you plan on using your own solution for launching the game and managing updates (Steam, Desura, etc.), you can omit this piece of the framework from your game and start your game by running core.exe directly instead of launching it via GamesManager.exe</p>
     
@@ -82,7 +82,7 @@ layout: default
             <li><p>GamesManager.FrameworkUpdater.exe</p></li>
             <li><p>... other framework dlls</p></li>
             <li><p>/resources</p></li>
-            <li><p>/dependancies</p></li>
+            <li><p>/dependencies</p></li>
             <li>
                 <h4>/game</h4>
                 <p>All games files should be placed inside this folder</p>
@@ -111,13 +111,13 @@ layout: default
         <p>As mentioned above, this file is responsible for telling the GamesManager and core everything they need to know about running your game. A basic manifest file is shown below. For full information on all the fields and their meanings, check out the <a href="{{ site.baseurl }}/api#gamemanifeset">API reference</a> for more information.</p>
 {% highlight json %}
 {
-    "gameuid":"a unique id",
-    "gamename":"A human readable name",
+    "gameUid":"a unique id",
+    "gameName":"A human readable name",
     "version":"0.1",
-    "interfaceversion":"1",
-    "developername":"Human readable developer name",
-    "homepage":"http://www.example.com",
-    "supportemail":"support@example.com",
+    "interfaceVersion":"1",
+    "developerName":"Human readable developer name",
+    "homepage":"https://www.example.com",
+    "supportEmail":"support@example.com",
 }
 {% endhighlight %}
 
@@ -127,7 +127,7 @@ layout: default
         shared state between the Sim and Rendering parts of your game and ensuring that appropriate locking strategies are in place. </p>
         <p>One method for managing this is to use a Double Buffered game state, i.e. the Sim thread modifies the game state and on each tick makes a copy of the current game state (or as much of a copy as the renderer needs to do its job) and copies it into a buffer which the Render thread can pick up when it's ready to render the next frame. In this way the Sim and Render threads can operate mostly independantly of each
         other without having to worry about concurrency issues. By default the Render thread will not run more than once per Sim tick, so you don't have to worry about buffer underrun in this case either (though this behaviour is configurable - if you have a very slow Sim framerate and want to interpolate a single game state over several render frames - check out the host.interpolateFrames preference option in the <a href="{{ site.baseurl }}/api#gamemanifeset">Game.json API reference</a>)</p>
-        <p class="alert alert-info"><strong>NOTE</strong> The SDK includes a sample visual studio game project in Src/Samples/EmptyGame. This project contains a game.json file and will create a compatible module.dll with a stub module class.</p>
+        <p class="alert alert-info"><strong>NOTE</strong> The SDK includes a sample visual studio game project in src/samples/EmptyGame. This project contains a game.json file and will create a compatible module.dll with a stub module class.</p>
         <h4>Implementing the IModule interface</h4>
         <p>Below is a stub implmentation of the IModule interface. Once a module instance is created, the host communicates events to the module by calling into the various methods provided. You may notice that all methods except Panic are prefixed with ST or RT - RT methods will be called by the host from the render thread, and ST methods will be called by the host from the sim thread. Panic may be called from either thread.</p>
         <h5>Module.h</h5>
@@ -322,25 +322,25 @@ MGDF::IModule *MGDF::GetModule()
     !insertmacro MUI_LANGUAGE "English"
   
 ;--------------------------------
-; check for and install .net 4.5
-Section "Install .NET Framework 4.5"
+; check for and install .net 4.6
+Section "Install .NET Framework 4.6"
     IfSilent Ignoredotnetsetup
-    Call IsNetfx45Installed
+    Call IsNetfx46Installed
     Pop $0
     IntCmp $0 0 Ignoredotnetsetup
-    MessageBox MB_YESNO "New game requires that The .NET Framework 4.5 is installed, do you want to install it now?" IDYES Installdotnet
+    MessageBox MB_YESNO "New game requires that The .NET Framework 4.6 is installed, do you want to install it now?" IDYES Installdotnet
     Quit
 Installdotnet:
     SetOutPath $TEMP\NewGame
-    File dotNetFx45_Full_setup.exe
-    ExecWait '"$TEMP\NewGame\dotNetFx45_Full_setup.exe" /q /norestart'
-    Delete $TEMP\NewGame\dotNetFx45_Full_setup.exe
+    File dotNetFx46_Full_setup.exe
+    ExecWait '"$TEMP\NewGame\dotNetFx46_Full_setup.exe" /q /norestart'
+    Delete $TEMP\NewGame\dotNetFx46_Full_setup.exe
 	
-    Call IsNetfx45Installed ; check to see that the framework actually installed and that it wasn't cancelled.
+    Call IsNetfx46Installed ; check to see that the framework actually installed and that it wasn't cancelled.
     Pop $0
 	
     IntCmp $0 0 Ignoredotnetsetup
-    MessageBox MB_OK "The .NET Framework 4.5 was not installed, installation cannot continue."
+    MessageBox MB_OK "The .NET Framework 4.6 was not installed, installation cannot continue."
     Quit
 Ignoredotnetsetup:
 SectionEnd
@@ -359,7 +359,7 @@ Section "Install NewGame"
     SetOutPath $INSTDIR
     File /r "path to the MGDF root folder"
 	
-;--- write out the add/remove program's registry keys & install any framework dependancies
+;--- write out the add/remove program's registry keys & install any framework dependencies
     ExecWait '"$INSTDIR\GamesManager.exe" -register'
     SetRegView 64
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MGDF1_NewGame" "UninstallString" "$INSTDIR\Uninstall.exe"
@@ -382,12 +382,13 @@ Section "Uninstall"
     RMDIR /r $INSTDIR
 SectionEnd
 
-Function IsNetfx45Installed
-;Check is Net 4.0 installed
+Function IsNetfx46Installed
+;Check is Net 4.6 installed
+; https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed#net_d
 ;Push 0 for true, Pop -1 for false
 ;SetRegView 64
 ReadRegDWORD $0  HKLM "Software\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
-IntCmp $0 378389 is_equal is_less is_greater
+IntCmp $0 393295 is_equal is_less is_greater
 is_equal:
     Goto Installed
 is_greater:
@@ -405,28 +406,28 @@ FunctionEnd
        a url pointing to a <a href="{{ site.baseurl }}/api#updatemanifest">game update manifest</a> file. This update manifest is a small JSON file which lists the latest version of your game, and the MGDF framework version your games supports. An example update manifest is shown below.</p>
 {% highlight json %}
 {
-  "Framework": {
-    "Version": "0.11.22",
-    "Url": "http://s3.amazonaws.com/matchstickframework.org/MGDF_0.11.22_x86.zip",
-    "MD5": "be4573e2058fa6106093443e6c7857d1"
+  "framework": {
+    "version": "0.11.22",
+    "url": "https://s3.matchstickframework.org/MGDF_0.11.22_x64.zip",
+    "md5": "be4573e2058fa6106093443e6c7857d1"
   },
-  "Latest": {
-    "Version": "0.2.4",
-    "Url": "http://www.example.com/game_0.2.4.zip",
-    "MD5": "8059891b6663315a72a954c282a963c8"
+  "latest": {
+    "version": "0.2.4",
+    "url": "http://www.example.com/game_0.2.4.zip",
+    "md5": "8059891b6663315a72a954c282a963c8"
   },
-  "UpdateOlderVersions": [
+  "updateOlderVersions": [
     {
-      "Url": "http://www.example.com/game_0.2.4_update.zip",
-      "MD5": "eac5db79ad1fa8f61d20283fef37ad33",
-      "FromVersion": "0.2.2",
-      "ToVersion": "0.2.3"
+      "url": "http://www.example.com/game_0.2.4_update.zip",
+      "md5": "eac5db79ad1fa8f61d20283fef37ad33",
+      "fromVersion": "0.2.2",
+      "toVersion": "0.2.3"
     }
   ]
 }
 {% endhighlight %}
-    <p>There are three main objects in the update manifest, the first is the Framework object which allows you to specify which version of the MGDF framework your game supports, this allows you to upgrade the framework independantly to your own game module and content. The url used for this object should point to an MGDF redistributable zip file (such as those included in the SDK)</p>
-    <p>The other two objects are the Latest object which should point to a zipped game package (more on how to create these packages shortly). Finally the UpdateOlderVersions is an optional object which lists an array of zipped partial update packages that include only the files to upgrade from a particular version (or range of versions) to the version specified in the Latest object.</p>
+    <p>There are three main objects in the update manifest, the first is the framework object which allows you to specify which version of the MGDF framework your game supports, this allows you to upgrade the framework independently to your own game module and content. The url used for this object should point to an MGDF redistributable zip file (such as those included in the SDK)</p>
+    <p>The other two objects are the latest object which should point to a zipped game package (more on how to create these packages shortly). Finally the updateOlderVersions is an optional object which lists an array of zipped partial update packages that include only the files to upgrade from a particular version (or range of versions) to the version specified in the Latest object.</p>
 
     <h4>Building update packages with PackageGen.exe</h4>
     <p>As mentioned above, in order to provide updates to your game, it has to be packaged into an update package. There are two types of update packages, full, and partial. A full update package is just a zip file containing everything in the /game folder whereas a partial update package contains only files which are different between two full update packages.</p>
@@ -439,8 +440,8 @@ FunctionEnd
     <p>If permitted, statistics are recorded as key/value pairs. These pairs also include a timestamp which represents the time in seconds since that game session began. All statistics gathered in a game session also include a unique non-identifiable session identifier id so that all the statistics that were posted in a given session can be correlated.</p> 
     <p>In order to enable statistics tracking you need to add the following properties to your game.json file</p>
     <ol>
-        <li><strong>statisticsservice</strong> - This value should point to a url where a compatible statistics web service is hosted (for more information on hosting a statistics service, or implementing your own see the <a href="{{ site.baseurl }}/api#statsservice">API reference</a>)</li>
-        <li><strong>statisticsprivacypolicy</strong> - This value should point to a url containing your privacy policy for usage of the statistics. This will be displayed to the user when they are prompted if they want to accept the statistics tracking or not. If this value is not present, no statistics tracking will be performed.</li>
+        <li><strong>statisticsService</strong> - This value should point to a url where a compatible statistics web service is hosted (for more information on hosting a statistics service, or implementing your own see the <a href="{{ site.baseurl }}/api#statsservice">API reference</a>)</li>
+        <li><strong>statisticsPrivacyPolicy</strong> - This value should point to a url containing your privacy policy for usage of the statistics. This will be displayed to the user when they are prompted if they want to accept the statistics tracking or not. If this value is not present, no statistics tracking will be performed.</li>
     </ol>
     <p>You can then upload statistics (as key value pairs) using the <a href="{{ site.baseurl }}/api#class_m_g_d_f_1_1_i_statistics_manager">IStatisticsManager</a> API. The GamesManager will upload any statistics recorded once a users play session has ended.</p>
     </div>

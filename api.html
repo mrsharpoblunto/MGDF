@@ -20,9 +20,14 @@ layout: default
         <p>GamesManager.exe run without any arguments will check for updates and launch the game in its /game folder. However it also has a couple of arguments which can be useful to run as part of a games installer such as <a href="http://nsis.sourceforge.net/Main_Page">NSIS</a></p>
         <dl class="dl-horizontal">
             <dt>-register</dt>
-            <dd><em>[Optional]</em> In order to make installing/uninstalling your game easier. When invoked will install any framework dependancies (for example the Visual C++ runtime), as well as any installed program registry entries, desktop shortcuts, start menu shortcuts and windows games explorer integration required.</dd>
+            <dd><em>[Optional]</em> In order to make installing/uninstalling your game easier. When invoked will install any framework dependencies (for example the Visual C++ runtime), as well as any installed program registry entries, desktop shortcuts, start menu shortcuts and windows games explorer integration required.</dd>
             <dt>-deregister</dt>
             <dd><em>[Optional]</em> Removes anything added via the register argument (with the exception of framework dependancies)</dd>
+            <dt>-userdiroverride</dt>
+            <dd><em>[Optional]</em> If specified, the directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\uid folder</dd>
+            <dt>-gamediroverride</dt><dd><em>[Optional]</em> Allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory)</dd>
+            <dt>-noupdatecheck</dt>
+            <dd><em>[Optional]</em> Disables any checking for updates before launching</dd>
         </dl>
 
         <h4 id="packageGen">PackageGen.exe</h4>
@@ -46,19 +51,19 @@ Installer package created
         <p>The game.json file is where all configuration and default preferences for a game is stored. The full schema for a game.json file is as follows</p>
 {% highlight json %}
 {
-    "gameuid":"a unique id",
-    "gamename":"A human readable name",
+    "gameUid":"a unique id",
+    "gameName":"A human readable name",
     "version":"0.1",
-    "interfaceversion":"1",
-    "developername":"Human readable developer name",
+    "interfaceVersion":"1",
+    "developerName":"Human readable developer name",
     "homepage":"http://www.example.com",
-    "supportemail":"support@example.com",
-    "supports3bucket":"game-crash-reports",
-    "supports3bucketaccesskey":"myawsaccesskey",
-    "supports3bucketsecretkey":"myawssecretkey",
-    "updateservice":"http://www.example.com/update.json",
-    "statisticsservice":"http://www.example.com/stats.svc",
-    "statisticsprivacypolicy":"http://www.example.com/privacy",
+    "supportEmail":"support@example.com",
+    "supportS3Bucket":"game-crash-reports",
+    "supportS3BucketAccessKey":"myawsaccesskey",
+    "supportS3BucketSecretKey":"myawssecretkey",
+    "updateService":"https://www.example.com/update.json",
+    "statisticsService":"https://www.example.com/stats.svc",
+    "statisticsPrivacyPolicy":"https://www.example.com/privacy",
     "preferences":{
         "key":"value",
     }
@@ -66,31 +71,31 @@ Installer package created
 {% endhighlight %}
         <h4>Game.json schema</h4>
         <dl class="dl-horizontal">
-            <dt>gameuid</dt>
+            <dt>gameUid</dt>
             <dd><em>[Required]</em> A unique identifier used to partition away game data from other MGDF games. It is important that this value is unique, so we recommend a GUID or similar string which is unlikely to collide with other MGDF games installed on a users system</dd>
-            <dt>gamename</dt>
+            <dt>gameName</dt>
             <dd><em>[Required]</em> A human readable name of the game. This will be used for any user visible display of the game in the GamesManager user interface</dd>
             <dt>version</dt>
             <dd><em>[Required]</em> A version string in the format major.minor.revision.build.</dd>
-            <dt>interfaceversion</dt>
+            <dt>interfaceVersion</dt>
             <dd><em>[Required]</em> The host interface version supported by the module. Currently, this should always be "1"</dd>
-            <dt>developername</dt>
+            <dt>developerName</dt>
             <dd><em>[Required]</em> A human readable description of the games developer. This will be displayed when the GamesManager requires the users permission to do something, for example to collect game statistics.</dd>
             <dt>homepage</dt>
             <dd><em>[Optional]</em> A url to the game's homepage, this will be added to the entry for the game in the Windows installed programs list if provided</dd>
-            <dt>supportemail</dt>
+            <dt>supportEmail</dt>
             <dd><em>[Optional]</em> An email address shown to users when crashes and other errors occur so that they can submit error reports</dd>
-            <dt>supports3bucket</dt>
+            <dt>supportS3Bucket</dt>
             <dd><em>[Optional]</em> An Amazon S3 Bucket which MGDF can automatically upload crash reports to. If specified this mode of error reporting is used instead of prompting the user to send a report to the support email address.</dd>
-            <dt>supports3bucketaccesskey</dt>
+            <dt>supportS3BucketAccessKey</dt>
             <dd><em>[Optional]</em> Access key for an S3 user with access to the support S3 bucket. Note: For security you should ensure this user has the minimum possible permissions, ideally write only access to the support bucket and nothing else.</dd>
-            <dt>supports3bucketsecretkey</dt>
+            <dt>supportS3BucketSecretKey</dt>
             <dd><em>[Optional]</em> Secret key for an S3 user with access to the support S3 bucket.</dd>
-            <dt>updateservice</dt>
+            <dt>updateService</dt>
             <dd><em>[Optional]</em> A url used to check for updates (see <a href="#updatemanifest">Update manifest configuration</a> for more information)</dd>
-            <dt>statisticsservice</dt>
+            <dt>statisticsService</dt>
             <dd><em>[Optional]</em> A url used to post game statistics information to (see <a href="#statsservice">Statistics service configuration</a> for more information)</dd>
-            <dt>statisticsprivacypolicy</dt>
+            <dt>statisticsPrivacyPolicy</dt>
             <dd><em>[Required if statisticsservice is set]</em> A url containing the privacy policy information for a developer who wishes to collect game statistics. This url is shown to the user when the GamesManager asks thier permission to gather statistics. If it is not specified, then no statistics can be collected</dd>
             <dt>preferences</dt>
             <dd><em>[Optional]</em> A dictionary of strings specifying any preferences used by the game. These can be accessed via the <a href="#class_m_g_d_f_1_1_i_game">IGame</a> Get/Set/HasPreference methods. A number of built in preferences are also used by the MGDF host and are always prefixed with <strong>host.</strong> The full list of built in preferences is shown below. These built in preferences can be overridden by specifying them in the game.json file.</dd>
@@ -132,22 +137,22 @@ Installer package created
         <p class="alert alert-info"><strong>NOTE</strong> The GamesManager supports downloading game updates from urls that use http authentication (either basic or digest) if you want to restrict download access to paid users. The GamesManager will pop up a username/password prompt in this case before the update will proceed.</p>
 {% highlight json %}
 {
-  "Framework": {
-    "Version": "0.11.22",
-    "Url": "http://s3.amazonaws.com/matchstickframework.org/MGDF_0.11.22_x86.zip",
-    "MD5": "be4573e2058fa6106093443e6c7857d1"
+  "framework": {
+    "version": "0.11.22",
+    "url": "https://s3.matchstickframework.org/MGDF_0.11.22_x64.zip",
+    "md5": "be4573e2058fa6106093443e6c7857d1"
   },
-  "Latest": {
-    "Version": "0.2.4",
-    "Url": "http://www.example.com/game_0.2.4.zip",
-    "MD5": "8059891b6663315a72a954c282a963c8"
+  "latest": {
+    "version": "0.2.4",
+    "url": "https://www.example.com/game_0.2.4.zip",
+    "md5": "8059891b6663315a72a954c282a963c8"
   },
-  "UpdateOlderVersions": [
+  "updateOlderVersions": [
     {
-      "Url": "http://www.example.com/game_0.2.4_update.zip",
-      "MD5": "eac5db79ad1fa8f61d20283fef37ad33",
-      "FromVersion": "0.2.2",
-      "ToVersion": "0.2.3"
+      "url": "https://www.example.com/game_0.2.4_update.zip",
+      "md5": "eac5db79ad1fa8f61d20283fef37ad33",
+      "fromVersion": "0.2.2",
+      "toVersion": "0.2.3"
     }
   ]
 }
@@ -155,12 +160,12 @@ Installer package created
 
         <h4>Game update manifest schema</h4>
         <dl class ="dl-horizontal">
-            <dt>Framework</dt>
+            <dt>framework</dt>
             <dd><em>[Optional]</em> Used to specify which version of the MGDF framework the game should use. This is useful as it gives you control over which framework version you want your game to run on and can update the framework as you require. The framework .zip file should be a framework distributable which can be found in the MGDF SDK download</dd>
-            <dt>Latest</dt>
+            <dt>latest</dt>
             <dd><em>[Required]</em> Specifies the latest version of your game which is available. This zip file must be a game package built by the MGDF SDK <a href="#packageGen">PackageGen</a> tool</dd>
-            <dt>UpdateOlderVersions</dt>
-            <dd><em>[Optional]</em> Specifies a list of partial upgrade packages which can upgrade a version FromVersion - ToVersion up to the latest version. The partial update zip file should be an update package built by the MGDF SDK <a href="#packageGen">PackageGen</a> tool</dd>
+            <dt>updateOlderVersions</dt>
+            <dd><em>[Optional]</em> Specifies a list of partial upgrade packages which can upgrade a version fromVersion - toVersion up to the latest version. The partial update zip file should be an update package built by the MGDF SDK <a href="#packageGen">PackageGen</a> tool</dd>
         </dl>
 
         <h2 id="statsservice">Statistics service</h2>
@@ -168,17 +173,17 @@ Installer package created
 
         <h4>Request fields</h4>
         <dl class="dl-horizontal">
-            <dt>GameUid</dt>
+            <dt>gameUid</dt>
             <dd>A string value of up to 255 characters in length.</dd>
-            <dt>SessionId</dt>
+            <dt>sessionId</dt>
             <dd>A string value of up to 255 characters in length. All statistic key/values should be associated with this session id.</dd>
-            <dt>Statistics</dt>
+            <dt>statistics</dt>
             <dd>
                 An array of statistic objects containing the fields below.
                 <ul>
-                    <li><em>Timestamp</em> An unsigned integer value marking the time the statistic was recorded. The time interval is measured in seconds since the beginning of the current session.</li>
-                    <li><em>Name</em> A string value of up to 255 characters in length.</li>
-                    <li><em>Value</em> A string value of up to 255 characters in length.</li>
+                    <li><em>timestamp</em> An unsigned integer value marking the time the statistic was recorded. The time interval is measured in seconds since the beginning of the current session.</li>
+                    <li><em>name</em> A string value of up to 255 characters in length.</li>
+                    <li><em>value</em> A string value of up to 255 characters in length.</li>
                 </ul>
             </dd>
         </dl>
@@ -189,15 +194,15 @@ POST http://example.com/statistics HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Host: example.com
 Content-Length: 146
-{"GameUid":"blah","SessionId":"xxxx","Statistics":[{"Timestamp":0,"Name":"key1","Value":"value1"},{"Timestamp":1,"Name":"key2","Value":"value2"}]}
+{"gameUid":"blah","sessionId":"xxxx","statistics":[{"timestamp":0,"name":"key1","value":"value1"},{"timestamp":1,"name":"key2","value":"value2"}]}
         </pre>
 
 
         <h4>Response fields</h4>
         <dl class="dl-horizontal">
-            <dt>Errors</dt>
+            <dt>errors</dt>
             <dd>An array of strings containing any errors caused in processing the request. If the request is successful, this array will be empty.
-            <dt>Success</dt>
+            <dt>success</dt>
             <dd>A boolean value that is true if the request was successfully processed, false otherwise.</dd>
         </dl>
  
@@ -206,7 +211,7 @@ Content-Length: 146
 HTTP/1.1 200 OK
 Content-Type: application/json; charset=UTF-8
 Content-Length: 29
-{"Errors":[], "Success":true}
+{"errors":[], "success":true}
         </pre>
        
         <h1 id="functions" class="page-header">Functions</h1>
@@ -267,11 +272,15 @@ Content-Length: 29
                 <div class="panel-heading">
                     <h4>{{ c.Name}} <small>{{ c.Description }}</small></h4>
                     {% capture inherits_size %}{{ c.InheritsFromTypeRefIds | size }}{% endcapture %}
-                    {% if inherits_size != '0' %}
+                    {% capture inherits_unref_size %}{{ c.InheritsFromUnreferencedType | size }}{% endcapture %}
+                    {% if inherits_size != '0' or inherits_unref_size != '0' %}
                         <h4>
                             <small>Inherits from:</small>
                             {% for i in c.InheritsFromTypeRefIds %}
                                 <span class="label label-default"><a href="#{{ i }}">{{ site.data.api.Mappings[i] }}</a></span>
+                            {% endfor %}
+                            {% for i in c.InheritsFromUnreferencedType %}
+                            <span class="label label-default">{{i}}</span>
                             {% endfor %}
                         </h4>
                     {% endif %}
@@ -314,7 +323,7 @@ Content-Length: 29
                             {% if args_size != '0' %}
                                 <dl>
                                     <dt>Parameters</dt>
-                                    {% for arg in m.Args) %}
+                                    {% for arg in m.Args %}
                                         <dd><strong>{{ arg.Name }}</strong> {{ arg.Description }}</dd>
                                     {% endfor %}
                                 </dl>
