@@ -7,7 +7,8 @@ using System.Text.RegularExpressions;
 
 var target = Argument("target", "Default");
 var buildConfiguration = Argument("configuration", "Release");
-var buildNumber = Argument("buildnumber", "1.0.0");
+var buildNumber = (target == "Dist" || target == "Default") ? Argument<string>("buildnumber") : null;
+
 
 Task("BuildX64")
   .IsDependentOn("VersionInfo")
@@ -68,7 +69,6 @@ Task("TestCoreX64")
 	.Does(() => {
 	int result = StartProcess($@"../bin/x64/{buildConfiguration}/core.tests.exe", new ProcessSettings() {
 		WorkingDirectory = new DirectoryPath($@"../bin/x64/{buildConfiguration}"),
-		Arguments = new ProcessArgumentBuilder().Append("--teamcity")
 	});
 	if (result != 0) {
 		throw new Exception("Failures reported in the x64 unit tests");
@@ -167,6 +167,7 @@ Task("Publish").Does(async () => {
 	var s3AccessKey = Argument<string>("s3accesskey");
 	var s3SecretKey = Argument<string>("s3secretkey");
 	var dist = Argument<string>("dist");
+	var backup = Argument<string>("backup");
 
 	string distVersion = null;
 	var distFiles = GetFiles($@"{dist}/MGDF_*.zip");
@@ -189,6 +190,8 @@ Task("Publish").Does(async () => {
 	if (distVersion == null) {
 		throw new Exception($@"The specified dist folder {dist} doesn't appear to be valid, no SDK or redistributable found.");
 	}
+
+	CopyDirectory(dist, $@"{backup}/{distVersion}");
 
 	foreach (var file in distFiles) {
 		Information("Uploading " + file.FullPath);
