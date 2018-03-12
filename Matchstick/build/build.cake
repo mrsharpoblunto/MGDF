@@ -11,16 +11,16 @@ var buildNumber = (target == "Dist" || target == "Default") ? Argument<string>("
 
 
 Task("BuildX64")
-  .IsDependentOn("VersionInfo")
-  .IsDependentOn("SolutionInfo")
-  .Does(() => {
-  MSBuild("../Matchstick.sln", new MSBuildSettings{
-	Verbosity = Verbosity.Minimal,
-	ToolVersion = MSBuildToolVersion.VS2017,
-    Configuration = buildConfiguration,
-    PlatformTarget = PlatformTarget.x64
-  });
-});
+	.IsDependentOn("VersionInfo")
+	.IsDependentOn("SolutionInfo")
+	.Does(() => {
+		MSBuild("../Matchstick.sln", new MSBuildSettings{
+			Verbosity = Verbosity.Minimal,
+			ToolVersion = MSBuildToolVersion.VS2017,
+			Configuration = buildConfiguration,
+			PlatformTarget = PlatformTarget.x64
+		});
+	});
 
 Task("SolutionInfo").Does(() => {
 	string solutionInfo = FileReadText("../src/GamesManager/SolutionInfo.cs");
@@ -76,12 +76,12 @@ Task("TestCoreX64")
 });
 
 Task("Clean").Does(() => {
-  if (DirectoryExists("../dist")) {
-    DeleteDirectory("../dist", new DeleteDirectorySettings() {
-      Force = true,
-      Recursive = true,
-    });
-  }
+	if (DirectoryExists("../dist")) {
+		DeleteDirectory("../dist", new DeleteDirectorySettings() {
+		  Force = true,
+		  Recursive = true,
+		});
+	}
 	CreateDirectory("../dist");
 	DeleteDirectory($@"../bin/x64/{buildConfiguration}", new DeleteDirectorySettings() {
 		Force = true,
@@ -204,12 +204,13 @@ Task("Publish").Does(async () => {
 		});
 	}
 
-  if (DirectoryExists("gh-pages")) {
-    DeleteDirectory("gh-pages", new DeleteDirectorySettings() { 
-      Force = true,
-      Recursive = true
-    });
-  }
+	if (DirectoryExists("gh-pages")) {
+		DeleteDirectory("gh-pages", new DeleteDirectorySettings() { 
+			Force = true,
+			Recursive = true
+		});
+	}
+
 	StartProcess("git", new ProcessSettings() {
 		WorkingDirectory = new DirectoryPath("."),
 		Arguments = new ProcessArgumentBuilder()
@@ -270,8 +271,5 @@ Task("Default")
 	.IsDependentOn("Dist")
 	.Does(() => {
 	});
-
-
-// TODO need a publish task that uploads the latest dist to S3 and updates the links & docs on the github website
 
 RunTarget(target);
