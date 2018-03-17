@@ -60,15 +60,13 @@ Logger::Logger()
 void Logger::MoveOutputFile()
 {
 	std::wstring newFile = Resources::Instance().LogFile();
-	if ( newFile != _filename ) {
-
+	if ( newFile != _filename && _filename.size() && std::tr2::sys::exists( _filename )) {
 		std::tr2::sys::path from( _filename );
 		std::tr2::sys::path to( Resources::Instance().LogFile() );
 		std::tr2::sys::copy_file( from, to, std::tr2::sys::copy_options::overwrite_existing );
 		std::tr2::sys::remove( from );
-
-		_filename = newFile;
 	}
+	_filename = newFile;
 }
 
 
