@@ -103,6 +103,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <TreatWarningAsError>true</TreatWarningAsError>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -158,6 +159,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>

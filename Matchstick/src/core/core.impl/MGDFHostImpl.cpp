@@ -22,7 +22,7 @@
 
 #define PENDING_SAVE_PREFIX "__"
 
-using namespace std::tr2::sys;
+using namespace std::filesystem;
 
 namespace MGDF
 {
@@ -471,7 +471,7 @@ MGDFError Host::Load( const char *saveName, wchar_t *loadBuffer, UINT32 *size, V
 		*size = static_cast<UINT32>( loadDataDir.size() ) + 1;
 		memcpy( loadBuffer, loadDataDir.c_str(), sizeof( wchar_t ) * ( *size ) );
 
-		std::auto_ptr<storage::IGameStateStorageHandler> handler( _storage->CreateGameStateStorageHandler( _game->GetUid(), _game->GetVersion() ) );
+		std::unique_ptr<storage::IGameStateStorageHandler> handler( _storage->CreateGameStateStorageHandler( _game->GetUid(), _game->GetVersion() ) );
 		_ASSERTE( handler.get() );
 
 		MGDFError error = handler->Load( loadFile );
@@ -533,7 +533,7 @@ MGDFError Host::BeginSave( const char *save, wchar_t *saveBuffer, UINT32 *size )
 		path saveDataDir( saveBufferContent );
 		create_directory( saveDataDir );
 
-		std::auto_ptr<storage::IGameStateStorageHandler> handler( _storage->CreateGameStateStorageHandler( _game->GetUid(), _game->GetVersion() ) );
+		std::unique_ptr<storage::IGameStateStorageHandler> handler( _storage->CreateGameStateStorageHandler( _game->GetUid(), _game->GetVersion() ) );
 		handler->Save( Resources::Instance().GameStateSaveFile( saveName ) );
 
 		return MGDF_OK;

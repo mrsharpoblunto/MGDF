@@ -75,6 +75,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>../../../../../vendor/lib/Release/OpenAL32.lib;../../../../../vendor/lib/Release/alut.lib;../../../../../vendor/lib/$(Configuration)/vorbisfile.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -97,6 +98,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>../../../../../vendor/lib/Release/OpenAL32.lib;../../../../../vendor/lib/Release/alut.lib;../../../../../vendor/lib/$(Configuration)/vorbisfile.lib;%(AdditionalDependencies)</AdditionalDependencies>

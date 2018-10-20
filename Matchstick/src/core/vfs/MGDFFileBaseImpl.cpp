@@ -36,11 +36,11 @@ FileBaseImpl::~FileBaseImpl()
 
 time_t FileBaseImpl::GetLastWriteTime() const
 {
-	std::tr2::sys::path path( GetPhysicalPath() );
+	std::experimental::filesystem::path path( GetPhysicalPath() );
 	try {
-		return std::tr2::sys::file_time_type::clock::to_time_t(std::tr2::sys::last_write_time(path));
+		return std::experimental::filesystem::file_time_type::clock::to_time_t(std::experimental::filesystem::last_write_time(path));
 	}
-	catch (const std::tr2::sys::filesystem_error &err) {
+	catch (const std::experimental::filesystem::filesystem_error &err) {
 		LOG( "Unable to get last write time for " << Resources::ToString(GetPhysicalPath()) << " - " << err.what(), LOG_ERROR );
 		return 0;
 	}

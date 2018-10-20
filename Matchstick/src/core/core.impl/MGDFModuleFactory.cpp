@@ -23,7 +23,7 @@
 //NOTE: with FREE_UNUSED_LIBRARIES enabled memory leaks in external modules are not reported correctly
 //#define FREE_UNUSED_LIBRARIES
 
-using namespace std::tr2::sys;
+using namespace std::filesystem;
 
 namespace MGDF
 {

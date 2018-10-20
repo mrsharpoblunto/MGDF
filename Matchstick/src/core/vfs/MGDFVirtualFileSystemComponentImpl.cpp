@@ -19,7 +19,7 @@ namespace core
 namespace vfs
 {
 
-using namespace std::tr2::sys;
+using namespace std::filesystem;
 
 IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl()
 {

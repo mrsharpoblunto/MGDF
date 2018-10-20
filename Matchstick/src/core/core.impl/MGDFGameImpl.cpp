@@ -65,7 +65,7 @@ void Game::ResetPreferences()
 
 void Game::SavePreferences() const
 {
-	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler( _storageFactory->CreatePreferenceConfigStorageHandler() );
+	std::unique_ptr<storage::IPreferenceConfigStorageHandler> handler( _storageFactory->CreatePreferenceConfigStorageHandler() );
 	for ( auto &pref : _preferences ) {
 		handler->Add( pref.first, pref.second );
 	}
@@ -81,7 +81,7 @@ void Game::SavePreferences( const std::wstring &filename )
 
 MGDFError Game::LoadPreferences( const std::wstring &filename )
 {
-	std::auto_ptr<storage::IPreferenceConfigStorageHandler> handler( _storageFactory->CreatePreferenceConfigStorageHandler() );
+	std::unique_ptr<storage::IPreferenceConfigStorageHandler> handler( _storageFactory->CreatePreferenceConfigStorageHandler() );
 	MGDFError result = handler->Load( filename );
 	if ( MGDF_OK != result ) {
 		return result;

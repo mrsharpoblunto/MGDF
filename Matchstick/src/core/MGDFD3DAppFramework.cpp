@@ -449,8 +449,23 @@ INT32 D3DAppFramework::Run()
 			//the game logic step may force the device to reset, so lets check
 			if ( IsBackBufferChangePending() ) {
 				LOG( "Module has scheduled a backbuffer change...", LOG_LOW );
+
+				BOOL fullscreen = false;
+				IDXGIOutput *target;
+
 				//clean up the old swap chain, then recreate it with the new settings
-				SAFE_RELEASE( _swapChain );
+				if (_swapChain) {
+					if (FAILED(_swapChain->GetFullscreenState(&fullscreen, &target))) {
+						FATALERROR(this, "GetFullscreenState failed");
+					}
+					if (fullscreen) {
+						//d3d has to be in windowed mode to cleanup correctly
+						if (FAILED(_swapChain->SetFullscreenState(false, nullptr))) {
+							FATALERROR(this, "SetFullscreenState failed");
+						}
+					}
+					_swapChain->Release();
+				}
 	
 				RECT windowSize;
 				if ( !GetClientRect( _window, &windowSize ) ) {
@@ -458,6 +473,13 @@ INT32 D3DAppFramework::Run()
 				}
 				OnResetSwapChain( _swapDesc, _fullscreenSwapDesc, windowSize );
 				CreateSwapChain();
+
+				// reset the swap chain to fullscreen if it was previously fullscreen
+				if (fullscreen) {
+					if (FAILED(_swapChain->SetFullscreenState(true, target))) {
+						FATALERROR(this, "SetFullscreenState failed");
+					}
+				}
 				Resize();
 			}
 			// a window event may also have triggered a resize event.

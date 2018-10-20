@@ -14,7 +14,7 @@
 #pragma warning(disable:4291)
 #endif
 
-using namespace std::tr2::sys;
+using namespace std::filesystem;
 
 namespace MGDF
 {

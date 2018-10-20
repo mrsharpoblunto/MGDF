@@ -13,7 +13,7 @@
 #pragma warning(disable:4291)
 #endif
 
-using namespace std::tr2::sys;
+using namespace std::filesystem;
 
 namespace MGDF
 {
@@ -33,7 +33,7 @@ void Resources::SetUserBaseDir( bool useRootDir, const std::string &gameUid )
 {
 	if ( useRootDir ) {
 		if ( !_gameBaseDir.empty() ) {
-			std::tr2::sys::path gamesDirPath( _gameBaseDir );
+			std::filesystem::path gamesDirPath( _gameBaseDir );
 			_userBaseDir = gamesDirPath.parent_path().parent_path().wstring() + L"/user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
 		} else {
 			_userBaseDir = _applicationDirectory + L"user/" + ToWString( gameUid ) + ( !gameUid.empty() ? L"/" : L"" );
@@ -138,13 +138,13 @@ std::wstring Resources::SaveDataDir( const std::string &saveName )
 
 void Resources::CreateRequiredDirectories()
 {
-	std::tr2::sys::path userBaseDir( UserBaseDir() );
+	std::filesystem::path userBaseDir( UserBaseDir() );
 	create_directories( userBaseDir );
 
-	std::tr2::sys::path saveBaseDir( SaveBaseDir() );
+	std::filesystem::path saveBaseDir( SaveBaseDir() );
 	create_directories( saveBaseDir );
 
-	std::tr2::sys::path workingDir( WorkingDir() );
+	std::filesystem::path workingDir( WorkingDir() );
 	create_directories( workingDir );
 }
 

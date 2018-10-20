@@ -23,7 +23,7 @@
 #pragma warning(disable:4291)
 #endif
 
-using namespace std::tr2::sys;
+using namespace std::filesystem;
 
 namespace MGDF
 {
@@ -97,7 +97,7 @@ MGDFError HostBuilder::TryCreateHost( Host **host )
 	storage::IStorageFactoryComponent *storageFactory = Components::Instance().Get<storage::IStorageFactoryComponent>();
 	_ASSERTE( storageFactory );
 
-	std::auto_ptr<storage::IGameStorageHandler> handler( storageFactory->CreateGameStorageHandler() );
+	std::unique_ptr<storage::IGameStorageHandler> handler( storageFactory->CreateGameStorageHandler() );
 	_ASSERTE( handler.get() );
 
 	MGDFError result = handler->Load( Resources::Instance().GameFile() );

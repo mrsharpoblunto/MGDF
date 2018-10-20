@@ -12,7 +12,7 @@ using namespace MGDF;
 using namespace MGDF::core;
 using namespace MGDF::core::vfs;
 using namespace MGDF::core::storage;
-using namespace std::tr2::sys;
+using namespace std::filesystem;
 
 SUITE( StorageTests )
 {
@@ -44,7 +44,7 @@ SUITE( StorageTests )
 	*/
 	TEST_FIXTURE( StorageTestFixture, StorageGameHandlerTest ) {
 
-		std::auto_ptr<IGameStorageHandler> handler( _storage->CreateGameStorageHandler() );
+		std::unique_ptr<IGameStorageHandler> handler( _storage->CreateGameStorageHandler() );
 
 		std::wstring path = _vfs->GetFile( L"console.json" )->GetPhysicalPath();
 		handler->Load( path );
@@ -88,7 +88,7 @@ SUITE( StorageTests )
 		CHECK_EQUAL( "Console", handler->GetGameUid() );
 		CHECK_EQUAL( 0, VersionHelper::Compare( handler->GetVersion(), &expected ) );
 
-		remove(std::tr2::sys::path( savePath ) );   //remove the temp file
+		remove(std::filesystem::path( savePath ) );   //remove the temp file
 		delete handler;
 	}
 
@@ -119,8 +119,8 @@ SUITE( StorageTests )
 		CHECK_EQUAL( 9, count );
 
 		std::wstring savePath = Resources::Instance().RootDir() + L"../../../tests/content/temp.json";
-		if ( exists(std::tr2::sys::path( savePath ) ) ) {
-			remove( std::tr2::sys::path( savePath ) );   //remove the temp file
+		if ( exists(std::filesystem::path( savePath ) ) ) {
+			remove( std::filesystem::path( savePath ) );   //remove the temp file
 		}
 		handler->Save( savePath );
 		delete handler;
@@ -146,7 +146,7 @@ SUITE( StorageTests )
 		CHECK( foundScreenX );
 		CHECK_EQUAL( 9, count );
 
-		remove( std::tr2::sys::path( savePath ) );   //remove the temp file
+		remove( std::filesystem::path( savePath ) );   //remove the temp file
 		delete handler;
 	}
 
