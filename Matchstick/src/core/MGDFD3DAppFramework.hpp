@@ -42,6 +42,7 @@ protected:
 	virtual void OnExternalClose() = 0;
 	virtual void OnMouseInput( INT32 x, INT32 y ) = 0;
 	virtual void OnRawInput( RAWINPUT *input ) = 0;
+	virtual void OnClearInput() = 0;
 	virtual void OnInputIdle() = 0;
 	virtual LRESULT OnHandleMessage( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam ) = 0;
 

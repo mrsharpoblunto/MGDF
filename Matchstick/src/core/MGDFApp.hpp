@@ -41,6 +41,7 @@ protected:
 	LRESULT OnHandleMessage( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam ) override final;
 	void OnExternalClose() override final;
 	void OnRawInput( RAWINPUT *input ) override final;
+	void OnClearInput() override final;
 	void OnMouseInput( INT32 x, INT32 y ) override final;
 	void OnInputIdle() override final;
 

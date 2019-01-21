@@ -29,6 +29,7 @@ public:
 
 	void HandleInput( RAWINPUT *input ) override final;
 	void HandleInput( INT32 mouseX, INT32 mouseY ) override final;
+	void ClearInput() override final;
 	void ProcessSim() override final;
 	void ProcessInput() override final;
 

@@ -26,23 +26,27 @@ IInputManagerComponent *CreateXInputManagerComponent()
 }
 
 XInputManagerComponent::XInputManagerComponent()
-	: _pendingShowCursor( false )
-	, _showCursor( false )
-	, _pendingMouseX( 0 )
-	, _pendingMouseY( 0 )
-	, _pendingMouseDX( 0L )
-	, _pendingMouseDY( 0L )
-	, _pendingMouseDZ( 0 )
-	, _mouseDX( 0L )
-	, _mouseDY( 0L )
-	, _mouseDZ( 0 )
-	, _pendingKeyDownEventsLength( 0 )
-	, _pendingKeyPressEventsLength( 0 )
+	: _pendingShowCursor(false)
+	, _showCursor(false)
+	, _pendingMouseX(0)
+	, _pendingMouseY(0)
+	, _pendingMouseDX(0L)
+	, _pendingMouseDY(0L)
+	, _pendingMouseDZ(0)
+	, _mouseDX(0L)
+	, _mouseDY(0L)
+	, _mouseDZ(0)
+	, _pendingKeyDownEventsLength(0)
+	, _pendingKeyPressEventsLength(0)
 {
-	for ( INT32 i = 0; i < 4; ++i ) {
-		_gamepads.Add( new XInputGamepad( i ) );
+	for (INT32 i = 0; i < 4; ++i) {
+		_gamepads.Add(new XInputGamepad(i));
 	}
+	ClearInput();
+}
 
+void XInputManagerComponent::ClearInput() 
+{
 	ZeroMemory( _pendingMouseButtonDown, sizeof( _pendingMouseButtonDown ) );
 	ZeroMemory( _pendingMouseButtonClick, sizeof( _pendingMouseButtonClick ) );
 	ZeroMemory( _mouseButtonDown, sizeof( _mouseButtonDown ) );

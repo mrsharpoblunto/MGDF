@@ -628,6 +628,12 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 	// http://msdn.microsoft.com/en-us/library/windows/desktop/ms645590%28v=vs.85%29.aspx
 	return DefWindowProc( hwnd, msg, wParam, lParam );
 
+	case WM_ACTIVATE:
+		if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE) {
+			OnClearInput();
+		}
+		break;
+
 	// WM_SIZE is sent when the user resizes the window.
 	case WM_SIZE:
 		_swapDesc.Width  = LOWORD( lParam );

@@ -316,6 +316,11 @@ void MGDFApp::OnRawInput( RAWINPUT *input )
 	_host->GetInputManagerImpl().HandleInput( input );
 }
 
+void MGDFApp::OnClearInput()
+{
+	_host->GetInputManagerImpl().ClearInput();
+}
+
 void MGDFApp::OnMouseInput( INT32 x, INT32 y )
 {
 	_host->GetInputManagerImpl().HandleInput( x, y );
