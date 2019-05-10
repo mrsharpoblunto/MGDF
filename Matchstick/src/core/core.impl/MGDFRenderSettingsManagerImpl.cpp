@@ -293,6 +293,7 @@ bool RenderSettingsManager::SetCurrentAdaptorModeToNative()
 	AdaptorMode mode;
 	if (GetAdaptorMode(nativeWidth, nativeHeight, &mode)) {
 		_currentAdaptorMode = mode;
+		LOG( "Set adaptor mode to native resolution " << _currentAdaptorMode.Width << "x" << _currentAdaptorMode.Height, LOG_LOW );
 		return true;
 	}
 	return false;

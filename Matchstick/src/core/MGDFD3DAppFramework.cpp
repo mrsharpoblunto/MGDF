@@ -445,13 +445,12 @@ INT32 D3DAppFramework::Run()
 			bool exp=true;
 			UINT32 fullScreen = SWITCH_TO_FULLSCREEN_MODE;
 			UINT32 windowed = SWITCH_TO_WINDOWED_MODE;
+			BOOL fullscreen = false;
+			IDXGIOutput *target;
 
 			//the game logic step may force the device to reset, so lets check
 			if ( IsBackBufferChangePending() ) {
 				LOG( "Module has scheduled a backbuffer change...", LOG_LOW );
-
-				BOOL fullscreen = false;
-				IDXGIOutput *target;
 
 				//clean up the old swap chain, then recreate it with the new settings
 				if (_swapChain) {
@@ -474,8 +473,9 @@ INT32 D3DAppFramework::Run()
 				OnResetSwapChain( _swapDesc, _fullscreenSwapDesc, windowSize );
 				CreateSwapChain();
 
-				// reset the swap chain to fullscreen if it was previously fullscreen
-				if (fullscreen) {
+				// reset the swap chain to fullscreen if it was previously fullscreen or
+				// if this backbuffer change was for a toggle from windowed to fullscreen
+				if (!_fullscreenSwapDesc.Windowed) {
 					if (FAILED(_swapChain->SetFullscreenState(true, target))) {
 						FATALERROR(this, "SetFullscreenState failed");
 					}
@@ -484,6 +484,7 @@ INT32 D3DAppFramework::Run()
 			}
 			// a window event may also have triggered a resize event.
 			else if ( _resize.compare_exchange_strong( exp, false ) ) {
+				LOG( "Resizing...", LOG_MEDIUM );
 				OnResize( _swapDesc.Width, _swapDesc.Height );
 				Resize();
 			} 
@@ -543,21 +544,31 @@ INT32 D3DAppFramework::Run()
 				}
 			}
 			
-			if ( !_minimized.load() ) { //don't bother rendering if the window is minimzed
+			if ( !_minimized.load() ) { //don't bother rendering if the window is minimzed 
 				const float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; //RGBA
 				_immediateContext->ClearRenderTargetView( _renderTargetView, reinterpret_cast<const float*>( &black ) );
 				_immediateContext->ClearDepthStencilView( _depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0 );
 
 				OnDraw();
 
-				HRESULT result = _swapChain->Present1( VSyncEnabled() ? 1 : 0 , 0, &presentParams );
-				OnAfterPresent();
+				bool noResize = false;
+				UINT dontSwitch = DONT_SWITCH_MODE;
+				if (
+					_resize.compare_exchange_strong(noResize, false) &&
+					_screenMode.compare_exchange_strong(dontSwitch, DONT_SWITCH_MODE)
+				) {
+					HRESULT result = _swapChain->Present1(VSyncEnabled() ? 1 : 0, 0, &presentParams);
+					OnAfterPresent();
 
-				if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
-					ReinitD3D();
+					if (result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET) {
+						ReinitD3D();
+					}
+					else if (FAILED(result)) {
+						FATALERROR(this, "Direct3d Present1 failed");
+					}
 				}
-				else if ( FAILED( result ) ) {
-					FATALERROR( this, "Direct3d Present1 failed" );
+				else {
+					LOG( "Not presenting due to pending display changes...", LOG_LOW );
 				}
 			}
 		}

@@ -32,7 +32,7 @@
 }
 
 #define TIMER_SAMPLES 60
-#define GPU_TIMER_BUFFER 3
+#define GPU_TIMER_BUFFER 8
 
 
 //some useful macro's to make deleting pointers easier
