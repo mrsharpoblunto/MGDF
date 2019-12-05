@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <sstream>
 #include <algorithm>
+#include <sys/stat.h>
 
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFResources.hpp"
@@ -36,14 +37,13 @@ FileBaseImpl::~FileBaseImpl()
 
 time_t FileBaseImpl::GetLastWriteTime() const
 {
-	std::experimental::filesystem::path path( GetPhysicalPath() );
-	try {
-		return std::experimental::filesystem::file_time_type::clock::to_time_t(std::experimental::filesystem::last_write_time(path));
-	}
-	catch (const std::experimental::filesystem::filesystem_error &err) {
-		LOG( "Unable to get last write time for " << Resources::ToString(GetPhysicalPath()) << " - " << err.what(), LOG_ERROR );
+	std::filesystem::path path( GetPhysicalPath() );
+	struct _stat64 fileInfo;
+	if (_wstati64(path.c_str(), &fileInfo) != 0) {
+		LOG( "Unable to get last write time for " << Resources::ToString(GetPhysicalPath()), LOG_ERROR );
 		return 0;
 	}
+	return fileInfo.st_mtime;
 }
 
 IFile *FileBaseImpl::GetChild( const wchar_t * name ) const

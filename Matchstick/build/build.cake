@@ -16,7 +16,7 @@ Task("BuildX64")
 	.Does(() => {
 		MSBuild("../Matchstick.sln", new MSBuildSettings{
 			Verbosity = Verbosity.Minimal,
-			ToolVersion = MSBuildToolVersion.VS2017,
+			ToolVersion = MSBuildToolVersion.VS2019,
 			Configuration = buildConfiguration,
 			PlatformTarget = PlatformTarget.x64
 		});
