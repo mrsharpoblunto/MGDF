@@ -9,6 +9,6 @@
   "preferences":{
     "host.windowResize":"1",
     "host.simFps":"120",
-    "host.interpolateFrames":"1"
+    "host.fullScreenExclusive":  "0"
   }
 }

@@ -24,12 +24,12 @@ HostStats::HostStats( UINT32 maxSamples )
 void HostStats::GetTimings( Timings &timings ) const
 {
 	std::lock_guard<std::mutex> lock( _statsMutex );
-	timings.AvgActiveRenderTime = _avgActiveRenderTime;
-	timings.AvgRenderTime = _avgRenderTime;
-	timings.AvgActiveSimTime = _avgActiveSimTime;
-	timings.AvgSimTime = _avgSimTime;
-	timings.AvgSimInputTime = _avgSimInputTime;
-	timings.AvgSimAudioTime = _avgSimAudioTime;
+	timings.AvgActiveRenderTime = _avgActiveRenderTime / _maxSamples;
+	timings.AvgRenderTime = _avgRenderTime / _maxSamples;
+	timings.AvgActiveSimTime = _avgActiveSimTime / _maxSamples;
+	timings.AvgSimTime = _avgSimTime / _maxSamples;
+	timings.AvgSimInputTime = _avgSimInputTime / _maxSamples;
+	timings.AvgSimAudioTime = _avgSimAudioTime / _maxSamples;
 	timings.ExpectedSimTime = _expectedSimTime;
 }
 
@@ -72,9 +72,9 @@ void HostStats::AppendSimInputAndAudioTimes( double inputValue, double audioValu
 void HostStats::Append( double value, double &averageValue, std::list<double> &list )
 {
 	list.push_front( value );
-	averageValue += ( value / _maxSamples );
-	if ( list.size() >= _maxSamples ) {
-		averageValue -= ( list.back() / _maxSamples );
+	averageValue += value;
+	if ( list.size() > _maxSamples ) {
+		averageValue -= list.back();
 		list.pop_back();
 	}
 }

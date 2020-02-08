@@ -39,7 +39,7 @@ XInputManagerComponent::XInputManagerComponent()
 	, _pendingKeyDownEventsLength(0)
 	, _pendingKeyPressEventsLength(0)
 {
-	for (INT32 i = 0; i < 4; ++i) {
+	for (INT32 i = 0; i < XUSER_MAX_COUNT; ++i) {
 		_gamepads.Add(new XInputGamepad(i));
 	}
 	ClearInput();

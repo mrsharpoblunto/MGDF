@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include <dxgi1_5.h>
 #include <d3d11.h>
 #include <d3d11_1.h>
 #include <atomic>
@@ -28,22 +29,19 @@ protected:
 	virtual void OnInitDevices( HWND window, ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) = 0;
 	virtual void OnBeforeBackBufferChange() = 0;
 	virtual void OnBackBufferChange( ID3D11Texture2D *backBuffer ) = 0;
-	virtual void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& , const RECT& windowSize ) = 0;
-	virtual void OnSwitchToFullScreen( DXGI_MODE_DESC1 & ) = 0;
-	virtual void OnSwitchToWindowed() = 0;
+	virtual FullScreenDesc OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& , const RECT& windowSize ) = 0;
 	virtual void OnResize( UINT32 width, UINT32 height ) = 0;
 
 	virtual void OnDraw() = 0;
 	virtual void OnAfterPresent() = 0;
 
 	virtual void OnUpdateSim() = 0;
-	virtual void OnSimIdle() = 0;
 
 	virtual void OnExternalClose() = 0;
 	virtual void OnMouseInput( INT32 x, INT32 y ) = 0;
 	virtual void OnRawInput( RAWINPUT *input ) = 0;
 	virtual void OnClearInput() = 0;
-	virtual void OnInputIdle() = 0;
+	virtual void OnBeforeHandleMessage() = 0;
 	virtual LRESULT OnHandleMessage( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam ) = 0;
 
 	virtual UINT32 GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *featureLevelsSize ) = 0;
@@ -59,8 +57,10 @@ private:
 	void InitRawInput();
 	void ToggleFullScreenMode();
 	void CreateSwapChain();
-	void Resize();
+	void ClearBackBuffer();
+	void ResizeBackBuffer();
 	void ResetDevice();
+	bool AllowTearing();
 
 	// Application, Windows, and Direct3D data members.
 	ID3D11Device*			_d3dDevice;
@@ -87,9 +87,9 @@ private:
 	HWND					_window;
 	RECT					_windowRect;
 	POINT					_currentSize;
+	DWORD _windowStyle;
 
 	std::atomic_bool _resize, _minimized;
-	std::atomic_uint32_t _screenMode;
 	std::atomic_flag _runRenderThread;
 	
 	std::thread *_renderThread;
@@ -97,8 +97,9 @@ private:
 	bool _maximized;
 	bool _resizing;
 	bool _awaitingResize;
-	bool _fullScreen;
 	bool _internalShutDown;
+	bool _allowTearing;
+	FullScreenDesc _currentFullScreen;
 };
 
 //defines a function which calls into an instance of a d3dApp subclass to access the wndproc

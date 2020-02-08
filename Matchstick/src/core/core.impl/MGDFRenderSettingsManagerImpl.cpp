@@ -14,11 +14,14 @@
 #endif
 
 #define BACKBUFFER_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
+#define SCREEN_RES(mode) mode.Width << "x" << mode.Height << "@" << (mode.RefreshRateNumerator / mode.RefreshRateDenominator)+1
 
 namespace MGDF
 {
 namespace core
 {
+
+static const std::string S_1("1");
 
 std::string ToString( UINT32 i )
 {
@@ -76,17 +79,18 @@ void RenderSettingsManager::InitFromDevice( HWND window, ID3D11Device *d3dDevice
 		DXGI_MODE_DESC1 *displayMode = &modes[mode];
 		// Does this adaptor mode support  the desired format and is it above the minimum required resolution
 		if ( displayMode->Format == BACKBUFFER_FORMAT && 
+				displayMode->Scaling == DXGI_MODE_SCALING_UNSPECIFIED &&
 				!displayMode->Stereo && // Stereo adapters not currently supported
 				displayMode->Width >= Resources::MIN_SCREEN_X && 
 				displayMode->Height >= Resources::MIN_SCREEN_Y ) {
 
-			LOG( "Found valid adapter mode " << displayMode->Width << "x" << displayMode->Height, LOG_MEDIUM );
 			AdaptorMode adaptorMode;
 			adaptorMode.Width = displayMode->Width;
 			adaptorMode.Height = displayMode->Height;
 			adaptorMode.RefreshRateNumerator = displayMode->RefreshRate.Numerator;
 			adaptorMode.RefreshRateDenominator = displayMode->RefreshRate.Denominator;
 			_adaptorModes.push_back( adaptorMode );
+			LOG( "Found valid adapter mode " << SCREEN_RES(adaptorMode), LOG_MEDIUM );
 
 			// try to preserve the current adaptor mode settings when devices change
 			if ( _currentAdaptorMode.Width == adaptorMode.Width &&
@@ -189,16 +193,16 @@ void RenderSettingsManager::SetVSync( bool vsync )
 	_vsync = vsync;
 }
 
-bool RenderSettingsManager::GetFullscreen() const
+void RenderSettingsManager::GetFullscreen(FullScreenDesc *desc) const
 {
 	std::lock_guard<std::mutex> lock( _mutex );
-	return _fullScreen;
+	*desc = _fullScreen;
 }
 
-void RenderSettingsManager::SetFullscreen( bool fullScreen )
+void RenderSettingsManager::SetFullscreen(const FullScreenDesc *desc)
 {
 	std::lock_guard<std::mutex> lock( _mutex );
-	_fullScreen = fullScreen;
+	_fullScreen = *desc;
 }
 
 UINT32 RenderSettingsManager::GetAdaptorModeCount() const
@@ -293,7 +297,7 @@ bool RenderSettingsManager::SetCurrentAdaptorModeToNative()
 	AdaptorMode mode;
 	if (GetAdaptorMode(nativeWidth, nativeHeight, &mode)) {
 		_currentAdaptorMode = mode;
-		LOG( "Set adaptor mode to native resolution " << _currentAdaptorMode.Width << "x" << _currentAdaptorMode.Height, LOG_LOW );
+		LOG( "Set adaptor mode to native resolution " << SCREEN_RES(_currentAdaptorMode), LOG_LOW );
 		return true;
 	}
 	return false;
@@ -301,7 +305,7 @@ bool RenderSettingsManager::SetCurrentAdaptorModeToNative()
 
 void RenderSettingsManager::SetWindowSize(UINT32 width, UINT32 height) const
 {
-	if (!_fullScreen && _window) {
+	if (!_fullScreen.FullScreen && _window) {
 		SetWindowPos(_window, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 }
@@ -318,24 +322,6 @@ bool RenderSettingsManager::IsBackBufferChangePending()
 	return _changePending.compare_exchange_weak( exp, true );
 }
 
-void RenderSettingsManager::OnSwitchToFullScreen( DXGI_MODE_DESC1 &desc )
-{
-	std::lock_guard<std::mutex> lock( _mutex );
-
-	desc.Width  = _currentAdaptorMode.Width;
-	desc.Height = _currentAdaptorMode.Height;
-	desc.RefreshRate.Numerator = _currentAdaptorMode.RefreshRateNumerator;
-	desc.RefreshRate.Denominator = _currentAdaptorMode.RefreshRateDenominator;
-	desc.Format = BACKBUFFER_FORMAT;
-	desc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	desc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	desc.Stereo = false;
-
-	_fullScreen = true;
-	_screenX = desc.Width;
-	_screenY = desc.Height;
-}
-
 void RenderSettingsManager::OnResize( UINT32 width, UINT32 height )
 {
 	std::lock_guard<std::mutex> lock( _mutex );
@@ -348,18 +334,18 @@ void RenderSettingsManager::OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &desc, DXGI_
 {
 	std::lock_guard<std::mutex> lock( _mutex );
 
-	fullscreenDesc.Windowed = !_fullScreen;
+	fullscreenDesc.Windowed = !_fullScreen.FullScreen || !_fullScreen.ExclusiveMode;
 	fullscreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	fullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	fullscreenDesc.RefreshRate.Numerator = _currentAdaptorMode.RefreshRateNumerator;
 	fullscreenDesc.RefreshRate.Denominator = _currentAdaptorMode.RefreshRateDenominator;
 
-	desc.Width  = fullscreenDesc.Windowed ? windowSize.right : _currentAdaptorMode.Width;
-	desc.Height = fullscreenDesc.Windowed ? windowSize.bottom : _currentAdaptorMode.Height;
+	desc.Width  = !_fullScreen.FullScreen ? windowSize.right : _currentAdaptorMode.Width;
+	desc.Height = !_fullScreen.FullScreen ? windowSize.bottom : _currentAdaptorMode.Height;
 	desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	desc.BufferCount = 1;
+	desc.BufferCount = 2;
 	desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	desc.Format = BACKBUFFER_FORMAT;
 	desc.SampleDesc.Count = _backBufferMultiSampleLevel;
@@ -387,8 +373,9 @@ void RenderSettingsManager::LoadPreferences( IGame *game )
 	bool hasCurrentMode = false;
 
 	bool savePreferences = false;
-	_fullScreen = strcmp( "1", game->GetPreference( PreferenceConstants::FULL_SCREEN ) ) == 0;
-	_vsync = strcmp( "1", game->GetPreference( PreferenceConstants::VSYNC ) ) == 0;
+	_fullScreen.FullScreen = strcmp( S_1.c_str(), game->GetPreference( PreferenceConstants::FULL_SCREEN ) ) == 0;
+	_fullScreen.ExclusiveMode = strcmp( S_1.c_str(), game->GetPreference(PreferenceConstants::FULL_SCREEN_EXCLUSIVE)) == 0;
+	_vsync = strcmp(S_1.c_str(), game->GetPreference(PreferenceConstants::VSYNC)) == 0;
 
 	if ( game->HasPreference( PreferenceConstants::SCREEN_X ) && game->HasPreference( PreferenceConstants::SCREEN_Y ) ) {
 		hasCurrentMode = GetAdaptorMode(
@@ -408,12 +395,12 @@ void RenderSettingsManager::LoadPreferences( IGame *game )
 		//try to find the native resolution if possible, otherwise stick to the default found above if none are found.
 		SetCurrentAdaptorModeToNative();
 
-		LOG( "No screen resolution preferences found, using " << _currentAdaptorMode.Width << "x" << _currentAdaptorMode.Height, LOG_LOW );
+		LOG( "No screen resolution preferences found, using " << SCREEN_RES(_currentAdaptorMode), LOG_LOW );
 		game->SetPreference( PreferenceConstants::SCREEN_X, ToString( _currentAdaptorMode.Width ).c_str() );
 		game->SetPreference( PreferenceConstants::SCREEN_Y, ToString( _currentAdaptorMode.Height ).c_str() );
 		savePreferences = true;
 	} else {
-		LOG( "Loaded screen resolution preference for " << _currentAdaptorMode.Width << "x" << _currentAdaptorMode.Height, LOG_LOW );
+		LOG( "Loaded screen resolution preference for " << SCREEN_RES(_currentAdaptorMode), LOG_LOW );
 	}
 
 	//ensure the multisample level is not above what is supported.

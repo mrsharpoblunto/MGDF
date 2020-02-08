@@ -5,6 +5,7 @@
 #include <Dbghelp.h>
 #pragma warning(pop)
 
+#include <mmsystem.h>
 #include "common/win32Exception.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"
@@ -52,6 +53,8 @@ INT32 WINAPI WinMain(
 	_CrtDumpMemoryLeaks();
 #endif
 
+	timeBeginPeriod( 1 );  //set a higher resolution for timing calls
+
 	Resources::Instance( hInstance );	//initialise the core resource locator
 
 	_dumpEvent = CreateEvent( nullptr, FALSE, FALSE, nullptr );
@@ -80,6 +83,8 @@ INT32 WINAPI WinMain(
 
 	LOG( "shutting down...", LOG_LOW );
 	delete _application;
+
+	timeEndPeriod( 1 );
 
 	LOG( "shut down successfully", LOG_LOW );
 	return 0;

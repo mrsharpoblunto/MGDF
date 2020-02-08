@@ -19,9 +19,7 @@ public:
 	/**
 	limit the Fps to maxFps
 	*/
-	void LimitFps();
-
-	double ProgressThroughCurrentFrame();
+	LARGE_INTEGER LimitFps();
 
 private:
 	FrameLimiter( UINT32 maxFps );
@@ -29,8 +27,6 @@ private:
 	LARGE_INTEGER _freq, _previousFrameEnd;
 	INT64 _frameTime;
 	UINT32 _maxFps;
-
-	std::mutex _frameEndMutex;
 };
 
 }

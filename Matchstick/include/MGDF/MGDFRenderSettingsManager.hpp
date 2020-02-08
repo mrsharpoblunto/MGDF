@@ -16,6 +16,15 @@ struct AdaptorMode
 	UINT32 RefreshRateDenominator;
 };
 
+/** 
+The current fullscreen options
+*/
+struct FullScreenDesc {
+	bool FullScreen;
+	bool ExclusiveMode;
+};
+
+
 /**
 Provides an interface for getting and setting the hosts various display settings
 */
@@ -36,15 +45,15 @@ public:
 
 	/**
 	gets the current fullscreen setting
-	\return true if the game is in fullscreen mode
+	\param fullscreen a description of the current fullscreen settings
 	*/
-	virtual bool GetFullscreen() const = 0;
+	virtual void GetFullscreen( FullScreenDesc *fullscreen ) const = 0;
 
 	/**
 	sets the current fullscreen setting
-	\param fullscreen true if the game should display in fullscreen mode
+	\param fullscreen a description of the desired fullscreen settings
 	*/
-	virtual void SetFullscreen( bool fullscreen ) = 0;
+	virtual void SetFullscreen( const FullScreenDesc *fullscreen ) = 0;
 	
 	/**
 	get the number of supported multisample levels

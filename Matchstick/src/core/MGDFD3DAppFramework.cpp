@@ -19,9 +19,6 @@ namespace MGDF
 namespace core
 {
 
-#define DONT_SWITCH_MODE 0U
-#define SWITCH_TO_FULLSCREEN_MODE 1U
-#define SWITCH_TO_WINDOWED_MODE 2U
 #define WINDOW_CLASS_NAME "MGDFD3DAppFrameworkWindowClass"
 
 D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
@@ -48,7 +45,6 @@ D3DAppFramework::D3DAppFramework( HINSTANCE hInstance )
 {
 	_minimized.store( false );
 	_resize.store( false );
-	_screenMode.store( 0U );
 
 	SecureZeroMemory( &_windowRect, sizeof( RECT ) );
 	SecureZeroMemory( &_currentSize, sizeof( POINT ) );
@@ -97,7 +93,11 @@ void D3DAppFramework::InitWindow( const std::string &caption, WNDPROC windowProc
 			FATALERROR( this, "RegisterClass FAILED" );
 		}
 
-		auto windowStyle = OnInitWindow(_windowRect) ? WS_OVERLAPPEDWINDOW : WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
+		_windowStyle = WS_OVERLAPPEDWINDOW;
+		if (!OnInitWindow(_windowRect)) {
+			_windowStyle &= ~(WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+		}
+
 		if (_windowRect.right < (LONG)Resources::MIN_SCREEN_X) {
 			_windowRect.right = Resources::MIN_SCREEN_X;
 		}
@@ -105,7 +105,7 @@ void D3DAppFramework::InitWindow( const std::string &caption, WNDPROC windowProc
 			_windowRect.right = Resources::MIN_SCREEN_Y;
 		}
 
-		if ( !AdjustWindowRect( &_windowRect, windowStyle, false ) ) {
+		if ( !AdjustWindowRect( &_windowRect, _windowStyle, false ) ) {
 			FATALERROR( this, "AdjustWindowRect FAILED" );
 		}
 
@@ -113,15 +113,16 @@ void D3DAppFramework::InitWindow( const std::string &caption, WNDPROC windowProc
 		INT32 height = _windowRect.bottom - _windowRect.top;
 
 		_window = CreateWindow( WINDOW_CLASS_NAME, caption.c_str(),
-		                        windowStyle, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, _applicationInstance, 0 ); 
+		                        _windowStyle, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, _applicationInstance, 0 ); 
 		
 		if ( !_window ) {
 			FATALERROR( this, "CreateWindow FAILED" );
 		}
 
-		ShowWindow( _window, SW_SHOW );
-		if ( !UpdateWindow( _window ) ) {
-			FATALERROR( this, "UpdateWindow FAILED" );
+		ShowWindow(_window, SW_SHOW);
+
+		if (!GetWindowRect(_window, &_windowRect)) {
+			FATALERROR( this, "GetWindowRect failed" );
 		}
 
 		InitRawInput();
@@ -166,14 +167,24 @@ void D3DAppFramework::InitD3D()
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-	IDXGIFactory1 *tempFactory;
-	if ( FAILED( CreateDXGIFactory1( __uuidof( IDXGIFactory1 ), ( void** ) &tempFactory ) ) ) {
+	IDXGIFactory* f;
+	if ( FAILED( CreateDXGIFactory1(  __uuidof( IDXGIFactory1 ), ( void** ) &f ) ) ) {
 		FATALERROR( this, "Failed to create IDXGIFactory1." );
 	}
-	if ( FAILED( tempFactory->QueryInterface( __uuidof( IDXGIFactory2 ), ( void **) &_factory ) ) ) {
-		FATALERROR( this, "Failed to query IDXGIFactory1 for IDXGIFactory2." );
+	if ( FAILED( f->QueryInterface( __uuidof( IDXGIFactory2 ), ( void** ) &_factory ) ) ) {
+		FATALERROR( this, "Failed to Query Interface for IDXGIFactory2." );
 	}
-	SAFE_RELEASE( tempFactory );
+	SAFE_RELEASE( f );
+
+	IDXGIFactory5 *f5;
+	if ( SUCCEEDED( _factory->QueryInterface( __uuidof( IDXGIFactory5 ), ( void **) &f5 ) ) ) {
+		BOOL allowTearing = FALSE;
+		if (FAILED(f5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing)))) {
+			allowTearing = FALSE;
+		}
+		_allowTearing = allowTearing == TRUE;
+	}
+	SAFE_RELEASE( f5 );
 
 	IDXGIAdapter1 *adapter = nullptr;
 	IDXGIAdapter1 *bestAdapter = nullptr;
@@ -264,6 +275,7 @@ void D3DAppFramework::InitD3D()
 	if ( FAILED( bestAdapter->EnumOutputs( 0, &output ) ) ) {
 		return;
 	}
+
 	if ( FAILED( output->QueryInterface( __uuidof(IDXGIOutput1), (void **)&_output ) ) ) {
 		FATALERROR( this, "Unable to query IDXGIOutput for IDXGIOutput1" );		
 	}
@@ -277,12 +289,10 @@ void D3DAppFramework::InitD3D()
 	if ( !GetClientRect( _window, &windowSize ) ) {
 		FATALERROR( this, "GetClientRect failed" );
 	}
-
-	OnResetSwapChain( _swapDesc, _fullscreenSwapDesc, windowSize );
-
-	_fullScreen = !_fullscreenSwapDesc.Windowed;
+	OnBeforeBackBufferChange();
+	_currentFullScreen = OnResetSwapChain( _swapDesc, _fullscreenSwapDesc, windowSize );
 	CreateSwapChain();
-	Resize();
+	ResizeBackBuffer();
 }
 
 void D3DAppFramework::ReinitD3D()
@@ -322,38 +332,66 @@ void D3DAppFramework::UninitD3D() {
 
 }
 
+bool D3DAppFramework::AllowTearing() {
+	return (
+		_allowTearing &&
+		!VSyncEnabled() &&
+		!(_currentFullScreen.FullScreen && _currentFullScreen.ExclusiveMode) &&
+		_swapDesc.SampleDesc.Count == 1
+	);
+}
+
 void D3DAppFramework::CreateSwapChain()
 {
+	if (AllowTearing()) {
+		_swapDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+	}
+
+	// ensure everything referencing the old swapchain is cleaned up
+	ClearBackBuffer();
+	_immediateContext->ClearState();
+	_immediateContext->Flush();
+
 	LOG( "Creating swapchain...", LOG_LOW );
-	if ( FAILED( _factory->CreateSwapChainForHwnd( _d3dDevice, _window, &_swapDesc, &_fullscreenSwapDesc, nullptr, &_swapChain ) ) ) {
+	SAFE_RELEASE(_swapChain)
+		// TODO don't want to use _fullscreenSwapDesc for fullscreen borderless...
+		// &_fullscreenSwapDesc
+	if ( FAILED( _factory->CreateSwapChainForHwnd( _d3dDevice, _window, &_swapDesc, nullptr, nullptr, &_swapChain ) ) ) {
 		FATALERROR( this, "Failed to create swap chain" );
+	}
+	if (FAILED(_factory->MakeWindowAssociation(_window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES))) {
+		FATALERROR(this, "Failed to disable alt-enter");
 	}
 }
 
-void D3DAppFramework::Resize()
-{
-	OnBeforeBackBufferChange();
-	ID3D11RenderTargetView *nullRTView = nullptr;
-	_immediateContext->OMSetRenderTargets( 1, &nullRTView, nullptr );
-
+void D3DAppFramework::ClearBackBuffer() {
 	// Release the old views, as they hold references to the buffers we
 	// will be destroying.  Also release the old depth/stencil buffer.
 	SAFE_RELEASE( _backBuffer );
 	SAFE_RELEASE( _renderTargetView );
 	SAFE_RELEASE( _depthStencilView );
 	SAFE_RELEASE( _depthStencilBuffer );
+}
 
-	LOG( "Setting screen resolution to " <<_swapDesc.Width << "x" << _swapDesc.Height, LOG_MEDIUM );
+void D3DAppFramework::ResizeBackBuffer()
+{
+	ID3D11RenderTargetView *nullRTView = nullptr;
+	_immediateContext->OMSetRenderTargets( 1, &nullRTView, nullptr );
+
+	ClearBackBuffer();
+
+	LOG( "Setting backbuffer to " <<_swapDesc.Width << "x" << _swapDesc.Height, LOG_MEDIUM );
 
 	_currentSize.x = _swapDesc.Width;
 	_currentSize.y = _swapDesc.Height;
 
 	HRESULT result = _swapChain->ResizeBuffers(
-					 0,
-	                 _swapDesc.Width,
-	                 _swapDesc.Height,
-					 DXGI_FORMAT_UNKNOWN,
-	                 DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH );
+		0,
+		_swapDesc.Width,
+		_swapDesc.Height,
+		DXGI_FORMAT_UNKNOWN,
+		_swapDesc.Flags 
+	);
 
 	// Resize the swap chain and recreate the render target view.
 	if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
@@ -426,7 +464,6 @@ INT32 D3DAppFramework::Run()
 		LOG( "Starting sim thread...", LOG_LOW );
 		while ( runSimThread.test_and_set() ) {
 			OnUpdateSim();
-			OnSimIdle();
 		}
 		LOG( "Stopping sim thread...", LOG_LOW );
 	} );
@@ -440,110 +477,105 @@ INT32 D3DAppFramework::Run()
 		DXGI_PRESENT_PARAMETERS presentParams;
 		SecureZeroMemory( &presentParams, sizeof(DXGI_PRESENT_PARAMETERS) );
 
-		UINT i = 0;
 		while ( _runRenderThread.test_and_set() ) {
 			bool exp=true;
-			UINT32 fullScreen = SWITCH_TO_FULLSCREEN_MODE;
-			UINT32 windowed = SWITCH_TO_WINDOWED_MODE;
-			BOOL fullscreen = false;
 			IDXGIOutput *target;
 
 			//the game logic step may force the device to reset, so lets check
 			if ( IsBackBufferChangePending() ) {
 				LOG( "Module has scheduled a backbuffer change...", LOG_LOW );
 
-				//clean up the old swap chain, then recreate it with the new settings
-				if (_swapChain) {
-					if (FAILED(_swapChain->GetFullscreenState(&fullscreen, &target))) {
-						FATALERROR(this, "GetFullscreenState failed");
-					}
-					if (fullscreen) {
-						//d3d has to be in windowed mode to cleanup correctly
-						if (FAILED(_swapChain->SetFullscreenState(false, nullptr))) {
-							FATALERROR(this, "SetFullscreenState failed");
+				RECT windowSize;
+				if (!GetClientRect(_window, &windowSize)) {
+					FATALERROR(this, "GetClientRect failed");
+				}
+
+				OnBeforeBackBufferChange();
+				FullScreenDesc newFullScreen = OnResetSwapChain(_swapDesc, _fullscreenSwapDesc, windowSize);
+
+				if (_currentFullScreen.ExclusiveMode) {
+					//clean up the old swap chain, then recreate it with the new settings
+					BOOL fullscreen = false;
+					if (_swapChain) {
+						if (FAILED(_swapChain->GetFullscreenState(&fullscreen, &target))) {
+							FATALERROR(this, "GetFullscreenState failed");
+						}
+						if (fullscreen) {
+							//d3d has to be in windowed mode to cleanup correctly
+							if (FAILED(_swapChain->SetFullscreenState(false, nullptr))) {
+								FATALERROR(this, "SetFullscreenState failed");
+							}
 						}
 					}
-					_swapChain->Release();
 				}
-	
-				RECT windowSize;
-				if ( !GetClientRect( _window, &windowSize ) ) {
-					FATALERROR( this, "GetClientRect failed" );
+				_currentFullScreen = newFullScreen;
+
+				if (!newFullScreen.ExclusiveMode) {
+					// switch to fullscreen-borderless
+					if (newFullScreen.FullScreen) {
+						if (!GetWindowRect(_window, &_windowRect)) {
+							FATALERROR(this, "GetWindowRect failed");
+						}
+						if (!SetWindowLongW(
+							_window, 
+							GWL_STYLE, 
+							WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX))) {
+							FATALERROR(this, "SetWindowLongW failed");
+						}
+						HMONITOR hMonitor = MonitorFromWindow(_window, MONITOR_DEFAULTTONEAREST);
+						MONITORINFOEX monitorInfo = {};
+						monitorInfo.cbSize = sizeof(MONITORINFOEX);
+						if (!GetMonitorInfo(hMonitor, &monitorInfo)) {
+							FATALERROR(this, "GetMonitorInfo failed");
+						}
+						if (!SetWindowPos(
+							_window, 
+							HWND_TOP,
+							monitorInfo.rcMonitor.left,
+							monitorInfo.rcMonitor.top,
+							monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+							monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+							SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
+							FATALERROR(this, "SetWindowPos failed");
+						}
+						ShowWindow(_window, SW_MAXIMIZE);
+					}
+					else {
+						if (!SetWindowLong(_window, GWL_STYLE, _windowStyle)) {
+							FATALERROR(this, "SetWindowLong failed");
+						}
+						if (!SetWindowPos(
+							_window, 
+							HWND_NOTOPMOST,
+							_windowRect.left,
+							_windowRect.top,
+							_windowRect.right - _windowRect.left,
+							_windowRect.bottom - _windowRect.top,
+							SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
+							FATALERROR(this, "SetWindowPos failed");
+						}
+						ShowWindow(_window, SW_NORMAL);
+					}
 				}
-				OnResetSwapChain( _swapDesc, _fullscreenSwapDesc, windowSize );
 				CreateSwapChain();
 
 				// reset the swap chain to fullscreen if it was previously fullscreen or
 				// if this backbuffer change was for a toggle from windowed to fullscreen
-				if (!_fullscreenSwapDesc.Windowed) {
+				if (newFullScreen.FullScreen && newFullScreen.ExclusiveMode) {
 					if (FAILED(_swapChain->SetFullscreenState(true, target))) {
 						FATALERROR(this, "SetFullscreenState failed");
 					}
 				}
-				Resize();
+				ResizeBackBuffer();
 			}
 			// a window event may also have triggered a resize event.
 			else if ( _resize.compare_exchange_strong( exp, false ) ) {
 				LOG( "Resizing...", LOG_MEDIUM );
+				OnBeforeBackBufferChange();
 				OnResize( _swapDesc.Width, _swapDesc.Height );
-				Resize();
+				ResizeBackBuffer();
 			} 
-			// going from windowed mode to fullscreen
-			else if ( _screenMode.compare_exchange_strong( fullScreen, DONT_SWITCH_MODE ) ) {
-				LOG( "Switching to fullscreen mode...", LOG_MEDIUM );
 
-				DXGI_MODE_DESC1 matching;
-				DXGI_MODE_DESC1 desc;
-				SecureZeroMemory( &matching, sizeof( DXGI_MODE_DESC1 ) );
-				SecureZeroMemory( &desc, sizeof( DXGI_MODE_DESC1 ) );
-
-				OnSwitchToFullScreen( desc );
-
-				if ( FAILED( _output->FindClosestMatchingMode1( &desc, &matching, _d3dDevice ) ) ) {
-					FATALERROR( this, "Direct3d FindClosestMatchingMode1 failed" );
-				}
-
-				// for some reason IDxgiSwapChain1 doesn't have a resizeTarget method
-				// that takes a DXGI_MODE_DESC1 structure, so we have to copy the settings
-				// to the older DXGI_MODE_DESC structure
-				DXGI_MODE_DESC targetDesc;
-				targetDesc.Format = matching.Format;
-				targetDesc.Height = matching.Height;
-				targetDesc.RefreshRate.Numerator = matching.RefreshRate.Numerator;
-				targetDesc.RefreshRate.Denominator = matching.RefreshRate.Denominator;
-				targetDesc.Scaling = matching.Scaling;
-				targetDesc.ScanlineOrdering = matching.ScanlineOrdering;
-				targetDesc.Width = matching.Width;
-
-				HRESULT result = _swapChain->ResizeTarget( &targetDesc );
-				if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
-					ReinitD3D();
-				}
-				else if ( FAILED( result ) ) {
-					FATALERROR( this, "Direct3d ResizeTarget failed" );
-				} else {
-					result = _swapChain->SetFullscreenState( true, _output );
-					if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
-						ReinitD3D();
-					}
-					else if ( FAILED( result ) ) {
-						FATALERROR( this, "Direct3d SetFullscreenState failed" );
-					}
-				}
-			} 
-			// going from fullscreen back to windowed mode
-			else if ( _screenMode.compare_exchange_strong( windowed, DONT_SWITCH_MODE ) ) {
-				LOG( "Switching to windowed mode...", LOG_MEDIUM );
-				OnSwitchToWindowed();
-				HRESULT result = _swapChain->SetFullscreenState( false, nullptr );
-				if ( result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET ) {
-					ReinitD3D();
-				}
-				else if ( FAILED( result ) ) {
-					FATALERROR( this, "Direct3d SetFullscreenState failed" );
-				}
-			}
-			
 			if ( !_minimized.load() ) { //don't bother rendering if the window is minimzed 
 				const float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; //RGBA
 				_immediateContext->ClearRenderTargetView( _renderTargetView, reinterpret_cast<const float*>( &black ) );
@@ -551,45 +583,43 @@ INT32 D3DAppFramework::Run()
 
 				OnDraw();
 
-				bool noResize = false;
-				UINT dontSwitch = DONT_SWITCH_MODE;
-				if (
-					_resize.compare_exchange_strong(noResize, false) &&
-					_screenMode.compare_exchange_strong(dontSwitch, DONT_SWITCH_MODE)
-				) {
-					HRESULT result = _swapChain->Present1(VSyncEnabled() ? 1 : 0, 0, &presentParams);
-					OnAfterPresent();
+				HRESULT result = _swapChain->Present1(
+					VSyncEnabled() ? 1 : 0, 
+					AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0, 
+					&presentParams
+				);
 
-					if (result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET) {
-						ReinitD3D();
-					}
-					else if (FAILED(result)) {
-						FATALERROR(this, "Direct3d Present1 failed");
-					}
+				if (
+					_swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD || 
+					_swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
+				) {
+					// using flip modes means we need to re-bind the backbuffer to a render
+					// target after each present
+					_immediateContext->OMSetRenderTargets(1, &_renderTargetView, _depthStencilView);
 				}
-				else {
-					LOG( "Not presenting due to pending display changes...", LOG_LOW );
+				OnAfterPresent();
+
+				if (result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET) {
+					ReinitD3D();
+				}
+				else if (FAILED(result)) {
+					FATALERROR(this, "Direct3d Present1 failed");
 				}
 			}
 		}
 		LOG( "Stopping render thread...", LOG_LOW );
 	} );
 
-	MSG  msg;
+	MSG msg;
 	msg.message = WM_NULL;
 	LOG( "Starting input loop...", LOG_LOW );
-	while ( msg.message != WM_QUIT ) {
+
+	while ( GetMessage(&msg, _window, 0, 0) > 0 ) {
 		//deal with any windows messages on the main thread, this allows us
 		//to ensure that any user input is handled with as little latency as possible
 		//independent of the update rate for the sim and render threads.
-		if ( PeekMessage( &msg, 0, 0, 0, PM_REMOVE ) ) {
-			TranslateMessage( &msg );
-			DispatchMessage( &msg );
-		} else {
-			OnInputIdle();
-			//don't hog the CPU when there are no messages
-			Sleep( 1 );
-		}
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 	LOG( "Stopping input loop...", LOG_LOW );
 
@@ -609,6 +639,8 @@ void D3DAppFramework::CloseWindow()
 
 LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam )
 {
+	OnBeforeHandleMessage();
+
 	switch ( msg ) {
 	// handle player mouse input
 	case WM_MOUSEMOVE: {
@@ -663,26 +695,15 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 			// after a minimize or maximize, or from dragging the resize
 			// bars.
 			bool exp = true;
-			if ( _resizing || _minimized.compare_exchange_strong( exp, false ) ) {
+			if ( !_swapChain || _resizing || _minimized.compare_exchange_strong( exp, false ) ) {
 				// Don't resize until the user has finished resizing or if we
+				// are just starting up and haven't initialized d3d yet, or we
 				// are simply restoring the window view without changing the size
 			} else {
 				_resize.store( true );
 			}
 		}
 		return 0;
-
-	// handle alt-enter manually. D3D can do this automatically, but
-	// it retains the same window resolution in fullscreen, rather
-	// than allowing us to switch to a fullscreen adapter as per the
-	// users settings
-	case WM_SYSKEYDOWN:
-		if(wParam == VK_RETURN && GetAsyncKeyState(VK_MENU)) {
-			_fullScreen = !_fullScreen;
-			_screenMode.store( _fullScreen ? SWITCH_TO_FULLSCREEN_MODE : SWITCH_TO_WINDOWED_MODE );
-			return 0;
-		}
-		break;
 
 	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
 	case WM_ENTERSIZEMOVE:

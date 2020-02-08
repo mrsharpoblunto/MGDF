@@ -300,7 +300,6 @@ Timer::Timer( UINT32 maxSamples )
 
 MGDFError Timer::Init()
 {
-	timeBeginPeriod( 1 );  //set a higher resolution for timing calls
 
 	// exit if the  does not support a high performance timer
 	if ( !QueryPerformanceFrequency( &_freq ) ) {
@@ -312,8 +311,6 @@ MGDFError Timer::Init()
 
 Timer::~Timer( void )
 {
-	timeEndPeriod( 1 );
-
 	while ( _cpuCounters.size() > 0 ) {
 		LOG( "CPUTimer '" << _cpuCounters.back()->GetName() << "' still has " << _cpuCounters.back()->RefCount() << " live references", LOG_ERROR );
 		delete _cpuCounters.back();

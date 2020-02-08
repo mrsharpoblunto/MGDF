@@ -26,8 +26,8 @@ public:
 	bool GetVSync() const override final;
 	void SetVSync( bool vsync ) override final;
 
-	bool GetFullscreen() const override final;
-	void SetFullscreen( bool fullscreen ) override final;
+	void GetFullscreen(FullScreenDesc *desc) const override final;
+	void SetFullscreen(const FullScreenDesc *desc) override final;
 
 	UINT32 GetMultiSampleLevelCount() const override final;
 	bool GetMultiSampleLevel( UINT32 index, UINT32* level ) const override final;
@@ -54,7 +54,6 @@ public:
 	void InitFromDevice( HWND window, ID3D11Device *d3dDevice, IDXGIAdapter1 *adapter );
 	bool IsBackBufferChangePending();
 	void OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& fullscreenDesc, const RECT& windowSize );
-	void OnSwitchToFullScreen( DXGI_MODE_DESC1 &desc );
 	void OnResize( UINT32 width, UINT32 height );
 private:
 	void Cleanup();
@@ -73,7 +72,7 @@ private:
 	HWND _window;
 
 	bool _vsync;
-	bool _fullScreen;
+	FullScreenDesc _fullScreen;
 
 	mutable std::mutex _mutex;
 };

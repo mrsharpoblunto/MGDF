@@ -31,8 +31,6 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 	const char *simFps = host->GetGame()->GetPreference( PreferenceConstants::SIM_FPS );
 	UINT32 simulationFps = atoi( simFps );
 
-	const char *interpolateFrames = host->GetGame()->GetPreference( PreferenceConstants::INTERPOLATE_FRAMES );
-	_interpolateFrames = atoi( interpolateFrames ) == 1;
 	_awaitFrame.test_and_set();
 
 	if ( !simFps || !simulationFps ) {
@@ -123,22 +121,15 @@ bool MGDFApp::OnInitWindow( RECT &window )
 	window.right = atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEX ));
 	window.bottom = atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEY ));
 	const char *windowResize = _host->GetGame()->GetPreference( PreferenceConstants::WINDOW_RESIZE );
-	return atoi( windowResize ) == 1;
+	return atoi(windowResize) == 1;
 }
 
-void MGDFApp::OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &swapDesc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT& windowSize )
+FullScreenDesc MGDFApp::OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &swapDesc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT& windowSize )
 {
 	_host->GetRenderSettingsImpl().OnResetSwapChain( swapDesc, fullscreenDesc, windowSize );
-}
-
-void MGDFApp::OnSwitchToFullScreen( DXGI_MODE_DESC1 &desc )
-{
-	_host->GetRenderSettingsImpl().OnSwitchToFullScreen( desc );
-}
-
-void MGDFApp::OnSwitchToWindowed()
-{
-	_host->GetRenderSettingsImpl().SetFullscreen( false );
+	FullScreenDesc desc;
+	_host->GetRenderSettingsImpl().GetFullscreen(&desc);
+	return desc;
 }
 
 void MGDFApp::OnResize( UINT32 width, UINT32 height )
@@ -170,6 +161,8 @@ void MGDFApp::OnBackBufferChange( ID3D11Texture2D *backBuffer )
 
 void MGDFApp::OnBeforeFirstDraw()
 {
+	_renderStart = _host->GetTimer()->GetCurrentTimeTicks();
+
 	// wait for one sim frame to finish before
 	// we start drawing
 	while ( _awaitFrame.test_and_set() ) {
@@ -180,24 +173,11 @@ void MGDFApp::OnBeforeFirstDraw()
 
 void MGDFApp::OnDraw()
 {
-	_renderStart = _host->GetTimer()->GetCurrentTimeTicks();
+	LARGE_INTEGER currentTime = _host->GetTimer()->GetCurrentTimeTicks();
+	double elapsedTime = _host->GetTimer()->ConvertDifferenceToSeconds(currentTime, _renderStart);
+	_renderStart = currentTime;
 
-	// We can minimize visual 'stuttering' due to the fact that 
-	// the sim and render threads may not be in sync using two methods.
-	// We can either interpolate between render frames or we can
-	// prevent rendering until we guarentee that a new frame is ready.
-	// if the sim FPS is greater than or equal to 60FPS then the latter
-	// is preferred. However if sim FPS is much lower than 60FPS, then 
-	// the former method may be a better option.
-	double alpha = 0;
-	if ( _interpolateFrames ) {
-		alpha = _frameLimiter->ProgressThroughCurrentFrame();
-	} else {
-		while ( _awaitFrame.test_and_set() ) {
-			Sleep( 1 );
-		}
-	}
-	_host->RTDraw( alpha ); 
+	_host->RTDraw(elapsedTime);
 
 	bool exp = true;
 	if ( _drawSystemOverlay.compare_exchange_weak( exp, true ) ) {
@@ -283,30 +263,24 @@ void MGDFApp::InitBrushes()
 
 void MGDFApp::OnUpdateSim()
 {
-	_simulationStart = _host->GetTimer()->GetCurrentTimeTicks();
-
 	if ( !_initialized ) {
+		_simulationEnd = _host->GetTimer()->GetCurrentTimeTicks();
 		LOG( "Creating Module...", LOG_LOW );
 		_host->STCreateModule();
 		_initialized = true;
 	}
+	LARGE_INTEGER simulationEnd = _simulationEnd;
 
 	//execute one frame of game logic as per the current module
 	_host->STUpdate( _stats.ExpectedSimTime(), _stats );
 	_awaitFrame.clear();
 
-	LARGE_INTEGER activeSimulationEnd = _host->GetTimer()->GetCurrentTimeTicks();
-	_stats.AppendActiveSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( activeSimulationEnd, _simulationStart ) );
-}
+	const LARGE_INTEGER activeSimulationEnd = _host->GetTimer()->GetCurrentTimeTicks();
+	_stats.AppendActiveSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( activeSimulationEnd, simulationEnd ) );
 
-
-void MGDFApp::OnSimIdle()
-{
 	//wait until the next frame to begin if we have any spare time left over
-	_frameLimiter->LimitFps();
-
-	LARGE_INTEGER simulationEnd = _host->GetTimer()->GetCurrentTimeTicks();
-	_stats.AppendSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( simulationEnd, _simulationStart ) );
+	_simulationEnd = _frameLimiter->LimitFps();
+	_stats.AppendSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( _simulationEnd, simulationEnd ) );
 }
 
 
@@ -326,15 +300,16 @@ void MGDFApp::OnMouseInput( INT32 x, INT32 y )
 	_host->GetInputManagerImpl().HandleInput( x, y );
 }
 
-void MGDFApp::OnInputIdle()
-{
-	_host->GetInputManagerImpl().ProcessInput();
-}
-
 void MGDFApp::OnExternalClose()
 {
 	_host->QueueShutDown();
 }
+
+void MGDFApp::OnBeforeHandleMessage()
+{
+	_host->GetInputManagerImpl().ProcessInput();
+}
+
 
 LRESULT MGDFApp::OnHandleMessage( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam )
 {

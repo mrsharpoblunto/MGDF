@@ -14,10 +14,10 @@ public:
 	static const char *SOUND_VOLUME;
 	static const char *SIM_FPS;
 	static const char *FULL_SCREEN;
+	static const char *FULL_SCREEN_EXCLUSIVE;
 	static const char *MULTISAMPLE_LEVEL;
 	static const char *RT_MULTISAMPLE_LEVEL;
 	static const char *VSYNC;
-	static const char *INTERPOLATE_FRAMES;
 	static const char *WINDOW_RESIZE;
 	static const char *WINDOW_SIZEX;
 	static const char *WINDOW_SIZEY;

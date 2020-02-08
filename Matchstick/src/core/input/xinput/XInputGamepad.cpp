@@ -23,7 +23,7 @@ XInputGamepad::XInputGamepad( INT32 id )
 	: _id( id )
 	, _connected( false )
 	, _frameIndex( 0 )
-	, _checkIndex( FRAMES_PER_CHECK / 4 * id )
+	, _checkIndex( FRAMES_PER_CHECK / XUSER_MAX_COUNT * id )
 {
 }
 
