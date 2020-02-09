@@ -24,37 +24,60 @@ void Logger::Add( const char *sender, const char *message, LogLevel level )
 	_ASSERTE( sender );
 	_ASSERTE( message );
 
-	std::lock_guard<std::mutex> lock( _mutex );
-	if ( level <= _level ) {
+	if ( level <= _level.load() ) {
 		std::ostringstream stream;
 		stream << sender << " " << message << "\n";
-		_events.push_back( stream.str() );
 #if defined(_DEBUG)
-		OutputDebugString( ("MGDF: "+_events.back()).c_str() );
+		OutputDebugString( ("MGDF: "+stream.str()).c_str() );
 #endif
-		if ( _events.size() >= LOG_BUFFER_SIZE )
-			Flush();
+		{
+			std::unique_lock<std::mutex> lock(_mutex);
+			_events.push_back(stream.str());
+			if (_events.size() >= LOG_BUFFER_SIZE) {
+				// add a batch of events to flush & notify the flush thread
+				_flushEvents.assign(_events.begin(), _events.end());
+				_events.clear();
+				lock.unlock();
+				_cv.notify_one();
+			}
+		}
 	}
 }
 
-void Logger::Flush()
-{
-	std::ofstream outFile;
-
-	outFile.open( _filename.c_str(), std::ios::app );
-
-	for ( std::string &evt : _events ) {
-		outFile << evt;
+void Logger::Flush() {
+	{
+			// force whatever is in the events buffer to be flushed
+			std::lock_guard<std::mutex> lock(_mutex);
+			_flushEvents.assign(_events.begin(), _events.end());
+			_events.clear();
 	}
-	_events.clear();
-
-	outFile.close();
+	_cv.notify_one();
 }
 
 Logger::Logger()
 {
 	SetLoggingLevel( LOG_MEDIUM );
 	SetOutputFile( Resources::Instance().LogFile() );
+
+	_runLogger = true;
+	_flushThread = std::thread([this]() {
+		std::unique_lock<std::mutex> lock(_mutex);
+		while (_runLogger) {
+			_cv.wait(lock, [this] { return !_runLogger || _flushEvents.size() > 0; });
+			std::vector<std::string> tmp(_flushEvents);
+			_flushEvents.clear();
+			lock.unlock();
+
+			std::ofstream outFile;
+			outFile.open( _filename.c_str(), std::ios::app );
+			for ( std::string &evt : tmp ) {
+				outFile << evt;
+			}
+			outFile.close();
+
+			lock.lock();
+		}
+	});
 }
 
 void Logger::MoveOutputFile()
@@ -81,8 +104,7 @@ void Logger::SetOutputFile( const std::wstring &filename )
 
 void Logger::SetLoggingLevel( LogLevel level )
 {
-	std::lock_guard<std::mutex> lock( _mutex );
-	_level = level;
+	_level.store(level);
 }
 
 LogLevel Logger::GetLoggingLevel() const
@@ -92,7 +114,16 @@ LogLevel Logger::GetLoggingLevel() const
 
 Logger::~Logger( void )
 {
-	Flush();
+	{
+		// force whatever is in the events buffer to be flushed & stop
+		// the flush thread running after its finished this last flush
+		std::unique_lock<std::mutex> lock(_mutex);
+		_flushEvents.assign(_events.begin(), _events.end());
+		_events.clear();
+		_runLogger = false;
+	}
+	_cv.notify_one();
+	_flushThread.join();
 }
 
 }

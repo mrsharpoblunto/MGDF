@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <mutex>
+#include <atomic>
 
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFLogger.hpp>
@@ -46,9 +47,13 @@ private:
 	void SetOutputFile( const std::wstring & );
 
 	std::mutex _mutex;
+	std::condition_variable _cv;
 	std::vector<std::string> _events;
+	std::vector<std::string> _flushEvents;
+	std::thread _flushThread;
+	bool _runLogger;
 	std::wstring _filename;
-	LogLevel _level;
+	std::atomic<LogLevel> _level;
 };
 
 

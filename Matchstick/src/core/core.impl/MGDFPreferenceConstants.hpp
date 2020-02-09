@@ -13,6 +13,7 @@ public:
 	static const char *MUSIC_VOLUME;
 	static const char *SOUND_VOLUME;
 	static const char *SIM_FPS;
+	static const char *RENDER_FPS;
 	static const char *FULL_SCREEN;
 	static const char *FULL_SCREEN_EXCLUSIVE;
 	static const char *MULTISAMPLE_LEVEL;

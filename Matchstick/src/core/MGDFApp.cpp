@@ -25,6 +25,7 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 	, _dWriteFactory( nullptr )
 	, _initialized( false )
 	, _context( nullptr )
+	, _renderFrameLimiter( nullptr )
 {
 	_ASSERTE( host );
 
@@ -37,9 +38,17 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 	FATALERROR(_host, PreferenceConstants::SIM_FPS << " was not found in preferences or is not an integer");
 	}
 
-	if ( MGDF_OK != FrameLimiter::TryCreate( simulationFps, &_frameLimiter ) ) {
-		FATALERROR( _host, "Unable to create frame limiter" );
+	if ( MGDF_OK != FrameLimiter::TryCreate( simulationFps, &_simFrameLimiter ) ) {
+		FATALERROR( _host, "Unable to create sim frame limiter" );
 	}
+
+	const char *renderFps = host->GetGame()->GetPreference( PreferenceConstants::RENDER_FPS );
+	if (renderFps) {
+		if (MGDF_OK != FrameLimiter::TryCreate(atoi(renderFps), &_renderFrameLimiter)) {
+			FATALERROR(_host, "Unable to create render frame limiter");
+		}
+	}
+
 	_stats.SetExpectedSimTime( 1 / ( double ) simulationFps );
 
 	_drawSystemOverlay.store( false );
@@ -78,7 +87,8 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 
 MGDFApp::~MGDFApp()
 {
-	delete _frameLimiter;
+	delete _simFrameLimiter;
+	delete _renderFrameLimiter;
 	SAFE_RELEASE( _context );
 	SAFE_RELEASE(_blackBrush);
 	SAFE_RELEASE(_whiteBrush);
@@ -161,7 +171,7 @@ void MGDFApp::OnBackBufferChange( ID3D11Texture2D *backBuffer )
 
 void MGDFApp::OnBeforeFirstDraw()
 {
-	_renderStart = _host->GetTimer()->GetCurrentTimeTicks();
+	_renderStart = _activeRenderEnd = _host->GetTimer()->GetCurrentTimeTicks();
 
 	// wait for one sim frame to finish before
 	// we start drawing
@@ -173,8 +183,14 @@ void MGDFApp::OnBeforeFirstDraw()
 
 void MGDFApp::OnDraw()
 {
-	LARGE_INTEGER currentTime = _host->GetTimer()->GetCurrentTimeTicks();
+	LARGE_INTEGER currentTime = _renderFrameLimiter 
+		? _renderFrameLimiter->LimitFps() 
+		: _host->GetTimer()->GetCurrentTimeTicks();
+
 	double elapsedTime = _host->GetTimer()->ConvertDifferenceToSeconds(currentTime, _renderStart);
+	_stats.AppendRenderTimes(
+		elapsedTime,
+		_host->GetTimer()->ConvertDifferenceToSeconds( _activeRenderEnd, _renderStart ) );
 	_renderStart = currentTime;
 
 	_host->RTDraw(elapsedTime);
@@ -185,14 +201,6 @@ void MGDFApp::OnDraw()
 	}
 
 	_activeRenderEnd = _host->GetTimer()->GetCurrentTimeTicks();
-}
-
-void MGDFApp::OnAfterPresent()
-{
-	LARGE_INTEGER renderEnd = _host->GetTimer()->GetCurrentTimeTicks();
-	_stats.AppendRenderTimes(
-		_host->GetTimer()->ConvertDifferenceToSeconds( renderEnd, _renderStart ),
-		_host->GetTimer()->ConvertDifferenceToSeconds( _activeRenderEnd, _renderStart ) );
 }
 
 void MGDFApp::DrawSystemOverlay()
@@ -279,7 +287,7 @@ void MGDFApp::OnUpdateSim()
 	_stats.AppendActiveSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( activeSimulationEnd, simulationEnd ) );
 
 	//wait until the next frame to begin if we have any spare time left over
-	_simulationEnd = _frameLimiter->LimitFps();
+	_simulationEnd = _simFrameLimiter->LimitFps();
 	_stats.AppendSimTime( _host->GetTimer()->ConvertDifferenceToSeconds( _simulationEnd, simulationEnd ) );
 }
 

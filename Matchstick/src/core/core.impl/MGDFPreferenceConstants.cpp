@@ -15,6 +15,7 @@ namespace core
 const char *PreferenceConstants::MUSIC_VOLUME = "host.musicVolume";
 const char *PreferenceConstants::SOUND_VOLUME = "host.soundVolume";
 const char *PreferenceConstants::SIM_FPS = "host.simFps";
+const char *PreferenceConstants::RENDER_FPS = "host.renderFps";
 const char *PreferenceConstants::SCREEN_X = "host.screenX";
 const char *PreferenceConstants::SCREEN_Y = "host.screenY";
 const char *PreferenceConstants::FULL_SCREEN = "host.fullScreen";

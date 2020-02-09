@@ -31,7 +31,6 @@ protected:
 	void OnBeforeDeviceReset() override final;
 	void OnBeforeFirstDraw() override final;
 	void OnDraw() override final;
-	void OnAfterPresent() override final;
 
 	void OnUpdateSim() override final;
 
@@ -50,7 +49,8 @@ private:
 	bool _initialized;
 
 	Host *_host;
-	FrameLimiter * _frameLimiter;
+	FrameLimiter * _simFrameLimiter;
+	FrameLimiter * _renderFrameLimiter;
 
 	HostStats _stats;
 	LARGE_INTEGER _renderStart;

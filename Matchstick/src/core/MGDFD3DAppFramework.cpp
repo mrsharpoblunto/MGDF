@@ -589,21 +589,19 @@ INT32 D3DAppFramework::Run()
 					&presentParams
 				);
 
-				if (
+				if (result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET) {
+					ReinitD3D();
+				}
+				else if (FAILED(result)) {
+					FATALERROR(this, "Direct3d Present1 failed");
+				}
+				else if (
 					_swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD || 
 					_swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
 				) {
 					// using flip modes means we need to re-bind the backbuffer to a render
 					// target after each present
 					_immediateContext->OMSetRenderTargets(1, &_renderTargetView, _depthStencilView);
-				}
-				OnAfterPresent();
-
-				if (result == DXGI_ERROR_DEVICE_REMOVED || result == DXGI_ERROR_DEVICE_RESET) {
-					ReinitD3D();
-				}
-				else if (FAILED(result)) {
-					FATALERROR(this, "Direct3d Present1 failed");
 				}
 			}
 		}

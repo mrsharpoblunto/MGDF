@@ -33,7 +33,6 @@ protected:
 	virtual void OnResize( UINT32 width, UINT32 height ) = 0;
 
 	virtual void OnDraw() = 0;
-	virtual void OnAfterPresent() = 0;
 
 	virtual void OnUpdateSim() = 0;
 
