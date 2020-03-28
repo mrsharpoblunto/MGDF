@@ -56,6 +56,7 @@ MGDFApp::MGDFApp( Host* host, HINSTANCE hInstance )
 	_ASSERTE( host );
 	_host = host;
 	_host->SetShutDownHandler( [this]() {
+		_host->GetGame()->SavePreferences();
 		CloseWindow();
 	} );
 
@@ -126,10 +127,12 @@ bool MGDFApp::VSyncEnabled() const
 
 bool MGDFApp::OnInitWindow( RECT &window )
 {
-	window.top = 0;
-	window.left = 0;
-	window.right = atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEX ));
-	window.bottom = atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEY ));
+	const char* posX = _host->GetGame()->GetPreference(PreferenceConstants::WINDOW_POSITIONX);
+	const char* posY = _host->GetGame()->GetPreference(PreferenceConstants::WINDOW_POSITIONY);
+	window.top = posY ? atoi(posY) : 0;
+	window.left = posX ? atoi(posX) : 0;
+	window.right = window.left + atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEX ));
+	window.bottom = window.top + atoi(_host->GetGame()->GetPreference( PreferenceConstants::WINDOW_SIZEY ));
 	const char *windowResize = _host->GetGame()->GetPreference( PreferenceConstants::WINDOW_RESIZE );
 	return atoi(windowResize) == 1;
 }
@@ -161,11 +164,12 @@ void MGDFApp::OnBeforeBackBufferChange()
 	_host->RTBeforeBackBufferChange();
 }
 
-void MGDFApp::OnBackBufferChange( ID3D11Texture2D *backBuffer )
+void MGDFApp::OnBackBufferChange( ID3D11Texture2D *backBuffer, ID3D11Texture2D *depthStencilBuffer )
 {
 	_ASSERTE( backBuffer );
+	_ASSERTE( depthStencilBuffer );
 
-	_host->RTBackBufferChange( backBuffer );
+	_host->RTBackBufferChange( backBuffer, depthStencilBuffer );
 	_host->SetBackBufferRenderTarget(_context);
 }
 
@@ -311,6 +315,15 @@ void MGDFApp::OnMouseInput( INT32 x, INT32 y )
 void MGDFApp::OnExternalClose()
 {
 	_host->QueueShutDown();
+}
+
+void MGDFApp::OnMoveWindow(INT32 x, INT32 y) {
+	std::stringstream xs;
+	xs << x;
+	_host->GetGame()->SetPreference(PreferenceConstants::WINDOW_POSITIONX, xs.str().c_str());
+	std::stringstream ys;
+	ys << y;
+	_host->GetGame()->SetPreference(PreferenceConstants::WINDOW_POSITIONY, ys.str().c_str());
 }
 
 void MGDFApp::OnBeforeHandleMessage()

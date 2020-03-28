@@ -98,11 +98,18 @@ void D3DAppFramework::InitWindow( const std::string &caption, WNDPROC windowProc
 			_windowStyle &= ~(WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 		}
 
-		if (_windowRect.right < (LONG)Resources::MIN_SCREEN_X) {
+		INT32 x = _windowRect.left;
+		INT32 y = _windowRect.top;
+		_windowRect.bottom -= _windowRect.top;
+		_windowRect.right -= _windowRect.left;
+		_windowRect.top = 0;
+		_windowRect.left = 0;
+
+		if (_windowRect.right < static_cast<LONG>(Resources::MIN_SCREEN_X)) {
 			_windowRect.right = Resources::MIN_SCREEN_X;
 		}
-		if (_windowRect.right < (LONG)Resources::MIN_SCREEN_Y) {
-			_windowRect.right = Resources::MIN_SCREEN_Y;
+		if (_windowRect.bottom < static_cast<LONG>(Resources::MIN_SCREEN_Y)) {
+			_windowRect.bottom = Resources::MIN_SCREEN_Y;
 		}
 
 		if ( !AdjustWindowRect( &_windowRect, _windowStyle, false ) ) {
@@ -117,6 +124,18 @@ void D3DAppFramework::InitWindow( const std::string &caption, WNDPROC windowProc
 		
 		if ( !_window ) {
 			FATALERROR( this, "CreateWindow FAILED" );
+		}
+
+		if (x || y) {
+			SetWindowPos(
+				_window, 
+				HWND_NOTOPMOST, 
+				x, 
+				y, 
+				0,
+				0,
+				SWP_NOSIZE
+			);
 		}
 
 		ShowWindow(_window, SW_SHOW);
@@ -444,7 +463,7 @@ void D3DAppFramework::ResizeBackBuffer()
 
 	_immediateContext->RSSetViewports( 1, &viewPort );
 
-	OnBackBufferChange( _backBuffer );
+	OnBackBufferChange( _backBuffer, _depthStencilBuffer );
 }
 
 INT32 D3DAppFramework::Run()
@@ -725,6 +744,14 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 		}
 		return 0;
 
+	case WM_MOVE:
+		{
+			if (!_currentFullScreen.FullScreen) {
+				OnMoveWindow((int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
+			}
+		}
+		return 0;
+
 	// WM_CLOSE is sent when the user presses the 'X' button in the
 	// caption bar menu, when the host schedules a shutdown
 	case WM_CLOSE:
@@ -735,7 +762,7 @@ LRESULT D3DAppFramework::MsgProc( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM l
 			//if we triggered this, then shut down
 			DestroyWindow( _window );
 		} else {
-			//otherwise just inform the rest of the  that
+			//otherwise just inform the rest of the system that
 			//it should shut down ASAP, but give it time to shut down cleanly
 			OnExternalClose();
 		}

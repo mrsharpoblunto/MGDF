@@ -113,10 +113,16 @@ class IRenderHost: public ICommonHost
 	virtual ID3D11Texture2D * GetBackBuffer() const = 0;
 
 	/**
-	Gets the description of the backbuffer texture
-	\param desc the backbuffer description to populate
+	Gets the current depth stencil buffer texture. The pointer returned by this method becomes invalid when the modules OnReset event is fired
 	*/
-	virtual void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const = 0;
+	virtual ID3D11Texture2D * GetDepthStencilBuffer() const = 0;
+
+	/**
+	Gets the description of the backbuffer and depthStencilBuffer textures.
+	\param backBufferDesc the backbuffer description to populate. if null is passed, this field is not populated
+	\param depthStencilDesc the backbuffer description to populate. if null is passed, this field is not populated
+	*/
+	virtual void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *backBufferDesc, D3D11_TEXTURE2D_DESC *depthStencilBufferDesc ) const = 0;
 };
 
 /**

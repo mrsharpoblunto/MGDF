@@ -27,7 +27,7 @@ protected:
 	bool IsBackBufferChangePending() override final;
 	bool VSyncEnabled() const override final;
 	void OnBeforeBackBufferChange() override final;
-	void OnBackBufferChange( ID3D11Texture2D *backBuffer ) override final;
+	void OnBackBufferChange( ID3D11Texture2D *backBuffer, ID3D11Texture2D *depthStencilBuffer ) override final;
 	void OnBeforeDeviceReset() override final;
 	void OnBeforeFirstDraw() override final;
 	void OnDraw() override final;
@@ -40,6 +40,7 @@ protected:
 	void OnRawInput( RAWINPUT *input ) override final;
 	void OnClearInput() override final;
 	void OnMouseInput( INT32 x, INT32 y ) override final;
+	void OnMoveWindow( INT32 x, INT32 y) override final;
 
 	void FatalError( const char *sender, const char *message ) override final;
 private:

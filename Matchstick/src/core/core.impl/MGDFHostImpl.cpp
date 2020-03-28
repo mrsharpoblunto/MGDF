@@ -323,9 +323,10 @@ void Host::RTBeforeBackBufferChange()
 	}
 }
 
-void Host::RTBackBufferChange( ID3D11Texture2D *backBuffer )
+void Host::RTBackBufferChange( ID3D11Texture2D *backBuffer, ID3D11Texture2D *depthStencilBuffer )
 {
 	_backBuffer = backBuffer;
+	_depthStencilBuffer = depthStencilBuffer;
 	if ( _module != nullptr ) {
 		LOG( "Calling module RTBackBufferChange...", LOG_MEDIUM );
 		if ( !_module->RTBackBufferChange( this ) ) {
@@ -339,9 +340,19 @@ ID3D11Texture2D *Host::GetBackBuffer() const
 	return _backBuffer;
 }
 
-void Host::GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const
+ID3D11Texture2D *Host::GetDepthStencilBuffer() const
 {
-	_backBuffer->GetDesc( desc );
+	return _backBuffer;
+}
+
+void Host::GetBackBufferDescription( D3D11_TEXTURE2D_DESC *backBufferDesc, D3D11_TEXTURE2D_DESC *depthStencilDesc ) const
+{
+	if (backBufferDesc) {
+		_backBuffer->GetDesc(backBufferDesc);
+	}
+	if (depthStencilDesc) {
+		_depthStencilBuffer->GetDesc(depthStencilDesc);
+	}
 }
 
 ID3D11Device *Host::GetD3DDevice() const

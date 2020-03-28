@@ -26,6 +26,8 @@ const char *PreferenceConstants::VSYNC = "host.vsync";
 const char *PreferenceConstants::WINDOW_RESIZE = "host.windowResize";
 const char *PreferenceConstants::WINDOW_SIZEX = "host.windowSizeX";
 const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
+const char *PreferenceConstants::WINDOW_POSITIONX = "host.windowPositionX";
+const char *PreferenceConstants::WINDOW_POSITIONY = "host.windowPositionY";
 
 }
 }

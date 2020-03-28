@@ -72,7 +72,7 @@ public:
 	void RTSetDevices( HWND window, ID3D11Device *device, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter );
 	void RTDraw( double alpha );
 	void RTBeforeBackBufferChange();
-	void RTBackBufferChange( ID3D11Texture2D *backBuffer );
+	void RTBackBufferChange( ID3D11Texture2D *backBuffer, ID3D11Texture2D *depthStencilBuffer );
 	void RTBeforeDeviceReset();
 	void RTDeviceReset();
 
@@ -113,7 +113,8 @@ public:
 	IRenderTimer * GetRenderTimer() const override final;
 	bool SetBackBufferRenderTarget( ID2D1DeviceContext *context ) override final;
 	ID3D11Texture2D * GetBackBuffer() const override final;
-	void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *desc ) const override final;
+	ID3D11Texture2D* GetDepthStencilBuffer() const override final;
+	void GetBackBufferDescription( D3D11_TEXTURE2D_DESC *backBufferDesc, D3D11_TEXTURE2D_DESC *depthStencilBufferDesc ) const override final;
 
 private:
 	Host( Game *game );
@@ -137,6 +138,7 @@ private:
 	ID3D11DeviceContext *_d3dContext;
 	ID2D1Device *_d2dDevice;
 	ID3D11Texture2D *_backBuffer;
+	ID3D11Texture2D *_depthStencilBuffer;
 
 	std::mutex _mutex;
 	Version _version;

@@ -22,6 +22,8 @@ public:
 	static const char *WINDOW_RESIZE;
 	static const char *WINDOW_SIZEX;
 	static const char *WINDOW_SIZEY;
+	static const char *WINDOW_POSITIONX;
+	static const char *WINDOW_POSITIONY;
 };
 
 }

@@ -28,7 +28,7 @@ protected:
 	virtual bool OnInitWindow(RECT& windowSize) = 0;
 	virtual void OnInitDevices( HWND window, ID3D11Device *d3dDevice, ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter ) = 0;
 	virtual void OnBeforeBackBufferChange() = 0;
-	virtual void OnBackBufferChange( ID3D11Texture2D *backBuffer ) = 0;
+	virtual void OnBackBufferChange( ID3D11Texture2D *backBuffer, ID3D11Texture2D *depthStencilBuffer ) = 0;
 	virtual FullScreenDesc OnResetSwapChain( DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC& , const RECT& windowSize ) = 0;
 	virtual void OnResize( UINT32 width, UINT32 height ) = 0;
 
@@ -42,6 +42,7 @@ protected:
 	virtual void OnClearInput() = 0;
 	virtual void OnBeforeHandleMessage() = 0;
 	virtual LRESULT OnHandleMessage( HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam ) = 0;
+	virtual void OnMoveWindow(INT32 x, INT32 y) = 0;
 
 	virtual UINT32 GetCompatibleD3DFeatureLevels( D3D_FEATURE_LEVEL *levels, UINT32 *featureLevelsSize ) = 0;
 	virtual bool IsBackBufferChangePending() = 0;
