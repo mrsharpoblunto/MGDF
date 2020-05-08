@@ -88,7 +88,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../../vendor/FW1FontWrapper;../../../vendor/OpenAL</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -146,7 +146,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
 </Command>
     </PreBuildEvent>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../../vendor/FW1FontWrapper;../../../vendor/OpenAL</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -180,6 +180,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\MGDF\MGDF.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFDebug.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFError.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFErrorHandler.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFGame.hpp" />

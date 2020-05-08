@@ -14,6 +14,7 @@
 #include <MGDF/MGDFList.hpp>
 #include <MGDF/MGDFLogger.hpp>
 #include <MGDF/MGDFModule.hpp>
+#include <MGDF/MGDFDebug.hpp>
 #include <MGDF/MGDFHost.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>

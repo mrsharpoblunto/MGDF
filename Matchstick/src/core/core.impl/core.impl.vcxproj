@@ -97,6 +97,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MGDFDebugImpl.cpp" />
     <ClCompile Include="MGDFGameBuilder.cpp" />
     <ClCompile Include="MGDFGameImpl.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp" />
@@ -116,6 +117,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MGDFDebugImpl.hpp" />
     <ClInclude Include="MGDFGameBuilder.hpp" />
     <ClInclude Include="MGDFGameImpl.hpp" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp" />

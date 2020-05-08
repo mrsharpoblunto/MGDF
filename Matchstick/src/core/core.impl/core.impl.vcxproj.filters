@@ -39,6 +39,9 @@
       <Filter>System</Filter>
     </ClCompile>
     <ClCompile Include="MGDFHostStats.cpp" />
+    <ClCompile Include="MGDFDebugImpl.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MGDFGameBuilder.hpp">
@@ -71,5 +74,8 @@
       <Filter>System</Filter>
     </ClInclude>
     <ClInclude Include="MGDFHostStats.hpp" />
+    <ClInclude Include="MGDFDebugImpl.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

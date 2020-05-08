@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29519.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{7DB53567-CA6D-4F58-A2AB-337764CAFF55}"
 EndProject
@@ -136,6 +136,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatchstickFramework.Docgen.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CBEF9DE4-3405-4CA7-BA90-A5582800754B}"
 	ProjectSection(SolutionItems) = preProject
+		.clang-format = .clang-format
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject

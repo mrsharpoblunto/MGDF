@@ -64,6 +64,9 @@
     <ClInclude Include="..\..\include\MGDF\MGDFRenderSettingsManager.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFDebug.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
