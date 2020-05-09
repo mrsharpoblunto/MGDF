@@ -61,31 +61,38 @@ void Debug::ToggleShown() {
   }
 }
 
-void Debug::DumpInfo(const HostStats& stats, std::wstringstream& ss) const {
+void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
   std::wstring mgdfVersion(MGDFVersionInfo::MGDF_VERSION().begin(),
                            MGDFVersionInfo::MGDF_VERSION().end());
 
   Timings timings;
   stats.GetTimings(timings);
 
-  ss.setf(std::ios::fixed);
-  ss.precision(4);
+  ss.SetF(std::ios::fixed);
 
-  ss << "MGDF Version: " << mgdfVersion << "\r\nMGDF Interface version: "
+  ss << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)
+     << "MGDF Version: " << TextStyle::Pop() << mgdfVersion
+     << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)
+     << "\r\nMGDF Interface version:" << TextStyle::Pop()
      << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
-  ss << "\r\nPerformance Statistics:\r\n";
 
-  ss << "Render Thread\r\n";
+  ss << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD) << "\r\nRender Thread\r\n"
+     << TextStyle::Pop();
+  ss.Precision(0);
   ss << " FPS : ";
   if (timings.AvgRenderTime == 0)
     ss << "N/A\r\n";
   else
     ss << 1 / timings.AvgRenderTime << "\r\n";
+
+  ss.Precision(4);
   ss << " Render CPU : " << timings.AvgActiveRenderTime << "\r\n";
   ss << " Idle CPU : " << timings.AvgRenderTime - timings.AvgActiveRenderTime
      << "\r\n";
 
-  ss << "\r\nSim Thread\r\n";
+  ss << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD) << "\r\nSim Thread\r\n"
+     << TextStyle::Pop();
+  ss.Precision(0);
   ss << " Expected FPS : ";
   if (timings.ExpectedSimTime == 0)
     ss << "N/A\r\n";
@@ -94,27 +101,38 @@ void Debug::DumpInfo(const HostStats& stats, std::wstringstream& ss) const {
 
   ss << " Actual FPS : ";
   if (timings.AvgSimTime == 0)
-    ss << "N/A\r\n";
+    ss << "N/A";
   else
-    ss << 1 / timings.AvgSimTime << "\r\n";
+    ss << 1 / timings.AvgSimTime;
 
-  ss << " Input CPU : " << timings.AvgSimInputTime << "\r\n";
-  ss << " Audio CPU : " << timings.AvgSimAudioTime << "\r\n";
-  ss << " Other CPU : " << timings.AvgActiveSimTime << "\r\n";
-  ss << " Idle CPU : "
-     << (timings.AvgSimTime - timings.AvgActiveSimTime -
-         timings.AvgSimInputTime - timings.AvgSimAudioTime)
-     << "\r\n";
+  ss.Precision(4);
+  std::vector<std::pair<std::string, double>> simTimings;
+  simTimings.push_back(std::make_pair("Input CPU", timings.AvgSimInputTime));
+  simTimings.push_back(std::make_pair("Audio CPU", timings.AvgSimAudioTime));
+  simTimings.push_back(std::make_pair("Other CPU", timings.AvgActiveSimTime));
+  simTimings.push_back(std::make_pair(
+      "Idle CPU", (timings.AvgSimTime - timings.AvgActiveSimTime -
+                   timings.AvgSimInputTime - timings.AvgSimAudioTime)));
+
+  KeyValueHeatMap<std::pair<std::string, double>, double>(
+      simTimings,
+      [](const auto& in, auto& out) {
+        out.first = in.first;
+        out.second = in.second;
+      },
+      ss);
 
   _timer->GetCounterInformation(ss);
 
   for (auto section = _data.cbegin(); section != _data.cend(); ++section) {
-    ss << "\r\n" << Resources::ToWString(section->first) << "\r\n";
+    ss << "\r\n\r\n"
+       << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)
+       << Resources::ToWString(section->first) << TextStyle::Pop();
 
     for (auto kvp = section->second.cbegin(); kvp != section->second.cend();
          ++kvp) {
-      ss << " " << Resources::ToWString(kvp->first) << ": "
-         << Resources::ToWString(kvp->second) << "\r\n";
+      ss << "\r\n " << Resources::ToWString(kvp->first) << " : "
+         << Resources::ToWString(kvp->second);
     }
   }
 }

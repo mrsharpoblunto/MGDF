@@ -6,6 +6,7 @@
 #include "MGDFFrameLimiter.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
 #include "core.impl/MGDFHostStats.hpp"
+#include "core.impl/MGDFTextStream.hpp"
 
 namespace MGDF {
 namespace core {
@@ -70,6 +71,9 @@ class MGDFApp : public D3DAppFramework {
   ID2D1SolidColorBrush *_blackBrush;
   IDWriteFactory1 *_dWriteFactory;
   IDWriteTextFormat *_textFormat;
+  TextStream *_textStream;
+  IDWriteTextLayout *_textLayout;
+  DWRITE_TEXT_METRICS _textMetrics;
 };
 
 }  // namespace core

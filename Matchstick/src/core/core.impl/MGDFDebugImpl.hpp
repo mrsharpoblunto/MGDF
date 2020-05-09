@@ -8,6 +8,7 @@
 
 #include "MGDFHostStats.hpp"
 #include "MGDFTimer.hpp"
+#include "MGDFTextStream.hpp"
 
 namespace MGDF {
 namespace core {
@@ -22,7 +23,7 @@ class Debug : public IDebug {
   virtual bool IsShown() const override final;
   virtual void ToggleShown() override final;
 
-  void DumpInfo(const HostStats &stats, std::wstringstream &ss) const;
+  void DumpInfo(const HostStats &stats, TextStream &ss) const;
 
  private:
   std::map<std::string, std::map<std::string, std::string>> _data;

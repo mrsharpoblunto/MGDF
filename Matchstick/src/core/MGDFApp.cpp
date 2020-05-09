@@ -24,6 +24,8 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
       _dWriteFactory(nullptr),
       _initialized(false),
       _context(nullptr),
+      _textStream(nullptr),
+      _textLayout(nullptr),
       _renderFrameLimiter(nullptr) {
   _ASSERTE(host);
 
@@ -67,6 +69,8 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     FATALERROR(_host, "Unable to create IDWriteFactory");
   }
 
+  _textStream = new TextStream(_dWriteFactory);
+
   IDWriteFontCollection *fontCollection;
   if (FAILED(_dWriteFactory->GetSystemFontCollection(&fontCollection))) {
     FATALERROR(_host, "Unable to get  font collection");
@@ -85,10 +89,12 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
 MGDFApp::~MGDFApp() {
   delete _simFrameLimiter;
   delete _renderFrameLimiter;
+  delete _textStream;
   SAFE_RELEASE(_context);
   SAFE_RELEASE(_blackBrush);
   SAFE_RELEASE(_whiteBrush);
   SAFE_RELEASE(_textFormat);
+  SAFE_RELEASE(_textLayout);
   SAFE_RELEASE(_dWriteFactory);
 }
 
@@ -155,6 +161,8 @@ void MGDFApp::OnBeforeDeviceReset() {
   SAFE_RELEASE(_context);
   SAFE_RELEASE(_blackBrush);
   SAFE_RELEASE(_whiteBrush);
+  SAFE_RELEASE(_textLayout)
+  _textStream->ClearBrushes();
   _host->RTBeforeDeviceReset();
 }
 
@@ -208,48 +216,43 @@ void MGDFApp::DrawSystemOverlay() {
     InitBrushes();
   }
 
-  const float margin = 5.0f;
+  _textStream->ClearText();
+  _host->GetDebugImpl().DumpInfo(_stats, *_textStream);
 
-  std::wstringstream stream;
-  _host->GetDebugImpl().DumpInfo(_stats, stream);
-  std::wstring information(stream.str());
+  auto prevLayout = _textLayout;
 
-  IDWriteTextLayout *textLayout;
-  if (FAILED(_dWriteFactory->CreateTextLayout(
-          information.c_str(), static_cast<UINT32>(information.size()),
-          _textFormat,
+  if (FAILED(_textStream->GenerateLayout(
+          _context, _textFormat,
           static_cast<float>(_host->GetRenderSettingsImpl().GetScreenX()),
           static_cast<float>(_host->GetRenderSettingsImpl().GetScreenY()),
-          &textLayout))) {
+          &_textLayout))) {
     FATALERROR(_host, "Unable to create text layout");
   }
 
-  DWRITE_TEXT_METRICS metrics;
-  SecureZeroMemory(&metrics, sizeof(metrics));
-  if (FAILED(textLayout->GetMetrics(&metrics))) {
+  SecureZeroMemory(&_textMetrics, sizeof(_textMetrics));
+  if (FAILED(_textLayout->GetMetrics(&_textMetrics))) {
     FATALERROR(_host, "Unable to get text overhang metrics");
   }
 
   _context->BeginDraw();
 
+  const float margin = 5.0f;
   D2D1_ROUNDED_RECT rect;
   rect.radiusX = margin;
   rect.radiusY = margin;
   rect.rect.top = margin;
   rect.rect.left = margin;
-  rect.rect.bottom = (margin * 3) + metrics.height;
-  rect.rect.right = (margin * 3) + metrics.width;
+  rect.rect.bottom = (margin * 3) + _textMetrics.height;
+  rect.rect.right = (margin * 3) + _textMetrics.width;
   _context->FillRoundedRectangle(&rect, _blackBrush);
   _context->DrawRoundedRectangle(&rect, _whiteBrush);
 
   D2D_POINT_2F origin;
   origin.x = (2 * margin);
   origin.y = (2 * margin);
-  _context->DrawTextLayout(origin, textLayout, _whiteBrush);
+  _context->DrawTextLayout(origin, _textLayout, _whiteBrush);
 
   _context->EndDraw();
-
-  SAFE_RELEASE(textLayout);
 }
 
 void MGDFApp::InitBrushes() {
@@ -259,7 +262,7 @@ void MGDFApp::InitBrushes() {
     FATALERROR(_host, "Unable to create white color brush");
   }
 
-  color.r = color.g = color.b = 0.0f;
+  color.r = color.g = color.b = 0.05f;
   color.a = 0.85f;
   if (FAILED(_context->CreateSolidColorBrush(color, &_blackBrush))) {
     FATALERROR(_host, "Unable to create black color brush");

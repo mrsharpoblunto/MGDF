@@ -110,6 +110,7 @@
     <ClCompile Include="MGDFParameterConstants.cpp" />
     <ClCompile Include="MGDFPreferenceConstants.cpp" />
     <ClCompile Include="MGDFHostStats.cpp" />
+    <ClCompile Include="MGDFTextStream.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -130,6 +131,7 @@
     <ClInclude Include="MGDFParameterConstants.hpp" />
     <ClInclude Include="MGDFPreferenceConstants.hpp" />
     <ClInclude Include="MGDFHostStats.hpp" />
+    <ClInclude Include="MGDFTextStream.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
