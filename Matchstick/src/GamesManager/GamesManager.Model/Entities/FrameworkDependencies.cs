@@ -8,41 +8,41 @@ using Newtonsoft.Json.Linq;
 
 namespace MGDF.GamesManager.Model.Entities
 {
-	public class FrameworkDependencies : JsonEntity
-	{
-		Dictionary<string, string> _dependencies = new Dictionary<string, string>();
+  public class FrameworkDependencies : JsonEntity
+  {
+    Dictionary<string, string> _dependencies = new Dictionary<string, string>();
 
-		//when installed and loaded from the filesystem
-        public FrameworkDependencies(string depsFile)
-			: base(depsFile)
-        {
-        }
+    //when installed and loaded from the filesystem
+    public FrameworkDependencies(string depsFile)
+  : base(depsFile)
+    {
+    }
 
-        //when loaded from an install package
-		public FrameworkDependencies(IArchiveFile depsFile)
-			: base(depsFile)
-        {
-        }
+    //when loaded from an install package
+    public FrameworkDependencies(IArchiveFile depsFile)
+      : base(depsFile)
+    {
+    }
 
-		#region FrameworkDependencies Members
+    #region FrameworkDependencies Members
 
-		public Dictionary<string, string> Dependencies { get { return _dependencies; } }
+    public Dictionary<string, string> Dependencies { get { return _dependencies; } }
 
-        #endregion
+    #endregion
 
-        protected override void Load(JObject json)
-        {
-			var dependencies = json.ReadToken("dependencies"); 
-			if (dependencies == null) throw new Exception("Required attribute 'dependencies' missing");
-			if (dependencies.Type != JTokenType.Array) throw new Exception("Required attribute 'dependencies' is not an array");
+    protected override void Load(JObject json)
+    {
+      var dependencies = json.ReadToken("dependencies");
+      if (dependencies == null) throw new Exception("Required attribute 'dependencies' missing");
+      if (dependencies.Type != JTokenType.Array) throw new Exception("Required attribute 'dependencies' is not an array");
 
-			foreach (var dep in dependencies)
-			{
-				_dependencies.Add(
-					dep.ReadRequiredValue<string>("command"),
-					dep.ReadRequiredValue<string>("arguments")
-				);
-			}
-        }
-	}
+      foreach (var dep in dependencies)
+      {
+        _dependencies.Add(
+          dep.ReadRequiredValue<string>("command"),
+          dep.ReadRequiredValue<string>("arguments")
+        );
+      }
+    }
+  }
 }

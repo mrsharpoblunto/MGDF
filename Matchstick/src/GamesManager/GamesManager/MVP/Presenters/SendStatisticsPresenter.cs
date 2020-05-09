@@ -8,20 +8,20 @@ using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
-    class SendStatisticsPresenter: PresenterBase<ISendStatisticsView>
+  class SendStatisticsPresenter : PresenterBase<ISendStatisticsView>
+  {
+    public SendStatisticsPresenter(Game game)
     {
-        public SendStatisticsPresenter(Game game)
-        {
-            UserPermissionGranted = false;
-            View.Game = game;
-            View.OnAllow += (s, e) =>
-                                {
-                                    UserPermissionGranted = true;
-                                    CloseView();
-                                };
-            View.OnDeny += (s, e) => CloseView();
-        }
-
-        public bool UserPermissionGranted { get; private set; }
+      UserPermissionGranted = false;
+      View.Game = game;
+      View.OnAllow += (s, e) =>
+                          {
+                            UserPermissionGranted = true;
+                            CloseView();
+                          };
+      View.OnDeny += (s, e) => CloseView();
     }
+
+    public bool UserPermissionGranted { get; private set; }
+  }
 }

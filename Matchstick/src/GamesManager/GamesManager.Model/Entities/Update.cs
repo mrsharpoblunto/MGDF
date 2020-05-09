@@ -4,45 +4,45 @@ using Newtonsoft.Json.Linq;
 
 namespace MGDF.GamesManager.Model.Entities
 {
-    public class Update: JsonEntity
+  public class Update : JsonEntity
+  {
+    public Version UpdateMinVersion { get; private set; }
+    public Version UpdateMaxVersion { get; private set; }
+
+    private readonly List<string> _removeFiles = new List<string>();
+    public List<string> RemoveFiles { get { return _removeFiles; } }
+
+    public Game UpdateTarget
     {
-        public Version UpdateMinVersion { get; private set; }
-        public Version UpdateMaxVersion { get; private set; }
-
-        private readonly List<string> _removeFiles = new List<string>();
-        public List<string> RemoveFiles { get { return _removeFiles; } }
-
-        public Game UpdateTarget
-        {
-            get { return _updateTarget; }
-        }
-
-        private readonly Game _updateTarget;
-
-        public Update(Game upgadeTarget, IArchiveFile updateFile)
-            : base(updateFile)
-        {
-            _updateTarget = upgadeTarget;
-
-            if (UpdateMinVersion >= upgadeTarget.Version || UpdateMaxVersion >= upgadeTarget.Version)
-            {
-                ErrorCollection.Add("UpdateMinVersion and UpdateMaxVersion must be less than the upgraded game version");
-            }
-            else if (UpdateMinVersion > UpdateMaxVersion)
-            {
-                ErrorCollection.Add("UpdateMinVersion must be less than or equal to UpdateMaxVersion");                
-            }
-        }
-
-        protected override void Load(JObject json)
-        {
-            UpdateMinVersion = new Version(json.ReadRequiredValue<string>("updateMinVersion"));
-            UpdateMaxVersion = new Version(json.ReadRequiredValue<string>("updateMaxVersion"));
-             
-            foreach (var child in json.ReadToken("removeFiles").Values<string>())
-            {
-                RemoveFiles.Add(child);
-            }
-        }
+      get { return _updateTarget; }
     }
+
+    private readonly Game _updateTarget;
+
+    public Update(Game upgadeTarget, IArchiveFile updateFile)
+        : base(updateFile)
+    {
+      _updateTarget = upgadeTarget;
+
+      if (UpdateMinVersion >= upgadeTarget.Version || UpdateMaxVersion >= upgadeTarget.Version)
+      {
+        ErrorCollection.Add("UpdateMinVersion and UpdateMaxVersion must be less than the upgraded game version");
+      }
+      else if (UpdateMinVersion > UpdateMaxVersion)
+      {
+        ErrorCollection.Add("UpdateMinVersion must be less than or equal to UpdateMaxVersion");
+      }
+    }
+
+    protected override void Load(JObject json)
+    {
+      UpdateMinVersion = new Version(json.ReadRequiredValue<string>("updateMinVersion"));
+      UpdateMaxVersion = new Version(json.ReadRequiredValue<string>("updateMaxVersion"));
+
+      foreach (var child in json.ReadToken("removeFiles").Values<string>())
+      {
+        RemoveFiles.Add(child);
+      }
+    }
+  }
 }

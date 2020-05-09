@@ -7,32 +7,32 @@ using MGDF.GamesManager.Common;
 
 namespace MGDF.GamesManager.Model
 {
-    public interface IIconManager
+  public interface IIconManager
+  {
+    void CreateIcon(string name, string source, string destination);
+  }
+
+  public class IconManager : IIconManager
+  {
+    public static IIconManager Current
     {
-        void CreateIcon(string name, string source, string destination);
+      get
+      {
+        return ServiceLocator.Current.Get<IIconManager>();
+      }
+      set
+      {
+        ServiceLocator.Current.Register(value);
+      }
     }
 
-    public class IconManager:IIconManager
+    public void CreateIcon(string name, string source, string destination)
     {
-        public static IIconManager Current
-        {
-            get
-            {
-                return ServiceLocator.Current.Get<IIconManager>();
-            }
-            set
-            {
-                ServiceLocator.Current.Register(value);
-            }
-        }
-
-        public void CreateIcon(string name,string source, string destination)
-        {
-            MultiIcon icon = new MultiIcon();
-            SingleIcon single = icon.Add(name);
-            single.CreateFrom(source, IconOutputFormat.FromWinXP);
-            icon.SelectedIndex = 0;
-            icon.Save(destination, MultiIconFormat.ICO);
-        }
+      MultiIcon icon = new MultiIcon();
+      SingleIcon single = icon.Add(name);
+      single.CreateFrom(source, IconOutputFormat.FromWinXP);
+      icon.SelectedIndex = 0;
+      icon.Save(destination, MultiIconFormat.ICO);
     }
+  }
 }

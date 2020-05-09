@@ -5,18 +5,18 @@ using System.Text;
 
 namespace MGDF.GamesManager.Model
 {
-    public enum LongRunningTaskResult
-    {
-        Completed,
-        Cancelled,
-        Error
-    }
+  public enum LongRunningTaskResult
+  {
+    Completed,
+    Cancelled,
+    Error
+  }
 
-    public abstract class LongRunningTask
-    {
-        public uint Progress { get; protected set; }
-        public uint Total { get; protected set; }
+  public abstract class LongRunningTask
+  {
+    public uint Progress { get; protected set; }
+    public uint Total { get; protected set; }
 
-        public abstract LongRunningTaskResult Start();
-    }
+    public abstract LongRunningTaskResult Start();
+  }
 }

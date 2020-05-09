@@ -6,10 +6,8 @@ using System.Text;
 
 namespace MGDF.GamesManager.Common
 {
-    public interface IWCFClient<TChannel> where TChannel: class
-    {
-        TReturn Use<TReturn>(Uri uri,Func<TChannel, TReturn> code);
-    }
-
-
+  public interface IWCFClient<TChannel> where TChannel : class
+  {
+    TReturn Use<TReturn>(Uri uri, Func<TChannel, TReturn> code);
+  }
 }

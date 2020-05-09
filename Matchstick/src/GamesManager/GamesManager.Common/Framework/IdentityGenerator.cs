@@ -4,28 +4,28 @@ using System.Text;
 
 namespace MGDF.GamesManager.Common.Framework
 {
-    public interface IIdentityGenerator
+  public interface IIdentityGenerator
+  {
+    Guid GenerateIdentity();
+  }
+
+  public class IdentityGenerator : IIdentityGenerator
+  {
+    public static IIdentityGenerator Current
     {
-        Guid GenerateIdentity();
+      get
+      {
+        return ServiceLocator.Current.Get<IIdentityGenerator>();
+      }
+      set
+      {
+        ServiceLocator.Current.Register(value);
+      }
     }
 
-    public class IdentityGenerator : IIdentityGenerator
+    public Guid GenerateIdentity()
     {
-        public static IIdentityGenerator Current
-        {
-            get
-            {
-                return ServiceLocator.Current.Get<IIdentityGenerator>();
-            }
-            set
-            {
-                ServiceLocator.Current.Register(value);
-            }
-        }
-
-        public Guid GenerateIdentity()
-        {
-            return Guid.NewGuid();
-        }
+      return Guid.NewGuid();
     }
+  }
 }

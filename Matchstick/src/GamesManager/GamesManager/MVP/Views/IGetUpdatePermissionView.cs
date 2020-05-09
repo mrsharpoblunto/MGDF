@@ -7,9 +7,9 @@ using MGDF.GamesManager.Model.Entities;
 
 namespace MGDF.GamesManager.MVP.Views
 {
-    interface IGetUpdatePermissionView:IView 
-    {
-        event EventHandler OnUpdate;
-        Game Game { set; }
-    }
+  interface IGetUpdatePermissionView : IView
+  {
+    event EventHandler OnUpdate;
+    Game Game { set; }
+  }
 }

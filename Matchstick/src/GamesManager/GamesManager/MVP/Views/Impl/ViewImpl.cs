@@ -6,16 +6,16 @@ using MGDF.GamesManager.Controls;
 
 namespace MGDF.GamesManager.MVP.Views.Impl
 {
-    class ViewImpl
+  class ViewImpl
+  {
+    public static void RegisterViews()
     {
-        public static void RegisterViews()
-        {
-            ViewFactory.Current.RegisterView<IGetCredentialsView,GetCredentialsView>();
-            ViewFactory.Current.RegisterView<IGetUpdatePermissionView, GetUpdatePermissionView>();
-            ViewFactory.Current.RegisterView<IProgressView, ProgressView>();
-            ViewFactory.Current.RegisterView<ISendStatisticsView, SendStatisticsView>();
-            ViewFactory.Current.RegisterView<ISubmitErrorEmailView, SubmitErrorEmailView>();
-            ViewFactory.Current.RegisterView<ISubmitErrorS3View, SubmitErrorS3View>();
-        }
+      ViewFactory.Current.RegisterView<IGetCredentialsView, GetCredentialsView>();
+      ViewFactory.Current.RegisterView<IGetUpdatePermissionView, GetUpdatePermissionView>();
+      ViewFactory.Current.RegisterView<IProgressView, ProgressView>();
+      ViewFactory.Current.RegisterView<ISendStatisticsView, SendStatisticsView>();
+      ViewFactory.Current.RegisterView<ISubmitErrorEmailView, SubmitErrorEmailView>();
+      ViewFactory.Current.RegisterView<ISubmitErrorS3View, SubmitErrorS3View>();
     }
+  }
 }

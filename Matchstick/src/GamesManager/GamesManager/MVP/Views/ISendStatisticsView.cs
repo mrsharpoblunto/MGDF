@@ -7,11 +7,11 @@ using MGDF.GamesManager.Model.Entities;
 
 namespace MGDF.GamesManager.MVP.Views
 {
-    interface ISendStatisticsView: IView
-    {
-        event EventHandler OnAllow;
-        event EventHandler OnDeny;
+  interface ISendStatisticsView : IView
+  {
+    event EventHandler OnAllow;
+    event EventHandler OnDeny;
 
-        Game Game { set; }
-    }
+    Game Game { set; }
+  }
 }

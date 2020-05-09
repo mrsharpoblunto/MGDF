@@ -8,115 +8,115 @@ using MGDF.GamesManager.Common.Framework;
 
 namespace MGDF.GamesManager.Common.Extensions
 {
-    public static class FileSystemExtensions
+  public static class FileSystemExtensions
+  {
+    public const int RetryCount = 8;
+    public const int RetryWaitInterval = 250;
+
+    public static void DeleteWithTimeout(this IFile file)
     {
-        public const int RetryCount = 8;
-        public const int RetryWaitInterval = 250;
+      int retryCount = 0;
 
-        public static void DeleteWithTimeout(this IFile file)
+      while (retryCount++ < RetryCount)
+      {
+        try
         {
-            int retryCount = 0;
-
-            while (retryCount++ < RetryCount)
-            {
-                try
-                {
-                    if (file.Exists)
-                    {
-                        file.Delete();
-                    }
-                    return;
-                }
-                catch (IOException ex)
-                {
-                    if (retryCount == RetryCount)
-                    {
-                        throw ex;
-                    }
-                    else
-                    {
-                        Thread.Sleep(RetryWaitInterval);
-                    }
-                }
-            }
+          if (file.Exists)
+          {
+            file.Delete();
+          }
+          return;
         }
-
-        public static void DeleteWithTimeout(this IDirectory directory)
+        catch (IOException ex)
         {
-            int retryCount = 0;
-
-            while (retryCount++ < RetryCount)
-            {
-                try
-                {
-                    if (directory.Exists)
-                    {
-                        directory.Delete();
-                    }
-                    return;
-                }
-                catch (IOException ex)
-                {
-                    if (retryCount == RetryCount)
-                    {
-                        throw ex;
-                    }
-                    else
-                    {
-                        Thread.Sleep(RetryWaitInterval);
-                    }
-                }
-            }
+          if (retryCount == RetryCount)
+          {
+            throw ex;
+          }
+          else
+          {
+            Thread.Sleep(RetryWaitInterval);
+          }
         }
-
-        public static Stream OpenStreamWithTimeout(this IFile file, FileMode mode, FileAccess access, FileShare share)
-        {
-            int retryCount = 0;
-
-            while (retryCount++ < RetryCount)
-            {
-                try
-                {
-                    return file.OpenStream(mode, access, share);
-                }
-                catch (IOException ex)
-                {
-                    if (retryCount == RetryCount)
-                    {
-                        throw ex;
-                    }
-                    else
-                    {
-                        Thread.Sleep(RetryWaitInterval);
-                    }
-                }
-            }
-            return null;
-        }
-
-        public static Stream OpenStreamWithTimeout(this IFile file, FileMode mode)
-        {
-            int retryCount = 0;
-
-            while (retryCount++ < RetryCount)
-            {
-                try
-                {
-                    return file.OpenStream(mode);
-                }
-                catch (IOException ex)
-                {
-                    if (retryCount == RetryCount)
-                    {
-                        throw ex;
-                    }
-                    else
-                    {
-                        Thread.Sleep(RetryWaitInterval);
-                    }
-                }
-            }
-            return null;
-        }
+      }
     }
+
+    public static void DeleteWithTimeout(this IDirectory directory)
+    {
+      int retryCount = 0;
+
+      while (retryCount++ < RetryCount)
+      {
+        try
+        {
+          if (directory.Exists)
+          {
+            directory.Delete();
+          }
+          return;
+        }
+        catch (IOException ex)
+        {
+          if (retryCount == RetryCount)
+          {
+            throw ex;
+          }
+          else
+          {
+            Thread.Sleep(RetryWaitInterval);
+          }
+        }
+      }
+    }
+
+    public static Stream OpenStreamWithTimeout(this IFile file, FileMode mode, FileAccess access, FileShare share)
+    {
+      int retryCount = 0;
+
+      while (retryCount++ < RetryCount)
+      {
+        try
+        {
+          return file.OpenStream(mode, access, share);
+        }
+        catch (IOException ex)
+        {
+          if (retryCount == RetryCount)
+          {
+            throw ex;
+          }
+          else
+          {
+            Thread.Sleep(RetryWaitInterval);
+          }
+        }
+      }
+      return null;
+    }
+
+    public static Stream OpenStreamWithTimeout(this IFile file, FileMode mode)
+    {
+      int retryCount = 0;
+
+      while (retryCount++ < RetryCount)
+      {
+        try
+        {
+          return file.OpenStream(mode);
+        }
+        catch (IOException ex)
+        {
+          if (retryCount == RetryCount)
+          {
+            throw ex;
+          }
+          else
+          {
+            Thread.Sleep(RetryWaitInterval);
+          }
+        }
+      }
+      return null;
+    }
+  }
 }
