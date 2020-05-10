@@ -1,12 +1,13 @@
 #pragma once
 
 #include <dwrite_1.h>
-#include <string>
-#include <vector>
-#include <functional>
+
 #include <algorithm>
+#include <functional>
 #include <sstream>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace MGDF {
 namespace core {

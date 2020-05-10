@@ -1,16 +1,16 @@
 #pragma once
 
-namespace MGDF
-{
+namespace MGDF {
 
 /**
- this class provides a simple readonly wrapper for the std library vector class to enable implementation independent lists to be passed to modules
+ this class provides a simple readonly wrapper for the std library vector class
+ to enable implementation independent lists to be passed to modules
 */
-#define DECLARE_LIST(className,typeName) class className## \
-{ \
-public: \
-	virtual size_t  Size() const=0; \
-	virtual typeName  Get(size_t index) const=0; \
-};
+#define DECLARE_LIST(className, typeName)         \
+  class className##{                              \
+   public:                                        \
+    virtual size_t Size() const = 0;              \
+    virtual typeName Get(size_t index) const = 0; \
+  };
 
-}
+}  // namespace MGDF

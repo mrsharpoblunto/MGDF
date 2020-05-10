@@ -1,2 +1,5 @@
 BasedOnStyle: Google
-SortIncludes: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: 'stdafx.h'
+    Priority: -1

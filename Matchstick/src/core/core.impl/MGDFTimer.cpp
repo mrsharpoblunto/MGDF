@@ -1,9 +1,12 @@
 #include "StdAfx.h"
 
+#include "MGDFTimer.hpp"
+
 #include <math.h>
 #include <mmsystem.h>
+
 #include <map>
-#include "MGDFTimer.hpp"
+
 #include "../common/MGDFLoggerImpl.hpp"
 
 #if defined(_DEBUG)

@@ -2,21 +2,17 @@
 
 #include <MGDF/MGDF.hpp>
 
-namespace MGDF
-{
-namespace core
-{
-namespace tests
-{
+namespace MGDF {
+namespace core {
+namespace tests {
 
-class MockErrorHandler: public IErrorHandler
-{
-public:
-	MockErrorHandler() {}
-	virtual ~MockErrorHandler() {}
-	void FatalError( const char *sender, const char *message ) override {}
+class MockErrorHandler : public IErrorHandler {
+ public:
+  MockErrorHandler() {}
+  virtual ~MockErrorHandler() {}
+  void FatalError(const char *sender, const char *message) override {}
 };
 
-}
-}
-}
+}  // namespace tests
+}  // namespace core
+}  // namespace MGDF

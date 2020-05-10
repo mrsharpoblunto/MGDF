@@ -7,8 +7,8 @@
 #include <string>
 
 #include "MGDFHostStats.hpp"
-#include "MGDFTimer.hpp"
 #include "MGDFTextStream.hpp"
+#include "MGDFTimer.hpp"
 
 namespace MGDF {
 namespace core {

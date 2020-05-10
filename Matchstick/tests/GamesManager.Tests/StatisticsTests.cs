@@ -13,63 +13,63 @@ using NUnit.Framework;
 
 namespace MGDF.GamesManager.Tests
 {
-    [TestFixture]
-    public class StatisticsTests: BaseTest
+  [TestFixture]
+  public class StatisticsTests : BaseTest
+  {
+
+    [SetUp]
+    public virtual void SetUp()
     {
+      Config.Current = new MockConfig();
+      TimeService.Current = new MockTimeService(new DateTime(2009, 10, 10));
+      FileSystem.Current = new MockFileSystem();
+      Logger.Current = new MockLogger();
+      SettingsManager.Dispose();
+      Resources.UninitUserDirectory();
+      base.Setup();
+    }
 
-        [SetUp]
-        public virtual void SetUp()
-        {
-            Config.Current = new MockConfig();
-            TimeService.Current = new MockTimeService(new DateTime(2009, 10, 10));
-            FileSystem.Current = new MockFileSystem();
-            Logger.Current = new MockLogger();
-            SettingsManager.Dispose();
-            Resources.UninitUserDirectory();
-            base.Setup();
-        }
-
-        [Test]
-        public void TestStatisticsManager()
-        {
-            FileSystem.Current.GetFile("C:\\stats.txt").WriteText(@"0:key value
+    [Test]
+    public void TestStatisticsManager()
+    {
+      FileSystem.Current.GetFile("C:\\stats.txt").WriteText(@"0:key value
 1223:key1 value1
 122444:key2 value2
-122445:"+new String('a',256)+" "+new String('b',256)+@"
+122445:" + new String('a', 256) + " " + new String('b', 256) + @"
 ");
-            StatisticsSession session = new StatisticsSession("game1", "http://stats.junkship.org", "c:\\stats.txt");
+      StatisticsSession session = new StatisticsSession("game1", "http://stats.junkship.org", "c:\\stats.txt");
 
-			var statisticsService = new MockStatisticsService();
-			StatisticsServiceClient.ServiceFactory = ()=>new MockWCFClient<IStatisticsService>(statisticsService);
-            StatisticsServiceClient client = new StatisticsServiceClient(session);
+      var statisticsService = new MockStatisticsService();
+      StatisticsServiceClient.ServiceFactory = () => new MockWCFClient<IStatisticsService>(statisticsService);
+      StatisticsServiceClient client = new StatisticsServiceClient(session);
 
-            List<string> errors = new List<string>();
-            client.SendStatistics(errors);
+      List<string> errors = new List<string>();
+      client.SendStatistics(errors);
 
-            Assert.AreEqual(0, errors.Count);
+      Assert.AreEqual(0, errors.Count);
 
-			var uploadedStats = statisticsService.Statistics;
-            Assert.AreEqual(4, uploadedStats.Count);
-            Assert.AreEqual("key", uploadedStats[0].Name);
-            Assert.AreEqual("value", uploadedStats[0].Value);
-			Assert.AreEqual(0, uploadedStats[0].Timestamp);
-            Assert.AreEqual("key1", uploadedStats[1].Name);
-            Assert.AreEqual("value1", uploadedStats[1].Value);
-			Assert.AreEqual(1223, uploadedStats[1].Timestamp);
-            Assert.AreEqual("key2", uploadedStats[2].Name);
-            Assert.AreEqual("value2", uploadedStats[2].Value);
-			Assert.AreEqual(122444, uploadedStats[2].Timestamp);
-			Assert.AreEqual(new String('a', 255), uploadedStats[3].Name);
-			Assert.AreEqual(new String('b', 255), uploadedStats[3].Value);
-			Assert.AreEqual(122445, uploadedStats[3].Timestamp);
-			Assert.AreEqual(uploadedStats[0].SessionId, uploadedStats[3].SessionId);
-			Assert.IsTrue(!string.IsNullOrEmpty(uploadedStats[0].SessionId));
-        }
+      var uploadedStats = statisticsService.Statistics;
+      Assert.AreEqual(4, uploadedStats.Count);
+      Assert.AreEqual("key", uploadedStats[0].Name);
+      Assert.AreEqual("value", uploadedStats[0].Value);
+      Assert.AreEqual(0, uploadedStats[0].Timestamp);
+      Assert.AreEqual("key1", uploadedStats[1].Name);
+      Assert.AreEqual("value1", uploadedStats[1].Value);
+      Assert.AreEqual(1223, uploadedStats[1].Timestamp);
+      Assert.AreEqual("key2", uploadedStats[2].Name);
+      Assert.AreEqual("value2", uploadedStats[2].Value);
+      Assert.AreEqual(122444, uploadedStats[2].Timestamp);
+      Assert.AreEqual(new String('a', 255), uploadedStats[3].Name);
+      Assert.AreEqual(new String('b', 255), uploadedStats[3].Value);
+      Assert.AreEqual(122445, uploadedStats[3].Timestamp);
+      Assert.AreEqual(uploadedStats[0].SessionId, uploadedStats[3].SessionId);
+      Assert.IsTrue(!string.IsNullOrEmpty(uploadedStats[0].SessionId));
+    }
 
-        [Test]
-        public void TestCanSendStatisticsDeniedNoPrivacyPolicy()
-        {
-            const string gameContent = @"{
+    [Test]
+    public void TestCanSendStatisticsDeniedNoPrivacyPolicy()
+    {
+      const string gameContent = @"{
   ""gameUid"":""Console"",
   ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
@@ -83,17 +83,17 @@ namespace MGDF.GamesManager.Tests
   ""supportEmail"":""support@junkship.org""
 }";
 
-            MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.json", gameContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
+      MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
+      gameDirectory.AddFile("game.json", gameContent);
+      Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
-            Assert.IsFalse(StatisticsSession.CanSendStatistics(game));        
-        }
+      Assert.IsFalse(StatisticsSession.CanSendStatistics(game));
+    }
 
-        [Test]
-        public void TestCanSendStatistics()
-        {
-            const string gmeContent = @"{
+    [Test]
+    public void TestCanSendStatistics()
+    {
+      const string gmeContent = @"{
   ""gameUid"":""Console"",
   ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
@@ -108,19 +108,19 @@ namespace MGDF.GamesManager.Tests
   ""supportEmail"":""support@junkship.org""
 }";
 
-            MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.json", gmeContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
+      MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
+      gameDirectory.AddFile("game.json", gmeContent);
+      Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
-            Assert.IsTrue(StatisticsSession.CanSendStatistics(game));
-        }
+      Assert.IsTrue(StatisticsSession.CanSendStatistics(game));
+    }
 
-        [Test]
-        public void TestLoadSaveStatisticsPermission()
-        {
-            Resources.InitUserDirectory("foo", false);
-            MockDirectory userDirectory = ((MockDirectory)MockFileSystem.GetDirectory(Resources.GameUserDir));
-            var file = userDirectory.AddFile("GamesManagerSettings.json", @"{
+    [Test]
+    public void TestLoadSaveStatisticsPermission()
+    {
+      Resources.InitUserDirectory("foo", false);
+      MockDirectory userDirectory = ((MockDirectory)MockFileSystem.GetDirectory(Resources.GameUserDir));
+      var file = userDirectory.AddFile("GamesManagerSettings.json", @"{
     ""game"": {
         ""uid"": ""foo"",
         ""userName"": ""bar"",
@@ -128,15 +128,15 @@ namespace MGDF.GamesManager.Tests
         ""statisticsServiceEnabled"": true
     }
 }");
-            Assert.AreEqual(SettingsManager.Instance.Settings.GameUid, "foo");
-            Assert.AreEqual(SettingsManager.Instance.Settings.UserName, "bar");
-            Assert.AreEqual(SettingsManager.Instance.Settings.Password , "baz");
-            Assert.IsTrue(SettingsManager.Instance.Settings.StatisticsServiceEnabled.HasValue);
-            Assert.IsTrue(SettingsManager.Instance.Settings.StatisticsServiceEnabled.Value);
+      Assert.AreEqual(SettingsManager.Instance.Settings.GameUid, "foo");
+      Assert.AreEqual(SettingsManager.Instance.Settings.UserName, "bar");
+      Assert.AreEqual(SettingsManager.Instance.Settings.Password, "baz");
+      Assert.IsTrue(SettingsManager.Instance.Settings.StatisticsServiceEnabled.HasValue);
+      Assert.IsTrue(SettingsManager.Instance.Settings.StatisticsServiceEnabled.Value);
 
-            SettingsManager.Dispose();
+      SettingsManager.Dispose();
 
-            file.WriteText(@"{
+      file.WriteText(@"{
     ""game"": {
         ""uid"": ""foo"",
         ""userName"": ""bar"",
@@ -144,13 +144,13 @@ namespace MGDF.GamesManager.Tests
     }
 }");
 
-            Assert.IsFalse(SettingsManager.Instance.Settings.StatisticsServiceEnabled.HasValue);
-        }
+      Assert.IsFalse(SettingsManager.Instance.Settings.StatisticsServiceEnabled.HasValue);
+    }
 
-        [Test]
-        public void TestGetStatisticsPermissionCachedPermission()
-        {
-            const string gameContent = @"{
+    [Test]
+    public void TestGetStatisticsPermissionCachedPermission()
+    {
+      const string gameContent = @"{
   ""gameuid"":""Console"",
   ""gamename"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
@@ -165,29 +165,29 @@ namespace MGDF.GamesManager.Tests
   ""supportemail"":""support@junkship.org""
 }";
 
-            MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.json", gameContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
+      MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
+      gameDirectory.AddFile("game.json", gameContent);
+      Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
-            Resources.InitUserDirectory("Console", false);
-            SettingsManager.Instance.Settings = new GameSettings();
-            SettingsManager.Instance.Settings.GameUid = "Console";
-            SettingsManager.Instance.Settings.StatisticsServiceEnabled = true;
-            SettingsManager.Instance.Save();
+      Resources.InitUserDirectory("Console", false);
+      SettingsManager.Instance.Settings = new GameSettings();
+      SettingsManager.Instance.Settings.GameUid = "Console";
+      SettingsManager.Instance.Settings.StatisticsServiceEnabled = true;
+      SettingsManager.Instance.Save();
 
-            Assert.IsTrue(StatisticsSession.GetStatisticsPermission(game, args =>
-                                                               {
-                                                                   Assert.Fail("This get permission callback shouldn't be called when the permission has been cached");
-                                                                   return false;
-                                                               }));
+      Assert.IsTrue(StatisticsSession.GetStatisticsPermission(game, args =>
+                                                         {
+                                                           Assert.Fail("This get permission callback shouldn't be called when the permission has been cached");
+                                                           return false;
+                                                         }));
 
-        }
+    }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void TestGetStatisticsPermissionNoCachedPermission(bool allow)
-        {
-            const string gmeContent = @"{
+    [TestCase(false)]
+    [TestCase(true)]
+    public void TestGetStatisticsPermissionNoCachedPermission(bool allow)
+    {
+      const string gmeContent = @"{
   ""gameUid"":""Console"",
   ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
@@ -202,16 +202,16 @@ namespace MGDF.GamesManager.Tests
   ""supportEmail"":""support@junkship.org""
 }";
 
-            MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-            gameDirectory.AddFile("game.json", gmeContent);
-            Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
+      MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
+      gameDirectory.AddFile("game.json", gmeContent);
+      Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
-            Resources.InitUserDirectory("Console", false);
+      Resources.InitUserDirectory("Console", false);
 
-            Assert.AreEqual(allow,StatisticsSession.GetStatisticsPermission(game, args => allow));
+      Assert.AreEqual(allow, StatisticsSession.GetStatisticsPermission(game, args => allow));
 
-            Assert.AreEqual(SettingsManager.Instance.Settings.GameUid,"Console");
-            Assert.AreEqual(allow,SettingsManager.Instance.Settings.StatisticsServiceEnabled.Value);
-        }
+      Assert.AreEqual(SettingsManager.Instance.Settings.GameUid, "Console");
+      Assert.AreEqual(allow, SettingsManager.Instance.Settings.StatisticsServiceEnabled.Value);
     }
+  }
 }

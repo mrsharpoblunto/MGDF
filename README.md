@@ -24,12 +24,12 @@ This is written in c++ and is the part of the framework which actually runs the 
 This is written in C# (.NET 4.6) and consists a windows forms application which provides a graphical user interface for launching and updating games.
 
 ### Statistics services (Optional)
-This is written in c# (.NET 4.6) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user. This service exposes a simple json API and could be implemented using a non .NET backend if required.
+This is written in c# (.NET 4.6) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user. This service exposes a simple REST API and could be implemented using a non .NET backend if required.
 
 Building Source
 ---------------
 
-* Using Microsoft Visual Studio 2017 build Matchstick/Matchstick.sln in x64 debug/release configurations
+* Using Microsoft Visual Studio 2019 build Matchstick/Matchstick.sln in x64 debug/release configurations
 
 Running unit tests
 ------------------

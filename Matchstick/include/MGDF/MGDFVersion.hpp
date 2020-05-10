@@ -1,13 +1,12 @@
 #pragma once
 
-namespace MGDF
-{
+namespace MGDF {
 
 /**
  Contains the framework version information
  */
 struct Version {
-	INT32 Major, Minor, Build, Revision;
+  INT32 Major, Minor, Build, Revision;
 };
 
-}
+}  // namespace MGDF

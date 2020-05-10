@@ -2,19 +2,20 @@
 
 #include <d3d11.h>
 
-#include <MGDF/MGDFVersion.hpp>
+#include <MGDF/MGDFDebug.hpp>
 #include <MGDF/MGDFError.hpp>
 #include <MGDF/MGDFErrorHandler.hpp>
-#include <MGDF/MGDFModule.hpp>
 #include <MGDF/MGDFGame.hpp>
+#include <MGDF/MGDFInputManager.hpp>
 #include <MGDF/MGDFList.hpp>
 #include <MGDF/MGDFLogger.hpp>
-#include <MGDF/MGDFSoundManager.hpp>
-#include <MGDF/MGDFVirtualFileSystem.hpp>
-#include <MGDF/MGDFStatisticsManager.hpp>
+#include <MGDF/MGDFModule.hpp>
 #include <MGDF/MGDFRenderSettingsManager.hpp>
+#include <MGDF/MGDFSoundManager.hpp>
+#include <MGDF/MGDFStatisticsManager.hpp>
 #include <MGDF/MGDFTimer.hpp>
-#include <MGDF/MGDFDebug.hpp>
+#include <MGDF/MGDFVersion.hpp>
+#include <MGDF/MGDFVirtualFileSystem.hpp>
 
 namespace MGDF {
 

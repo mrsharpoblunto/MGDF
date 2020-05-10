@@ -6,21 +6,21 @@ using MGDF.GamesManager.Model;
 
 namespace MGDF.GamesManager.Tests.Common.Mocks
 {
-    public class MockConfig: IConfig
+  public class MockConfig : IConfig
+  {
+    public bool AutoRegisterOnUpdate
     {
-        public bool AutoRegisterOnUpdate
-        {
-            get { return true; }
-        }
-
-        public bool AutoUpdateFramework
-        {
-            get { return true; }
-        }
-
-        public string FrameworkUpdateSite
-        {
-            get { return "http://www.matchstickframework.org"; }
-        }
+      get { return true; }
     }
+
+    public bool AutoUpdateFramework
+    {
+      get { return true; }
+    }
+
+    public string FrameworkUpdateSite
+    {
+      get { return "http://www.matchstickframework.org"; }
+    }
+  }
 }

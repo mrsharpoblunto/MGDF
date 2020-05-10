@@ -1,13 +1,14 @@
 #pragma once
 
 #include <d3d11.h>
-#include <vector>
+
+#include <MGDF/MGDFTimer.hpp>
+#include <deque>
 #include <list>
 #include <mutex>
-#include <deque>
 #include <stack>
 #include <unordered_map>
-#include <MGDF/MGDFTimer.hpp>
+#include <vector>
 
 #include "MGDFTextStream.hpp"
 

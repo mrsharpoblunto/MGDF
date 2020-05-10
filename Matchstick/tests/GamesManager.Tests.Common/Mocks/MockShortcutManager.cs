@@ -7,22 +7,22 @@ using MGDF.GamesManager.Model;
 
 namespace MGDF.GamesManager.Tests.Common.Mocks
 {
-    public class MockShortcutManager: IShortcutManager
+  public class MockShortcutManager : IShortcutManager
+  {
+    public void CreateShortcut(string path, string filename, string args, string icon)
     {
-        public void CreateShortcut(string path, string filename, string args, string icon)
-        {
-            FileSystem.Current.GetFile(path).WriteText("SHORTCUT");
-        }
-
-        public void DeleteShortcut(string path)
-        {
-            var shortcut = FileSystem.Current.GetFile(path);
-            shortcut.Delete();
-        }
-
-        public bool HasShortcut(string path)
-        {
-            return FileSystem.Current.FileExists(path);
-        }
+      FileSystem.Current.GetFile(path).WriteText("SHORTCUT");
     }
+
+    public void DeleteShortcut(string path)
+    {
+      var shortcut = FileSystem.Current.GetFile(path);
+      shortcut.Delete();
+    }
+
+    public bool HasShortcut(string path)
+    {
+      return FileSystem.Current.FileExists(path);
+    }
+  }
 }
