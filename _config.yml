@@ -7,8 +7,8 @@ description: > # this means to ignore newlines until "baseurl:"
 url: "http://matchstickframework.org" # the base hostname & protocol for your site
 twitter_username: mr_sharpoblunto
 github_username:  mrsharpoblunto
-sdkversion: "0.13.5"
-sdkdownloadurl: "https://s3.matchstickframework.org/MGDF_0.13.5_SDK.zip" 
+sdkversion: "0.14.0"
+sdkdownloadurl: "https://s3.matchstickframework.org/MGDF_0.14.0_SDK.zip" 
 
 # Build settings
 markdown: kramdown
