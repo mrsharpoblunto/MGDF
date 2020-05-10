@@ -84,7 +84,7 @@ class ICommonHost : public virtual IErrorHandler {
 
   /**
   show the onscreen debug overlay
-  \return whether the onscreen debug overlay is currently set to be shown
+  \return whether the onscreen overlay controller
   */
   virtual IDebug *GetDebug() const = 0;
 };
