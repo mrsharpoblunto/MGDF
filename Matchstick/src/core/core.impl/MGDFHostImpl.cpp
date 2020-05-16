@@ -9,7 +9,6 @@
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
-#include "MGDFComponents.hpp"
 #include "MGDFCurrentDirectoryHelper.hpp"
 #include "MGDFParameterConstants.hpp"
 #include "MGDFPreferenceConstants.hpp"
@@ -34,8 +33,9 @@ void IHostImpl::SetFatalErrorHandler(const FatalErrorFunction handler) {
   _fatalErrorHandler = handler;
 }
 
-MGDFError Host::TryCreate(Game *game, Host **host) {
-  *host = new Host(game);
+MGDFError Host::TryCreate(Game *game, HostComponents &components, Host **host) {
+  *host = new Host(game, components);
+
   MGDFError error = (*host)->Init();
   if (MGDF_OK != error) {
     delete *host;
@@ -44,23 +44,27 @@ MGDFError Host::TryCreate(Game *game, Host **host) {
   return error;
 }
 
-Host::Host(Game *game)
+Host::Host(Game *game, HostComponents &components)
     : _game(game),
       _timer(nullptr),
       _debugOverlay(nullptr),
       _saves(nullptr),
       _module(nullptr),
       _version(VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION())),
-      _storage(Components::Instance().Get<storage::IStorageFactoryComponent>()),
-      _input(Components::Instance().Get<input::IInputManagerComponent>()),
-      _sound(Components::Instance().Get<audio::ISoundManagerComponent>()),
-      _vfs(Components::Instance().Get<vfs::IVirtualFileSystemComponent>()),
+      _storage(components.Storage),
+      _input(components.Input),
+      _sound(components.Sound),
+      _vfs(components.VFS),
       _stats(new StatisticsManager()),
       _d3dDevice(nullptr),
       _d3dContext(nullptr),
       _d2dDevice(nullptr),
       _backBuffer(nullptr) {
   _shutdownQueued.store(false);
+  _storage->SetComponentErrorHandler(this);
+  _input->SetComponentErrorHandler(this);
+  _sound->SetComponentErrorHandler(this);
+  _vfs->SetComponentErrorHandler(this);
   _ASSERTE(game);
 }
 
@@ -128,6 +132,11 @@ Host::~Host(void) {
   delete _stats;
   delete _moduleFactory;
 
+  // TODO remove once these are COM'ified
+  delete _sound;
+  delete _vfs;
+  delete _storage;
+
   LOG("Uninitialised host successfully", LOG_LOW);
 }
 
@@ -139,8 +148,8 @@ ComObject<Debug> Host::GetDebugImpl() { return _debugOverlay; }
 
 RenderSettingsManager &Host::GetRenderSettingsImpl() { return _renderSettings; }
 
-input::IInputManagerComponent &Host::GetInputManagerImpl() const {
-  return *_input;
+ComObject<input::IInputManagerComponent> Host::GetInputManagerImpl() {
+  return _input;
 }
 
 UINT32 Host::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
@@ -587,7 +596,9 @@ IStatisticsManager *Host::GetStatistics() const { return _stats; }
 
 IVirtualFileSystem *Host::GetVFS() const { return _vfs; }
 
-IInputManager *Host::GetInput() const { return _input; }
+void Host::GetInput(IInputManager **input) {
+  _input.AssignToRaw<IInputManager>(input);
+}
 
 ISoundManager *Host::GetSound() const { return _sound; }
 

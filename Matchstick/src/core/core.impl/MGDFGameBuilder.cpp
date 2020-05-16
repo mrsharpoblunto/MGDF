@@ -6,7 +6,6 @@
 
 #include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
-#include "MGDFComponents.hpp"
 #include "MGDFGameImpl.hpp"
 
 #if defined(_DEBUG)
@@ -22,17 +21,15 @@ namespace core {
 // loads the configuration preferences from the core preferences directory as
 // well as the particular configuration defaults, and synchs them up with any
 // customized user preferences
-MGDFError GameBuilder::LoadGame(storage::IGameStorageHandler *handler,
+MGDFError GameBuilder::LoadGame(storage::IStorageFactoryComponent *storage,
+                                storage::IGameStorageHandler *handler,
                                 Game **game) {
   _ASSERTE(handler);
   _ASSERTE(handler->GetVersion());
 
-  storage::IStorageFactoryComponent *storageFactory =
-      Components::Instance().Get<storage::IStorageFactoryComponent>();
-
-  *game = new Game(handler->GetGameUid(), handler->GetGameName(),
-                   handler->GetInterfaceVersion(), handler->GetVersion(),
-                   storageFactory);
+  *game =
+      new Game(handler->GetGameUid(), handler->GetGameName(),
+               handler->GetInterfaceVersion(), handler->GetVersion(), storage);
 
   // load the defaults from the core settings (REQUIRED)
   MGDFError err =
@@ -52,8 +49,8 @@ MGDFError GameBuilder::LoadGame(storage::IGameStorageHandler *handler,
 
   // then if a settings file exists, override these defaults where present
   // this creates a prefs file with the union of all preferences included but
-  // only the most recent values kept (this means it auto updates the preferences
-  // listing to include newly added prefs)
+  // only the most recent values kept (this means it auto updates the
+  // preferences listing to include newly added prefs)
   if (exists(customPref)) {
     err = (*game)->LoadPreferences(customPref.wstring());
     if (MGDF_OK != err) {

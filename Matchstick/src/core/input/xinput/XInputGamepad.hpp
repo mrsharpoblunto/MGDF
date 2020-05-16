@@ -6,12 +6,14 @@
 
 #include <MGDF/MGDF.hpp>
 
+#include "../../common/ComObject.hpp"
+
 namespace MGDF {
 namespace core {
 namespace input {
 namespace xinput {
 
-class XInputGamepad : public IGamepad {
+class XInputGamepad : public ComBase<IGamepad> {
  public:
   XInputGamepad(INT32 id);
   virtual ~XInputGamepad(void){};

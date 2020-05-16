@@ -8,7 +8,8 @@ namespace core {
 
 class GameBuilder {
  public:
-  static MGDFError LoadGame(storage::IGameStorageHandler *handler, Game **game);
+  static MGDFError LoadGame(storage::IStorageFactoryComponent *storage,
+                            storage::IGameStorageHandler *handler, Game **game);
 };
 
 }  // namespace core

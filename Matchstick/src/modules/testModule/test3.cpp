@@ -18,7 +18,10 @@ Test3::Test3() { _testState = 0; }
 TestModule *Test3::NextTestModule() { return NULL; }
 
 void Test3::Update(ISimHost *host, TextManagerState *state) {
-  if (host->GetInput()->IsKeyPress(VK_ESCAPE)) {
+  IInputManager *input;
+  host->GetInput(&input);
+
+  if (input->IsKeyPress(VK_ESCAPE)) {
     host->ShutDown();
   }
 
@@ -134,19 +137,19 @@ void Test3::Update(ISimHost *host, TextManagerState *state) {
         "Press [ALT]+[ENTER] to toggle fullscreen/windowed mode. Then press "
         "[Y/N] if this works correctly");
     _testState++;
-  } else if (_testState == 6 && host->GetInput()->IsKeyPress('Y')) {
+  } else if (_testState == 6 && input->IsKeyPress('Y')) {
     ++_testState;
     state->SetStatus(GREEN, "[Test Passed]");
     state->AddLine(
         "Press [ALT]+[F12] to toggle the  information overlay. Then press "
         "[Y/N] if this works correctly");
-  } else if (_testState == 6 && host->GetInput()->IsKeyPress('N')) {
+  } else if (_testState == 6 && input->IsKeyPress('N')) {
     _testState = 999;
     state->SetStatus(RED, "[Test Failed]");
-  } else if (_testState == 7 && host->GetInput()->IsKeyPress('Y')) {
+  } else if (_testState == 7 && input->IsKeyPress('Y')) {
     _testState = 999;
     state->SetStatus(GREEN, "[Test Passed]");
-  } else if (_testState == 7 && host->GetInput()->IsKeyPress('N')) {
+  } else if (_testState == 7 && input->IsKeyPress('N')) {
     _testState = 999;
     state->SetStatus(RED, "[Test Failed]");
   } else if (_testState == 999) {
@@ -155,6 +158,7 @@ void Test3::Update(ISimHost *host, TextManagerState *state) {
         "All tests complete. Press the [ESC] key to exit (then make sure there "
         "were no memory leaks)");
   }
+  input->Release();
 }
 
 }  // namespace Test

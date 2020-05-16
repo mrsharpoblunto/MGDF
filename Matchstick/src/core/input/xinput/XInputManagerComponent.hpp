@@ -5,13 +5,12 @@
 
 #include "../../common/MGDFListImpl.hpp"
 #include "../MGDFInputManagerComponent.hpp"
+#include "XInputGamepad.hpp"
 
 namespace MGDF {
 namespace core {
 namespace input {
 namespace xinput {
-
-typedef ListImpl<IGamepadList, IGamepad *> GamepadList;
 
 /**
  reference implementation of the inputmanager interface
@@ -20,7 +19,7 @@ typedef ListImpl<IGamepadList, IGamepad *> GamepadList;
 class XInputManagerComponent : public IInputManagerComponent {
  public:
   XInputManagerComponent();
-  virtual ~XInputManagerComponent(void);
+  virtual ~XInputManagerComponent(void) {}
 
   void HandleInput(RAWINPUT *input) override final;
   void HandleInput(INT32 mouseX, INT32 mouseY) override final;
@@ -40,7 +39,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   bool IsButtonDown(Mouse mouseButton) const override final;
   bool IsButtonUp(Mouse mouseButton) const override final;
   bool IsButtonClicked(Mouse mouseButton) override final;
-  const IGamepadList *GetGamepads() const override final;
+  bool GetGamepads(UINT32 *number, IGamepad **gamepads) override final;
 
  private:
   std::mutex _simMutex;
@@ -74,7 +73,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   bool _mouseButtonClick[3];
   INT32 _mouseX, _mouseY;
 
-  GamepadList _gamepads;
+  std::vector<ComObject<XInputGamepad>> _gamepads;
 };
 
 IInputManagerComponent *CreateXInputManagerComponent();

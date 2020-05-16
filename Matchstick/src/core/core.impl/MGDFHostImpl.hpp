@@ -53,13 +53,21 @@ class IHostImpl : public IRenderHost, public ISimHost {
 
 typedef ListImpl<IStringList, const char *> StringList;
 
+struct HostComponents {
+  storage::IStorageFactoryComponent *Storage;
+  ComObject<input::IInputManagerComponent> Input;
+  audio::ISoundManagerComponent *Sound;
+  vfs::IVirtualFileSystemComponent *VFS;
+};
+
 /**
  reference implementation of the Host interfaces
 \author gcconner
 */
 class Host : public IHostImpl {
  public:
-  static MGDFError TryCreate(Game *game, Host **host);
+  static MGDFError TryCreate(Game *game, HostComponents &components,
+                             Host **host);
 
   virtual ~Host(void);
 
@@ -80,7 +88,7 @@ class Host : public IHostImpl {
   UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                        UINT32 *featureLevelsSize);
   RenderSettingsManager &GetRenderSettingsImpl();
-  input::IInputManagerComponent &GetInputManagerImpl() const;
+  ComObject<input::IInputManagerComponent> GetInputManagerImpl();
   ComObject<Debug> GetDebugImpl();
 
   // error handling functions
@@ -106,7 +114,7 @@ class Host : public IHostImpl {
   ISoundManager *GetSound() const override final;
   IStatisticsManager *GetStatistics() const override final;
   IGame *GetGame() const override final;
-  IInputManager *GetInput() const override final;
+  void GetInput(IInputManager **manager) override final;
   void ShutDown() override final;
   const IStringList *GetSaves() const override final;
   void RemoveSave(const char *saveName) override final;
@@ -124,7 +132,7 @@ class Host : public IHostImpl {
       D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const override final;
 
  private:
-  Host(Game *game);
+  Host(Game *game, HostComponents &components);
   MGDFError Init();
 
   void ClearWorkingDirectory();
@@ -133,7 +141,7 @@ class Host : public IHostImpl {
   ModuleFactory *_moduleFactory;
 
   storage::IStorageFactoryComponent *_storage;
-  input::IInputManagerComponent *_input;
+  ComObject<input::IInputManagerComponent> _input;
   audio::ISoundManagerComponent *_sound;
   vfs::IVirtualFileSystemComponent *_vfs;
   ComObject<Debug> _debugOverlay;

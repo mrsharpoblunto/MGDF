@@ -6,15 +6,10 @@
 #include <filesystem>
 #include <fstream>
 
-#include "../audio/MGDFSoundManagerComponentImpl.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFVersionInfo.hpp"
-#include "../input/MGDFInputManagerComponentImpl.hpp"
-#include "../storage/MGDFStorageFactoryComponentImpl.hpp"
-#include "../vfs/MGDFVirtualFileSystemComponentImpl.hpp"
-#include "MGDFComponents.hpp"
 #include "MGDFGameBuilder.hpp"
 #include "MGDFParameterConstants.hpp"
 
@@ -28,7 +23,7 @@ using namespace std::filesystem;
 namespace MGDF {
 namespace core {
 
-bool HostBuilder::RegisterBaseComponents() {
+bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   // init global common components
   InitParameterManager();
   InitResources();
@@ -37,8 +32,7 @@ bool HostBuilder::RegisterBaseComponents() {
   storage::IStorageFactoryComponent *storageImpl =
       storage::CreateStorageFactoryComponentImpl();
   if (storageImpl != nullptr) {
-    Components::Instance().RegisterComponent<storage::IStorageFactoryComponent>(
-        storageImpl);
+    components.Storage = storageImpl;
   } else {
     LOG("FATAL ERROR: Unable to register StorageFactory", LOG_ERROR);
     return false;
@@ -47,12 +41,12 @@ bool HostBuilder::RegisterBaseComponents() {
   return true;
 }
 
-bool HostBuilder::RegisterAdditionalComponents(std::string gameUid) {
+bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
+                                               HostComponents &components) {
   input::IInputManagerComponent *input =
       input::CreateInputManagerComponentImpl();
   if (input != nullptr) {
-    Components::Instance().RegisterComponent<input::IInputManagerComponent>(
-        input);
+    components.Input = input;
   } else {
     LOG("FATAL ERROR: Unable to register InputManager", LOG_ERROR);
     return false;
@@ -61,8 +55,7 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid) {
   vfs::IVirtualFileSystemComponent *vfs =
       vfs::CreateVirtualFileSystemComponentImpl();
   if (vfs != nullptr) {
-    Components::Instance().RegisterComponent<vfs::IVirtualFileSystemComponent>(
-        vfs);
+    components.VFS = vfs;
   } else {
     LOG("FATAL ERROR: Unable to register VirtualFileSystem", LOG_ERROR);
     return false;
@@ -71,8 +64,7 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid) {
   audio::ISoundManagerComponent *audioImpl =
       audio::CreateSoundManagerComponentImpl(vfs);
   if (audioImpl != nullptr) {
-    Components::Instance().RegisterComponent<audio::ISoundManagerComponent>(
-        audioImpl);
+    components.Sound = audioImpl;
   } else {
     // its a problem, but we can still probably run if the soundmanager failed
     // to initialize
@@ -82,34 +74,33 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid) {
   return true;
 }
 
-void HostBuilder::UnregisterComponents() {
-  Components::Instance()
-      .UnregisterComponent<storage::IStorageFactoryComponent>();
-  Components::Instance().UnregisterComponent<input::IInputManagerComponent>();
-  Components::Instance().UnregisterComponent<audio::ISoundManagerComponent>();
-  Components::Instance()
-      .UnregisterComponent<vfs::IVirtualFileSystemComponent>();
+void HostBuilder::UnregisterComponents(HostComponents &components) {
+  // TODO once these are all COM objects -> remove this...
+  SAFE_DELETE(components.Storage);
+  SAFE_DELETE(components.Sound);
+  SAFE_DELETE(components.VFS);
 }
 
 MGDFError HostBuilder::TryCreateHost(Host **host) {
+  HostComponents components;
+  memset(&components, 0, sizeof(HostComponents));
+
   // do the bare minimum setup required to be able to
   // load up the game configuration file
-  if (!RegisterBaseComponents()) {
+  if (!RegisterBaseComponents(components)) {
     return MGDF_ERR_FATAL;
   }
 
   // try and load the game configuration file
-  storage::IStorageFactoryComponent *storageFactory =
-      Components::Instance().Get<storage::IStorageFactoryComponent>();
-  _ASSERTE(storageFactory);
+  _ASSERTE(components.Storage);
 
   std::unique_ptr<storage::IGameStorageHandler> handler(
-      storageFactory->CreateGameStorageHandler());
+      components.Storage->CreateGameStorageHandler());
   _ASSERTE(handler.get());
 
   MGDFError result = handler->Load(Resources::Instance().GameFile());
   if (MGDF_OK != result) {
-    UnregisterComponents();
+    UnregisterComponents(components);
     return result;
   }
 
@@ -119,37 +110,35 @@ MGDFError HostBuilder::TryCreateHost(Host **host) {
   Logger::Instance().MoveOutputFile();
 
   Game *game;
-  result = GameBuilder::LoadGame(handler.get(), &game);
+  result = GameBuilder::LoadGame(components.Storage, handler.get(), &game);
   if (MGDF_OK != result) {
     LOG("FATAL ERROR: Unable to load game configuration", LOG_ERROR);
-    UnregisterComponents();
+    UnregisterComponents(components);
     return result;
   }
 
   // now that the game file loaded, initialize everything else
   // and set the log directory correctly.
-  if (!RegisterAdditionalComponents(game->GetUid())) {
-    UnregisterComponents();
+  if (!RegisterAdditionalComponents(game->GetUid(), components)) {
+    UnregisterComponents(components);
     return MGDF_ERR_FATAL;
   }
 
   if (MGDFVersionInfo::MGDF_INTERFACE_VERSION != game->GetInterfaceVersion()) {
     LOG("FATAL ERROR: Unsupported MGDF Interface version", LOG_ERROR);
     delete game;
-    UnregisterComponents();
+    UnregisterComponents(components);
     return MGDF_ERR_FATAL;
   }
 
   LOG("Creating host...", LOG_LOW);
-  result = Host::TryCreate(game, host);
+  result = Host::TryCreate(game, components, host);
   if (MGDF_OK != result) {
     LOG("FATAL ERROR: Unable to create host", LOG_ERROR);
-    UnregisterComponents();
+    UnregisterComponents(components);
     return result;
   }
 
-  Components::Instance().RegisterComponentErrorHandler(
-      *host);  // register the hosterror handlers with all components
   return MGDF_OK;
 }
 
@@ -157,7 +146,6 @@ void HostBuilder::DisposeHost(Host *host) {
   if (host != nullptr) {
     host->STDisposeModule();
   }
-  UnregisterComponents();
   SAFE_DELETE(host);
 }
 

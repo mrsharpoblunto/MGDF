@@ -101,9 +101,9 @@ class IFile {
    wildcard filter \param filter a user supplied filter to filter the results
    \param childBuffer an array to store the results
    \param bufferLength the length of the childBuffer. Will be set to the length
-   of the buffer required when the method returns \return true if the supplied
-   buffer is large enough to hold all the results, otherwise returns false and
-   sets the size required in bufferLength.
+   of the buffer required when the method returns
+   \return true if the supplied buffer is large enough to hold all the results,
+   otherwise returns false and sets the size required in bufferLength.
    */
   virtual bool GetAllChildren(const IFileFilter *filter, IFile **childBuffer,
                               size_t *bufferLength) const = 0;

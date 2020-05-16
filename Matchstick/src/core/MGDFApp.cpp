@@ -295,13 +295,13 @@ void MGDFApp::OnUpdateSim() {
 
 void MGDFApp::OnRawInput(RAWINPUT *input) {
   _ASSERTE(input);
-  _host->GetInputManagerImpl().HandleInput(input);
+  _host->GetInputManagerImpl()->HandleInput(input);
 }
 
-void MGDFApp::OnClearInput() { _host->GetInputManagerImpl().ClearInput(); }
+void MGDFApp::OnClearInput() { _host->GetInputManagerImpl()->ClearInput(); }
 
 void MGDFApp::OnMouseInput(INT32 x, INT32 y) {
-  _host->GetInputManagerImpl().HandleInput(x, y);
+  _host->GetInputManagerImpl()->HandleInput(x, y);
 }
 
 void MGDFApp::OnExternalClose() { _host->QueueShutDown(); }
@@ -318,7 +318,7 @@ void MGDFApp::OnMoveWindow(INT32 x, INT32 y) {
 }
 
 void MGDFApp::OnBeforeHandleMessage() {
-  _host->GetInputManagerImpl().ProcessInput();
+  _host->GetInputManagerImpl()->ProcessInput();
 }
 
 LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,

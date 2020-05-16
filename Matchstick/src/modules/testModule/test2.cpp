@@ -24,7 +24,10 @@ TestModule *Test2::NextTestModule() {
 }
 
 void Test2::Update(ISimHost *host, TextManagerState *state) {
-  if (host->GetInput()->IsKeyPress(VK_ESCAPE)) {
+  IInputManager *input;
+  host->GetInput(&input);
+
+  if (input->IsKeyPress(VK_ESCAPE)) {
     host->ShutDown();
   }
 
@@ -66,36 +69,36 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
     _sound->Play();
     state->AddLine("Is a sound playing? [Y/N]");
     ++_testState;
-  } else if (_testState == 3 && host->GetInput()->IsKeyPress('Y')) {
+  } else if (_testState == 3 && input->IsKeyPress('Y')) {
     ++_testState;
     state->SetStatus(GREEN, "[Test Passed]");
     state->AddLine(
         "Use arrow keys to change sounds position, press [Y/N] if the sound "
         "adjusts accordingly");
-  } else if (_testState == 3 && host->GetInput()->IsKeyPress('N')) {
+  } else if (_testState == 3 && input->IsKeyPress('N')) {
     _testState = 1000;
     _sound->Release();
     state->SetStatus(RED, "[Test Failed]");
   } else if (_testState == 4) {
-    if (host->GetInput()->IsKeyDown(VK_UP)) {
+    if (input->IsKeyDown(VK_UP)) {
       _sound->GetPosition()->y += 1;
     }
-    if (host->GetInput()->IsKeyDown(VK_DOWN)) {
+    if (input->IsKeyDown(VK_DOWN)) {
       _sound->GetPosition()->y -= 1;
     }
-    if (host->GetInput()->IsKeyDown(VK_LEFT)) {
+    if (input->IsKeyDown(VK_LEFT)) {
       _sound->GetPosition()->x -= 1;
     }
-    if (host->GetInput()->IsKeyDown(VK_RIGHT)) {
+    if (input->IsKeyDown(VK_RIGHT)) {
       _sound->GetPosition()->x += 1;
     }
 
-    if (host->GetInput()->IsKeyPress('Y')) {
+    if (input->IsKeyPress('Y')) {
       ++_testState;
       _sound->Stop();
       _sound->Release();
       state->SetStatus(GREEN, "[Test Passed]");
-    } else if (host->GetInput()->IsKeyPress('N')) {
+    } else if (input->IsKeyPress('N')) {
       _testState = 1000;
       _sound->Stop();
       _sound->Release();
@@ -128,25 +131,25 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
       state->AddLine(
           "Playing stream, press [Y/N] if the stream is actually playing");
     }
-  } else if (_testState == 7 && host->GetInput()->IsKeyPress('Y')) {
+  } else if (_testState == 7 && input->IsKeyPress('Y')) {
     ++_testState;
     state->SetStatus(GREEN, "[Test Passed]");
     state->AddLine(
         "Use [P] to toggle pause/play, press [Y/N] if this is working.");
-  } else if (_testState == 7 && host->GetInput()->IsKeyPress('N')) {
+  } else if (_testState == 7 && input->IsKeyPress('N')) {
     _testState = 1000;
     _stream->Release();
     state->SetStatus(RED, "[Test Failed]");
   } else if (_testState == 8) {
-    if (host->GetInput()->IsKeyPress('Y')) {
+    if (input->IsKeyPress('Y')) {
       _testState = 1000;
       _stream->Release();
       state->SetStatus(GREEN, "[Test Passed]");
-    } else if (host->GetInput()->IsKeyPress('N')) {
+    } else if (input->IsKeyPress('N')) {
       _testState = 1000;
       _stream->Release();
       state->SetStatus(RED, "[Test Failed]");
-    } else if (host->GetInput()->IsKeyPress('P')) {
+    } else if (input->IsKeyPress('P')) {
       if (_stream->IsPaused()) {
         if (MGDF_OK != _stream->Play()) {
           _testState = 1000;
@@ -156,6 +159,7 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
         _stream->Pause();
     }
   }
+  input->Release();
 }
 
 }  // namespace Test

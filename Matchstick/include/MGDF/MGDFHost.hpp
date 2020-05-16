@@ -83,8 +83,8 @@ class ICommonHost : public virtual IErrorHandler {
   virtual const char *GetErrorString(MGDFError err) const = 0;
 
   /**
-  show the onscreen debug overlay
-  \return whether the onscreen overlay controller
+  get the onscreen debug overlay interface
+  \param debug pointer to a IDebug
   */
   virtual void GetDebug(IDebug **debug) = 0;
 };
@@ -217,9 +217,9 @@ class ISimHost : public ICommonHost {
 
   /**
   get the input manager
-  \return the input manager
+  \param manager pointer to an input manager
   */
-  virtual IInputManager *GetInput() const = 0;
+  virtual void GetInput(IInputManager **manager) = 0;
 
   /**
   tells the host to shut down the game immediately

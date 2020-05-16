@@ -3,7 +3,6 @@
 #include "XInputManagerComponent.hpp"
 
 #include "../../common/MGDFLoggerImpl.hpp"
-#include "XInputGamepad.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -33,7 +32,7 @@ XInputManagerComponent::XInputManagerComponent()
       _pendingKeyDownEventsLength(0),
       _pendingKeyPressEventsLength(0) {
   for (INT32 i = 0; i < XUSER_MAX_COUNT; ++i) {
-    _gamepads.Add(new XInputGamepad(i));
+    _gamepads.push_back(ComObject(new XInputGamepad(i)));
   }
   ClearInput();
 }
@@ -49,12 +48,6 @@ void XInputManagerComponent::ClearInput() {
   ZeroMemory(_pendingKeyPressEvents, sizeof(_pendingKeyPressEvents));
   ZeroMemory(_keyDown, sizeof(_keyDown));
   ZeroMemory(_keyPress, sizeof(_keyPress));
-}
-
-XInputManagerComponent::~XInputManagerComponent(void) {
-  for (auto gamepad : *_gamepads.Items()) {
-    delete static_cast<XInputGamepad *>(gamepad);
-  }
 }
 
 void XInputManagerComponent::HandleInput(INT32 mouseX, INT32 mouseY) {
@@ -200,8 +193,8 @@ void XInputManagerComponent::ProcessSim() {
   }
 
   // read controller states
-  for (auto gamepad : *_gamepads.Items()) {
-    static_cast<XInputGamepad *>(gamepad)->GetState();
+  for (auto gamepad : _gamepads) {
+    gamepad->GetState();
   }
 }
 
@@ -245,8 +238,17 @@ bool XInputManagerComponent::IsButtonClicked(Mouse mouseButton) {
   return _mouseButtonClick[mouseButton];
 }
 
-const IGamepadList *XInputManagerComponent::GetGamepads() const {
-  return &_gamepads;
+bool XInputManagerComponent::GetGamepads(UINT32 *number, IGamepad **gamepads) {
+  if (*number < _gamepads.size()) {
+    *number = static_cast<UINT32>(_gamepads.size());
+    return false;
+  }
+  IGamepad **gamepadPtr = gamepads;
+  for (auto &gamepad : _gamepads) {
+    gamepad.AssignToRaw(gamepadPtr++);
+  }
+  *number = static_cast<UINT32>(_gamepads.size());
+  return true;
 }
 
 }  // namespace xinput

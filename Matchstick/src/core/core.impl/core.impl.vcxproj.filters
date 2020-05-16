@@ -24,7 +24,6 @@
     <ClCompile Include="MGDFCurrentDirectoryHelper.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="MGDFComponents.cpp" />
     <ClCompile Include="MGDFParameterConstants.cpp" />
     <ClCompile Include="MGDFPreferenceConstants.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
@@ -62,7 +61,6 @@
     <ClInclude Include="MGDFCurrentDirectoryHelper.hpp">
       <Filter>Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="MGDFComponents.hpp" />
     <ClInclude Include="MGDFParameterConstants.hpp" />
     <ClInclude Include="MGDFPreferenceConstants.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />
