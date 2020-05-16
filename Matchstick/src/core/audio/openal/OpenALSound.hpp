@@ -7,6 +7,7 @@
 #include <MGDF/MGDF.hpp>
 #include <vector>
 
+#include "../../common/ComObject.hpp"
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundManagerComponent.hpp"
 
@@ -15,7 +16,7 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-class OpenALSound : public ISound {
+class OpenALSound : public ComBase<ISound> {
  public:
   virtual ~OpenALSound();
   static MGDFError TryCreate(IFile *source,
@@ -47,12 +48,6 @@ class OpenALSound : public ISound {
   bool IsPlaying() const override final;
   bool IsActive() const override final;
 
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid,
-                                           void **ppvObject) override final;
-  ULONG STDMETHODCALLTYPE AddRef() override final;
-  ULONG STDMETHODCALLTYPE Release() override final;
-  ULONG RefCount() const { return _references; }
-
   float GetAttenuatedVolume() const;
   void Reactivate();
   void Deactivate();
@@ -63,7 +58,6 @@ class OpenALSound : public ISound {
   OpenALSound(OpenALSoundManagerComponentImpl *manager, INT32 priority);
   MGDFError Init(IFile *source);
 
-  ULONG _references;
   const wchar_t *_name;
   OpenALSoundManagerComponentImpl *_soundManager;
   ALuint _sourceId, _bufferId;

@@ -67,15 +67,13 @@ MGDFError OpenALSoundManagerComponentImpl::Init() {
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
   while (_sounds.size() > 0) {
     LOG("Sound '" << Resources::ToString(_sounds.back()->GetName())
-                  << "' still has " << _sounds.back()->RefCount()
-                  << " live references",
+                  << "' still has live references",
         LOG_ERROR);
     delete _sounds.back();
   }
   while (_soundStreams.size() > 0) {
     LOG("SoundStream '" << Resources::ToString(_soundStreams.back()->GetName())
-                        << "' still has " << _soundStreams.back()->RefCount()
-                        << " live references",
+                        << "' still has live references",
         LOG_ERROR);
     delete _soundStreams.back();
   }

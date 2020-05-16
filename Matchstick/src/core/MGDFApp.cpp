@@ -205,7 +205,7 @@ void MGDFApp::OnDraw() {
 
   _host->RTDraw(elapsedTime);
 
-  if (_host->GetDebug()->IsShown()) {
+  if (_host->GetDebugImpl()->IsShown()) {
     DrawSystemOverlay();
   }
   _activeRenderEnd = _host->GetTimer()->GetCurrentTimeTicks();
@@ -217,7 +217,7 @@ void MGDFApp::DrawSystemOverlay() {
   }
 
   _textStream->ClearText();
-  _host->GetDebugImpl().DumpInfo(_stats, *_textStream);
+  _host->GetDebugImpl()->DumpInfo(_stats, *_textStream);
 
   auto prevLayout = _textLayout;
 
@@ -327,7 +327,7 @@ LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
     case WM_SYSKEYDOWN:
       switch (wParam) {
         case VK_F12: {
-          _host->GetDebug()->ToggleShown();
+          _host->GetDebugImpl()->ToggleShown();
         } break;
       }
       return 0;

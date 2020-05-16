@@ -124,7 +124,6 @@ Host::~Host(void) {
     delete _saves;
   }
   delete _timer;
-  delete _debugOverlay;
   delete _game;
   delete _stats;
   delete _moduleFactory;
@@ -132,9 +131,11 @@ Host::~Host(void) {
   LOG("Uninitialised host successfully", LOG_LOW);
 }
 
-IDebug *Host::GetDebug() const { return _debugOverlay; }
+void Host::GetDebug(IDebug **debug) {
+  _debugOverlay.AssignToRaw<MGDF::IDebug>(debug);
+}
 
-Debug &Host::GetDebugImpl() { return *_debugOverlay; }
+ComObject<Debug> Host::GetDebugImpl() { return _debugOverlay; }
 
 RenderSettingsManager &Host::GetRenderSettingsImpl() { return _renderSettings; }
 

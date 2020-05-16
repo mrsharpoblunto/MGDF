@@ -8,8 +8,8 @@ namespace MGDF {
 /**
 An audio source in 3d space
 */
-class __declspec(uuid("EBCC1B73-815F-4870-BC80-67A5379E65FC")) ISound
-    : public IUnknown {
+MIDL_INTERFACE("EBCC1B73-815F-4870-BC80-67A5379E65FC")
+ISound : public IUnknown {
  public:
   /**
   The name of the sound

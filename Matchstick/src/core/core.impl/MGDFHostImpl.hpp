@@ -81,7 +81,7 @@ class Host : public IHostImpl {
                                        UINT32 *featureLevelsSize);
   RenderSettingsManager &GetRenderSettingsImpl();
   input::IInputManagerComponent &GetInputManagerImpl() const;
-  Debug &GetDebugImpl();
+  ComObject<Debug> GetDebugImpl();
 
   // error handling functions
   void FatalError(const char *, const char *) override final;
@@ -93,7 +93,7 @@ class Host : public IHostImpl {
   const Version *GetMGDFVersion() const override final;
   const char *GetErrorDescription(MGDFError err) const override final;
   const char *GetErrorString(MGDFError err) const override final;
-  IDebug *GetDebug() const override final;
+  void GetDebug(IDebug **debug) override final;
 
   // ISimHost methods
   void QueueShutDown() override final;
@@ -136,7 +136,7 @@ class Host : public IHostImpl {
   input::IInputManagerComponent *_input;
   audio::ISoundManagerComponent *_sound;
   vfs::IVirtualFileSystemComponent *_vfs;
-  Debug *_debugOverlay;
+  ComObject<Debug> _debugOverlay;
   Game *_game;
   StringList *_saves;
   RenderSettingsManager _renderSettings;

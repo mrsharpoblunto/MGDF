@@ -102,6 +102,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ComObject.hpp" />
     <ClInclude Include="MGDFComponents.hpp" />
     <ClInclude Include="MGDFListImpl.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
