@@ -33,6 +33,12 @@ JsonCppPreferenceConfigStorageHandler::end() const {
 MGDFError JsonCppPreferenceConfigStorageHandler::Load(
     const std::wstring &filename) {
   std::ifstream input(filename.c_str(), std::ios::in);
+  if (input.fail()) {
+    // TODO handling for other input methods...
+    LOG("Unable to open '" << Resources::ToString(filename).c_str() << "'",
+        LOG_ERROR);
+    return MGDF_ERR_INVALID_FILE;
+  }
 
   Json::Value root;
   Json::Reader reader;
@@ -47,7 +53,9 @@ MGDFError JsonCppPreferenceConfigStorageHandler::Load(
     }
     return MGDF_OK;
   } else {
-    LOG(reader.getFormatedErrorMessages(), LOG_ERROR);
+    LOG("Unable to parse '" << Resources::ToString(filename).c_str() << "'"
+                            << reader.getFormatedErrorMessages(),
+        LOG_ERROR);
     return MGDF_ERR_INVALID_JSON;
   }
 }
