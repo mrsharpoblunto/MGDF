@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <filesystem>
@@ -13,11 +14,11 @@ namespace core {
 namespace vfs {
 
 class IVirtualFileSystemComponent : public ISystemComponent,
-                                    public IVirtualFileSystem {
+                                    public ComBase<IVirtualFileSystem> {
  public:
   virtual ~IVirtualFileSystemComponent() {}
   virtual bool Mount(const wchar_t *physicalDirectory) = 0;
-  virtual void RegisterArchiveHandler(IArchiveHandler *) = 0;
+  virtual void RegisterArchiveHandler(ComObject<IArchiveHandler> handler) = 0;
 };
 
 class DefaultFolderImpl;
@@ -26,28 +27,26 @@ struct WCharCmp;
 class VirtualFileSystemComponent : public IVirtualFileSystemComponent {
  public:
   VirtualFileSystemComponent();
-  virtual ~VirtualFileSystemComponent();
+  virtual ~VirtualFileSystemComponent(){};
 
-  IFile *GetFile(const wchar_t *logicalPath) const override final;
-  IFile *GetRoot() const override final;
+  bool GetFile(const wchar_t *logicalPath, IFile **file) override final;
+  void GetRoot(IFile **root) override final;
   bool Mount(const wchar_t *physicalDirectory) override final;
-  void RegisterArchiveHandler(IArchiveHandler *) override final;
+  void RegisterArchiveHandler(
+      ComObject<IArchiveHandler> handler) override final;
 
-  void MapChildren(DefaultFolderImpl *parent,
-                   std::map<const wchar_t *, IFile *, WCharCmp> &children);
+  void Map(const std::filesystem::path &path, ComObject<IFile> parent,
+           ComObject<IFile> &child);
 
  private:
-  std::vector<IArchiveHandler *> _archiveHandlers;
-  std::multimap<IArchiveHandler *, IFile *> _mappedArchives;
+  std::vector<ComObject<IArchiveHandler>> _archiveHandlers;
+  ComObject<IFile> _root;
 
-  IFile *_root;
-  bool _rootIsArchive;
-
-  IFile *Map(const std::filesystem::path &path, IFile *parent);
-  IArchiveHandler *GetArchiveHandler(const std::wstring &path);
+  bool GetArchiveHandler(const std::wstring &path,
+                         ComObject<IArchiveHandler> &handler);
 };
 
-IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl();
+ComObject<IVirtualFileSystemComponent> CreateVirtualFileSystemComponentImpl();
 
 }  // namespace vfs
 }  // namespace core

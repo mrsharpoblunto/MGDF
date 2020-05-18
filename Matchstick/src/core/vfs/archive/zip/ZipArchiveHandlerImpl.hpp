@@ -1,12 +1,12 @@
 #pragma once
 
+#include <unzip.h>
+
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
-#include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <map>
 #include <string>
 #include <vector>
-
-#include "ZipArchive.hpp"
 
 namespace MGDF {
 namespace core {
@@ -16,20 +16,16 @@ namespace zip {
 /**
 Creates zip archive handlers
 */
-class ZipArchiveHandlerImpl : public IArchiveHandler {
+class ZipArchiveHandlerImpl : public ComBase<IArchiveHandler> {
  public:
-  ZipArchiveHandlerImpl(IErrorHandler *errorHandler);
-  virtual ~ZipArchiveHandlerImpl() {}
-  void Dispose() override final;
-  void DisposeArchive(IFile *archive) override final;
+  ZipArchiveHandlerImpl();
+  virtual ~ZipArchiveHandlerImpl();
   bool IsArchive(const wchar_t *physicalPath) const override final;
-  IFile *MapArchive(const wchar_t *name, const wchar_t *physicalPath,
-                    IFile *parent) override final;
+  HRESULT MapArchive(const wchar_t *name, const wchar_t *physicalPath,
+                     IFile *parent, IFile **file) override final;
 
  private:
-  std::map<ZipFileRoot *, ZipArchive *> _archives;
   std::vector<const wchar_t *> _fileExtensions;
-  IErrorHandler *_errorHandler;
 
   /**
   get the extension of a file
@@ -37,9 +33,12 @@ class ZipArchiveHandlerImpl : public IArchiveHandler {
   returns "" if no extension could be found
   */
   const wchar_t *GetFileExtension(const wchar_t *file) const;
+
+  ComObject<IFile> CreateParentFile(std::wstring &path, ComObject<IFile> root,
+                                    const wchar_t **);
 };
 
-IArchiveHandler *CreateZipArchiveHandlerImpl(IErrorHandler *errorHandler);
+ComObject<IArchiveHandler> CreateZipArchiveHandlerImpl();
 
 }  // namespace zip
 }  // namespace vfs

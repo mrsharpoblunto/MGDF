@@ -13,6 +13,8 @@ namespace MGDF {
 namespace core {
 namespace vfs {
 
+using namespace std::filesystem;
+
 DefaultFolderImpl::DefaultFolderImpl(const std::wstring &name,
                                      const std::wstring &physicalPath,
                                      IFile *parent,
@@ -21,44 +23,44 @@ DefaultFolderImpl::DefaultFolderImpl(const std::wstring &name,
   _ASSERTE(vfs);
 }
 
-DefaultFolderImpl::~DefaultFolderImpl() {
-  if (!_children) return;
+DefaultFolderImpl::~DefaultFolderImpl() {}
 
-  for (auto child : *_children) {
-    // don't delete archives as we will explicitly pass them off to
-    // the archive handler that created them in order to clean them up
-    if (!child.second->IsArchive()) {
-      delete static_cast<FileBaseImpl *>(child.second);
+// used by folders to lazily enumerate thier children as needed.
+void DefaultFolderImpl::MapChildren() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (!_children) {
+    _children = std::make_unique<
+        std::map<const wchar_t *, ComObject<IFile>, WCharCmp>>();
+
+    path path(GetPhysicalPath());
+    _ASSERTE(is_directory(path));
+
+    ComObject<IFile> parent(this, true);
+    for (auto &p : directory_iterator(path)) {
+      ComObject<IFile> mappedChild;
+      _vfs->Map(p, parent, mappedChild);
+      _ASSERTE(mappedChild);
+      _children->insert(
+          std::make_pair(mappedChild->GetName(), std::move(mappedChild)));
     }
   }
 }
 
-void DefaultFolderImpl::MapChildren() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (!_children) {
-    auto children = new std::map<const wchar_t *, IFile *, WCharCmp>();
-    _vfs->MapChildren(this, *children);
-    _children = children;
-  }
+bool DefaultFolderImpl::GetChild(const wchar_t *name, IFile **child) {
+  if (!name) return false;
+
+  MapChildren();
+  return FolderBaseImpl::GetChild(name, child);
 }
 
-IFile *DefaultFolderImpl::GetChild(const wchar_t *name) const {
-  if (!name) return nullptr;
-
-  const_cast<DefaultFolderImpl *>(this)->MapChildren();
-  return FolderBaseImpl::GetChild(name);
-}
-
-size_t DefaultFolderImpl::GetChildCount() const {
-  const_cast<DefaultFolderImpl *>(this)->MapChildren();
+size_t DefaultFolderImpl::GetChildCount() {
+  MapChildren();
   return FolderBaseImpl::GetChildCount();
 }
 
-bool DefaultFolderImpl::GetAllChildren(const IFileFilter *filter,
-                                       IFile **childBuffer,
-                                       size_t *bufferLength) const {
-  const_cast<DefaultFolderImpl *>(this)->MapChildren();
-  return FolderBaseImpl::GetAllChildren(filter, childBuffer, bufferLength);
+void DefaultFolderImpl::GetAllChildren(IFile **childBuffer) {
+  MapChildren();
+  return FolderBaseImpl::GetAllChildren(childBuffer);
 }
 
 }  // namespace vfs

@@ -4,9 +4,8 @@
 #include <windows.h>
 #include <xinput.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
-
-#include "../../common/ComObject.hpp"
 
 namespace MGDF {
 namespace core {

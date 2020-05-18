@@ -29,13 +29,10 @@ SUITE(StorageTests) {
 
       _storage = CreateStorageFactoryComponentImpl();
     }
-    virtual ~StorageTestFixture() {
-      delete _storage;
-      delete _vfs;
-    }
+    virtual ~StorageTestFixture() { delete _storage; }
 
    protected:
-    IVirtualFileSystemComponent *_vfs;
+    ComObject<IVirtualFileSystemComponent> _vfs;
     IStorageFactoryComponent *_storage;
   };
 
@@ -46,7 +43,9 @@ SUITE(StorageTests) {
     std::unique_ptr<IGameStorageHandler> handler(
         _storage->CreateGameStorageHandler());
 
-    std::wstring path = _vfs->GetFile(L"console.json")->GetPhysicalPath();
+    ComObject<IFile> file;
+    CHECK(_vfs->GetFile(L"console.json", file.Assign()));
+    std::wstring path = file->GetPhysicalPath();
     handler->Load(path);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
@@ -75,7 +74,9 @@ SUITE(StorageTests) {
     IGameStateStorageHandler *handler =
         _storage->CreateGameStateStorageHandler("Console", &expected);
 
-    std::wstring path = _vfs->GetFile(L"gameState.json")->GetPhysicalPath();
+    ComObject<IFile> file;
+    CHECK(_vfs->GetFile(L"gameState.json", file.Assign()));
+    std::wstring path = file->GetPhysicalPath();
     handler->Load(path);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
@@ -104,7 +105,9 @@ SUITE(StorageTests) {
     IPreferenceConfigStorageHandler *handler =
         _storage->CreatePreferenceConfigStorageHandler();
 
-    std::wstring path = _vfs->GetFile(L"preferences.json")->GetPhysicalPath();
+    ComObject<IFile> file;
+    CHECK(_vfs->GetFile(L"preferences.json", file.Assign()));
+    std::wstring path = file->GetPhysicalPath();
     handler->Load(path);
 
     INT32 count = 0;

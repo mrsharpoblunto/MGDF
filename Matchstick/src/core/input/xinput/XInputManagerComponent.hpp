@@ -39,7 +39,8 @@ class XInputManagerComponent : public IInputManagerComponent {
   bool IsButtonDown(Mouse mouseButton) const override final;
   bool IsButtonUp(Mouse mouseButton) const override final;
   bool IsButtonClicked(Mouse mouseButton) override final;
-  bool GetGamepads(UINT32 *number, IGamepad **gamepads) override final;
+  UINT32 GetGamepadCount() const override final;
+  void GetGamepads(IGamepad **gamepads) override final;
 
  private:
   std::mutex _simMutex;
@@ -76,7 +77,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   std::vector<ComObject<XInputGamepad>> _gamepads;
 };
 
-IInputManagerComponent *CreateXInputManagerComponent();
+ComObject<IInputManagerComponent> CreateXInputManagerComponent();
 
 }  // namespace xinput
 }  // namespace input

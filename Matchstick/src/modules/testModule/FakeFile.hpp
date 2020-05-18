@@ -1,9 +1,14 @@
 #pragma once
 
-#include <MGDF/MGDFVirtualFileSystem.hpp>
+#include <MGDF/ComObject.hpp>
+#include <MGDF/MGDF.hpp>
+#include <atomic>
 #include <map>
 #include <mutex>
 #include <string>
+
+namespace MGDF {
+namespace Test {
 
 struct WCharCmp {
   bool operator()(const wchar_t *a, const wchar_t *b) const {
@@ -19,23 +24,20 @@ struct WCharCmp {
 class FakeFile : public MGDF::IFile, public MGDF::IFileReader {
  public:
   FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-           IFile *parent);
-  FakeFile(const std::wstring &name, FakeFile *parent, void *data,
-           size_t dataLength);  // NULL data indicates a folder
-  void AddChild(FakeFile *file);
+           MGDF::IFile *parent);
+  FakeFile(const std::wstring &name, FakeFile *parent, const std::string &data);
+  void AddChild(ComObject<FakeFile> file);
   virtual ~FakeFile(void);
 
-  MGDF::IFile *GetParent() const override final;
-  MGDF::IFile *GetChild(const wchar_t *name) const override final;
-  bool GetAllChildren(const MGDF::IFileFilter *filter, IFile **childBuffer,
-                      size_t *bufferLength) const override final;
-  size_t GetChildCount() const override final;
-  const wchar_t *GetLogicalPath() const override final;
+  bool GetParent(IFile **parent) override final;
+  bool GetChild(const wchar_t *name, IFile **child) override final;
+  void GetAllChildren(IFile **childBuffer) override final;
+  size_t GetChildCount() override final;
+  const wchar_t *GetLogicalPath() override final;
 
-  MGDF::MGDFError Open(IFileReader **reader) override final;
+  HRESULT Open(IFileReader **reader) override final;
 
   bool IsOpen() const override final;
-  void Close() override final;
   UINT32 Read(void *buffer, UINT32 length) override final;
   void SetPosition(INT64 pos) override final;
   INT64 GetPosition() const override final;
@@ -49,17 +51,27 @@ class FakeFile : public MGDF::IFile, public MGDF::IFileReader {
   const wchar_t *GetName() const override final;
   time_t GetLastWriteTime() const override final;
 
+  ULONG AddRef() override;
+  ULONG Release() override;
+  HRESULT QueryInterface(REFIID riid, void **ppvObject) override;
+
  protected:
   mutable std::mutex _mutex;
   mutable std::wstring _logicalPath;
 
-  std::map<const wchar_t *, FakeFile *, WCharCmp> *_children;
+  std::unique_ptr<std::map<const wchar_t *, ComObject<FakeFile>, WCharCmp>>
+      _children;
   MGDF::IFile *_parent;
   std::wstring _name;
   std::wstring _physicalPath;
 
-  size_t _dataLength;
-  void *_data;
+  std::string _data;
   INT32 _position;
   bool _isOpen;
+
+ private:
+  std::atomic<ULONG> _references;
 };
+
+}  // namespace Test
+}  // namespace MGDF

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "MGDFFolderBaseImpl.hpp"
 #include "MGDFVirtualFileSystemComponentImpl.hpp"
 
@@ -18,14 +20,12 @@ class DefaultFolderImpl : public FolderBaseImpl {
                     IFile *parent, VirtualFileSystemComponent *vfs);
   virtual ~DefaultFolderImpl(void);
 
-  IFile *GetChild(const wchar_t *name) const override final;
-  size_t GetChildCount() const override final;
-  bool GetAllChildren(const IFileFilter *filter, IFile **childBuffer,
-                      size_t *bufferLength) const override final;
+  bool GetChild(const wchar_t *name, IFile **child) override final;
+  size_t GetChildCount() override final;
+  void GetAllChildren(IFile **childBuffer) override final;
 
  private:
   VirtualFileSystemComponent *_vfs;
-  IFileFilter *_filter;
 
   void MapChildren();
 };

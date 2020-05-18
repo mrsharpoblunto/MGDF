@@ -110,7 +110,6 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="archive\zip\ZipArchive.cpp" />
     <ClCompile Include="archive\zip\ZipArchiveHandlerImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFileImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFileRoot.cpp" />
@@ -125,7 +124,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="archive\zip\ZipArchive.hpp" />
     <ClInclude Include="archive\zip\ZipArchiveHandlerImpl.hpp" />
     <ClInclude Include="archive\zip\ZipFileImpl.hpp" />
     <ClInclude Include="archive\zip\ZipFileRoot.hpp" />

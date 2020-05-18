@@ -2,6 +2,7 @@
 
 #include <time.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 
 #include "Module.hpp"
@@ -25,8 +26,8 @@ class Test2 : public TestModule {
  private:
   INT32 _testState;
   INT32 _x, _y;
-  ISound *_sound;
-  ISoundStream *_stream;
+  ComObject<ISound> _sound;
+  ComObject<ISoundStream> _stream;
 };
 
 }  // namespace Test

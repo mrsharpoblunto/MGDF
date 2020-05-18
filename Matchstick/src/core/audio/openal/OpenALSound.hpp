@@ -4,10 +4,10 @@
 #include <al.h>
 #include <alc.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 #include <vector>
 
-#include "../../common/ComObject.hpp"
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundManagerComponent.hpp"
 

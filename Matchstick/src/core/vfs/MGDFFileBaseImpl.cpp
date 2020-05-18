@@ -24,7 +24,25 @@ namespace vfs {
 FileBaseImpl::FileBaseImpl(IFile *parent)
     : _parent(parent), _children(nullptr) {}
 
-FileBaseImpl::~FileBaseImpl() { delete _children; }
+bool FileBaseImpl::GetParent(IFile **parent) {
+  if (_parent) {
+    _parent->AddRef();
+    *parent = _parent;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+size_t FileBaseImpl::GetChildCount() {
+  if (!_children) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (!_children) {
+      return 0;
+    }
+  }
+  return _children->size();
+}
 
 time_t FileBaseImpl::GetLastWriteTime() const {
   std::filesystem::path path(GetPhysicalPath());
@@ -38,68 +56,54 @@ time_t FileBaseImpl::GetLastWriteTime() const {
   return fileInfo.st_mtime;
 }
 
-IFile *FileBaseImpl::GetChild(const wchar_t *name) const {
-  if (!name) return nullptr;
+bool FileBaseImpl::GetChild(const wchar_t *name, IFile **child) {
+  if (!name) {
+    return false;
+  }
 
-  {
-    std::lock_guard<std::mutex> lock(_mutex);
-    if (!_children) return nullptr;
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (!_children) {
+    return false;
   }
 
   auto it = _children->find(name);
   if (it != _children->end()) {
-    return it->second;
+    it->second.AddRawRef(child);
+    return true;
   }
-  return nullptr;
+  return false;
 }
 
-bool FileBaseImpl::GetAllChildren(const IFileFilter *filter,
-                                  IFile **childBuffer,
-                                  size_t *bufferLength) const {
-  if (!bufferLength) {
-    *bufferLength = 0;
-    return false;
+void FileBaseImpl::GetAllChildren(IFile **childBuffer) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (!_children) {
+    return;
   }
 
-  {
-    std::lock_guard<std::mutex> lock(_mutex);
-    if (!_children) {
-      *bufferLength = 0;
-      return false;
-    }
+  for (auto &child : *_children) {
+    child.second.AddRawRef(childBuffer++);
   }
-
-  size_t size = 0;
-  for (auto it = _children->begin(); it != _children->end(); ++it) {
-    if (!filter || filter->Accept(it->first)) {
-      if (size < *bufferLength) childBuffer[size] = it->second;
-      ++size;
-    }
-  }
-
-  bool result = size <= *bufferLength;
-  *bufferLength = size;
-  return result;
 }
 
-void FileBaseImpl::AddChild(IFile *file) {
+void FileBaseImpl::AddChild(ComObject<IFile> &file) {
   _ASSERTE(file);
   if (!_children) {
-    _children = new std::map<const wchar_t *, IFile *, WCharCmp>();
+    _children = std::make_unique<
+        std::map<const wchar_t *, ComObject<IFile>, WCharCmp>>();
   }
-  _children->insert(std::pair<const wchar_t *, IFile *>(file->GetName(), file));
+  _children->insert(std::make_pair(file->GetName(), file));
 }
 
-const wchar_t *FileBaseImpl::GetLogicalPath() const {
+const wchar_t *FileBaseImpl::GetLogicalPath() {
   std::lock_guard<std::mutex> lock(_mutex);
 
-  if (_logicalPath.empty() && this->GetParent()) {
-    std::vector<const IFile *> path;
-    const IFile *node = this;
-    while (node) {
+  ComObject<IFile> parent;
+  if (_logicalPath.empty() && GetParent(parent.Assign())) {
+    std::vector<ComObject<IFile>> path;
+    ComObject<IFile> node(this, true);
+    do {
       path.push_back(node);
-      node = node->GetParent();
-    }
+    } while (node->GetParent(node.Assign()));
 
     std::wostringstream ss;
     for (auto it = path.rbegin() + 1; it != path.rend(); ++it) {

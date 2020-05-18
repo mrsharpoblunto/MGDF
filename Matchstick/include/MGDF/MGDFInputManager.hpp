@@ -201,14 +201,18 @@ IInputManager : public IUnknown {
   virtual bool STDMETHODCALLTYPE IsButtonClicked(Mouse mouseButton) = 0;
 
   /**
-  gets a list of all compatible gamepads connected to the PC
-  \param number the number of gamepads to retrieve
-  \param gamepads pointer to an array of gamepads
-   \return true if the supplied gamepad array is large enough to hold all the
-  results, otherwise returns false and sets the size required in number
+  get the maximum number of gamepads available (not all of them may be
+  connected) \return the maximum number of gamepads available (not all of them
+  may be connected)
   */
-  virtual bool STDMETHODCALLTYPE GetGamepads(UINT32 * number,
-                                             IGamepad * *gamepads) = 0;
+  virtual UINT32 GetGamepadCount() const = 0;
+
+  /**
+  gets a list of all compatible gamepads connected to the PC
+  \param gamepads pointer to an array of gamepads (must be large enough to fit
+  GetGamepadCount entries)
+  */
+  virtual void STDMETHODCALLTYPE GetGamepads(IGamepad * *gamepads) = 0;
 };
 
 }  // namespace MGDF

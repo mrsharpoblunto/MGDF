@@ -54,7 +54,7 @@ class ICommonHost : public virtual IErrorHandler {
   get the virtual filesystem
   \return the virtual filesystem
   */
-  virtual IVirtualFileSystem *GetVFS() const = 0;
+  virtual void GetVFS(IVirtualFileSystem **vfs) = 0;
 
   /**
   get the direct3d device object from the host

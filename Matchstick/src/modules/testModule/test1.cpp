@@ -2,6 +2,7 @@
 
 #include "Test1.hpp"
 
+#include <MGDF/ComObject.hpp>
 #include <array>
 #include <fstream>
 
@@ -27,12 +28,10 @@ TestModule *Test1::NextTestModule() {
 }
 
 void Test1::Update(ISimHost *host, TextManagerState *state) {
-  IInputManager *input;
-  host->GetInput(&input);
-  UINT number = 0;
-  input->GetGamepads(&number, nullptr);
-  std::vector<IGamepad *> gamepads(number);
-  input->GetGamepads(&number, gamepads.data());
+  ComObject<IInputManager> input;
+  host->GetInput(input.Assign());
+  ComArray<IGamepad> gamepads(input->GetGamepadCount());
+  input->GetGamepads(gamepads.Data());
 
   if (input->IsKeyPress(VK_ESCAPE)) {
     host->ShutDown();
@@ -114,10 +113,6 @@ void Test1::Update(ISimHost *host, TextManagerState *state) {
     state->SetStatus(RED, "[Test Failed]");
     gamepads[0]->SetVibrationSpeed(0, 0);
   }
-  for (auto &gamepad : gamepads) {
-    gamepad->Release();
-  }
-  input->Release();
 }
 
 }  // namespace Test

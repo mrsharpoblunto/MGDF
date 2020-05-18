@@ -24,8 +24,10 @@ TestModule *Test2::NextTestModule() {
 }
 
 void Test2::Update(ISimHost *host, TextManagerState *state) {
-  IInputManager *input;
-  host->GetInput(&input);
+  ComObject<IInputManager> input;
+  host->GetInput(input.Assign());
+  ComObject<IVirtualFileSystem> vfs;
+  host->GetVFS(vfs.Assign());
 
   if (input->IsKeyPress(VK_ESCAPE)) {
     host->ShutDown();
@@ -47,17 +49,18 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
   } else if (_testState == 1) {
     state->AddLine("Loading sound chimes.wav");
     host->GetSound()->SetEnableAttenuation(true);
-    if (MGDF_OK != host->GetSound()->CreateSound(
-                       host->GetVFS()->GetFile(L"chimes.wav"), 0, &_sound)) {
+    ComObject<IFile> file;
+    if (vfs->GetFile(L"chimes.wav", file.Assign()) &&
+        MGDF_OK != host->GetSound()->CreateSound(file, 0, _sound.Assign())) {
       _testState = 1000;
       state->SetStatus(RED, "[Test Failed]");
     } else {
+      ComObject<ISound> s;
       if (S_OK !=
-          _sound->QueryInterface(__uuidof(MGDF::ISound), (void **)&_sound)) {
+          _sound->QueryInterface(__uuidof(MGDF::ISound), (void **)s.Assign())) {
         _testState = 1000;
         state->SetStatus(RED, "[Test Failed]");
       } else {
-        _sound->Release();
         ++_testState;
         state->SetStatus(GREEN, "[Test Passed]");
       }
@@ -77,7 +80,6 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
         "adjusts accordingly");
   } else if (_testState == 3 && input->IsKeyPress('N')) {
     _testState = 1000;
-    _sound->Release();
     state->SetStatus(RED, "[Test Failed]");
   } else if (_testState == 4) {
     if (input->IsKeyDown(VK_UP)) {
@@ -96,27 +98,27 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
     if (input->IsKeyPress('Y')) {
       ++_testState;
       _sound->Stop();
-      _sound->Release();
       state->SetStatus(GREEN, "[Test Passed]");
     } else if (input->IsKeyPress('N')) {
       _testState = 1000;
       _sound->Stop();
-      _sound->Release();
       state->SetStatus(RED, "[Test Failed]");
     }
   } else if (_testState == 5) {
     state->AddLine("Loading stream stream.ogg");
-    if (MGDF_OK != host->GetSound()->CreateSoundStream(
-                       host->GetVFS()->GetFile(L"Stream.ogg"), &_stream)) {
+    ComObject<IFile> file;
+    if (vfs->GetFile(L"Stream.ogg", file.Assign()) &&
+        MGDF_OK !=
+            host->GetSound()->CreateSoundStream(file, _stream.Assign())) {
       _testState = 1000;
       state->SetStatus(RED, "[Test Failed]");
     } else {
+      ComObject<ISoundStream> ss;
       if (S_OK != _stream->QueryInterface(__uuidof(MGDF::ISoundStream),
-                                          (void **)&_stream)) {
+                                          (void **)ss.Assign())) {
         _testState = 1000;
         state->SetStatus(RED, "[Test Failed]");
       } else {
-        _stream->Release();
         ++_testState;
         state->SetStatus(GREEN, "[Test Passed]");
       }
@@ -138,16 +140,15 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
         "Use [P] to toggle pause/play, press [Y/N] if this is working.");
   } else if (_testState == 7 && input->IsKeyPress('N')) {
     _testState = 1000;
-    _stream->Release();
     state->SetStatus(RED, "[Test Failed]");
   } else if (_testState == 8) {
     if (input->IsKeyPress('Y')) {
       _testState = 1000;
-      _stream->Release();
+      _stream = nullptr;
       state->SetStatus(GREEN, "[Test Passed]");
     } else if (input->IsKeyPress('N')) {
       _testState = 1000;
-      _stream->Release();
+      _stream = nullptr;
       state->SetStatus(RED, "[Test Failed]");
     } else if (input->IsKeyPress('P')) {
       if (_stream->IsPaused()) {
@@ -159,7 +160,6 @@ void Test2::Update(ISimHost *host, TextManagerState *state) {
         _stream->Pause();
     }
   }
-  input->Release();
 }
 
 }  // namespace Test

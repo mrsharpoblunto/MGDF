@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../MGDFFolderBaseImpl.hpp"
-#include "ZipArchive.hpp"
 
 namespace MGDF {
 namespace core {
@@ -10,29 +9,25 @@ namespace zip {
 
 /**
 implementation of a folder in a zipped archive
-these files are essentially flyweight objects, all the zip functionality is
-encapsulated in the ZipArchiveHandler class
 */
 class ZipFolderImpl : public FolderBaseImpl {
  public:
-  ZipFolderImpl(const wchar_t *name, IFile *parent, ZipArchive *handler)
-      : FolderBaseImpl(name, handler->GetArchiveRoot()->GetPhysicalPath(),
-                       parent),
-        _handler(handler) {}
+  ZipFolderImpl(const wchar_t *name, IFile *parent, const IFile *root)
+      : FolderBaseImpl(name, root->GetPhysicalPath(), parent), _root(root) {}
   virtual ~ZipFolderImpl();
 
   bool IsArchive() const override final { return true; }
 
   const wchar_t *GetArchiveName() const override final {
-    return _handler->GetArchiveRoot()->GetName();
+    return _root->GetName();
   }
 
   time_t GetLastWriteTime() const override final {
-    return _handler->GetArchiveRoot()->GetLastWriteTime();
+    return _root->GetLastWriteTime();
   }
 
  private:
-  ZipArchive *_handler;
+  const IFile *_root;
 };
 
 }  // namespace zip

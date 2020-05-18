@@ -2,6 +2,7 @@
 
 #include "Test3.hpp"
 
+#include <MGDF/ComObject.hpp>
 #include <fstream>
 
 #if defined(_DEBUG)
@@ -18,8 +19,8 @@ Test3::Test3() { _testState = 0; }
 TestModule *Test3::NextTestModule() { return NULL; }
 
 void Test3::Update(ISimHost *host, TextManagerState *state) {
-  IInputManager *input;
-  host->GetInput(&input);
+  ComObject<IInputManager> input;
+  host->GetInput(input.Assign());
 
   if (input->IsKeyPress(VK_ESCAPE)) {
     host->ShutDown();
@@ -112,16 +113,18 @@ void Test3::Update(ISimHost *host, TextManagerState *state) {
     state->AddLine("Testing custom VFS archive handler registration");
 
     bool success = false;
-    IFile *file = host->GetVFS()->GetFile(L"test.fakearchive/testfile.txt");
-    if (file != NULL) {
-      IFileReader *reader = nullptr;
-      if (MGDF_OK == file->Open(&reader)) {
+    ComObject<IVirtualFileSystem> vfs;
+    host->GetVFS(vfs.Assign());
+
+    ComObject<IFile> file;
+    if (vfs->GetFile(L"test.fakearchive/testfile.txt", file.Assign())) {
+      ComObject<IFileReader> reader;
+      if (!FAILED(file->Open(reader.Assign()))) {
         UINT32 size = static_cast<UINT32>(reader->GetSize());
         char *data = new char[size];
         reader->Read(data, size);
         success = strncmp(data, "hello world", size) == 0;
         delete[] data;
-        reader->Close();
       }
     }
 
@@ -134,9 +137,15 @@ void Test3::Update(ISimHost *host, TextManagerState *state) {
     }
   } else if (_testState == 5) {
     state->AddLine(
-        "Press [ALT]+[ENTER] to toggle fullscreen/windowed mode. Then press "
+        "Press [F] to toggle fullscreen/windowed mode. Then press "
         "[Y/N] if this works correctly");
     _testState++;
+  } else if (_testState == 6 && input->IsKeyPress('F')) {
+    MGDF::FullScreenDesc desc;
+    host->GetRenderSettings()->GetFullscreen(&desc);
+    desc.FullScreen = !desc.FullScreen;
+    host->GetRenderSettings()->SetFullscreen(&desc);
+    host->GetRenderSettings()->ApplyChanges();
   } else if (_testState == 6 && input->IsKeyPress('Y')) {
     ++_testState;
     state->SetStatus(GREEN, "[Test Passed]");
@@ -152,13 +161,13 @@ void Test3::Update(ISimHost *host, TextManagerState *state) {
   } else if (_testState == 7 && input->IsKeyPress('N')) {
     _testState = 999;
     state->SetStatus(RED, "[Test Failed]");
-  } else if (_testState == 999) {
+  }
+  if (_testState == 999) {
     _testState++;
     state->AddLine(
         "All tests complete. Press the [ESC] key to exit (then make sure there "
         "were no memory leaks)");
   }
-  input->Release();
 }
 
 }  // namespace Test

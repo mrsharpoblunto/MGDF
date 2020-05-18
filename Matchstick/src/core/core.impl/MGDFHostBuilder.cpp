@@ -43,18 +43,16 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
 
 bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
                                                HostComponents &components) {
-  input::IInputManagerComponent *input =
-      input::CreateInputManagerComponentImpl();
-  if (input != nullptr) {
+  auto input = input::CreateInputManagerComponentImpl();
+  if (input) {
     components.Input = input;
   } else {
     LOG("FATAL ERROR: Unable to register InputManager", LOG_ERROR);
     return false;
   }
 
-  vfs::IVirtualFileSystemComponent *vfs =
-      vfs::CreateVirtualFileSystemComponentImpl();
-  if (vfs != nullptr) {
+  auto vfs = vfs::CreateVirtualFileSystemComponentImpl();
+  if (vfs) {
     components.VFS = vfs;
   } else {
     LOG("FATAL ERROR: Unable to register VirtualFileSystem", LOG_ERROR);
@@ -78,7 +76,6 @@ void HostBuilder::UnregisterComponents(HostComponents &components) {
   // TODO once these are all COM objects -> remove this...
   SAFE_DELETE(components.Storage);
   SAFE_DELETE(components.Sound);
-  SAFE_DELETE(components.VFS);
 }
 
 MGDFError HostBuilder::TryCreateHost(Host **host) {

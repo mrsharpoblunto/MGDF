@@ -18,71 +18,37 @@ namespace vfs {
 
 using namespace std::filesystem;
 
-IVirtualFileSystemComponent *CreateVirtualFileSystemComponentImpl() {
-  return new VirtualFileSystemComponent();
+ComObject<IVirtualFileSystemComponent> CreateVirtualFileSystemComponentImpl() {
+  return ComObject<IVirtualFileSystemComponent>(
+      new VirtualFileSystemComponent());
 }
 
-VirtualFileSystemComponent::VirtualFileSystemComponent()
-    : _root(nullptr), _rootIsArchive(false) {}
-
-VirtualFileSystemComponent::~VirtualFileSystemComponent() {
-  if (!_rootIsArchive) {
-    delete static_cast<FileBaseImpl *>(_root);
-  }
-
-  for (auto &archive : _mappedArchives) {
-    archive.first->DisposeArchive(archive.second);
-  }
-
-  for (auto handler : _archiveHandlers) {
-    handler->Dispose();
-  }
-}
+VirtualFileSystemComponent::VirtualFileSystemComponent() {}
 
 bool VirtualFileSystemComponent::Mount(const wchar_t *physicalDirectory) {
   _ASSERTE(physicalDirectory);
   _ASSERTE(!_root);
-  _root = Map(physicalDirectory, nullptr);
-  return _root != nullptr;
+  Map(physicalDirectory, ComObject<IFile>(), _root);
+  return _root && _root->IsFolder();
 }
 
-// used by folders to lazily enumerate thier children as needed.
-void VirtualFileSystemComponent::MapChildren(
-    DefaultFolderImpl *parent,
-    std::map<const wchar_t *, IFile *, WCharCmp> &children) {
-  _ASSERTE(parent);
-  path path(parent->GetPhysicalPath());
-  _ASSERTE(is_directory(path));
-
-  directory_iterator end_itr;  // default construction yields past-the-end
-  for (directory_iterator itr(path); itr != end_itr; ++itr) {
-    IFile *mappedChild = Map((*itr).path(), parent);
-    _ASSERTE(mappedChild);
-    children.insert(std::pair<const wchar_t *, IFile *>(mappedChild->GetName(),
-                                                        mappedChild));
-  }
-}
-
-IFile *VirtualFileSystemComponent::Map(const path &path, IFile *parent) {
+void VirtualFileSystemComponent::Map(const path &path, ComObject<IFile> parent,
+                                     ComObject<IFile> &child) {
   // wpath path( physicalPath );
   if (is_directory(path)) {
-    return new DefaultFolderImpl(path.filename(), path.wstring(), parent, this);
+    child =
+        new DefaultFolderImpl(path.filename(), path.wstring(), parent, this);
   } else {
     // if its an archive
-    IArchiveHandler *archiveHandler = GetArchiveHandler(path.wstring());
-    if (archiveHandler) {
+    ComObject<IArchiveHandler> archiveHandler;
+    if (GetArchiveHandler(path.wstring(), archiveHandler)) {
       auto filename = path.filename();
       auto fullpath = path.wstring();
-      IFile *mappedFile = archiveHandler->MapArchive(
-          filename.c_str(), fullpath.c_str(),
-          parent);  // replace it with the mapped archive tree
-      if (mappedFile) {
-        if (parent == nullptr) _rootIsArchive = true;
-        // store the archive, so we can pass it back to its handler to clean it
-        // up later.
-        _mappedArchives.insert(
-            std::pair<IArchiveHandler *, IFile *>(archiveHandler, mappedFile));
-        return mappedFile;
+      ComObject<IFile> mappedFile;
+      if (!FAILED(archiveHandler->MapArchive(filename.c_str(), fullpath.c_str(),
+                                             parent, mappedFile.Assign()))) {
+        child = mappedFile;
+        return;
       } else {
         LOG("Unable to map archive " << Resources::ToString(path.wstring()),
             LOG_ERROR);
@@ -90,46 +56,54 @@ IFile *VirtualFileSystemComponent::Map(const path &path, IFile *parent) {
     }
 
     // otherwise its just a plain old file
-    return new DefaultFileImpl(path.filename(), path.wstring(), parent,
-                               _errorHandler);
+    child = new DefaultFileImpl(path.filename(), path.wstring(), parent);
   }
 }
 
-IArchiveHandler *VirtualFileSystemComponent::GetArchiveHandler(
-    const std::wstring &path) {
-  for (auto handler : _archiveHandlers) {
-    if (handler->IsArchive(path.c_str())) {
-      return handler;
+bool VirtualFileSystemComponent::GetArchiveHandler(
+    const std::wstring &path, ComObject<IArchiveHandler> &handler) {
+  for (auto h : _archiveHandlers) {
+    if (h->IsArchive(path.c_str())) {
+      handler = h;
+      return true;
     }
   }
-  return nullptr;
+  return false;
 }
 
-IFile *VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath) const {
-  if (!logicalPath) return _root;
-
-  IFile *node = _root;
+bool VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
+                                         IFile **file) {
+  if (!logicalPath) {
+    _root.AddRawRef(file);
+    return true;
+  }
 
   wchar_t *context = 0;
-  size_t destinationLength = wcslen(logicalPath) + 1;
-  wchar_t *copy = new wchar_t[destinationLength];
-  wcscpy_s(copy, destinationLength, logicalPath);
-  wchar_t *components = wcstok_s(copy, L"/", &context);
+  const size_t destinationLength = wcslen(logicalPath) + 1;
+  std::vector<wchar_t> copy(destinationLength);
+  wcscpy_s(copy.data(), destinationLength, logicalPath);
+  wchar_t *components = wcstok_s(copy.data(), L"/", &context);
 
+  ComObject<IFile> node(_root);
   while (components) {
-    node = node->GetChild(components);
-    if (!node) break;
+    ComObject<IFile> tmp;
+    if (!node->GetChild(components, tmp.Assign())) {
+      return false;
+    }
+    node = tmp;
     components = wcstok_s(0, L"/", &context);
   }
 
-  delete[] copy;
-  return node;  // return the node found (if any)
+  node.AddRawRef(file);
+  return true;
 }
 
-IFile *VirtualFileSystemComponent::GetRoot() const { return _root; }
+void VirtualFileSystemComponent::GetRoot(IFile **root) {
+  _root.AddRawRef(root);
+}
 
 void VirtualFileSystemComponent::RegisterArchiveHandler(
-    IArchiveHandler *handler) {
+    ComObject<IArchiveHandler> handler) {
   _ASSERTE(handler);
   _archiveHandlers.push_back(handler);
 }

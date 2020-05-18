@@ -14,8 +14,8 @@ namespace core {
 namespace input {
 namespace xinput {
 
-IInputManagerComponent *CreateXInputManagerComponent() {
-  return new XInputManagerComponent();
+ComObject<IInputManagerComponent> CreateXInputManagerComponent() {
+  return ComObject<IInputManagerComponent>(new XInputManagerComponent());
 }
 
 XInputManagerComponent::XInputManagerComponent()
@@ -238,17 +238,15 @@ bool XInputManagerComponent::IsButtonClicked(Mouse mouseButton) {
   return _mouseButtonClick[mouseButton];
 }
 
-bool XInputManagerComponent::GetGamepads(UINT32 *number, IGamepad **gamepads) {
-  if (*number < _gamepads.size()) {
-    *number = static_cast<UINT32>(_gamepads.size());
-    return false;
-  }
+UINT32 XInputManagerComponent::GetGamepadCount() const {
+  return static_cast<UINT32>(_gamepads.size());
+}
+
+void XInputManagerComponent::GetGamepads(IGamepad **gamepads) {
   IGamepad **gamepadPtr = gamepads;
   for (auto &gamepad : _gamepads) {
-    gamepad.AssignToRaw(gamepadPtr++);
+    gamepad.AddRawRef(gamepadPtr++);
   }
-  *number = static_cast<UINT32>(_gamepads.size());
-  return true;
 }
 
 }  // namespace xinput

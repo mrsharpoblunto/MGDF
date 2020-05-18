@@ -40,7 +40,9 @@ bool MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
                                     ILogger *logger,
                                     IErrorHandler *errorHandler) {
   if (*length >= 1) {
-    list[0] = new FakeArchiveHandler(logger, errorHandler);
+    ComObject<IArchiveHandler> handler(
+        new MGDF::Test::FakeArchiveHandler(logger, errorHandler));
+    handler.AddRawRef(list);
     *length = 1;
     return true;
   }

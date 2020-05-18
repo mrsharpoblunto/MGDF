@@ -9,37 +9,31 @@
 #pragma warning(disable : 4291)
 #endif
 
+namespace MGDF {
+namespace Test {
+
 static const wchar_t *FAKE_EXT = L".fakearchive";
 
 FakeArchiveHandler::FakeArchiveHandler(MGDF::ILogger *logger,
-                                       MGDF::IErrorHandler *errorHandler) {
-  _logger = logger;
-  _errorHandler = errorHandler;
+                                       MGDF::IErrorHandler *errorHandler)
+    : _logger(logger), _errorHandler(errorHandler), _references(1UL) {
   _fileExtensions.push_back(FAKE_EXT);
 }
 
 FakeArchiveHandler::~FakeArchiveHandler() {}
 
-MGDF::IFile *FakeArchiveHandler::MapArchive(const wchar_t *name,
-                                            const wchar_t *archiveFile,
-                                            MGDF::IFile *parent) {
-  FakeFile *rootFile = new FakeFile(name, archiveFile, parent);
+HRESULT FakeArchiveHandler::MapArchive(const wchar_t *name,
+                                       const wchar_t *archiveFile,
+                                       MGDF::IFile *parent,
+                                       MGDF::IFile **child) {
+  ComObject<FakeFile> rootFile(new FakeFile(name, archiveFile, parent));
 
-  std::string dataString = "hello world";
-  char *data = new char[dataString.size()];
-  memcpy(data, dataString.c_str(), dataString.size());
-
-  FakeFile *subFile =
-      new FakeFile(L"testfile.txt", rootFile, data, dataString.size());
+  ComObject<FakeFile> subFile(
+      new FakeFile(L"testfile.txt", rootFile, "hello world"));
   rootFile->AddChild(subFile);
 
-  return rootFile;
-}
-
-void FakeArchiveHandler::Dispose() { delete this; }
-
-void FakeArchiveHandler::DisposeArchive(MGDF::IFile *file) {
-  delete (FakeFile *)file;
+  rootFile.AddRawRef(child);
+  return S_OK;
 }
 
 bool FakeArchiveHandler::IsArchive(const wchar_t *path) const {
@@ -65,3 +59,6 @@ const wchar_t *FakeArchiveHandler::GetFileExtension(
   }
   return nullptr;
 }
+
+}  // namespace Test
+}  // namespace MGDF

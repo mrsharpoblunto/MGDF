@@ -12,9 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="archive\zip\ZipArchive.cpp">
-      <Filter>archive\zip</Filter>
-    </ClCompile>
     <ClCompile Include="archive\zip\ZipArchiveHandlerImpl.cpp">
       <Filter>archive\zip</Filter>
     </ClCompile>
@@ -40,9 +37,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="archive\zip\ZipArchive.hpp">
-      <Filter>archive\zip</Filter>
-    </ClInclude>
     <ClInclude Include="archive\zip\ZipArchiveHandlerImpl.hpp">
       <Filter>archive\zip</Filter>
     </ClInclude>

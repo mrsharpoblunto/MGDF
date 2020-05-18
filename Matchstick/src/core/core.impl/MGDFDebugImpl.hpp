@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string>
 
-#include "../common/ComObject.hpp"
+#include <MGDF/ComObject.hpp>
 #include "MGDFHostStats.hpp"
 #include "MGDFTextStream.hpp"
 #include "MGDFTimer.hpp"

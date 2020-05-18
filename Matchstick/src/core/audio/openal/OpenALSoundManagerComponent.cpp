@@ -342,19 +342,22 @@ MGDFError OpenALSoundManagerComponentImpl::CreateSoundBuffer(IFile *dataSource,
     }
   }
 
-  IFileReader *reader = nullptr;
-  MGDFError error = dataSource->Open(&reader);
-  if (MGDF_OK != error) {
-    LOG("Buffer file could not be opened or is already open for reading",
-        LOG_ERROR);
-    return error;
-  }
+  char *data;
+  UINT32 truncSize;
+  {
+    ComObject<IFileReader> reader;
+    if (FAILED(dataSource->Open(reader.Assign()))) {
+      LOG("Buffer file could not be opened or is already open for reading",
+          LOG_ERROR);
+      // TODO replace with HRESULT
+      return MGDF_ERR_FILE_IN_USE;
+    }
 
-  INT64 size = reader->GetSize();
-  UINT32 truncSize = size > UINT_MAX ? UINT_MAX : static_cast<UINT32>(size);
-  char *data = new char[truncSize];
-  reader->Read((void *)data, truncSize);
-  reader->Close();
+    INT64 size = reader->GetSize();
+    truncSize = size > UINT_MAX ? UINT_MAX : static_cast<UINT32>(size);
+    data = new char[truncSize];
+    reader->Read((void *)data, truncSize);
+  }
 
   *bufferId = alutCreateBufferFromFileImage((ALvoid *)data, truncSize);
   delete[] data;

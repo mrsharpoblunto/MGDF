@@ -2,6 +2,7 @@
 
 #include "FakeFile.hpp"
 
+#include <MGDF/ComObject.hpp>
 #include <algorithm>
 #include <sstream>
 #include <vector>
@@ -11,49 +12,70 @@
 #pragma warning(disable : 4291)
 #endif
 
+namespace MGDF {
+namespace Test {
+
 FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-                   IFile *parent) {
-  _parent = parent;
-  _children = nullptr;
-  _name = name;
-  _physicalPath = physicalFile;
-  _data = nullptr;
-  _dataLength = 0;
-  _isOpen = false;
-  _position = 0;
-  _logicalPath = L"";
-}
+                   MGDF::IFile *parent)
+    : _parent(parent),
+      _children(nullptr),
+      _name(name),
+      _physicalPath(physicalFile),
+      _data(""),
+      _isOpen(false),
+      _position(0),
+      _logicalPath(L""),
+      _references(1UL) {}
 
-FakeFile::FakeFile(const std::wstring &name, FakeFile *parent, void *data,
-                   size_t dataLength)  // nullptr data indicates a folder
-{
-  _parent = parent;
-  _children = nullptr;
-  _name = name;
-  _physicalPath = parent->_physicalPath;
-  _data = data;
-  _dataLength = dataLength;
-  _isOpen = false;
-  _position = 0;
-  _logicalPath = L"";
-}
+FakeFile::FakeFile(const std::wstring &name, FakeFile *parent,
+                   const std::string &data)  // nullptr data indicates a folder
+    : _parent(parent),
+      _children(nullptr),
+      _name(name),
+      _physicalPath(parent->_physicalPath),
+      _data(data),
+      _isOpen(false),
+      _position(0),
+      _logicalPath(L""),
+      _references(1UL) {}
 
-FakeFile::~FakeFile() {
-  if (_children != nullptr) {
-    // delete all the children of this node
-    for (auto child : *_children) {
-      delete child.second;
+FakeFile::~FakeFile() {}
+
+ULONG FakeFile::AddRef() { return ++_references; }
+
+ULONG FakeFile::Release() {
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (!_data.empty() && _isOpen) {
+      _isOpen = false;
     }
-    delete _children;
   }
-
-  delete[](char *) _data;
+  ULONG refs = --_references;
+  if (refs == 0UL) {
+    delete this;
+  };
+  return refs;
 }
 
-MGDF::IFile *FakeFile::GetParent() const { return _parent; }
+HRESULT FakeFile::QueryInterface(REFIID riid, void **ppvObject) {
+  if (!ppvObject) return E_POINTER;
+  if (riid == IID_IUnknown || riid == __uuidof(MGDF::IFile) ||
+      (_isOpen && riid == _uuidof(MGDF::IFileReader))) {
+    AddRef();
+    *ppvObject = this;
+    return S_OK;
+  }
+  return E_NOINTERFACE;
+};
 
-size_t FakeFile::GetChildCount() const {
-  if (_children != nullptr) {
+bool FakeFile::GetParent(IFile **parent) {
+  _parent->AddRef();
+  *parent = _parent;
+  return true;
+}
+
+size_t FakeFile::GetChildCount() {
+  if (_children) {
     return _children->size();
   }
   return 0;
@@ -61,54 +83,40 @@ size_t FakeFile::GetChildCount() const {
 
 time_t FakeFile::GetLastWriteTime() const { return 0; }
 
-MGDF::IFile *FakeFile::GetChild(const wchar_t *name) const {
-  if (!_children || !name) return nullptr;
+bool FakeFile::GetChild(const wchar_t *name, IFile **child) {
+  if (!_children || !name) return false;
 
   auto it = _children->find(name);
   if (it != _children->end()) {
-    return it->second;
+    it->second.AddRawRef(child);
+    return true;
   }
-  return nullptr;
+  return false;
 }
 
-bool FakeFile::GetAllChildren(const MGDF::IFileFilter *filter,
-                              IFile **childBuffer, size_t *bufferLength) const {
-  if (!_children || !bufferLength) {
-    *bufferLength = 0;
-    return 0;
-  }
-
-  size_t size = 0;
+void FakeFile::GetAllChildren(IFile **childBuffer) {
   for (auto child : *_children) {
-    if (!filter || filter->Accept(child.first)) {
-      if (size < *bufferLength) childBuffer[size] = child.second;
-      ++size;
-    }
+    child.second.AddRawRef(childBuffer++);
   }
-
-  bool result = size <= *bufferLength;
-  *bufferLength = size;
-  return result;
 }
 
-void FakeFile::AddChild(FakeFile *file) {
+void FakeFile::AddChild(ComObject<FakeFile> file) {
   _ASSERTE(file);
   if (!_children) {
-    _children = new std::map<const wchar_t *, FakeFile *, WCharCmp>();
+    _children = std::make_unique<
+        std::map<const wchar_t *, ComObject<FakeFile>, WCharCmp>>();
   }
-  _children->insert(
-      std::pair<const wchar_t *, FakeFile *>(file->GetName(), file));
+  _children->insert(std::make_pair(file->GetName(), std::move(file)));
 }
 
-const wchar_t *FakeFile::GetLogicalPath() const {
+const wchar_t *FakeFile::GetLogicalPath() {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_logicalPath.empty()) {
-    std::vector<const IFile *> path;
-    const IFile *node = this;
-    while (node) {
+    std::vector<ComObject<IFile>> path;
+    ComObject<IFile> node(this, true);
+    do {
       path.push_back(node);
-      node = node->GetParent();
-    }
+    } while (node->GetParent(node.Assign()));
 
     std::wostringstream ss;
     for (auto file : path) {
@@ -126,30 +134,24 @@ bool FakeFile::IsOpen() const {
   return _isOpen;
 }
 
-MGDF::MGDFError FakeFile::Open(IFileReader **reader) {
+HRESULT FakeFile::Open(IFileReader **reader) {
   std::lock_guard<std::mutex> lock(_mutex);
-  if (_data && !_isOpen) {
+  if (!_data.empty() && !_isOpen) {
     _isOpen = true;
     _position = 0;
+    this->AddRef();
     *reader = this;
-    return MGDF::MGDF_OK;
+    return S_OK;
   }
-  return MGDF::MGDF_ERR_FILE_IN_USE;
-}
-
-void FakeFile::Close() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (_data && _isOpen) {
-    _isOpen = false;
-  }
+  return ERROR_ACCESS_DENIED;
 }
 
 UINT32 FakeFile::Read(void *buffer, UINT32 length) {
   if (_isOpen) {
     INT32 oldPosition = _position;
-    if ((static_cast<UINT32>(oldPosition) + length) > _dataLength)
-      length = static_cast<INT32>(_dataLength) - oldPosition;
-    memcpy(buffer, &((char *)_data)[oldPosition], length);
+    if ((static_cast<UINT32>(oldPosition) + length) > _data.size())
+      length = static_cast<INT32>(_data.size()) - oldPosition;
+    memcpy(buffer, &((char *)_data.data())[oldPosition], length);
     _position = oldPosition + static_cast<INT32>(length);
     return _position;
   }
@@ -172,15 +174,15 @@ INT64 FakeFile::GetPosition() const {
 
 bool FakeFile::EndOfFile() const {
   if (_isOpen) {
-    return _position == _dataLength;
+    return _position == _data.size();
   } else {
     return true;
   }
 }
 
-INT64 FakeFile::GetSize() const { return _dataLength; }
+INT64 FakeFile::GetSize() const { return _data.size(); }
 
-bool FakeFile::IsFolder() const { return _data == nullptr; }
+bool FakeFile::IsFolder() const { return _data.empty(); }
 
 bool FakeFile::IsArchive() const { return true; }
 
@@ -193,3 +195,6 @@ const wchar_t *FakeFile::GetPhysicalPath() const {
 }
 
 const wchar_t *FakeFile::GetName() const { return _name.c_str(); }
+
+}  // namespace Test
+}  // namespace MGDF

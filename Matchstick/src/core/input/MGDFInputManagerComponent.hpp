@@ -2,7 +2,7 @@
 
 #include <MGDF/MGDFInputManager.hpp>
 
-#include "../common/ComObject.hpp"
+#include <MGDF/ComObject.hpp>
 #include "../common/MGDFSystemComponent.hpp"
 
 namespace MGDF {

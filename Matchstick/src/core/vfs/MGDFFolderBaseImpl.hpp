@@ -28,8 +28,8 @@ class FolderBaseImpl : public FileBaseImpl {
   virtual ~FolderBaseImpl() {}
 
   bool FolderBaseImpl::IsOpen() const override final { return false; }
-  MGDFError FolderBaseImpl::Open(IFileReader **reader) override final {
-    return MGDF_ERR_IS_FOLDER;
+  HRESULT FolderBaseImpl::Open(IFileReader **reader) override final {
+    return E_FAIL;
   }
 
   bool FolderBaseImpl::IsFolder() const override final { return true; }

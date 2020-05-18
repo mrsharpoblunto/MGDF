@@ -1,25 +1,28 @@
 #pragma once
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
+#include <atomic>
 #include <string>
 #include <vector>
 
-class FakeArchiveHandler : public MGDF::IArchiveHandler {
+namespace MGDF {
+namespace Test {
+
+class FakeArchiveHandler : public ComBase<MGDF::IArchiveHandler> {
  public:
   FakeArchiveHandler(MGDF::ILogger *logger, MGDF::IErrorHandler *errorHandler);
   virtual ~FakeArchiveHandler();
-  virtual void Dispose();
-  virtual void DisposeArchive(MGDF::IFile *file);
-  virtual bool IsArchive(const wchar_t *path) const;
-  virtual MGDF::IFile *MapArchive(const wchar_t *name,
-                                  const wchar_t *archiveFile,
-                                  MGDF::IFile *parent);
+  virtual bool IsArchive(const wchar_t *path) const final;
+  virtual HRESULT MapArchive(const wchar_t *name, const wchar_t *archiveFile,
+                             MGDF::IFile *parent, MGDF::IFile **child) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;
   MGDF::ILogger *_logger;
   MGDF::IErrorHandler *_errorHandler;
+  std::atomic<ULONG> _references;
 
   /**
   get the extension of a file
@@ -28,3 +31,6 @@ class FakeArchiveHandler : public MGDF::IArchiveHandler {
   */
   const wchar_t *GetFileExtension(const wchar_t *file) const;
 };
+
+}  // namespace Test
+}  // namespace MGDF

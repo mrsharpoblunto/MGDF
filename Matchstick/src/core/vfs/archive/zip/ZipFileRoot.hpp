@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unzip.h>
+
 #include "../../MGDFDefaultFileImpl.hpp"
 
 namespace MGDF {
@@ -16,9 +18,10 @@ namespace zip {
 class ZipFileRoot : public DefaultFileImpl {
  public:
   ZipFileRoot(const std::wstring &name, const std::wstring &physicalPath,
-              IFile *parent, IErrorHandler *errorHandler)
-      : DefaultFileImpl(name, physicalPath, parent, errorHandler),
-        _archiveName(name) {}
+              IFile *parent, unzFile zip)
+      : DefaultFileImpl(name, physicalPath, parent),
+        _archiveName(name),
+        _zip(zip) {}
   virtual ~ZipFileRoot();
   bool IsArchive() const override final { return true; }
   const wchar_t *GetArchiveName() const override final {
@@ -27,6 +30,7 @@ class ZipFileRoot : public DefaultFileImpl {
 
  private:
   std::wstring _archiveName;
+  unzFile _zip;
 };
 
 }  // namespace zip

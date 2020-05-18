@@ -57,7 +57,7 @@ struct HostComponents {
   storage::IStorageFactoryComponent *Storage;
   ComObject<input::IInputManagerComponent> Input;
   audio::ISoundManagerComponent *Sound;
-  vfs::IVirtualFileSystemComponent *VFS;
+  ComObject<vfs::IVirtualFileSystemComponent> VFS;
 };
 
 /**
@@ -110,7 +110,7 @@ class Host : public IHostImpl {
   MGDFError BeginSave(const char *saveName, wchar_t *saveBuffer,
                       UINT32 *size) override final;
   MGDFError CompleteSave(const char *saveName) override final;
-  IVirtualFileSystem *GetVFS() const override final;
+  void GetVFS(IVirtualFileSystem **vfs) override final;
   ISoundManager *GetSound() const override final;
   IStatisticsManager *GetStatistics() const override final;
   IGame *GetGame() const override final;
@@ -143,7 +143,7 @@ class Host : public IHostImpl {
   storage::IStorageFactoryComponent *_storage;
   ComObject<input::IInputManagerComponent> _input;
   audio::ISoundManagerComponent *_sound;
-  vfs::IVirtualFileSystemComponent *_vfs;
+  ComObject<vfs::IVirtualFileSystemComponent> _vfs;
   ComObject<Debug> _debugOverlay;
   Game *_game;
   StringList *_saves;

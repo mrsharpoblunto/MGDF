@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 #include <map>
 #include <mutex>
@@ -20,43 +21,31 @@ struct WCharCmp {
  instances aswell as the zip and other archive file implementations of the
  standard ifile interface
 */
-class FileBaseImpl : public IFile {
+class FileBaseImpl : public ComBase<IFile> {
  public:
   FileBaseImpl(IFile *parent);
-  virtual ~FileBaseImpl();
+  virtual ~FileBaseImpl(){};
 
-  IFile *GetParent() const override final { return _parent; }
-  IFile *GetChild(const wchar_t *name) const override;
-
-  size_t GetChildCount() const override {
-    if (!_children) {
-      std::lock_guard<std::mutex> lock(_mutex);
-      if (!_children) {
-        return 0;
-      }
-    }
-    return _children->size();
-  }
-
-  bool GetAllChildren(const IFileFilter *filter, IFile **childBuffer,
-                      size_t *bufferLength) const override;
-
+  bool GetParent(IFile **parent) override final;
+  bool GetChild(const wchar_t *name, IFile **child) override;
+  size_t GetChildCount() override;
+  void GetAllChildren(IFile **childBuffer) override;
   bool IsArchive() const override { return false; }
-
-  const wchar_t *GetLogicalPath() const override final;
+  const wchar_t *GetLogicalPath() override final;
   time_t GetLastWriteTime() const override;
 
   // These internal methods are not threadsafe, so ensure
   // that the mutex for this file is acquired or that only
   // one thread can access the file before calling
-  void AddChild(IFile *newNode);
-  void SetParent(IFile *file);
+  void AddChild(ComObject<IFile> &newNode);
 
  protected:
-  mutable std::mutex _mutex;
-  mutable std::map<const wchar_t *, IFile *, WCharCmp> *_children;
-  mutable std::wstring _logicalPath;
-
+  std::mutex _mutex;
+  std::wstring _logicalPath;
+  std::unique_ptr<std::map<const wchar_t *, ComObject<IFile>, WCharCmp>>
+      _children;
+  // hold a raw reference here as we don't want children
+  // to hold thier parent files in scope
   IFile *_parent;
 };
 

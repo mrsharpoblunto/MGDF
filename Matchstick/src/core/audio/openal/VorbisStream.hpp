@@ -5,6 +5,7 @@
 #include <al.h>
 #include <alc.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 
 #include "OpenALSoundManagerComponent.hpp"
@@ -29,7 +30,7 @@ typedef INT32 (*LPOVOPENCALLBACKS)(void *datasource, OggVorbis_File *vf,
                                    ov_callbacks callbacks);
 enum VorbisStreamState { NOT_STARTED, PLAY, PAUSE, STOP };
 
-class VorbisStream : public ISoundStream {
+class VorbisStream : public ComBase<ISoundStream> {
  public:
   virtual ~VorbisStream();
   static MGDFError TryCreate(IFile *source,
@@ -48,12 +49,6 @@ class VorbisStream : public ISoundStream {
   UINT32 GetPosition() override final;
   UINT32 GetLength() override final;
 
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid,
-                                           void **ppvObject) override final;
-  ULONG STDMETHODCALLTYPE AddRef() override final;
-  ULONG STDMETHODCALLTYPE Release() override final;
-  ULONG RefCount() const { return _streamReferences; }
-
   void Update();
   void SetGlobalVolume(float globalVolume);
 
@@ -62,9 +57,8 @@ class VorbisStream : public ISoundStream {
   MGDFError InitStream();
   void UninitStream();
 
-  ULONG _streamReferences;
-  IFile *_dataSource;
-  IFileReader *_reader;
+  ComObject<IFile> _dataSource;
+  ComObject<IFileReader> _reader;
   ALuint _buffers[VORBIS_BUFFER_COUNT];
   ALuint _source;
   ALint _totalBuffersProcessed;

@@ -81,7 +81,7 @@ MGDFError Host::Init() {
   // map essential directories to the vfs
   // ensure the vfs automatically enumerates zip files
   LOG("Registering Zip file VFS handler...", LOG_LOW);
-  _vfs->RegisterArchiveHandler(vfs::zip::CreateZipArchiveHandlerImpl(this));
+  _vfs->RegisterArchiveHandler(vfs::zip::CreateZipArchiveHandlerImpl());
 
   // ensure the vfs enumerates any custom defined archive formats
   LOG("Registering custom archive VFS handlers...", LOG_LOW);
@@ -89,13 +89,12 @@ MGDFError Host::Init() {
   _moduleFactory->GetCustomArchiveHandlers(nullptr, &length,
                                            &Logger::Instance(), this);
   if (length > 0) {
-    IArchiveHandler **handlers = new IArchiveHandler *[length];
-    _moduleFactory->GetCustomArchiveHandlers(handlers, &length,
+    ComArray<IArchiveHandler> handlers(length);
+    _moduleFactory->GetCustomArchiveHandlers(handlers.Data(), &length,
                                              &Logger::Instance(), this);
-    for (UINT32 i = 0; i < length; ++i) {
-      _vfs->RegisterArchiveHandler(handlers[i]);
+    for (auto &handler : handlers) {
+      _vfs->RegisterArchiveHandler(handler);
     }
-    delete[] handlers;
     LOG("Registered " << length << " custom archive VFS handlers", LOG_LOW);
   } else {
     LOG("No custom archive VFS handlers to be registered", LOG_LOW);
@@ -103,7 +102,10 @@ MGDFError Host::Init() {
 
   // enumerate the current games content directory
   LOG("Mounting content directory into VFS...", LOG_LOW);
-  _vfs->Mount(Resources::Instance().ContentDir().c_str());
+  if (!_vfs->Mount(Resources::Instance().ContentDir().c_str())) {
+    LOG("Failed to mount content directory into VFS...", LOG_ERROR);
+    return MGDF_ERR_FATAL;
+  }
 
   // set the initial sound volumes
   if (_sound != nullptr) {
@@ -134,14 +136,13 @@ Host::~Host(void) {
 
   // TODO remove once these are COM'ified
   delete _sound;
-  delete _vfs;
   delete _storage;
 
   LOG("Uninitialised host successfully", LOG_LOW);
 }
 
 void Host::GetDebug(IDebug **debug) {
-  _debugOverlay.AssignToRaw<MGDF::IDebug>(debug);
+  _debugOverlay.AddRawRef<MGDF::IDebug>(debug);
 }
 
 ComObject<Debug> Host::GetDebugImpl() { return _debugOverlay; }
@@ -594,10 +595,12 @@ IGame *Host::GetGame() const { return _game; }
 
 IStatisticsManager *Host::GetStatistics() const { return _stats; }
 
-IVirtualFileSystem *Host::GetVFS() const { return _vfs; }
+void Host::GetVFS(IVirtualFileSystem **vfs) {
+  _vfs.AddRawRef<IVirtualFileSystem>(vfs);
+}
 
 void Host::GetInput(IInputManager **input) {
-  _input.AssignToRaw<IInputManager>(input);
+  _input.AddRawRef<IInputManager>(input);
 }
 
 ISoundManager *Host::GetSound() const { return _sound; }

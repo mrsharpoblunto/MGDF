@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "Test1.hpp"
+#include "Test2.hpp"
 #include "Test3.hpp"
 
 #if defined(_DEBUG)

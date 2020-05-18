@@ -29,10 +29,9 @@ LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks = nullptr;
 VorbisStream::VorbisStream(IFile *source,
                            OpenALSoundManagerComponentImpl *manager)
     : _soundManager(manager),
-      _streamReferences(1UL),
       _globalVolume(manager->GetStreamVolume()),
       _volume(1.0),
-      _dataSource(source),
+      _dataSource(ComObject(source, true)),
       _initLevel(0),
       _state(NOT_STARTED),
       _totalBuffersProcessed(0),
@@ -47,26 +46,6 @@ VorbisStream::~VorbisStream() {
   UninitVorbis();
   UninitStream();
   _soundManager->RemoveSoundStream(this);
-}
-
-HRESULT VorbisStream::QueryInterface(REFIID riid, void **ppvObject) {
-  if (!ppvObject) return E_POINTER;
-  if (riid == IID_IUnknown || riid == __uuidof(ISoundStream)) {
-    AddRef();
-    *ppvObject = this;
-    return S_OK;
-  }
-  return E_NOINTERFACE;
-}
-
-ULONG VorbisStream::AddRef() { return ++_streamReferences; }
-
-ULONG VorbisStream::Release() {
-  if (--_streamReferences == 0UL) {
-    delete this;
-    return 0UL;
-  }
-  return _streamReferences;
 }
 
 MGDFError VorbisStream::TryCreate(IFile *source,
@@ -94,12 +73,11 @@ MGDFError VorbisStream::InitStream() {
     return error;
   }
 
-  error = _dataSource->Open(&_reader);
-  if (MGDF_OK != error) {
+  if (FAILED(_dataSource->Open(_reader.Assign()))) {
     LOG("Stream file could not be opened or is already open for reading",
         LOG_ERROR);
     UninitVorbis();
-    return error;
+    return MGDF_ERR_FILE_IN_USE;
   }
 
   _initLevel++;  // data source open
@@ -112,7 +90,7 @@ MGDFError VorbisStream::InitStream() {
   callbacks.tell_func = &VorbisStream::ov_tell_func;
 
   INT32 retVal =
-      fn_ov_open_callbacks(_reader, &_vorbisFile, nullptr, 0, callbacks);
+      fn_ov_open_callbacks(_reader.Get(), &_vorbisFile, nullptr, 0, callbacks);
 
   // Create an OggVorbis file stream
   if (retVal != 0) {
@@ -225,7 +203,7 @@ void VorbisStream::UninitStream() {
 
   // close the datasource
   if (_initLevel >= 1 && _reader) {
-    _reader->Close();
+    _reader = nullptr;
   }
   _initLevel = 0;
 }
@@ -479,14 +457,7 @@ int VorbisStream::ov_seek_func(void *datasource, ogg_int64_t offset,
   return -1;
 }
 
-int VorbisStream::ov_close_func(void *datasource) {
-  _ASSERTE(datasource);
-  IFileReader *reader = reinterpret_cast<IFileReader *>(datasource);
-  _ASSERTE(reader);
-
-  reader->Close();
-  return 0;
-}
+int VorbisStream::ov_close_func(void *datasource) { return 0; }
 
 long VorbisStream::ov_tell_func(void *datasource) {
   _ASSERTE(datasource);
