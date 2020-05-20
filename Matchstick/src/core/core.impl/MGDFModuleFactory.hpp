@@ -8,7 +8,7 @@ namespace core {
 typedef bool (*GetCustomArchiveHandlersPtr)(IArchiveHandler **list,
                                             UINT32 *length, ILogger *logger,
                                             IErrorHandler *errorHandler);
-typedef IModule *(*GetModulePtr)();
+typedef HRESULT (*GetModulePtr)(IModule **);
 typedef bool (*IsCompatibleInterfaceVersionPtr)(int);
 typedef UINT32 (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *, UINT32 *);
 
@@ -20,7 +20,7 @@ class ModuleFactory {
   bool GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
                                 ILogger *logger,
                                 IErrorHandler *errorHandler) const;
-  IModule *GetModule() const;
+  HRESULT GetModule(ComObject<IModule> &module) const;
   bool IsCompatibleInterfaceVersion(int) const;
   UINT32 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                     UINT32 *levelSize) const;

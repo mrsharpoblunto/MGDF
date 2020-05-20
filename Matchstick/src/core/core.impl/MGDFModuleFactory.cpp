@@ -17,8 +17,8 @@
 #endif
 
 // to enable the forced unloading of libraries once they are no longer in use by
-// the application leaving this commented out leaves the unloading of the dlls to
-// the OS NOTE: with FREE_UNUSED_LIBRARIES enabled memory leaks in external
+// the application leaving this commented out leaves the unloading of the dlls
+// to the OS NOTE: with FREE_UNUSED_LIBRARIES enabled memory leaks in external
 // modules are not reported correctly #define FREE_UNUSED_LIBRARIES
 
 using namespace std::filesystem;
@@ -166,11 +166,11 @@ bool ModuleFactory::GetCustomArchiveHandlers(
   }
 }
 
-IModule *ModuleFactory::GetModule() const {
+HRESULT ModuleFactory::GetModule(ComObject<IModule> &module) const {
   if (_getModule != nullptr) {
-    return _getModule();
+    return _getModule(module.Assign());
   } else {
-    return nullptr;
+    return E_FAIL;
   }
 }
 

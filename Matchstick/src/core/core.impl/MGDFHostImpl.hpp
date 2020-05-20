@@ -137,7 +137,7 @@ class Host : public IHostImpl {
 
   void ClearWorkingDirectory();
 
-  IModule *_module;  // the currently executing module
+  ComObject<IModule> _module;  // the currently executing module
   ModuleFactory *_moduleFactory;
 
   storage::IStorageFactoryComponent *_storage;

@@ -37,13 +37,12 @@ class TestModule {
   int _testIndex;
 };
 
-class Module : public IModule {
+class Module : public ComBase<IModule> {
  public:
   virtual ~Module(void);
   Module();
 
   bool STNew(ISimHost *simHost, const wchar_t *workingFolder) override final;
-  bool STDispose(ISimHost *simHost) override final;
   bool STUpdate(ISimHost *simHost, double elapsedTime) override final;
   void STShutDown(ISimHost *simHost) override final;
 

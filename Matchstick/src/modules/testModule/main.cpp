@@ -21,7 +21,11 @@ bool MGDF::IsCompatibleInterfaceVersion(INT32 interfaceVersion) {
 }
 
 // create module instances as they are requested by the framework
-MGDF::IModule *MGDF::GetModule() { return new MGDF::Test::Module(); }
+HRESULT MGDF::GetModule(IModule **module) {
+  ComObject<IModule> m(new MGDF::Test::Module());
+  m.AddRawRef(module);
+  return S_OK;
+}
 
 // specify to the framework what kind of d3d device features we want/require
 UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,

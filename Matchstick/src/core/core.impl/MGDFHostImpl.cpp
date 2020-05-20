@@ -167,7 +167,7 @@ UINT32 Host::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
 create and initialize a new module
 */
 void Host::STCreateModule() {
-  if (_module == nullptr) {
+  if (!_module) {
     std::string error;
     if (_moduleFactory->GetLastError(error)) {
       FATALERROR(this, error);
@@ -180,11 +180,12 @@ void Host::STCreateModule() {
     }
 
     // create the module
-    _module = _moduleFactory->GetModule();
-
-    if (_module == nullptr) {
+    if (FAILED(_moduleFactory->GetModule(_module))) {
       FATALERROR(this, "Unable to create module class");
     }
+
+    // This is where additional QueryInterface checks should go if
+    // IModule gets extended to determine support for new methods
 
     // init the module
     if (!_module->STNew(this, Resources::Instance().WorkingDir().c_str())) {
@@ -195,8 +196,7 @@ void Host::STCreateModule() {
 
 void Host::STUpdate(double simulationTime, HostStats &stats) {
   bool exp = true;
-  if (_module != nullptr &&
-      _shutdownQueued.compare_exchange_strong(exp, false)) {
+  if (_module && _shutdownQueued.compare_exchange_strong(exp, false)) {
     LOG("Calling module STShutDown...", LOG_MEDIUM);
     _module->STShutDown(this);
   }
@@ -213,7 +213,7 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
       _timer->ConvertDifferenceToSeconds(inputEnd, inputStart),
       _timer->ConvertDifferenceToSeconds(audioEnd, audioStart));
 
-  if (_module != nullptr) {
+  if (_module) {
     LOG("Calling module STUpdate...", LOG_HIGH);
     if (!_module->STUpdate(this, simulationTime)) {
       FATALERROR(this, "Error updating scene in module");
@@ -222,16 +222,12 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
 }
 
 void Host::STDisposeModule() {
-  LOG("Calling module STDispose...", LOG_MEDIUM);
-  if (_module != nullptr && !_module->STDispose(this)) {
-    _module = nullptr;
-    FATALERROR(this, "Error disposing module");
-  }
-  LOG("Disposed of module successfully", LOG_LOW);
+  LOG("Releasing module...", LOG_MEDIUM);
+  _module = nullptr;
 }
 
 void Host::RTBeforeFirstDraw() {
-  if (_module != nullptr) {
+  if (_module) {
     LOG("Calling module RTBeforeFirstDraw...", LOG_MEDIUM);
     if (!_module->RTBeforeFirstDraw(this)) {
       FATALERROR(this, "Error in before first draw in module");
@@ -241,7 +237,7 @@ void Host::RTBeforeFirstDraw() {
 
 void Host::RTBeforeDeviceReset() {
   SAFE_RELEASE(_d3dContext);
-  if (_module != nullptr) {
+  if (_module) {
     LOG("Calling module RTBeforeDeviceReset...", LOG_MEDIUM);
     if (!_module->RTBeforeDeviceReset(this)) {
       FATALERROR(this, "Error in before device reset in module");
@@ -272,7 +268,7 @@ void Host::RTSetDevices(HWND window, ID3D11Device *d3dDevice,
 
 void Host::RTDraw(double alpha) {
   _timer->Begin();
-  if (_module != nullptr) {
+  if (_module) {
     LOG("Calling module RTDraw...", LOG_HIGH);
     if (!_module->RTDraw(this, alpha)) {
       FATALERROR(this, "Error drawing scene in module");
@@ -282,7 +278,7 @@ void Host::RTDraw(double alpha) {
 }
 
 void Host::RTBeforeBackBufferChange() {
-  if (_module != nullptr) {
+  if (_module) {
     LOG("Calling module RTBeforeBackBufferChange...", LOG_MEDIUM);
     if (!_module->RTBeforeBackBufferChange(this)) {
       FATALERROR(this, "Error handling before back buffer change in module");
@@ -294,7 +290,7 @@ void Host::RTBackBufferChange(ID3D11Texture2D *backBuffer,
                               ID3D11Texture2D *depthStencilBuffer) {
   _backBuffer = backBuffer;
   _depthStencilBuffer = depthStencilBuffer;
-  if (_module != nullptr) {
+  if (_module) {
     LOG("Calling module RTBackBufferChange...", LOG_MEDIUM);
     if (!_module->RTBackBufferChange(this)) {
       FATALERROR(this, "Error handling back buffer change in module");
@@ -373,7 +369,7 @@ void Host::FatalError(const char *sender, const char *message) {
   LOG("Notified of fatal error, telling module to panic", LOG_ERROR);
   Logger::Instance().Flush();
 
-  if (_module != nullptr) {
+  if (_module) {
     _module->Panic();
   }
 

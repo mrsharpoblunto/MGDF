@@ -95,11 +95,6 @@ bool Module::STUpdate(ISimHost* host, double elapsedTime) {
 
 void Module::STShutDown(ISimHost* host) { host->ShutDown(); }
 
-bool Module::STDispose(ISimHost* host) {
-  delete this;
-  return true;
-}
-
 bool Module::RTBeforeFirstDraw(MGDF::IRenderHost* host) {
   _textManager = std::make_unique<TextManager>(host);
   host->GetRenderTimer()->CreateGPUCounter("Text Rendering",

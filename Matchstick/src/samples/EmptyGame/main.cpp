@@ -41,7 +41,11 @@ UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
 }
 
 // create a module instance when requested by the host
-MGDF::IModule *MGDF::GetModule() { return new Module(); }
+HRESULT MGDF::GetModule(MGDF::IModule **module) {
+  MGDF::ComObject<MGDF::IModule> m(new Module());
+  m.AddRawRef(module);
+  return S_OK;
+}
 
 // register custom archive handlers
 bool MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,

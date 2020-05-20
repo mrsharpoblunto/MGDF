@@ -26,11 +26,6 @@ void Module::STShutDown(MGDF::ISimHost *host) {
   // the module then calls host->Shutdown(), which it can do at its discretion
   host->ShutDown();
 }
-bool Module::STDispose(MGDF::ISimHost *host) {
-  // called by the host when the module is to be destroyed
-  delete this;
-  return true;
-}
 bool Module::RTBeforeFirstDraw(MGDF::IRenderHost *host) {
   // Called by the host before any rendering occurs on the render thread
   // Any first time rendering initialization stuff should go here

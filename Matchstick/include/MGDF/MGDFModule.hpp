@@ -19,7 +19,8 @@ Methods prefixed with ST will be invoked by the host from the sim thread,
 methods prefixed with RT will be invoked by the host from the render thread, and
 methods without a prefix may be invoked by the host from either thread.
 */
-class IModule {
+MIDL_INTERFACE("08D1F4AD-366B-4659-B4A6-AA04B458D6DB")
+IModule : public IUnknown {
  public:
   /**
    Called by the host after a module is first created and should be used
@@ -29,7 +30,8 @@ class IModule {
    its running \return false if the module experiences a fatal error on
    initialization
    */
-  virtual bool STNew(ISimHost *host, const wchar_t *workingFolder) = 0;
+  virtual bool STDMETHODCALLTYPE STNew(ISimHost * host,
+                                       const wchar_t *workingFolder) = 0;
 
   /**
    Called once per simulation timestep by the host once the game is running and
@@ -37,7 +39,8 @@ class IModule {
    elapsedTime the simulation timestep \return false if the module experiences a
    fatal error updating the scene
   */
-  virtual bool STUpdate(ISimHost *host, double elapsedTime) = 0;
+  virtual bool STDMETHODCALLTYPE STUpdate(ISimHost * host,
+                                          double elapsedTime) = 0;
 
   /**
    Called by the host to tell the module to cleanup and shutdown as soon as
@@ -47,21 +50,14 @@ class IModule {
    in order to actually terminate the application. This function may be called
    multiple times. \param host the simulation thread host
    */
-  virtual void STShutDown(ISimHost *host) = 0;
-
-  /**
-   Called by the host to dispose of the module
-   \param host the simulation thread host
-   \return false if the module experiences a fatal error cleaning up
-  */
-  virtual bool STDispose(ISimHost *host) = 0;
+  virtual void STDMETHODCALLTYPE STShutDown(ISimHost * host) = 0;
 
   /**
    Called by the host immediately before the first call to RTDrawScene
    \param host the render thread host
    \return false if the module experiences a fatal error
   */
-  virtual bool RTBeforeFirstDraw(IRenderHost *host) = 0;
+  virtual bool STDMETHODCALLTYPE RTBeforeFirstDraw(IRenderHost * host) = 0;
 
   /**
    Called by the host once per render frame. The module should do any rendering
@@ -69,7 +65,7 @@ class IModule {
    \param alpha how far between the current and next simulation frame (0-1)
    \return false if the module experiences a fatal error drawing the scene
   */
-  virtual bool RTDraw(IRenderHost *host, double alpha) = 0;
+  virtual bool STDMETHODCALLTYPE RTDraw(IRenderHost * host, double alpha) = 0;
 
   /**
   Called by the host if the swap chain options need to be changed, or the
@@ -77,7 +73,8 @@ class IModule {
   to the previous back buffer so a new resized backbuffer can be set \param host
   the render thread host \return false if the module experiences a fatal error
   */
-  virtual bool RTBeforeBackBufferChange(IRenderHost *host) = 0;
+  virtual bool STDMETHODCALLTYPE RTBeforeBackBufferChange(IRenderHost *
+                                                          host) = 0;
 
   /**
   Called by the host after the swap chain options has been changed, or the
@@ -86,7 +83,7 @@ class IModule {
   host the render thread host \return false if the module experiences a fatal
   error
   */
-  virtual bool RTBackBufferChange(IRenderHost *host) = 0;
+  virtual bool STDMETHODCALLTYPE RTBackBufferChange(IRenderHost * host) = 0;
 
   /**
   Called by the host if the dxgi device needs to be removed. The module should
@@ -94,7 +91,7 @@ class IModule {
   which will now be invalid. \param host the render thread host \return false if
   the module experiences a fatal error
   */
-  virtual bool RTBeforeDeviceReset(IRenderHost *host) = 0;
+  virtual bool STDMETHODCALLTYPE RTBeforeDeviceReset(IRenderHost * host) = 0;
 
   /**
   Called by the host after the dxgi device has been reset, the module should
@@ -102,7 +99,7 @@ class IModule {
   RTBeforeDeviceReset \param host the render thread host \return false if the
   module experiences a fatal error
   */
-  virtual bool RTDeviceReset(IRenderHost *host) = 0;
+  virtual bool STDMETHODCALLTYPE RTDeviceReset(IRenderHost * host) = 0;
 
   /**
   Called by the host when a fatalError event occurs.
@@ -110,7 +107,7 @@ class IModule {
   as best it can before the host aborts. Methods on the render and sim hosts
   should not be accessed from within this method
   */
-  virtual void Panic() = 0;
+  virtual void STDMETHODCALLTYPE Panic() = 0;
 };
 
 /**
@@ -137,9 +134,12 @@ extern "C" __declspec(dllexport) UINT32
 /**
 Factory function which returns an instance of the module to the host. This
 function is required and will be called if the IsCompatibleInterfaceVersion
-function returns true \return an instance of the module interface
+function returns true. If the host version supports newer versions of the IModule
+interface it will progressively try to use those by running QueryInterface
+checks on the provided instance
+\param module pointer to an instance of the module interface
 */
-extern "C" __declspec(dllexport) IModule *GetModule();
+extern "C" __declspec(dllexport) HRESULT GetModule(IModule **module);
 
 /**
 Allows a module to tell the host if it is going to provide any custom virtual
