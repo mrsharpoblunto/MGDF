@@ -111,10 +111,16 @@ MGDFError Host::Init() {
   // set the initial sound volumes
   if (_sound) {
     LOG("Setting initial volume...", LOG_HIGH);
-    _sound->SetSoundVolume(
-        (float)atof(_game->GetPreference(PreferenceConstants::SOUND_VOLUME)));
-    _sound->SetStreamVolume(
-        (float)atof(_game->GetPreference(PreferenceConstants::MUSIC_VOLUME)));
+    ComObject<IString> pref;
+    if (_game->GetPreference(PreferenceConstants::SOUND_VOLUME,
+                             pref.Assign())) {
+      _sound->SetSoundVolume(FromString<float>(pref));
+    }
+
+    if (_game->GetPreference(PreferenceConstants::MUSIC_VOLUME,
+                             pref.Assign())) {
+      _sound->SetStreamVolume(FromString<float>(pref));
+    }
   }
 
   LOG("Initialised host components successfully", LOG_LOW);
@@ -391,7 +397,7 @@ void Host::ShutDown() {
 }
 
 MGDFError Host::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,
-                     Version &version) {
+                     Version *version) {
   if (!saveName) {
     LOG("save name cannot be null. Only alphanumeric characters and the space "
         "character are permitted",
@@ -417,10 +423,10 @@ MGDFError Host::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,
     *size = static_cast<UINT32>(loadDataDir.size()) + 1;
     memcpy(loadBuffer, loadDataDir.c_str(), sizeof(wchar_t) * (*size));
 
-    Version version;
-    _game->GetVersion(&version);
+    Version v;
+    _game->GetVersion(&v);
     std::unique_ptr<storage::IGameStateStorageHandler> handler(
-        _storage->CreateGameStateStorageHandler(_game->GetUid(), version));
+        _storage->CreateGameStateStorageHandler(_game->GetUid(), v));
     _ASSERTE(handler.get());
 
     MGDFError error = handler->Load(loadFile);
@@ -430,7 +436,7 @@ MGDFError Host::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,
       return error;
     }
 
-    handler->GetVersion(version);
+    handler->GetVersion(*version);
     return MGDF_OK;
   }
 }

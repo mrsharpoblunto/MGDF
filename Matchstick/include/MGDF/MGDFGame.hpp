@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDFGame.hpp>
+#include <MGDF/MGDFString.hpp>
 #include <MGDF/MGDFVersion.hpp>
 
 namespace MGDF {
@@ -54,10 +54,11 @@ IGame : public IUnknown {
   Preferences can be defined in a games game.json file, or new ones can be
   added/overwritten by calling SetPreference
   \param name the preference name
-  \return the value associated with the key or nullptr if there is no such key
+  \param value pointer to the value associated with the key or nullptr if there is no such key
+  \return true if the preference key could be found
   */
-  virtual const char *STDMETHODCALLTYPE GetPreference(const char *name)
-      const = 0;
+  virtual bool STDMETHODCALLTYPE GetPreference(const char *name,
+                                               IString **value) = 0;
 
   /**
   change the value of a preference

@@ -246,7 +246,7 @@ class ComBase : public T {
 };
 
 template <typename T, typename U>
-T ToString(const U *str) {
+T ToString(const ComObject<U> &str) {
   T s;
   s.resize(str->GetSize());
   bool result = str->Copy(s.data(), s.size());

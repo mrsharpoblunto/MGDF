@@ -31,14 +31,16 @@ bool Game::HasPreference(const char *name) const {
   return _preferences.find(name) != _preferences.end();
 }
 
-const char *Game::GetPreference(const char *name) const {
-  if (!name) return nullptr;
+bool Game::GetPreference(const char *name, IString **value) {
+  if (!name) return false;
 
   auto iter = _preferences.find(name);
   if (iter != _preferences.end()) {
-    return iter->second.c_str();
+    ComObject<StringImpl> v(new StringImpl(iter->second.c_str()));
+    v.AddRawRef(value);
+    return true;
   } else {
-    return nullptr;
+    return false;
   }
 }
 

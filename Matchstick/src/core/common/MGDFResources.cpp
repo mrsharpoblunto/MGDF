@@ -145,8 +145,8 @@ std::wstring Resources::Module() { return BinDir() + L"module.dll"; }
 
 std::wstring Resources::BinDir() { return GameBaseDir() + L"bin/"; }
 
-std::string Resources::ToString(const IWString *str) {
-  return ToString(::MGDF::ToString<std::wstring>(str));
+std::string Resources::ToString(const ComObject<IWString> &str) {
+  return Resources::ToString(MGDF::ToString<std::wstring>(str));
 }
 
 std::string Resources::ToString(const std::wstring &wstr) {

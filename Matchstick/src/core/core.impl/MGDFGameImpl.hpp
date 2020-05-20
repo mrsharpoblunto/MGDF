@@ -6,6 +6,7 @@
 
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFPreferenceSet.hpp"
+#include "../common/MGDFStringImpl.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"
 
 namespace MGDF {
@@ -31,7 +32,7 @@ class Game : public ComBase<IGame> {
   }
 
   bool HasPreference(const char *name) const override final;
-  const char *GetPreference(const char *name) const override final;
+  bool GetPreference(const char *name, IString **value) override final;
   void SetPreference(const char *name, const char *value) override final;
   void SetPreferences(IPreferenceSet *preferences) override final;
   void SavePreferences() const override final;

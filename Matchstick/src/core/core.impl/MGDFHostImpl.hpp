@@ -106,7 +106,7 @@ class Host : public IHostImpl {
   // ISimHost methods
   void QueueShutDown() override final;
   MGDFError Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,
-                 Version &version) override final;
+                 Version *version) override final;
   MGDFError BeginSave(const char *saveName, wchar_t *saveBuffer,
                       UINT32 *size) override final;
   MGDFError CompleteSave(const char *saveName) override final;

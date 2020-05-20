@@ -69,12 +69,12 @@ void Test3::Setup(ISimHost *host) {
         unsigned size = 0;
         MGDF::Version version;
         if (MGDF_ERR_BUFFER_TOO_SMALL !=
-            host->Load("testsave", nullptr, &size, version)) {
+            host->Load("testsave", nullptr, &size, &version)) {
           return TestStep::FAILED;
         } else {
           std::wstring saveDir;
           saveDir.resize(size - 1);  // exclude null terminator
-          if (host->Load("testsave", saveDir.data(), &size, version) ==
+          if (host->Load("testsave", saveDir.data(), &size, &version) ==
               MGDF_OK) {
             // make sure the version we loaded is the same that we saved.
             if (version.Major != 0 || version.Minor != 1) {

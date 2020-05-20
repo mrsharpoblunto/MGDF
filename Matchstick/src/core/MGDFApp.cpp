@@ -30,12 +30,13 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
   _ASSERTE(host);
 
   host->GetGame(_game.Assign());
-  const char *simFps = _game->GetPreference(PreferenceConstants::SIM_FPS);
-  UINT32 simulationFps = atoi(simFps);
+  ComObject<IString> pref;
+  _game->GetPreference(PreferenceConstants::SIM_FPS, pref.Assign());
+  UINT32 simulationFps = FromString<UINT32>(pref);
 
   _awaitFrame.test_and_set();
 
-  if (!simFps || !simulationFps) {
+  if (!pref || !simulationFps) {
     FATALERROR(_host,
                PreferenceConstants::SIM_FPS
                    << " was not found in preferences or is not an integer");
@@ -45,10 +46,9 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     FATALERROR(_host, "Unable to create sim frame limiter");
   }
 
-  const char *renderFps = _game->GetPreference(PreferenceConstants::RENDER_FPS);
-  if (renderFps) {
-    if (MGDF_OK !=
-        FrameLimiter::TryCreate(atoi(renderFps), &_renderFrameLimiter)) {
+  if (_game->GetPreference(PreferenceConstants::RENDER_FPS, pref.Assign())) {
+    if (MGDF_OK != FrameLimiter::TryCreate(FromString<UINT32>(pref),
+                                           &_renderFrameLimiter)) {
       FATALERROR(_host, "Unable to create render frame limiter");
     }
   }
@@ -125,19 +125,28 @@ bool MGDFApp::VSyncEnabled() const {
 }
 
 bool MGDFApp::OnInitWindow(RECT &window) {
-  const char *posX =
-      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONX);
-  const char *posY =
-      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONY);
-  window.top = posY ? atoi(posY) : 0;
-  window.left = posX ? atoi(posX) : 0;
-  window.right = window.left +
-                 atoi(_game->GetPreference(PreferenceConstants::WINDOW_SIZEX));
-  window.bottom = window.top +
-                  atoi(_game->GetPreference(PreferenceConstants::WINDOW_SIZEY));
-  const char *windowResize =
-      _game->GetPreference(PreferenceConstants::WINDOW_RESIZE);
-  return atoi(windowResize) == 1;
+  ComObject<IString> pref;
+  window.top =
+      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONY, pref.Assign())
+          ? FromString<LONG>(pref)
+          : 0;
+  window.left =
+      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONX, pref.Assign())
+          ? FromString<LONG>(pref)
+          : 0;
+  window.right =
+      window.left +
+      (_game->GetPreference(PreferenceConstants::WINDOW_SIZEX, pref.Assign())
+           ? FromString<LONG>(pref)
+           : 0);
+  window.bottom =
+      window.top +
+      (_game->GetPreference(PreferenceConstants::WINDOW_SIZEY, pref.Assign())
+           ? FromString<LONG>(pref)
+           : 0);
+  return _game->GetPreference(PreferenceConstants::WINDOW_RESIZE,
+                              pref.Assign()) &&
+         FromString<int>(pref) == 1;
 }
 
 FullScreenDesc MGDFApp::OnResetSwapChain(

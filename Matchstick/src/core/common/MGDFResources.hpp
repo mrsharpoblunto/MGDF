@@ -2,6 +2,7 @@
 
 #include <windows.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 #include <string>
 
@@ -51,7 +52,7 @@ class Resources {
 
   static std::wstring ToWString(const std::string &str);
   static std::wstring ToWString(const char *str);
-  static std::string ToString(const IWString *str);
+  static std::string ToString(const ComObject<IWString> &str);
   static std::string ToString(const std::wstring &str);
   static std::string ToString(const wchar_t *str);
 

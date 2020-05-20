@@ -196,7 +196,7 @@ class ISimHost : public ICommonHost {
    an error code
   */
   virtual MGDFError Load(const char *saveName, wchar_t *loadBuffer,
-                         UINT32 *size, Version &version) = 0;
+                         UINT32 *size, Version *version) = 0;
 
   /**
   get information regarding the current game and its preferences

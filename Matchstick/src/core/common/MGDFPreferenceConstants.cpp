@@ -29,5 +29,52 @@ const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
 const char *PreferenceConstants::WINDOW_POSITIONX = "host.windowPositionX";
 const char *PreferenceConstants::WINDOW_POSITIONY = "host.windowPositionY";
 
+const std::string S_1("1");
+
+template <>
+std::string ToString(const ComObject<IString> &str) {
+  return MGDF::ToString<std::string>(str);
+}
+
+template <>
+bool FromString(const ComObject<IString> &str) {
+  auto rawVal = ToString(str);
+  return rawVal == S_1;
+}
+
+template <>
+int FromString(const ComObject<IString> &str) {
+  auto rawVal = ToString(str);
+  return atoi(rawVal.c_str());
+}
+
+template <>
+long FromString(const ComObject<IString> &str) {
+  auto rawVal = ToString(str);
+  return atol(rawVal.c_str());
+}
+
+template <>
+unsigned int FromString(const ComObject<IString> &str) {
+  auto rawVal = ToString(str);
+  return static_cast<unsigned int>(atol(rawVal.c_str()));
+}
+
+template <>
+unsigned long FromString(const ComObject<IString> &str) {
+  auto rawVal = ToString(str);
+  return static_cast<unsigned int>(atoll(rawVal.c_str()));
+}
+
+template <>
+double FromString(const ComObject<IString> &str) {
+  auto rawVal = ToString(str);
+  return atof(rawVal.c_str());
+}
+
+template <>
+float FromString(const ComObject<IString> &str) {
+  return static_cast<float>(FromString<double>(str));
+}
 }  // namespace core
 }  // namespace MGDF

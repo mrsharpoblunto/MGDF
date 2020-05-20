@@ -22,15 +22,6 @@
 namespace MGDF {
 namespace core {
 
-static const std::string S_1("1");
-static const std::string S_0("0");
-
-std::string ToString(UINT32 i) {
-  std::ostringstream ss;
-  ss << i;
-  return ss.str();
-}
-
 RenderSettingsManager::RenderSettingsManager()
     : _currentMultiSampleLevel(1),
       _backBufferMultiSampleLevel(1),
@@ -368,24 +359,21 @@ void RenderSettingsManager::GetPreferences(IPreferenceSet **preferences) {
   ComObject<PreferenceSetImpl> p(new PreferenceSetImpl());
 
   p->Preferences.insert(std::make_pair(PreferenceConstants::FULL_SCREEN,
-                                       _fullScreen.FullScreen ? S_1 : S_0));
+                                       ToString(_fullScreen.FullScreen)));
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::FULL_SCREEN_EXCLUSIVE,
-                     _fullScreen.ExclusiveMode ? S_1 : S_0));
+                     ToString(_fullScreen.ExclusiveMode)));
   p->Preferences.insert(
-      std::make_pair(PreferenceConstants::VSYNC, _vsync ? S_1 : S_0));
-  p->Preferences.insert(
-      std::make_pair(PreferenceConstants::SCREEN_X,
-                     ToString(_currentAdaptorMode.Width).c_str()));
-  p->Preferences.insert(
-      std::make_pair(PreferenceConstants::SCREEN_Y,
-                     ToString(_currentAdaptorMode.Height).c_str()));
+      std::make_pair(PreferenceConstants::VSYNC, ToString(_vsync)));
+  p->Preferences.insert(std::make_pair(PreferenceConstants::SCREEN_X,
+                                       ToString(_currentAdaptorMode.Width)));
+  p->Preferences.insert(std::make_pair(PreferenceConstants::SCREEN_Y,
+                                       ToString(_currentAdaptorMode.Height)));
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
-                     ToString(_currentMultiSampleLevel).c_str()));
-  p->Preferences.insert(
-      std::make_pair(PreferenceConstants::MULTISAMPLE_LEVEL,
-                     ToString(_backBufferMultiSampleLevel).c_str()));
+                     ToString(_currentMultiSampleLevel)));
+  p->Preferences.insert(std::make_pair(PreferenceConstants::MULTISAMPLE_LEVEL,
+                                       ToString(_backBufferMultiSampleLevel)));
 
   p.AddRawRef(preferences);
 }
@@ -395,21 +383,26 @@ void RenderSettingsManager::LoadPreferences(IGame *game) {
   bool hasCurrentMode = false;
 
   bool savePreferences = false;
-  _fullScreen.FullScreen =
-      strcmp(S_1.c_str(),
-             game->GetPreference(PreferenceConstants::FULL_SCREEN)) == 0;
-  _fullScreen.ExclusiveMode =
-      strcmp(S_1.c_str(), game->GetPreference(
-                              PreferenceConstants::FULL_SCREEN_EXCLUSIVE)) == 0;
-  _vsync =
-      strcmp(S_1.c_str(), game->GetPreference(PreferenceConstants::VSYNC)) == 0;
+  ComObject<IString> pref;
+  if (game->GetPreference(PreferenceConstants::FULL_SCREEN, pref.Assign())) {
+    _fullScreen.FullScreen = FromString<bool>(pref);
+  }
 
-  if (game->HasPreference(PreferenceConstants::SCREEN_X) &&
-      game->HasPreference(PreferenceConstants::SCREEN_Y)) {
-    hasCurrentMode =
-        GetAdaptorMode(atoi(game->GetPreference(PreferenceConstants::SCREEN_X)),
-                       atoi(game->GetPreference(PreferenceConstants::SCREEN_Y)),
-                       &_currentAdaptorMode);
+  if (game->GetPreference(PreferenceConstants::FULL_SCREEN_EXCLUSIVE,
+                          pref.Assign())) {
+    _fullScreen.ExclusiveMode = FromString<bool>(pref);
+  }
+
+  if (game->GetPreference(PreferenceConstants::VSYNC, pref.Assign())) {
+    _vsync = FromString<bool>(pref);
+  }
+
+  ComObject<IString> xPref;
+  ComObject<IString> yPref;
+  if (game->GetPreference(PreferenceConstants::SCREEN_X, xPref.Assign()) &&
+      game->GetPreference(PreferenceConstants::SCREEN_Y, yPref.Assign())) {
+    hasCurrentMode = GetAdaptorMode(
+        FromString<int>(xPref), FromString<int>(yPref), &_currentAdaptorMode);
   }
 
   if (!hasCurrentMode) {
@@ -440,8 +433,11 @@ void RenderSettingsManager::LoadPreferences(IGame *game) {
   }
 
   // ensure the multisample level is not above what is supported.
-  _currentMultiSampleLevel =
-      atoi(game->GetPreference(PreferenceConstants::RT_MULTISAMPLE_LEVEL));
+  if (game->GetPreference(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
+                          pref.Assign())) {
+    _currentMultiSampleLevel = FromString<int>(pref);
+  }
+
   if (_currentMultiSampleLevel >
       _multiSampleLevels.at(_multiSampleLevels.size() - 1)) {
     _currentMultiSampleLevel =
@@ -453,8 +449,11 @@ void RenderSettingsManager::LoadPreferences(IGame *game) {
                         ToString(_currentMultiSampleLevel).c_str());
     savePreferences = true;
   }
-  _backBufferMultiSampleLevel =
-      atoi(game->GetPreference(PreferenceConstants::MULTISAMPLE_LEVEL));
+
+  if (game->GetPreference(PreferenceConstants::MULTISAMPLE_LEVEL,
+                          pref.Assign())) {
+    _backBufferMultiSampleLevel = FromString<int>(pref);
+  }
   if (_backBufferMultiSampleLevel >
       _multiSampleLevels.at(_multiSampleLevels.size() - 1)) {
     _backBufferMultiSampleLevel =
