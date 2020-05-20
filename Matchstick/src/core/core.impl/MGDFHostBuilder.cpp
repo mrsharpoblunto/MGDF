@@ -59,9 +59,8 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
     return false;
   }
 
-  audio::ISoundManagerComponent *audioImpl =
-      audio::CreateSoundManagerComponentImpl(vfs);
-  if (audioImpl != nullptr) {
+  auto audioImpl = audio::CreateSoundManagerComponentImpl();
+  if (audioImpl) {
     components.Sound = audioImpl;
   } else {
     // its a problem, but we can still probably run if the soundmanager failed
@@ -75,7 +74,6 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
 void HostBuilder::UnregisterComponents(HostComponents &components) {
   // TODO once these are all COM objects -> remove this...
   SAFE_DELETE(components.Storage);
-  SAFE_DELETE(components.Sound);
 }
 
 MGDFError HostBuilder::TryCreateHost(Host **host) {
@@ -157,9 +155,13 @@ void HostBuilder::InitParameterManager() {
     std::stringstream buffer;
     buffer << input.rdbuf();
     paramString = buffer.str();
+    if (paramString.starts_with("//")) {
+      paramString.clear();
+    }
   }
+
   // otherwise parse the command line
-  else {
+  if (paramString.empty()) {
     std::string cmdLine = GetCommandLine();
     auto cmdLineIter = cmdLine.begin();
 

@@ -4,6 +4,7 @@
 #include <alc.h>
 
 #include <MGDF/MGDF.hpp>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -28,16 +29,25 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   friend class VorbisStream;
 
  public:
-  static ISoundManagerComponent *CreateOpenALSoundManagerComponent(
-      IVirtualFileSystem *vfs);
+  static ComObject<ISoundManagerComponent> CreateOpenALSoundManagerComponent();
 
   virtual ~OpenALSoundManagerComponentImpl();
   void Update() override final;
 
-  DirectX::XMFLOAT3 *GetListenerPosition() override final;
-  DirectX::XMFLOAT3 *GetListenerVelocity() override final;
-  DirectX::XMFLOAT3 *GetListenerOrientationForward() override final;
-  DirectX::XMFLOAT3 *GetListenerOrientationUp() override final;
+  SoundPosition *GetListenerPosition(
+      SoundPosition *position) const override final;
+  SoundPosition *GetListenerVelocity(
+      SoundPosition *velocity) const override final;
+  SoundPosition *GetListenerOrientationForward(
+      SoundPosition *orientationForward) const override final;
+  SoundPosition *GetListenerOrientationUp(
+      SoundPosition *orientationUp) const override final;
+  SoundPosition *SetListenerPosition(SoundPosition *position) override final;
+  SoundPosition *SetListenerVelocity(SoundPosition *velocity) override final;
+  SoundPosition *SetListenerOrientationForward(
+      SoundPosition *orientationForward) override final;
+  SoundPosition *SetListenerOrientationUp(
+      SoundPosition *orientationUp) override final;
 
   float GetSoundVolume() const override final;
   void SetSoundVolume(float volume) override final;
@@ -51,10 +61,10 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   float GetSpeedOfSound() const override final;
   void SetSpeedOfSound(float speedOfSound) override final;
 
-  MGDFError CreateSound(IFile *source, INT32 priority,
-                        ISound **sound) override final;
-  MGDFError CreateSoundStream(IFile *source,
-                              ISoundStream **stream) override final;
+  HRESULT CreateSound(IFile *source, INT32 priority,
+                      ISound **sound) override final;
+  HRESULT CreateSoundStream(IFile *source,
+                            ISoundStream **stream) override final;
 
   void RemoveSoundStream(ISoundStream *stream);
   void RemoveSound(ISound *sound);
@@ -63,13 +73,13 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   void RemoveSoundBuffer(ALuint bufferId);
 
  private:
-  OpenALSoundManagerComponentImpl(IVirtualFileSystem *vfs);
+  OpenALSoundManagerComponentImpl();
   MGDFError Init() override final;
 
   void DeactivateSound(INT32 priority);
   void PrioritizeSounds(INT32 deactivatedSoundsCount);
 
-  static bool Sort(OpenALSound *a, OpenALSound *b);
+  static bool Sort(const OpenALSound *a, const OpenALSound *b);
 
   DirectX::XMFLOAT3 _position;
   DirectX::XMFLOAT3 _velocity;
@@ -79,9 +89,8 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   float _soundVolume, _streamVolume;
   bool _enableAttenuation;
   std::unordered_map<ALuint, SharedBuffer *> _sharedBuffers;
-  std::vector<OpenALSound *> _sounds;
-  std::vector<VorbisStream *> _soundStreams;
-  IVirtualFileSystem *_vfs;
+  std::set<OpenALSound *> _sounds;
+  std::set<VorbisStream *> _soundStreams;
 };
 
 }  // namespace openal_audio

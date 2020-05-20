@@ -13,6 +13,7 @@
 #include <MGDF/MGDFRenderSettingsManager.hpp>
 #include <MGDF/MGDFSoundManager.hpp>
 #include <MGDF/MGDFStatisticsManager.hpp>
+#include <MGDF/MGDFString.hpp>
 #include <MGDF/MGDFTimer.hpp>
 #include <MGDF/MGDFVersion.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
@@ -205,9 +206,10 @@ class ISimHost : public ICommonHost {
 
   /**
   get the audio manager
-  \return the audio manager, nullptr if the audio subsystem failed to initialize
+  \param manager the audio manager, nullptr if the audio subsystem failed to
+  initialize
   */
-  virtual ISoundManager *GetSound() const = 0;
+  virtual void GetSound(ISoundManager **manager) = 0;
 
   /**
   get the statistics manager

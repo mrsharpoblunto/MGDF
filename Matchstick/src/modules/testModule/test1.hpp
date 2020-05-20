@@ -18,13 +18,14 @@ class Test1 : public TestModule {
   virtual ~Test1(void);
   Test1();
 
-  void Update(ISimHost *host, TextManagerState *state) override final;
-
+  void Setup(ISimHost *host) override final;
   TestModule *NextTestModule() override final;
 
  private:
-  INT32 _testState;
+  bool _waitingForGamepad;
   LARGE_INTEGER _time;
+  ComObject<IInputManager> _input;
+  ComObject<IGamepad> _gamepad;
 };
 
 }  // namespace Test

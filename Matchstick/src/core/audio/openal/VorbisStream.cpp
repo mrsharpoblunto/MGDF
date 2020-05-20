@@ -5,6 +5,7 @@
 #include <limits.h>
 
 #include "../../common/MGDFLoggerImpl.hpp"
+#include "../../common/MGDFStringImpl.hpp"
 #include "OpenALSoundSystem.hpp"
 
 #if defined(_DEBUG)
@@ -50,12 +51,11 @@ VorbisStream::~VorbisStream() {
 
 MGDFError VorbisStream::TryCreate(IFile *source,
                                   OpenALSoundManagerComponentImpl *manager,
-                                  VorbisStream **stream) {
-  *stream = new VorbisStream(source, manager);
-  MGDFError error = (*stream)->InitStream();
+                                  ComObject<VorbisStream> &stream) {
+  stream = new VorbisStream(source, manager);
+  MGDFError error = stream->InitStream();
   if (MGDF_OK != error) {
-    delete *stream;
-    *stream = nullptr;
+    stream = nullptr;
   }
   return error;
 }
@@ -245,7 +245,9 @@ void VorbisStream::UninitVorbis() {
   }
 }
 
-const wchar_t *VorbisStream::GetName() const { return _dataSource->GetName(); }
+void VorbisStream::GetName(IWString **name) {
+  *name = new WStringImpl(_dataSource->GetName());
+}
 
 bool VorbisStream::IsStopped() const { return _state == STOP; }
 
@@ -253,7 +255,7 @@ bool VorbisStream::IsPaused() const { return _state == PAUSE; }
 
 bool VorbisStream::IsPlaying() const { return _state == PLAY; }
 
-MGDFError VorbisStream::Play() {
+HRESULT VorbisStream::Play() {
   if (_state == NOT_STARTED) {
     alSourcef(_source, AL_GAIN, _volume * _globalVolume);
     alSourcePlay(_source);
@@ -263,14 +265,14 @@ MGDFError VorbisStream::Play() {
     UninitStream();
     MGDFError error = InitStream();
     if (MGDF_OK != error) {
-      return error;
+      return E_FAIL;
     }
     alSourcef(_source, AL_GAIN, _volume * _globalVolume);
     alSourcePlay(_source);
   }
 
   _state = PLAY;
-  return MGDF_OK;
+  return S_OK;
 }
 
 void VorbisStream::Pause() {

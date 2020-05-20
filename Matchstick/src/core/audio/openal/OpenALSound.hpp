@@ -21,11 +21,13 @@ class OpenALSound : public ComBase<ISound> {
   virtual ~OpenALSound();
   static MGDFError TryCreate(IFile *source,
                              OpenALSoundManagerComponentImpl *manager,
-                             INT32 priority, OpenALSound **sound);
+                             INT32 priority, ComObject<OpenALSound> &sound);
 
-  const wchar_t *GetName() const override final;
-  DirectX::XMFLOAT3 *GetPosition() override final;
-  DirectX::XMFLOAT3 *GetVelocity() override final;
+  void GetName(IWString **name) override final;
+  SoundPosition *GetPosition(SoundPosition *position) const override final;
+  SoundPosition *GetVelocity(SoundPosition *velocity) const override final;
+  SoundPosition *SetPosition(SoundPosition *position) override final;
+  SoundPosition *SetVelocity(SoundPosition *velocity) override final;
   float GetInnerRange() const override final;
   void SetInnerRange(float innerRange) override final;
   float GetOuterRange() const override final;

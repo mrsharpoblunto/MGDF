@@ -3,6 +3,7 @@
 #include "OpenALSound.hpp"
 
 #include "../../common/MGDFLoggerImpl.hpp"
+#include "../../common/MGDFStringImpl.hpp"
 #include "OpenALSoundSystem.hpp"
 
 #if defined(_DEBUG)
@@ -22,14 +23,15 @@ namespace openal_audio {
 
 MGDFError OpenALSound::TryCreate(IFile *source,
                                  OpenALSoundManagerComponentImpl *manager,
-                                 INT32 priority, OpenALSound **sound) {
-  *sound = new OpenALSound(manager, priority);
-  MGDFError error = (*sound)->Init(source);
+                                 INT32 priority,
+                                 ComObject<OpenALSound> &sound) {
+  sound = new OpenALSound(manager, priority);
+  MGDFError error = sound->Init(source);
   if (MGDF_OK != error) {
-    delete *sound;
-    *sound = nullptr;
+    sound = nullptr;
+    return error;
   }
-  return error;
+  return MGDF_OK;
 }
 
 OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
@@ -116,11 +118,27 @@ void OpenALSound::SetSourceRelative(bool sourceRelative) {
   }
 }
 
-const wchar_t *OpenALSound::GetName() const { return _name; }
+void OpenALSound::GetName(IWString **name) { *name = new WStringImpl(_name); }
 
-XMFLOAT3 *OpenALSound::GetPosition() { return &_position; }
+SoundPosition *OpenALSound::GetPosition(SoundPosition *sp) const {
+  memcpy_s(sp, sizeof(SoundPosition), &_position, sizeof(DirectX::XMFLOAT3));
+  return sp;
+}
 
-XMFLOAT3 *OpenALSound::GetVelocity() { return &_velocity; }
+SoundPosition *OpenALSound::GetVelocity(SoundPosition *sp) const {
+  memcpy_s(sp, sizeof(SoundPosition), &_velocity, sizeof(DirectX::XMFLOAT3));
+  return sp;
+}
+
+SoundPosition *OpenALSound::SetPosition(SoundPosition *sp) {
+  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp, sizeof(SoundPosition));
+  return sp;
+}
+
+SoundPosition *OpenALSound::SetVelocity(SoundPosition *sp) {
+  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp, sizeof(SoundPosition));
+  return sp;
+}
 
 float OpenALSound::GetInnerRange() const { return _innerRange; }
 

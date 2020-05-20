@@ -2,7 +2,9 @@
 
 #include <time.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
+#include <functional>
 
 #include "BufferedGameState.hpp"
 #include "TextManager.hpp"
@@ -16,11 +18,23 @@ namespace Test {
 
 class TestModule {
  public:
+  enum class TestStep { FAILED, PASSED, CONT, NEXT };
+
+  TestModule() : _testIndex(0) {}
   virtual ~TestModule(void) {}
+  virtual TestModule *Update(ISimHost *host, TextManagerState *state);
+  TestModule &Step(
+      std::function<TestStep(ISimHost *host, TextManagerState *)> step);
+  TestModule &StepOnce(
+      std::function<void(ISimHost *host, TextManagerState *)> step);
 
-  virtual void Update(ISimHost *host, TextManagerState *state) = 0;
-
+ protected:
+  virtual void Setup(ISimHost *host) = 0;
   virtual TestModule *NextTestModule() = 0;
+
+ private:
+  std::vector<std::function<TestStep(ISimHost *, TextManagerState *)>> _steps;
+  int _testIndex;
 };
 
 class Module : public IModule {
@@ -45,11 +59,11 @@ class Module : public IModule {
  private:
   std::wstring _workingFolder;
 
-  TestModule *_testModule;
+  std::unique_ptr<TestModule> _testModule;
   BufferedGameState<TextManagerState> _stateBuffer;
-  TextManager *_textManager;
-  MGDF::IPerformanceCounter *_textManagerCounter;
-  MGDF::IPerformanceCounter *_testModuleCounter;
+  std::unique_ptr<TextManager> _textManager;
+  ComObject<MGDF::IPerformanceCounter> _textManagerCounter;
+  ComObject<MGDF::IPerformanceCounter> _testModuleCounter;
 };
 
 }  // namespace Test

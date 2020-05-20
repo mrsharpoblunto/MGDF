@@ -56,7 +56,7 @@ typedef ListImpl<IStringList, const char *> StringList;
 struct HostComponents {
   storage::IStorageFactoryComponent *Storage;
   ComObject<input::IInputManagerComponent> Input;
-  audio::ISoundManagerComponent *Sound;
+  ComObject<audio::ISoundManagerComponent> Sound;
   ComObject<vfs::IVirtualFileSystemComponent> VFS;
 };
 
@@ -111,7 +111,7 @@ class Host : public IHostImpl {
                       UINT32 *size) override final;
   MGDFError CompleteSave(const char *saveName) override final;
   void GetVFS(IVirtualFileSystem **vfs) override final;
-  ISoundManager *GetSound() const override final;
+  void GetSound(ISoundManager **sound) override final;
   IStatisticsManager *GetStatistics() const override final;
   IGame *GetGame() const override final;
   void GetInput(IInputManager **manager) override final;
@@ -142,7 +142,7 @@ class Host : public IHostImpl {
 
   storage::IStorageFactoryComponent *_storage;
   ComObject<input::IInputManagerComponent> _input;
-  audio::ISoundManagerComponent *_sound;
+  ComObject<audio::ISoundManagerComponent> _sound;
   ComObject<vfs::IVirtualFileSystemComponent> _vfs;
   ComObject<Debug> _debugOverlay;
   Game *_game;

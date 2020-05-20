@@ -108,7 +108,7 @@ MGDFError Host::Init() {
   }
 
   // set the initial sound volumes
-  if (_sound != nullptr) {
+  if (_sound) {
     LOG("Setting initial volume...", LOG_HIGH);
     _sound->SetSoundVolume(
         (float)atof(_game->GetPreference(PreferenceConstants::SOUND_VOLUME)));
@@ -135,7 +135,6 @@ Host::~Host(void) {
   delete _moduleFactory;
 
   // TODO remove once these are COM'ified
-  delete _sound;
   delete _storage;
 
   LOG("Uninitialised host successfully", LOG_LOW);
@@ -201,7 +200,7 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
   LARGE_INTEGER inputEnd = _timer->GetCurrentTimeTicks();
 
   LARGE_INTEGER audioStart = _timer->GetCurrentTimeTicks();
-  if (_sound != nullptr) _sound->Update();
+  if (_sound) _sound->Update();
   LARGE_INTEGER audioEnd = _timer->GetCurrentTimeTicks();
 
   stats.AppendSimInputAndAudioTimes(
@@ -563,6 +562,7 @@ const IStringList *Host::GetSaves() const {
       if (is_directory(itr->path())) {
         std::string saveName(Resources::ToString(itr->path().filename()));
         if (saveName.find(PENDING_SAVE_PREFIX) != 0) {
+          // TODO get rid of the 1 offset...
           char *copy = new char[saveName.size() + 1];
           strcpy_s(copy, saveName.size() + 1, saveName.c_str());
           _saves->Add(copy);  // add the save folder to the list
@@ -603,7 +603,9 @@ void Host::GetInput(IInputManager **input) {
   _input.AddRawRef<IInputManager>(input);
 }
 
-ISoundManager *Host::GetSound() const { return _sound; }
+void Host::GetSound(ISoundManager **sound) {
+  _sound.AddRawRef<ISoundManager>(sound);
+}
 
 void Host::ClearWorkingDirectory() {
   LOG("Clearing working directory...", LOG_HIGH);

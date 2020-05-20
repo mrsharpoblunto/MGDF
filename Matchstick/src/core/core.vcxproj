@@ -196,6 +196,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     <ClInclude Include="..\..\include\MGDF\MGDFSoundStream.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFStatisticsManager.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFHost.hpp" />
+    <ClInclude Include="..\..\include\MGDF\MGDFString.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFTimer.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFVersion.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDFVirtualFileSystem.hpp" />

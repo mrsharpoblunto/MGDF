@@ -107,6 +107,7 @@
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />
     <ClInclude Include="MGDFResources.hpp" />
+    <ClInclude Include="MGDFStringImpl.hpp" />
     <ClInclude Include="MGDFSystemComponent.hpp" />
     <ClInclude Include="MGDFVersionHelper.hpp" />
     <ClInclude Include="MGDFVersionInfo.hpp" />

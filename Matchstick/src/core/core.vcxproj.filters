@@ -70,6 +70,9 @@
     <ClInclude Include="..\..\include\MGDF\ComObject.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\MGDF\MGDFString.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

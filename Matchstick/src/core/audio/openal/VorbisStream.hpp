@@ -35,14 +35,14 @@ class VorbisStream : public ComBase<ISoundStream> {
   virtual ~VorbisStream();
   static MGDFError TryCreate(IFile *source,
                              OpenALSoundManagerComponentImpl *manager,
-                             VorbisStream **stream);
+                             ComObject<VorbisStream> &stream);
 
-  const wchar_t *GetName() const override final;
+  void GetName(IWString **name) override final;
   float GetVolume() const override final;
   void SetVolume(float volume) override final;
   void Stop() override final;
   void Pause() override final;
-  MGDFError Play() override final;
+  HRESULT Play() override final;
   bool IsStopped() const override final;
   bool IsPaused() const override final;
   bool IsPlaying() const override final;

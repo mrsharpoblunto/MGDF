@@ -5,6 +5,7 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 
+#include <MGDF/ComObject.hpp>
 #include <filesystem>
 
 #include "MGDFVersionInfo.hpp"
@@ -143,6 +144,10 @@ std::wstring Resources::ContentDir() { return GameBaseDir() + L"content/"; }
 std::wstring Resources::Module() { return BinDir() + L"module.dll"; }
 
 std::wstring Resources::BinDir() { return GameBaseDir() + L"bin/"; }
+
+std::string Resources::ToString(const IWString *str) {
+  return ToString(::MGDF::ToString<std::wstring>(str));
+}
 
 std::string Resources::ToString(const std::wstring &wstr) {
   INT32 sizeNeeded = WideCharToMultiByte(

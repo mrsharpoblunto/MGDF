@@ -19,12 +19,12 @@ class Test3 : public TestModule {
   virtual ~Test3(void);
   Test3();
 
-  void Update(ISimHost *host, TextManagerState *state) override final;
+  void Setup(ISimHost *host) override final;
 
   TestModule *NextTestModule() override final;
 
  private:
-  INT32 _testState;
+  ComObject<IInputManager> _input;
 };
 
 }  // namespace Test

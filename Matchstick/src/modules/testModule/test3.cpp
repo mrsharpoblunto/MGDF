@@ -14,19 +14,14 @@ namespace Test {
 
 Test3::~Test3(void) {}
 
-Test3::Test3() { _testState = 0; }
+Test3::Test3() {}
 
-TestModule *Test3::NextTestModule() { return NULL; }
+TestModule *Test3::NextTestModule() { return nullptr; }
 
-void Test3::Update(ISimHost *host, TextManagerState *state) {
-  ComObject<IInputManager> input;
-  host->GetInput(input.Assign());
+void Test3::Setup(ISimHost *host) {
+  host->GetInput(_input.Assign());
 
-  if (input->IsKeyPress(VK_ESCAPE)) {
-    host->ShutDown();
-  }
-
-  if (_testState == 0) {
+  Step([](auto host, auto state) {
     state->AddLine("");
     state->AddLine("Load/Save Tests");
     state->AddLine("");
@@ -35,139 +30,135 @@ void Test3::Update(ISimHost *host, TextManagerState *state) {
     state->AddLine("Save game state");
 
     UINT32 size = 0;
-    if (MGDF_ERR_BUFFER_TOO_SMALL != host->BeginSave("testsave", NULL, &size)) {
-      state->SetStatus(RED, "[Test Failed]");
-      _testState = 999;
+    if (MGDF_ERR_BUFFER_TOO_SMALL !=
+        host->BeginSave("testsave", nullptr, &size)) {
+      return TestStep::FAILED;
     } else {
-      wchar_t *saveDir = new wchar_t[size];
-      if (host->BeginSave("testsave", saveDir, &size) == MGDF_OK) {
+      std::wstring saveDir;
+      saveDir.resize(size - 1);  // exclude null terminator
+      if (host->BeginSave("testsave", saveDir.data(), &size) == MGDF_OK) {
         std::wstring saveFile(saveDir);
         saveFile += L"currentState.txt";
         std::ofstream out(saveFile.c_str(), std::ios::out);
         out << 2;
         out.close();
-        state->SetStatus(GREEN, "[Test Passed]");
-        state->AddLine("Search saved game state");
-        _testState = 1;
+        return TestStep::PASSED;
       } else {
-        state->SetStatus(RED, "[Test Failed]");
-        _testState = 999;
+        return TestStep::FAILED;
       }
-      delete[] saveDir;
     }
-  } else if (_testState == 1) {
-    // we didn't complete saving yet so it shouldn't appear in the list
-    if (host->GetSaves()->Size() != 0) {
-      state->SetStatus(RED, "[Test Failed]");
-      _testState = 999;
-    } else {
-      if (host->CompleteSave("testsave") == MGDF_OK &&
-          host->GetSaves()->Size() == 1 &&
-          strcmp(host->GetSaves()->Get(0), "testsave") == 0) {
-        state->SetStatus(GREEN, "[Test Passed]");
+  })
+      .Step([](auto host, auto state) {
+        state->AddLine("Search saved game state");
+        // we didn't complete saving yet so it shouldn't appear in the list
+        if (host->GetSaves()->Size() != 0) {
+          return TestStep::FAILED;
+        } else {
+          if (host->CompleteSave("testsave") == MGDF_OK &&
+              host->GetSaves()->Size() == 1 &&
+              strcmp(host->GetSaves()->Get(0), "testsave") == 0) {
+            return TestStep::PASSED;
+          } else {
+            return TestStep::FAILED;
+          }
+        }
+      })
+      .Step([](auto host, auto state) {
         state->AddLine("Load game state");
 
         unsigned size = 0;
         MGDF::Version version;
         if (MGDF_ERR_BUFFER_TOO_SMALL !=
-            host->Load("testsave", NULL, &size, version)) {
-          state->SetStatus(RED, "[Test Failed]");
-          _testState = 999;
+            host->Load("testsave", nullptr, &size, version)) {
+          return TestStep::FAILED;
         } else {
-          wchar_t *saveDir = new wchar_t[size];
-          if (host->Load("testsave", saveDir, &size, version) == MGDF_OK) {
+          std::wstring saveDir;
+          saveDir.resize(size - 1);  // exclude null terminator
+          if (host->Load("testsave", saveDir.data(), &size, version) ==
+              MGDF_OK) {
             // make sure the version we loaded is the same that we saved.
             if (version.Major != 0 || version.Minor != 1) {
-              state->SetStatus(RED, "[Test Failed - Invalid version]");
-              _testState = 999;
+              return TestStep::FAILED;
             } else {
               std::wstring saveFile(saveDir);
               saveFile += L"currentState.txt";
               std::ifstream in(saveFile.c_str(), std::ios::in);
               if (in.fail()) {
-                _testState = 3;
+                return TestStep::FAILED;
               } else {
-                in >> _testState;
+                int data;
+                in >> data;
                 in.close();
-                if (_testState != 2) _testState = 3;
+                return data == 2 ? TestStep::PASSED : TestStep::FAILED;
               }
             }
           } else {
-            state->SetStatus(RED, "[Test Failed - Unable to load]");
-            _testState = 999;
+            return TestStep::FAILED;
           }
-          delete[] saveDir;
         }
-      } else {
-        state->SetStatus(RED, "[Test Failed]");
-        _testState = 999;
-      }
-    }
-  } else if (_testState == 2) {
-    state->SetStatus(GREEN, "[Test Passed]");
-    _testState = 4;
-  } else if (_testState == 3) {
-    state->SetStatus(RED, "[Test Failed]");
-    _testState = 999;
-  } else if (_testState == 4) {
-    state->AddLine("Testing custom VFS archive handler registration");
+      })
+      .Step([](auto host, auto state) {
+        state->AddLine("Testing custom VFS archive handler registration");
 
-    bool success = false;
-    ComObject<IVirtualFileSystem> vfs;
-    host->GetVFS(vfs.Assign());
+        bool success = false;
+        ComObject<IVirtualFileSystem> vfs;
+        host->GetVFS(vfs.Assign());
 
-    ComObject<IFile> file;
-    if (vfs->GetFile(L"test.fakearchive/testfile.txt", file.Assign())) {
-      ComObject<IFileReader> reader;
-      if (!FAILED(file->Open(reader.Assign()))) {
-        UINT32 size = static_cast<UINT32>(reader->GetSize());
-        char *data = new char[size];
-        reader->Read(data, size);
-        success = strncmp(data, "hello world", size) == 0;
-        delete[] data;
-      }
-    }
-
-    if (!success) {
-      state->SetStatus(RED, "[Test Failed]");
-      _testState = 999;
-    } else {
-      state->SetStatus(GREEN, "[Test Passed]");
-      _testState++;
-    }
-  } else if (_testState == 5) {
-    state->AddLine(
-        "Press [F] to toggle fullscreen/windowed mode. Then press "
-        "[Y/N] if this works correctly");
-    _testState++;
-  } else if (_testState == 6 && input->IsKeyPress('F')) {
-    MGDF::FullScreenDesc desc;
-    host->GetRenderSettings()->GetFullscreen(&desc);
-    desc.FullScreen = !desc.FullScreen;
-    host->GetRenderSettings()->SetFullscreen(&desc);
-    host->GetRenderSettings()->ApplyChanges();
-  } else if (_testState == 6 && input->IsKeyPress('Y')) {
-    ++_testState;
-    state->SetStatus(GREEN, "[Test Passed]");
-    state->AddLine(
-        "Press [ALT]+[F12] to toggle the  information overlay. Then press "
-        "[Y/N] if this works correctly");
-  } else if (_testState == 6 && input->IsKeyPress('N')) {
-    _testState = 999;
-    state->SetStatus(RED, "[Test Failed]");
-  } else if (_testState == 7 && input->IsKeyPress('Y')) {
-    _testState = 999;
-    state->SetStatus(GREEN, "[Test Passed]");
-  } else if (_testState == 7 && input->IsKeyPress('N')) {
-    _testState = 999;
-    state->SetStatus(RED, "[Test Failed]");
-  }
-  if (_testState == 999) {
-    _testState++;
-    state->AddLine(
-        "All tests complete. Press the [ESC] key to exit (then make sure there "
-        "were no memory leaks)");
-  }
+        ComObject<IFile> file;
+        if (vfs->GetFile(L"test.fakearchive/testfile.txt", file.Assign())) {
+          ComObject<IFileReader> reader;
+          if (!FAILED(file->Open(reader.Assign()))) {
+            UINT32 size = static_cast<UINT32>(reader->GetSize());
+            std::string data;
+            data.resize(size);
+            reader->Read(data.data(), size);
+            return strncmp(data.c_str(), "hello world", size) == 0
+                       ? TestStep::PASSED
+                       : TestStep::FAILED;
+          }
+        }
+        return TestStep::FAILED;
+      })
+      .StepOnce([](auto host, auto state) {
+        state->AddLine(
+            "Press [F] to toggle fullscreen/windowed mode. Then press "
+            "[Y/N] if this works correctly");
+      })
+      .Step([this](auto host, auto state) {
+        if (_input->IsKeyPress('Y')) {
+          return TestStep::PASSED;
+        } else if (_input->IsKeyPress('N')) {
+          return TestStep::FAILED;
+        } else {
+          if (_input->IsKeyPress('F')) {
+            MGDF::FullScreenDesc desc;
+            host->GetRenderSettings()->GetFullscreen(&desc);
+            desc.FullScreen = !desc.FullScreen;
+            host->GetRenderSettings()->SetFullscreen(&desc);
+            host->GetRenderSettings()->ApplyChanges();
+          }
+          return TestStep::CONT;
+        }
+      })
+      .StepOnce([](auto host, auto state) {
+        state->AddLine(
+            "Press [ALT]+[F12] to toggle the  information overlay. Then press "
+            "[Y/N] if this works correctly");
+      })
+      .Step([this](auto host, auto state) {
+        if (_input->IsKeyPress('Y')) {
+          return TestStep::PASSED;
+        } else if (_input->IsKeyPress('N')) {
+          return TestStep::FAILED;
+        }
+        return TestStep::CONT;
+      })
+      .StepOnce([](auto host, auto state) {
+        state->AddLine(
+            "All tests complete. Press the [ESC] key to exit (then make sure "
+            "there "
+            "were no memory leaks)");
+      });
 }
 
 }  // namespace Test

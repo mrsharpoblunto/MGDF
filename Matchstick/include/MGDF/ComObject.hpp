@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <string>
 
 #include "unknwn.h"
 
@@ -243,6 +244,15 @@ class ComBase : public T {
  private:
   std::atomic<ULONG> _references;
 };
+
+template <typename T, typename U>
+T ToString(const U *str) {
+  T s;
+  s.resize(str->GetSize());
+  bool result = str->Copy(s.data(), s.size());
+  _ASSERTE(result);
+  return s;
+}
 
 }  // namespace MGDF
 

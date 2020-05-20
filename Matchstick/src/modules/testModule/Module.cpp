@@ -13,13 +13,51 @@
 namespace MGDF {
 namespace Test {
 
-Module::~Module(void) {
-  delete _textManager;
-  delete _testModule;
+TestModule* TestModule::Update(ISimHost* host, TextManagerState* state) {
+  ComObject<IInputManager> input;
+  host->GetInput(input.Assign());
+  if (input->IsKeyPress(VK_ESCAPE)) {
+    host->ShutDown();
+  }
 
-  if (_textManagerCounter) _textManagerCounter->Release();
-  if (_testModuleCounter) _testModuleCounter->Release();
+  if (!_steps.size()) {
+    Setup(host);
+  } else if (_testIndex < _steps.size()) {
+    auto result = _steps[_testIndex](host, state);
+    if (result == TestStep::PASSED) {
+      state->SetStatus(GREEN, "[Test Passed]");
+      ++_testIndex;
+      return _testIndex == _steps.size() ? NextTestModule() : nullptr;
+    } else if (result == TestStep::FAILED) {
+      state->SetStatus(RED, "[Test Failed]");
+      auto next = NextTestModule();
+      if (!next) {
+        _testIndex = static_cast<int>(_steps.size());
+      }
+      return next;
+    } else if (result == TestStep::NEXT) {
+      ++_testIndex;
+    }
+  }
+  return nullptr;
 }
+
+TestModule& TestModule::Step(
+    std::function<TestStep(ISimHost* host, TextManagerState*)> step) {
+  _steps.push_back(step);
+  return *this;
+}
+
+TestModule& TestModule::StepOnce(
+    std::function<void(ISimHost* host, TextManagerState*)> step) {
+  _steps.push_back([step](auto host, auto state) {
+    step(host, state);
+    return TestStep::NEXT;
+  });
+  return *this;
+}
+
+Module::~Module(void) {}
 
 Module::Module()
     : _textManagerCounter(nullptr),
@@ -31,23 +69,23 @@ Module::Module()
 
 bool Module::STNew(ISimHost* host, const wchar_t* workingFolder) {
   _workingFolder = workingFolder;
-  _testModule = new Test1();
+  _testModule = std::make_unique<Test1>();
 
   return true;
 }
 
 bool Module::STUpdate(ISimHost* host, double elapsedTime) {
   if (!_testModuleCounter) {
-    host->GetTimer()->CreateCPUCounter("Test Module", &_testModuleCounter);
+    host->GetTimer()->CreateCPUCounter("Test Module",
+                                       _testModuleCounter.Assign());
   }
 
   if (_testModuleCounter) _testModuleCounter->Begin();
-  _testModule->Update(host, _stateBuffer.Pending());
+  auto next = std::unique_ptr<TestModule>(
+      _testModule->Update(host, _stateBuffer.Pending()));
 
-  TestModule* next = _testModule->NextTestModule();
   if (next != nullptr) {
-    delete _testModule;
-    _testModule = next;
+    _testModule.swap(next);
   }
   if (_testModuleCounter) _testModuleCounter->End();
 
@@ -63,9 +101,9 @@ bool Module::STDispose(ISimHost* host) {
 }
 
 bool Module::RTBeforeFirstDraw(MGDF::IRenderHost* host) {
-  _textManager = new TextManager(host);
+  _textManager = std::make_unique<TextManager>(host);
   host->GetRenderTimer()->CreateGPUCounter("Text Rendering",
-                                           &_textManagerCounter);
+                                           _textManagerCounter.Assign());
   return true;
 }
 
