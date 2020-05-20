@@ -55,7 +55,9 @@ SUITE(StorageTests) {
     expected.Minor = 1;
     expected.Build = -1;
     expected.Revision = -1;
-    CHECK_EQUAL(0, VersionHelper::Compare(handler->GetVersion(), &expected));
+    Version v;
+    handler->GetVersion(v);
+    CHECK_EQUAL(0, VersionHelper::Compare(v, expected));
   }
 
   /**
@@ -63,16 +65,16 @@ SUITE(StorageTests) {
   */
   TEST_FIXTURE(StorageTestFixture, StorageGameStateHandlerTest) {
     Version expected = VersionHelper::Create("0.1");
-    CHECK_EQUAL("0.1", VersionHelper::Format(&expected));
+    CHECK_EQUAL("0.1", VersionHelper::Format(expected));
+    CHECK_EQUAL(0,
+                VersionHelper::Compare(expected, VersionHelper::Create("0.1")));
     CHECK_EQUAL(
-        0, VersionHelper::Compare(&expected, &VersionHelper::Create("0.1")));
+        -1, VersionHelper::Compare(expected, VersionHelper::Create("0.1.1")));
     CHECK_EQUAL(
-        -1, VersionHelper::Compare(&expected, &VersionHelper::Create("0.1.1")));
-    CHECK_EQUAL(
-        1, VersionHelper::Compare(&expected, &VersionHelper::Create("0.0.1")));
+        1, VersionHelper::Compare(expected, VersionHelper::Create("0.0.1")));
 
     IGameStateStorageHandler *handler =
-        _storage->CreateGameStateStorageHandler("Console", &expected);
+        _storage->CreateGameStateStorageHandler("Console", expected);
 
     ComObject<IFile> file;
     CHECK(_vfs->GetFile(L"gameState.json", file.Assign()));
@@ -80,7 +82,9 @@ SUITE(StorageTests) {
     handler->Load(path);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
-    CHECK_EQUAL(0, VersionHelper::Compare(handler->GetVersion(), &expected));
+    Version v;
+    handler->GetVersion(v);
+    CHECK_EQUAL(0, VersionHelper::Compare(v, expected));
 
     std::wstring savePath =
         Resources::Instance().RootDir() + L"../../../tests/content/temp.json";
@@ -88,11 +92,12 @@ SUITE(StorageTests) {
     delete handler;
 
     // reload using the freshly saved file, the contents should not have changed
-    handler = _storage->CreateGameStateStorageHandler("Console", &expected);
+    handler = _storage->CreateGameStateStorageHandler("Console", expected);
     handler->Load(savePath);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
-    CHECK_EQUAL(0, VersionHelper::Compare(handler->GetVersion(), &expected));
+    handler->GetVersion(v);
+    CHECK_EQUAL(0, VersionHelper::Compare(v, expected));
 
     remove(std::filesystem::path(savePath));  // remove the temp file
     delete handler;

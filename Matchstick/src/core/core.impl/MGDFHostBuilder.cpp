@@ -104,8 +104,8 @@ MGDFError HostBuilder::TryCreateHost(Host **host) {
   InitResources(handler->GetGameUid());
   Logger::Instance().MoveOutputFile();
 
-  Game *game;
-  result = GameBuilder::LoadGame(components.Storage, handler.get(), &game);
+  ComObject<Game> game;
+  result = GameBuilder::LoadGame(components.Storage, handler.get(), game);
   if (MGDF_OK != result) {
     LOG("FATAL ERROR: Unable to load game configuration", LOG_ERROR);
     UnregisterComponents(components);
@@ -121,7 +121,6 @@ MGDFError HostBuilder::TryCreateHost(Host **host) {
 
   if (MGDFVersionInfo::MGDF_INTERFACE_VERSION != game->GetInterfaceVersion()) {
     LOG("FATAL ERROR: Unsupported MGDF Interface version", LOG_ERROR);
-    delete game;
     UnregisterComponents(components);
     return MGDF_ERR_FATAL;
   }

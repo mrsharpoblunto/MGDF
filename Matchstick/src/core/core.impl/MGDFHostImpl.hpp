@@ -66,7 +66,7 @@ struct HostComponents {
 */
 class Host : public IHostImpl {
  public:
-  static MGDFError TryCreate(Game *game, HostComponents &components,
+  static MGDFError TryCreate(ComObject<Game> game, HostComponents &components,
                              Host **host);
 
   virtual ~Host(void);
@@ -113,7 +113,7 @@ class Host : public IHostImpl {
   void GetVFS(IVirtualFileSystem **vfs) override final;
   void GetSound(ISoundManager **sound) override final;
   IStatisticsManager *GetStatistics() const override final;
-  IGame *GetGame() const override final;
+  void GetGame(IGame **game) override final;
   void GetInput(IInputManager **manager) override final;
   void ShutDown() override final;
   const IStringList *GetSaves() const override final;
@@ -132,7 +132,7 @@ class Host : public IHostImpl {
       D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const override final;
 
  private:
-  Host(Game *game, HostComponents &components);
+  Host(ComObject<Game> game, HostComponents &components);
   MGDFError Init();
 
   void ClearWorkingDirectory();
@@ -145,7 +145,7 @@ class Host : public IHostImpl {
   ComObject<audio::ISoundManagerComponent> _sound;
   ComObject<vfs::IVirtualFileSystemComponent> _vfs;
   ComObject<Debug> _debugOverlay;
-  Game *_game;
+  ComObject<Game> _game;
   StringList *_saves;
   RenderSettingsManager _renderSettings;
   StatisticsManager *_stats;

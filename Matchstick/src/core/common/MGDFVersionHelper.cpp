@@ -12,16 +12,16 @@
 namespace MGDF {
 namespace core {
 
-std::string VersionHelper::Format(const Version *version) {
+std::string VersionHelper::Format(const Version &version) {
   std::ostringstream ss;
 
-  ss << version->Major << '.' << version->Minor;
+  ss << version.Major << '.' << version.Minor;
 
-  if (version->Build >= 0) {
-    ss << '.' << version->Build;
+  if (version.Build >= 0) {
+    ss << '.' << version.Build;
   }
-  if (version->Revision >= 0) {
-    ss << '.' << version->Revision;
+  if (version.Revision >= 0) {
+    ss << '.' << version.Revision;
   }
   return ss.str();
 }
@@ -57,25 +57,15 @@ Version VersionHelper::Create(const std::string &version) {
   return result;
 }
 
-Version VersionHelper::Copy(const Version *version) {
-  Version result;
-  result.Major = version->Major;
-  result.Minor = version->Minor;
-  result.Build = version->Build;
-  result.Revision = version->Revision;
-
-  return result;
-}
-
-INT32 VersionHelper::Compare(const Version *a, const Version *b) {
-  if (a->Major != b->Major) {
-    return a->Major > b->Major ? 1 : -1;
-  } else if (a->Minor != b->Minor) {
-    return a->Minor > b->Minor ? 1 : -1;
-  } else if (a->Build != b->Build) {
-    return a->Build > b->Build ? 1 : -1;
-  } else if (a->Revision != b->Revision) {
-    return a->Revision > b->Revision ? 1 : -1;
+INT32 VersionHelper::Compare(const Version &a, const Version &b) {
+  if (a.Major != b.Major) {
+    return a.Major > b.Major ? 1 : -1;
+  } else if (a.Minor != b.Minor) {
+    return a.Minor > b.Minor ? 1 : -1;
+  } else if (a.Build != b.Build) {
+    return a.Build > b.Build ? 1 : -1;
+  } else if (a.Revision != b.Revision) {
+    return a.Revision > b.Revision ? 1 : -1;
   } else {
     return 0;
   }

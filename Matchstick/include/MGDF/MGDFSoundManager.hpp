@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MGDF/MGDFGame.hpp>
 #include <MGDF/MGDFSound.hpp>
 #include <MGDF/MGDFSoundStream.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
@@ -167,6 +168,16 @@ listener \return the vector representing the upward direction of the listener
   */
   virtual HRESULT STDMETHODCALLTYPE CreateSoundStream(
       IFile * file, ISoundStream * *stream) = 0;
+
+  /**
+  Gets the current persistable sound settings. Note: this only consists of
+  master volume settings. Other settings like attenuation & speedOfSound need to
+  be reset on startup
+  \param preferences a pointer to a preference set that can be passed into the
+  IGame setPreferences method to set the preferences
+  */
+  virtual void STDMETHODCALLTYPE GetPreferences(IPreferenceSet *
+                                                *preferences) = 0;
 };
 
 }  // namespace MGDF

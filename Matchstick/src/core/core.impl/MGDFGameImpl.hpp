@@ -1,8 +1,11 @@
 #pragma once
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDFGame.hpp>
 #include <map>
+#include <unordered_map>
 
 #include "../common/MGDFLoggerImpl.hpp"
+#include "../common/MGDFPreferenceSet.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"
 
 namespace MGDF {
@@ -10,12 +13,11 @@ namespace core {
 
 /**
 this class is the concrete implementation of the configuration interface
-\author gcconner
 */
-class Game : public IGame {
+class Game : public ComBase<IGame> {
  public:
   Game(const std::string &uid, const std::string &name, INT32 interfaceVersion,
-       const Version *version, storage::IStorageFactoryComponent *xmlFactory);
+       const Version &version, storage::IStorageFactoryComponent *xmlFactory);
   virtual ~Game(void) {}
 
   const char *GetUid() const override final { return _uid.c_str(); }
@@ -24,11 +26,14 @@ class Game : public IGame {
 
   INT32 GetInterfaceVersion() const override final { return _interfaceVersion; }
 
-  const Version *GetVersion() const override final { return &_version; }
+  void GetVersion(Version *version) const override final {
+    *version = _version;
+  }
 
   bool HasPreference(const char *name) const override final;
   const char *GetPreference(const char *name) const override final;
   void SetPreference(const char *name, const char *value) override final;
+  void SetPreferences(IPreferenceSet *preferences) override final;
   void SavePreferences() const override final;
   void ResetPreferences() override final;
 

@@ -17,7 +17,7 @@ class JsonCppGameStorageHandler : public IGameStorageHandler {
   std::string GetGameName() const override final;
   std::string GetGameUid() const override final;
   INT32 GetInterfaceVersion() const override final;
-  const Version *GetVersion() const override final;
+  void GetVersion(Version &version) const override final;
   const std::map<std::string, std::string> &GetPreferences()
       const override final;
 

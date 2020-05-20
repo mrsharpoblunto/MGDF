@@ -47,7 +47,9 @@ class RenderSettingsManager : public IRenderSettingsManager {
 
   UINT32 GetScreenX() const override final;
   UINT32 GetScreenY() const override final;
-  void ApplyChanges() override final;
+  void ApplySettings() override final;
+
+  void GetPreferences(IPreferenceSet **preferences) override final;
 
   void LoadPreferences(IGame *game);
 

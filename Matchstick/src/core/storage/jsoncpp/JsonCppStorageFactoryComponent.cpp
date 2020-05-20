@@ -27,8 +27,7 @@ IGameStorageHandler *JsonCppStorageFactoryComponent::CreateGameStorageHandler()
 
 IGameStateStorageHandler *
 JsonCppStorageFactoryComponent::CreateGameStateStorageHandler(
-    const std::string &game, const Version *version) const {
-  _ASSERTE(version);
+    const std::string &game, const Version &version) const {
   return new JsonCppGameStateStorageHandler(game, version);
 }
 

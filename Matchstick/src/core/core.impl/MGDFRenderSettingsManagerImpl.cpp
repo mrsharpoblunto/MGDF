@@ -5,8 +5,9 @@
 #include <sstream>
 
 #include "../common/MGDFLoggerImpl.hpp"
+#include "../common/MGDFPreferenceConstants.hpp"
+#include "../common/MGDFPreferenceSet.hpp"
 #include "../common/MGDFResources.hpp"
-#include "MGDFPreferenceConstants.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -22,6 +23,7 @@ namespace MGDF {
 namespace core {
 
 static const std::string S_1("1");
+static const std::string S_0("0");
 
 std::string ToString(UINT32 i) {
   std::ostringstream ss;
@@ -302,7 +304,7 @@ void RenderSettingsManager::SetWindowSize(UINT32 width, UINT32 height) const {
   }
 }
 
-void RenderSettingsManager::ApplyChanges() {
+void RenderSettingsManager::ApplySettings() {
   std::lock_guard<std::mutex> lock(_mutex);
   _changePending.store(true);
 }
@@ -360,6 +362,32 @@ void RenderSettingsManager::Cleanup() {
   _adaptorModes.clear();
   _multiSampleLevels.clear();
   _multiSampleQuality.clear();
+}
+
+void RenderSettingsManager::GetPreferences(IPreferenceSet **preferences) {
+  ComObject<PreferenceSetImpl> p(new PreferenceSetImpl());
+
+  p->Preferences.insert(std::make_pair(PreferenceConstants::FULL_SCREEN,
+                                       _fullScreen.FullScreen ? S_1 : S_0));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::FULL_SCREEN_EXCLUSIVE,
+                     _fullScreen.ExclusiveMode ? S_1 : S_0));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::VSYNC, _vsync ? S_1 : S_0));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::SCREEN_X,
+                     ToString(_currentAdaptorMode.Width).c_str()));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::SCREEN_Y,
+                     ToString(_currentAdaptorMode.Height).c_str()));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
+                     ToString(_currentMultiSampleLevel).c_str()));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::MULTISAMPLE_LEVEL,
+                     ToString(_backBufferMultiSampleLevel).c_str()));
+
+  p.AddRawRef(preferences);
 }
 
 void RenderSettingsManager::LoadPreferences(IGame *game) {

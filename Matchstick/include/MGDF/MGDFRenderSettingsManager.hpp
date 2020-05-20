@@ -61,7 +61,8 @@ class IRenderSettingsManager {
   get the available multisample level supported by the display adaptor at the
   given index ( 0 to GetMultiSampleLevelCount() - 1 ) \param index the
   multisample index \param level returns the multisample level at the given
-  index \return true if a supported multisample level is present at the given
+  index
+  \return true if a supported multisample level is present at the given
   index, false otherwise.
   */
   virtual bool GetMultiSampleLevel(UINT32 index, UINT32 *level) const = 0;
@@ -166,9 +167,17 @@ class IRenderSettingsManager {
 
   /**
   Queues the swap chain to be reset on the beginning of the next frame. This
-  applies any changed adaptor mode or multisample settings.
+  applies any render settings
   */
-  virtual void ApplyChanges() = 0;
+  virtual void ApplySettings() = 0;
+
+  /**
+  Gets the current persistable render settings.
+  \param preferences a pointer to a preference set that can be passed into the
+  IGame setPreferences method to set the preferences
+  */
+  virtual void STDMETHODCALLTYPE
+  GetPreferences(IPreferenceSet **preferences) = 0;
 };
 
 }  // namespace MGDF

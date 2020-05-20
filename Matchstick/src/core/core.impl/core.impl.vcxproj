@@ -107,7 +107,6 @@
     <ClCompile Include="MGDFHostImpl.cpp" />
     <ClCompile Include="MGDFCurrentDirectoryHelper.cpp" />
     <ClCompile Include="MGDFParameterConstants.cpp" />
-    <ClCompile Include="MGDFPreferenceConstants.cpp" />
     <ClCompile Include="MGDFHostStats.cpp" />
     <ClCompile Include="MGDFTextStream.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
@@ -127,7 +126,6 @@
     <ClInclude Include="MGDFHostImpl.hpp" />
     <ClInclude Include="MGDFCurrentDirectoryHelper.hpp" />
     <ClInclude Include="MGDFParameterConstants.hpp" />
-    <ClInclude Include="MGDFPreferenceConstants.hpp" />
     <ClInclude Include="MGDFHostStats.hpp" />
     <ClInclude Include="MGDFTextStream.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />

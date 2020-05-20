@@ -24,8 +24,8 @@ INT32 JsonCppGameStorageHandler::GetInterfaceVersion() const {
   return _interfaceVersion;
 }
 
-const Version *JsonCppGameStorageHandler::GetVersion() const {
-  return &_version;
+void JsonCppGameStorageHandler::GetVersion(Version &version) const {
+  version = _version;
 }
 
 const std::map<std::string, std::string>

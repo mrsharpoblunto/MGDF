@@ -200,9 +200,9 @@ class ISimHost : public ICommonHost {
 
   /**
   get information regarding the current game and its preferences
-  \return object containing information regarding the game and its preferences
+  \param game pointer to object containing information regarding the game and its preferences
   */
-  virtual IGame *GetGame() const = 0;
+  virtual void GetGame(IGame **game) = 0;
 
   /**
   get the audio manager

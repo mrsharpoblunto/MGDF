@@ -12,18 +12,20 @@ namespace jsoncppImpl {
 class JsonCppGameStateStorageHandler : public IGameStateStorageHandler {
  public:
   JsonCppGameStateStorageHandler(const std::string &gameUid,
-                                 const Version *version)
-      : _gameUid(gameUid), _version(VersionHelper::Copy(version)) {}
+                                 const Version &version)
+      : _gameUid(gameUid), _version(version) {}
   virtual ~JsonCppGameStateStorageHandler() {}
 
   MGDFError Load(const std::wstring &) override final;
   void Save(const std::wstring &) const override final;
 
   std::string GetGameUid() const override final { return _gameUid; };
-  void SetVersion(const Version *version) override final {
-    _version = VersionHelper::Copy(version);
+  void SetVersion(const Version &version) override final {
+    _version = version;
   };
-  const Version *GetVersion() const override final { return &_version; };
+  void GetVersion(Version &version) const override final {
+    version = _version;
+  };
 
  private:
   std::string _gameUid;

@@ -5,13 +5,13 @@
 #include <filesystem>
 #include <iomanip>
 
+#include "../common/MGDFPreferenceConstants.hpp"
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 #include "MGDFCurrentDirectoryHelper.hpp"
 #include "MGDFParameterConstants.hpp"
-#include "MGDFPreferenceConstants.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -33,7 +33,8 @@ void IHostImpl::SetFatalErrorHandler(const FatalErrorFunction handler) {
   _fatalErrorHandler = handler;
 }
 
-MGDFError Host::TryCreate(Game *game, HostComponents &components, Host **host) {
+MGDFError Host::TryCreate(ComObject<Game> game, HostComponents &components,
+                          Host **host) {
   *host = new Host(game, components);
 
   MGDFError error = (*host)->Init();
@@ -44,7 +45,7 @@ MGDFError Host::TryCreate(Game *game, HostComponents &components, Host **host) {
   return error;
 }
 
-Host::Host(Game *game, HostComponents &components)
+Host::Host(ComObject<Game> game, HostComponents &components)
     : _game(game),
       _timer(nullptr),
       _debugOverlay(nullptr),
@@ -130,7 +131,6 @@ Host::~Host(void) {
     delete _saves;
   }
   delete _timer;
-  delete _game;
   delete _stats;
   delete _moduleFactory;
 
@@ -417,9 +417,10 @@ MGDFError Host::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,
     *size = static_cast<UINT32>(loadDataDir.size()) + 1;
     memcpy(loadBuffer, loadDataDir.c_str(), sizeof(wchar_t) * (*size));
 
+    Version version;
+    _game->GetVersion(&version);
     std::unique_ptr<storage::IGameStateStorageHandler> handler(
-        _storage->CreateGameStateStorageHandler(_game->GetUid(),
-                                                _game->GetVersion()));
+        _storage->CreateGameStateStorageHandler(_game->GetUid(), version));
     _ASSERTE(handler.get());
 
     MGDFError error = handler->Load(loadFile);
@@ -429,7 +430,7 @@ MGDFError Host::Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,
       return error;
     }
 
-    version = *handler->GetVersion();
+    handler->GetVersion(version);
     return MGDF_OK;
   }
 }
@@ -485,9 +486,10 @@ MGDFError Host::BeginSave(const char *save, wchar_t *saveBuffer, UINT32 *size) {
     path saveDataDir(saveBufferContent);
     create_directory(saveDataDir);
 
+    Version version;
+    _game->GetVersion(&version);
     std::unique_ptr<storage::IGameStateStorageHandler> handler(
-        _storage->CreateGameStateStorageHandler(_game->GetUid(),
-                                                _game->GetVersion()));
+        _storage->CreateGameStateStorageHandler(_game->GetUid(), version));
     handler->Save(Resources::Instance().GameStateSaveFile(saveName));
 
     return MGDF_OK;
@@ -591,7 +593,7 @@ void Host::RemoveSave(const char *saveName) {
   }
 }
 
-IGame *Host::GetGame() const { return _game; }
+void Host::GetGame(IGame **game) { _game.AddRawRef<IGame>(game); }
 
 IStatisticsManager *Host::GetStatistics() const { return _stats; }
 

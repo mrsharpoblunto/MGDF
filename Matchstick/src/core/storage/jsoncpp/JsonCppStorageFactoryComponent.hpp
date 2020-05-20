@@ -16,7 +16,7 @@ class JsonCppStorageFactoryComponent : public IStorageFactoryComponent {
 
   IGameStorageHandler *CreateGameStorageHandler() const override final;
   IGameStateStorageHandler *CreateGameStateStorageHandler(
-      const std::string &, const Version *) const override final;
+      const std::string &, const Version &) const override final;
   IPreferenceConfigStorageHandler *CreatePreferenceConfigStorageHandler()
       const override final;
 };

@@ -1,5 +1,6 @@
 BasedOnStyle: Google
 IncludeBlocks: Regroup
+CommentPragmas: '(\param)|(\return)'
 IncludeCategories:
   - Regex: 'stdafx.h'
     Priority: -1

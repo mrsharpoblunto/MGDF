@@ -135,7 +135,7 @@ void Test3::Setup(ISimHost *host) {
             host->GetRenderSettings()->GetFullscreen(&desc);
             desc.FullScreen = !desc.FullScreen;
             host->GetRenderSettings()->SetFullscreen(&desc);
-            host->GetRenderSettings()->ApplyChanges();
+            host->GetRenderSettings()->ApplySettings();
           }
           return TestStep::CONT;
         }

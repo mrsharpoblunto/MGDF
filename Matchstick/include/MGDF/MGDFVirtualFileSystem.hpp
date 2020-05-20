@@ -141,7 +141,7 @@ IFile : public IUnknown {
   find the last write time of the file
   \return a timestamp indicating the last write time
   */
-  virtual time_t STDMETHODCALLTYPE GetLastWriteTime() const = 0;
+  virtual INT64 STDMETHODCALLTYPE GetLastWriteTime() const = 0;
 };
 
 /**

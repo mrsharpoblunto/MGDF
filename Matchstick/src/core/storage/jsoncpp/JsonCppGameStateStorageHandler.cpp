@@ -46,7 +46,7 @@ void JsonCppGameStateStorageHandler::Save(const std::wstring &filename) const {
   Json::Value root;
 
   root["gameUid"] = _gameUid;
-  root["gameVersion"] = VersionHelper::Format(&_version);
+  root["gameVersion"] = VersionHelper::Format(_version);
 
   file << root;
   file.close();

@@ -106,6 +106,8 @@
     <ClInclude Include="MGDFListImpl.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />
+    <ClInclude Include="MGDFPreferenceConstants.hpp" />
+    <ClInclude Include="MGDFPreferenceSet.hpp" />
     <ClInclude Include="MGDFResources.hpp" />
     <ClInclude Include="MGDFStringImpl.hpp" />
     <ClInclude Include="MGDFSystemComponent.hpp" />
@@ -117,6 +119,7 @@
   <ItemGroup>
     <ClCompile Include="MGDFLoggerImpl.cpp" />
     <ClCompile Include="MGDFParameterManager.cpp" />
+    <ClCompile Include="MGDFPreferenceConstants.cpp" />
     <ClCompile Include="MGDFResources.cpp" />
     <ClCompile Include="MGDFVersionHelper.cpp" />
     <ClCompile Include="MGDFVersionInfo.cpp" />

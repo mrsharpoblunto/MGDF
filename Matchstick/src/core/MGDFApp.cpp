@@ -2,9 +2,9 @@
 
 #include "MGDFApp.hpp"
 
+#include "common/MGDFPreferenceConstants.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
 #include "core.impl/MGDFParameterConstants.hpp"
-#include "core.impl/MGDFPreferenceConstants.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -29,8 +29,8 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
       _renderFrameLimiter(nullptr) {
   _ASSERTE(host);
 
-  const char *simFps =
-      host->GetGame()->GetPreference(PreferenceConstants::SIM_FPS);
+  host->GetGame(_game.Assign());
+  const char *simFps = _game->GetPreference(PreferenceConstants::SIM_FPS);
   UINT32 simulationFps = atoi(simFps);
 
   _awaitFrame.test_and_set();
@@ -45,8 +45,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     FATALERROR(_host, "Unable to create sim frame limiter");
   }
 
-  const char *renderFps =
-      host->GetGame()->GetPreference(PreferenceConstants::RENDER_FPS);
+  const char *renderFps = _game->GetPreference(PreferenceConstants::RENDER_FPS);
   if (renderFps) {
     if (MGDF_OK !=
         FrameLimiter::TryCreate(atoi(renderFps), &_renderFrameLimiter)) {
@@ -59,7 +58,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
   _ASSERTE(host);
   _host = host;
   _host->SetShutDownHandler([this]() {
-    _host->GetGame()->SavePreferences();
+    _game->SavePreferences();
     CloseWindow();
   });
 
@@ -127,19 +126,17 @@ bool MGDFApp::VSyncEnabled() const {
 
 bool MGDFApp::OnInitWindow(RECT &window) {
   const char *posX =
-      _host->GetGame()->GetPreference(PreferenceConstants::WINDOW_POSITIONX);
+      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONX);
   const char *posY =
-      _host->GetGame()->GetPreference(PreferenceConstants::WINDOW_POSITIONY);
+      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONY);
   window.top = posY ? atoi(posY) : 0;
   window.left = posX ? atoi(posX) : 0;
-  window.right =
-      window.left +
-      atoi(_host->GetGame()->GetPreference(PreferenceConstants::WINDOW_SIZEX));
-  window.bottom =
-      window.top +
-      atoi(_host->GetGame()->GetPreference(PreferenceConstants::WINDOW_SIZEY));
+  window.right = window.left +
+                 atoi(_game->GetPreference(PreferenceConstants::WINDOW_SIZEX));
+  window.bottom = window.top +
+                  atoi(_game->GetPreference(PreferenceConstants::WINDOW_SIZEY));
   const char *windowResize =
-      _host->GetGame()->GetPreference(PreferenceConstants::WINDOW_RESIZE);
+      _game->GetPreference(PreferenceConstants::WINDOW_RESIZE);
   return atoi(windowResize) == 1;
 }
 
@@ -309,12 +306,10 @@ void MGDFApp::OnExternalClose() { _host->QueueShutDown(); }
 void MGDFApp::OnMoveWindow(INT32 x, INT32 y) {
   std::stringstream xs;
   xs << x;
-  _host->GetGame()->SetPreference(PreferenceConstants::WINDOW_POSITIONX,
-                                  xs.str().c_str());
+  _game->SetPreference(PreferenceConstants::WINDOW_POSITIONX, xs.str().c_str());
   std::stringstream ys;
   ys << y;
-  _host->GetGame()->SetPreference(PreferenceConstants::WINDOW_POSITIONY,
-                                  ys.str().c_str());
+  _game->SetPreference(PreferenceConstants::WINDOW_POSITIONY, ys.str().c_str());
 }
 
 void MGDFApp::OnBeforeHandleMessage() {

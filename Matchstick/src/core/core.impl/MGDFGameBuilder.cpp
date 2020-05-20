@@ -23,26 +23,25 @@ namespace core {
 // customized user preferences
 MGDFError GameBuilder::LoadGame(storage::IStorageFactoryComponent *storage,
                                 storage::IGameStorageHandler *handler,
-                                Game **game) {
+                                ComObject<Game> &game) {
   _ASSERTE(handler);
-  _ASSERTE(handler->GetVersion());
 
-  *game =
-      new Game(handler->GetGameUid(), handler->GetGameName(),
-               handler->GetInterfaceVersion(), handler->GetVersion(), storage);
+  Version version;
+  handler->GetVersion(version);
+  game = new Game(handler->GetGameUid(), handler->GetGameName(),
+                  handler->GetInterfaceVersion(), version, storage);
 
   // load the defaults from the core settings (REQUIRED)
   MGDFError err =
-      (*game)->LoadPreferences(Resources::Instance().CorePreferencesFile());
+      game->LoadPreferences(Resources::Instance().CorePreferencesFile());
 
   if (MGDF_OK != err) {
-    delete *game;
-    *game = nullptr;
+    game = nullptr;
     return err;
   }
 
   // load the defaults for the game if any are present
-  (*game)->LoadPreferences(handler->GetPreferences());
+  game->LoadPreferences(handler->GetPreferences());
 
   // load customised preferences for this game if any are present
   path customPref(Resources::Instance().GameUserPreferencesFile());
@@ -52,7 +51,7 @@ MGDFError GameBuilder::LoadGame(storage::IStorageFactoryComponent *storage,
   // only the most recent values kept (this means it auto updates the
   // preferences listing to include newly added prefs)
   if (exists(customPref)) {
-    err = (*game)->LoadPreferences(customPref.wstring());
+    err = game->LoadPreferences(customPref.wstring());
     if (MGDF_OK != err) {
       LOG("Unable to parse customized preferences "
               << Resources::ToString(customPref.wstring()),
@@ -62,7 +61,7 @@ MGDFError GameBuilder::LoadGame(storage::IStorageFactoryComponent *storage,
 
   // then save the current preferences as a custom preference file
   // any subsequent changes made by modules will be saved to this file
-  (*game)->SavePreferences(customPref.wstring());
+  game->SavePreferences(customPref.wstring());
 
   return MGDF_OK;
 }

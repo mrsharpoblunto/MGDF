@@ -19,8 +19,8 @@ class IGameStateStorageHandler {
   virtual void Save(const std::wstring &save) const = 0;
 
   virtual std::string GetGameUid() const = 0;
-  virtual void SetVersion(const MGDF::Version *version) = 0;
-  virtual const MGDF::Version *GetVersion() const = 0;
+  virtual void SetVersion(const MGDF::Version &version) = 0;
+  virtual void GetVersion(MGDF::Version &version) const = 0;
 };
 
 }  // namespace storage

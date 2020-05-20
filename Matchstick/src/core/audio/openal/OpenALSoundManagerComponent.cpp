@@ -9,8 +9,11 @@
 #include <math.h>
 
 #include <algorithm>
+#include <sstream>
 
 #include "../../common/MGDFLoggerImpl.hpp"
+#include "../../common/MGDFPreferenceConstants.hpp"
+#include "../../common/MGDFPreferenceSet.hpp"
 #include "../../common/MGDFResources.hpp"
 #include "OpenALSound.hpp"
 #include "VorbisStream.hpp"
@@ -284,6 +287,20 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSound(IFile *file,
   _sounds.insert(s);
   s.AddRawRef(sound);
   return S_OK;
+}
+
+void OpenALSoundManagerComponentImpl::GetPreferences(
+    IPreferenceSet **preferences) {
+  ComObject<PreferenceSetImpl> p(new PreferenceSetImpl());
+  std::ostringstream ss;
+  ss << _soundVolume;
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::SOUND_VOLUME, ss.str()));
+  ss.clear();
+  ss << _streamVolume;
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::MUSIC_VOLUME, ss.str()));
+  p.AddRawRef(preferences);
 }
 
 void OpenALSoundManagerComponentImpl::DeactivateSound(INT32 priority) {

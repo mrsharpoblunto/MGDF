@@ -65,7 +65,7 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
                       ISound **sound) override final;
   HRESULT CreateSoundStream(IFile *source,
                             ISoundStream **stream) override final;
-
+  void GetPreferences(IPreferenceSet **preferences) override final;
   void RemoveSoundStream(ISoundStream *stream);
   void RemoveSound(ISound *sound);
 

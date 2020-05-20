@@ -15,12 +15,12 @@ namespace MGDF {
 namespace core {
 
 Game::Game(const std::string &uid, const std::string &name,
-           INT32 interfaceVersion, const Version *version,
+           INT32 interfaceVersion, const Version &version,
            storage::IStorageFactoryComponent *storageFactory)
     : _uid(uid),
       _name(name),
       _interfaceVersion(interfaceVersion),
-      _version(VersionHelper::Copy(version)),
+      _version(version),
       _storageFactory(storageFactory) {
   _ASSERTE(storageFactory);
 }
@@ -50,6 +50,14 @@ void Game::SetPreference(const char *name, const char *value) {
     it->second = value;
   } else {
     _preferences.insert(std::make_pair(name, value));
+  }
+}
+
+void Game::SetPreferences(IPreferenceSet *preferences) {
+  if (!preferences) return;
+  auto prefs = static_cast<PreferenceSetImpl *>(preferences);
+  for (auto &p : prefs->Preferences) {
+    SetPreference(p.first.c_str(), p.second.c_str());
   }
 }
 
