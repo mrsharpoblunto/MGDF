@@ -47,7 +47,6 @@ MGDFError Host::TryCreate(ComObject<Game> game, HostComponents &components,
 
 Host::Host(ComObject<Game> game, HostComponents &components)
     : _game(game),
-      _timer(nullptr),
       _debugOverlay(nullptr),
       _saves(nullptr),
       _module(nullptr),
@@ -74,8 +73,8 @@ MGDFError Host::Init() {
   MGDFError error = ModuleFactory::TryCreate(&_moduleFactory);
   if (MGDF_OK != error) return error;
 
-  error = Timer::TryCreate(TIMER_SAMPLES, &_timer);
-  if (MGDF_OK != error) return error;
+  HRESULT result = Timer::TryCreate(TIMER_SAMPLES, _timer);
+  if (FAILED(result)) return MGDF_ERR_FATAL;
 
   _debugOverlay = new Debug(_timer);
 
@@ -111,14 +110,13 @@ MGDFError Host::Init() {
   // set the initial sound volumes
   if (_sound) {
     LOG("Setting initial volume...", LOG_HIGH);
-    ComObject<IString> pref;
-    if (_game->GetPreference(PreferenceConstants::SOUND_VOLUME,
-                             pref.Assign())) {
+    std::string pref;
+    ComObject<IGame> game = _game.As<IGame>();
+    if (GetPreference(game, PreferenceConstants::SOUND_VOLUME, pref)) {
       _sound->SetSoundVolume(FromString<float>(pref));
     }
 
-    if (_game->GetPreference(PreferenceConstants::MUSIC_VOLUME,
-                             pref.Assign())) {
+    if (GetPreference(game, PreferenceConstants::MUSIC_VOLUME, pref)) {
       _sound->SetStreamVolume(FromString<float>(pref));
     }
   }
@@ -136,7 +134,6 @@ Host::~Host(void) {
     }
     delete _saves;
   }
-  delete _timer;
   delete _stats;
   delete _moduleFactory;
 
@@ -257,7 +254,7 @@ void Host::RTSetDevices(HWND window, ID3D11Device *d3dDevice,
 
   if (!_d3dDevice) {
     LOG("Loading Render settings...", LOG_LOW);
-    _renderSettings.LoadPreferences(_game);
+    _renderSettings.LoadPreferences(_game.As<IGame>());
   }
 
   _d2dDevice = d2dDevice;
@@ -325,8 +322,6 @@ IRenderSettingsManager *Host::GetRenderSettings() const {
   return (IRenderSettingsManager *)&_renderSettings;
 }
 
-IRenderTimer *Host::GetRenderTimer() const { return _timer; }
-
 bool Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
   if (!context) return false;
 
@@ -384,7 +379,7 @@ const Version *Host::GetMGDFVersion() const { return &_version; }
 
 ILogger *Host::GetLogger() const { return &Logger::Instance(); }
 
-ITimer *Host::GetTimer() const { return _timer; }
+void Host::GetTimer(ITimer **timer) { _timer.AddRawRef(timer); }
 
 void Host::QueueShutDown() { _shutdownQueued.store(true); }
 
@@ -619,6 +614,16 @@ void Host::ClearWorkingDirectory() {
   } else {
     create_directory(workingDir);
   }
+}
+
+HRESULT Host::CreateCPUCounter(const char *name,
+                               IPerformanceCounter **counter) {
+  return _timer->CreateCPUCounter(name, counter);
+}
+
+HRESULT Host::CreateGPUCounter(const char *name,
+                               IPerformanceCounter **counter) {
+  return _timer->CreateGPUCounter(name, counter);
 }
 
 const char *Host::GetErrorDescription(MGDFError err) const {

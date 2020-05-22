@@ -26,6 +26,7 @@ class Test1 : public TestModule {
   LARGE_INTEGER _time;
   ComObject<IInputManager> _input;
   ComObject<IGamepad> _gamepad;
+  ComObject<ITimer> _timer;
 };
 
 }  // namespace Test

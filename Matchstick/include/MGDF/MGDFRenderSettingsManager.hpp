@@ -59,8 +59,10 @@ class IRenderSettingsManager {
 
   /**
   get the available multisample level supported by the display adaptor at the
-  given index ( 0 to GetMultiSampleLevelCount() - 1 ) \param index the
-  multisample index \param level returns the multisample level at the given
+  given index ( 0 to GetMultiSampleLevelCount() - 1 )
+  \param index the
+  multisample index
+  \param level returns the multisample level at the given
   index
   \return true if a supported multisample level is present at the given
   index, false otherwise.

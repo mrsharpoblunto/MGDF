@@ -35,32 +35,32 @@ std::string ToString(const T &val) {
   return ss.str();
 }
 
-template <>
-std::string ToString(const ComObject<IString> &str);
-
 template <typename T>
-T FromString(const ComObject<IString> &str) {}
+T FromString(const std::string &str) {}
 
 template <>
-bool FromString(const ComObject<IString> &str);
+bool FromString(const std::string &str);
 
 template <>
-int FromString(const ComObject<IString> &str);
+int FromString(const std::string &str);
 
 template <>
-long FromString(const ComObject<IString> &str);
+long FromString(const std::string &str);
 
 template <>
-unsigned int FromString(const ComObject<IString> &str);
+unsigned int FromString(const std::string &str);
 
 template <>
-unsigned long FromString(const ComObject<IString> &str);
+unsigned long FromString(const std::string &str);
 
 template <>
-double FromString(const ComObject<IString> &str);
+double FromString(const std::string &str);
 
 template <>
-float FromString(const ComObject<IString> &str);
+float FromString(const std::string &str);
+
+bool GetPreference(ComObject<IGame> &game, const std::string &name,
+                   std::string &value);
 
 }  // namespace core
 }  // namespace MGDF

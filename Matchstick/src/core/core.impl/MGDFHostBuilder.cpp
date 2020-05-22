@@ -9,6 +9,7 @@
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
+#include "../common/MGDFStringImpl.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "MGDFGameBuilder.hpp"
 #include "MGDFParameterConstants.hpp"

@@ -7,7 +7,8 @@ namespace MGDF {
 /**
  Provides an interface to the hosts high resolution CPU timer
  */
-class ITimer {
+MIDL_INTERFACE("4DA26ED2-514E-4CB2-B9D4-6AC4170DFDCE")
+ITimer : public IUnknown {
  public:
   /**
   Get the current system time in ticks
@@ -29,31 +30,6 @@ class ITimer {
   */
   virtual double ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
                                             LARGE_INTEGER oldTime) const = 0;
-
-  /**
-   create a performance counter for profiling CPU time taken. When no longer
-   used it should be Released \param name the name of the counter \param counter
-   points to the created counter \return MGDF_OK if the counter could be
-   created, otherwise an error code is returned
-   */
-  virtual MGDFError CreateCPUCounter(const char *name,
-                                     IPerformanceCounter **counter) = 0;
-};
-
-/**
- this provides an interface to Direct3D GPU timers
- */
-class IRenderTimer {
- public:
-  /**
-   * create a performance counter for profiling GPU time taken in DirectX API
-   * calls. When no longer used it should be Released \param name the name of
-   * the counter \param counter points to the created counter \return
-   * MGDF_ERR_GPU_TIMER_UNSUPPORTED if GPU counters are unsupported (using
-   * D3D_FEATURE_LEVEL_9_3 or less) otherwise returns MGDF_OK
-   */
-  virtual MGDFError CreateGPUCounter(const char *name,
-                                     IPerformanceCounter **counter) = 0;
 };
 
 }  // namespace MGDF

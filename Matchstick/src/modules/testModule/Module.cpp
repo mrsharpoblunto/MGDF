@@ -76,8 +76,7 @@ bool Module::STNew(ISimHost* host, const wchar_t* workingFolder) {
 
 bool Module::STUpdate(ISimHost* host, double elapsedTime) {
   if (!_testModuleCounter) {
-    host->GetTimer()->CreateCPUCounter("Test Module",
-                                       _testModuleCounter.Assign());
+    host->CreateCPUCounter("Test Module", _testModuleCounter.Assign());
   }
 
   if (_testModuleCounter) _testModuleCounter->Begin();
@@ -97,8 +96,7 @@ void Module::STShutDown(ISimHost* host) { host->ShutDown(); }
 
 bool Module::RTBeforeFirstDraw(MGDF::IRenderHost* host) {
   _textManager = std::make_unique<TextManager>(host);
-  host->GetRenderTimer()->CreateGPUCounter("Text Rendering",
-                                           _textManagerCounter.Assign());
+  host->CreateGPUCounter("Text Rendering", _textManagerCounter.Assign());
   return true;
 }
 

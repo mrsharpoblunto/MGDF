@@ -42,9 +42,9 @@ class ICommonHost : public virtual IErrorHandler {
 
   /**
   get the host timer
-  \return the host timer
+  \param timer pointer to the host timer
   */
-  virtual ITimer *GetTimer() const = 0;
+  virtual void GetTimer(ITimer **timer) = 0;
 
   /**
   gets the current version of the framework
@@ -88,6 +88,16 @@ class ICommonHost : public virtual IErrorHandler {
   \param debug pointer to a IDebug
   */
   virtual void GetDebug(IDebug **debug) = 0;
+
+  /**
+   create a performance counter for profiling CPU time taken. When no longer
+   used it should be Released
+  \param name the name of the counter \param counter
+   points to the created counter \return MGDF_OK if the counter could be
+   created, otherwise an error code is returned
+   */
+  virtual HRESULT CreateCPUCounter(const char *name,
+                                   IPerformanceCounter **counter) = 0;
 };
 
 /**
@@ -102,12 +112,6 @@ class IRenderHost : public ICommonHost {
   \return the direct3d deviceimmediate context object from the host
   */
   virtual ID3D11DeviceContext *GetD3DImmediateContext() const = 0;
-
-  /**
-  get the direct3d timer object from the host
-  \return the direct3d timer object from the host
-  */
-  virtual IRenderTimer *GetRenderTimer() const = 0;
 
   /**
   set the current back buffer as the render target for the specified d2d device
@@ -138,6 +142,16 @@ class IRenderHost : public ICommonHost {
   virtual void GetBackBufferDescription(
       D3D11_TEXTURE2D_DESC *backBufferDesc,
       D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const = 0;
+
+  /**
+   * create a performance counter for profiling GPU time taken in DirectX API
+   * calls. When no longer used it should be Released \param name the name of
+   * the counter \param counter points to the created counter \return
+   * MGDF_ERR_GPU_TIMER_UNSUPPORTED if GPU counters are unsupported (using
+   * D3D_FEATURE_LEVEL_9_3 or less) otherwise returns MGDF_OK
+   */
+  virtual HRESULT CreateGPUCounter(const char *name,
+                                   IPerformanceCounter **counter) = 0;
 };
 
 /**

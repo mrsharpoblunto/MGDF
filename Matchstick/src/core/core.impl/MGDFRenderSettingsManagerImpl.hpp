@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "../common/MGDFListImpl.hpp"
+#include "MGDFGameImpl.hpp"
 
 namespace MGDF {
 namespace core {
@@ -51,7 +52,7 @@ class RenderSettingsManager : public IRenderSettingsManager {
 
   void GetPreferences(IPreferenceSet **preferences) override final;
 
-  void LoadPreferences(IGame *game);
+  void LoadPreferences(ComObject<IGame> &game);
 
   void InitFromDevice(HWND window, ID3D11Device *d3dDevice,
                       IDXGIAdapter1 *adapter);

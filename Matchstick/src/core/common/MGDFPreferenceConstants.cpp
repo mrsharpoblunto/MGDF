@@ -32,49 +32,52 @@ const char *PreferenceConstants::WINDOW_POSITIONY = "host.windowPositionY";
 const std::string S_1("1");
 
 template <>
-std::string ToString(const ComObject<IString> &str) {
-  return MGDF::ToString<std::string>(str);
-}
-
-template <>
-bool FromString(const ComObject<IString> &str) {
+bool FromString(const std::string &str) {
   auto rawVal = ToString(str);
   return rawVal == S_1;
 }
 
 template <>
-int FromString(const ComObject<IString> &str) {
-  auto rawVal = ToString(str);
-  return atoi(rawVal.c_str());
+int FromString(const std::string &str) {
+  return atoi(str.c_str());
 }
 
 template <>
-long FromString(const ComObject<IString> &str) {
-  auto rawVal = ToString(str);
-  return atol(rawVal.c_str());
+long FromString(const std::string &str) {
+  return atol(str.c_str());
 }
 
 template <>
-unsigned int FromString(const ComObject<IString> &str) {
-  auto rawVal = ToString(str);
-  return static_cast<unsigned int>(atol(rawVal.c_str()));
+unsigned int FromString(const std::string &str) {
+  return static_cast<unsigned int>(atol(str.c_str()));
 }
 
 template <>
-unsigned long FromString(const ComObject<IString> &str) {
-  auto rawVal = ToString(str);
-  return static_cast<unsigned int>(atoll(rawVal.c_str()));
+unsigned long FromString(const std::string &str) {
+  return static_cast<unsigned int>(atoll(str.c_str()));
 }
 
 template <>
-double FromString(const ComObject<IString> &str) {
-  auto rawVal = ToString(str);
-  return atof(rawVal.c_str());
+double FromString(const std::string &str) {
+  return atof(str.c_str());
 }
 
 template <>
-float FromString(const ComObject<IString> &str) {
+float FromString(const std::string &str) {
   return static_cast<float>(FromString<double>(str));
+}
+
+bool GetPreference(ComObject<IGame> &game, const std::string &name,
+                   std::string &value) {
+  size_t size = 0;
+  game->GetPreference(name.c_str(), nullptr, &size);
+  value.resize(size);
+  auto result =
+      SUCCEEDED(game->GetPreference(name.c_str(), value.data(), &size));
+  if (!result) {
+    value.clear();
+  }
+  return result;
 }
 }  // namespace core
 }  // namespace MGDF

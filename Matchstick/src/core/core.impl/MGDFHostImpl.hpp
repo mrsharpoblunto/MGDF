@@ -97,7 +97,7 @@ class Host : public IHostImpl {
   // ICommonHost methods
   ILogger *GetLogger() const override final;
   IRenderSettingsManager *GetRenderSettings() const override final;
-  ITimer *GetTimer() const override final;
+  void GetTimer(ITimer **timer) override final;
   const Version *GetMGDFVersion() const override final;
   const char *GetErrorDescription(MGDFError err) const override final;
   const char *GetErrorString(MGDFError err) const override final;
@@ -123,13 +123,17 @@ class Host : public IHostImpl {
   ID3D11Device *GetD3DDevice() const override final;
   ID3D11DeviceContext *GetD3DImmediateContext() const override final;
   ID2D1Device *GetD2DDevice() const override final;
-  IRenderTimer *GetRenderTimer() const override final;
   bool SetBackBufferRenderTarget(ID2D1DeviceContext *context) override final;
   ID3D11Texture2D *GetBackBuffer() const override final;
   ID3D11Texture2D *GetDepthStencilBuffer() const override final;
   void GetBackBufferDescription(
       D3D11_TEXTURE2D_DESC *backBufferDesc,
       D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const override final;
+
+  HRESULT CreateCPUCounter(const char *name,
+                           IPerformanceCounter **counter) override final;
+  HRESULT CreateGPUCounter(const char *name,
+                           IPerformanceCounter **counter) override final;
 
  private:
   Host(ComObject<Game> game, HostComponents &components);
@@ -146,6 +150,7 @@ class Host : public IHostImpl {
   ComObject<vfs::IVirtualFileSystemComponent> _vfs;
   ComObject<Debug> _debugOverlay;
   ComObject<Game> _game;
+  ComObject<Timer> _timer;
   StringList *_saves;
   RenderSettingsManager _renderSettings;
   StatisticsManager *_stats;
@@ -158,7 +163,6 @@ class Host : public IHostImpl {
 
   std::mutex _mutex;
   Version _version;
-  Timer *_timer;
   std::atomic<bool> _shutdownQueued;
   mutable std::atomic<bool> _showDebug;
 };

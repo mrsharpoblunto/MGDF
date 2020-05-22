@@ -30,23 +30,26 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
   _ASSERTE(host);
 
   host->GetGame(_game.Assign());
-  ComObject<IString> pref;
-  _game->GetPreference(PreferenceConstants::SIM_FPS, pref.Assign());
-  UINT32 simulationFps = FromString<UINT32>(pref);
+  host->GetTimer(_timer.Assign());
+
+  std::string pref;
+  if (!GetPreference(_game, PreferenceConstants::SIM_FPS, pref)) {
+    FATALERROR(_host,
+               PreferenceConstants::SIM_FPS << " was not found in preferences");
+  }
 
   _awaitFrame.test_and_set();
 
-  if (!pref || !simulationFps) {
-    FATALERROR(_host,
-               PreferenceConstants::SIM_FPS
-                   << " was not found in preferences or is not an integer");
+  UINT32 simulationFps = FromString<UINT32>(pref);
+  if (!simulationFps) {
+    FATALERROR(_host, PreferenceConstants::SIM_FPS << " is not an integer");
   }
 
   if (MGDF_OK != FrameLimiter::TryCreate(simulationFps, &_simFrameLimiter)) {
     FATALERROR(_host, "Unable to create sim frame limiter");
   }
 
-  if (_game->GetPreference(PreferenceConstants::RENDER_FPS, pref.Assign())) {
+  if (GetPreference(_game, PreferenceConstants::RENDER_FPS, pref)) {
     if (MGDF_OK != FrameLimiter::TryCreate(FromString<UINT32>(pref),
                                            &_renderFrameLimiter)) {
       FATALERROR(_host, "Unable to create render frame limiter");
@@ -125,27 +128,23 @@ bool MGDFApp::VSyncEnabled() const {
 }
 
 bool MGDFApp::OnInitWindow(RECT &window) {
-  ComObject<IString> pref;
-  window.top =
-      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONY, pref.Assign())
-          ? FromString<LONG>(pref)
-          : 0;
+  std::string pref;
+  window.top = GetPreference(_game, PreferenceConstants::WINDOW_POSITIONY, pref)
+                   ? FromString<LONG>(pref)
+                   : 0;
   window.left =
-      _game->GetPreference(PreferenceConstants::WINDOW_POSITIONX, pref.Assign())
+      GetPreference(_game, PreferenceConstants::WINDOW_POSITIONX, pref)
           ? FromString<LONG>(pref)
           : 0;
-  window.right =
-      window.left +
-      (_game->GetPreference(PreferenceConstants::WINDOW_SIZEX, pref.Assign())
-           ? FromString<LONG>(pref)
-           : 0);
-  window.bottom =
-      window.top +
-      (_game->GetPreference(PreferenceConstants::WINDOW_SIZEY, pref.Assign())
-           ? FromString<LONG>(pref)
-           : 0);
-  return _game->GetPreference(PreferenceConstants::WINDOW_RESIZE,
-                              pref.Assign()) &&
+  window.right = window.left +
+                 (GetPreference(_game, PreferenceConstants::WINDOW_SIZEX, pref)
+                      ? FromString<LONG>(pref)
+                      : 0);
+  window.bottom = window.top +
+                  (GetPreference(_game, PreferenceConstants::WINDOW_SIZEY, pref)
+                       ? FromString<LONG>(pref)
+                       : 0);
+  return GetPreference(_game, PreferenceConstants::WINDOW_RESIZE, pref) &&
          FromString<int>(pref) == 1;
 }
 
@@ -187,7 +186,7 @@ void MGDFApp::OnBackBufferChange(ID3D11Texture2D *backBuffer,
 }
 
 void MGDFApp::OnBeforeFirstDraw() {
-  _renderStart = _activeRenderEnd = _host->GetTimer()->GetCurrentTimeTicks();
+  _renderStart = _activeRenderEnd = _timer->GetCurrentTimeTicks();
 
   // wait for one sim frame to finish before
   // we start drawing
@@ -200,13 +199,12 @@ void MGDFApp::OnBeforeFirstDraw() {
 void MGDFApp::OnDraw() {
   LARGE_INTEGER currentTime = _renderFrameLimiter
                                   ? _renderFrameLimiter->LimitFps()
-                                  : _host->GetTimer()->GetCurrentTimeTicks();
+                                  : _timer->GetCurrentTimeTicks();
 
   double elapsedTime =
-      _host->GetTimer()->ConvertDifferenceToSeconds(currentTime, _renderStart);
-  _stats.AppendRenderTimes(elapsedTime,
-                           _host->GetTimer()->ConvertDifferenceToSeconds(
-                               _activeRenderEnd, _renderStart));
+      _timer->ConvertDifferenceToSeconds(currentTime, _renderStart);
+  _stats.AppendRenderTimes(elapsedTime, _timer->ConvertDifferenceToSeconds(
+                                            _activeRenderEnd, _renderStart));
   _renderStart = currentTime;
 
   _host->RTDraw(elapsedTime);
@@ -214,7 +212,7 @@ void MGDFApp::OnDraw() {
   if (_host->GetDebugImpl()->IsShown()) {
     DrawSystemOverlay();
   }
-  _activeRenderEnd = _host->GetTimer()->GetCurrentTimeTicks();
+  _activeRenderEnd = _timer->GetCurrentTimeTicks();
 }
 
 void MGDFApp::DrawSystemOverlay() {
@@ -277,7 +275,7 @@ void MGDFApp::InitBrushes() {
 
 void MGDFApp::OnUpdateSim() {
   if (!_initialized) {
-    _simulationEnd = _host->GetTimer()->GetCurrentTimeTicks();
+    _simulationEnd = _timer->GetCurrentTimeTicks();
     LOG("Creating Module...", LOG_LOW);
     _host->STCreateModule();
     _initialized = true;
@@ -288,15 +286,14 @@ void MGDFApp::OnUpdateSim() {
   _host->STUpdate(_stats.ExpectedSimTime(), _stats);
   _awaitFrame.clear();
 
-  const LARGE_INTEGER activeSimulationEnd =
-      _host->GetTimer()->GetCurrentTimeTicks();
-  _stats.AppendActiveSimTime(_host->GetTimer()->ConvertDifferenceToSeconds(
-      activeSimulationEnd, simulationEnd));
+  const LARGE_INTEGER activeSimulationEnd = _timer->GetCurrentTimeTicks();
+  _stats.AppendActiveSimTime(
+      _timer->ConvertDifferenceToSeconds(activeSimulationEnd, simulationEnd));
 
   // wait until the next frame to begin if we have any spare time left over
   _simulationEnd = _simFrameLimiter->LimitFps();
-  _stats.AppendSimTime(_host->GetTimer()->ConvertDifferenceToSeconds(
-      _simulationEnd, simulationEnd));
+  _stats.AppendSimTime(
+      _timer->ConvertDifferenceToSeconds(_simulationEnd, simulationEnd));
 }
 
 void MGDFApp::OnRawInput(RAWINPUT *input) {

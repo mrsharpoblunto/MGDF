@@ -26,7 +26,7 @@ void Test1::Setup(ISimHost *host) {
   ComArray<IGamepad> gamepads(_input->GetGamepadCount());
   _input->GetGamepads(gamepads.Data());
   _gamepad = gamepads[0];
-
+  host->GetTimer(_timer.Assign());
   StepOnce([](auto host, auto state) {
     state->AddLine("InputManager Tests");
     state->AddLine("");
@@ -41,7 +41,7 @@ void Test1::Setup(ISimHost *host) {
       })
       .Step([this](auto host, auto state) {
         if (_input->IsKeyDown(VK_UP)) {
-          _time = host->GetTimer()->GetCurrentTimeTicks();
+          _time = _timer->GetCurrentTimeTicks();
           return TestStep::NEXT;
         } else {
           return TestStep::CONT;
@@ -49,8 +49,8 @@ void Test1::Setup(ISimHost *host) {
       })
       .Step([this](auto host, auto state) {
         if (_input->IsKeyDown(VK_UP)) {
-          if (host->GetTimer()->ConvertDifferenceToSeconds(
-                  host->GetTimer()->GetCurrentTimeTicks(), _time) > 1) {
+          if (_timer->ConvertDifferenceToSeconds(_timer->GetCurrentTimeTicks(),
+                                                 _time) > 1) {
             return TestStep::PASSED;
           }
         }

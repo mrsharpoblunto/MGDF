@@ -14,7 +14,7 @@ class __declspec(uuid("E2E9FE7E-4D07-40FE-9858-8E583D73CB37"))
    Gets the name of the counter
    \return the name of the counter
    */
-  virtual const char *GetName() const = 0;
+  virtual HRESULT GetName(char *name, size_t *length) const = 0;
 
   /**
    Begin timing

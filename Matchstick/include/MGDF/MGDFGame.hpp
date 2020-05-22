@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MGDF/MGDFGame.hpp>
 #include <MGDF/MGDFString.hpp>
 #include <MGDF/MGDFVersion.hpp>
 
@@ -57,8 +58,8 @@ IGame : public IUnknown {
   \param value pointer to the value associated with the key or nullptr if there is no such key
   \return true if the preference key could be found
   */
-  virtual bool STDMETHODCALLTYPE GetPreference(const char *name,
-                                               IString **value) = 0;
+  virtual HRESULT STDMETHODCALLTYPE GetPreference(const char *name, char *value,
+                                                  size_t *size) = 0;
 
   /**
   change the value of a preference

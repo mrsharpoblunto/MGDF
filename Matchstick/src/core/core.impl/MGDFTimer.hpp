@@ -2,10 +2,12 @@
 
 #include <d3d11.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDFTimer.hpp>
 #include <deque>
 #include <list>
 #include <mutex>
+#include <set>
 #include <stack>
 #include <unordered_map>
 #include <vector>
@@ -17,32 +19,25 @@ namespace core {
 
 class Timer;
 
-class CounterBase : public IPerformanceCounter {
+class CounterBase : public ComBase<IPerformanceCounter> {
  public:
   virtual ~CounterBase();
   CounterBase(const char *name, UINT32 maxSamples, Timer &timer);
 
-  const char *GetName() const override final;
-
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid,
-                                           void **ppvObject) override final;
-  ULONG STDMETHODCALLTYPE AddRef() override final;
-  ULONG STDMETHODCALLTYPE Release() override final;
-  ULONG RefCount() const { return _references; }
+  HRESULT GetName(char *name, size_t *length) const override final;
 
   double GetAvgValue() const;
 
  protected:
   void AddSample(double sample);
   bool _started;
+  std::string _name;
+  Timer &_timer;
 
  private:
   mutable std::mutex _mutex;
   double _avg;
 
-  Timer &_timer;
-  ULONG _references;
-  std::string _name;
   UINT32 _maxSamples;
   std::deque<double> _samples;
 };
@@ -78,7 +73,7 @@ class GPUPerformanceCounter : public CounterBase {
   void SetDisjointQuery(ID3D11Query *disjoint);
 
  private:
-  std::unordered_map<ID3D11Query *, std::pair<ID3D11Query *, ID3D11Query *> >
+  std::unordered_map<ID3D11Query *, std::pair<ID3D11Query *, ID3D11Query *>>
       _pendingQueries;
   std::stack<ID3D11Query *> _beginQueries;
   std::stack<ID3D11Query *> _endQueries;
@@ -90,9 +85,9 @@ class GPUPerformanceCounter : public CounterBase {
 /**
 this class is used for timing
 */
-class Timer : public ITimer, public IRenderTimer {
+class Timer : public ComBase<ITimer> {
  public:
-  static MGDFError TryCreate(UINT32 frameSamples, Timer **timer);
+  static HRESULT TryCreate(UINT32 frameSamples, ComObject<Timer> &timer);
   virtual ~Timer(void);
 
   LARGE_INTEGER GetCurrentTimeTicks() const override final;
@@ -100,10 +95,8 @@ class Timer : public ITimer, public IRenderTimer {
   double ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
                                     LARGE_INTEGER oldTime) const override final;
 
-  MGDFError CreateCPUCounter(const char *name,
-                             IPerformanceCounter **counter) override final;
-  MGDFError CreateGPUCounter(const char *name,
-                             IPerformanceCounter **counter) override final;
+  HRESULT CreateCPUCounter(const char *name, IPerformanceCounter **counter);
+  HRESULT CreateGPUCounter(const char *name, IPerformanceCounter **counter);
 
   void InitFromDevice(ID3D11Device *device, UINT32 bufferSize);
 
@@ -112,27 +105,44 @@ class Timer : public ITimer, public IRenderTimer {
   void GetCounterInformation(TextStream &outputStream) const;
   void RemoveCounter(IPerformanceCounter *counter);
 
+  template <typename T>
+  void RemoveCounter(T *counter) {
+    if (!counter) return;
+    std::lock_guard<std::mutex> lock(_mutex);
+    RemoveInternal(counter);
+  }
+
  private:
   Timer(UINT32 maxSamples);
-  MGDFError Init();
+  HRESULT Init();
   void ResetGPUTimers();
 
+  template <typename T>
+  void RemoveInternal(T *counter) {
+    static_assert(false, "Not allowed");
+  }
+
   ID3D11Device *_device;
-  ID3D11DeviceContext *_context;
+  ComObject<ID3D11DeviceContext> _context;
   LARGE_INTEGER _freq;
 
-  std::deque<ID3D11Query *> _pendingQueries;
-  std::stack<ID3D11Query *> _disjointQueries;
-  ID3D11Query *_currentQuery;
+  std::deque<ComObject<ID3D11Query>> _pendingQueries;
+  std::stack<ComObject<ID3D11Query>> _disjointQueries;
+  ComObject<ID3D11Query> _currentQuery;
 
   UINT32 _bufferSize;
   UINT32 _maxSamples;
   bool _gpuTimersSupported;
 
   mutable std::mutex _mutex;
-  std::vector<CPUPerformanceCounter *> _cpuCounters;
-  std::vector<GPUPerformanceCounter *> _gpuCounters;
+  std::set<CPUPerformanceCounter *> _cpuCounters;
+  std::set<GPUPerformanceCounter *> _gpuCounters;
 };
 
+template <>
+void Timer::RemoveInternal(GPUPerformanceCounter *counter);
+
+template <>
+void Timer::RemoveInternal(CPUPerformanceCounter *counter);
 }  // namespace core
 }  // namespace MGDF

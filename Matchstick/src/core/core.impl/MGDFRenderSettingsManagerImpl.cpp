@@ -378,29 +378,28 @@ void RenderSettingsManager::GetPreferences(IPreferenceSet **preferences) {
   p.AddRawRef(preferences);
 }
 
-void RenderSettingsManager::LoadPreferences(IGame *game) {
+void RenderSettingsManager::LoadPreferences(ComObject<IGame> &game) {
   _ASSERTE(game);
   bool hasCurrentMode = false;
 
   bool savePreferences = false;
-  ComObject<IString> pref;
-  if (game->GetPreference(PreferenceConstants::FULL_SCREEN, pref.Assign())) {
+  std::string pref;
+  if (GetPreference(game, PreferenceConstants::FULL_SCREEN, pref)) {
     _fullScreen.FullScreen = FromString<bool>(pref);
   }
 
-  if (game->GetPreference(PreferenceConstants::FULL_SCREEN_EXCLUSIVE,
-                          pref.Assign())) {
+  if (GetPreference(game, PreferenceConstants::FULL_SCREEN_EXCLUSIVE, pref)) {
     _fullScreen.ExclusiveMode = FromString<bool>(pref);
   }
 
-  if (game->GetPreference(PreferenceConstants::VSYNC, pref.Assign())) {
+  if (GetPreference(game, PreferenceConstants::VSYNC, pref)) {
     _vsync = FromString<bool>(pref);
   }
 
-  ComObject<IString> xPref;
-  ComObject<IString> yPref;
-  if (game->GetPreference(PreferenceConstants::SCREEN_X, xPref.Assign()) &&
-      game->GetPreference(PreferenceConstants::SCREEN_Y, yPref.Assign())) {
+  std::string xPref;
+  std::string yPref;
+  if (GetPreference(game, PreferenceConstants::SCREEN_X, xPref) &&
+      GetPreference(game, PreferenceConstants::SCREEN_Y, yPref)) {
     hasCurrentMode = GetAdaptorMode(
         FromString<int>(xPref), FromString<int>(yPref), &_currentAdaptorMode);
   }
@@ -433,8 +432,7 @@ void RenderSettingsManager::LoadPreferences(IGame *game) {
   }
 
   // ensure the multisample level is not above what is supported.
-  if (game->GetPreference(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
-                          pref.Assign())) {
+  if (GetPreference(game, PreferenceConstants::RT_MULTISAMPLE_LEVEL, pref)) {
     _currentMultiSampleLevel = FromString<int>(pref);
   }
 
@@ -450,8 +448,7 @@ void RenderSettingsManager::LoadPreferences(IGame *game) {
     savePreferences = true;
   }
 
-  if (game->GetPreference(PreferenceConstants::MULTISAMPLE_LEVEL,
-                          pref.Assign())) {
+  if (GetPreference(game, PreferenceConstants::MULTISAMPLE_LEVEL, pref)) {
     _backBufferMultiSampleLevel = FromString<int>(pref);
   }
   if (_backBufferMultiSampleLevel >

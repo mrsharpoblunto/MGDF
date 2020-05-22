@@ -106,11 +106,11 @@ void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
     ss << 1 / timings.AvgSimTime;
 
   ss.Precision(4);
-  std::vector<std::pair<std::string, double>> simTimings;
-  simTimings.push_back(std::make_pair("Input CPU", timings.AvgSimInputTime));
-  simTimings.push_back(std::make_pair("Audio CPU", timings.AvgSimAudioTime));
-  simTimings.push_back(std::make_pair("Other CPU", timings.AvgActiveSimTime));
-  simTimings.push_back(std::make_pair(
+  std::set<std::pair<std::string, double>> simTimings;
+  simTimings.insert(std::make_pair("Input CPU", timings.AvgSimInputTime));
+  simTimings.insert(std::make_pair("Audio CPU", timings.AvgSimAudioTime));
+  simTimings.insert(std::make_pair("Other CPU", timings.AvgActiveSimTime));
+  simTimings.insert(std::make_pair(
       "Idle CPU", (timings.AvgSimTime - timings.AvgActiveSimTime -
                    timings.AvgSimInputTime - timings.AvgSimAudioTime)));
 

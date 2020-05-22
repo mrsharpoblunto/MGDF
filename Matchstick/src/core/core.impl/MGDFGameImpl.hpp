@@ -28,11 +28,15 @@ class Game : public ComBase<IGame> {
   INT32 GetInterfaceVersion() const override final { return _interfaceVersion; }
 
   void GetVersion(Version *version) const override final {
+    if (version == nullptr) {
+      return;
+    }
     *version = _version;
   }
 
   bool HasPreference(const char *name) const override final;
-  bool GetPreference(const char *name, IString **value) override final;
+  HRESULT GetPreference(const char *name, char *value,
+                        size_t *length) override final;
   void SetPreference(const char *name, const char *value) override final;
   void SetPreferences(IPreferenceSet *preferences) override final;
   void SavePreferences() const override final;

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -74,7 +75,7 @@ typedef std::pair<std::pair<double, std::pair<size_t, size_t>>, std::string>
 
 template <typename T, typename U>
 void KeyValueHeatMap(
-    const std::vector<T> &counters,
+    const std::set<T> &counters,
     std::function<void(const T &input, std::pair<std::string, U> &out)> map,
     TextStream &outputStream) {
   std::vector<HeatMapPair> sorted;
