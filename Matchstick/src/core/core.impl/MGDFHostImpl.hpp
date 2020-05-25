@@ -12,7 +12,6 @@
 #include "../common/MGDFListImpl.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
-#include "../common/MGDFSystemComponent.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
 #include "../storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../vfs/MGDFVirtualFileSystemComponentImpl.hpp"
@@ -87,7 +86,7 @@ class Host : public IHostImpl {
 
   UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                        UINT32 *featureLevelsSize);
-  RenderSettingsManager &GetRenderSettingsImpl();
+  ComObject<RenderSettingsManager> GetRenderSettingsImpl();
   ComObject<input::IInputManagerComponent> GetInputManagerImpl();
   ComObject<Debug> GetDebugImpl();
 
@@ -96,7 +95,7 @@ class Host : public IHostImpl {
 
   // ICommonHost methods
   ILogger *GetLogger() const override final;
-  IRenderSettingsManager *GetRenderSettings() const override final;
+  void GetRenderSettings(IRenderSettingsManager **settings) override final;
   void GetTimer(ITimer **timer) override final;
   const Version *GetMGDFVersion() const override final;
   const char *GetErrorDescription(MGDFError err) const override final;
@@ -112,7 +111,7 @@ class Host : public IHostImpl {
   MGDFError CompleteSave(const char *saveName) override final;
   void GetVFS(IVirtualFileSystem **vfs) override final;
   void GetSound(ISoundManager **sound) override final;
-  IStatisticsManager *GetStatistics() const override final;
+  void GetStatistics(IStatisticsManager **statistics) override final;
   void GetGame(IGame **game) override final;
   void GetInput(IInputManager **manager) override final;
   void ShutDown() override final;
@@ -142,7 +141,7 @@ class Host : public IHostImpl {
   void ClearWorkingDirectory();
 
   ComObject<IModule> _module;  // the currently executing module
-  ModuleFactory *_moduleFactory;
+  std::unique_ptr<ModuleFactory> _moduleFactory;
 
   storage::IStorageFactoryComponent *_storage;
   ComObject<input::IInputManagerComponent> _input;
@@ -152,8 +151,8 @@ class Host : public IHostImpl {
   ComObject<Game> _game;
   ComObject<Timer> _timer;
   StringList *_saves;
-  RenderSettingsManager _renderSettings;
-  StatisticsManager *_stats;
+  ComObject<RenderSettingsManager> _renderSettings;
+  ComObject<StatisticsManager> _stats;
 
   ID3D11Device *_d3dDevice;
   ID3D11DeviceContext *_d3dContext;

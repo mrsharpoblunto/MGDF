@@ -14,12 +14,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
   return TRUE;
 }
 
-// Function that returns if this module is compatible with the framework calling
-// it
-bool MGDF::IsCompatibleInterfaceVersion(INT32 interfaceVersion) {
-  return interfaceVersion == 1;  // compatible with v1 interface
-}
-
 // create module instances as they are requested by the framework
 HRESULT MGDF::GetModule(IModule **module) {
   ComObject<IModule> m(new MGDF::Test::Module());
@@ -40,16 +34,18 @@ UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
 }
 
 // register custom archive handlers
-bool MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
-                                    ILogger *logger,
-                                    IErrorHandler *errorHandler) {
+HRESULT MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
+                                       ILogger *logger) {
+  *length = 1;
+  if (!list) {
+    return S_OK;
+  }
+
   if (*length >= 1) {
     ComObject<IArchiveHandler> handler(
-        new MGDF::Test::FakeArchiveHandler(logger, errorHandler));
+        new MGDF::Test::FakeArchiveHandler(logger));
     handler.AddRawRef(list);
-    *length = 1;
-    return true;
+    return S_OK;
   }
-  *length = 1;
-  return false;
+  return E_FAIL;
 }

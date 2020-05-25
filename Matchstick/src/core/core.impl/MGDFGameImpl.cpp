@@ -15,11 +15,10 @@ namespace MGDF {
 namespace core {
 
 Game::Game(const std::string &uid, const std::string &name,
-           INT32 interfaceVersion, const Version &version,
+           const Version &version,
            storage::IStorageFactoryComponent *storageFactory)
     : _uid(uid),
       _name(name),
-      _interfaceVersion(interfaceVersion),
       _version(version),
       _storageFactory(storageFactory) {
   _ASSERTE(storageFactory);

@@ -4,7 +4,6 @@
 
 #include <MGDF/MGDFDebug.hpp>
 #include <MGDF/MGDFError.hpp>
-#include <MGDF/MGDFErrorHandler.hpp>
 #include <MGDF/MGDFGame.hpp>
 #include <MGDF/MGDFInputManager.hpp>
 #include <MGDF/MGDFList.hpp>
@@ -26,13 +25,20 @@ DECLARE_LIST(IStringList, const char *)
  Provides an entrypoint for a module to interact with the MGDF host. Methods in
  this interface are safe to be used from any thread
 */
-class ICommonHost : public virtual IErrorHandler {
+class ICommonHost {
  public:
+  /**
+   * This method should be invoked when a fatal error is encountered
+   * \param sender the location or component the error occurred in
+   * \param message details of the fatal error
+   */
+  virtual void FatalError(const char *sender, const char *message) = 0;
+
   /**
   get the render settings manager
   \return the render settings manager
   */
-  virtual IRenderSettingsManager *GetRenderSettings() const = 0;
+  virtual void GetRenderSettings(IRenderSettingsManager **settings) = 0;
 
   /**
   get the host logger
@@ -229,7 +235,7 @@ class ISimHost : public ICommonHost {
   get the statistics manager
   \return the statistics manager
   */
-  virtual IStatisticsManager *GetStatistics() const = 0;
+  virtual void GetStatistics(IStatisticsManager **statistics) = 0;
 
   /**
   get the input manager

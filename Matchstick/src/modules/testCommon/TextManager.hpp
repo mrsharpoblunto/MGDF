@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <dwrite_1.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 #include <memory>
 
@@ -59,6 +60,7 @@ class TESTCOMMON_DLL TextManager {
 #pragma warning(push)
 #pragma warning(disable : 4251)
   std::shared_ptr<TextManagerState> _state;
+  ComObject<IRenderSettingsManager> _settings;
 #pragma warning(pop)
   IRenderHost *_renderHost;
   ID2D1SolidColorBrush *_whiteBrush;

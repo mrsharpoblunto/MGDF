@@ -17,15 +17,13 @@ this class is the concrete implementation of the configuration interface
 */
 class Game : public ComBase<IGame> {
  public:
-  Game(const std::string &uid, const std::string &name, INT32 interfaceVersion,
-       const Version &version, storage::IStorageFactoryComponent *xmlFactory);
+  Game(const std::string &uid, const std::string &name, const Version &version,
+       storage::IStorageFactoryComponent *storageFactory);
   virtual ~Game(void) {}
 
   const char *GetUid() const override final { return _uid.c_str(); }
 
   const char *GetName() const override final { return _name.c_str(); }
-
-  INT32 GetInterfaceVersion() const override final { return _interfaceVersion; }
 
   void GetVersion(Version *version) const override final {
     if (version == nullptr) {
@@ -51,7 +49,6 @@ class Game : public ComBase<IGame> {
   std::string _uid, _name;
   std::wstring _preferencesFile;
   Version _version;
-  INT32 _interfaceVersion;
   std::map<std::string, std::string> _preferences;
 };
 

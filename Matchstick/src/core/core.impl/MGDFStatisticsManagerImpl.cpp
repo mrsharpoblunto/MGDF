@@ -34,11 +34,10 @@ StatisticsManager::~StatisticsManager() {
   }
 }
 
-MGDFError StatisticsManager::SaveStatistic(const char* name,
-                                           const char* value) {
+HRESULT StatisticsManager::SaveStatistic(const char* name, const char* value) {
   if (!name || strchr(name, ' ') != NULL || strlen(name) > 255)
-    return MGDF_ERR_INVALID_STATS_KEY;
-  if (!value || strlen(value) > 255) return MGDF_ERR_INVALID_STATS_VALUE;
+    return E_INVALIDARG;
+  if (!value || strlen(value) > 255) return E_INVALIDARG;
 
   _saveBuffer.push_back(std::tuple<time_t, std::string, std::string>(
       time(NULL) - _startTime, name, value));
@@ -46,7 +45,7 @@ MGDFError StatisticsManager::SaveStatistic(const char* name,
   if (_saveBuffer.size() >= SEND_THRESHOLD) {
     SaveAll();
   }
-  return MGDF_OK;
+  return S_OK;
 }
 
 void StatisticsManager::SaveAll() {

@@ -7,14 +7,11 @@
 #include <map>
 #include <vector>
 
-#include "../common/MGDFSystemComponent.hpp"
-
 namespace MGDF {
 namespace core {
 namespace vfs {
 
-class IVirtualFileSystemComponent : public ISystemComponent,
-                                    public ComBase<IVirtualFileSystem> {
+class IVirtualFileSystemComponent : public ComBase<IVirtualFileSystem> {
  public:
   virtual ~IVirtualFileSystemComponent() {}
   virtual bool Mount(const wchar_t *physicalDirectory) = 0;

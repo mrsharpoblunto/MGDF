@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace MGDF {
 namespace core {
 

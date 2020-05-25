@@ -138,7 +138,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MGDFMockErrorHandler.hpp" />
     <ClInclude Include="MGDFMockLogger.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

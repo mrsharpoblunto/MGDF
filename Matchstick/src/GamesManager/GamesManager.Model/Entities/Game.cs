@@ -100,7 +100,6 @@ namespace MGDF.GamesManager.Model.Entities
       Version = new Version(json.ReadRequiredValue<string>("version"));
       Name = json.ReadRequiredValue<string>("gameName");
       Uid = json.ReadRequiredValue<string>("gameUid");
-      InterfaceVersion = int.Parse(json.ReadRequiredValue<string>("interfaceVersion"));
 
       Homepage = json.ReadOptionalValue<string>("homepage");
       UpdateService = json.ReadOptionalValue<string>("updateService");

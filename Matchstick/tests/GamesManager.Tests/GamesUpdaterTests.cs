@@ -442,7 +442,6 @@ namespace MGDF.GamesManager.Tests
   ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""1.0.0.0"",
-  ""interfaceVersion"":""1"",
   ""developerUid"":""no-8"",
   ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",

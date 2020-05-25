@@ -11,8 +11,6 @@ namespace core {
 
 class Resources {
  public:
-  virtual ~Resources() {}
-
   static Resources *InstancePtr(HINSTANCE instance = nullptr) {
     static Resources r(instance);
     return &r;

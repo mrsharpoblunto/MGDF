@@ -60,6 +60,7 @@ class MGDFApp : public D3DAppFramework {
   FrameLimiter *_renderFrameLimiter;
   ComObject<IGame> _game;
   ComObject<ITimer> _timer;
+  ComObject<RenderSettingsManager> _settings;
 
   HostStats _stats;
   LARGE_INTEGER _renderStart;

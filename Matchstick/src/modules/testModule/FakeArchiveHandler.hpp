@@ -12,7 +12,7 @@ namespace Test {
 
 class FakeArchiveHandler : public ComBase<MGDF::IArchiveHandler> {
  public:
-  FakeArchiveHandler(MGDF::ILogger *logger, MGDF::IErrorHandler *errorHandler);
+  FakeArchiveHandler(MGDF::ILogger *logger);
   virtual ~FakeArchiveHandler();
   virtual bool IsArchive(const wchar_t *path) const final;
   virtual HRESULT MapArchive(const wchar_t *name, const wchar_t *archiveFile,
@@ -21,7 +21,6 @@ class FakeArchiveHandler : public ComBase<MGDF::IArchiveHandler> {
  private:
   std::vector<const wchar_t *> _fileExtensions;
   MGDF::ILogger *_logger;
-  MGDF::IErrorHandler *_errorHandler;
   std::atomic<ULONG> _references;
 
   /**

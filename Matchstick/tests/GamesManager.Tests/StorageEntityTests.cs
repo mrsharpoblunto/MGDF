@@ -24,7 +24,6 @@ namespace MGDF.GamesManager.Tests
       Assert.AreEqual("Lua Console", game.Name);
       Assert.AreEqual(new Version(0, 1), game.Version);
       Assert.AreEqual("http://www.junkship.org", game.Homepage);
-      Assert.AreEqual(1, game.InterfaceVersion);
       Assert.AreEqual("no8 interactive", game.DeveloperName);
       Assert.AreEqual(true, game.IsValid);
       Assert.AreEqual("http://games.junkship.org/gamesource.asmx", game.UpdateService);
@@ -38,7 +37,6 @@ namespace MGDF.GamesManager.Tests
   ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""0.1"",
-  ""interfaceVersion"":""1"",
   ""developerUid"":""no-8"",
   ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
@@ -63,7 +61,6 @@ namespace MGDF.GamesManager.Tests
   ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""1.0 Beta 2"",
-  ""interfaceVersion"":""1"",
   ""developerUid"":""no-8"",
   ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
@@ -81,14 +78,13 @@ namespace MGDF.GamesManager.Tests
     }
 
     [Test]
-    public void LoadInvalidGameInvalidXML()
+    public void LoadInvalidGameInvalidJSON()
     {
-      const string InvalidXml = @"{
+      const string InvalidJson = @"{
   ""gameUid"":""Console"",
   ""gameName"":""Lua Console"",
   ""description"":""A Lua command console for interacting with the MGDF system"",
   ""version"":""1.0 Beta 2"",
-  ""interfaceVersion"":""1"",
   ""developerUid"":""no-8"",
   ""developerName"":""no8 interactive"",
   ""homepage"":""http://www.junkship.org"",
@@ -97,7 +93,7 @@ namespace MGDF.GamesManager.Tests
   ""statisticsPrivacyPolicy"":""We wont use ur informationz""";
 
       MockDirectory gameDirectory = ((MockDirectory)MockFileSystem.GetDirectory(EnvironmentSettings.Current.AppDirectory + "\\game"));
-      gameDirectory.AddFile("game.json", InvalidXml);
+      gameDirectory.AddFile("game.json", InvalidJson);
       Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
       Assert.AreEqual(false, game.IsValid);
       Assert.AreEqual(1, game.ErrorCollection.Count);

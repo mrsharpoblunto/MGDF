@@ -14,9 +14,6 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MGDFMockErrorHandler.hpp">
-      <Filter>Mocks</Filter>
-    </ClInclude>
     <ClInclude Include="MGDFMockLogger.hpp">
       <Filter>Mocks</Filter>
     </ClInclude>

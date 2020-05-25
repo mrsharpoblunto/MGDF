@@ -3,7 +3,6 @@
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/vfs/MGDFVirtualFileSystemComponentImpl.hpp"
 #include "../../src/core/vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
-#include "MGDFMockErrorHandler.hpp"
 #include "MGDFMockLogger.hpp"
 
 using namespace MGDF;

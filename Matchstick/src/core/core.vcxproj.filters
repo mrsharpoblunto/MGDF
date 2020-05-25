@@ -12,9 +12,6 @@
     <ClInclude Include="..\..\include\MGDF\MGDFError.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\MGDF\MGDFErrorHandler.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\MGDF\MGDFGame.hpp">
       <Filter>interfaces</Filter>
     </ClInclude>

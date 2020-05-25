@@ -56,24 +56,21 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _sound(components.Sound),
       _vfs(components.VFS),
       _stats(new StatisticsManager()),
+      _renderSettings(new RenderSettingsManager()),
       _d3dDevice(nullptr),
       _d3dContext(nullptr),
       _d2dDevice(nullptr),
       _backBuffer(nullptr) {
   _shutdownQueued.store(false);
-  _storage->SetComponentErrorHandler(this);
-  _input->SetComponentErrorHandler(this);
-  _sound->SetComponentErrorHandler(this);
-  _vfs->SetComponentErrorHandler(this);
   _ASSERTE(game);
 }
 
 MGDFError Host::Init() {
   LOG("Creating Module factory...", LOG_LOW);
-  MGDFError error = ModuleFactory::TryCreate(&_moduleFactory);
-  if (MGDF_OK != error) return error;
+  HRESULT result = ModuleFactory::TryCreate(_moduleFactory);
+  if (FAILED(result)) return MGDF_ERR_FATAL;
 
-  HRESULT result = Timer::TryCreate(TIMER_SAMPLES, _timer);
+  result = Timer::TryCreate(TIMER_SAMPLES, _timer);
   if (FAILED(result)) return MGDF_ERR_FATAL;
 
   _debugOverlay = new Debug(_timer);
@@ -87,11 +84,15 @@ MGDFError Host::Init() {
   LOG("Registering custom archive VFS handlers...", LOG_LOW);
   UINT32 length = 0;
   _moduleFactory->GetCustomArchiveHandlers(nullptr, &length,
-                                           &Logger::Instance(), this);
+                                           &Logger::Instance());
   if (length > 0) {
     ComArray<IArchiveHandler> handlers(length);
-    _moduleFactory->GetCustomArchiveHandlers(handlers.Data(), &length,
-                                             &Logger::Instance(), this);
+    if (FAILED(_moduleFactory->GetCustomArchiveHandlers(
+            handlers.Data(), &length, &Logger::Instance()))) {
+      LOG("Failed to register custom archive VFS handlers", LOG_ERROR);
+      return MGDF_ERR_FATAL;
+    }
+
     for (auto &handler : handlers) {
       _vfs->RegisterArchiveHandler(handler);
     }
@@ -134,8 +135,6 @@ Host::~Host(void) {
     }
     delete _saves;
   }
-  delete _stats;
-  delete _moduleFactory;
 
   // TODO remove once these are COM'ified
   delete _storage;
@@ -149,7 +148,9 @@ void Host::GetDebug(IDebug **debug) {
 
 ComObject<Debug> Host::GetDebugImpl() { return _debugOverlay; }
 
-RenderSettingsManager &Host::GetRenderSettingsImpl() { return _renderSettings; }
+ComObject<RenderSettingsManager> Host::GetRenderSettingsImpl() {
+  return _renderSettings;
+}
 
 ComObject<input::IInputManagerComponent> Host::GetInputManagerImpl() {
   return _input;
@@ -168,12 +169,6 @@ void Host::STCreateModule() {
     std::string error;
     if (_moduleFactory->GetLastError(error)) {
       FATALERROR(this, error);
-    }
-
-    if (!_moduleFactory->IsCompatibleInterfaceVersion(
-            MGDFVersionInfo::MGDF_INTERFACE_VERSION)) {
-      FATALERROR(this, "Module is not compatible with MGDF Interface version "
-                           << MGDFVersionInfo::MGDF_INTERFACE_VERSION);
     }
 
     // create the module
@@ -245,16 +240,16 @@ void Host::RTBeforeDeviceReset() {
 void Host::RTSetDevices(HWND window, ID3D11Device *d3dDevice,
                         ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter) {
   LOG("Initializing render settings and GPU timers...", LOG_LOW);
-  _renderSettings.InitFromDevice(window, d3dDevice, adapter);
+  _renderSettings->InitFromDevice(window, d3dDevice, adapter);
   _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
 
-  if (_renderSettings.GetAdaptorModeCount() == 0) {
+  if (_renderSettings->GetAdaptorModeCount() == 0) {
     FATALERROR(this, "No compatible adaptor modes found");
   }
 
   if (!_d3dDevice) {
     LOG("Loading Render settings...", LOG_LOW);
-    _renderSettings.LoadPreferences(_game.As<IGame>());
+    _renderSettings->LoadPreferences(_game.As<IGame>());
   }
 
   _d2dDevice = d2dDevice;
@@ -318,8 +313,8 @@ ID3D11DeviceContext *Host::GetD3DImmediateContext() const {
 
 ID2D1Device *Host::GetD2DDevice() const { return _d2dDevice; }
 
-IRenderSettingsManager *Host::GetRenderSettings() const {
-  return (IRenderSettingsManager *)&_renderSettings;
+void Host::GetRenderSettings(IRenderSettingsManager **settings) {
+  _renderSettings.AddRawRef(settings);
 }
 
 bool Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
@@ -592,7 +587,9 @@ void Host::RemoveSave(const char *saveName) {
 
 void Host::GetGame(IGame **game) { _game.AddRawRef<IGame>(game); }
 
-IStatisticsManager *Host::GetStatistics() const { return _stats; }
+void Host::GetStatistics(IStatisticsManager **statistics) {
+  _stats.AddRawRef(statistics);
+}
 
 void Host::GetVFS(IVirtualFileSystem **vfs) {
   _vfs.AddRawRef<IVirtualFileSystem>(vfs);

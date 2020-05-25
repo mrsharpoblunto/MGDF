@@ -2,7 +2,6 @@
 
 #include <d3d11.h>
 
-#include <MGDF/MGDFErrorHandler.hpp>
 #include <MGDF/MGDFLogger.hpp>
 #include <MGDF/MGDFVirtualFileSystem.hpp>
 
@@ -117,20 +116,6 @@ IModule : public IUnknown {
 };
 
 /**
-Allows a module to assert if the host trying to run the module is compatible
-with the module. Note that the IModule interface can incrementally add
-new functionality via new subclasses without incrementing this interface
-version - incrementing this will only be done for non-backwards compatible
-changes. This function is required and will be called by the host before
-calling any other functions. If this function returns false, the host will
-abort.
-\param Interface the MGDF interface version supported by the host
-\return true if the module supports the interface provided by the host
-*/
-extern "C" __declspec(dllexport) bool IsCompatibleInterfaceVersion(
-    INT32 Interface);
-
-/**
 allows a module to tell the host what D3D11 feature level to try and use when
 creating the D3D device. This function is required and will be called by the
 host immediately before the D3D device is created.
@@ -143,8 +128,8 @@ extern "C" __declspec(dllexport) UINT32
 
 /**
 Factory function which returns an instance of the module to the host. This
-function is required and will be called if the IsCompatibleInterfaceVersion
-function returns true. If the host version supports newer versions of the IModule
+function is required.
+If the host version supports newer versions of the IModule
 interface it will progressively try to use those by running QueryInterface
 checks on the provided instance
 \param module pointer to an instance of the module interface
@@ -162,8 +147,8 @@ list of all custom handler factories provided by the module
 \return returns true if the supplied list is large enough to contain all the items
 in the list, otherwise returns false and sets the required size in the length parameter
 */
-extern "C" __declspec(dllexport) bool GetCustomArchiveHandlers(
-    IArchiveHandler **list, UINT32 *length, ILogger *logger,
-    IErrorHandler *errorHandler);
+extern "C" __declspec(dllexport) HRESULT
+    GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
+                             ILogger *logger);
 
 }  // namespace MGDF

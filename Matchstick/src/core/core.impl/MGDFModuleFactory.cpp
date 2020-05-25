@@ -34,24 +34,24 @@ ModuleFactory::~ModuleFactory() {
 #endif
 }
 
-MGDFError ModuleFactory::TryCreate(ModuleFactory **factory) {
-  *factory = new ModuleFactory();
-  MGDFError error = (*factory)->Init();
-  if (MGDF_OK != error) {
-    delete *factory;
-    *factory = nullptr;
+HRESULT ModuleFactory::TryCreate(std::unique_ptr<ModuleFactory> &factory) {
+  factory.reset();
+  std::unique_ptr<ModuleFactory> f(new ModuleFactory());
+  auto result = f->Init();
+  if (FAILED(result)) {
+    return result;
   }
-  return error;
+  factory.swap(f);
+  return S_OK;
 }
 
 ModuleFactory::ModuleFactory()
     : _moduleInstance(nullptr),
       _getCustomArchiveHandlers(nullptr),
       _getModule(nullptr),
-      _isCompatibleInterfaceVersion(nullptr),
       _getCompatibleFeatureLevels(nullptr) {}
 
-MGDFError ModuleFactory::Init() {
+HRESULT ModuleFactory::Init() {
   path globalModule(Resources::Instance().Module());
   if (exists(globalModule)) {
     LOG("Loading Module.dll", LOG_LOW);
@@ -66,18 +66,7 @@ MGDFError ModuleFactory::Init() {
         LOG("Loaded GetModule from Module.dll", LOG_LOW);
       } else {
         LOG("Module has no exported GetModule function", LOG_ERROR);
-        return MGDF_ERR_FATAL;
-      }
-
-      _isCompatibleInterfaceVersion =
-          (IsCompatibleInterfaceVersionPtr)GetProcAddress(
-              _moduleInstance, "IsCompatibleInterfaceVersion");
-      if (_isCompatibleInterfaceVersion != nullptr) {
-        LOG("Loaded IsCompatibleInterfaceVersion from Module.dll", LOG_LOW);
-      } else {
-        LOG("Module has no exported IsCompatibleInterfaceVersion function",
-            LOG_ERROR);
-        return MGDF_ERR_FATAL;
+        return E_FAIL;
       }
 
       // optional exported functions
@@ -100,7 +89,7 @@ MGDFError ModuleFactory::Init() {
             LOG_LOW);
       }
 
-      return MGDF_OK;
+      return S_OK;
     } else {
       DWORD errorCode = ::GetLastError();
       LOG("Failed to load Module.dll " << errorCode, LOG_ERROR);
@@ -153,16 +142,17 @@ MGDFError ModuleFactory::Init() {
       }
     }
   }
-  return MGDF_ERR_FATAL;
+  return E_FAIL;
 }
 
-bool ModuleFactory::GetCustomArchiveHandlers(
-    IArchiveHandler **list, UINT32 *length, ILogger *logger,
-    IErrorHandler *errorHandler) const {
+HRESULT ModuleFactory::GetCustomArchiveHandlers(IArchiveHandler **list,
+                                                UINT32 *length,
+                                                ILogger *logger) const {
   if (_getCustomArchiveHandlers != nullptr) {
-    return _getCustomArchiveHandlers(list, length, logger, errorHandler);
+    return _getCustomArchiveHandlers(list, length, logger);
   } else {
-    return true;
+    *length = 0;
+    return S_OK;
   }
 }
 
@@ -171,14 +161,6 @@ HRESULT ModuleFactory::GetModule(ComObject<IModule> &module) const {
     return _getModule(module.Assign());
   } else {
     return E_FAIL;
-  }
-}
-
-bool ModuleFactory::IsCompatibleInterfaceVersion(INT32 interfaceVersion) const {
-  if (_isCompatibleInterfaceVersion != nullptr) {
-    return _isCompatibleInterfaceVersion(interfaceVersion);
-  } else {
-    return false;
   }
 }
 

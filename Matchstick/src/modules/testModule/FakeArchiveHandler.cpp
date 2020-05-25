@@ -14,9 +14,8 @@ namespace Test {
 
 static const wchar_t *FAKE_EXT = L".fakearchive";
 
-FakeArchiveHandler::FakeArchiveHandler(MGDF::ILogger *logger,
-                                       MGDF::IErrorHandler *errorHandler)
-    : _logger(logger), _errorHandler(errorHandler), _references(1UL) {
+FakeArchiveHandler::FakeArchiveHandler(MGDF::ILogger *logger)
+    : _logger(logger), _references(1UL) {
   _fileExtensions.push_back(FAKE_EXT);
 }
 

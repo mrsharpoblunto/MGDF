@@ -131,11 +131,13 @@ void Test3::Setup(ISimHost *host) {
           return TestStep::FAILED;
         } else {
           if (_input->IsKeyPress('F')) {
+            ComObject<IRenderSettingsManager> settings;
+            host->GetRenderSettings(settings.Assign());
             MGDF::FullScreenDesc desc;
-            host->GetRenderSettings()->GetFullscreen(&desc);
+            settings->GetFullscreen(&desc);
             desc.FullScreen = !desc.FullScreen;
-            host->GetRenderSettings()->SetFullscreen(&desc);
-            host->GetRenderSettings()->ApplySettings();
+            settings->SetFullscreen(&desc);
+            settings->ApplySettings();
           }
           return TestStep::CONT;
         }

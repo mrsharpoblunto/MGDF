@@ -11,12 +11,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
   return TRUE;
 }
 
-// Function that returns if this module is compatible with the framework calling
-// it
-bool MGDF::IsCompatibleInterfaceVersion(INT32 interfaceVersion) {
-  return interfaceVersion == 1;  // compatible with v1 interface
-}
-
 // specify to the framework what kind of d3d device features we want/require
 UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                         UINT32 *featureLevelsSize) {
@@ -48,9 +42,8 @@ HRESULT MGDF::GetModule(MGDF::IModule **module) {
 }
 
 // register custom archive handlers
-bool MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
-                                    ILogger *logger,
-                                    IErrorHandler *errorHandler) {
+HRESULT MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
+                                       ILogger *logger) {
   *length = 0;
-  return true;
+  return S_OK;
 }

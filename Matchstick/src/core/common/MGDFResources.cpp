@@ -7,6 +7,7 @@
 
 #include <MGDF/ComObject.hpp>
 #include <filesystem>
+#include <sstream>
 
 #include "MGDFVersionInfo.hpp"
 

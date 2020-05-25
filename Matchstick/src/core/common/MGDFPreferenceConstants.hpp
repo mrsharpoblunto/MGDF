@@ -2,6 +2,7 @@
 
 #include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
+#include <sstream>
 
 #include "MGDFResources.hpp"
 

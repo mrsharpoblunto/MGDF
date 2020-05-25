@@ -5,35 +5,30 @@
 namespace MGDF {
 namespace core {
 
-typedef bool (*GetCustomArchiveHandlersPtr)(IArchiveHandler **list,
-                                            UINT32 *length, ILogger *logger,
-                                            IErrorHandler *errorHandler);
+typedef HRESULT (*GetCustomArchiveHandlersPtr)(IArchiveHandler **list,
+                                               UINT32 *length, ILogger *logger);
 typedef HRESULT (*GetModulePtr)(IModule **);
-typedef bool (*IsCompatibleInterfaceVersionPtr)(int);
 typedef UINT32 (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *, UINT32 *);
 
 class ModuleFactory {
  public:
   virtual ~ModuleFactory();
-  static MGDFError TryCreate(ModuleFactory **);
+  static HRESULT TryCreate(std::unique_ptr<ModuleFactory> &);
 
-  bool GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
-                                ILogger *logger,
-                                IErrorHandler *errorHandler) const;
+  HRESULT GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
+                                   ILogger *logger) const;
   HRESULT GetModule(ComObject<IModule> &module) const;
-  bool IsCompatibleInterfaceVersion(int) const;
   UINT32 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                     UINT32 *levelSize) const;
   bool GetLastError(std::string &error) const;
 
  private:
   ModuleFactory();
-  MGDFError Init();
+  HRESULT Init();
 
   HINSTANCE _moduleInstance;
   GetCustomArchiveHandlersPtr _getCustomArchiveHandlers;
   GetModulePtr _getModule;
-  IsCompatibleInterfaceVersionPtr _isCompatibleInterfaceVersion;
   GetCompatibleFeatureLevelsPtr _getCompatibleFeatureLevels;
   std::string _lastError;
 };

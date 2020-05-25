@@ -20,10 +20,6 @@ std::string JsonCppGameStorageHandler::GetGameName() const { return _gameName; }
 
 std::string JsonCppGameStorageHandler::GetGameUid() const { return _gameUid; }
 
-INT32 JsonCppGameStorageHandler::GetInterfaceVersion() const {
-  return _interfaceVersion;
-}
-
 void JsonCppGameStorageHandler::GetVersion(Version &version) const {
   version = _version;
 }
@@ -49,7 +45,6 @@ MGDFError JsonCppGameStorageHandler::Load(const std::wstring &filename) {
     _gameName = GetJsonValue(root, "gameName");
     _gameUid = GetJsonValue(root, "gameUid");
     _version = VersionHelper::Create(GetJsonValue(root, "version"));
-    _interfaceVersion = atoi(GetJsonValue(root, "interfaceVersion").c_str());
     Json::Value preferences = root["preferences"];
     if (!preferences.isNull()) {
       for (const auto &key : preferences.getMemberNames()) {

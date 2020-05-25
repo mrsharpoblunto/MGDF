@@ -41,7 +41,6 @@ namespace MGDF.GamesManager.Tests
 
       Assert.AreEqual("http://games.junkship.org/gamesource.asmx", install.Game.UpdateService);
       Assert.AreEqual("http://www.junkship.org", install.Game.Homepage);
-      Assert.AreEqual(1, install.Game.InterfaceVersion);
       Assert.IsFalse(install.IsUpdate);
       Assert.AreEqual("Lua Console", install.Game.Name);
       Assert.AreEqual("We wont use ur informationz", install.Game.StatisticsPrivacyPolicy);

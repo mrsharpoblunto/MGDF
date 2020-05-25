@@ -120,12 +120,6 @@ MGDFError HostBuilder::TryCreateHost(Host **host) {
     return MGDF_ERR_FATAL;
   }
 
-  if (MGDFVersionInfo::MGDF_INTERFACE_VERSION != game->GetInterfaceVersion()) {
-    LOG("FATAL ERROR: Unsupported MGDF Interface version", LOG_ERROR);
-    UnregisterComponents(components);
-    return MGDF_ERR_FATAL;
-  }
-
   LOG("Creating host...", LOG_LOW);
   result = Host::TryCreate(game, components, host);
   if (MGDF_OK != result) {

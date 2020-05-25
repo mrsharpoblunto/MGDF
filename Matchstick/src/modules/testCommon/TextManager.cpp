@@ -71,7 +71,9 @@ TextManager::TextManager(IRenderHost *renderHost)
       _d2dContext(nullptr),
       _dWriteFactory(nullptr),
       _textFormat(nullptr),
-      _immediateContext(nullptr) {}
+      _immediateContext(nullptr) {
+  _renderHost->GetRenderSettings(_settings.Assign());
+}
 
 void TextManager::SetState(std::shared_ptr<TextManagerState> state) {
   _state = state;
@@ -126,11 +128,10 @@ void TextManager::DrawText() {
 
   if (_state) {
     INT32 starty;
-    if (_state.get()->_lines.size() * 25 <
-        _renderHost->GetRenderSettings()->GetScreenY()) {
+    if (_state.get()->_lines.size() * 25 < _settings->GetScreenY()) {
       starty = (static_cast<UINT32>(_state.get()->_lines.size()) * 25) - 25;
     } else {
-      starty = _renderHost->GetRenderSettings()->GetScreenY() - 25;
+      starty = _settings->GetScreenY() - 25;
     }
 
     _d2dContext->BeginDraw();
@@ -142,11 +143,8 @@ void TextManager::DrawText() {
       IDWriteTextLayout *textLayout;
       if (FAILED(_dWriteFactory->CreateTextLayout(
               content.c_str(), static_cast<UINT32>(content.size()), _textFormat,
-              static_cast<float>(
-                  _renderHost->GetRenderSettings()->GetScreenX()),
-              static_cast<float>(
-                  _renderHost->GetRenderSettings()->GetScreenY()),
-              &textLayout))) {
+              static_cast<float>(_settings->GetScreenX()),
+              static_cast<float>(_settings->GetScreenY()), &textLayout))) {
         FATALERROR(_renderHost, "Unable to create text layout");
       }
 
@@ -164,18 +162,12 @@ void TextManager::DrawText() {
 
         if (FAILED(_dWriteFactory->CreateTextLayout(
                 statusText.c_str(), static_cast<UINT32>(statusText.size()),
-                _textFormat,
-                static_cast<float>(
-                    _renderHost->GetRenderSettings()->GetScreenX()),
-                static_cast<float>(
-                    _renderHost->GetRenderSettings()->GetScreenY()),
-                &textLayout))) {
+                _textFormat, static_cast<float>(_settings->GetScreenX()),
+                static_cast<float>(_settings->GetScreenY()), &textLayout))) {
           FATALERROR(_renderHost, "Unable to create text layout");
         }
 
-        origin.x =
-            static_cast<float>(_renderHost->GetRenderSettings()->GetScreenX()) -
-            150.0f;
+        origin.x = static_cast<float>(_settings->GetScreenX()) - 150.0f;
         origin.y = static_cast<float>(starty);
 
         _d2dContext->DrawTextLayout(

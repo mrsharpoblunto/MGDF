@@ -26,12 +26,6 @@ IGame : public IUnknown {
   virtual const char *STDMETHODCALLTYPE GetName() const = 0;
 
   /**
-  get the interface version the current game supports
-  \return the interface version the current game supports
-  */
-  virtual INT32 STDMETHODCALLTYPE GetInterfaceVersion() const = 0;
-
-  /**
   get the uid of the current game running
   \return the name of the current game running
   */

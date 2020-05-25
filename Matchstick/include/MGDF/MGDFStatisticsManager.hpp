@@ -9,7 +9,8 @@ namespace MGDF {
  If the game has a statistics service configured, the stats log will be uploaded
  by the GamesManager at the end of a play session.
  */
-class IStatisticsManager {
+MIDL_INTERFACE("F809B9CB-AE6B-43EE-8ACC-40BCB11014E1")
+IStatisticsManager : public IUnknown {
  public:
   /**
    Logs a statistic as a key/value pair
@@ -20,7 +21,7 @@ class IStatisticsManager {
    more than 255 characters in length, MGDF_ERR_INVALID_STATS_VALUE if the
    statistic value is more than 255 characters in length
    */
-  virtual MGDFError SaveStatistic(const char *name, const char *value) = 0;
+  virtual HRESULT SaveStatistic(const char *name, const char *value) = 0;
 };
 
 }  // namespace MGDF

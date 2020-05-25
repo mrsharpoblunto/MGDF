@@ -28,8 +28,8 @@ MGDFError GameBuilder::LoadGame(storage::IStorageFactoryComponent *storage,
 
   Version version;
   handler->GetVersion(version);
-  game = new Game(handler->GetGameUid(), handler->GetGameName(),
-                  handler->GetInterfaceVersion(), version, storage);
+  game =
+      new Game(handler->GetGameUid(), handler->GetGameName(), version, storage);
 
   // load the defaults from the core settings (REQUIRED)
   MGDFError err =

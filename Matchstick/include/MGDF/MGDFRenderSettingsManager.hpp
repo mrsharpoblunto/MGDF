@@ -25,7 +25,8 @@ struct FullScreenDesc {
 /**
 Provides an interface for getting and setting the hosts various display settings
 */
-class IRenderSettingsManager {
+MIDL_INTERFACE("BAF10DDF-1874-4299-A497-1F62C0691C8B")
+IRenderSettingsManager : public IUnknown {
  public:
   /**
   gets the current vsync setting
@@ -43,7 +44,7 @@ class IRenderSettingsManager {
   gets the current fullscreen setting
   \param fullscreen a description of the current fullscreen settings
   */
-  virtual void GetFullscreen(FullScreenDesc *fullscreen) const = 0;
+  virtual void GetFullscreen(FullScreenDesc * fullscreen) const = 0;
 
   /**
   sets the current fullscreen setting
@@ -67,7 +68,7 @@ class IRenderSettingsManager {
   \return true if a supported multisample level is present at the given
   index, false otherwise.
   */
-  virtual bool GetMultiSampleLevel(UINT32 index, UINT32 *level) const = 0;
+  virtual bool GetMultiSampleLevel(UINT32 index, UINT32 * level) const = 0;
 
   /**
   set the display adaptors current multisample level, this changed setting is
@@ -99,7 +100,7 @@ class IRenderSettingsManager {
   maximum multisampling quality setting for the current multisample level
   \return the current desired multisample level for off screen render targets
   */
-  virtual UINT32 GetCurrentMultiSampleLevel(UINT32 *quality) const = 0;
+  virtual UINT32 GetCurrentMultiSampleLevel(UINT32 * quality) const = 0;
 
   /**
   get the number of supported adaptor modes
@@ -113,7 +114,7 @@ class IRenderSettingsManager {
   adaptor mode at the given index \return true if an adaptor mode exists at a
   particular index
   */
-  virtual bool GetAdaptorMode(UINT32 index, AdaptorMode *mode) const = 0;
+  virtual bool GetAdaptorMode(UINT32 index, AdaptorMode * mode) const = 0;
 
   /**
   get the adaptor mode (if any) matching the requested width and height, if no
@@ -122,14 +123,14 @@ class IRenderSettingsManager {
   mode will be set to the matching adaptor mode found (if any) \return true if a
   supported adaptor mode exists for the given width and height
   */
-  virtual bool GetAdaptorMode(UINT32 width, UINT32 height,
-                              AdaptorMode *mode) const = 0;
+  virtual bool GetAdaptorMode(UINT32 width, UINT32 height, AdaptorMode * mode)
+      const = 0;
 
   /**
   get the current adaptor mode being used when running in fullscreen mode
   \param mode will be set to the current adaptor mode being used.
   */
-  virtual void GetCurrentAdaptorMode(AdaptorMode *mode) const = 0;
+  virtual void GetCurrentAdaptorMode(AdaptorMode * mode) const = 0;
 
   /**
   sets the current display adaptor mode when running in fullscreen mode, this
@@ -178,8 +179,8 @@ class IRenderSettingsManager {
   \param preferences a pointer to a preference set that can be passed into the
   IGame setPreferences method to set the preferences
   */
-  virtual void STDMETHODCALLTYPE
-  GetPreferences(IPreferenceSet **preferences) = 0;
+  virtual void STDMETHODCALLTYPE GetPreferences(IPreferenceSet *
+                                                *preferences) = 0;
 };
 
 }  // namespace MGDF

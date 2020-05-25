@@ -26,6 +26,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
       _context(nullptr),
       _textStream(nullptr),
       _textLayout(nullptr),
+      _settings(host->GetRenderSettingsImpl()),
       _renderFrameLimiter(nullptr) {
   _ASSERTE(host);
 
@@ -120,12 +121,10 @@ void MGDFApp::OnInitDevices(HWND window, ID3D11Device *d3dDevice,
 }
 
 bool MGDFApp::IsBackBufferChangePending() {
-  return _host->GetRenderSettingsImpl().IsBackBufferChangePending();
+  return _settings->IsBackBufferChangePending();
 }
 
-bool MGDFApp::VSyncEnabled() const {
-  return _host->GetRenderSettingsImpl().GetVSync();
-}
+bool MGDFApp::VSyncEnabled() const { return _settings->GetVSync(); }
 
 bool MGDFApp::OnInitWindow(RECT &window) {
   std::string pref;
@@ -151,15 +150,14 @@ bool MGDFApp::OnInitWindow(RECT &window) {
 FullScreenDesc MGDFApp::OnResetSwapChain(
     DXGI_SWAP_CHAIN_DESC1 &swapDesc,
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT &windowSize) {
-  _host->GetRenderSettingsImpl().OnResetSwapChain(swapDesc, fullscreenDesc,
-                                                  windowSize);
+  _settings->OnResetSwapChain(swapDesc, fullscreenDesc, windowSize);
   FullScreenDesc desc;
-  _host->GetRenderSettingsImpl().GetFullscreen(&desc);
+  _settings->GetFullscreen(&desc);
   return desc;
 }
 
 void MGDFApp::OnResize(UINT32 width, UINT32 height) {
-  _host->GetRenderSettingsImpl().OnResize(width, height);
+  _settings->OnResize(width, height);
 }
 
 void MGDFApp::OnBeforeDeviceReset() {
@@ -226,10 +224,8 @@ void MGDFApp::DrawSystemOverlay() {
   auto prevLayout = _textLayout;
 
   if (FAILED(_textStream->GenerateLayout(
-          _context, _textFormat,
-          static_cast<float>(_host->GetRenderSettingsImpl().GetScreenX()),
-          static_cast<float>(_host->GetRenderSettingsImpl().GetScreenY()),
-          &_textLayout))) {
+          _context, _textFormat, static_cast<float>(_settings->GetScreenX()),
+          static_cast<float>(_settings->GetScreenY()), &_textLayout))) {
     FATALERROR(_host, "Unable to create text layout");
   }
 

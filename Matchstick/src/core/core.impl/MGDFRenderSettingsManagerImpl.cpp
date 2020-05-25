@@ -120,7 +120,7 @@ void RenderSettingsManager::InitFromDevice(HWND window, ID3D11Device *d3dDevice,
   SAFE_RELEASE(output);
 }
 
-RenderSettingsManager::~RenderSettingsManager(void) { Cleanup(); }
+RenderSettingsManager::~RenderSettingsManager(void) {}
 
 UINT32 RenderSettingsManager::GetMultiSampleLevelCount() const {
   std::lock_guard<std::mutex> lock(_mutex);

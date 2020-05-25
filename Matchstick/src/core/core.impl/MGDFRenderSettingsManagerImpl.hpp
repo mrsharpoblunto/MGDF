@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <d3d11_1.h>
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.hpp>
 #include <MGDF/MGDFRenderSettingsManager.hpp>
 #include <atomic>
@@ -18,7 +19,7 @@ namespace core {
 
 // this class is accessed by the sim and render threads, so setting values and
 // doing device resets must be synced up with a mutex
-class RenderSettingsManager : public IRenderSettingsManager {
+class RenderSettingsManager : public ComBase<IRenderSettingsManager> {
  public:
   RenderSettingsManager();
   virtual ~RenderSettingsManager();
