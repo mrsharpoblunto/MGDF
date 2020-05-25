@@ -83,7 +83,7 @@ class Host : public IRenderHost, public ISimHost {
   // ILogger methods
   void SetLoggingLevel(LogLevel level) override final;
   LogLevel GetLoggingLevel() const override final;
-  void Add(const char *sender, const char *message,
+  void Log(const char *sender, const char *message,
            LogLevel level) override final;
 
   // ICommonHost methods

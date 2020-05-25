@@ -33,7 +33,7 @@ ILogger : public IUnknown {
    \param level the verbosity filter for writing out the message. The message
    will be written if this is less than or equal to the current logging level
    */
-  virtual void Add(const char *sender, const char *message, LogLevel level) = 0;
+  virtual void Log(const char *sender, const char *message, LogLevel level) = 0;
 };
 
 }  // namespace MGDF

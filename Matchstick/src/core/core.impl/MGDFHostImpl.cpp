@@ -378,7 +378,7 @@ void Host::FatalError(const char *sender, const char *message) {
   if (sender && message) {
     std::ostringstream ss;
     ss << "FATAL ERROR: " << message;
-    Logger::Instance().Add(sender, ss.str().c_str(), LOG_ERROR);
+    Logger::Instance().Log(sender, ss.str().c_str(), LOG_ERROR);
   }
   LOG("Notified of fatal error, telling module to panic", LOG_ERROR);
   Logger::Instance().Flush();
@@ -402,8 +402,8 @@ void Host::SetLoggingLevel(LogLevel level) {
 LogLevel Host::GetLoggingLevel() const {
   return Logger::Instance().GetLoggingLevel();
 }
-void Host::Add(const char *sender, const char *message, LogLevel level) {
-  Logger::Instance().Add(sender, message, level);
+void Host::Log(const char *sender, const char *message, LogLevel level) {
+  Logger::Instance().Log(sender, message, level);
 }
 
 void Host::GetTimer(ITimer **timer) { _timer.AddRawRef(timer); }

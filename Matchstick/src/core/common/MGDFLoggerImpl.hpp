@@ -23,7 +23,7 @@ class Logger {
 
   void SetLoggingLevel(LogLevel level);
   LogLevel GetLoggingLevel() const;
-  void Add(const char *sender, const char *message, LogLevel level);
+  void Log(const char *sender, const char *message, LogLevel level);
 
   void MoveOutputFile();
   void Flush();
@@ -51,7 +51,7 @@ class Logger {
       ss << __FILE__ << ':' << __LINE__;                                     \
       std::ostringstream ms;                                                 \
       ms << msg;                                                             \
-      MGDF::core::Logger::Instance().Add(ss.str().c_str(), ms.str().c_str(), \
+      MGDF::core::Logger::Instance().Log(ss.str().c_str(), ms.str().c_str(), \
                                          lvl);                               \
     }                                                                        \
   }

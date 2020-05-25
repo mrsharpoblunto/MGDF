@@ -12,7 +12,7 @@ class MockLogger : public ILogger {
   virtual ~MockLogger() {}
   void SetLoggingLevel(LogLevel level) override {}
   LogLevel GetLoggingLevel() const override { return LOG_ERROR; }
-  void Add(const char *sender, const char *message, LogLevel level) override {}
+  void Log(const char *sender, const char *message, LogLevel level) override {}
 };
 
 }  // namespace tests

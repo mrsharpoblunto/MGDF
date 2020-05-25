@@ -18,7 +18,7 @@ namespace core {
 
 #define LOG_BUFFER_SIZE 10
 
-void Logger::Add(const char *sender, const char *message, LogLevel level) {
+void Logger::Log(const char *sender, const char *message, LogLevel level) {
   _ASSERTE(sender);
   _ASSERTE(message);
 
