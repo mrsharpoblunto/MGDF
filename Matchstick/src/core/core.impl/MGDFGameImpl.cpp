@@ -16,7 +16,7 @@ namespace core {
 
 Game::Game(const std::string &uid, const std::string &name,
            const Version &version,
-           storage::IStorageFactoryComponent *storageFactory)
+           std::shared_ptr<storage::IStorageFactoryComponent> &storageFactory)
     : _uid(uid),
       _name(name),
       _version(version),

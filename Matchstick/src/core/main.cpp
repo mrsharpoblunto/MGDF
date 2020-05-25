@@ -64,21 +64,23 @@ INT32 WINAPI WinMain(_In_ HINSTANCE hInstance,
 
   LOG("starting up...", LOG_LOW);
 
-  // create the host object and related components
-  Host *host;
-  if (MGDF_OK != HostBuilder::TryCreateHost(&host)) {
-    LOG("failed to start up", LOG_ERROR);
-    return -1;
+  {
+    // create the host object and related components
+    ComObject<Host> host;
+    if (MGDF_OK != HostBuilder::TryCreateHost(host)) {
+      LOG("failed to start up", LOG_ERROR);
+      return -1;
+    }
+
+    // create the application instance and initialise the window
+    host->SetFatalErrorHandler(FatalErrorCallBack);
+    _application = new MGDFApp(host, hInstance);
+    _application->InitWindow("MGDF", MGDFAppWndProc);
+    _application->Run();
+
+    // dispose of the  and related components
+    HostBuilder::DisposeHost(host);
   }
-
-  // create the application instance and initialise the window
-  host->SetFatalErrorHandler(FatalErrorCallBack);
-  _application = new MGDFApp(host, hInstance);
-  _application->InitWindow("MGDF", MGDFAppWndProc);
-  _application->Run();
-
-  // dispose of the  and related components
-  HostBuilder::DisposeHost(host);
 
   LOG("shutting down...", LOG_LOW);
   delete _application;

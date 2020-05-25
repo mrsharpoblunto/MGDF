@@ -18,7 +18,7 @@ this class is the concrete implementation of the configuration interface
 class Game : public ComBase<IGame> {
  public:
   Game(const std::string &uid, const std::string &name, const Version &version,
-       storage::IStorageFactoryComponent *storageFactory);
+       std::shared_ptr<storage::IStorageFactoryComponent> &storageFactory);
   virtual ~Game(void) {}
 
   const char *GetUid() const override final { return _uid.c_str(); }
@@ -45,7 +45,7 @@ class Game : public ComBase<IGame> {
   void LoadPreferences(const std::map<std::string, std::string> &preferences);
 
  private:
-  storage::IStorageFactoryComponent *_storageFactory;
+  std::shared_ptr<storage::IStorageFactoryComponent> _storageFactory;
   std::string _uid, _name;
   std::wstring _preferencesFile;
   Version _version;

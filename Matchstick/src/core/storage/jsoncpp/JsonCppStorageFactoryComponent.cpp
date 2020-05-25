@@ -16,24 +16,25 @@ namespace core {
 namespace storage {
 namespace jsoncppImpl {
 
-IStorageFactoryComponent *CreateJsonCppStorageFactoryComponent() {
-  return new JsonCppStorageFactoryComponent();
+std::shared_ptr<IStorageFactoryComponent>
+CreateJsonCppStorageFactoryComponent() {
+  return std::make_shared<JsonCppStorageFactoryComponent>();
 }
 
-IGameStorageHandler *JsonCppStorageFactoryComponent::CreateGameStorageHandler()
-    const {
-  return new JsonCppGameStorageHandler();
+std::unique_ptr<IGameStorageHandler>
+JsonCppStorageFactoryComponent::CreateGameStorageHandler() const {
+  return std::make_unique<JsonCppGameStorageHandler>();
 }
 
-IGameStateStorageHandler *
+std::unique_ptr<IGameStateStorageHandler>
 JsonCppStorageFactoryComponent::CreateGameStateStorageHandler(
     const std::string &game, const Version &version) const {
-  return new JsonCppGameStateStorageHandler(game, version);
+  return std::make_unique<JsonCppGameStateStorageHandler>(game, version);
 }
 
-IPreferenceConfigStorageHandler *
+std::unique_ptr<IPreferenceConfigStorageHandler>
 JsonCppStorageFactoryComponent::CreatePreferenceConfigStorageHandler() const {
-  return new JsonCppPreferenceConfigStorageHandler();
+  return std::make_unique<JsonCppPreferenceConfigStorageHandler>();
 }
 
 }  // namespace jsoncppImpl

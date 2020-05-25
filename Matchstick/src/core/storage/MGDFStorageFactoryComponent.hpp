@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "MGDFGameStateStorageHandler.hpp"
 #include "MGDFGameStorageHandler.hpp"
 #include "MGDFPreferenceConfigStorageHandler.hpp"
@@ -11,10 +13,12 @@ namespace storage {
 class IStorageFactoryComponent {
  public:
   virtual ~IStorageFactoryComponent() {}
-  virtual IGameStorageHandler *CreateGameStorageHandler() const = 0;
-  virtual IGameStateStorageHandler *CreateGameStateStorageHandler(
-      const std::string &game, const MGDF::Version &version) const = 0;
-  virtual IPreferenceConfigStorageHandler *
+  virtual std::unique_ptr<IGameStorageHandler> CreateGameStorageHandler()
+      const = 0;
+  virtual std::unique_ptr<IGameStateStorageHandler>
+  CreateGameStateStorageHandler(const std::string &game,
+                                const MGDF::Version &version) const = 0;
+  virtual std::unique_ptr<IPreferenceConfigStorageHandler>
   CreatePreferenceConfigStorageHandler() const = 0;
 };
 

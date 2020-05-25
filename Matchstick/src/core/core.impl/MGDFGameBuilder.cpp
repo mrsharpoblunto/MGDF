@@ -21,9 +21,10 @@ namespace core {
 // loads the configuration preferences from the core preferences directory as
 // well as the particular configuration defaults, and synchs them up with any
 // customized user preferences
-MGDFError GameBuilder::LoadGame(storage::IStorageFactoryComponent *storage,
-                                storage::IGameStorageHandler *handler,
-                                ComObject<Game> &game) {
+MGDFError GameBuilder::LoadGame(
+    std::shared_ptr<storage::IStorageFactoryComponent> &storage,
+    std::unique_ptr<storage::IGameStorageHandler> &handler,
+    ComObject<Game> &game) {
   _ASSERTE(handler);
 
   Version version;

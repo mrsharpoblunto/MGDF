@@ -29,11 +29,11 @@ SUITE(StorageTests) {
 
       _storage = CreateStorageFactoryComponentImpl();
     }
-    virtual ~StorageTestFixture() { delete _storage; }
+    virtual ~StorageTestFixture() {}
 
    protected:
     ComObject<IVirtualFileSystemComponent> _vfs;
-    IStorageFactoryComponent *_storage;
+    std::shared_ptr<IStorageFactoryComponent> _storage;
   };
 
   /**
@@ -73,8 +73,7 @@ SUITE(StorageTests) {
     CHECK_EQUAL(
         1, VersionHelper::Compare(expected, VersionHelper::Create("0.0.1")));
 
-    IGameStateStorageHandler *handler =
-        _storage->CreateGameStateStorageHandler("Console", expected);
+    auto handler = _storage->CreateGameStateStorageHandler("Console", expected);
 
     ComObject<IFile> file;
     CHECK(_vfs->GetFile(L"gameState.json", file.Assign()));
@@ -89,7 +88,6 @@ SUITE(StorageTests) {
     std::wstring savePath =
         Resources::Instance().RootDir() + L"../../../tests/content/temp.json";
     handler->Save(savePath);
-    delete handler;
 
     // reload using the freshly saved file, the contents should not have changed
     handler = _storage->CreateGameStateStorageHandler("Console", expected);
@@ -100,15 +98,13 @@ SUITE(StorageTests) {
     CHECK_EQUAL(0, VersionHelper::Compare(v, expected));
 
     remove(std::filesystem::path(savePath));  // remove the temp file
-    delete handler;
   }
 
   /**
   ensure that preferences can be loaded and saved by the engine
   */
   TEST_FIXTURE(StorageTestFixture, StoragePreferencesHandlerTest) {
-    IPreferenceConfigStorageHandler *handler =
-        _storage->CreatePreferenceConfigStorageHandler();
+    auto handler = _storage->CreatePreferenceConfigStorageHandler();
 
     ComObject<IFile> file;
     CHECK(_vfs->GetFile(L"preferences.json", file.Assign()));
@@ -138,7 +134,6 @@ SUITE(StorageTests) {
       remove(std::filesystem::path(savePath));  // remove the temp file
     }
     handler->Save(savePath);
-    delete handler;
 
     // reload the file, it should be identical
     handler = _storage->CreatePreferenceConfigStorageHandler();
@@ -162,6 +157,5 @@ SUITE(StorageTests) {
     CHECK_EQUAL(9, count);
 
     remove(std::filesystem::path(savePath));  // remove the temp file
-    delete handler;
   }
 }

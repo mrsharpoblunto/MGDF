@@ -11,31 +11,22 @@
 namespace MGDF {
 namespace core {
 
-class ILoggerImpl : public ILogger {
- public:
-  virtual void Flush() = 0;
-  virtual void MoveOutputFile() = 0;
-};
-
 /**
- singleton event log, outputs to a file specified in constants.h
- uses buffered file writes to increase efficiency.
- \author gcconner
+ singleton event log - uses buffered file writes to increase efficiency.
 */
-class Logger : public ILoggerImpl {
+class Logger {
  public:
   static Logger &Instance() {
     static Logger log;
     return log;
   }
 
-  void SetLoggingLevel(LogLevel level) override final;
-  LogLevel GetLoggingLevel() const override final;
-  void Add(const char *sender, const char *message,
-           LogLevel level) override final;
+  void SetLoggingLevel(LogLevel level);
+  LogLevel GetLoggingLevel() const;
+  void Add(const char *sender, const char *message, LogLevel level);
 
-  void MoveOutputFile() override final;
-  void Flush() override final;
+  void MoveOutputFile();
+  void Flush();
 
  private:
   Logger();

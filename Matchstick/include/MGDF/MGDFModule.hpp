@@ -7,8 +7,8 @@
 
 namespace MGDF {
 
-class ISimHost;
-class IRenderHost;
+struct ISimHost;
+struct IRenderHost;
 
 /**
 An interface which game modules must implement. The MGDF host will

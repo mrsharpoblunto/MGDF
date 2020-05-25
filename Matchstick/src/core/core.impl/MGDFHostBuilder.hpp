@@ -7,14 +7,13 @@ namespace core {
 
 class HostBuilder {
  public:
-  static MGDFError TryCreateHost(Host **host);
-  static void DisposeHost(Host *);
+  static HRESULT TryCreateHost(ComObject<Host> &host);
+  static void DisposeHost(ComObject<Host> &host);
 
  private:
   static bool RegisterBaseComponents(HostComponents &);
   static bool RegisterAdditionalComponents(std::string gameUid,
                                            HostComponents &);
-  static void UnregisterComponents(HostComponents &);
   static void InitParameterManager();
   static void InitResources(std::string gameUid = "");
   static void InitLogger();

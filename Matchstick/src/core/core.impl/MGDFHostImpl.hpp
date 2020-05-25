@@ -26,34 +26,10 @@
 namespace MGDF {
 namespace core {
 
-/**
-this class represents a slightly more functional version of the host interface
-with a number of internal implementation additions, this class should be
-inherited to create mock host objects
-*/
-class IHostImpl : public IRenderHost, public ISimHost {
- public:
-  virtual ~IHostImpl(void){};
-
-  // handler callbacks
-  typedef std::function<void(void)>
-      ShutDownFunction;  // shutDown callback function signature
-  typedef std::function<void(const std::string &, const std::string &)>
-      FatalErrorFunction;  // fatal error callback function signature
-
-  void SetShutDownHandler(const ShutDownFunction handler);
-  void SetFatalErrorHandler(const FatalErrorFunction handler);
-
- protected:
-  // event callbacks
-  ShutDownFunction _shutDownHandler;
-  FatalErrorFunction _fatalErrorHandler;
-};
-
 typedef ListImpl<IStringList, const char *> StringList;
 
 struct HostComponents {
-  storage::IStorageFactoryComponent *Storage;
+  std::shared_ptr<storage::IStorageFactoryComponent> Storage;
   ComObject<input::IInputManagerComponent> Input;
   ComObject<audio::ISoundManagerComponent> Sound;
   ComObject<vfs::IVirtualFileSystemComponent> VFS;
@@ -63,12 +39,21 @@ struct HostComponents {
  reference implementation of the Host interfaces
 \author gcconner
 */
-class Host : public IHostImpl {
+class Host : public IRenderHost, public ISimHost {
  public:
-  static MGDFError TryCreate(ComObject<Game> game, HostComponents &components,
-                             Host **host);
+  static HRESULT TryCreate(ComObject<Game> game, HostComponents &components,
+                           ComObject<Host> &host);
 
   virtual ~Host(void);
+
+  // handler callbacks
+  typedef std::function<void(void)>
+      ShutDownFunction;  // shutDown callback function signature
+  typedef std::function<void(const std::string &, const std::string &)>
+      FatalErrorFunction;  // fatal error callback function signature
+
+  void SetShutDownHandler(const ShutDownFunction handler);
+  void SetFatalErrorHandler(const FatalErrorFunction handler);
 
   void STCreateModule();
   void STUpdate(double simulationTime, HostStats &stats);
@@ -90,11 +75,19 @@ class Host : public IHostImpl {
   ComObject<input::IInputManagerComponent> GetInputManagerImpl();
   ComObject<Debug> GetDebugImpl();
 
-  // error handling functions
-  void FatalError(const char *, const char *) override final;
+  // IUnknown methods
+  ULONG AddRef() override;
+  ULONG Release() override;
+  HRESULT QueryInterface(REFIID riid, void **ppvObject);
+
+  // ILogger methods
+  void SetLoggingLevel(LogLevel level) override final;
+  LogLevel GetLoggingLevel() const override final;
+  void Add(const char *sender, const char *message,
+           LogLevel level) override final;
 
   // ICommonHost methods
-  ILogger *GetLogger() const override final;
+  void FatalError(const char *, const char *) override final;
   void GetRenderSettings(IRenderSettingsManager **settings) override final;
   void GetTimer(ITimer **timer) override final;
   const Version *GetMGDFVersion() const override final;
@@ -136,14 +129,14 @@ class Host : public IHostImpl {
 
  private:
   Host(ComObject<Game> game, HostComponents &components);
-  MGDFError Init();
+  HRESULT Init();
 
   void ClearWorkingDirectory();
 
   ComObject<IModule> _module;  // the currently executing module
   std::unique_ptr<ModuleFactory> _moduleFactory;
 
-  storage::IStorageFactoryComponent *_storage;
+  std::shared_ptr<storage::IStorageFactoryComponent> _storage;
   ComObject<input::IInputManagerComponent> _input;
   ComObject<audio::ISoundManagerComponent> _sound;
   ComObject<vfs::IVirtualFileSystemComponent> _vfs;
@@ -163,7 +156,12 @@ class Host : public IHostImpl {
   std::mutex _mutex;
   Version _version;
   std::atomic<bool> _shutdownQueued;
+  std::atomic<ULONG> _references;
   mutable std::atomic<bool> _showDebug;
+
+  // event callbacks
+  ShutDownFunction _shutDownHandler;
+  FatalErrorFunction _fatalErrorHandler;
 };
 
 }  // namespace core

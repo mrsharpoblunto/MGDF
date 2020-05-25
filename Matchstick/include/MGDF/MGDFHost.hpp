@@ -25,7 +25,8 @@ DECLARE_LIST(IStringList, const char *)
  Provides an entrypoint for a module to interact with the MGDF host. Methods in
  this interface are safe to be used from any thread
 */
-class ICommonHost {
+MIDL_INTERFACE("B6FDBA44-D098-4EF7-AF79-7368FB85AA6C")
+ICommonHost : public ILogger {
  public:
   /**
    * This method should be invoked when a fatal error is encountered
@@ -38,19 +39,13 @@ class ICommonHost {
   get the render settings manager
   \return the render settings manager
   */
-  virtual void GetRenderSettings(IRenderSettingsManager **settings) = 0;
-
-  /**
-  get the host logger
-  \return the host logger
-  */
-  virtual ILogger *GetLogger() const = 0;
+  virtual void GetRenderSettings(IRenderSettingsManager * *settings) = 0;
 
   /**
   get the host timer
   \param timer pointer to the host timer
   */
-  virtual void GetTimer(ITimer **timer) = 0;
+  virtual void GetTimer(ITimer * *timer) = 0;
 
   /**
   gets the current version of the framework
@@ -61,7 +56,7 @@ class ICommonHost {
   get the virtual filesystem
   \return the virtual filesystem
   */
-  virtual void GetVFS(IVirtualFileSystem **vfs) = 0;
+  virtual void GetVFS(IVirtualFileSystem * *vfs) = 0;
 
   /**
   get the direct3d device object from the host
@@ -93,7 +88,7 @@ class ICommonHost {
   get the onscreen debug overlay interface
   \param debug pointer to a IDebug
   */
-  virtual void GetDebug(IDebug **debug) = 0;
+  virtual void GetDebug(IDebug * *debug) = 0;
 
   /**
    create a performance counter for profiling CPU time taken. When no longer
@@ -111,7 +106,8 @@ class ICommonHost {
  interface inherits from ICommonHost and provides additional methods which are
  safe to be used ONLY from the render thread.
 */
-class IRenderHost : public ICommonHost {
+MIDL_INTERFACE("514EBD97-3C53-4235-90E1-7AD3B7F517BD")
+IRenderHost : public ICommonHost {
  public:
   /**
   get the direct3d device immediate context object from the host
@@ -125,7 +121,7 @@ class IRenderHost : public ICommonHost {
   \return true if the back buffer can be set as the render target for the device
   context
   */
-  virtual bool SetBackBufferRenderTarget(ID2D1DeviceContext *context) = 0;
+  virtual bool SetBackBufferRenderTarget(ID2D1DeviceContext * context) = 0;
 
   /**
   Gets the current back buffer texture. The pointer returned by this method
@@ -146,8 +142,8 @@ class IRenderHost : public ICommonHost {
   description to populate. if null is passed, this field is not populated
   */
   virtual void GetBackBufferDescription(
-      D3D11_TEXTURE2D_DESC *backBufferDesc,
-      D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const = 0;
+      D3D11_TEXTURE2D_DESC * backBufferDesc,
+      D3D11_TEXTURE2D_DESC * depthStencilBufferDesc) const = 0;
 
   /**
    * create a performance counter for profiling GPU time taken in DirectX API
@@ -165,7 +161,8 @@ Provides an entrypoint for a module to interact with the MGDF host. This
 interface inherits from ICommonHost and provides additional methods which are
 safe to be used ONLY from the sim thread.
 */
-class ISimHost : public ICommonHost {
+MIDL_INTERFACE("381AD5F1-8058-4739-992F-A5B551AA0E87")
+ISimHost : public ICommonHost {
  public:
   /**
    tells the host to provide a location on disk to save the current game data.
@@ -222,26 +219,26 @@ class ISimHost : public ICommonHost {
   get information regarding the current game and its preferences
   \param game pointer to object containing information regarding the game and its preferences
   */
-  virtual void GetGame(IGame **game) = 0;
+  virtual void GetGame(IGame * *game) = 0;
 
   /**
   get the audio manager
   \param manager the audio manager, nullptr if the audio subsystem failed to
   initialize
   */
-  virtual void GetSound(ISoundManager **manager) = 0;
+  virtual void GetSound(ISoundManager * *manager) = 0;
 
   /**
   get the statistics manager
   \return the statistics manager
   */
-  virtual void GetStatistics(IStatisticsManager **statistics) = 0;
+  virtual void GetStatistics(IStatisticsManager * *statistics) = 0;
 
   /**
   get the input manager
   \param manager pointer to an input manager
   */
-  virtual void GetInput(IInputManager **manager) = 0;
+  virtual void GetInput(IInputManager * *manager) = 0;
 
   /**
   tells the host to shut down the game immediately

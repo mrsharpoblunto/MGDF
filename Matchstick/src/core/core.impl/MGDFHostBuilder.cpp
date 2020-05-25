@@ -30,8 +30,7 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   InitResources();
   InitLogger();
 
-  storage::IStorageFactoryComponent *storageImpl =
-      storage::CreateStorageFactoryComponentImpl();
+  auto storageImpl = storage::CreateStorageFactoryComponentImpl();
   if (storageImpl != nullptr) {
     components.Storage = storageImpl;
   } else {
@@ -72,32 +71,25 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
   return true;
 }
 
-void HostBuilder::UnregisterComponents(HostComponents &components) {
-  // TODO once these are all COM objects -> remove this...
-  SAFE_DELETE(components.Storage);
-}
-
-MGDFError HostBuilder::TryCreateHost(Host **host) {
+HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   HostComponents components;
   memset(&components, 0, sizeof(HostComponents));
 
   // do the bare minimum setup required to be able to
   // load up the game configuration file
   if (!RegisterBaseComponents(components)) {
-    return MGDF_ERR_FATAL;
+    return E_FAIL;
   }
 
   // try and load the game configuration file
   _ASSERTE(components.Storage);
 
-  std::unique_ptr<storage::IGameStorageHandler> handler(
-      components.Storage->CreateGameStorageHandler());
+  auto handler(components.Storage->CreateGameStorageHandler());
   _ASSERTE(handler.get());
 
   MGDFError result = handler->Load(Resources::Instance().GameFile());
   if (MGDF_OK != result) {
-    UnregisterComponents(components);
-    return result;
+    return E_FAIL;
   }
 
   // now that we know the UID for the game, we'll set up the user resources
@@ -106,36 +98,33 @@ MGDFError HostBuilder::TryCreateHost(Host **host) {
   Logger::Instance().MoveOutputFile();
 
   ComObject<Game> game;
-  result = GameBuilder::LoadGame(components.Storage, handler.get(), game);
+  result = GameBuilder::LoadGame(components.Storage, handler, game);
   if (MGDF_OK != result) {
     LOG("FATAL ERROR: Unable to load game configuration", LOG_ERROR);
-    UnregisterComponents(components);
-    return result;
+    return E_FAIL;
   }
 
   // now that the game file loaded, initialize everything else
   // and set the log directory correctly.
   if (!RegisterAdditionalComponents(game->GetUid(), components)) {
-    UnregisterComponents(components);
-    return MGDF_ERR_FATAL;
+    return E_FAIL;
   }
 
   LOG("Creating host...", LOG_LOW);
-  result = Host::TryCreate(game, components, host);
-  if (MGDF_OK != result) {
+  HRESULT hr = Host::TryCreate(game, components, host);
+  if (FAILED(hr)) {
     LOG("FATAL ERROR: Unable to create host", LOG_ERROR);
-    UnregisterComponents(components);
-    return result;
+    return hr;
   }
 
-  return MGDF_OK;
+  return S_OK;
 }
 
-void HostBuilder::DisposeHost(Host *host) {
-  if (host != nullptr) {
+void HostBuilder::DisposeHost(ComObject<Host> &host) {
+  if (host) {
     host->STDisposeModule();
+    host = nullptr;
   }
-  SAFE_DELETE(host);
 }
 
 void HostBuilder::InitParameterManager() {

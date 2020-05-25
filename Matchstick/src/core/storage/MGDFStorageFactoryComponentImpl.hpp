@@ -6,7 +6,7 @@
 
 namespace MGDF {
 namespace core {
-namespace xml {
+namespace storage {
 
 // provide a generic name for the rest of the  so that
 // there is no explicit instansiation of a particular xml
@@ -16,6 +16,6 @@ namespace xml {
   jsoncppImpl::CreateJsonCppStorageFactoryComponent
 #endif
 
-}  // namespace xml
+}  // namespace storage
 }  // namespace core
 }  // namespace MGDF

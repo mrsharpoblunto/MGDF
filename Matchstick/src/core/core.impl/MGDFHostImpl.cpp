@@ -25,24 +25,23 @@ using namespace std::filesystem;
 namespace MGDF {
 namespace core {
 
-void IHostImpl::SetShutDownHandler(const ShutDownFunction handler) {
+void Host::SetShutDownHandler(const ShutDownFunction handler) {
   _shutDownHandler = handler;
 }
 
-void IHostImpl::SetFatalErrorHandler(const FatalErrorFunction handler) {
+void Host::SetFatalErrorHandler(const FatalErrorFunction handler) {
   _fatalErrorHandler = handler;
 }
 
-MGDFError Host::TryCreate(ComObject<Game> game, HostComponents &components,
-                          Host **host) {
-  *host = new Host(game, components);
+HRESULT Host::TryCreate(ComObject<Game> game, HostComponents &components,
+                        ComObject<Host> &host) {
+  host = new Host(game, components);
 
-  MGDFError error = (*host)->Init();
-  if (MGDF_OK != error) {
-    delete *host;
-    *host = nullptr;
+  HRESULT result = host->Init();
+  if (FAILED(result)) {
+    host = nullptr;
   }
-  return error;
+  return result;
 }
 
 Host::Host(ComObject<Game> game, HostComponents &components)
@@ -57,6 +56,7 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _vfs(components.VFS),
       _stats(new StatisticsManager()),
       _renderSettings(new RenderSettingsManager()),
+      _references(1UL),
       _d3dDevice(nullptr),
       _d3dContext(nullptr),
       _d2dDevice(nullptr),
@@ -65,13 +65,34 @@ Host::Host(ComObject<Game> game, HostComponents &components)
   _ASSERTE(game);
 }
 
-MGDFError Host::Init() {
+ULONG Host::AddRef() { return ++_references; };
+
+ULONG Host::Release() {
+  ULONG refs = --_references;
+  if (refs == 0UL) {
+    delete this;
+  };
+  return refs;
+}
+HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
+  if (!ppvObject) return E_POINTER;
+  if (riid == IID_IUnknown || riid == __uuidof(ILogger) ||
+      riid == __uuidof(ISimHost) || riid == __uuidof(IRenderHost) ||
+      riid == __uuidof(ICommonHost)) {
+    AddRef();
+    *ppvObject = this;
+    return S_OK;
+  }
+  return E_NOINTERFACE;
+};
+
+HRESULT Host::Init() {
   LOG("Creating Module factory...", LOG_LOW);
   HRESULT result = ModuleFactory::TryCreate(_moduleFactory);
-  if (FAILED(result)) return MGDF_ERR_FATAL;
+  if (FAILED(result)) return result;
 
   result = Timer::TryCreate(TIMER_SAMPLES, _timer);
-  if (FAILED(result)) return MGDF_ERR_FATAL;
+  if (FAILED(result)) return result;
 
   _debugOverlay = new Debug(_timer);
 
@@ -83,14 +104,19 @@ MGDFError Host::Init() {
   // ensure the vfs enumerates any custom defined archive formats
   LOG("Registering custom archive VFS handlers...", LOG_LOW);
   UINT32 length = 0;
-  _moduleFactory->GetCustomArchiveHandlers(nullptr, &length,
-                                           &Logger::Instance());
+  result = _moduleFactory->GetCustomArchiveHandlers(
+      nullptr, &length, reinterpret_cast<ILogger *>(this));
+  if (FAILED(result)) {
+    LOG("Failed to register custom archive VFS handlers", LOG_ERROR);
+    return result;
+  }
   if (length > 0) {
     ComArray<IArchiveHandler> handlers(length);
-    if (FAILED(_moduleFactory->GetCustomArchiveHandlers(
-            handlers.Data(), &length, &Logger::Instance()))) {
+    result = _moduleFactory->GetCustomArchiveHandlers(
+        handlers.Data(), &length, reinterpret_cast<ILogger *>(this));
+    if (FAILED(result)) {
       LOG("Failed to register custom archive VFS handlers", LOG_ERROR);
-      return MGDF_ERR_FATAL;
+      return result;
     }
 
     for (auto &handler : handlers) {
@@ -105,7 +131,7 @@ MGDFError Host::Init() {
   LOG("Mounting content directory into VFS...", LOG_LOW);
   if (!_vfs->Mount(Resources::Instance().ContentDir().c_str())) {
     LOG("Failed to mount content directory into VFS...", LOG_ERROR);
-    return MGDF_ERR_FATAL;
+    return E_FAIL;
   }
 
   // set the initial sound volumes
@@ -123,10 +149,11 @@ MGDFError Host::Init() {
   }
 
   LOG("Initialised host components successfully", LOG_LOW);
-  return MGDF_OK;
+  return S_OK;
 }
 
 Host::~Host(void) {
+  _ASSERTE(_references == 0UL);
   SAFE_RELEASE(_d3dContext);
 
   if (_saves != nullptr) {
@@ -135,9 +162,6 @@ Host::~Host(void) {
     }
     delete _saves;
   }
-
-  // TODO remove once these are COM'ified
-  delete _storage;
 
   LOG("Uninitialised host successfully", LOG_LOW);
 }
@@ -372,7 +396,15 @@ void Host::FatalError(const char *sender, const char *message) {
 
 const Version *Host::GetMGDFVersion() const { return &_version; }
 
-ILogger *Host::GetLogger() const { return &Logger::Instance(); }
+void Host::SetLoggingLevel(LogLevel level) {
+  Logger::Instance().SetLoggingLevel(level);
+}
+LogLevel Host::GetLoggingLevel() const {
+  return Logger::Instance().GetLoggingLevel();
+}
+void Host::Add(const char *sender, const char *message, LogLevel level) {
+  Logger::Instance().Add(sender, message, level);
+}
 
 void Host::GetTimer(ITimer **timer) { _timer.AddRawRef(timer); }
 

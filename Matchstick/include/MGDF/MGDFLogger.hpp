@@ -11,7 +11,8 @@ enum LogLevel { LOG_ERROR, LOG_LOW, LOG_MEDIUM, LOG_HIGH };
 /**
  Provides an interface to the MGDF logging system
  */
-class ILogger {
+MIDL_INTERFACE("B20785A5-B39E-494D-8D22-9FD0DAE1C4F9")
+ILogger : public IUnknown {
  public:
   /**
    set the current logging verbosity level
