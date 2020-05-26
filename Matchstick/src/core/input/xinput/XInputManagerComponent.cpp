@@ -32,9 +32,41 @@ XInputManagerComponent::XInputManagerComponent()
       _pendingKeyDownEventsLength(0),
       _pendingKeyPressEventsLength(0) {
   for (INT32 i = 0; i < XUSER_MAX_COUNT; ++i) {
-    _gamepads.push_back(ComObject(new XInputGamepad(i)));
+    _gamepads.push_back(ComObject(new XInputGamepad(i, true)));
+    _connectedGamepads.insert(_gamepads.back());
   }
+
+  _checkThreadRunning = true;
+  _gamepadCheckThread = std::thread([this]() {
+    std::unique_lock<std::mutex> lock(_gamepadMutex, std::defer_lock);
+    while (_checkThreadRunning) {
+      lock.lock();
+      auto disconnected = _disconnectedGamepads;
+      lock.unlock();
+
+      XINPUT_STATE state;
+      for (auto gamepad : disconnected) {
+        ZeroMemory(&state, sizeof(XINPUT_STATE));
+        DWORD result = XInputGetState(gamepad->GetID(), &state);
+        // this controller is connected again so add it back
+        // to the active list
+        if (result == ERROR_SUCCESS) {
+          lock.lock();
+          gamepad->SetIsConnected(true);
+          _disconnectedGamepads.erase(gamepad);
+          _connectedGamepads.insert(gamepad);
+          lock.unlock();
+        }
+      }
+      Sleep(500);
+    }
+  });
   ClearInput();
+}
+
+XInputManagerComponent::~XInputManagerComponent(void) {
+  _checkThreadRunning = false;
+  _gamepadCheckThread.join();
 }
 
 void XInputManagerComponent::ClearInput() {
@@ -193,8 +225,24 @@ void XInputManagerComponent::ProcessSim() {
   }
 
   // read controller states
-  for (auto gamepad : _gamepads) {
-    gamepad->GetState();
+  {
+    std::unique_lock<std::mutex> lock(_gamepadMutex);
+    auto connected = _connectedGamepads;
+    lock.unlock();
+    XINPUT_STATE state;
+    for (auto gamepad : connected) {
+      ZeroMemory(&state, sizeof(XINPUT_STATE));
+      DWORD result = XInputGetState(gamepad->GetID(), &state);
+      if (result == ERROR_SUCCESS) {
+        gamepad->UpdateState(state);
+      } else {
+        lock.lock();
+        gamepad->SetIsConnected(false);
+        _disconnectedGamepads.insert(gamepad);
+        _connectedGamepads.erase(gamepad);
+        lock.unlock();
+      }
+    }
   }
 }
 

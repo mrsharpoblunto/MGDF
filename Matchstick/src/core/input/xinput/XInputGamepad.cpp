@@ -7,38 +7,15 @@
 #pragma warning(disable : 4291)
 #endif
 
-#define FRAMES_PER_CHECK 60
-
 namespace MGDF {
 namespace core {
 namespace input {
 namespace xinput {
 
-XInputGamepad::XInputGamepad(INT32 id)
-    : _id(id),
-      _connected(false),
-      _frameIndex(0),
-      _checkIndex(FRAMES_PER_CHECK / XUSER_MAX_COUNT * id) {}
+XInputGamepad::XInputGamepad(INT32 id, bool connected)
+    : _id(id), _connected(connected) {}
 
-void XInputGamepad::GetState() {
-  // polling disconnected controllers is EXTREMELY slow, so we only check once
-  // every 60 frames to see if a disconnected controller has become connected,
-  // and we spread the checks for the 4 controllers across this 60 frame period
-  // to minimize CPU spikes.
-  if (_connected || _frameIndex == _checkIndex) {
-    ZeroMemory(&_state, sizeof(XINPUT_STATE));
-    DWORD dwResult = XInputGetState(_id, &_state);
-
-    if (dwResult == ERROR_SUCCESS) {
-      _connected = true;
-    } else {
-      _connected = false;
-    }
-  }
-
-  ++_frameIndex;
-  if (_frameIndex >= FRAMES_PER_CHECK) _frameIndex = 0;
-}
+void XInputGamepad::UpdateState(const XINPUT_STATE &state) { _state = state; }
 
 bool XInputGamepad::IsConnected() const { return _connected; }
 

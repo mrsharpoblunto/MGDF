@@ -14,7 +14,7 @@ namespace xinput {
 
 class XInputGamepad : public ComBase<IGamepad> {
  public:
-  XInputGamepad(INT32 id);
+  XInputGamepad(INT32 id, bool connected);
   virtual ~XInputGamepad(void){};
 
   bool IsConnected() const override final;
@@ -28,7 +28,9 @@ class XInputGamepad : public ComBase<IGamepad> {
   INT32 GetRightThumbX() const override final;
   INT32 GetRightThumbY() const override final;
   void SetVibrationSpeed(INT32 left, INT32 right) override final;
-  void GetState();
+  void UpdateState(const XINPUT_STATE &state);
+  INT32 GetID() const { return _id; }
+  void SetIsConnected(bool isConnected) { _connected = isConnected; }
 
  private:
   INT32 _id, _frameIndex, _checkIndex;

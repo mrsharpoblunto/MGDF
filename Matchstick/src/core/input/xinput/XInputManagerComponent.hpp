@@ -2,6 +2,8 @@
 
 #include <MGDF/MGDF.hpp>
 #include <mutex>
+#include <set>
+#include <thread>
 
 #include "../../common/MGDFListImpl.hpp"
 #include "../MGDFInputManagerComponent.hpp"
@@ -19,7 +21,7 @@ namespace xinput {
 class XInputManagerComponent : public IInputManagerComponent {
  public:
   XInputManagerComponent();
-  virtual ~XInputManagerComponent(void) {}
+  virtual ~XInputManagerComponent(void);
 
   void HandleInput(RAWINPUT *input) override final;
   void HandleInput(INT32 mouseX, INT32 mouseY) override final;
@@ -75,6 +77,11 @@ class XInputManagerComponent : public IInputManagerComponent {
   INT32 _mouseX, _mouseY;
 
   std::vector<ComObject<XInputGamepad>> _gamepads;
+  std::set<XInputGamepad *> _connectedGamepads;
+  std::set<XInputGamepad *> _disconnectedGamepads;
+  std::thread _gamepadCheckThread;
+  bool _checkThreadRunning;
+  std::mutex _gamepadMutex;
 };
 
 ComObject<IInputManagerComponent> CreateXInputManagerComponent();
