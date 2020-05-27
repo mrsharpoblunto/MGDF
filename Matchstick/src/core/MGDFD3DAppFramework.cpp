@@ -26,7 +26,6 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
       _swapChain(nullptr),
       _factory(nullptr),
       _immediateContext(nullptr),
-      _output(nullptr),
       _d2dDevice(nullptr),
       _d2dFactory(nullptr),
       _d3dDevice(nullptr),
@@ -181,14 +180,13 @@ void D3DAppFramework::InitD3D() {
   if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)&f))) {
     FATALERROR(this, "Failed to create IDXGIFactory1.");
   }
-  if (FAILED(f->QueryInterface(__uuidof(IDXGIFactory2), (void **)&_factory))) {
+  if (FAILED(f->QueryInterface<IDXGIFactory2>(&_factory))) {
     FATALERROR(this, "Failed to Query Interface for IDXGIFactory2.");
   }
   SAFE_RELEASE(f);
 
   IDXGIFactory5 *f5;
-  if (SUCCEEDED(
-          _factory->QueryInterface(__uuidof(IDXGIFactory5), (void **)&f5))) {
+  if (SUCCEEDED(_factory->QueryInterface<IDXGIFactory5>(&f5))) {
     BOOL allowTearing = FALSE;
     if (FAILED(f5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
                                        &allowTearing, sizeof(allowTearing)))) {
@@ -291,17 +289,6 @@ void D3DAppFramework::InitD3D() {
     FATALERROR(this, "Unable to create ID2D1Device");
   }
 
-  IDXGIOutput *output;
-  if (FAILED(bestAdapter->EnumOutputs(0, &output))) {
-    return;
-  }
-
-  if (FAILED(
-          output->QueryInterface(__uuidof(IDXGIOutput1), (void **)&_output))) {
-    FATALERROR(this, "Unable to query IDXGIOutput for IDXGIOutput1");
-  }
-  SAFE_RELEASE(output);
-
   OnInitDevices(_window, _d3dDevice, _d2dDevice, bestAdapter);
   SAFE_RELEASE(bestAdapter);
   SAFE_RELEASE(dxgiDevice);
@@ -328,7 +315,6 @@ void D3DAppFramework::ReinitD3D() {
 
 void D3DAppFramework::UninitD3D() {
   LOG("Cleaning up Direct3D resources...", LOG_LOW);
-  SAFE_RELEASE(_output);
   SAFE_RELEASE(_backBuffer);
   SAFE_RELEASE(_renderTargetView);
   SAFE_RELEASE(_depthStencilView);
@@ -341,8 +327,7 @@ void D3DAppFramework::UninitD3D() {
 
 #if defined(_DEBUG)
   ID3D11Debug *debug;
-  bool failed = FAILED(_d3dDevice->QueryInterface(
-      __uuidof(ID3D11Debug), reinterpret_cast<void **>(&debug)));
+  bool failed = FAILED(_d3dDevice->QueryInterface<ID3D11Debug>(&debug));
 #endif
   SAFE_RELEASE(_d3dDevice);
 #if defined(_DEBUG)
@@ -372,8 +357,6 @@ void D3DAppFramework::CreateSwapChain() {
 
   LOG("Creating swapchain...", LOG_LOW);
   SAFE_RELEASE(_swapChain)
-  // TODO don't want to use _fullscreenSwapDesc for fullscreen borderless...
-  // &_fullscreenSwapDesc
   if (FAILED(_factory->CreateSwapChainForHwnd(_d3dDevice, _window, &_swapDesc,
                                               nullptr, nullptr, &_swapChain))) {
     FATALERROR(this, "Failed to create swap chain");
@@ -500,7 +483,7 @@ INT32 D3DAppFramework::Run() {
 
     while (_runRenderThread.test_and_set()) {
       bool exp = true;
-      IDXGIOutput *target;
+      ComObject<IDXGIOutput> target;
 
       // the game logic step may force the device to reset, so lets check
       if (IsBackBufferChangePending()) {
@@ -519,7 +502,8 @@ INT32 D3DAppFramework::Run() {
           // clean up the old swap chain, then recreate it with the new settings
           BOOL fullscreen = false;
           if (_swapChain) {
-            if (FAILED(_swapChain->GetFullscreenState(&fullscreen, &target))) {
+            if (FAILED(_swapChain->GetFullscreenState(&fullscreen,
+                                                      target.Assign()))) {
               FATALERROR(this, "GetFullscreenState failed");
             }
             if (fullscreen) {
@@ -605,9 +589,16 @@ INT32 D3DAppFramework::Run() {
 
         OnDraw();
 
+        ComObject<IDXGIOutput> output;
+        if (FAILED(_swapChain->GetContainingOutput(output.Assign()))) {
+          FATALERROR(this, "SwapChain GetContainingOutput failed");
+        }
+
         HRESULT result = _swapChain->Present1(
-            VSyncEnabled() ? 1 : 0,
-            AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0, &presentParams);
+            0, AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0, &presentParams);
+        if (VSyncEnabled()) {
+          output->WaitForVBlank();
+        }
 
         if (result == DXGI_ERROR_DEVICE_REMOVED ||
             result == DXGI_ERROR_DEVICE_RESET) {

@@ -77,7 +77,6 @@ class D3DAppFramework {
 
   IDXGISwapChain1 *_swapChain;
   IDXGIFactory2 *_factory;
-  IDXGIOutput1 *_output;
 
   ID3D11RenderTargetView *_renderTargetView;
   ID3D11DepthStencilView *_depthStencilView;
