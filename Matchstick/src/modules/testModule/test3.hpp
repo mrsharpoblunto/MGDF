@@ -25,6 +25,9 @@ class Test3 : public TestModule {
 
  private:
   ComObject<IInputManager> _input;
+  ComObject<ISaveManager> _saves;
+  ComObject<IGameState> _state;
+  ComObject<IPendingSave> _pending;
 };
 
 }  // namespace Test

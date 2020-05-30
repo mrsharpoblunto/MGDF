@@ -33,6 +33,7 @@ VorbisStream::VorbisStream(IFile *source,
       _globalVolume(manager->GetStreamVolume()),
       _volume(1.0),
       _dataSource(ComObject(source, true)),
+      _name(source->GetName()),
       _initLevel(0),
       _state(NOT_STARTED),
       _totalBuffersProcessed(0),
@@ -245,8 +246,8 @@ void VorbisStream::UninitVorbis() {
   }
 }
 
-void VorbisStream::GetName(IWString **name) {
-  *name = new WStringImpl(_dataSource->GetName());
+HRESULT VorbisStream::GetName(wchar_t *name, size_t *length) {
+  COPY_STR(_name, name, length);
 }
 
 bool VorbisStream::IsStopped() const { return _state == STOP; }

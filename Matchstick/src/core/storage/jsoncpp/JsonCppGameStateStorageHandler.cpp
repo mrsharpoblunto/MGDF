@@ -31,6 +31,14 @@ MGDFError JsonCppGameStateStorageHandler::Load(const std::wstring &filename) {
   if (reader.parse(input, root)) {
     _gameUid = GetJsonValue(root, "gameUid");
     _version = VersionHelper::Create(GetJsonValue(root, "gameVersion"));
+    _metadata.clear();
+    if (root.isMember("gameMetadata")) {
+      auto meta = root["gameMetadata"];
+      auto keys = meta.getMemberNames();
+      for (const auto &key : keys) {
+        _metadata[key] = GetJsonValue(meta, key);
+      }
+    }
     return MGDF_OK;
   } else {
     LOG("Unable to parse '" << Resources::ToString(filename).c_str() << "'"
@@ -47,6 +55,11 @@ void JsonCppGameStateStorageHandler::Save(const std::wstring &filename) const {
 
   root["gameUid"] = _gameUid;
   root["gameVersion"] = VersionHelper::Format(_version);
+  root["gameMetadata"] = Json::Value(Json::objectValue);
+
+  for (const auto &kvp : _metadata) {
+    root["gameMetadata"][kvp.first] = kvp.second;
+  }
 
   file << root;
   file.close();

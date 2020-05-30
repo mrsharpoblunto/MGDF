@@ -245,6 +245,16 @@ class ComBase : public T {
   std::atomic<ULONG> _references;
 };
 
+template <typename T, typename... Args>
+ComObject<T> MakeCom(Args &&... args) {
+  return ComObject<T>(new T(std::forward<Args>(args)...));
+}
+
+template <typename T, typename U = T>
+ComObject<T> MakeComFromPtr(U *ptr) {
+  return ComObject<T>(static_cast<T *>(ptr), true);
+}
+
 template <typename T, typename U>
 T ToString(const ComObject<U> &str) {
   T s;

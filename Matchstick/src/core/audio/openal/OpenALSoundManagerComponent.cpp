@@ -61,14 +61,12 @@ MGDFError OpenALSoundManagerComponentImpl::Init() {
 
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
   for (auto sound : _sounds) {
-    ComObject<IWString> name;
-    sound->GetName(name.Assign());
+    std::wstring name = WSTR(sound, GetName);
     LOG("Sound '" << Resources::ToString(name) << "' still has live references",
         LOG_ERROR);
   }
   for (auto stream : _soundStreams) {
-    ComObject<IWString> name;
-    stream->GetName(name.Assign());
+    std::wstring name = WSTR(stream, GetName);
     LOG("SoundStream '" << Resources::ToString(name)
                         << "' still has live references",
         LOG_ERROR);

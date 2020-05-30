@@ -20,6 +20,7 @@
 #include "MGDFHostStats.hpp"
 #include "MGDFModuleFactory.hpp"
 #include "MGDFRenderSettingsManagerImpl.hpp"
+#include "MGDFSaveManagerImpl.hpp"
 #include "MGDFStatisticsManagerImpl.hpp"
 #include "MGDFTimer.hpp"
 
@@ -97,19 +98,13 @@ class Host : public IRenderHost, public ISimHost {
 
   // ISimHost methods
   void QueueShutDown() override final;
-  MGDFError Load(const char *saveName, wchar_t *loadBuffer, UINT32 *size,
-                 Version *version) override final;
-  MGDFError BeginSave(const char *saveName, wchar_t *saveBuffer,
-                      UINT32 *size) override final;
-  MGDFError CompleteSave(const char *saveName) override final;
+  void GetSaves(ISaveManager **saves) override final;
   void GetVFS(IVirtualFileSystem **vfs) override final;
   void GetSound(ISoundManager **sound) override final;
   void GetStatistics(IStatisticsManager **statistics) override final;
   void GetGame(IGame **game) override final;
   void GetInput(IInputManager **manager) override final;
   void ShutDown() override final;
-  const IStringList *GetSaves() const override final;
-  void RemoveSave(const char *saveName) override final;
 
   // IRenderHost methods
   ID3D11Device *GetD3DDevice() const override final;
@@ -132,18 +127,20 @@ class Host : public IRenderHost, public ISimHost {
   HRESULT Init();
 
   void ClearWorkingDirectory();
+  void EnumerateSaves(
+      std::function<bool(const std::filesystem::path &path)> handler) const;
 
   ComObject<IModule> _module;  // the currently executing module
   std::unique_ptr<ModuleFactory> _moduleFactory;
 
   std::shared_ptr<storage::IStorageFactoryComponent> _storage;
+  ComObject<SaveManager> _saves;
   ComObject<input::IInputManagerComponent> _input;
   ComObject<audio::ISoundManagerComponent> _sound;
   ComObject<vfs::IVirtualFileSystemComponent> _vfs;
   ComObject<Debug> _debugOverlay;
   ComObject<Game> _game;
   ComObject<Timer> _timer;
-  StringList *_saves;
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
 

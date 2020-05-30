@@ -15,7 +15,8 @@ ISoundStream : public IUnknown {
   \param name pointer to the name of the sound stream
   \
   */
-  virtual void STDMETHODCALLTYPE GetName(IWString * *name) = 0;
+  virtual HRESULT STDMETHODCALLTYPE GetName(wchar_t * name,
+                                            size_t * length) = 0;
 
   /**
   Get the volume level (0-1)

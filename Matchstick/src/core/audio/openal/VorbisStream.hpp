@@ -37,7 +37,7 @@ class VorbisStream : public ComBase<ISoundStream> {
                              OpenALSoundManagerComponentImpl *manager,
                              ComObject<VorbisStream> &stream);
 
-  void GetName(IWString **name) override final;
+  HRESULT GetName(wchar_t *name, size_t *length) override final;
   float GetVolume() const override final;
   void SetVolume(float volume) override final;
   void Stop() override final;
@@ -57,6 +57,7 @@ class VorbisStream : public ComBase<ISoundStream> {
   MGDFError InitStream();
   void UninitStream();
 
+  std::wstring _name;
   ComObject<IFile> _dataSource;
   ComObject<IFileReader> _reader;
   ALuint _buffers[VORBIS_BUFFER_COUNT];

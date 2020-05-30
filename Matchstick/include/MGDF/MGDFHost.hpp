@@ -156,6 +156,37 @@ IRenderHost : public ICommonHost {
                                    IPerformanceCounter **counter) = 0;
 };
 
+MIDL_INTERFACE("55333E24-25ED-452B-9CDC-9031A9584C59")
+IPendingSave : public IUnknown {
+ public:
+  virtual HRESULT GetSaveDataLocation(wchar_t * folder, size_t * size)
+      const = 0;
+};
+
+MIDL_INTERFACE("B34FC7A2-2F84-4FC7-B821-4AEDA8AB9F20")
+IGameState : public IUnknown {
+ public:
+  virtual HRESULT GetMetadata(const char *key, char *value, size_t *length)
+      const = 0;
+  virtual HRESULT SetMetadata(const char *key, const char *value) = 0;
+  virtual HRESULT GetSaveDataLocation(wchar_t * folder, size_t * size)
+      const = 0;
+  virtual bool IsNew() const = 0;
+  virtual void GetVersion(Version * version) const = 0;
+};
+
+MIDL_INTERFACE("58D65D58-358D-4999-B32C-F32CF0B0AC83")
+ISaveManager : public IUnknown {
+ public:
+  virtual size_t GetSaveCount() const = 0;
+  virtual HRESULT GetSave(size_t index, IGameState * *save) = 0;
+  virtual HRESULT RemoveSave(size_t index) = 0;
+  virtual HRESULT UpdateSave(size_t index, IGameState * save,
+                             IPendingSave * *pending) = 0;
+  virtual void CreateGameState(IGameState * *save) = 0;
+  virtual HRESULT AppendSave(IGameState * save, IPendingSave * *pending) = 0;
+};
+
 /**
 Provides an entrypoint for a module to interact with the MGDF host. This
 interface inherits from ICommonHost and provides additional methods which are
@@ -164,56 +195,7 @@ safe to be used ONLY from the sim thread.
 MIDL_INTERFACE("381AD5F1-8058-4739-992F-A5B551AA0E87")
 ISimHost : public ICommonHost {
  public:
-  /**
-   tells the host to provide a location on disk to save the current game data.
-   After saving the data it is required that CompleteSave is called using the
-   same saveName parameter. \param saveName the name of the module save file.
-   Only alphanumeric characters and space are valid characters. \param
-   saveBuffer the buffer to fill in the supplied save directory \param size the
-   size of saveBuffer, if saveBuffer is too small, size will be changed to the
-   size required. \return MGDF_OK if saveBuffer is large enough to fit the
-   supplied save directory, otherwise returns MGDF_ERR_BUFFER_TOO_SMALL. If the
-   saveName is invalid, the function returns an error code
-  */
-  virtual MGDFError BeginSave(const char *saveName, wchar_t *saveBuffer,
-                              UINT32 *size) = 0;
-
-  /**
-   finalizes the save data for a matching call to BeginSave
-   \param saveName the save to complete
-   \return MGDF_OK if the saveName was in a pending state and was completed
-   successfully, if there was a problem, or the saveName didn't exist then an
-   error code is returned.
-   */
-  virtual MGDFError CompleteSave(const char *saveName) = 0;
-
-  /**
-   populates the supplied vector with the names of all saved instances of this
-   configuration The names returned in this list represent all the valid
-   arguments to queueLoadState for the current configuration \return the list to
-   fill with save names
-  */
-  virtual const IStringList *GetSaves() const = 0;
-
-  /**
-   deletes a selected save game from the hard drive
-   \param saveName the save to remove
-   */
-  virtual void RemoveSave(const char *saveName) = 0;
-
-  /**
-   tells the host to find the location on disk for the specified save game
-   \param saveName the name of the module save file
-   \param loadBuffer the buffer to fill in the supplied save directory
-   \param size the size of saveBuffer, if saveBuffer is too small, size will be
-   changed to the size required. \param version the version number of the save
-   game. can be useful for migrating save games. \return MGDF_OK if saveBuffer
-   is large enough to fit the supplied load directory, otherwise returns
-   MGDF_ERR_BUFFER_TOO_SMALL. If the saveName is invalid, the function returns
-   an error code
-  */
-  virtual MGDFError Load(const char *saveName, wchar_t *loadBuffer,
-                         UINT32 *size, Version *version) = 0;
+  virtual void GetSaves(ISaveManager * *save) = 0;
 
   /**
   get information regarding the current game and its preferences

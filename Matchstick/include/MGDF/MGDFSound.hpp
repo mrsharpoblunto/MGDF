@@ -17,7 +17,8 @@ ISound : public IUnknown {
   The name of the sound
   \param name pointer to the name of the sound
   */
-  virtual void STDMETHODCALLTYPE GetName(IWString * *name) = 0;
+  virtual HRESULT STDMETHODCALLTYPE GetName(wchar_t * name,
+                                            size_t * length) = 0;
 
   /**
   The position of the sound

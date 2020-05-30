@@ -27,8 +27,18 @@ class JsonCppGameStateStorageHandler : public IGameStateStorageHandler {
     version = _version;
   };
 
+  void GetMetadata(std::unordered_map<std::string, std::string> &metadata)
+      const override final {
+    metadata = _metadata;
+  }
+  void SetMetadata(const std::unordered_map<std::string, std::string> &metadata)
+      override final {
+    _metadata = metadata;
+  }
+
  private:
   std::string _gameUid;
+  std::unordered_map<std::string, std::string> _metadata;
   Version _version;
 };
 

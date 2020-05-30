@@ -8,6 +8,7 @@
 #include <MGDF/MGDF.hpp>
 #include <vector>
 
+#include "../../common/MGDFStringImpl.hpp"
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundManagerComponent.hpp"
 
@@ -23,7 +24,7 @@ class OpenALSound : public ComBase<ISound> {
                              OpenALSoundManagerComponentImpl *manager,
                              INT32 priority, ComObject<OpenALSound> &sound);
 
-  void GetName(IWString **name) override final;
+  HRESULT GetName(wchar_t *name, size_t *length) override final;
   SoundPosition *GetPosition(SoundPosition *position) const override final;
   SoundPosition *GetVelocity(SoundPosition *velocity) const override final;
   SoundPosition *SetPosition(SoundPosition *position) override final;
@@ -60,7 +61,7 @@ class OpenALSound : public ComBase<ISound> {
   OpenALSound(OpenALSoundManagerComponentImpl *manager, INT32 priority);
   MGDFError Init(IFile *source);
 
-  const wchar_t *_name;
+  std::wstring _name;
   OpenALSoundManagerComponentImpl *_soundManager;
   ALuint _sourceId, _bufferId;
   float _innerRange, _outerRange, _volume, _globalVolume, _attenuationFactor,

@@ -77,6 +77,7 @@
     </ClCompile>
     <Lib>
       <OutputFile>$(OutDir)$(ProjectName).lib</OutputFile>
+      <AdditionalDependencies>Rpcrt4.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -95,6 +96,9 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
+    <Lib>
+      <AdditionalDependencies>Rpcrt4.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MGDFDebugImpl.cpp" />
@@ -102,6 +106,7 @@
     <ClCompile Include="MGDFGameImpl.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp" />
     <ClCompile Include="MGDFModuleFactory.cpp" />
+    <ClCompile Include="MGDFSaveManagerImpl.cpp" />
     <ClCompile Include="MGDFStatisticsManagerImpl.cpp" />
     <ClCompile Include="MGDFHostBuilder.cpp" />
     <ClCompile Include="MGDFHostImpl.cpp" />
@@ -121,6 +126,7 @@
     <ClInclude Include="MGDFGameImpl.hpp" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp" />
     <ClInclude Include="MGDFModuleFactory.hpp" />
+    <ClInclude Include="MGDFSaveManagerImpl.hpp" />
     <ClInclude Include="MGDFStatisticsManagerImpl.hpp" />
     <ClInclude Include="MGDFHostBuilder.hpp" />
     <ClInclude Include="MGDFHostImpl.hpp" />

@@ -118,7 +118,9 @@ void OpenALSound::SetSourceRelative(bool sourceRelative) {
   }
 }
 
-void OpenALSound::GetName(IWString **name) { *name = new WStringImpl(_name); }
+HRESULT OpenALSound::GetName(wchar_t *name, size_t *length) {
+  COPY_STR(_name, name, length);
+}
 
 SoundPosition *OpenALSound::GetPosition(SoundPosition *sp) const {
   memcpy_s(sp, sizeof(SoundPosition), &_position, sizeof(DirectX::XMFLOAT3));
