@@ -13,7 +13,10 @@ namespace input {
 namespace xinput {
 
 XInputGamepad::XInputGamepad(INT32 id, bool connected)
-    : _id(id), _connected(connected) {}
+    : _id(id), _connected(connected) {
+  ZeroMemory(&_buttonpressState, sizeof(_buttonpressState));
+  ZeroMemory(&_state, sizeof(_state));
+}
 
 void XInputGamepad::UpdateState(const XINPUT_STATE &state) { _state = state; }
 
@@ -77,7 +80,7 @@ INT32 XInputGamepad::GetRightThumbY() const {
                                                     : 0;
 }
 
-void XInputGamepad::SetVibrationSpeed(INT32 left, INT32 right) {
+void XInputGamepad::SetVibrationSpeed(UINT16 left, UINT16 right) {
   if (_connected) {
     XINPUT_VIBRATION vibration;
     ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));

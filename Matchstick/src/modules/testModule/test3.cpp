@@ -22,12 +22,16 @@ void Test3::Setup(ISimHost *host) {
   host->GetInput(_input.Assign());
   host->GetSaves(_saves.Assign());
 
-  Step([this](auto host, auto state) {
+  Step([this](auto state) {
     state->AddLine("");
     state->AddLine("Load/Save Tests");
     state->AddLine("");
 
-    _saves->RemoveSave(0);
+    while (_saves->GetSaveCount() > 0) {
+      ComObject<IGameState> s;
+      _saves->GetSave(0, s.Assign());
+      _saves->DeleteSave(s);
+    }
     state->AddLine("Save game state");
 
     _saves->CreateGameState(_state.Assign());
@@ -38,7 +42,7 @@ void Test3::Setup(ISimHost *host) {
     _state->SetMetadata("key", "value");
     _state->SetMetadata("key1", "value1");
 
-    if (FAILED(_saves->AppendSave(_state, _pending.Assign()))) {
+    if (FAILED(_state->BeginSave(_pending.Assign()))) {
       return TestStep::FAILED;
     } else {
       size_t size;
@@ -55,7 +59,7 @@ void Test3::Setup(ISimHost *host) {
       return TestStep::PASSED;
     }
   })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
         state->AddLine("Search saved game state");
         // we didn't complete saving yet so it shouldn't appear in the list
         if (_saves->GetSaveCount() != 0) {
@@ -78,7 +82,7 @@ void Test3::Setup(ISimHost *host) {
           }
         }
       })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
         state->AddLine("Load game state");
 
         // check the version
@@ -117,10 +121,9 @@ void Test3::Setup(ISimHost *host) {
           return data == 2 ? TestStep::PASSED : TestStep::FAILED;
         }
       })
-      .Step([](auto host, auto state) {
+      .Step([host](auto state) {
         state->AddLine("Testing custom VFS archive handler registration");
 
-        bool success = false;
         ComObject<IVirtualFileSystem> vfs;
         host->GetVFS(vfs.Assign());
 
@@ -139,12 +142,13 @@ void Test3::Setup(ISimHost *host) {
         }
         return TestStep::FAILED;
       })
-      .StepOnce([](auto host, auto state) {
+      .StepOnce([](auto state) {
         state->AddLine(
             "Press [F] to toggle fullscreen/windowed mode. Then press "
             "[Y/N] if this works correctly");
       })
-      .Step([this](auto host, auto state) {
+      .Step([host, this](auto state) {
+        (void)state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -162,12 +166,13 @@ void Test3::Setup(ISimHost *host) {
           return TestStep::CONT;
         }
       })
-      .StepOnce([](auto host, auto state) {
+      .StepOnce([](auto state) {
         state->AddLine(
             "Press [ALT]+[F12] to toggle the  information overlay. Then press "
             "[Y/N] if this works correctly");
       })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
+        (void)state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -175,7 +180,7 @@ void Test3::Setup(ISimHost *host) {
         }
         return TestStep::CONT;
       })
-      .StepOnce([](auto host, auto state) {
+      .StepOnce([](auto state) {
         state->AddLine(
             "All tests complete. Press the [ESC] key to exit (then make sure "
             "there "

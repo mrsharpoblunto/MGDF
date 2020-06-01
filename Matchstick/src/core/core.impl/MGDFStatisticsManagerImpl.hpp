@@ -13,7 +13,7 @@ class StatisticsManager : public ComBase<IStatisticsManager> {
  public:
   StatisticsManager();
   virtual ~StatisticsManager();
-  HRESULT SaveStatistic(const char* name, const char* value) override final;
+  HRESULT SaveStatistic(const char* name, const char* value) final;
 
  private:
   std::vector<std::tuple<time_t, std::string, std::string> > _saveBuffer;

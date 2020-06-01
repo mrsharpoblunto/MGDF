@@ -43,6 +43,8 @@ OpenALSoundManagerComponentImpl::CreateOpenALSoundManagerComponent() {
 
 OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl()
     : _enableAttenuation(false),
+      _soundVolume(0.0f),
+      _streamVolume(0.0f),
       _orientationForward(XMFLOAT3(0.0f, 0.0f, 1.0f)),
       _orientationUp(XMFLOAT3(0.0f, 1.0f, 0.0f)),
       _position(XMFLOAT3(0.0f, 0.0f, 0.0f)),

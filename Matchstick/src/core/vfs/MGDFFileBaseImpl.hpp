@@ -26,12 +26,12 @@ class FileBaseImpl : public ComBase<IFile> {
   FileBaseImpl(IFile *parent);
   virtual ~FileBaseImpl(){};
 
-  bool GetParent(IFile **parent) override final;
+  bool GetParent(IFile **parent) final;
   bool GetChild(const wchar_t *name, IFile **child) override;
   size_t GetChildCount() override;
   void GetAllChildren(IFile **childBuffer) override;
   bool IsArchive() const override { return false; }
-  const wchar_t *GetLogicalPath() override final;
+  const wchar_t *GetLogicalPath() final;
   time_t GetLastWriteTime() const override;
 
   // These internal methods are not threadsafe, so ensure

@@ -68,7 +68,6 @@ class Host : public IRenderHost, public ISimHost {
   void RTBackBufferChange(ID3D11Texture2D *backBuffer,
                           ID3D11Texture2D *depthStencilBuffer);
   void RTBeforeDeviceReset();
-  void RTDeviceReset();
 
   UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                        UINT32 *featureLevelsSize);
@@ -77,58 +76,55 @@ class Host : public IRenderHost, public ISimHost {
   ComObject<Debug> GetDebugImpl();
 
   // IUnknown methods
-  ULONG AddRef() override;
-  ULONG Release() override;
-  HRESULT QueryInterface(REFIID riid, void **ppvObject);
+  ULONG AddRef() final;
+  ULONG Release() final;
+  HRESULT QueryInterface(REFIID riid, void **ppvObject) final;
 
   // ILogger methods
-  void SetLoggingLevel(LogLevel level) override final;
-  LogLevel GetLoggingLevel() const override final;
-  void Log(const char *sender, const char *message,
-           LogLevel level) override final;
+  void SetLoggingLevel(LogLevel level) final;
+  LogLevel GetLoggingLevel() const final;
+  void Log(const char *sender, const char *message, LogLevel level) final;
 
   // ICommonHost methods
-  void FatalError(const char *, const char *) override final;
-  void GetRenderSettings(IRenderSettingsManager **settings) override final;
-  void GetTimer(ITimer **timer) override final;
-  const Version *GetMGDFVersion() const override final;
-  const char *GetErrorDescription(MGDFError err) const override final;
-  const char *GetErrorString(MGDFError err) const override final;
-  void GetDebug(IDebug **debug) override final;
+  void FatalError(const char *, const char *) final;
+  void GetRenderSettings(IRenderSettingsManager **settings) final;
+  void GetTimer(ITimer **timer) final;
+  const Version *GetMGDFVersion() const final;
+  const char *GetErrorDescription(MGDFError err) const final;
+  const char *GetErrorString(MGDFError err) const final;
+  void GetDebug(IDebug **debug) final;
 
   // ISimHost methods
-  void QueueShutDown() override final;
-  void GetSaves(ISaveManager **saves) override final;
-  void GetVFS(IVirtualFileSystem **vfs) override final;
-  void GetSound(ISoundManager **sound) override final;
-  void GetStatistics(IStatisticsManager **statistics) override final;
-  void GetGame(IGame **game) override final;
-  void GetInput(IInputManager **manager) override final;
-  void ShutDown() override final;
+  void QueueShutDown() final;
+  void GetSaves(ISaveManager **saves) final;
+  void GetVFS(IVirtualFileSystem **vfs) final;
+  void GetSound(ISoundManager **sound) final;
+  void GetStatistics(IStatisticsManager **statistics) final;
+  void GetGame(IGame **game) final;
+  void GetInput(IInputManager **manager) final;
+  void ShutDown() final;
 
   // IRenderHost methods
-  ID3D11Device *GetD3DDevice() const override final;
-  ID3D11DeviceContext *GetD3DImmediateContext() const override final;
-  ID2D1Device *GetD2DDevice() const override final;
-  bool SetBackBufferRenderTarget(ID2D1DeviceContext *context) override final;
-  ID3D11Texture2D *GetBackBuffer() const override final;
-  ID3D11Texture2D *GetDepthStencilBuffer() const override final;
+  ID3D11Device *GetD3DDevice() const final;
+  ID3D11DeviceContext *GetD3DImmediateContext() const final;
+  ID2D1Device *GetD2DDevice() const final;
+  bool SetBackBufferRenderTarget(ID2D1DeviceContext *context) final;
+  ID3D11Texture2D *GetBackBuffer() const final;
+  ID3D11Texture2D *GetDepthStencilBuffer() const final;
   void GetBackBufferDescription(
       D3D11_TEXTURE2D_DESC *backBufferDesc,
-      D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const override final;
+      D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const final;
 
   HRESULT CreateCPUCounter(const char *name,
-                           IPerformanceCounter **counter) override final;
+                           IPerformanceCounter **counter) final;
   HRESULT CreateGPUCounter(const char *name,
-                           IPerformanceCounter **counter) override final;
+                           IPerformanceCounter **counter) final;
 
  private:
   Host(ComObject<Game> game, HostComponents &components);
   HRESULT Init();
 
   void ClearWorkingDirectory();
-  void EnumerateSaves(
-      std::function<bool(const std::filesystem::path &path)> handler) const;
 
   ComObject<IModule> _module;  // the currently executing module
   std::unique_ptr<ModuleFactory> _moduleFactory;

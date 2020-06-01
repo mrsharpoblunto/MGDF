@@ -23,26 +23,26 @@ class XInputManagerComponent : public IInputManagerComponent {
   XInputManagerComponent();
   virtual ~XInputManagerComponent(void);
 
-  void HandleInput(RAWINPUT *input) override final;
-  void HandleInput(INT32 mouseX, INT32 mouseY) override final;
-  void ClearInput() override final;
-  void ProcessSim() override final;
-  void ProcessInput() override final;
+  void HandleInput(RAWINPUT *input) final;
+  void HandleInput(INT32 mouseX, INT32 mouseY) final;
+  void ClearInput() final;
+  void ProcessSim() final;
+  void ProcessInput() final;
 
-  void ShowCursor(bool show) override final;
-  bool IsKeyDown(UINT16 key) const override final;
-  bool IsKeyUp(UINT16 key) const override final;
-  bool IsKeyPress(UINT16 key) const override final;
-  INT32 GetMouseX(void) const override final;
-  INT32 GetMouseY(void) const override final;
-  INT32 GetMouseDX(void) const override final;
-  INT32 GetMouseDY(void) const override final;
-  INT16 GetMouseDZ(void) const override final;
-  bool IsButtonDown(Mouse mouseButton) const override final;
-  bool IsButtonUp(Mouse mouseButton) const override final;
-  bool IsButtonClicked(Mouse mouseButton) override final;
-  UINT32 GetGamepadCount() const override final;
-  void GetGamepads(IGamepad **gamepads) override final;
+  void ShowCursor(bool show) final;
+  bool IsKeyDown(UINT16 key) const final;
+  bool IsKeyUp(UINT16 key) const final;
+  bool IsKeyPress(UINT16 key) const final;
+  INT32 GetMouseX(void) const final;
+  INT32 GetMouseY(void) const final;
+  INT32 GetMouseDX(void) const final;
+  INT32 GetMouseDY(void) const final;
+  INT16 GetMouseDZ(void) const final;
+  bool IsButtonDown(Mouse mouseButton) const final;
+  bool IsButtonUp(Mouse mouseButton) const final;
+  bool IsButtonClicked(Mouse mouseButton) final;
+  UINT32 GetGamepadCount() const final;
+  void GetGamepads(IGamepad **gamepads) final;
 
  private:
   std::mutex _simMutex;

@@ -173,6 +173,7 @@ IGameState : public IUnknown {
       const = 0;
   virtual bool IsNew() const = 0;
   virtual void GetVersion(Version * version) const = 0;
+  virtual HRESULT BeginSave(IPendingSave * *pending) = 0;
 };
 
 MIDL_INTERFACE("58D65D58-358D-4999-B32C-F32CF0B0AC83")
@@ -180,11 +181,8 @@ ISaveManager : public IUnknown {
  public:
   virtual size_t GetSaveCount() const = 0;
   virtual HRESULT GetSave(size_t index, IGameState * *save) = 0;
-  virtual HRESULT RemoveSave(size_t index) = 0;
-  virtual HRESULT UpdateSave(size_t index, IGameState * save,
-                             IPendingSave * *pending) = 0;
+  virtual HRESULT DeleteSave(IGameState * state) = 0;
   virtual void CreateGameState(IGameState * *save) = 0;
-  virtual HRESULT AppendSave(IGameState * save, IPendingSave * *pending) = 0;
 };
 
 /**

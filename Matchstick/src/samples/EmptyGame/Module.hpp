@@ -12,18 +12,18 @@ class Module : public MGDF::ComBase<MGDF::IModule> {
   virtual ~Module(void);
   Module();
 
-  bool STNew(MGDF::ISimHost *host, const wchar_t *workingFolder) override final;
-  bool STUpdate(MGDF::ISimHost *host, double elapsedTime) override final;
-  void STShutDown(MGDF::ISimHost *host) override final;
+  bool STNew(MGDF::ISimHost *host, const wchar_t *workingFolder) final;
+  bool STUpdate(MGDF::ISimHost *host, double elapsedTime) final;
+  void STShutDown(MGDF::ISimHost *host) final;
 
-  bool RTBeforeFirstDraw(MGDF::IRenderHost *host) override final;
-  bool RTDraw(MGDF::IRenderHost *host, double alpha) override final;
-  bool RTBeforeBackBufferChange(MGDF::IRenderHost *host) override final;
-  bool RTBackBufferChange(MGDF::IRenderHost *host) override final;
-  bool RTBeforeDeviceReset(MGDF::IRenderHost *host) override final;
-  bool RTDeviceReset(MGDF::IRenderHost *host) override final;
+  bool RTBeforeFirstDraw(MGDF::IRenderHost *host) final;
+  bool RTDraw(MGDF::IRenderHost *host, double alpha) final;
+  bool RTBeforeBackBufferChange(MGDF::IRenderHost *host) final;
+  bool RTBackBufferChange(MGDF::IRenderHost *host) final;
+  bool RTBeforeDeviceReset(MGDF::IRenderHost *host) final;
+  bool RTDeviceReset(MGDF::IRenderHost *host) final;
 
-  void Panic() override final;
+  void Panic() final;
 
  private:
   bool _inited;

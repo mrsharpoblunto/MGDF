@@ -32,40 +32,35 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   static ComObject<ISoundManagerComponent> CreateOpenALSoundManagerComponent();
 
   virtual ~OpenALSoundManagerComponentImpl();
-  void Update() override final;
+  void Update() final;
 
-  SoundPosition *GetListenerPosition(
-      SoundPosition *position) const override final;
-  SoundPosition *GetListenerVelocity(
-      SoundPosition *velocity) const override final;
+  SoundPosition *GetListenerPosition(SoundPosition *position) const final;
+  SoundPosition *GetListenerVelocity(SoundPosition *velocity) const final;
   SoundPosition *GetListenerOrientationForward(
-      SoundPosition *orientationForward) const override final;
+      SoundPosition *orientationForward) const final;
   SoundPosition *GetListenerOrientationUp(
-      SoundPosition *orientationUp) const override final;
-  SoundPosition *SetListenerPosition(SoundPosition *position) override final;
-  SoundPosition *SetListenerVelocity(SoundPosition *velocity) override final;
+      SoundPosition *orientationUp) const final;
+  SoundPosition *SetListenerPosition(SoundPosition *position) final;
+  SoundPosition *SetListenerVelocity(SoundPosition *velocity) final;
   SoundPosition *SetListenerOrientationForward(
-      SoundPosition *orientationForward) override final;
-  SoundPosition *SetListenerOrientationUp(
-      SoundPosition *orientationUp) override final;
+      SoundPosition *orientationForward) final;
+  SoundPosition *SetListenerOrientationUp(SoundPosition *orientationUp) final;
 
-  float GetSoundVolume() const override final;
-  void SetSoundVolume(float volume) override final;
-  float GetStreamVolume() const override final;
-  void SetStreamVolume(float volume) override final;
+  float GetSoundVolume() const final;
+  void SetSoundVolume(float volume) final;
+  float GetStreamVolume() const final;
+  void SetStreamVolume(float volume) final;
 
-  bool GetEnableAttenuation() const override final;
-  void SetEnableAttenuation(bool enableAttenuation) override final;
-  float GetDopplerShiftFactor() const override final;
-  void SetDopplerShiftFactor(float dopplerShiftFactor) override final;
-  float GetSpeedOfSound() const override final;
-  void SetSpeedOfSound(float speedOfSound) override final;
+  bool GetEnableAttenuation() const final;
+  void SetEnableAttenuation(bool enableAttenuation) final;
+  float GetDopplerShiftFactor() const final;
+  void SetDopplerShiftFactor(float dopplerShiftFactor) final;
+  float GetSpeedOfSound() const final;
+  void SetSpeedOfSound(float speedOfSound) final;
 
-  HRESULT CreateSound(IFile *source, INT32 priority,
-                      ISound **sound) override final;
-  HRESULT CreateSoundStream(IFile *source,
-                            ISoundStream **stream) override final;
-  void GetPreferences(IPreferenceSet **preferences) override final;
+  HRESULT CreateSound(IFile *source, INT32 priority, ISound **sound) final;
+  HRESULT CreateSoundStream(IFile *source, ISoundStream **stream) final;
+  void GetPreferences(IPreferenceSet **preferences) final;
   void RemoveSoundStream(ISoundStream *stream);
   void RemoveSound(ISound *sound);
 
@@ -74,7 +69,7 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
 
  private:
   OpenALSoundManagerComponentImpl();
-  MGDFError Init() override final;
+  MGDFError Init() final;
 
   void DeactivateSound(INT32 priority);
   void PrioritizeSounds(INT32 deactivatedSoundsCount);

@@ -103,7 +103,8 @@ IGamepad : public IUnknown {
   controller, valid values are 0-65535 \param left the intensity of the left
   vibrator motor \param right the intensity of the right vibrator motor
   */
-  virtual void STDMETHODCALLTYPE SetVibrationSpeed(INT32 left, INT32 right) = 0;
+  virtual void STDMETHODCALLTYPE SetVibrationSpeed(UINT16 left,
+                                                   UINT16 right) = 0;
 };
 
 /**

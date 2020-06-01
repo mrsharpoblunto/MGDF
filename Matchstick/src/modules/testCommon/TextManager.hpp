@@ -12,7 +12,7 @@
 namespace MGDF {
 namespace Test {
 
-enum TextColor {
+enum class TextColor {
   GREEN,
   RED,
 };

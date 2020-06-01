@@ -23,10 +23,8 @@ class ZipFileRoot : public DefaultFileImpl {
         _archiveName(name),
         _zip(zip) {}
   virtual ~ZipFileRoot();
-  bool IsArchive() const override final { return true; }
-  const wchar_t *GetArchiveName() const override final {
-    return _archiveName.c_str();
-  }
+  bool IsArchive() const final { return true; }
+  const wchar_t *GetArchiveName() const final { return _archiveName.c_str(); }
 
  private:
   std::wstring _archiveName;

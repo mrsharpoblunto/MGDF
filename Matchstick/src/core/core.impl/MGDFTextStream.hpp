@@ -27,7 +27,7 @@ struct TextStyle {
   static TextStyle Pop();
 
  private:
-  TextStyle() {}
+  TextStyle() : _push(false) {}
   std::shared_ptr<DWRITE_FONT_WEIGHT> _weight;
   std::shared_ptr<float> _size;
   std::shared_ptr<D2D1_COLOR_F> _color;

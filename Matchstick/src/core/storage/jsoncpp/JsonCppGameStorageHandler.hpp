@@ -14,13 +14,12 @@ class JsonCppGameStorageHandler : public IGameStorageHandler {
   JsonCppGameStorageHandler() {}
   virtual ~JsonCppGameStorageHandler() {}
 
-  std::string GetGameName() const override final;
-  std::string GetGameUid() const override final;
-  void GetVersion(Version &version) const override final;
-  const std::map<std::string, std::string> &GetPreferences()
-      const override final;
+  std::string GetGameName() const final;
+  std::string GetGameUid() const final;
+  void GetVersion(Version &version) const final;
+  const std::map<std::string, std::string> &GetPreferences() const final;
 
-  MGDFError Load(const std::wstring &) override final;
+  MGDFError Load(const std::wstring &) final;
 
  private:
   std::string _gameName, _gameUid;

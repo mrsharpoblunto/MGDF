@@ -13,7 +13,7 @@ namespace Test {
 
 Test2::~Test2(void) {}
 
-Test2::Test2() {}
+Test2::Test2() : _x(0), _y(0) {}
 
 TestModule *Test2::NextTestModule() { return new Test3(); }
 
@@ -22,14 +22,14 @@ void Test2::Setup(ISimHost *host) {
   host->GetVFS(_vfs.Assign());
   host->GetSound(_soundManager.Assign());
 
-  Step([this](auto host, auto state) {
+  Step([this](auto state) {
     state->AddLine("");
     state->AddLine("SoundManager Tests");
     state->AddLine("");
     state->AddLine("Checking SoundManager is initialized");
     return _soundManager ? TestStep::PASSED : TestStep::FAILED;
   })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
         state->AddLine("Loading sound chimes.wav");
         _soundManager->SetEnableAttenuation(true);
         ComObject<IFile> file;
@@ -46,14 +46,15 @@ void Test2::Setup(ISimHost *host) {
           }
         }
       })
-      .StepOnce([this](auto host, auto state) {
+      .StepOnce([this](auto state) {
         _sound->SetLooping(true);
         _sound->SetInnerRange(0);
         _sound->SetOuterRange(250);
         _sound->Play();
         state->AddLine("Is a sound playing? [Y/N]");
       })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
+        (void)state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -62,13 +63,14 @@ void Test2::Setup(ISimHost *host) {
           return TestStep::CONT;
         }
       })
-      .StepOnce([this](auto host, auto state) {
+      .StepOnce([this](auto state) {
         state->AddLine(
             "Use arrow keys to change sounds position, press [Y/N] if the "
             "sound "
             "adjusts accordingly");
       })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
+        (void)state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -93,7 +95,7 @@ void Test2::Setup(ISimHost *host) {
           return TestStep::CONT;
         }
       })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
         _sound = nullptr;
         state->AddLine("Loading stream stream.ogg");
         ComObject<IFile> file;
@@ -113,11 +115,12 @@ void Test2::Setup(ISimHost *host) {
           }
         }
       })
-      .StepOnce([](auto host, auto state) {
+      .StepOnce([](auto state) {
         state->AddLine(
             "Playing stream, press [Y/N] if the stream is actually playing");
       })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
+        (void)state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -126,11 +129,12 @@ void Test2::Setup(ISimHost *host) {
           return TestStep::CONT;
         }
       })
-      .StepOnce([](auto host, auto state) {
+      .StepOnce([](auto state) {
         state->AddLine(
             "Use [P] to toggle pause/play, press [Y/N] if this is working.");
       })
-      .Step([this](auto host, auto state) {
+      .Step([this](auto state) {
+        (void)state;
         if (_input->IsKeyPress('Y')) {
           _stream = nullptr;
           return TestStep::PASSED;

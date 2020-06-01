@@ -6,7 +6,6 @@
 #include "../../src/core/common/MGDFVersionHelper.hpp"
 #include "../../src/core/storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../../src/core/vfs/MGDFVirtualFileSystemComponentImpl.hpp"
-#include "MGDFMockLogger.hpp"
 
 using namespace MGDF;
 using namespace MGDF::core;

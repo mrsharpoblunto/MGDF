@@ -34,6 +34,7 @@ void TextManagerState::SetStatus(TextColor color, const std::string &text) {
 
 std::shared_ptr<TextManagerState> TextManagerState::Interpolate(
     const TextManagerState *endState, double alpha) {
+  (void)alpha;
   // interpolation isn't really possible with this type of gamestate, so just
   // use the most recent.
   return std::shared_ptr<TextManagerState>(new TextManagerState(endState));
@@ -172,7 +173,7 @@ void TextManager::DrawText() {
 
         _d2dContext->DrawTextLayout(
             origin, textLayout,
-            line.StatusColor == GREEN ? _greenBrush : _redBrush);
+            line.StatusColor == TextColor::GREEN ? _greenBrush : _redBrush);
 
         SAFE_RELEASE(textLayout);
       }

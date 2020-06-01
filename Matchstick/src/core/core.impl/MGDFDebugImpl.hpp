@@ -1,12 +1,12 @@
 #pragma once
 
+#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDFDebug.hpp>
 #include <atomic>
 #include <map>
 #include <sstream>
 #include <string>
 
-#include <MGDF/ComObject.hpp>
 #include "MGDFHostStats.hpp"
 #include "MGDFTextStream.hpp"
 #include "MGDFTimer.hpp"
@@ -19,10 +19,10 @@ class Debug : public ComBase<IDebug> {
   virtual ~Debug(){};
   Debug(Timer *timer);
   virtual void Set(const char *section, const char *key,
-                   const char *value) override final;
-  virtual void Clear(const char *section, const char *key) override final;
-  virtual bool IsShown() const override final;
-  virtual void ToggleShown() override final;
+                   const char *value) final;
+  virtual void Clear(const char *section, const char *key) final;
+  virtual bool IsShown() const final;
+  virtual void ToggleShown() final;
 
   void DumpInfo(const HostStats &stats, TextStream &ss) const;
 

@@ -1,11 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Mocks">
-      <UniqueIdentifier>{fec74ec5-b8c4-4468-bc4e-81c42cd6ae06}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="ParameterManagerTests.cpp" />
     <ClCompile Include="ResourcesTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
@@ -14,9 +9,6 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MGDFMockLogger.hpp">
-      <Filter>Mocks</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
 </Project>

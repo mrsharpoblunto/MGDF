@@ -20,9 +20,9 @@ class ZipArchiveHandlerImpl : public ComBase<IArchiveHandler> {
  public:
   ZipArchiveHandlerImpl();
   virtual ~ZipArchiveHandlerImpl();
-  bool IsArchive(const wchar_t *physicalPath) const override final;
+  bool IsArchive(const wchar_t *physicalPath) const final;
   HRESULT MapArchive(const wchar_t *name, const wchar_t *physicalPath,
-                     IFile *parent, IFile **file) override final;
+                     IFile *parent, IFile **file) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;

@@ -16,11 +16,11 @@ class DefaultFileReader : public ComBase<IFileReader> {
   DefaultFileReader(DefaultFileImpl *parent,
                     std::shared_ptr<std::ifstream> stream);
   virtual ~DefaultFileReader();
-  UINT32 Read(void *buffer, UINT32 length) override final;
-  void SetPosition(INT64 pos) override final;
-  INT64 GetPosition() const override final;
-  bool EndOfFile() const override final;
-  INT64 GetSize() const override final;
+  UINT32 Read(void *buffer, UINT32 length) final;
+  void SetPosition(INT64 pos) final;
+  INT64 GetPosition() const final;
+  bool EndOfFile() const final;
+  INT64 GetSize() const final;
 
  private:
   ComObject<DefaultFileImpl> _parent;
@@ -36,17 +36,15 @@ class DefaultFileImpl : public FileBaseImpl {
                   IFile *parent);
   virtual ~DefaultFileImpl();
 
-  bool IsOpen() const override final { return _reader; }
+  bool IsOpen() const final { return _reader; }
 
-  HRESULT Open(IFileReader **reader) override final;
+  HRESULT Open(IFileReader **reader) final;
 
-  bool IsFolder() const override final { return false; }
+  bool IsFolder() const final { return false; }
   bool IsArchive() const override { return false; }
   const wchar_t *GetArchiveName() const override { return nullptr; }
-  const wchar_t *GetPhysicalPath() const override final {
-    return _path.c_str();
-  }
-  const wchar_t *GetName() const override final { return _name.c_str(); }
+  const wchar_t *GetPhysicalPath() const final { return _path.c_str(); }
+  const wchar_t *GetName() const final { return _name.c_str(); }
 
  private:
   std::wstring _name;

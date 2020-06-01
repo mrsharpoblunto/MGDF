@@ -26,8 +26,8 @@ bool GuidString(std::string& guid) {
     return false;
   }
   char* uuidStrBuffer;
-  UuidToStringA(&uuid, (RPC_CSTR*)&uuidStrBuffer);
-  if (!uuidStrBuffer) {
+  if (UuidToStringA(&uuid, (RPC_CSTR*)&uuidStrBuffer) != RPC_S_OK ||
+      !uuidStrBuffer) {
     return false;
   }
   guid = std::string(uuidStrBuffer);
@@ -87,10 +87,9 @@ PendingSave::~PendingSave() {
 GameState::GameState(
     const std::string& saveName, const std::string& gameUid, SaveManager* saves,
     const std::shared_ptr<storage::IStorageFactoryComponent>& factory)
-    : _saveName(saveName),
-      _gameUid(gameUid),
-      _saves(saves),
-      _factory(factory) {}
+    : _saveName(saveName), _gameUid(gameUid), _saves(saves), _factory(factory) {
+  ZeroMemory(&_gameVersion, sizeof(Version));
+}
 
 GameState::GameState(
     const std::string& gameUid, Version& version, SaveManager* saves,
@@ -165,6 +164,16 @@ HRESULT GameState::GetSaveDataLocation(wchar_t* folder, size_t* size) const {
 
 void GameState::GetVersion(Version* version) const { *version = _gameVersion; }
 
+HRESULT GameState::BeginSave(IPendingSave** p) {
+  auto state = MakeComFromPtr<GameState>(this);
+  auto pending = MakeCom<PendingSave>(state);
+  if (FAILED(pending->Init())) {
+    return E_FAIL;
+  }
+  pending.AddRawRef(p);
+  return S_OK;
+}
+
 SaveManager::SaveManager(
     const ComObject<Game>& game,
     std::shared_ptr<storage::IStorageFactoryComponent> storageFactory)
@@ -198,33 +207,19 @@ HRESULT SaveManager::GetSave(size_t index, IGameState** s) {
   return S_OK;
 }
 
-HRESULT SaveManager::RemoveSave(size_t index) {
-  if (index >= _saves.size()) {
+HRESULT SaveManager::DeleteSave(IGameState* s) {
+  auto state = MakeComFromPtr<GameState>(s);
+  auto found = std::find(_saves.begin(), _saves.end(), state->GetSave());
+  if (found == _saves.end()) {
     return E_INVALIDARG;
   }
-  auto saveName = _saves.at(index);
   try {
-    remove_all(Resources::Instance().SaveDir(saveName));
-    _saves.erase(_saves.begin() + index);
+    remove_all(Resources::Instance().SaveDir(*found));
+    _saves.erase(found);
   } catch (...) {
-    LOG("Failed to remove save " << saveName << " at index " << index,
-        LOG_ERROR);
+    LOG("Failed to remove save " << (*found).c_str(), LOG_ERROR);
     return E_FAIL;
   }
-  return S_OK;
-}
-
-HRESULT SaveManager::UpdateSave(size_t index, IGameState* s, IPendingSave** p) {
-  if (s->IsNew()) {
-    return E_FAIL;
-  }
-  auto state = MakeComFromPtr<GameState>(s);
-  auto pending = MakeCom<PendingSave>(state);
-  if (FAILED(pending->Init())) {
-    return E_FAIL;
-  }
-
-  pending.AddRawRef(p);
   return S_OK;
 }
 
@@ -232,19 +227,6 @@ void SaveManager::CreateGameState(IGameState** save) {
   auto state =
       MakeCom<GameState>(_gameUid, _gameVersion, this, _storageFactory);
   state.AddRawRef(save);
-}
-
-HRESULT SaveManager::AppendSave(IGameState* save, IPendingSave** p) {
-  if (!save || !save->IsNew()) {
-    return E_INVALIDARG;
-  }
-  auto state = MakeComFromPtr<GameState>(save);
-  auto pending = MakeCom<PendingSave>(state);
-  if (FAILED(pending->Init())) {
-    return E_FAIL;
-  }
-  pending.AddRawRef(p);
-  return S_OK;
 }
 
 }  // namespace core

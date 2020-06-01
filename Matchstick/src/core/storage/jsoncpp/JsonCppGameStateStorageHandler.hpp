@@ -16,23 +16,19 @@ class JsonCppGameStateStorageHandler : public IGameStateStorageHandler {
       : _gameUid(gameUid), _version(version) {}
   virtual ~JsonCppGameStateStorageHandler() {}
 
-  MGDFError Load(const std::wstring &) override final;
-  void Save(const std::wstring &) const override final;
+  MGDFError Load(const std::wstring &) final;
+  void Save(const std::wstring &) const final;
 
-  std::string GetGameUid() const override final { return _gameUid; };
-  void SetVersion(const Version &version) override final {
-    _version = version;
-  };
-  void GetVersion(Version &version) const override final {
-    version = _version;
-  };
+  std::string GetGameUid() const final { return _gameUid; };
+  void SetVersion(const Version &version) final { _version = version; };
+  void GetVersion(Version &version) const final { version = _version; };
 
-  void GetMetadata(std::unordered_map<std::string, std::string> &metadata)
-      const override final {
+  void GetMetadata(
+      std::unordered_map<std::string, std::string> &metadata) const final {
     metadata = _metadata;
   }
-  void SetMetadata(const std::unordered_map<std::string, std::string> &metadata)
-      override final {
+  void SetMetadata(
+      const std::unordered_map<std::string, std::string> &metadata) final {
     _metadata = metadata;
   }
 

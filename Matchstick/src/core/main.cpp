@@ -43,6 +43,9 @@ D3DAPP_WNDPROC(MGDFAppWndProc, _application)
 INT32 WINAPI WinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPreviousInstance, _In_ LPSTR lpCmdLine,
                      _In_ INT32 nCmdShow) {
+  (void)nCmdShow;
+  (void)lpCmdLine;
+  (void)hPreviousInstance;
   // Catch memory leaks
 #if defined(_DEBUG)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -125,6 +128,7 @@ UnhandledExceptionCallBack(struct _EXCEPTION_POINTERS *pExceptionInfo) {
 handle fatal errors explicitly invoked from the MGDF
 */
 void FatalErrorCallBack(const std::string &sender, const std::string &message) {
+  (void)sender;
   WriteMinidump();
 
   if (!ParameterManager::Instance().HasParameter("hideerrors")) {
@@ -149,6 +153,7 @@ void WriteMinidump() {
 }
 
 DWORD WINAPI CrashDumpThread(LPVOID data) {
+  (void)data;
   WaitForSingleObject(_dumpEvent, INFINITE);
 
   LOG("Generating Minidump file minidump.dmp...", LOG_ERROR);

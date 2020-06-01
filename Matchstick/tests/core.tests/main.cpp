@@ -20,109 +20,36 @@ struct Node {
   bool Execute;
   std::map<std::string, Node> Children;
 
-  Node() : Data(nullptr), Execute(true) {}
-};
-
-struct TestFlags {
-  bool Teamcity;
-};
-
-class TeamcityTestReporter : public TestReporter {
- public:
-  TeamcityTestReporter() : _currentSuite(nullptr), _suiteOpen(false) {}
-
- private:
-  virtual void ReportTestStart(TestDetails const &test) {
-    if (test.suiteName) {
-      if (_currentSuite) {
-        if (strcmp(test.suiteName, _currentSuite) != 0) {
-          printf("##teamcity[testSuiteFinished name='%s']\r\n", _currentSuite);
-          printf("##teamcity[testSuiteStarted name='%s']\r\n", test.suiteName);
-          _currentSuite = test.suiteName;
-          _suiteOpen = true;
-        }
-      } else {
-        printf("##teamcity[testSuiteStarted name='%s']\r\n", test.suiteName);
-        _currentSuite = test.suiteName;
-        _suiteOpen = true;
-      }
-    } else if (_currentSuite) {
-      printf("##teamcity[testSuiteFinished name='%s']\r\n", _currentSuite);
-      _currentSuite = nullptr;
-      _suiteOpen = false;
-    }
-
-    printf("##teamcity[testStarted name='%s']\r\n", test.testName);
-  }
-  virtual void ReportFailure(TestDetails const &test, char const *failure) {
-    printf(
-        "##teamcity[testFailed name='%s' message='test failed' details='%s at "
-        "line %d in %s' ]\r\n",
-        test.testName, failure, test.lineNumber, test.filename);
-  }
-  virtual void ReportTestFinish(TestDetails const &test, float secondsElapsed) {
-    printf("##teamcity[testFinished name='%s']\r\n", test.testName);
-  }
-  virtual void ReportSummary(int totalTestCount, int failedTestCount,
-                             int failureCount, float secondsElapsed) {
-    if (_currentSuite && _suiteOpen) {
-      printf("##teamcity[testSuiteFinished name='%s']\r\n", _currentSuite);
-    }
-
-    if (totalTestCount == 0) {
-      printf("[Junkship.Tests.exe] No tests were run.\r\n");
-    } else if (failureCount > 0) {
-      printf("[Junkship.Tests.exe] FAILED. Tests run: %d; Failures: %d.\r\n",
-             totalTestCount, failedTestCount - failureCount);
-    } else {
-      printf("[Junkship.Tests.exe] SUCCEEDED. Tests run: %d; Failures: 0.\r\n",
-             totalTestCount);
-    }
-  }
-
-  const char *_currentSuite;
-  bool _suiteOpen;
+  Node() : Data(nullptr), Execute(true), Parent(nullptr) {}
 };
 
 void BuildTestTree(Node<Test> &tree);
 void SetExecute(Node<Test> &tree, bool value);
 void GetTestList(Node<Test> &tree, TestList &list);
-void ParseArguments(Node<Test> &tree, TestFlags &flags, int argc, char **argv);
+void ParseArguments(Node<Test> &tree, int argc, char **argv);
 
 int main(int argc, char **argv) {
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
-  TestFlags flags;
-  flags.Teamcity = false;
 
   Node<Test> tree;
   BuildTestTree(tree);
 
   _ASSERTE(argc >= 1);
-  ParseArguments(tree, flags, argc, argv);
+  ParseArguments(tree, argc, argv);
 
   TestList tests;
   GetTestList(tree, tests);
 
-  TestReporter *reporter = flags.Teamcity
-                               ? (TestReporter *)new TeamcityTestReporter()
-                               : (TestReporter *)new TestReporterStdout();
-  TestRunner runner(*reporter);
+  TestReporterStdout reporter;
+  TestRunner runner(reporter);
 
   int result = runner.RunTestsIf(tests, NULL, True(), 0);
-  delete reporter;
   return result;
 }
 
-void ParseArguments(Node<Test> &tree, TestFlags &flags, int argc, char **argv) {
+void ParseArguments(Node<Test> &tree, int argc, char **argv) {
   for (int i = 1; i < argc; ++i) {
     std::string directive(argv[i]);
-
-    // parse out any special flags
-    if (directive == "--teamcity") {
-      flags.Teamcity = true;
-      continue;
-    }
 
     if (directive[0] != '-' && directive[0] != '+') {
       printf("Invalid test directive '%s'\n", directive.c_str());

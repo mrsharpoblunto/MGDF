@@ -46,6 +46,9 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
       _globalVolume(manager->GetSoundVolume()),
       _attenuationFactor(1),
       _pitch(1),
+      _bufferId(0),
+      _isActive(false),
+      _sourceId(0),
       _isLooping(false),
       _isSourceRelative(true),
       _wasPlaying(false),
@@ -78,6 +81,7 @@ void OpenALSound::Reactivate() {
       LOG("Unable to allocate buffer to audio source", LOG_ERROR);
       Deactivate();
     } else {
+      _isActive = true;
       SetSourceRelative(_isSourceRelative);
       SetVolume(_volume);
       SetPitch(_pitch);

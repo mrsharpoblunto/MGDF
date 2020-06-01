@@ -32,7 +32,7 @@ class ComObject {
 
   T *const *AsArray() const { return &_data; }
 
-  T *operator&() const { return _data; }
+  T *operator&() = delete;
 
   operator T *() const { return _data; }
 
@@ -223,15 +223,15 @@ class ComBase : public T {
  public:
   ComBase() : _references(1UL) {}
   virtual ~ComBase() { _ASSERTE(_references == 0UL); }
-  ULONG AddRef() override { return ++_references; };
-  ULONG Release() override {
+  ULONG AddRef() final { return ++_references; };
+  ULONG Release() final {
     ULONG refs = --_references;
     if (refs == 0UL) {
       delete this;
     };
     return refs;
   }
-  HRESULT QueryInterface(REFIID riid, void **ppvObject) {
+  HRESULT QueryInterface(REFIID riid, void **ppvObject) final {
     if (!ppvObject) return E_POINTER;
     if (riid == IID_IUnknown || riid == __uuidof(T)) {
       AddRef();

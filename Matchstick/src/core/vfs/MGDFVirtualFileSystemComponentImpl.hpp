@@ -26,11 +26,10 @@ class VirtualFileSystemComponent : public IVirtualFileSystemComponent {
   VirtualFileSystemComponent();
   virtual ~VirtualFileSystemComponent(){};
 
-  bool GetFile(const wchar_t *logicalPath, IFile **file) override final;
-  void GetRoot(IFile **root) override final;
-  bool Mount(const wchar_t *physicalDirectory) override final;
-  void RegisterArchiveHandler(
-      ComObject<IArchiveHandler> handler) override final;
+  bool GetFile(const wchar_t *logicalPath, IFile **file) final;
+  void GetRoot(IFile **root) final;
+  bool Mount(const wchar_t *physicalDirectory) final;
+  void RegisterArchiveHandler(ComObject<IArchiveHandler> handler) final;
 
   void Map(const std::filesystem::path &path, ComObject<IFile> parent,
            ComObject<IFile> &child);

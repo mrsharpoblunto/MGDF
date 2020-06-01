@@ -40,8 +40,8 @@ void CounterBase::AddSample(double sample) {
     _samples.pop_back();
   }
   _avg = 0;
-  for (auto sample : _samples) {
-    _avg += sample;
+  for (auto s : _samples) {
+    _avg += s;
   }
   _avg /= _samples.size();
 }
@@ -57,7 +57,9 @@ CPUPerformanceCounter::~CPUPerformanceCounter() { _timer.RemoveCounter(this); }
 CPUPerformanceCounter::CPUPerformanceCounter(const char *name,
                                              UINT32 maxSamples, Timer &timer,
                                              LARGE_INTEGER frequency)
-    : CounterBase(name, maxSamples, timer), _frequency(frequency) {}
+    : CounterBase(name, maxSamples, timer), _frequency(frequency) {
+  ZeroMemory(&_start, sizeof(LARGE_INTEGER));
+}
 
 void CPUPerformanceCounter::Begin() {
   if (_started) {
@@ -223,30 +225,24 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
   auto it = _pendingQueries.find(disjoint);
   if (it == _pendingQueries.end()) return;
 
-  bool success = true;
-
   UINT64 timeStampBegin;
   if (_context->GetData(it->second.first, &timeStampBegin, sizeof(UINT64), 0) !=
       S_OK) {
     LOG("Failed to get Begin Data for GPU Timer " << _name.c_str()
                                                   << "- Ignoring sample",
         LOG_ERROR);
-    success = false;
-  }
-
-  UINT64 timeStampEnd;
-  if (success && _context->GetData(it->second.second, &timeStampEnd,
-                                   sizeof(UINT64), 0) != S_OK) {
-    LOG("Failed to bet End Data for GPU Timer " << _name.c_str()
-                                                << "- Ignoring sample",
-        LOG_ERROR);
-    success = false;
-  }
-
-  if (success) {
-    UINT64 diff = timeStampEnd - min(timeStampBegin, timeStampEnd);
-    double value = ((double)diff / frequency);
-    AddSample(value);
+  } else {
+    UINT64 timeStampEnd;
+    if (_context->GetData(it->second.second, &timeStampEnd, sizeof(UINT64),
+                          0) != S_OK) {
+      LOG("Failed to bet End Data for GPU Timer " << _name.c_str()
+                                                  << "- Ignoring sample",
+          LOG_ERROR);
+    } else {
+      UINT64 diff = timeStampEnd - min(timeStampBegin, timeStampEnd);
+      double value = ((double)diff / frequency);
+      AddSample(value);
+    }
   }
 
   _beginQueries.push(it->second.first);
@@ -273,6 +269,7 @@ Timer::Timer(UINT32 maxSamples)
       _context(nullptr),
       _gpuTimersSupported(true) {
   _ASSERTE(maxSamples > 0);
+  ZeroMemory(&_freq, sizeof(LARGE_INTEGER));
 }
 
 HRESULT Timer::Init() {

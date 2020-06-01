@@ -221,8 +221,6 @@ void MGDFApp::DrawSystemOverlay() {
   _textStream->ClearText();
   _host->GetDebugImpl()->DumpInfo(_stats, *_textStream);
 
-  auto prevLayout = _textLayout;
-
   if (FAILED(_textStream->GenerateLayout(
           _context, _textFormat, static_cast<float>(_settings->GetScreenX()),
           static_cast<float>(_settings->GetScreenY()), &_textLayout))) {

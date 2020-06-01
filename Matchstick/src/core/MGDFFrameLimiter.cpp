@@ -36,9 +36,6 @@ MGDFError FrameLimiter::Init() {
   QueryPerformanceCounter(&_previousFrameEnd);
   _frameTime = (LONGLONG)_freq.QuadPart /
                _maxFps;  // set the frame diff in ticks for fps times per second
-  double ft = static_cast<double>(_freq.QuadPart) /
-              _maxFps;  // set the frame diff in ticks for fps times per second
-
   return MGDF_OK;
 }
 

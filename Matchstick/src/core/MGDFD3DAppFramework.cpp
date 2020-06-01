@@ -39,10 +39,14 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
       _renderThread(nullptr),
       _internalShutDown(false),
       _levels(nullptr),
+      _windowStyle(WS_OVERLAPPEDWINDOW),
+      _allowTearing(false),
       _levelsSize(0) {
   _minimized.store(false);
   _resize.store(false);
+  _runRenderThread.clear();
 
+  SecureZeroMemory(&_currentFullScreen, sizeof(FullScreenDesc));
   SecureZeroMemory(&_windowRect, sizeof(RECT));
   SecureZeroMemory(&_currentSize, sizeof(POINT));
   SecureZeroMemory(&_swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC1));
@@ -211,6 +215,7 @@ void D3DAppFramework::InitD3D() {
     size_t length = wcslen(adapterDesc.Description);
     INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
                              adapterDesc.Description, length);
+    _ASSERTE(!error);
     std::string message(videoCardDescription, videoCardDescription + length);
     message.insert(0, "Attempting to create device for adapter ");
     LOG(message, LOG_LOW);
@@ -663,8 +668,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
                       sizeof(RAWINPUTHEADER));
       LPBYTE lpb = new BYTE[dwSize];
       if (lpb != nullptr) {
-        INT32 readSize = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb,
-                                         &dwSize, sizeof(RAWINPUTHEADER));
+        UINT32 readSize = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb,
+                                          &dwSize, sizeof(RAWINPUTHEADER));
 
         if (readSize != dwSize) {
           FATALERROR(this, "GetRawInputData returned incorrect size");
@@ -721,8 +726,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // Here we reset everything based on the new window dimensions.
     case WM_EXITSIZEMOVE:
       _resizing = false;
-      if (_currentSize.x != _swapDesc.Width ||
-          _currentSize.y != _swapDesc.Height) {
+      if (_currentSize.x != static_cast<LONG>(_swapDesc.Width) ||
+          _currentSize.y != static_cast<LONG>(_swapDesc.Height)) {
         _resize.store(true);
       }
       return 0;

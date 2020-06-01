@@ -23,17 +23,15 @@ class TestModule {
   TestModule() : _testIndex(0) {}
   virtual ~TestModule(void) {}
   virtual TestModule *Update(ISimHost *host, TextManagerState *state);
-  TestModule &Step(
-      std::function<TestStep(ISimHost *host, TextManagerState *)> step);
-  TestModule &StepOnce(
-      std::function<void(ISimHost *host, TextManagerState *)> step);
+  TestModule &Step(std::function<TestStep(TextManagerState *)> step);
+  TestModule &StepOnce(std::function<void(TextManagerState *)> step);
 
  protected:
   virtual void Setup(ISimHost *host) = 0;
   virtual TestModule *NextTestModule() = 0;
 
  private:
-  std::vector<std::function<TestStep(ISimHost *, TextManagerState *)>> _steps;
+  std::vector<std::function<TestStep(TextManagerState *)>> _steps;
   int _testIndex;
 };
 

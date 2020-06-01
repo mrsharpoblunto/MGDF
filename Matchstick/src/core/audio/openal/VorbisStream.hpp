@@ -15,8 +15,7 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-#define VORBIS_BUFFER_COUNT 4
-#define FADE_DURATION 5000
+const uint32_t VORBIS_BUFFER_COUNT = 4;
 
 typedef INT32 (*LPOVCLEAR)(OggVorbis_File *vf);
 typedef long (*LPOVREAD)(OggVorbis_File *vf, char *buffer, INT32 length,
@@ -37,17 +36,17 @@ class VorbisStream : public ComBase<ISoundStream> {
                              OpenALSoundManagerComponentImpl *manager,
                              ComObject<VorbisStream> &stream);
 
-  HRESULT GetName(wchar_t *name, size_t *length) override final;
-  float GetVolume() const override final;
-  void SetVolume(float volume) override final;
-  void Stop() override final;
-  void Pause() override final;
-  HRESULT Play() override final;
-  bool IsStopped() const override final;
-  bool IsPaused() const override final;
-  bool IsPlaying() const override final;
-  UINT32 GetPosition() override final;
-  UINT32 GetLength() override final;
+  HRESULT GetName(wchar_t *name, size_t *length) final;
+  float GetVolume() const final;
+  void SetVolume(float volume) final;
+  void Stop() final;
+  void Pause() final;
+  HRESULT Play() final;
+  bool IsStopped() const final;
+  bool IsPaused() const final;
+  bool IsPlaying() const final;
+  UINT32 GetPosition() final;
+  UINT32 GetLength() final;
 
   void Update();
   void SetGlobalVolume(float globalVolume);

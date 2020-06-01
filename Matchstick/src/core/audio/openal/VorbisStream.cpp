@@ -38,10 +38,12 @@ VorbisStream::VorbisStream(IFile *source,
       _state(NOT_STARTED),
       _totalBuffersProcessed(0),
       _frequency(0),
+      _bufferSize(0),
       _format(0),
       _channels(0) {
   _ASSERTE(source);
   _ASSERTE(manager);
+  ZeroMemory(_buffers, sizeof(_buffers));
 }
 
 VorbisStream::~VorbisStream() {
@@ -304,7 +306,7 @@ void VorbisStream::SetVolume(float volume) {
 
 UINT32 VorbisStream::GetPosition() {
   double position = ov_time_tell(&_vorbisFile);
-  double bufferOffset = position - ((VORBIS_BUFFER_COUNT - 1) * 0.25);
+  double bufferOffset = position - ((VORBIS_BUFFER_COUNT - 1U) * 0.25);
   float currentOffset;
   alGetSourcef(_source, AL_SEC_OFFSET, &currentOffset);
   double actualOffset = bufferOffset + currentOffset;
@@ -460,7 +462,10 @@ int VorbisStream::ov_seek_func(void *datasource, ogg_int64_t offset,
   return -1;
 }
 
-int VorbisStream::ov_close_func(void *datasource) { return 0; }
+int VorbisStream::ov_close_func(void *datasource) {
+  (void)datasource;
+  return 0;
+}
 
 long VorbisStream::ov_tell_func(void *datasource) {
   _ASSERTE(datasource);

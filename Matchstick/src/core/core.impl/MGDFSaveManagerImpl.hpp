@@ -19,8 +19,7 @@ class PendingSave : public ComBase<IPendingSave> {
  public:
   PendingSave(ComObject<GameState> &gameState);
   virtual ~PendingSave();
-  HRESULT GetSaveDataLocation(wchar_t *location,
-                              size_t *length) const override final;
+  HRESULT GetSaveDataLocation(wchar_t *location, size_t *length) const final;
   HRESULT Init();
 
  private:
@@ -41,19 +40,20 @@ class GameState : public ComBase<IGameState> {
             const std::shared_ptr<storage::IStorageFactoryComponent> &factory);
   virtual ~GameState() {}
   virtual HRESULT GetMetadata(const char *key, char *value,
-                              size_t *length) const override final;
-  virtual HRESULT SetMetadata(const char *key,
-                              const char *value) override final;
+                              size_t *length) const final;
+  virtual HRESULT SetMetadata(const char *key, const char *value) final;
   virtual HRESULT GetSaveDataLocation(wchar_t *folder,
-                                      size_t *size) const override final;
-  virtual void GetVersion(Version *version) const override final;
-  virtual bool IsNew() const override final { return _saveName.empty(); }
+                                      size_t *size) const final;
+  virtual void GetVersion(Version *version) const final;
+  virtual bool IsNew() const final { return _saveName.empty(); }
 
   std::string GetSave() const { return _saveName; }
   void SetSave(const std::string &saveName);
 
   HRESULT Load();
   HRESULT Save() const;
+
+  HRESULT BeginSave(IPendingSave **pending) final;
 
  private:
   SaveManager *_saves;
@@ -72,11 +72,8 @@ class SaveManager : public ComBase<ISaveManager> {
   ~SaveManager() {}
   size_t GetSaveCount() const final { return _saves.size(); }
   HRESULT GetSave(size_t index, IGameState **save) final;
-  HRESULT RemoveSave(size_t index) final;
-  HRESULT UpdateSave(size_t index, IGameState *save,
-                     IPendingSave **pending) final;
+  HRESULT DeleteSave(IGameState *save) final;
   void CreateGameState(IGameState **save) final;
-  HRESULT AppendSave(IGameState *save, IPendingSave **pending) final;
 
   void AppendSave(const std::string &save) { _saves.push_back(save); }
 

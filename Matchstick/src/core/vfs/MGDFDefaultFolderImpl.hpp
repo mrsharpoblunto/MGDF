@@ -20,9 +20,9 @@ class DefaultFolderImpl : public FolderBaseImpl {
                     IFile *parent, VirtualFileSystemComponent *vfs);
   virtual ~DefaultFolderImpl(void);
 
-  bool GetChild(const wchar_t *name, IFile **child) override final;
-  size_t GetChildCount() override final;
-  void GetAllChildren(IFile **childBuffer) override final;
+  bool GetChild(const wchar_t *name, IFile **child) final;
+  size_t GetChildCount() final;
+  void GetAllChildren(IFile **childBuffer) final;
 
  private:
   VirtualFileSystemComponent *_vfs;

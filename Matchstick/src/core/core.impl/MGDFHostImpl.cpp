@@ -58,6 +58,7 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _d3dDevice(nullptr),
       _d3dContext(nullptr),
       _d2dDevice(nullptr),
+      _depthStencilBuffer(nullptr),
       _backBuffer(nullptr) {
   _shutdownQueued.store(false);
   _ASSERTE(game);
@@ -194,6 +195,7 @@ void Host::STCreateModule() {
     // IModule gets extended to determine support for new methods
 
     // init the module
+    ClearWorkingDirectory();
     if (!_module->STNew(this, Resources::Instance().WorkingDir().c_str())) {
       FATALERROR(this, "Error initialising module");
     }
@@ -263,7 +265,8 @@ void Host::RTSetDevices(HWND window, ID3D11Device *d3dDevice,
 
   if (!_d3dDevice) {
     LOG("Loading Render settings...", LOG_LOW);
-    _renderSettings->LoadPreferences(_game.As<IGame>());
+    auto game = _game.As<IGame>();
+    _renderSettings->LoadPreferences(game);
   }
 
   _d2dDevice = d2dDevice;
@@ -432,7 +435,7 @@ void Host::ClearWorkingDirectory() {
   if (exists(workingDir)) {
     remove_all(workingDir);
   } else {
-    create_directory(workingDir);
+    create_directories(workingDir);
   }
 }
 

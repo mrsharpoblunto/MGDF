@@ -101,14 +101,15 @@ HRESULT ModuleFactory::Init() {
 #endif
       bool loggedMessage = false;
 
+      HANDLE fileMapping = NULL;
       HANDLE file = CreateFileW(Resources::Instance().Module().c_str(),
                                 GENERIC_READ, FILE_SHARE_READ, NULL,
                                 OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
       if (file == INVALID_HANDLE_VALUE) goto cleanup;
 
-      HANDLE fileMapping =
+      fileMapping =
           CreateFileMapping(file, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL);
-      if (fileMapping == INVALID_HANDLE_VALUE) goto cleanup;
+      if (fileMapping == NULL) goto cleanup;
 
       LPVOID addressHeader =
           MapViewOfFileEx(fileMapping, FILE_MAP_READ, 0, 0, 0, NULL);
@@ -137,7 +138,7 @@ HRESULT ModuleFactory::Init() {
       if (file != INVALID_HANDLE_VALUE) {
         CloseHandle(file);
       }
-      if (fileMapping != INVALID_HANDLE_VALUE) {
+      if (fileMapping != NULL) {
         CloseHandle(fileMapping);
       }
     }

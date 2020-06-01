@@ -14,12 +14,11 @@ class JsonCppStorageFactoryComponent : public IStorageFactoryComponent {
   JsonCppStorageFactoryComponent() {}
   virtual ~JsonCppStorageFactoryComponent() {}
 
-  std::unique_ptr<IGameStorageHandler> CreateGameStorageHandler()
-      const override final;
+  std::unique_ptr<IGameStorageHandler> CreateGameStorageHandler() const final;
   std::unique_ptr<IGameStateStorageHandler> CreateGameStateStorageHandler(
-      const std::string &, const Version &) const override final;
+      const std::string &, const Version &) const final;
   std::unique_ptr<IPreferenceConfigStorageHandler>
-  CreatePreferenceConfigStorageHandler() const override final;
+  CreatePreferenceConfigStorageHandler() const final;
 };
 
 std::shared_ptr<IStorageFactoryComponent>

@@ -29,10 +29,10 @@ class ZipFileImplReader : public ComBase<IFileReader> {
   ZipFileImplReader(ZipFileImpl *zip, const ZipFileHeader &header,
                     const ZipFileData &data);
   virtual ~ZipFileImplReader();
-  UINT32 Read(void *buffer, UINT32 length) override final;
-  void SetPosition(INT64 pos) override final;
-  INT64 GetPosition() const override final;
-  bool EndOfFile() const override final;
+  UINT32 Read(void *buffer, UINT32 length) final;
+  void SetPosition(INT64 pos) final;
+  INT64 GetPosition() const final;
+  bool EndOfFile() const final;
   INT64 GetSize() const override { return _size; }
 
  private:
@@ -57,23 +57,19 @@ class ZipFileImpl : public FileBaseImpl {
         _reader(nullptr) {}
   virtual ~ZipFileImpl();
 
-  bool IsFolder() const override final { return false; }
-  bool IsArchive() const override final { return true; }
+  bool IsFolder() const final { return false; }
+  bool IsArchive() const final { return true; }
 
-  bool IsOpen() const override final { return _reader; }
+  bool IsOpen() const final { return _reader; }
 
-  HRESULT Open(IFileReader **reader) override final;
+  HRESULT Open(IFileReader **reader) final;
 
-  time_t GetLastWriteTime() const override final {
-    return _root->GetLastWriteTime();
-  }
-  const wchar_t *GetArchiveName() const override final {
-    return _root->GetName();
-  }
-  const wchar_t *GetPhysicalPath() const override final {
+  time_t GetLastWriteTime() const final { return _root->GetLastWriteTime(); }
+  const wchar_t *GetArchiveName() const final { return _root->GetName(); }
+  const wchar_t *GetPhysicalPath() const final {
     return _root->GetPhysicalPath();
   }
-  const wchar_t *GetName() const override final { return _header.name.c_str(); }
+  const wchar_t *GetName() const final { return _header.name.c_str(); }
 
  private:
   const IFile *_root;

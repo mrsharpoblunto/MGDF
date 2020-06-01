@@ -27,20 +27,21 @@ class FolderBaseImpl : public FileBaseImpl {
 
   virtual ~FolderBaseImpl() {}
 
-  bool FolderBaseImpl::IsOpen() const override final { return false; }
-  HRESULT FolderBaseImpl::Open(IFileReader **reader) override final {
+  bool FolderBaseImpl::IsOpen() const final { return false; }
+  HRESULT FolderBaseImpl::Open(IFileReader **reader) final {
+    (void)reader;
     return E_FAIL;
   }
 
-  bool FolderBaseImpl::IsFolder() const override final { return true; }
+  bool FolderBaseImpl::IsFolder() const final { return true; }
   bool FolderBaseImpl::IsArchive() const override { return false; }
   const wchar_t *FolderBaseImpl::GetArchiveName() const override {
     return nullptr;
   }
-  const wchar_t *FolderBaseImpl::GetPhysicalPath() const override final {
+  const wchar_t *FolderBaseImpl::GetPhysicalPath() const final {
     return _path.c_str();
   }
-  const wchar_t *GetName() const override final { return _name.c_str(); }
+  const wchar_t *GetName() const final { return _name.c_str(); }
 
  private:
   std::wstring _name, _path;

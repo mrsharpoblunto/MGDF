@@ -15,12 +15,12 @@ class JsonCppPreferenceConfigStorageHandler
   JsonCppPreferenceConfigStorageHandler() {}
   virtual ~JsonCppPreferenceConfigStorageHandler() {}
 
-  void Add(const std::string &name, const std::string &value) override final;
-  IPreferenceConfigStorageHandler::iterator begin() const override final;
-  IPreferenceConfigStorageHandler::iterator end() const override final;
+  void Add(const std::string &name, const std::string &value) final;
+  IPreferenceConfigStorageHandler::iterator begin() const final;
+  IPreferenceConfigStorageHandler::iterator end() const final;
 
-  MGDFError Load(const std::wstring &) override final;
-  void Save(const std::wstring &) const override final;
+  MGDFError Load(const std::wstring &) final;
+  void Save(const std::wstring &) const final;
 
  private:
   std::map<std::string, std::string> _preferences;

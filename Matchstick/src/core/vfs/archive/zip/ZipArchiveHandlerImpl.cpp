@@ -46,9 +46,9 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
     for (INT32 ret = unzGoToFirstFile(zip); ret == UNZ_OK;
          ret = unzGoToNextFile(zip)) {
       unz_file_info info;
-      char name[FILENAME_BUFFER];
+      char nameBuffer[FILENAME_BUFFER];
 
-      unzGetCurrentFileInfo(zip, &info, name, FILENAME_BUFFER, nullptr, 0,
+      unzGetCurrentFileInfo(zip, &info, nameBuffer, FILENAME_BUFFER, nullptr, 0,
                             nullptr, 0);
 
       // if the path is for a folder the last element will be a "" element
@@ -57,7 +57,7 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
       // of folders, and that the last element will be excluded for files which
       // is the desired behaviour
       const wchar_t *filename = nullptr;
-      std::wstring path = Resources::ToWString(name);
+      std::wstring path = Resources::ToWString(nameBuffer);
       ComObject<IFile> parentFile = CreateParentFile(path, root, &filename);
 
       if (info.uncompressed_size > 0) {
@@ -67,9 +67,10 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
         header.size = info.uncompressed_size;
         header.name = filename;  // the name is the last part of the path
 
-        static_cast<FileBaseImpl *>(parentFile.Get())
-            ->AddChild(ComObject<IFile>(
-                new ZipFileImpl(parentFile, root, zip, std::move(header))));
+        ComObject<IFile> child =
+            MakeCom<ZipFileImpl>(parentFile, root, zip, std::move(header))
+                .As<IFile>();
+        static_cast<FileBaseImpl *>(parentFile.Get())->AddChild(child);
       }
     }
     root.AddRawRef(file);

@@ -21,24 +21,23 @@ class Game : public ComBase<IGame> {
        std::shared_ptr<storage::IStorageFactoryComponent> &storageFactory);
   virtual ~Game(void) {}
 
-  const char *GetUid() const override final { return _uid.c_str(); }
+  const char *GetUid() const final { return _uid.c_str(); }
 
-  const char *GetName() const override final { return _name.c_str(); }
+  const char *GetName() const final { return _name.c_str(); }
 
-  void GetVersion(Version *version) const override final {
+  void GetVersion(Version *version) const final {
     if (version == nullptr) {
       return;
     }
     *version = _version;
   }
 
-  bool HasPreference(const char *name) const override final;
-  HRESULT GetPreference(const char *name, char *value,
-                        size_t *length) override final;
-  void SetPreference(const char *name, const char *value) override final;
-  void SetPreferences(IPreferenceSet *preferences) override final;
-  void SavePreferences() const override final;
-  void ResetPreferences() override final;
+  bool HasPreference(const char *name) const final;
+  HRESULT GetPreference(const char *name, char *value, size_t *length) final;
+  void SetPreference(const char *name, const char *value) final;
+  void SetPreferences(IPreferenceSet *preferences) final;
+  void SavePreferences() const final;
+  void ResetPreferences() final;
 
   void SavePreferences(const std::wstring &filename);
   MGDFError LoadPreferences(const std::wstring &filename);

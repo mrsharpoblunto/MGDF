@@ -24,7 +24,7 @@ class CounterBase : public ComBase<IPerformanceCounter> {
   virtual ~CounterBase();
   CounterBase(const char *name, UINT32 maxSamples, Timer &timer);
 
-  HRESULT GetName(char *name, size_t *length) const override final;
+  HRESULT GetName(char *name, size_t *length) const final;
 
   double GetAvgValue() const;
 
@@ -48,8 +48,8 @@ class CPUPerformanceCounter : public CounterBase {
   CPUPerformanceCounter(const char *name, UINT32 maxSamples, Timer &timer,
                         LARGE_INTEGER frequency);
 
-  void Begin() override final;
-  void End() override final;
+  void Begin() final;
+  void End() final;
 
  private:
   LARGE_INTEGER _start;
@@ -61,8 +61,8 @@ class GPUPerformanceCounter : public CounterBase {
   virtual ~GPUPerformanceCounter();
   GPUPerformanceCounter(const char *name, UINT32 maxSamples, Timer &timer);
 
-  void Begin() override final;
-  void End() override final;
+  void Begin() final;
+  void End() final;
 
   void ForceEnd();
   void Init(ID3D11Device *device, ID3D11DeviceContext *context,
@@ -90,10 +90,10 @@ class Timer : public ComBase<ITimer> {
   static HRESULT TryCreate(UINT32 frameSamples, ComObject<Timer> &timer);
   virtual ~Timer(void);
 
-  LARGE_INTEGER GetCurrentTimeTicks() const override final;
-  LARGE_INTEGER GetTimerFrequency() const override final;
+  LARGE_INTEGER GetCurrentTimeTicks() const final;
+  LARGE_INTEGER GetTimerFrequency() const final;
   double ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
-                                    LARGE_INTEGER oldTime) const override final;
+                                    LARGE_INTEGER oldTime) const final;
 
   HRESULT CreateCPUCounter(const char *name, IPerformanceCounter **counter);
   HRESULT CreateGPUCounter(const char *name, IPerformanceCounter **counter);

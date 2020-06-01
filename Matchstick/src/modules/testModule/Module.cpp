@@ -23,13 +23,13 @@ TestModule* TestModule::Update(ISimHost* host, TextManagerState* state) {
   if (!_steps.size()) {
     Setup(host);
   } else if (_testIndex < _steps.size()) {
-    auto result = _steps[_testIndex](host, state);
+    auto result = _steps[_testIndex](state);
     if (result == TestStep::PASSED) {
-      state->SetStatus(GREEN, "[Test Passed]");
+      state->SetStatus(TextColor::GREEN, "[Test Passed]");
       ++_testIndex;
       return _testIndex == _steps.size() ? NextTestModule() : nullptr;
     } else if (result == TestStep::FAILED) {
-      state->SetStatus(RED, "[Test Failed]");
+      state->SetStatus(TextColor::RED, "[Test Failed]");
       auto next = NextTestModule();
       if (!next) {
         _testIndex = static_cast<int>(_steps.size());
@@ -42,16 +42,14 @@ TestModule* TestModule::Update(ISimHost* host, TextManagerState* state) {
   return nullptr;
 }
 
-TestModule& TestModule::Step(
-    std::function<TestStep(ISimHost* host, TextManagerState*)> step) {
+TestModule& TestModule::Step(std::function<TestStep(TextManagerState*)> step) {
   _steps.push_back(step);
   return *this;
 }
 
-TestModule& TestModule::StepOnce(
-    std::function<void(ISimHost* host, TextManagerState*)> step) {
-  _steps.push_back([step](auto host, auto state) {
-    step(host, state);
+TestModule& TestModule::StepOnce(std::function<void(TextManagerState*)> step) {
+  _steps.push_back([step](auto state) {
+    step(state);
     return TestStep::NEXT;
   });
   return *this;
@@ -68,13 +66,15 @@ Module::Module()
 }
 
 bool Module::STNew(ISimHost* host, const wchar_t* workingFolder) {
+  (void)host;
   _workingFolder = workingFolder;
-  _testModule = std::make_unique<Test1>();
+  _testModule = std::make_unique<Test2>();
 
   return true;
 }
 
 bool Module::STUpdate(ISimHost* host, double elapsedTime) {
+  (void)elapsedTime;
   if (!_testModuleCounter) {
     host->CreateCPUCounter("Test Module", _testModuleCounter.Assign());
   }
@@ -101,6 +101,7 @@ bool Module::RTBeforeFirstDraw(MGDF::IRenderHost* host) {
 }
 
 bool Module::RTDraw(IRenderHost* host, double alpha) {
+  (void)host;
   std::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
     if (_textManagerCounter) _textManagerCounter->Begin();
@@ -112,21 +113,27 @@ bool Module::RTDraw(IRenderHost* host, double alpha) {
 }
 
 bool Module::RTBackBufferChange(IRenderHost* host) {
+  (void)host;
   _textManager->BackBufferChange();
   return true;
 }
 
 bool Module::RTBeforeBackBufferChange(IRenderHost* host) {
+  (void)host;
   _textManager->BeforeBackBufferChange();
   return true;
 }
 
 bool Module::RTBeforeDeviceReset(IRenderHost* host) {
+  (void)host;
   _textManager->BeforeDeviceReset();
   return true;
 }
 
-bool Module::RTDeviceReset(IRenderHost* host) { return true; }
+bool Module::RTDeviceReset(IRenderHost* host) {
+  (void)host;
+  return true;
+}
 
 void Module::Panic() {}
 

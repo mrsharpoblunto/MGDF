@@ -16,15 +16,11 @@ class ZipFolderImpl : public FolderBaseImpl {
       : FolderBaseImpl(name, root->GetPhysicalPath(), parent), _root(root) {}
   virtual ~ZipFolderImpl();
 
-  bool IsArchive() const override final { return true; }
+  bool IsArchive() const final { return true; }
 
-  const wchar_t *GetArchiveName() const override final {
-    return _root->GetName();
-  }
+  const wchar_t *GetArchiveName() const final { return _root->GetName(); }
 
-  time_t GetLastWriteTime() const override final {
-    return _root->GetLastWriteTime();
-  }
+  time_t GetLastWriteTime() const final { return _root->GetLastWriteTime(); }
 
  private:
   const IFile *_root;
