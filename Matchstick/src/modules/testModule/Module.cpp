@@ -68,7 +68,7 @@ Module::Module()
 bool Module::STNew(ISimHost* host, const wchar_t* workingFolder) {
   (void)host;
   _workingFolder = workingFolder;
-  _testModule = std::make_unique<Test2>();
+  _testModule = std::make_unique<Test1>();
 
   return true;
 }

@@ -38,10 +38,8 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
       _awaitingResize(false),
       _renderThread(nullptr),
       _internalShutDown(false),
-      _levels(nullptr),
       _windowStyle(WS_OVERLAPPEDWINDOW),
-      _allowTearing(false),
-      _levelsSize(0) {
+      _allowTearing(false) {
   _minimized.store(false);
   _resize.store(false);
   _runRenderThread.clear();
@@ -70,7 +68,6 @@ D3DAppFramework::~D3DAppFramework() {
   }
 
   UninitD3D();
-  delete[] _levels;
 }
 
 void D3DAppFramework::InitWindow(const std::string &caption,
@@ -141,11 +138,10 @@ void D3DAppFramework::InitWindow(const std::string &caption,
     InitRawInput();
 
     LOG("Getting compatible D3D feature levels...", LOG_LOW);
-    _levels = nullptr;
-    _levelsSize = 0;
-    if (GetCompatibleD3DFeatureLevels(_levels, &_levelsSize)) {
-      _levels = new D3D_FEATURE_LEVEL[_levelsSize];
-      GetCompatibleD3DFeatureLevels(_levels, &_levelsSize);
+    UINT32 levelsSize = 0;
+    if (GetCompatibleD3DFeatureLevels(nullptr, &levelsSize)) {
+      _levels.resize(levelsSize);
+      GetCompatibleD3DFeatureLevels(_levels.data(), &levelsSize);
     }
 
     InitD3D();
@@ -180,17 +176,17 @@ void D3DAppFramework::InitD3D() {
   createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-  IDXGIFactory *f;
-  if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)&f))) {
+  ComObject<IDXGIFactory> f;
+  if (FAILED(
+          CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)f.Assign()))) {
     FATALERROR(this, "Failed to create IDXGIFactory1.");
   }
-  if (FAILED(f->QueryInterface<IDXGIFactory2>(&_factory))) {
+  if (FAILED(f->QueryInterface<IDXGIFactory2>(_factory.Assign()))) {
     FATALERROR(this, "Failed to Query Interface for IDXGIFactory2.");
   }
-  SAFE_RELEASE(f);
 
-  IDXGIFactory5 *f5;
-  if (SUCCEEDED(_factory->QueryInterface<IDXGIFactory5>(&f5))) {
+  ComObject<IDXGIFactory5> f5;
+  if (SUCCEEDED(_factory->QueryInterface<IDXGIFactory5>(f5.Assign()))) {
     BOOL allowTearing = FALSE;
     if (FAILED(f5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
                                        &allowTearing, sizeof(allowTearing)))) {
@@ -198,10 +194,9 @@ void D3DAppFramework::InitD3D() {
     }
     _allowTearing = allowTearing == TRUE;
   }
-  SAFE_RELEASE(f5);
 
-  IDXGIAdapter1 *adapter = nullptr;
-  IDXGIAdapter1 *bestAdapter = nullptr;
+  ComObject<IDXGIAdapter1> adapter;
+  ComObject<IDXGIAdapter1> bestAdapter;
   char videoCardDescription[128];
   DXGI_ADAPTER_DESC1 adapterDesc;
   size_t stringLength;
@@ -210,7 +205,8 @@ void D3DAppFramework::InitD3D() {
   // device
   LOG("Enumerating display adapters...", LOG_LOW);
   for (INT32 i = 0;
-       _factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++) {
+       _factory->EnumAdapters1(i, adapter.Assign()) != DXGI_ERROR_NOT_FOUND;
+       i++) {
     adapter->GetDesc1(&adapterDesc);
     size_t length = wcslen(adapterDesc.Description);
     INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
@@ -221,33 +217,22 @@ void D3DAppFramework::InitD3D() {
     LOG(message, LOG_LOW);
 
     D3D_FEATURE_LEVEL featureLevel;
-    ID3D11Device *device = nullptr;
-    ID3D11DeviceContext *context = nullptr;
+    ComObject<ID3D11Device> device;
+    ComObject<ID3D11DeviceContext> context;
 
-    if (FAILED(D3D11CreateDevice(
+    if (SUCCEEDED(D3D11CreateDevice(
             adapter,
             D3D_DRIVER_TYPE_UNKNOWN,  // as we're specifying an adapter to use,
                                       // we must specify that the driver type is
                                       // unknown!!!
             0,                        // no software device
-            createDeviceFlags, _levels,
-            _levelsSize,  // default feature level array
-            D3D11_SDK_VERSION, &device, &featureLevel, &context)) ||
-        featureLevel == 0) {
-      // if we couldn't create the device, or it doesn't support one of our
-      // specified feature sets
-      SAFE_RELEASE(context);
-      SAFE_RELEASE(device);
-      SAFE_RELEASE(adapter);
-    } else {
+            createDeviceFlags, _levels.data(),
+            static_cast<UINT>(_levels.size()),  // default feature level array
+            D3D11_SDK_VERSION, device.Assign(), &featureLevel,
+            context.Assign())) &&
+        featureLevel != 0) {
       // this is the first acceptable adapter, or the best one so far
-      if (_d3dDevice == nullptr ||
-          featureLevel > _d3dDevice->GetFeatureLevel()) {
-        // clear out the previous best adapter
-        SAFE_RELEASE(_immediateContext);
-        SAFE_RELEASE(_d3dDevice);
-        SAFE_RELEASE(bestAdapter);
-
+      if (!_d3dDevice || featureLevel > _d3dDevice->GetFeatureLevel()) {
         // store the new best adapter
         bestAdapter = adapter;
         _d3dDevice = device;
@@ -256,9 +241,6 @@ void D3DAppFramework::InitD3D() {
       }
       // this adapter is no better than what we already have, so ignore it
       else {
-        SAFE_RELEASE(context);
-        SAFE_RELEASE(device);
-        SAFE_RELEASE(adapter);
         LOG("A better adapter has already been found - Ignoring", LOG_LOW);
       }
     }
@@ -281,22 +263,20 @@ void D3DAppFramework::InitD3D() {
 #endif
 
   if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, options,
-                               &_d2dFactory))) {
+                               _d2dFactory.Assign()))) {
     FATALERROR(this, "Unable to create ID2DFactory1");
   }
 
-  IDXGIDevice1 *dxgiDevice;
-  if (FAILED(_d3dDevice->QueryInterface<IDXGIDevice1>(&dxgiDevice))) {
+  ComObject<IDXGIDevice1> dxgiDevice;
+  if (FAILED(_d3dDevice->QueryInterface<IDXGIDevice1>(dxgiDevice.Assign()))) {
     FATALERROR(this, "Unable to acquire IDXGIDevice from ID3D11Device");
   }
 
-  if (FAILED(_d2dFactory->CreateDevice(dxgiDevice, &_d2dDevice))) {
+  if (FAILED(_d2dFactory->CreateDevice(dxgiDevice, _d2dDevice.Assign()))) {
     FATALERROR(this, "Unable to create ID2D1Device");
   }
 
   OnInitDevices(_window, _d3dDevice, _d2dDevice, bestAdapter);
-  SAFE_RELEASE(bestAdapter);
-  SAFE_RELEASE(dxgiDevice);
 
   RECT windowSize;
   if (!GetClientRect(_window, &windowSize)) {
@@ -320,25 +300,24 @@ void D3DAppFramework::ReinitD3D() {
 
 void D3DAppFramework::UninitD3D() {
   LOG("Cleaning up Direct3D resources...", LOG_LOW);
-  SAFE_RELEASE(_backBuffer);
-  SAFE_RELEASE(_renderTargetView);
-  SAFE_RELEASE(_depthStencilView);
-  SAFE_RELEASE(_depthStencilBuffer);
-  SAFE_RELEASE(_swapChain);
-  SAFE_RELEASE(_factory);
-  SAFE_RELEASE(_immediateContext);
-  SAFE_RELEASE(_d2dDevice);
-  SAFE_RELEASE(_d2dFactory);
+  _backBuffer = nullptr;
+  _renderTargetView = nullptr;
+  _depthStencilView = nullptr;
+  _depthStencilBuffer = nullptr;
+  _swapChain = nullptr;
+  _factory = nullptr;
+  _immediateContext = nullptr;
+  _d2dDevice = nullptr;
+  _d2dFactory = nullptr;
 
 #if defined(_DEBUG)
-  ID3D11Debug *debug;
-  bool failed = FAILED(_d3dDevice->QueryInterface<ID3D11Debug>(&debug));
+  ComObject<ID3D11Debug> debug;
+  bool failed = FAILED(_d3dDevice->QueryInterface<ID3D11Debug>(debug.Assign()));
 #endif
-  SAFE_RELEASE(_d3dDevice);
+  _d3dDevice = nullptr;
 #if defined(_DEBUG)
   if (!failed) {
     debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
-    SAFE_RELEASE(debug);
   }
 #endif
 }
@@ -361,9 +340,9 @@ void D3DAppFramework::CreateSwapChain() {
   _immediateContext->Flush();
 
   LOG("Creating swapchain...", LOG_LOW);
-  SAFE_RELEASE(_swapChain)
   if (FAILED(_factory->CreateSwapChainForHwnd(_d3dDevice, _window, &_swapDesc,
-                                              nullptr, nullptr, &_swapChain))) {
+                                              nullptr, nullptr,
+                                              _swapChain.Assign()))) {
     FATALERROR(this, "Failed to create swap chain");
   }
   if (FAILED(_factory->MakeWindowAssociation(
@@ -375,10 +354,10 @@ void D3DAppFramework::CreateSwapChain() {
 void D3DAppFramework::ClearBackBuffer() {
   // Release the old views, as they hold references to the buffers we
   // will be destroying.  Also release the old depth/stencil buffer.
-  SAFE_RELEASE(_backBuffer);
-  SAFE_RELEASE(_renderTargetView);
-  SAFE_RELEASE(_depthStencilView);
-  SAFE_RELEASE(_depthStencilBuffer);
+  _backBuffer = nullptr;
+  _renderTargetView = nullptr;
+  _depthStencilView = nullptr;
+  _depthStencilBuffer = nullptr;
 }
 
 void D3DAppFramework::ResizeBackBuffer() {
@@ -407,11 +386,11 @@ void D3DAppFramework::ResizeBackBuffer() {
   }
 
   if (FAILED(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-                                   reinterpret_cast<void **>(&_backBuffer)))) {
+                                   (void **)_backBuffer.Assign()))) {
     FATALERROR(this, "Failed to get swapchain buffer");
   }
   if (FAILED(_d3dDevice->CreateRenderTargetView(_backBuffer, 0,
-                                                &_renderTargetView))) {
+                                                _renderTargetView.Assign()))) {
     FATALERROR(this, "Failed to create render target view from backbuffer");
   }
 
@@ -430,18 +409,18 @@ void D3DAppFramework::ResizeBackBuffer() {
   depthStencilDesc.MiscFlags = 0;
 
   if (FAILED(_d3dDevice->CreateTexture2D(&depthStencilDesc, 0,
-                                         &_depthStencilBuffer))) {
+                                         _depthStencilBuffer.Assign()))) {
     FATALERROR(this, "Failed to create texture from depth stencil description");
   }
 
   if (FAILED(_d3dDevice->CreateDepthStencilView(_depthStencilBuffer, 0,
-                                                &_depthStencilView))) {
+                                                _depthStencilView.Assign()))) {
     FATALERROR(this,
                "Failed to create depthStencilView from depth stencil buffer");
   }
 
   // Bind the render target view and depth/stencil view to the pipeline.
-  _immediateContext->OMSetRenderTargets(1, &_renderTargetView,
+  _immediateContext->OMSetRenderTargets(1, _renderTargetView.AsArray(),
                                         _depthStencilView);
 
   // Set the viewport transform.
@@ -479,7 +458,7 @@ INT32 D3DAppFramework::Run() {
   });
 
   // run the renderer in its own thread
-  _renderThread = new std::thread([this]() {
+  _renderThread = std::make_unique<std::thread>([this]() {
     LOG("Starting render thread...", LOG_LOW);
     OnBeforeFirstDraw();
 
@@ -614,7 +593,7 @@ INT32 D3DAppFramework::Run() {
                    _swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL) {
           // using flip modes means we need to re-bind the backbuffer to a
           // render target after each present
-          _immediateContext->OMSetRenderTargets(1, &_renderTargetView,
+          _immediateContext->OMSetRenderTargets(1, _renderTargetView.AsArray(),
                                                 _depthStencilView);
         }
       }
@@ -638,7 +617,6 @@ INT32 D3DAppFramework::Run() {
   runSimThread.clear();
   simThread.join();
 
-  delete _renderThread;
   return (int)msg.wParam;
 }
 
@@ -751,9 +729,11 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // caption bar menu, when the host schedules a shutdown
     case WM_CLOSE:
       if (_internalShutDown) {
-        // make sure we stop rendering before disposing of the window
-        _runRenderThread.clear();
-        _renderThread->join();
+        if (_renderThread) {
+          // make sure we stop rendering before disposing of the window
+          _runRenderThread.clear();
+          _renderThread->join();
+        }
         // if we triggered this, then shut down
         DestroyWindow(_window);
       } else {

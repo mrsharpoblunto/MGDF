@@ -4,6 +4,7 @@
 #include <d3d11_1.h>
 #include <dxgi1_5.h>
 
+#include <MGDF/ComObject.hpp>
 #include <atomic>
 #include <thread>
 
@@ -69,24 +70,23 @@ class D3DAppFramework {
   bool AllowTearing();
 
   // Application, Windows, and Direct3D data members.
-  ID3D11Device *_d3dDevice;
-  ID3D11DeviceContext *_immediateContext;
+  ComObject<ID3D11Device> _d3dDevice;
+  ComObject<ID3D11DeviceContext> _immediateContext;
 
-  ID2D1Device *_d2dDevice;
-  ID2D1Factory1 *_d2dFactory;
+  ComObject<ID2D1Device> _d2dDevice;
+  ComObject<ID2D1Factory1> _d2dFactory;
 
-  IDXGISwapChain1 *_swapChain;
-  IDXGIFactory2 *_factory;
+  ComObject<IDXGISwapChain1> _swapChain;
+  ComObject<IDXGIFactory2> _factory;
 
-  ID3D11RenderTargetView *_renderTargetView;
-  ID3D11DepthStencilView *_depthStencilView;
-  ID3D11Texture2D *_depthStencilBuffer;
-  ID3D11Texture2D *_backBuffer;
+  ComObject<ID3D11RenderTargetView> _renderTargetView;
+  ComObject<ID3D11DepthStencilView> _depthStencilView;
+  ComObject<ID3D11Texture2D> _depthStencilBuffer;
+  ComObject<ID3D11Texture2D> _backBuffer;
 
   DXGI_SWAP_CHAIN_DESC1 _swapDesc;
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC _fullscreenSwapDesc;
-  D3D_FEATURE_LEVEL *_levels;
-  UINT32 _levelsSize;
+  std::vector<D3D_FEATURE_LEVEL> _levels;
 
   HINSTANCE _applicationInstance;
   HWND _window;
@@ -97,7 +97,7 @@ class D3DAppFramework {
   std::atomic_bool _resize, _minimized;
   std::atomic_flag _runRenderThread;
 
-  std::thread *_renderThread;
+  std::unique_ptr<std::thread> _renderThread;
 
   bool _maximized;
   bool _resizing;
