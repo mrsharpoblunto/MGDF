@@ -32,21 +32,5 @@
     obj->FatalError(ss.str().c_str(), ms.str().c_str()); \
   }
 
-#define TIMER_SAMPLES 60
-#define GPU_TIMER_BUFFER 8
-
-// some useful macro's to make deleting pointers easier
-#ifndef SAFE_DELETE
-#define SAFE_DELETE(p) \
-  {                    \
-    delete (p);        \
-    (p) = nullptr;     \
-  }
-#endif
-#ifndef SAFE_DELETE_ARRAY
-#define SAFE_DELETE_ARRAY(p) \
-  {                          \
-    delete[](p);             \
-    (p) = nullptr;           \
-  }
-#endif
+constexpr auto TIMER_SAMPLES = 60;
+constexpr auto GPU_TIMER_BUFFER = 8;
