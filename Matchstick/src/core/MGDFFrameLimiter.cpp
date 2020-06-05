@@ -14,12 +14,12 @@
 namespace MGDF {
 namespace core {
 
-MGDFError FrameLimiter::TryCreate(UINT32 maxFps, FrameLimiter **limiter) {
-  *limiter = new FrameLimiter(maxFps);
-  const MGDFError error = (*limiter)->Init();
-  if (MGDF_OK != error) {
-    delete *limiter;
-    *limiter = nullptr;
+MGDFError FrameLimiter::TryCreate(UINT32 maxFps,
+                                  std::unique_ptr<FrameLimiter> &limiter) {
+  auto l = std::make_unique<FrameLimiter>(maxFps);
+  const MGDFError error = l->Init();
+  if (MGDF_OK == error) {
+    limiter.swap(l);
   }
   return error;
 }

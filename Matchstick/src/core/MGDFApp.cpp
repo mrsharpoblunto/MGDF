@@ -44,13 +44,13 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     FATALERROR(_host, PreferenceConstants::SIM_FPS << " is not an integer");
   }
 
-  if (MGDF_OK != FrameLimiter::TryCreate(simulationFps, &_simFrameLimiter)) {
+  if (MGDF_OK != FrameLimiter::TryCreate(simulationFps, _simFrameLimiter)) {
     FATALERROR(_host, "Unable to create sim frame limiter");
   }
 
   if (GetPreference(_game, PreferenceConstants::RENDER_FPS, pref)) {
     if (MGDF_OK != FrameLimiter::TryCreate(FromString<UINT32>(pref),
-                                           &_renderFrameLimiter)) {
+                                           _renderFrameLimiter)) {
       FATALERROR(_host, "Unable to create render frame limiter");
     }
   }
@@ -70,7 +70,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     FATALERROR(_host, "Unable to create IDWriteFactory");
   }
 
-  _textStream = new TextStream(_dWriteFactory);
+  _textStream = std::make_unique<TextStream>(_dWriteFactory);
 
   ComObject<IDWriteFontCollection> fontCollection;
   if (FAILED(
@@ -86,11 +86,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
   }
 }
 
-MGDFApp::~MGDFApp() {
-  delete _simFrameLimiter;
-  delete _renderFrameLimiter;
-  delete _textStream;
-}
+MGDFApp::~MGDFApp() {}
 
 UINT32 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                               UINT32 *featureLevelsSize) {

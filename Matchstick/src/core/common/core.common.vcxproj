@@ -105,7 +105,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="MGDFComponents.hpp" />
-    <ClInclude Include="MGDFListImpl.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />
     <ClInclude Include="MGDFPreferenceConstants.hpp" />

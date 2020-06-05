@@ -64,11 +64,9 @@ class D3DAppFramework {
   void ReinitD3D();
   void UninitD3D();
   void InitRawInput();
-  void ToggleFullScreenMode();
   void CreateSwapChain();
   void ClearBackBuffer();
   void ResizeBackBuffer();
-  void ResetDevice();
   bool AllowTearing();
 
   // Application, Windows, and Direct3D data members.

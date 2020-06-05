@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../common/MGDFListImpl.hpp"
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundSystem.hpp"
 

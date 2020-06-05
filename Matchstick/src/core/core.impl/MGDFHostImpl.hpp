@@ -9,7 +9,6 @@
 #include <sstream>
 
 #include "../audio/MGDFSoundManagerComponentImpl.hpp"
-#include "../common/MGDFListImpl.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
@@ -26,8 +25,6 @@
 
 namespace MGDF {
 namespace core {
-
-typedef ListImpl<IStringList, const char *> StringList;
 
 struct HostComponents {
   std::shared_ptr<storage::IStorageFactoryComponent> Storage;

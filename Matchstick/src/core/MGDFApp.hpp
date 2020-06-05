@@ -57,8 +57,8 @@ class MGDFApp : public D3DAppFramework {
   bool _initialized;
 
   Host *_host;
-  FrameLimiter *_simFrameLimiter;
-  FrameLimiter *_renderFrameLimiter;
+  std::unique_ptr<FrameLimiter> _simFrameLimiter;
+  std::unique_ptr<FrameLimiter> _renderFrameLimiter;
   ComObject<IGame> _game;
   ComObject<ITimer> _timer;
   ComObject<RenderSettingsManager> _settings;
@@ -75,7 +75,7 @@ class MGDFApp : public D3DAppFramework {
   ComObject<ID2D1SolidColorBrush> _blackBrush;
   ComObject<IDWriteFactory1> _dWriteFactory;
   ComObject<IDWriteTextFormat> _textFormat;
-  TextStream *_textStream;
+  std::unique_ptr<TextStream> _textStream;
   ComObject<IDWriteTextLayout> _textLayout;
   DWRITE_TEXT_METRICS _textMetrics;
 };

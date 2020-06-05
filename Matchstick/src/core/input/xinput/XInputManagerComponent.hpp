@@ -4,8 +4,8 @@
 #include <mutex>
 #include <set>
 #include <thread>
+#include <vector>
 
-#include "../../common/MGDFListImpl.hpp"
 #include "../MGDFInputManagerComponent.hpp"
 #include "XInputGamepad.hpp"
 

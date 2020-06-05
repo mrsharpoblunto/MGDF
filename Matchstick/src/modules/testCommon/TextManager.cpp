@@ -64,15 +64,7 @@ void TextManager::BeforeDeviceReset() {
   _immediateContext.Clear();
 }
 
-TextManager::TextManager(IRenderHost *renderHost)
-    : _renderHost(renderHost),
-      _whiteBrush(nullptr),
-      _redBrush(nullptr),
-      _greenBrush(nullptr),
-      _d2dContext(nullptr),
-      _dWriteFactory(nullptr),
-      _textFormat(nullptr),
-      _immediateContext(nullptr) {
+TextManager::TextManager(IRenderHost *renderHost) : _renderHost(renderHost) {
   _renderHost->GetRenderSettings(_settings.Assign());
 }
 

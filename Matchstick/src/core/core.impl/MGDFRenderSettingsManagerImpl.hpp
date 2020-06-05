@@ -11,7 +11,6 @@
 #include <mutex>
 #include <vector>
 
-#include "../common/MGDFListImpl.hpp"
 #include "MGDFGameImpl.hpp"
 
 namespace MGDF {
