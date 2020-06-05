@@ -19,8 +19,8 @@ class Test2 : public TestModule {
   virtual ~Test2(void);
   Test2();
 
-  void Setup(ISimHost *host) override final;
-  TestModule *NextTestModule() override final;
+  void Setup(ISimHost *host) final;
+  TestModule *NextTestModule() final;
 
  private:
   INT32 _x, _y;

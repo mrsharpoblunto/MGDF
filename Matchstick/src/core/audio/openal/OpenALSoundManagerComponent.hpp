@@ -20,7 +20,7 @@ namespace openal_audio {
 
 typedef struct {
   std::wstring BufferSource;
-  INT32 References;
+  INT32 References = 0;
 } SharedBuffer;
 
 class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
@@ -29,9 +29,11 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   friend class VorbisStream;
 
  public:
-  static ComObject<ISoundManagerComponent> CreateOpenALSoundManagerComponent();
+  static bool CreateOpenALSoundManagerComponent(
+      ComObject<ISoundManagerComponent> &comp);
 
   virtual ~OpenALSoundManagerComponentImpl();
+  OpenALSoundManagerComponentImpl();
   void Update() final;
 
   SoundPosition *GetListenerPosition(SoundPosition *position) const final;
@@ -68,7 +70,6 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   void RemoveSoundBuffer(ALuint bufferId);
 
  private:
-  OpenALSoundManagerComponentImpl();
   MGDFError Init() final;
 
   void DeactivateSound(INT32 priority);

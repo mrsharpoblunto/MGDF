@@ -82,7 +82,7 @@ MGDFError ParameterManager::ParseParameters(
       }
 
       // erase trailing whitespace
-      std::string::size_type pos = value.find_last_not_of(' ');
+      const std::string::size_type pos = value.find_last_not_of(' ');
       if (pos != std::string::npos) {
         value.erase(pos + 1);
       }

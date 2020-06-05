@@ -14,7 +14,7 @@ class ZipFolderImpl : public FolderBaseImpl {
  public:
   ZipFolderImpl(const wchar_t *name, IFile *parent, const IFile *root)
       : FolderBaseImpl(name, root->GetPhysicalPath(), parent), _root(root) {}
-  virtual ~ZipFolderImpl();
+  ~ZipFolderImpl();
 
   bool IsArchive() const final { return true; }
 

@@ -118,9 +118,8 @@ namespace MGDF.GamesManager.Common.Framework
               Logger.Current.Write(LogInfoLevel.Info, "Getting current process handle...");
               Process p = Process.GetCurrentProcess();
               IntPtr handle = p.Handle;
-              bool isWow64;
               Logger.Current.Write(LogInfoLevel.Info, "Invoking IsWow64Process Check...");
-              bool success = IsWow64Process(handle, out isWow64);
+              bool success = IsWow64Process(handle, out bool isWow64);
               if (success)
               {
                 if (isWow64)

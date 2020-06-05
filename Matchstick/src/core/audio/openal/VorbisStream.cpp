@@ -30,7 +30,6 @@ LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks = nullptr;
 VorbisStream::VorbisStream(IFile *source,
                            OpenALSoundManagerComponentImpl *manager)
     : _soundManager(manager),
-      _globalVolume(manager->GetStreamVolume()),
       _volume(1.0),
       _dataSource(ComObject(source, true)),
       _name(source->GetName()),
@@ -41,8 +40,9 @@ VorbisStream::VorbisStream(IFile *source,
       _bufferSize(0),
       _format(0),
       _channels(0) {
-  _ASSERTE(source);
   _ASSERTE(manager);
+  _globalVolume = manager->GetStreamVolume();
+  _ASSERTE(source);
   ZeroMemory(_buffers, sizeof(_buffers));
 }
 
@@ -55,10 +55,10 @@ VorbisStream::~VorbisStream() {
 MGDFError VorbisStream::TryCreate(IFile *source,
                                   OpenALSoundManagerComponentImpl *manager,
                                   ComObject<VorbisStream> &stream) {
-  stream = new VorbisStream(source, manager);
-  MGDFError error = stream->InitStream();
+  stream = MakeCom<VorbisStream>(source, manager);
+  const MGDFError error = stream->InitStream();
   if (MGDF_OK != error) {
-    stream = nullptr;
+    stream.Clear();
   }
   return error;
 }
@@ -92,7 +92,7 @@ MGDFError VorbisStream::InitStream() {
   callbacks.close_func = &VorbisStream::ov_close_func;
   callbacks.tell_func = &VorbisStream::ov_tell_func;
 
-  INT32 retVal =
+  const INT32 retVal =
       fn_ov_open_callbacks(_reader.Get(), &_vorbisFile, nullptr, 0, callbacks);
 
   // Create an OggVorbis file stream
@@ -153,7 +153,7 @@ MGDFError VorbisStream::InitStream() {
   }
 
   // Allocate a buffer to be used to store decoded data for all Buffers
-  _decodeBuffer = new char[_bufferSize];
+  _decodeBuffer.resize(_bufferSize);
   _initLevel++;  // decode buffer allocated
 
   alGenBuffers(VORBIS_BUFFER_COUNT, _buffers);
@@ -169,12 +169,11 @@ MGDFError VorbisStream::InitStream() {
   _initLevel++;  // sound source created
 
   // Fill all the Buffers with decoded audio data from the OggVorbis file
-  INT32 bytesWritten;
   for (INT32 i = 0; i < VORBIS_BUFFER_COUNT; ++i) {
-    bytesWritten =
-        DecodeOgg(&_vorbisFile, _decodeBuffer, _bufferSize, _channels);
+    const INT32 bytesWritten =
+        DecodeOgg(&_vorbisFile, _decodeBuffer.data(), _bufferSize, _channels);
     if (bytesWritten) {
-      alBufferData(_buffers[i], _format, _decodeBuffer, bytesWritten,
+      alBufferData(_buffers[i], _format, _decodeBuffer.data(), bytesWritten,
                    _frequency);
       alSourceQueueBuffers(_source, 1, &_buffers[i]);
     }
@@ -196,8 +195,8 @@ void VorbisStream::UninitStream() {
     alDeleteBuffers(VORBIS_BUFFER_COUNT, _buffers);
   }
 
-  if (_initLevel >= 3 && _decodeBuffer != nullptr) {
-    delete[] _decodeBuffer;
+  if (_initLevel >= 3) {
+    _decodeBuffer.clear();
   }
 
   if (_initLevel >= 2) {  // Close OggVorbis stream
@@ -206,7 +205,7 @@ void VorbisStream::UninitStream() {
 
   // close the datasource
   if (_initLevel >= 1 && _reader) {
-    _reader = nullptr;
+    _reader.Clear();
   }
   _initLevel = 0;
 }
@@ -266,7 +265,7 @@ HRESULT VorbisStream::Play() {
     alSourcePlay(_source);
   } else if (_state == STOP) {
     UninitStream();
-    MGDFError error = InitStream();
+    const MGDFError error = InitStream();
     if (MGDF_OK != error) {
       return E_FAIL;
     }
@@ -305,11 +304,11 @@ void VorbisStream::SetVolume(float volume) {
 }
 
 UINT32 VorbisStream::GetPosition() {
-  double position = ov_time_tell(&_vorbisFile);
-  double bufferOffset = position - ((VORBIS_BUFFER_COUNT - 1U) * 0.25);
+  const double position = ov_time_tell(&_vorbisFile);
+  const double bufferOffset = position - ((VORBIS_BUFFER_COUNT - 1U) * 0.25);
   float currentOffset;
   alGetSourcef(_source, AL_SEC_OFFSET, &currentOffset);
-  double actualOffset = bufferOffset + currentOffset;
+  const double actualOffset = bufferOffset + currentOffset;
   return (UINT32)actualOffset * 1000;
 }
 
@@ -329,7 +328,6 @@ void VorbisStream::Update() {
     // For each processed buffer, remove it from the Source Queue, read next
     // chunk of audio data from disk, fill buffer with new data, and add it to
     // the Source Queue
-    INT32 bytesWritten;
     while (buffersProcessed) {
       // Remove the Buffer from the Queue.  (buffer contains the Buffer ID for
       // the unqueued Buffer)
@@ -337,10 +335,11 @@ void VorbisStream::Update() {
       alSourceUnqueueBuffers(_source, 1, &buffer);
 
       // Read more audio data (if there is any)
-      bytesWritten =
-          DecodeOgg(&_vorbisFile, _decodeBuffer, _bufferSize, _channels);
+      const INT32 bytesWritten =
+          DecodeOgg(&_vorbisFile, _decodeBuffer.data(), _bufferSize, _channels);
       if (bytesWritten) {
-        alBufferData(buffer, _format, _decodeBuffer, bytesWritten, _frequency);
+        alBufferData(buffer, _format, _decodeBuffer.data(), bytesWritten,
+                     _frequency);
         alSourceQueueBuffers(_source, 1, &buffer);
       }
 
@@ -373,9 +372,9 @@ unsigned long VorbisStream::DecodeOgg(OggVorbis_File *vorbisFile,
                                       unsigned long channels) {
   _ASSERTE(vorbisFile);
 
-  INT32 currentSection;
-  long decodeSize;
-  short *samples;
+  INT32 currentSection = 0;
+  long decodeSize = 0;
+  short *samples = nullptr;
 
   UINT32 bytesDone = 0;
   while (true) {
@@ -417,7 +416,7 @@ size_t VorbisStream::ov_read_func(void *ptr, size_t size, size_t nmemb,
   _ASSERTE(ptr);
   _ASSERTE(datasource);
 
-  IFileReader *reader = reinterpret_cast<IFileReader *>(datasource);
+  IFileReader *reader = static_cast<IFileReader *>(datasource);
   _ASSERTE(reader);
 
   if ((size * nmemb) > UINT32_MAX)
@@ -428,11 +427,11 @@ size_t VorbisStream::ov_read_func(void *ptr, size_t size, size_t nmemb,
 int VorbisStream::ov_seek_func(void *datasource, ogg_int64_t offset,
                                int whence) {
   _ASSERTE(datasource);
-  IFileReader *reader = reinterpret_cast<IFileReader *>(datasource);
+  IFileReader *reader = static_cast<IFileReader *>(datasource);
   _ASSERTE(reader);
 
   if (offset > ULONG_MAX) return -1;
-  unsigned long lOffset = (unsigned long)offset;
+  const unsigned long lOffset = (unsigned long)offset;
   switch (whence) {
     case SEEK_SET:
       if (offset > reader->GetSize()) {
@@ -469,10 +468,10 @@ int VorbisStream::ov_close_func(void *datasource) {
 
 long VorbisStream::ov_tell_func(void *datasource) {
   _ASSERTE(datasource);
-  IFileReader *reader = reinterpret_cast<IFileReader *>(datasource);
+  const IFileReader *reader = static_cast<IFileReader *>(datasource);
   _ASSERTE(reader);
 
-  INT64 pos = reader->GetPosition();
+  const INT64 pos = reader->GetPosition();
   if (pos > LONG_MAX) return LONG_MAX;
   return static_cast<long>(reader->GetPosition());
 }

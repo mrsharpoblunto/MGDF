@@ -65,9 +65,9 @@ namespace MGDF.GamesManager.Model
     private const int BCM_SETSHIELD = (BCM_FIRST + 0x000C);
     private const string uacRegistryKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
     private const string uacRegistryValue = "EnableLUA";
-    private static uint STANDARD_RIGHTS_READ = 0x00020000;
-    private static uint TOKEN_QUERY = 0x0008;
-    private static uint TOKEN_READ = (STANDARD_RIGHTS_READ | TOKEN_QUERY);
+    private static readonly uint STANDARD_RIGHTS_READ = 0x00020000;
+    private static readonly uint TOKEN_QUERY = 0x0008;
+    private static readonly uint TOKEN_READ = (STANDARD_RIGHTS_READ | TOKEN_QUERY);
 
     public static bool IsVistaOrHigher()
     {
@@ -90,8 +90,7 @@ namespace MGDF.GamesManager.Model
     {
       if (IsVistaOrHigher() && IsUacEnabled())
       {
-        IntPtr tokenHandle;
-        if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TOKEN_READ, out tokenHandle))
+        if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TOKEN_READ, out IntPtr tokenHandle))
         {
           throw new ApplicationException("Could not get process token.  Win32 Error Code: " + Marshal.GetLastWin32Error());
         }
@@ -99,10 +98,8 @@ namespace MGDF.GamesManager.Model
         TOKEN_ELEVATION_TYPE elevationResult = TOKEN_ELEVATION_TYPE.TokenElevationTypeDefault;
 
         int elevationResultSize = Marshal.SizeOf((int)elevationResult);
-        uint returnedSize = 0;
         IntPtr elevationTypePtr = Marshal.AllocHGlobal(elevationResultSize);
-
-        bool success = GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenElevationType, elevationTypePtr, (uint)elevationResultSize, out returnedSize);
+        bool success = GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenElevationType, elevationTypePtr, (uint)elevationResultSize, out _);
         if (success)
         {
           elevationResult = (TOKEN_ELEVATION_TYPE)Marshal.ReadInt32(elevationTypePtr);
@@ -138,11 +135,13 @@ namespace MGDF.GamesManager.Model
     /// </summary>
     public static void RestartElevated(string arguments)
     {
-      ProcessStartInfo startInfo = new ProcessStartInfo();
-      startInfo.UseShellExecute = true;
-      startInfo.WorkingDirectory = Environment.CurrentDirectory;
-      startInfo.FileName = Application.ExecutablePath;
-      startInfo.Arguments = arguments;
+      ProcessStartInfo startInfo = new ProcessStartInfo
+      {
+        UseShellExecute = true,
+        WorkingDirectory = Environment.CurrentDirectory,
+        FileName = Application.ExecutablePath,
+        Arguments = arguments
+      };
       if (IsVistaOrHigher()) startInfo.Verb = "runas";
       try
       {

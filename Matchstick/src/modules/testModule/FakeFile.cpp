@@ -50,7 +50,7 @@ ULONG FakeFile::Release() {
       _isOpen = false;
     }
   }
-  ULONG refs = --_references;
+  const ULONG refs = --_references;
   if (refs == 0UL) {
     delete this;
   };
@@ -148,8 +148,8 @@ HRESULT FakeFile::Open(IFileReader **reader) {
 
 UINT32 FakeFile::Read(void *buffer, UINT32 length) {
   if (_isOpen) {
-    INT32 oldPosition = _position;
-    if ((static_cast<UINT32>(oldPosition) + length) > _data.size())
+    const INT32 oldPosition = _position;
+    if ((static_cast<size_t>(oldPosition) + length) > _data.size())
       length = static_cast<INT32>(_data.size()) - oldPosition;
     memcpy(buffer, &((char *)_data.data())[oldPosition], length);
     _position = oldPosition + static_cast<INT32>(length);

@@ -40,7 +40,9 @@ namespace MGDF.GamesManager.Model
 
     // Nested Types
     [Flags]
+#pragma warning disable IDE1006 // Naming Styles
     public enum uFlags
+#pragma warning restore IDE1006 // Naming Styles
     {
       SHCNF_DWORD
     }

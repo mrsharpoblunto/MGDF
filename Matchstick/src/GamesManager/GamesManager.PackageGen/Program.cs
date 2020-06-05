@@ -74,8 +74,7 @@ namespace MGDF.GamesManager.PackageGen
             return 1;
           }
 
-          GameInstall oldInstall;
-          if (!ValidateNonUpdateInstaller(args[1], out oldInstall)) return 1;
+          if (!ValidateNonUpdateInstaller(args[1], out GameInstall oldInstall)) return 1;
 
           if (!File.Exists(args[2]))
           {
@@ -83,8 +82,7 @@ namespace MGDF.GamesManager.PackageGen
             return 1;
           }
 
-          GameInstall newInstall;
-          if (!ValidateNonUpdateInstaller(args[2], out newInstall)) return 1;
+          if (!ValidateNonUpdateInstaller(args[2], out GameInstall newInstall)) return 1;
 
           var details = new UpdateDetails
           {

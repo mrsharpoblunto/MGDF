@@ -30,12 +30,11 @@ Version VersionHelper::Create(const std::string &version) {
   Version result;
   result.Major = result.Minor = result.Build = result.Revision = -1;
 
-  char *copy = new char[version.size() + 1];
-  strcpy_s(copy, version.size() + 1, version.c_str());
+  std::string copy(version);
 
   char *context = 0;
 
-  char *ptr = strtok_s(copy, ".", &context);
+  char *ptr = strtok_s(copy.data(), ".", &context);
   _ASSERTE(ptr);
   result.Major = atoi(ptr);
 
@@ -53,7 +52,6 @@ Version VersionHelper::Create(const std::string &version) {
     }
   }
 
-  delete[] copy;
   return result;
 }
 

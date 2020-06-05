@@ -82,7 +82,8 @@ void CPUPerformanceCounter::End() {
     LARGE_INTEGER newTime;
     QueryPerformanceCounter(&newTime);
 
-    LONGLONG diff = newTime.QuadPart - min(_start.QuadPart, newTime.QuadPart);
+    const LONGLONG diff =
+        newTime.QuadPart - min(_start.QuadPart, newTime.QuadPart);
 
     AddSample((double)diff / _frequency.QuadPart);
   }
@@ -123,10 +124,9 @@ void GPUPerformanceCounter::Begin() {
       _ASSERTE(_pendingQueries.find(_currentDisjoint) == _pendingQueries.end());
 
       // map the begin and end queries to the current frames disjoint query
-      _pendingQueries.insert(
-          std::pair<ID3D11Query *, std::pair<ID3D11Query *, ID3D11Query *>>(
-              _currentDisjoint, std::pair<ID3D11Query *, ID3D11Query *>(
-                                    _beginQueries.top(), _endQueries.top())));
+      _pendingQueries.insert(std::make_pair(
+          _currentDisjoint,
+          std::make_pair(_beginQueries.top(), _endQueries.top())));
 
       _context->End(_beginQueries.top());
       _beginQueries.pop();
@@ -170,13 +170,12 @@ void GPUPerformanceCounter::ForceEnd() {
   }
 }
 
-void GPUPerformanceCounter::Init(ID3D11Device *device,
-                                 ID3D11DeviceContext *context,
+void GPUPerformanceCounter::Init(const ComObject<ID3D11Device> &device,
+                                 const ComObject<ID3D11DeviceContext> &context,
                                  UINT32 bufferSize) {
   _ASSERTE(device);
   _ASSERTE(context);
   _ASSERTE(bufferSize > 0);
-  _context = context;
 
   // create a pool of queries to reuse
   for (UINT32 i = 0; i < bufferSize; ++i) {
@@ -184,28 +183,24 @@ void GPUPerformanceCounter::Init(ID3D11Device *device,
     desc.Query = D3D11_QUERY_TIMESTAMP;
     desc.MiscFlags = 0;
 
-    ID3D11Query *query;
-    device->CreateQuery(&desc, &query);
-    _beginQueries.push(query);
-    device->CreateQuery(&desc, &query);
-    _endQueries.push(query);
+    if (FAILED(device->CreateQuery(&desc, _beginQueries.emplace().Assign())) ||
+        FAILED(device->CreateQuery(&desc, _endQueries.emplace().Assign()))) {
+      LOG("GPU timing queries unsupported", LOG_ERROR);
+      Reset();
+      break;
+    }
   }
+
+  _context = context;
 }
 
 void GPUPerformanceCounter::Reset() {
+  _context.Clear();
   while (!_beginQueries.empty()) {
-    auto counter = _beginQueries.top();
     _beginQueries.pop();
-    SAFE_RELEASE(counter);
   }
   while (!_endQueries.empty()) {
-    auto counter = _endQueries.top();
     _endQueries.pop();
-    SAFE_RELEASE(counter);
-  }
-  for (auto pending : _pendingQueries) {
-    SAFE_RELEASE(pending.second.first);
-    SAFE_RELEASE(pending.second.second);
   }
   _pendingQueries.clear();
   _currentDisjoint = nullptr;
@@ -225,22 +220,22 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
   auto it = _pendingQueries.find(disjoint);
   if (it == _pendingQueries.end()) return;
 
-  UINT64 timeStampBegin;
+  UINT64 timeStampBegin = 0;
   if (_context->GetData(it->second.first, &timeStampBegin, sizeof(UINT64), 0) !=
       S_OK) {
     LOG("Failed to get Begin Data for GPU Timer " << _name.c_str()
                                                   << "- Ignoring sample",
         LOG_ERROR);
   } else {
-    UINT64 timeStampEnd;
+    UINT64 timeStampEnd = 0;
     if (_context->GetData(it->second.second, &timeStampEnd, sizeof(UINT64),
                           0) != S_OK) {
       LOG("Failed to bet End Data for GPU Timer " << _name.c_str()
                                                   << "- Ignoring sample",
           LOG_ERROR);
     } else {
-      UINT64 diff = timeStampEnd - min(timeStampBegin, timeStampEnd);
-      double value = ((double)diff / frequency);
+      const UINT64 diff = timeStampEnd - min(timeStampBegin, timeStampEnd);
+      const double value = ((double)diff / frequency);
       AddSample(value);
     }
   }
@@ -253,13 +248,12 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
 /** -------------- Timer ------------*/
 
 HRESULT Timer::TryCreate(UINT32 maxSamples, ComObject<Timer> &timer) {
-  ComObject<Timer> t(new Timer(maxSamples));
-  if (FAILED(t->Init())) {
-    timer = nullptr;
-  } else {
-    timer = t;
+  timer = MakeCom<Timer>(maxSamples);
+  const HRESULT result = timer->Init();
+  if (FAILED(result)) {
+    timer.Clear();
   }
-  return S_OK;
+  return result;
 }
 
 Timer::Timer(UINT32 maxSamples)
@@ -306,15 +300,16 @@ void Timer::ResetGPUTimers() {
   }
 }
 
-void Timer::InitFromDevice(ID3D11Device *device, UINT32 bufferSize) {
+void Timer::BeforeDeviceReset() {
+  _device.Clear();
+  _context.Clear();
+  ResetGPUTimers();
+}
+
+void Timer::InitFromDevice(const ComObject<ID3D11Device> &device,
+                           UINT32 bufferSize) {
   _ASSERTE(device);
   _ASSERTE(bufferSize > 0);
-
-  if (_device) {
-    // if a device is reset, then we need to
-    // clean up any old counters and contexts
-    ResetGPUTimers();
-  }
 
   _bufferSize = bufferSize;
   _device = device;
@@ -329,8 +324,7 @@ void Timer::InitFromDevice(ID3D11Device *device, UINT32 bufferSize) {
     desc.MiscFlags = 0;
 
     ComObject<ID3D11Query> query;
-    _device->CreateQuery(&desc, query.Assign());
-    if (!query) {
+    if (FAILED(_device->CreateQuery(&desc, query.Assign()))) {
       LOG("GPU timing queries unsupported", LOG_ERROR);
       _gpuTimersSupported = false;
       break;
@@ -353,8 +347,8 @@ LARGE_INTEGER Timer::GetTimerFrequency() const { return _freq; }
 
 double Timer::ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
                                          LARGE_INTEGER oldTime) const {
-  LONGLONG diff = max(newTime.QuadPart, oldTime.QuadPart) -
-                  min(newTime.QuadPart, oldTime.QuadPart);
+  const LONGLONG diff = max(newTime.QuadPart, oldTime.QuadPart) -
+                        min(newTime.QuadPart, oldTime.QuadPart);
   return max((double)diff / _freq.QuadPart, 0);
 }
 
@@ -402,7 +396,7 @@ void Timer::Begin() {
     if (!_pendingQueries.empty()) {
       // see if the oldest query is ready yet
       auto query = _pendingQueries.back();
-      D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint;
+      D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint = {};
 
       // if it is, then notify the gpu timers waiting for this query
       if (_context->GetData(query, &disjoint,
@@ -441,7 +435,7 @@ void Timer::Begin() {
       }
     } else {
       LOG("No available queries to record GPU timer disjoint", LOG_MEDIUM);
-      _currentQuery = nullptr;
+      _currentQuery.Clear();
       for (auto counter : _gpuCounters) {
         counter->SetDisjointQuery(nullptr);
       }

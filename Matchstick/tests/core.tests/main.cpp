@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
   TestReporterStdout reporter;
   TestRunner runner(reporter);
 
-  int result = runner.RunTestsIf(tests, NULL, True(), 0);
+  const int result = runner.RunTestsIf(tests, NULL, True(), 0);
   return result;
 }
 
@@ -55,19 +55,17 @@ void ParseArguments(Node<Test> &tree, int argc, char **argv) {
       printf("Invalid test directive '%s'\n", directive.c_str());
       exit(1);
     }
-    bool execute = directive[0] == '+';
+    const bool execute = directive[0] == '+';
 
     std::vector<std::string> components;
 
-    char *copy = new char[directive.size()];
-    strcpy_s(copy, directive.size(), directive.c_str() + 1);
+    char *copy = directive.data() + 1;
     char *context = 0;
     char *ptr = strtok_s(copy, "/", &context);
     while (ptr) {
       components.push_back(std::string(ptr));
       ptr = strtok_s(0, "/", &context);
     }
-    delete[] copy;
 
     // all tests
     if (components.size() == 1 && components[0] == "all") {
@@ -115,7 +113,7 @@ void ParseArguments(Node<Test> &tree, int argc, char **argv) {
       continue;
     }
 
-    printf("Invalid test directive %s\n", directive.c_str());
+    printf("Invalid test directive %s\n", argv[i]);
     exit(1);
   }
 }
@@ -145,7 +143,7 @@ void GetTestList(Node<Test> &tree, TestList &list) {
 }
 
 void BuildTestTree(Node<Test> &tree) {
-  auto testList = Test::GetTestList();
+  const auto testList = Test::GetTestList();
   Test *head = testList.GetHead();
   while (head) {
     // this belongs in a suite
@@ -153,32 +151,25 @@ void BuildTestTree(Node<Test> &tree) {
       std::string suiteName = std::string(head->m_details.suiteName);
 
       auto iter = tree.Children.find(suiteName);
-      Node<Test> *suiteNode;
-
       // ensure the tree has a child for this suite
-      if (iter == tree.Children.end()) {
-        suiteNode = &(tree.Children[suiteName] = Node<Test>());
-      } else {
-        suiteNode = &(iter->second);
-      }
+      Node<Test> *suiteNode = (iter == tree.Children.end())
+                                  ? &(tree.Children[suiteName] = Node<Test>())
+                                  : &(iter->second);
 
       // this is a rowtest suite so we need to go one level deeper.
       if (strncmp("RT_", head->m_details.testName, 3) == 0) {
         std::string rowTestPair =
             std::string(head->m_details.testName).substr(3);
-        std::string::size_type index = rowTestPair.find_first_of('_');
-        std::string rowTestSuite = rowTestPair.substr(0, index);
-        std::string rowTestName = rowTestPair.substr(index + 1);
+        const std::string::size_type index = rowTestPair.find_first_of('_');
+        const std::string rowTestSuite = rowTestPair.substr(0, index);
+        const std::string rowTestName = rowTestPair.substr(index + 1);
 
         iter = suiteNode->Children.find(rowTestSuite);
-        Node<Test> *rowSuiteNode;
-
         // ensure the tree has a child for this suite
-        if (iter == suiteNode->Children.end()) {
-          rowSuiteNode = &(suiteNode->Children[rowTestSuite] = Node<Test>());
-        } else {
-          rowSuiteNode = &(iter->second);
-        }
+        Node<Test> *rowSuiteNode =
+            (iter == suiteNode->Children.end())
+                ? &(suiteNode->Children[rowTestSuite] = Node<Test>())
+                : &(iter->second);
 
         auto rowTestNode =
             &(rowSuiteNode->Children[rowTestName] = Node<Test>());

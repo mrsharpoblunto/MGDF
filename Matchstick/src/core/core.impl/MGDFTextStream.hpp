@@ -2,6 +2,7 @@
 
 #include <dwrite_1.h>
 
+#include <MGDF/ComObject.hpp>
 #include <algorithm>
 #include <functional>
 #include <set>
@@ -36,7 +37,7 @@ struct TextStyle {
 
 class TextStream {
  public:
-  TextStream(IDWriteFactory1 *factory);
+  TextStream(const ComObject<IDWriteFactory1> &factory);
   virtual ~TextStream();
   template <typename T>
   TextStream &operator<<(T const &rhs) {
@@ -44,30 +45,32 @@ class TextStream {
     return *this;
   }
   TextStream &TextStream::operator<<(TextStyle const &style);
-  HRESULT GenerateLayout(ID2D1DeviceContext *context, IDWriteTextFormat *format,
+  HRESULT GenerateLayout(const ComObject<ID2D1DeviceContext> &context,
+                         const ComObject<IDWriteTextFormat> &format,
                          float maxWidth, float maxHeight,
-                         IDWriteTextLayout **textLayout);
+                         ComObject<IDWriteTextLayout> &textLayout);
   void ClearBrushes();
   void ClearText();
   void SetF(int f);
   void Precision(std::streamsize size);
 
  private:
-  HRESULT GetBrush(ID2D1DeviceContext *context, const D2D1_COLOR_F &color,
-                   ID2D1SolidColorBrush **brush);
+  HRESULT GetBrush(const ComObject<ID2D1DeviceContext> &context,
+                   const D2D1_COLOR_F &color,
+                   ComObject<ID2D1SolidColorBrush> &brush);
   void PopStyle(UINT32 offset);
 
   std::wostringstream _ss;
   std::wstring _prevText;
-  IDWriteTextFormat *_prevFormat;
+  ComObject<IDWriteTextFormat> _prevFormat;
   float _prevMaxWidth;
   float _prevMaxHeight;
 
-  IDWriteTextLayout *_prevLayout;
+  ComObject<IDWriteTextLayout> _prevLayout;
   std::vector<std::pair<UINT32, TextStyle>> _openStyles;
   std::vector<std::pair<std::pair<UINT32, UINT32>, TextStyle>> _appliedStyles;
-  std::unordered_map<std::string, ID2D1SolidColorBrush *> _brushCache;
-  IDWriteFactory1 *_factory;
+  std::unordered_map<std::string, ComObject<ID2D1SolidColorBrush>> _brushCache;
+  ComObject<IDWriteFactory1> _factory;
 };  // namespace core
 
 typedef std::pair<std::pair<double, std::pair<size_t, size_t>>, std::string>
@@ -111,7 +114,7 @@ void KeyValueHeatMap(
   // then display the lowest items as closest to white, and the highest as
   // closest to red
   for (const auto &pair : sorted) {
-    float fraction =
+    const float fraction =
         (pair.first.second.second / static_cast<float>(sorted.size()));
     outputStream << "\r\n " << pair.second.c_str() << " : "
                  << TextStyle::Color(1.0f, fraction, fraction, 1.0f)

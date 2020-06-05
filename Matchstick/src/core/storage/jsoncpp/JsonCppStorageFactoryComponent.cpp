@@ -16,9 +16,10 @@ namespace core {
 namespace storage {
 namespace jsoncppImpl {
 
-std::shared_ptr<IStorageFactoryComponent>
-CreateJsonCppStorageFactoryComponent() {
-  return std::make_shared<JsonCppStorageFactoryComponent>();
+bool CreateJsonCppStorageFactoryComponent(
+    std::shared_ptr<IStorageFactoryComponent> &comp) {
+  comp = std::make_shared<JsonCppStorageFactoryComponent>();
+  return true;
 }
 
 std::unique_ptr<IGameStorageHandler>

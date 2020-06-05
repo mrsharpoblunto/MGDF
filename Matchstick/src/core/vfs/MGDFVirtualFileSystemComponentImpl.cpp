@@ -18,9 +18,11 @@ namespace vfs {
 
 using namespace std::filesystem;
 
-ComObject<IVirtualFileSystemComponent> CreateVirtualFileSystemComponentImpl() {
-  return ComObject<IVirtualFileSystemComponent>(
-      new VirtualFileSystemComponent());
+bool CreateVirtualFileSystemComponentImpl(
+    ComObject<IVirtualFileSystemComponent> &comp) {
+  comp =
+      ComObject<IVirtualFileSystemComponent>(new VirtualFileSystemComponent());
+  return true;
 }
 
 VirtualFileSystemComponent::VirtualFileSystemComponent() {}
@@ -36,8 +38,8 @@ void VirtualFileSystemComponent::Map(const path &path, ComObject<IFile> parent,
                                      ComObject<IFile> &child) {
   // wpath path( physicalPath );
   if (is_directory(path)) {
-    child =
-        new DefaultFolderImpl(path.filename(), path.wstring(), parent, this);
+    child = ComObject<IFile>(
+        new DefaultFolderImpl(path.filename(), path.wstring(), parent, this));
   } else {
     // if its an archive
     ComObject<IArchiveHandler> archiveHandler;
@@ -56,7 +58,8 @@ void VirtualFileSystemComponent::Map(const path &path, ComObject<IFile> parent,
     }
 
     // otherwise its just a plain old file
-    child = new DefaultFileImpl(path.filename(), path.wstring(), parent);
+    child = ComObject<IFile>(
+        new DefaultFileImpl(path.filename(), path.wstring(), parent));
   }
 }
 

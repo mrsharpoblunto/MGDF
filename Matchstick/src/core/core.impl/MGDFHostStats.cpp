@@ -14,6 +14,7 @@ HostStats::HostStats(UINT32 maxSamples)
       _avgRenderTime(0),
       _avgActiveSimTime(0),
       _avgSimTime(0),
+      _expectedSimTime(0),
       _avgSimInputTime(0),
       _avgSimAudioTime(0) {
   _maxSamples = maxSamples;

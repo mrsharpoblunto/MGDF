@@ -40,7 +40,7 @@ namespace MGDF.GamesManager.Controls
         _latestView = instance;
         return instance;
       }
-      return default(TINTERFACETYPE);
+      return default;
     }
 
     public void RegisterView<TINTERFACETYPE, TCONCRETETYPE>()

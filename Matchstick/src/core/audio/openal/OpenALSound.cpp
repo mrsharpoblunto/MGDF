@@ -25,10 +25,10 @@ MGDFError OpenALSound::TryCreate(IFile *source,
                                  OpenALSoundManagerComponentImpl *manager,
                                  INT32 priority,
                                  ComObject<OpenALSound> &sound) {
-  sound = new OpenALSound(manager, priority);
-  MGDFError error = sound->Init(source);
+  sound = MakeCom<OpenALSound>(manager, priority);
+  const MGDFError error = sound->Init(source);
   if (MGDF_OK != error) {
-    sound = nullptr;
+    sound.Clear();
     return error;
   }
   return MGDF_OK;
@@ -43,7 +43,6 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
       _innerRange(0),
       _outerRange(1),
       _volume(1),
-      _globalVolume(manager->GetSoundVolume()),
       _attenuationFactor(1),
       _pitch(1),
       _bufferId(0),
@@ -54,13 +53,14 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
       _wasPlaying(false),
       _startPlaying(false) {
   _ASSERTE(manager);
+  _globalVolume = manager->GetSoundVolume();
 }
 
 MGDFError OpenALSound::Init(IFile *source) {
   _ASSERTE(source);
   _name = source->GetName();
 
-  MGDFError error = _soundManager->CreateSoundBuffer(source, &_bufferId);
+  const MGDFError error = _soundManager->CreateSoundBuffer(source, &_bufferId);
   if (MGDF_OK != error) {
     return error;
   }

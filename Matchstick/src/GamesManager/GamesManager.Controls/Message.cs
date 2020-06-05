@@ -35,46 +35,28 @@ namespace MGDF.GamesManager.Controls
 
     public void Invoke(InvokeDelegate d)
     {
-      if (d != null) d();
+      d?.Invoke();
     }
 
     public void Show(string text)
     {
-      if (Shown != null)
-      {
-        Shown(this, new EventArgs());
-      }
+      Shown?.Invoke(this, new EventArgs());
       MessageBox.Show(text);
-      if (Closed != null)
-      {
-        Closed(this, new EventArgs());
-      }
+      Closed?.Invoke(this, new EventArgs());
     }
 
     public void Show(string text, string caption)
     {
-      if (Shown != null)
-      {
-        Shown(this, new EventArgs());
-      }
+      Shown?.Invoke(this, new EventArgs());
       MessageBox.Show(text, caption);
-      if (Closed != null)
-      {
-        Closed(this, new EventArgs());
-      }
+      Closed?.Invoke(this, new EventArgs());
     }
 
     public DialogResult Show(string text, string caption, MessageBoxButtons buttons)
     {
-      if (Shown != null)
-      {
-        Shown(this, new EventArgs());
-      }
+      Shown?.Invoke(this, new EventArgs());
       var result = MessageBox.Show(text, caption, buttons);
-      if (Closed != null)
-      {
-        Closed(this, new EventArgs());
-      }
+      Closed?.Invoke(this, new EventArgs());
       return result;
     }
   }

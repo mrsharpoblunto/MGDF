@@ -29,7 +29,7 @@ const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
 const char *PreferenceConstants::WINDOW_POSITIONX = "host.windowPositionX";
 const char *PreferenceConstants::WINDOW_POSITIONY = "host.windowPositionY";
 
-const std::string S_1("1");
+constexpr char S_1[] = "1";
 
 template <>
 bool FromString(const std::string &str) {
@@ -67,12 +67,11 @@ float FromString(const std::string &str) {
   return static_cast<float>(FromString<double>(str));
 }
 
-bool GetPreference(ComObject<IGame> &game, const std::string &name,
-                   std::string &value) {
+bool GetPreference(IGame *game, const std::string &name, std::string &value) {
   size_t size = 0;
   game->GetPreference(name.c_str(), nullptr, &size);
   value.resize(size);
-  auto result =
+  const auto result =
       SUCCEEDED(game->GetPreference(name.c_str(), value.data(), &size));
   if (!result) {
     value.clear();

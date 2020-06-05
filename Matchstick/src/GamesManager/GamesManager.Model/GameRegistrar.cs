@@ -13,8 +13,8 @@ namespace MGDF.GamesManager.Model
 {
   public class GameRegistrar : LongRunningTask
   {
-    private bool _register;
-    private Game _game;
+    private readonly bool _register;
+    private readonly Game _game;
 
     public GameRegistrar(bool register, Game game)
     {

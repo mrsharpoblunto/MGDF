@@ -55,13 +55,13 @@ void TextManager::BackBufferChange() {
 }
 
 void TextManager::BeforeDeviceReset() {
-  SAFE_RELEASE(_whiteBrush);
-  SAFE_RELEASE(_redBrush);
-  SAFE_RELEASE(_greenBrush);
-  SAFE_RELEASE(_d2dContext);
-  SAFE_RELEASE(_dWriteFactory);
-  SAFE_RELEASE(_textFormat);
-  SAFE_RELEASE(_immediateContext);
+  _whiteBrush.Clear();
+  _redBrush.Clear();
+  _greenBrush.Clear();
+  _d2dContext.Clear();
+  _dWriteFactory.Clear();
+  _textFormat.Clear();
+  _immediateContext.Clear();
 }
 
 TextManager::TextManager(IRenderHost *renderHost)
@@ -82,58 +82,58 @@ void TextManager::SetState(std::shared_ptr<TextManagerState> state) {
 
 void TextManager::DrawText() {
   if (!_immediateContext) {
-    _renderHost->GetD3DDevice()->GetImmediateContext(&_immediateContext);
+    _renderHost->GetD3DDevice()->GetImmediateContext(
+        _immediateContext.Assign());
     if (FAILED(_renderHost->GetD2DDevice()->CreateDeviceContext(
-            D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &_d2dContext))) {
+            D2D1_DEVICE_CONTEXT_OPTIONS_NONE, _d2dContext.Assign()))) {
       FATALERROR(_renderHost, "Unable to create ID2D1DeviceContext");
     }
     BackBufferChange();
 
     if (FAILED(DWriteCreateFactory(
             DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory1),
-            reinterpret_cast<IUnknown **>(&_dWriteFactory)))) {
+            reinterpret_cast<IUnknown **>(_dWriteFactory.Assign())))) {
       FATALERROR(_renderHost, "Unable to create IDWriteFactory");
     }
 
-    IDWriteFontCollection *fontCollection;
-    if (FAILED(_dWriteFactory->GetSystemFontCollection(&fontCollection))) {
+    ComObject<IDWriteFontCollection> fontCollection;
+    if (FAILED(
+            _dWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
       FATALERROR(_renderHost, "Unable to get  font collection");
     }
 
     if (FAILED(_dWriteFactory->CreateTextFormat(
             L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
             DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 22, L"",
-            &_textFormat))) {
+            _textFormat.Assign()))) {
       FATALERROR(_renderHost, "Unable to create text format");
     }
 
     D2D1_COLOR_F color;
     color.a = color.r = color.g = color.b = 1.0f;
-    if (FAILED(_d2dContext->CreateSolidColorBrush(color, &_whiteBrush))) {
+    if (FAILED(
+            _d2dContext->CreateSolidColorBrush(color, _whiteBrush.Assign()))) {
       FATALERROR(_renderHost, "Unable to create white color brush");
     }
 
     color.g = color.b = 0.5f;
-    if (FAILED(_d2dContext->CreateSolidColorBrush(color, &_redBrush))) {
+    if (FAILED(_d2dContext->CreateSolidColorBrush(color, _redBrush.Assign()))) {
       FATALERROR(_renderHost, "Unable to create red color brush");
     }
 
     color.g = 1.0f;
     color.r = 0.5f;
-    if (FAILED(_d2dContext->CreateSolidColorBrush(color, &_greenBrush))) {
+    if (FAILED(
+            _d2dContext->CreateSolidColorBrush(color, _greenBrush.Assign()))) {
       FATALERROR(_renderHost, "Unable to create green color brush");
     }
-
-    SAFE_RELEASE(fontCollection);
   }
 
   if (_state) {
-    INT32 starty;
-    if (_state.get()->_lines.size() * 25 < _settings->GetScreenY()) {
-      starty = (static_cast<UINT32>(_state.get()->_lines.size()) * 25) - 25;
-    } else {
-      starty = _settings->GetScreenY() - 25;
-    }
+    INT32 starty =
+        (_state.get()->_lines.size() * 25 < _settings->GetScreenY())
+            ? ((static_cast<UINT32>(_state.get()->_lines.size()) * 25) - 25)
+            : (_settings->GetScreenY() - 25);
 
     _d2dContext->BeginDraw();
 
@@ -141,11 +141,12 @@ void TextManager::DrawText() {
       std::wstring content;
       content.assign(line.Content.begin(), line.Content.end());
 
-      IDWriteTextLayout *textLayout;
+      ComObject<IDWriteTextLayout> textLayout;
       if (FAILED(_dWriteFactory->CreateTextLayout(
               content.c_str(), static_cast<UINT32>(content.size()), _textFormat,
               static_cast<float>(_settings->GetScreenX()),
-              static_cast<float>(_settings->GetScreenY()), &textLayout))) {
+              static_cast<float>(_settings->GetScreenY()),
+              textLayout.Assign()))) {
         FATALERROR(_renderHost, "Unable to create text layout");
       }
 
@@ -155,8 +156,6 @@ void TextManager::DrawText() {
 
       _d2dContext->DrawTextLayout(origin, textLayout, _whiteBrush);
 
-      SAFE_RELEASE(textLayout);
-
       if (line.StatusText != "") {
         std::wstring statusText;
         statusText.assign(line.StatusText.begin(), line.StatusText.end());
@@ -164,7 +163,8 @@ void TextManager::DrawText() {
         if (FAILED(_dWriteFactory->CreateTextLayout(
                 statusText.c_str(), static_cast<UINT32>(statusText.size()),
                 _textFormat, static_cast<float>(_settings->GetScreenX()),
-                static_cast<float>(_settings->GetScreenY()), &textLayout))) {
+                static_cast<float>(_settings->GetScreenY()),
+                textLayout.Assign()))) {
           FATALERROR(_renderHost, "Unable to create text layout");
         }
 
@@ -174,8 +174,6 @@ void TextManager::DrawText() {
         _d2dContext->DrawTextLayout(
             origin, textLayout,
             line.StatusColor == TextColor::GREEN ? _greenBrush : _redBrush);
-
-        SAFE_RELEASE(textLayout);
       }
 
       starty -= 25;

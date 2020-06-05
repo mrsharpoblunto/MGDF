@@ -38,8 +38,7 @@ namespace MGDF.GamesManager.Common.Framework
 
     public Stream GetResponseStream(string uri)
     {
-      long contentLength;
-      return GetResponseStream(uri, 0, null, out contentLength);
+      return GetResponseStream(uri, 0, null, out _);
     }
 
     public Stream GetResponseStream(string uri, long progress, Func<GetCredentialsEventArgs, bool> getCredentials, out long contentLength)

@@ -34,15 +34,6 @@
     (p) = nullptr;           \
   }
 #endif
-#ifndef SAFE_RELEASE
-#define SAFE_RELEASE(p) \
-  {                     \
-    if (p) {            \
-      (p)->Release();   \
-      (p) = nullptr;    \
-    }                   \
-  }
-#endif
 
 // other useful includes used commonly throughout the program
 // STL strings and common container types

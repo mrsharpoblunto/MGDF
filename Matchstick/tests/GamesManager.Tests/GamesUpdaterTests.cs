@@ -78,10 +78,12 @@ namespace MGDF.GamesManager.Tests
       FileSystem.Current.GetDirectory("c:\\program files\\MGDF\\game").Create();
       FileSystem.Current.GetFile("c:\\program files\\MGDF\\game\\game.json").WriteText(ReadTextFile("console.json"));
 
-      SettingsManager.Instance.Settings = new GameSettings();
-      SettingsManager.Instance.Settings.GameUid = "Console";
-      SettingsManager.Instance.Settings.UserName = "user";
-      SettingsManager.Instance.Settings.Password = "password1";
+      SettingsManager.Instance.Settings = new GameSettings
+      {
+        GameUid = "Console",
+        UserName = "user",
+        Password = "password1"
+      };
       SettingsManager.Instance.Save();
 
       var newGameData = GenerateDataBlock(65536);
@@ -183,10 +185,12 @@ namespace MGDF.GamesManager.Tests
       var newGameData = GenerateDataBlock(65536);
       var gameMd5 = GenerateMd5Hash(newGameData);
 
-      SettingsManager.Instance.Settings = new GameSettings();
-      SettingsManager.Instance.Settings.GameUid = "Console";
-      SettingsManager.Instance.Settings.UserName = "user";
-      SettingsManager.Instance.Settings.Password = "password2";
+      SettingsManager.Instance.Settings = new GameSettings
+      {
+        GameUid = "Console",
+        UserName = "user",
+        Password = "password2"
+      };
       SettingsManager.Instance.Save();
 
       ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
@@ -381,14 +385,13 @@ namespace MGDF.GamesManager.Tests
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       Assert.IsTrue(game.IsValid);
-
-      var key = Registry.Current.CreateSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
+      _ = Registry.Current.CreateSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
 
       GameRegistrar registrar = new GameRegistrar(true, game);
       registrar.Start();
 
       //assert the shortcuts are in the right place
-      key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
+      IRegistryKey key = Registry.Current.OpenSubKey(BaseRegistryKey.LocalMachine, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\MGDF1_Console");
       Assert.IsNotNull(key);
       Assert.AreEqual("c:\\program files\\MGDF\\resources\\gamesystemicon.ico", key.GetValue("DisplayIcon"));
       Assert.AreEqual("Lua Console", key.GetValue("DisplayName"));

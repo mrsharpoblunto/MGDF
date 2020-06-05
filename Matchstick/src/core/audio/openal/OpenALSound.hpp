@@ -20,6 +20,7 @@ namespace openal_audio {
 class OpenALSound : public ComBase<ISound> {
  public:
   virtual ~OpenALSound();
+  OpenALSound(OpenALSoundManagerComponentImpl *manager, INT32 priority);
   static MGDFError TryCreate(IFile *source,
                              OpenALSoundManagerComponentImpl *manager,
                              INT32 priority, ComObject<OpenALSound> &sound);
@@ -58,7 +59,6 @@ class OpenALSound : public ComBase<ISound> {
   void Update(float attenuationFactor);
 
  private:
-  OpenALSound(OpenALSoundManagerComponentImpl *manager, INT32 priority);
   MGDFError Init(IFile *source);
 
   std::wstring _name;

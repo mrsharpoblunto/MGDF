@@ -20,8 +20,9 @@ class MGDFApp : public D3DAppFramework {
   UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                        UINT32 *featureLevelsSize) final;
   bool OnInitWindow(RECT &windowSize) final;
-  void OnInitDevices(HWND window, ID3D11Device *d3dDevice,
-                     ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter) final;
+  void OnInitDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
+                     const ComObject<ID2D1Device> &d2dDevice,
+                     const ComObject<IDXGIAdapter1> &adapter) final;
   FullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                   DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                   const RECT &windowSize) final;
@@ -29,8 +30,9 @@ class MGDFApp : public D3DAppFramework {
   bool IsBackBufferChangePending() final;
   bool VSyncEnabled() const final;
   void OnBeforeBackBufferChange() final;
-  void OnBackBufferChange(ID3D11Texture2D *backBuffer,
-                          ID3D11Texture2D *depthStencilBuffer) final;
+  void OnBackBufferChange(
+      const ComObject<ID3D11Texture2D> &backBuffer,
+      const ComObject<ID3D11Texture2D> &depthStencilBuffer) final;
   void OnBeforeDeviceReset() final;
   void OnBeforeFirstDraw() final;
   void OnDraw() final;
@@ -68,13 +70,13 @@ class MGDFApp : public D3DAppFramework {
 
   std::atomic_flag _awaitFrame;
 
-  ID2D1DeviceContext *_context;
-  ID2D1SolidColorBrush *_whiteBrush;
-  ID2D1SolidColorBrush *_blackBrush;
-  IDWriteFactory1 *_dWriteFactory;
-  IDWriteTextFormat *_textFormat;
+  ComObject<ID2D1DeviceContext> _context;
+  ComObject<ID2D1SolidColorBrush> _whiteBrush;
+  ComObject<ID2D1SolidColorBrush> _blackBrush;
+  ComObject<IDWriteFactory1> _dWriteFactory;
+  ComObject<IDWriteTextFormat> _textFormat;
   TextStream *_textStream;
-  IDWriteTextLayout *_textLayout;
+  ComObject<IDWriteTextLayout> _textLayout;
   DWRITE_TEXT_METRICS _textMetrics;
 };
 

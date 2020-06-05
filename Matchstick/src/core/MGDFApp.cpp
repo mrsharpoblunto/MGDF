@@ -18,17 +18,15 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     : D3DAppFramework(hInstance),
       _stats(TIMER_SAMPLES),
       _host(host),
-      _blackBrush(nullptr),
-      _whiteBrush(nullptr),
-      _textFormat(nullptr),
-      _dWriteFactory(nullptr),
       _initialized(false),
-      _context(nullptr),
-      _textStream(nullptr),
-      _textLayout(nullptr),
       _settings(host->GetRenderSettingsImpl()),
       _renderFrameLimiter(nullptr) {
   _ASSERTE(host);
+
+  SecureZeroMemory(&_activeRenderEnd, sizeof(LARGE_INTEGER));
+  SecureZeroMemory(&_renderStart, sizeof(LARGE_INTEGER));
+  SecureZeroMemory(&_simulationEnd, sizeof(LARGE_INTEGER));
+  SecureZeroMemory(&_textMetrics, sizeof(DWRITE_TEXT_METRICS));
 
   host->GetGame(_game.Assign());
   host->GetTimer(_timer.Assign());
@@ -41,7 +39,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
 
   _awaitFrame.test_and_set();
 
-  UINT32 simulationFps = FromString<UINT32>(pref);
+  const UINT32 simulationFps = FromString<UINT32>(pref);
   if (!simulationFps) {
     FATALERROR(_host, PreferenceConstants::SIM_FPS << " is not an integer");
   }
@@ -68,37 +66,30 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
 
   if (FAILED(DWriteCreateFactory(
           DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory1),
-          reinterpret_cast<IUnknown **>(&_dWriteFactory)))) {
+          reinterpret_cast<IUnknown **>(_dWriteFactory.Assign())))) {
     FATALERROR(_host, "Unable to create IDWriteFactory");
   }
 
   _textStream = new TextStream(_dWriteFactory);
 
-  IDWriteFontCollection *fontCollection;
-  if (FAILED(_dWriteFactory->GetSystemFontCollection(&fontCollection))) {
+  ComObject<IDWriteFontCollection> fontCollection;
+  if (FAILED(
+          _dWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
     FATALERROR(_host, "Unable to get  font collection");
   }
 
   if (FAILED(_dWriteFactory->CreateTextFormat(
           L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
           DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14, L"",
-          &_textFormat))) {
+          _textFormat.Assign()))) {
     FATALERROR(_host, "Unable to create text format");
   }
-
-  SAFE_RELEASE(fontCollection);
 }
 
 MGDFApp::~MGDFApp() {
   delete _simFrameLimiter;
   delete _renderFrameLimiter;
   delete _textStream;
-  SAFE_RELEASE(_context);
-  SAFE_RELEASE(_blackBrush);
-  SAFE_RELEASE(_whiteBrush);
-  SAFE_RELEASE(_textFormat);
-  SAFE_RELEASE(_textLayout);
-  SAFE_RELEASE(_dWriteFactory);
 }
 
 UINT32 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
@@ -106,14 +97,16 @@ UINT32 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
   return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
 }
 
-void MGDFApp::OnInitDevices(HWND window, ID3D11Device *d3dDevice,
-                            ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter) {
+void MGDFApp::OnInitDevices(HWND window,
+                            const ComObject<ID3D11Device> &d3dDevice,
+                            const ComObject<ID2D1Device> &d2dDevice,
+                            const ComObject<IDXGIAdapter1> &adapter) {
   _ASSERTE(d3dDevice);
   _ASSERTE(d2dDevice);
   _ASSERTE(adapter);
 
   if (FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-                                            &_context))) {
+                                            _context.Assign()))) {
     FATALERROR(this, "Unable to create ID2D1DeviceContext");
   }
 
@@ -161,10 +154,10 @@ void MGDFApp::OnResize(UINT32 width, UINT32 height) {
 }
 
 void MGDFApp::OnBeforeDeviceReset() {
-  SAFE_RELEASE(_context);
-  SAFE_RELEASE(_blackBrush);
-  SAFE_RELEASE(_whiteBrush);
-  SAFE_RELEASE(_textLayout)
+  _context.Clear();
+  _blackBrush.Clear();
+  _whiteBrush.Clear();
+  _textLayout.Clear();
   _textStream->ClearBrushes();
   _host->RTBeforeDeviceReset();
 }
@@ -174,8 +167,9 @@ void MGDFApp::OnBeforeBackBufferChange() {
   _host->RTBeforeBackBufferChange();
 }
 
-void MGDFApp::OnBackBufferChange(ID3D11Texture2D *backBuffer,
-                                 ID3D11Texture2D *depthStencilBuffer) {
+void MGDFApp::OnBackBufferChange(
+    const ComObject<ID3D11Texture2D> &backBuffer,
+    const ComObject<ID3D11Texture2D> &depthStencilBuffer) {
   _ASSERTE(backBuffer);
   _ASSERTE(depthStencilBuffer);
 
@@ -195,11 +189,11 @@ void MGDFApp::OnBeforeFirstDraw() {
 }
 
 void MGDFApp::OnDraw() {
-  LARGE_INTEGER currentTime = _renderFrameLimiter
-                                  ? _renderFrameLimiter->LimitFps()
-                                  : _timer->GetCurrentTimeTicks();
+  const LARGE_INTEGER currentTime = _renderFrameLimiter
+                                        ? _renderFrameLimiter->LimitFps()
+                                        : _timer->GetCurrentTimeTicks();
 
-  double elapsedTime =
+  const double elapsedTime =
       _timer->ConvertDifferenceToSeconds(currentTime, _renderStart);
   _stats.AppendRenderTimes(elapsedTime, _timer->ConvertDifferenceToSeconds(
                                             _activeRenderEnd, _renderStart));
@@ -214,7 +208,7 @@ void MGDFApp::OnDraw() {
 }
 
 void MGDFApp::DrawSystemOverlay() {
-  if (!_whiteBrush) {
+  if (!_whiteBrush || !_blackBrush) {
     InitBrushes();
   }
 
@@ -223,7 +217,7 @@ void MGDFApp::DrawSystemOverlay() {
 
   if (FAILED(_textStream->GenerateLayout(
           _context, _textFormat, static_cast<float>(_settings->GetScreenX()),
-          static_cast<float>(_settings->GetScreenY()), &_textLayout))) {
+          static_cast<float>(_settings->GetScreenY()), _textLayout))) {
     FATALERROR(_host, "Unable to create text layout");
   }
 
@@ -234,7 +228,7 @@ void MGDFApp::DrawSystemOverlay() {
 
   _context->BeginDraw();
 
-  const float margin = 5.0f;
+  constexpr float margin = 5.0f;
   D2D1_ROUNDED_RECT rect;
   rect.radiusX = margin;
   rect.radiusY = margin;
@@ -242,7 +236,9 @@ void MGDFApp::DrawSystemOverlay() {
   rect.rect.left = margin;
   rect.rect.bottom = (margin * 3) + _textMetrics.height;
   rect.rect.right = (margin * 3) + _textMetrics.width;
+  _ASSERTE(_blackBrush);
   _context->FillRoundedRectangle(&rect, _blackBrush);
+  _ASSERTE(_whiteBrush);
   _context->DrawRoundedRectangle(&rect, _whiteBrush);
 
   D2D_POINT_2F origin;
@@ -256,13 +252,13 @@ void MGDFApp::DrawSystemOverlay() {
 void MGDFApp::InitBrushes() {
   D2D1_COLOR_F color;
   color.a = color.r = color.g = color.b = 1.0f;
-  if (FAILED(_context->CreateSolidColorBrush(color, &_whiteBrush))) {
+  if (FAILED(_context->CreateSolidColorBrush(color, _whiteBrush.Assign()))) {
     FATALERROR(_host, "Unable to create white color brush");
   }
 
   color.r = color.g = color.b = 0.05f;
   color.a = 0.85f;
-  if (FAILED(_context->CreateSolidColorBrush(color, &_blackBrush))) {
+  if (FAILED(_context->CreateSolidColorBrush(color, _blackBrush.Assign()))) {
     FATALERROR(_host, "Unable to create black color brush");
   }
 }
@@ -274,7 +270,7 @@ void MGDFApp::OnUpdateSim() {
     _host->STCreateModule();
     _initialized = true;
   }
-  LARGE_INTEGER simulationEnd = _simulationEnd;
+  const LARGE_INTEGER simulationEnd = _simulationEnd;
 
   // execute one frame of game logic as per the current module
   _host->STUpdate(_stats.ExpectedSimTime(), _stats);

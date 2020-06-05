@@ -34,7 +34,7 @@ namespace MGDF.GamesManager.Common
       }
       else
       {
-        return default(T);
+        return default;
       }
     }
 

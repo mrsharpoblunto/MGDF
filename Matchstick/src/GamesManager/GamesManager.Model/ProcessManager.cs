@@ -35,8 +35,10 @@ namespace MGDF.GamesManager.Model
     {
       try
       {
-        var proc = new Process();
-        proc.EnableRaisingEvents = true;
+        var proc = new Process
+        {
+          EnableRaisingEvents = true
+        };
         proc.StartInfo.FileName = filePath;
         proc.StartInfo.Arguments = args;
         proc.StartInfo.UseShellExecute = false;
@@ -54,8 +56,10 @@ namespace MGDF.GamesManager.Model
     {
       try
       {
-        var proc = new Process();
-        proc.EnableRaisingEvents = false;
+        var proc = new Process
+        {
+          EnableRaisingEvents = false
+        };
         proc.StartInfo.FileName = filePath;
         proc.StartInfo.Arguments = args;
         proc.StartInfo.UseShellExecute = false;

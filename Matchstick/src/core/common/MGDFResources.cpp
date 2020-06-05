@@ -146,20 +146,15 @@ std::wstring Resources::Module() { return BinDir() + L"module.dll"; }
 
 std::wstring Resources::BinDir() { return GameBaseDir() + L"bin/"; }
 
-std::string Resources::ToString(const ComObject<IWString> &str) {
-  return Resources::ToString(MGDF::ToString<std::wstring>(str));
-}
-
 std::string Resources::ToString(const std::wstring &wstr) {
-  INT32 sizeNeeded = WideCharToMultiByte(
+  const INT32 sizeNeeded = WideCharToMultiByte(
       CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
 
   std::string result;
   result.resize(sizeNeeded);
 
-  WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(),
-                      const_cast<LPSTR>(result.data()), sizeNeeded, nullptr,
-                      nullptr);
+  WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), result.data(),
+                      sizeNeeded, nullptr, nullptr);
   return result;
 }
 
@@ -167,28 +162,27 @@ std::string Resources::ToString(const wchar_t *wstr) {
   _ASSERTE(wstr);
   if (!wstr) return "";
 
-  size_t len = wcslen(wstr);
-  INT32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, (int)len, nullptr, 0,
-                                         nullptr, nullptr);
+  const size_t len = wcslen(wstr);
+  const INT32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, (int)len,
+                                               nullptr, 0, nullptr, nullptr);
 
   std::string result;
   result.resize(sizeNeeded);
 
-  WideCharToMultiByte(CP_UTF8, 0, wstr, (int)len,
-                      const_cast<LPSTR>(result.data()), sizeNeeded, nullptr,
-                      nullptr);
+  WideCharToMultiByte(CP_UTF8, 0, wstr, (int)len, result.data(), sizeNeeded,
+                      nullptr, nullptr);
   return result;
 }
 
 std::wstring Resources::ToWString(const std::string &str) {
-  INT32 sizeNeeded =
+  const INT32 sizeNeeded =
       MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), nullptr, 0);
 
   std::wstring result;
   result.resize(sizeNeeded);
 
-  MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(),
-                      const_cast<LPWSTR>(result.data()), sizeNeeded);
+  MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), result.data(),
+                      sizeNeeded);
   return result;
 }
 
@@ -196,14 +190,14 @@ std::wstring Resources::ToWString(const char *str) {
   _ASSERTE(str);
   if (!str) return L"";
 
-  size_t len = strlen(str);
-  INT32 sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
+  const size_t len = strlen(str);
+  const INT32 sizeNeeded =
+      MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
 
   std::wstring result;
   result.resize(sizeNeeded);
 
-  MultiByteToWideChar(CP_UTF8, 0, str, (int)len,
-                      const_cast<LPWSTR>(result.data()), sizeNeeded);
+  MultiByteToWideChar(CP_UTF8, 0, str, (int)len, result.data(), sizeNeeded);
   return result;
 }
 

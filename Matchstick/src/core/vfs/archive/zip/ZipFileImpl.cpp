@@ -39,7 +39,7 @@ ZipFileImplReader::~ZipFileImplReader() {
 UINT32 ZipFileImplReader::Read(void* buffer, UINT32 length) {
   if (!buffer) return 0;
 
-  UINT32 maxRead =
+  const UINT32 maxRead =
       std::min<UINT32>(length, static_cast<UINT32>(_size - _readPosition));
   memcpy(buffer, _data + _readPosition, maxRead);
   _readPosition += maxRead;
@@ -74,28 +74,22 @@ HRESULT ZipFileImpl::Open(IFileReader** reader) {
 
   ZipFileData data;
   data.readPosition = 0;
-  data.data = (char*)malloc(static_cast<UINT32>(_header.size));
+  data.data = static_cast<char*>(malloc(static_cast<UINT32>(_header.size)));
 
-  if (unzOpenCurrentFile(_zip) != UNZ_OK) {
-    goto cleanup;
+  if (unzOpenCurrentFile(_zip) == UNZ_OK &&
+      unzReadCurrentFile(_zip, data.data, static_cast<UINT32>(_header.size)) >=
+          0 &&
+      unzCloseCurrentFile(_zip) != UNZ_CRCERROR) {
+    _reader = new ZipFileImplReader(this, _header, data);
+    *reader = _reader;
+    return S_OK;
+  } else {
+    LOG("Invalid archive file " << Resources::ToString(_header.name),
+        LOG_ERROR);
+    free(data.data);
+    data.data = nullptr;
+    return E_FAIL;
   }
-  if (unzReadCurrentFile(_zip, data.data, static_cast<UINT32>(_header.size)) <
-      0) {
-    goto cleanup;
-  }
-  if (unzCloseCurrentFile(_zip) == UNZ_CRCERROR) {
-    goto cleanup;
-  }
-
-  _reader = new ZipFileImplReader(this, _header, data);
-  *reader = _reader;
-  return S_OK;
-
-cleanup:
-  LOG("Invalid archive file " << Resources::ToString(_header.name), LOG_ERROR);
-  free(data.data);
-  data.data = nullptr;
-  return E_FAIL;
 }
 
 }  // namespace zip

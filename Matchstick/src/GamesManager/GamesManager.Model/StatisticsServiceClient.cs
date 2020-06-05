@@ -162,9 +162,11 @@ namespace MGDF.GamesManager.Model
       {
         foreach (var bundle in _session.Bundles)
         {
-          var request = new AddStatisticsRequest();
-          request.GameUid = bundle.GameUid;
-          request.SessionId = bundle.SessionId;
+          var request = new AddStatisticsRequest
+          {
+            GameUid = bundle.GameUid,
+            SessionId = bundle.SessionId
+          };
           foreach (var statistic in bundle)
           {
             request.Statistics.Add(statistic);

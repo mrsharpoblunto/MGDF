@@ -18,11 +18,10 @@ class Debug : public ComBase<IDebug> {
  public:
   virtual ~Debug(){};
   Debug(Timer *timer);
-  virtual void Set(const char *section, const char *key,
-                   const char *value) final;
-  virtual void Clear(const char *section, const char *key) final;
-  virtual bool IsShown() const final;
-  virtual void ToggleShown() final;
+  void Set(const char *section, const char *key, const char *value) final;
+  void Clear(const char *section, const char *key) final;
+  bool IsShown() const final;
+  void ToggleShown() final;
 
   void DumpInfo(const HostStats &stats, TextStream &ss) const;
 

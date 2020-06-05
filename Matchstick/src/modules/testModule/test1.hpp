@@ -18,8 +18,8 @@ class Test1 : public TestModule {
   virtual ~Test1(void);
   Test1();
 
-  void Setup(ISimHost *host) override final;
-  TestModule *NextTestModule() override final;
+  void Setup(ISimHost *host) final;
+  TestModule *NextTestModule() final;
 
  private:
   bool _waitingForGamepad;

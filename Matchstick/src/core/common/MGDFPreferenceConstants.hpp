@@ -60,8 +60,7 @@ double FromString(const std::string &str);
 template <>
 float FromString(const std::string &str);
 
-bool GetPreference(ComObject<IGame> &game, const std::string &name,
-                   std::string &value);
+bool GetPreference(IGame *game, const std::string &name, std::string &value);
 
 }  // namespace core
 }  // namespace MGDF

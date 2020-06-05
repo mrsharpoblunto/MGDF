@@ -45,6 +45,7 @@ class Host : public IRenderHost, public ISimHost {
   static HRESULT TryCreate(ComObject<Game> game, HostComponents &components,
                            ComObject<Host> &host);
 
+  Host(ComObject<Game> game, HostComponents &components);
   virtual ~Host(void);
 
   // handler callbacks
@@ -61,12 +62,13 @@ class Host : public IRenderHost, public ISimHost {
   void STDisposeModule();
 
   void RTBeforeFirstDraw();
-  void RTSetDevices(HWND window, ID3D11Device *device, ID2D1Device *d2dDevice,
-                    IDXGIAdapter1 *adapter);
+  void RTSetDevices(HWND window, const ComObject<ID3D11Device> &device,
+                    const ComObject<ID2D1Device> &d2dDevice,
+                    const ComObject<IDXGIAdapter1> &adapter);
   void RTDraw(double alpha);
   void RTBeforeBackBufferChange();
-  void RTBackBufferChange(ID3D11Texture2D *backBuffer,
-                          ID3D11Texture2D *depthStencilBuffer);
+  void RTBackBufferChange(const ComObject<ID3D11Texture2D> &backBuffer,
+                          const ComObject<ID3D11Texture2D> &depthStencilBuffer);
   void RTBeforeDeviceReset();
 
   UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
@@ -121,7 +123,6 @@ class Host : public IRenderHost, public ISimHost {
                            IPerformanceCounter **counter) final;
 
  private:
-  Host(ComObject<Game> game, HostComponents &components);
   HRESULT Init();
 
   void ClearWorkingDirectory();
@@ -140,11 +141,11 @@ class Host : public IRenderHost, public ISimHost {
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
 
-  ID3D11Device *_d3dDevice;
-  ID3D11DeviceContext *_d3dContext;
-  ID2D1Device *_d2dDevice;
-  ID3D11Texture2D *_backBuffer;
-  ID3D11Texture2D *_depthStencilBuffer;
+  ComObject<ID3D11Device> _d3dDevice;
+  ComObject<ID3D11DeviceContext> _d3dContext;
+  ComObject<ID2D1Device> _d2dDevice;
+  ComObject<ID3D11Texture2D> _backBuffer;
+  ComObject<ID3D11Texture2D> _depthStencilBuffer;
 
   std::mutex _mutex;
   Version _version;

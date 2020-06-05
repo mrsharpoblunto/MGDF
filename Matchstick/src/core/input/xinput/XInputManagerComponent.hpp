@@ -84,7 +84,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   std::mutex _gamepadMutex;
 };
 
-ComObject<IInputManagerComponent> CreateXInputManagerComponent();
+bool CreateXInputManagerComponent(ComObject<IInputManagerComponent> &comp);
 
 }  // namespace xinput
 }  // namespace input

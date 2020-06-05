@@ -23,21 +23,20 @@ namespace core {
 // customized user preferences
 MGDFError GameBuilder::LoadGame(
     std::shared_ptr<storage::IStorageFactoryComponent> &storage,
-    std::unique_ptr<storage::IGameStorageHandler> &handler,
-    ComObject<Game> &game) {
+    const storage::IGameStorageHandler *handler, ComObject<Game> &game) {
   _ASSERTE(handler);
 
   Version version;
   handler->GetVersion(version);
-  game =
-      new Game(handler->GetGameUid(), handler->GetGameName(), version, storage);
+  game = MakeCom<Game>(handler->GetGameUid(), handler->GetGameName(), version,
+                       storage);
 
   // load the defaults from the core settings (REQUIRED)
   MGDFError err =
       game->LoadPreferences(Resources::Instance().CorePreferencesFile());
 
   if (MGDF_OK != err) {
-    game = nullptr;
+    game.Clear();
     return err;
   }
 

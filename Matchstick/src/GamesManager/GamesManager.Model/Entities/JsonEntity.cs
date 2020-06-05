@@ -128,7 +128,7 @@ namespace MGDF.GamesManager.Model.Entities
       {
         name = name.ToLowerInvariant();
       }
-      return json[name] == null ? null : json[name].Value<T>();
+      return json[name]?.Value<T>();
     }
 
     public static T ReadRequiredValue<T>(this JToken json, string name)

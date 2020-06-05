@@ -7,7 +7,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
 {
   public class MockFileSystem : IFileSystem
   {
-    private List<MockDirectory> _repository;
+    private readonly List<MockDirectory> _repository;
 
     public bool DirectoryExists(string directory)
     {

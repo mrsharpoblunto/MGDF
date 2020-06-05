@@ -15,6 +15,10 @@ struct ZipFileHeader {
   unz_file_pos filePosition;
   INT64 size;
   std::wstring name;
+
+  ZipFileHeader() : size(0) {
+    SecureZeroMemory(&filePosition, sizeof(unz_file_pos));
+  }
 };
 
 struct ZipFileData {
@@ -28,7 +32,7 @@ class ZipFileImplReader : public ComBase<IFileReader> {
  public:
   ZipFileImplReader(ZipFileImpl *zip, const ZipFileHeader &header,
                     const ZipFileData &data);
-  virtual ~ZipFileImplReader();
+  ~ZipFileImplReader();
   UINT32 Read(void *buffer, UINT32 length) final;
   void SetPosition(INT64 pos) final;
   INT64 GetPosition() const final;

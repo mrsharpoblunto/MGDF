@@ -130,18 +130,22 @@ namespace MGDF.GamesManager.MVP.Presenters
         if (FileSystem.Current.FileExists(file))
         {
           var transfer = new TransferUtility(_game.SupportS3BucketAccessKey, _game.SupportS3BucketSecretKey, Amazon.RegionEndpoint.USEast1);
-          var uploadRequest = new TransferUtilityUploadRequest();
-          uploadRequest.FilePath = file;
-          uploadRequest.BucketName = _game.SupportS3Bucket;
-          uploadRequest.Key = logId + "/minidump.dmp";
+          var uploadRequest = new TransferUtilityUploadRequest
+          {
+            FilePath = file,
+            BucketName = _game.SupportS3Bucket,
+            Key = logId + "/minidump.dmp"
+          };
           await transfer.UploadAsync(uploadRequest);
         }
 
         var client = new Amazon.S3.AmazonS3Client(_game.SupportS3BucketAccessKey, _game.SupportS3BucketSecretKey, Amazon.RegionEndpoint.USEast1);
-        var putRequest = new PutObjectRequest();
-        putRequest.ContentBody = SubmitCoreErrorPresenter.GetLogContent(_game, _detail);
-        putRequest.BucketName = _game.SupportS3Bucket;
-        putRequest.Key = logId + "/log.txt";
+        var putRequest = new PutObjectRequest
+        {
+          ContentBody = SubmitCoreErrorPresenter.GetLogContent(_game, _detail),
+          BucketName = _game.SupportS3Bucket,
+          Key = logId + "/log.txt"
+        };
         await client.PutObjectAsync(putRequest);
       }
       catch (Exception ex)

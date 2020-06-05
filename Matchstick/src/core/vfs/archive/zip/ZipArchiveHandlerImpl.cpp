@@ -22,7 +22,7 @@ namespace vfs {
 namespace zip {
 
 ComObject<IArchiveHandler> CreateZipArchiveHandlerImpl() {
-  return ComObject<IArchiveHandler>(new ZipArchiveHandlerImpl());
+  return MakeCom<ZipArchiveHandlerImpl>().As<IArchiveHandler>();
 }
 
 ZipArchiveHandlerImpl::ZipArchiveHandlerImpl() {
@@ -70,7 +70,10 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
         ComObject<IFile> child =
             MakeCom<ZipFileImpl>(parentFile, root, zip, std::move(header))
                 .As<IFile>();
-        static_cast<FileBaseImpl *>(parentFile.Get())->AddChild(child);
+        _ASSERTE(child);
+        auto parentPtr = dynamic_cast<FileBaseImpl *>(parentFile.Get());
+        _ASSERTE(parentPtr);
+        parentPtr->AddChild(child);
       }
     }
     root.AddRawRef(file);
@@ -108,8 +111,11 @@ ComObject<IFile> ZipArchiveHandlerImpl::CreateParentFile(
       path[end] = '\0';
       ComObject<IFile> child;
       if (!parent->GetChild(&path[start], child.Assign())) {
-        child = new ZipFolderImpl(&path[start], parent, root);
-        static_cast<FileBaseImpl *>(parent.Get())->AddChild(child);
+        child = ComObject<IFile>(new ZipFolderImpl(&path[start], parent, root));
+        _ASSERTE(child);
+        auto parentPtr = dynamic_cast<FileBaseImpl *>(parent.Get());
+        _ASSERTE(parentPtr);
+        parentPtr->AddChild(child);
       }
       parent = child;
     }

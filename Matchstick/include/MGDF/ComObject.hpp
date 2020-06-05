@@ -46,7 +46,7 @@ class ComObject {
   ComObject() : _data(nullptr) {}
 
   explicit ComObject(T *data, bool addRef = false) : _data(data) {
-    if (addRef) {
+    if (data && addRef) {
       _data->AddRef();
     }
   }
@@ -55,26 +55,24 @@ class ComObject {
   // use this method to allow assignment from Direct3D style
   // methods that take a ** as a parameter.
   T **Assign() {
-    Cleanup();
+    Clear();
     return &_data;
   }
 
-  template <typename T>
-  void AddRawRef(T **raw) {
+  template <typename U>
+  void AddRawRef(U **raw) {
     _data->AddRef();
-    static_cast<T *>(*raw) = _data;
-  }
-
-  ComObject &operator=(T *data) {
-    if (_data != data) {
-      Cleanup();
-      _data = data;
-    }
-    return *this;
+    *raw = _data;
   }
 
   // copy semantics (shares ownership)
   ComObject(const ComObject &object) : _data(nullptr) { Reassign(object); }
+
+  template <typename U>
+  ComObject &operator=(const ComObject<U> &object) {
+    Reassign(object);
+    return *this;
+  }
 
   ComObject &operator=(const ComObject &object) {
     Reassign(object);
@@ -87,35 +85,34 @@ class ComObject {
   }
 
   ComObject &operator=(ComObject &&object) {
-    _data = object._data;
+    _data = object;
     object._data = nullptr;
     return *this;
   }
 
-  bool operator==(const ComObject &object) const {
-    return _data == object._data;
-  }
+  bool operator==(const ComObject &object) const { return _data == object; }
 
   // cleanup
-  virtual ~ComObject() { Cleanup(); }
+  virtual ~ComObject() { Clear(); }
+
+  void Clear() {
+    if (_data) {
+      _data->Release();
+      _data = nullptr;
+    }
+  }
 
  private:
   T *_data;
 
-  void Reassign(const ComObject &object) {
-    if (_data != object._data) {
-      Cleanup();
-      if (object._data) {
-        _data = object._data;
+  template <typename U>
+  void Reassign(const ComObject<U> &object) {
+    if (_data != object) {
+      Clear();
+      if (object) {
+        _data = object.Get();
         _data->AddRef();
       }
-    }
-  }
-
-  void Cleanup() {
-    if (_data) {
-      _data->Release();
-      _data = nullptr;
     }
   }
 };
@@ -126,7 +123,7 @@ class ComArray;
 template <typename T>
 class ComArrayIterator {
  public:
-  ComArrayIterator(ComArray<T> *data, size_t index)
+  ComArrayIterator(const ComArray<T> *data, size_t index)
       : _data(data), _index(index) {}
 
   bool operator!=(const ComArrayIterator<T> &other) const {
@@ -142,7 +139,7 @@ class ComArrayIterator {
     return *this;
   }
 
-  ComObject<T> operator*() const {
+  const ComObject<T> operator*() const {
     if (_index < _data->size()) {
       return _data->at(_index);
     } else {
@@ -151,7 +148,7 @@ class ComArrayIterator {
   }
 
  private:
-  ComArray<T> *_data;
+  const ComArray<T> *_data;
   size_t _index;
 };
 
@@ -162,11 +159,17 @@ taken care of when the array goes out of scope
 template <typename T>
 class ComArray {
  public:
-  ComArrayIterator<T> begin() { return ComArrayIterator<T>(this, 0); }
-  ComArrayIterator<T> end() { return ComArrayIterator<T>(this, _size); }
+  const ComArrayIterator<T> begin() const {
+    return ComArrayIterator<T>(this, 0);
+  }
+  const ComArrayIterator<T> end() const {
+    return ComArrayIterator<T>(this, _size);
+  }
 
-  ComObject<T> operator[](size_t i) { return ComObject<T>(_data[i], true); }
-  ComObject<T> at(size_t i) { return ComObject<T>(_data[i], true); }
+  const ComObject<T> operator[](size_t i) const {
+    return ComObject<T>(_data[i], true);
+  }
+  const ComObject<T> at(size_t i) const { return ComObject<T>(_data[i], true); }
 
   size_t size() const { return _size; }
 
@@ -176,21 +179,21 @@ class ComArray {
   }
 
   ComArray(uint32_t size) : _size(size) {
-    _data = new T *[_size];
-    memset(_data, 0, _size);
+    _data = std::make_unique<T *[]>(_size);
+    memset(_data.get(), 0, _size);
   }
 
   ComArray(ComArray &&object) {
-    _data = object._data;
+    _data.swap(object._data);
     _size = object._size;
-    object._data = nullptr;
+    object._data.reset();
     object._size = 0;
   }
 
   ComArray &operator=(ComArray &&object) {
-    _data = object._data;
+    _data.swap(object._data);
     _size = object._size;
-    object._data = nullptr;
+    object._data.reset();
     object._size = 0;
     return *this;
   }
@@ -202,16 +205,12 @@ class ComArray {
         _data[i] = nullptr;
       }
     }
-    if (_data) {
-      delete _data;
-      _data = nullptr;
-    }
   }
 
-  T **Data() { return _data; }
+  T **Data() { return _data.get(); }
 
  private:
-  T **_data;
+  std::unique_ptr<T *[]> _data;
   uint32_t _size;
 };
 
@@ -225,7 +224,7 @@ class ComBase : public T {
   virtual ~ComBase() { _ASSERTE(_references == 0UL); }
   ULONG AddRef() final { return ++_references; };
   ULONG Release() final {
-    ULONG refs = --_references;
+    const ULONG refs = --_references;
     if (refs == 0UL) {
       delete this;
     };
@@ -252,7 +251,9 @@ ComObject<T> MakeCom(Args &&... args) {
 
 template <typename T, typename U = T>
 ComObject<T> MakeComFromPtr(U *ptr) {
-  return ComObject<T>(static_cast<T *>(ptr), true);
+  auto sub = dynamic_cast<T *>(ptr);
+  _ASSERTE(sub);
+  return ComObject<T>(sub, true);
 }
 
 template <typename T, typename U>

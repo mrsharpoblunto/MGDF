@@ -13,10 +13,10 @@ namespace Test {
 class FakeArchiveHandler : public ComBase<MGDF::IArchiveHandler> {
  public:
   FakeArchiveHandler(MGDF::ILogger *logger);
-  virtual ~FakeArchiveHandler();
-  virtual bool IsArchive(const wchar_t *path) const final;
-  virtual HRESULT MapArchive(const wchar_t *name, const wchar_t *archiveFile,
-                             MGDF::IFile *parent, MGDF::IFile **child) final;
+  ~FakeArchiveHandler();
+  bool IsArchive(const wchar_t *path) const final;
+  HRESULT MapArchive(const wchar_t *name, const wchar_t *archiveFile,
+                     MGDF::IFile *parent, MGDF::IFile **child) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;

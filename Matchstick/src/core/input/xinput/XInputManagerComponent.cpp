@@ -14,8 +14,9 @@ namespace core {
 namespace input {
 namespace xinput {
 
-ComObject<IInputManagerComponent> CreateXInputManagerComponent() {
-  return ComObject<IInputManagerComponent>(new XInputManagerComponent());
+bool CreateXInputManagerComponent(ComObject<IInputManagerComponent> &comp) {
+  comp = ComObject<IInputManagerComponent>(new XInputManagerComponent());
+  return true;
 }
 
 XInputManagerComponent::XInputManagerComponent()
@@ -44,10 +45,10 @@ XInputManagerComponent::XInputManagerComponent()
       auto disconnected = _disconnectedGamepads;
       lock.unlock();
 
-      XINPUT_STATE state;
+      XINPUT_STATE state = {};
       for (auto gamepad : disconnected) {
-        ZeroMemory(&state, sizeof(XINPUT_STATE));
-        DWORD result = XInputGetState(gamepad->GetID(), &state);
+        SecureZeroMemory(&state, sizeof(XINPUT_STATE));
+        const DWORD result = XInputGetState(gamepad->GetID(), &state);
         // this controller is connected again so add it back
         // to the active list
         if (result == ERROR_SUCCESS) {
@@ -229,10 +230,10 @@ void XInputManagerComponent::ProcessSim() {
     std::unique_lock<std::mutex> lock(_gamepadMutex);
     auto connected = _connectedGamepads;
     lock.unlock();
-    XINPUT_STATE state;
+    XINPUT_STATE state = {};
     for (auto gamepad : connected) {
-      ZeroMemory(&state, sizeof(XINPUT_STATE));
-      DWORD result = XInputGetState(gamepad->GetID(), &state);
+      SecureZeroMemory(&state, sizeof(XINPUT_STATE));
+      const DWORD result = XInputGetState(gamepad->GetID(), &state);
       if (result == ERROR_SUCCESS) {
         gamepad->UpdateState(state);
       } else {

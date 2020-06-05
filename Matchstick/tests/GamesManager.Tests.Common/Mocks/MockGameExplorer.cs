@@ -8,7 +8,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
 {
   public class MockGameExplorer : IGameExplorer
   {
-    private List<string> _installed = new List<string>();
+    private readonly List<string> _installed = new List<string>();
 
 
     public bool IsInstalled(string gdfBinPath)

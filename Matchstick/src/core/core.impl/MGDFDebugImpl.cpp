@@ -62,8 +62,8 @@ void Debug::ToggleShown() {
 }
 
 void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
-  std::wstring mgdfVersion(MGDFVersionInfo::MGDF_VERSION().begin(),
-                           MGDFVersionInfo::MGDF_VERSION().end());
+  std::wstring mgdfVersion(
+      Resources::ToWString(MGDFVersionInfo::MGDF_VERSION()));
 
   Timings timings;
   stats.GetTimings(timings);

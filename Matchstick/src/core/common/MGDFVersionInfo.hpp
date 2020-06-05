@@ -9,14 +9,8 @@ namespace core {
 class MGDFVersionInfo {
  public:
   virtual ~MGDFVersionInfo(){};
-  static const std::string &MGDF_VERSION() { return _mgdfVersion; }
+  static const char *MGDF_VERSION();
   static const INT32 MGDF_INTERFACE_VERSION = 1;
-
- private:
-#pragma warning(push)
-#pragma warning(disable : 4251)
-  static const std::string _mgdfVersion;
-#pragma warning(pop)
 };
 
 }  // namespace core

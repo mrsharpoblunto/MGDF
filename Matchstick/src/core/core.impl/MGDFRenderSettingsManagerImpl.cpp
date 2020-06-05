@@ -32,8 +32,9 @@ RenderSettingsManager::RenderSettingsManager()
   ZeroMemory(&_currentAdaptorMode, sizeof(AdaptorMode));
 }
 
-void RenderSettingsManager::InitFromDevice(HWND window, ID3D11Device *d3dDevice,
-                                           IDXGIAdapter1 *adapter) {
+void RenderSettingsManager::InitFromDevice(
+    HWND window, const ComObject<ID3D11Device> &d3dDevice,
+    const ComObject<IDXGIAdapter1> &adapter) {
   _ASSERTE(d3dDevice);
   _ASSERTE(adapter);
 
@@ -41,47 +42,43 @@ void RenderSettingsManager::InitFromDevice(HWND window, ID3D11Device *d3dDevice,
   _window = window;
   Cleanup();
 
-  IDXGIOutput *temp;
-  if (FAILED(adapter->EnumOutputs(0, &temp))) {
+  ComObject<IDXGIOutput> temp;
+  if (FAILED(adapter->EnumOutputs(0, temp.Assign()))) {
     return;
   }
-  IDXGIOutput1 *output;
-  if (FAILED(temp->QueryInterface(__uuidof(IDXGIOutput1), (void **)&output))) {
+  ComObject<IDXGIOutput1> output;
+  if (FAILED(temp->QueryInterface<IDXGIOutput1>(output.Assign()))) {
     return;
   }
-  SAFE_RELEASE(temp);
 
   UINT32 maxAdaptorModes = 0U;
   if (FAILED(output->GetDisplayModeList1(BACKBUFFER_FORMAT, 0, &maxAdaptorModes,
                                          nullptr))) {
-    SAFE_RELEASE(output);
     return;
   }
 
-  DXGI_MODE_DESC1 *modes = new DXGI_MODE_DESC1[maxAdaptorModes];
+  std::vector<DXGI_MODE_DESC1> modes(maxAdaptorModes);
   if (FAILED(output->GetDisplayModeList1(BACKBUFFER_FORMAT, 0, &maxAdaptorModes,
-                                         modes))) {
-    SAFE_RELEASE(output);
-    delete[] modes;
+                                         modes.data()))) {
     return;
   }
 
   bool foundMatchingCurrentAdaptor = false;
 
   for (UINT32 mode = 0; mode < maxAdaptorModes; ++mode) {
-    DXGI_MODE_DESC1 *displayMode = &modes[mode];
+    const DXGI_MODE_DESC1 &displayMode = modes[mode];
     // Does this adaptor mode support  the desired format and is it above the
     // minimum required resolution
-    if (displayMode->Format == BACKBUFFER_FORMAT &&
-        displayMode->Scaling == DXGI_MODE_SCALING_UNSPECIFIED &&
-        !displayMode->Stereo &&  // Stereo adapters not currently supported
-        displayMode->Width >= Resources::MIN_SCREEN_X &&
-        displayMode->Height >= Resources::MIN_SCREEN_Y) {
+    if (displayMode.Format == BACKBUFFER_FORMAT &&
+        displayMode.Scaling == DXGI_MODE_SCALING_UNSPECIFIED &&
+        !displayMode.Stereo &&  // Stereo adapters not currently supported
+        displayMode.Width >= Resources::MIN_SCREEN_X &&
+        displayMode.Height >= Resources::MIN_SCREEN_Y) {
       AdaptorMode adaptorMode;
-      adaptorMode.Width = displayMode->Width;
-      adaptorMode.Height = displayMode->Height;
-      adaptorMode.RefreshRateNumerator = displayMode->RefreshRate.Numerator;
-      adaptorMode.RefreshRateDenominator = displayMode->RefreshRate.Denominator;
+      adaptorMode.Width = displayMode.Width;
+      adaptorMode.Height = displayMode.Height;
+      adaptorMode.RefreshRateNumerator = displayMode.RefreshRate.Numerator;
+      adaptorMode.RefreshRateDenominator = displayMode.RefreshRate.Denominator;
       _adaptorModes.push_back(adaptorMode);
       LOG("Found valid adapter mode " << SCREEN_RES(adaptorMode), LOG_MEDIUM);
 
@@ -103,8 +100,6 @@ void RenderSettingsManager::InitFromDevice(HWND window, ID3D11Device *d3dDevice,
     _currentAdaptorMode = _adaptorModes.at(0);
   }
 
-  delete[] modes;
-
   // determine the supported multisampling settings for this device
   for (UINT32 i = 1; i < D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; ++i) {
     UINT32 quality = 0;
@@ -117,7 +112,6 @@ void RenderSettingsManager::InitFromDevice(HWND window, ID3D11Device *d3dDevice,
     _multiSampleLevels.push_back(i);
     _multiSampleQuality[i] = quality;
   }
-  SAFE_RELEASE(output);
 }
 
 RenderSettingsManager::~RenderSettingsManager(void) {}
@@ -275,8 +269,8 @@ bool RenderSettingsManager::SetCurrentAdaptorMode(const AdaptorMode *mode) {
 }
 
 bool RenderSettingsManager::SetCurrentAdaptorModeToNative() {
-  INT32 nativeWidth = GetSystemMetrics(SM_CXSCREEN);
-  INT32 nativeHeight = GetSystemMetrics(SM_CYSCREEN);
+  const INT32 nativeWidth = GetSystemMetrics(SM_CXSCREEN);
+  const INT32 nativeHeight = GetSystemMetrics(SM_CYSCREEN);
   AdaptorMode mode;
   if (GetAdaptorMode(nativeWidth, nativeHeight, &mode)) {
     _currentAdaptorMode = mode;
@@ -378,7 +372,7 @@ void RenderSettingsManager::GetPreferences(IPreferenceSet **preferences) {
   p.AddRawRef(preferences);
 }
 
-void RenderSettingsManager::LoadPreferences(ComObject<IGame> &game) {
+void RenderSettingsManager::LoadPreferences(const ComObject<IGame> &game) {
   _ASSERTE(game);
   bool hasCurrentMode = false;
 

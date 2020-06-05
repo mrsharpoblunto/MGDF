@@ -42,7 +42,8 @@ class VirtualFileSystemComponent : public IVirtualFileSystemComponent {
                          ComObject<IArchiveHandler> &handler);
 };
 
-ComObject<IVirtualFileSystemComponent> CreateVirtualFileSystemComponentImpl();
+bool CreateVirtualFileSystemComponentImpl(
+    ComObject<IVirtualFileSystemComponent> &vfs);
 
 }  // namespace vfs
 }  // namespace core

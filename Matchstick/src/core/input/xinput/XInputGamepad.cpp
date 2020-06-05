@@ -57,25 +57,25 @@ INT32 XInputGamepad::GetRightTrigger() const {
 }
 
 INT32 XInputGamepad::GetLeftThumbX() const {
-  INT32 absX = abs(_state.Gamepad.sThumbLX);
+  const INT32 absX = abs(_state.Gamepad.sThumbLX);
   return absX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLX
                                                    : 0;
 }
 
 INT32 XInputGamepad::GetLeftThumbY() const {
-  INT32 absY = abs(_state.Gamepad.sThumbLY);
+  const INT32 absY = abs(_state.Gamepad.sThumbLY);
   return absY > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLY
                                                    : 0;
 }
 
 INT32 XInputGamepad::GetRightThumbX() const {
-  INT32 absX = abs(_state.Gamepad.sThumbRX);
+  const INT32 absX = abs(_state.Gamepad.sThumbRX);
   return absX > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRX
                                                     : 0;
 }
 
 INT32 XInputGamepad::GetRightThumbY() const {
-  INT32 absY = abs(_state.Gamepad.sThumbRY);
+  const INT32 absY = abs(_state.Gamepad.sThumbRY);
   return absY > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRY
                                                     : 0;
 }

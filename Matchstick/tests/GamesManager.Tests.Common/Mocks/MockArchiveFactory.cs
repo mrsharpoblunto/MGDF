@@ -25,7 +25,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
 
   public class MockArchiveFile : IArchiveFile
   {
-    private string _data;
+    private readonly string _data;
 
     public MockArchiveFile(IArchiveFile parent, string name, string data)
     {

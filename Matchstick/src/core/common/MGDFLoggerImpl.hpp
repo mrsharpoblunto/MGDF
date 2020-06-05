@@ -16,6 +16,7 @@ namespace core {
 */
 class Logger {
  public:
+  virtual ~Logger();
   static Logger &Instance() {
     static Logger log;
     return log;
@@ -30,7 +31,6 @@ class Logger {
 
  private:
   Logger();
-  virtual ~Logger();
 
   void SetOutputFile(const std::wstring &);
 

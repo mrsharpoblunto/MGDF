@@ -16,7 +16,7 @@ namespace core {
 
 MGDFError FrameLimiter::TryCreate(UINT32 maxFps, FrameLimiter **limiter) {
   *limiter = new FrameLimiter(maxFps);
-  MGDFError error = (*limiter)->Init();
+  const MGDFError error = (*limiter)->Init();
   if (MGDF_OK != error) {
     delete *limiter;
     *limiter = nullptr;
@@ -24,7 +24,11 @@ MGDFError FrameLimiter::TryCreate(UINT32 maxFps, FrameLimiter **limiter) {
   return error;
 }
 
-FrameLimiter::FrameLimiter(UINT32 maxFps) : _maxFps(maxFps) {}
+FrameLimiter::FrameLimiter(UINT32 maxFps) : _maxFps(maxFps) {
+  SecureZeroMemory(&_frameTime, sizeof(LARGE_INTEGER));
+  SecureZeroMemory(&_freq, sizeof(LARGE_INTEGER));
+  SecureZeroMemory(&_previousFrameEnd, sizeof(LARGE_INTEGER));
+}
 
 MGDFError FrameLimiter::Init() {
   // exit if the  does not support a high performance timer
@@ -55,8 +59,9 @@ LARGE_INTEGER FrameLimiter::LimitFps() {
     do {
       QueryPerformanceCounter(&currentTime);
 
-      INT64 timePassed = currentTime.QuadPart - _previousFrameEnd.QuadPart;
-      INT64 timeLeft = _frameTime - timePassed;
+      const INT64 timePassed =
+          currentTime.QuadPart - _previousFrameEnd.QuadPart;
+      const INT64 timeLeft = _frameTime - timePassed;
 
       if (currentTime.QuadPart < _previousFrameEnd.QuadPart)  // time wrap
         done = true;

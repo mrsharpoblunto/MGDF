@@ -19,7 +19,7 @@ Creates zip archive handlers
 class ZipArchiveHandlerImpl : public ComBase<IArchiveHandler> {
  public:
   ZipArchiveHandlerImpl();
-  virtual ~ZipArchiveHandlerImpl();
+  ~ZipArchiveHandlerImpl();
   bool IsArchive(const wchar_t *physicalPath) const final;
   HRESULT MapArchive(const wchar_t *name, const wchar_t *physicalPath,
                      IFile *parent, IFile **file) final;

@@ -65,20 +65,21 @@ class GPUPerformanceCounter : public CounterBase {
   void End() final;
 
   void ForceEnd();
-  void Init(ID3D11Device *device, ID3D11DeviceContext *context,
-            UINT bufferSize);
+  void Init(const ComObject<ID3D11Device> &device,
+            const ComObject<ID3D11DeviceContext> &context, UINT bufferSize);
   void Reset();
   void DataReady(ID3D11Query *disjoint, UINT64 frequency);
   void DataDisjoint(ID3D11Query *disjoint);
   void SetDisjointQuery(ID3D11Query *disjoint);
 
  private:
-  std::unordered_map<ID3D11Query *, std::pair<ID3D11Query *, ID3D11Query *>>
+  std::unordered_map<ID3D11Query *,
+                     std::pair<ComObject<ID3D11Query>, ComObject<ID3D11Query>>>
       _pendingQueries;
-  std::stack<ID3D11Query *> _beginQueries;
-  std::stack<ID3D11Query *> _endQueries;
+  std::stack<ComObject<ID3D11Query>> _beginQueries;
+  std::stack<ComObject<ID3D11Query>> _endQueries;
   ID3D11Query *_currentDisjoint;
-  ID3D11DeviceContext *_context;
+  ComObject<ID3D11DeviceContext> _context;
   bool _hasRun;
 };
 
@@ -88,6 +89,7 @@ this class is used for timing
 class Timer : public ComBase<ITimer> {
  public:
   static HRESULT TryCreate(UINT32 frameSamples, ComObject<Timer> &timer);
+  Timer(UINT32 maxSamples);
   virtual ~Timer(void);
 
   LARGE_INTEGER GetCurrentTimeTicks() const final;
@@ -98,12 +100,12 @@ class Timer : public ComBase<ITimer> {
   HRESULT CreateCPUCounter(const char *name, IPerformanceCounter **counter);
   HRESULT CreateGPUCounter(const char *name, IPerformanceCounter **counter);
 
-  void InitFromDevice(ID3D11Device *device, UINT32 bufferSize);
+  void BeforeDeviceReset();
+  void InitFromDevice(const ComObject<ID3D11Device> &device, UINT32 bufferSize);
 
   void Begin();
   void End();
   void GetCounterInformation(TextStream &outputStream) const;
-  void RemoveCounter(IPerformanceCounter *counter);
 
   template <typename T>
   void RemoveCounter(T *counter) {
@@ -113,7 +115,6 @@ class Timer : public ComBase<ITimer> {
   }
 
  private:
-  Timer(UINT32 maxSamples);
   HRESULT Init();
   void ResetGPUTimers();
 
@@ -122,7 +123,7 @@ class Timer : public ComBase<ITimer> {
     static_assert(false, "Not allowed");
   }
 
-  ID3D11Device *_device;
+  ComObject<ID3D11Device> _device;
   ComObject<ID3D11DeviceContext> _context;
   LARGE_INTEGER _freq;
 

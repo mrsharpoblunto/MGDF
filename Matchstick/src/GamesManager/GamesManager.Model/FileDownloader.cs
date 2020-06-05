@@ -39,8 +39,7 @@ namespace MGDF.GamesManager.Model
       {
         ServicePointManager.ServerCertificateValidationCallback += OnCheckRemoteCallback;
 
-        long total;
-        using (Stream responseSteam = HttpRequestManager.Current.GetResponseStream(_sourceUrl, 0, _getCredentials, out total))
+        using (Stream responseSteam = HttpRequestManager.Current.GetResponseStream(_sourceUrl, 0, _getCredentials, out long total))
         {
           uint uTotal = total > uint.MaxValue ? uint.MaxValue : (uint)total;
           Total = uTotal;
@@ -53,7 +52,7 @@ namespace MGDF.GamesManager.Model
             {
               saveFileStream.Write(downloadBuffer, 0, bytesRead);
 
-              Progress = Progress + (uint)bytesRead;
+              Progress += (uint)bytesRead;
               if (_cancelPending)
               {
                 result = LongRunningTaskResult.Cancelled;

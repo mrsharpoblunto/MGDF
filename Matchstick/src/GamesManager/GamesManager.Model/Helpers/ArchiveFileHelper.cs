@@ -153,20 +153,14 @@ namespace MGDF.GamesManager.Model.Helpers
         }
       }
 
-      if (OnCopyProgress != null)
-      {
-        OnCopyProgress(this, args);
-      }
+      OnCopyProgress?.Invoke(this, args);
 
       return false;
     }
 
     private void Cancel()
     {
-      if (OnCancelled != null)
-      {
-        OnCancelled(this, new EventArgs());
-      }
+      OnCancelled?.Invoke(this, new EventArgs());
     }
   }
 }

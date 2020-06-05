@@ -54,7 +54,8 @@ void Game::SetPreference(const char *name, const char *value) {
 
 void Game::SetPreferences(IPreferenceSet *preferences) {
   if (!preferences) return;
-  auto prefs = static_cast<PreferenceSetImpl *>(preferences);
+  auto prefs = dynamic_cast<PreferenceSetImpl *>(preferences);
+  _ASSERTE(prefs);
   for (auto &p : prefs->Preferences) {
     SetPreference(p.first.c_str(), p.second.c_str());
   }
@@ -82,7 +83,7 @@ void Game::SavePreferences(const std::wstring &filename) {
 MGDFError Game::LoadPreferences(const std::wstring &filename) {
   std::unique_ptr<storage::IPreferenceConfigStorageHandler> handler(
       _storageFactory->CreatePreferenceConfigStorageHandler());
-  MGDFError result = handler->Load(filename);
+  const MGDFError result = handler->Load(filename);
   if (MGDF_OK != result) {
     return result;
   } else {

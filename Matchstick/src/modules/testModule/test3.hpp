@@ -19,9 +19,9 @@ class Test3 : public TestModule {
   virtual ~Test3(void);
   Test3();
 
-  void Setup(ISimHost *host) override final;
+  void Setup(ISimHost *host) final;
 
-  TestModule *NextTestModule() override final;
+  TestModule *NextTestModule() final;
 
  private:
   ComObject<IInputManager> _input;

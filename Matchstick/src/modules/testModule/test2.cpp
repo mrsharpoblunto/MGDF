@@ -74,7 +74,7 @@ void Test2::Setup(ISimHost *host) {
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
-          _sound = nullptr;
+          _sound.Clear();
           return TestStep::FAILED;
         } else {
           SoundPosition position;
@@ -96,7 +96,7 @@ void Test2::Setup(ISimHost *host) {
         }
       })
       .Step([this](auto state) {
-        _sound = nullptr;
+        _sound.Clear();
         state->AddLine("Loading stream stream.ogg");
         ComObject<IFile> file;
         if (_vfs->GetFile(L"Stream.ogg", file.Assign()) &&
@@ -136,16 +136,16 @@ void Test2::Setup(ISimHost *host) {
       .Step([this](auto state) {
         (void)state;
         if (_input->IsKeyPress('Y')) {
-          _stream = nullptr;
+          _stream.Clear();
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
-          _stream = nullptr;
+          _stream.Clear();
           return TestStep::FAILED;
         } else {
           if (_input->IsKeyPress('P')) {
             if (_stream->IsPaused()) {
               if (MGDF_OK != _stream->Play()) {
-                _stream = nullptr;
+                _stream.Clear();
                 return TestStep::FAILED;
               }
             } else

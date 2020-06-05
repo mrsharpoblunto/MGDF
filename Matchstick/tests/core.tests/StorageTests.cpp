@@ -22,11 +22,10 @@ SUITE(StorageTests) {
       Resources::Instance(inst);
       Resources::Instance().SetUserBaseDir(true, "junkship");
 
-      _vfs = CreateVirtualFileSystemComponentImpl();
+      CreateVirtualFileSystemComponentImpl(_vfs);
       _vfs->Mount((Resources::Instance().RootDir() + L"../../../tests/content")
                       .c_str());
-
-      _storage = CreateStorageFactoryComponentImpl();
+      CreateStorageFactoryComponentImpl(_storage);
     }
     virtual ~StorageTestFixture() {}
 

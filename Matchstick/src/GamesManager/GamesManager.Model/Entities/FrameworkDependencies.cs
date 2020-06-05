@@ -10,7 +10,7 @@ namespace MGDF.GamesManager.Model.Entities
 {
   public class FrameworkDependencies : JsonEntity
   {
-    Dictionary<string, string> _dependencies = new Dictionary<string, string>();
+    readonly Dictionary<string, string> _dependencies = new Dictionary<string, string>();
 
     //when installed and loaded from the filesystem
     public FrameworkDependencies(string depsFile)

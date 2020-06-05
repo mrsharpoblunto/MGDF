@@ -15,7 +15,7 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-const uint32_t VORBIS_BUFFER_COUNT = 4;
+constexpr uint32_t VORBIS_BUFFER_COUNT = 4;
 
 typedef INT32 (*LPOVCLEAR)(OggVorbis_File *vf);
 typedef long (*LPOVREAD)(OggVorbis_File *vf, char *buffer, INT32 length,
@@ -32,6 +32,7 @@ enum VorbisStreamState { NOT_STARTED, PLAY, PAUSE, STOP };
 class VorbisStream : public ComBase<ISoundStream> {
  public:
   virtual ~VorbisStream();
+  VorbisStream(IFile *source, OpenALSoundManagerComponentImpl *manager);
   static MGDFError TryCreate(IFile *source,
                              OpenALSoundManagerComponentImpl *manager,
                              ComObject<VorbisStream> &stream);
@@ -52,7 +53,6 @@ class VorbisStream : public ComBase<ISoundStream> {
   void SetGlobalVolume(float globalVolume);
 
  private:
-  VorbisStream(IFile *source, OpenALSoundManagerComponentImpl *manager);
   MGDFError InitStream();
   void UninitStream();
 
@@ -66,7 +66,7 @@ class VorbisStream : public ComBase<ISoundStream> {
   unsigned long _format;
   unsigned long _channels;
   unsigned long _bufferSize;
-  char *_decodeBuffer;
+  std::vector<char> _decodeBuffer;
   OggVorbis_File _vorbisFile;
   vorbis_info *_vorbisInfo;
 

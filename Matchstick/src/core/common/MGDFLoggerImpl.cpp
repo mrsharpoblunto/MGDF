@@ -67,7 +67,7 @@ Logger::Logger() {
 
       std::ofstream outFile;
       outFile.open(_filename.c_str(), std::ios::app);
-      for (std::string &evt : tmp) {
+      for (const std::string &evt : tmp) {
         outFile << evt;
       }
       outFile.close();

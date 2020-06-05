@@ -17,13 +17,13 @@ enum class TextColor {
   RED,
 };
 
-typedef struct {
-  TextColor Color;
+struct Line {
   std::string Content;
 
   TextColor StatusColor;
   std::string StatusText;
-} Line;
+  Line() : StatusColor(TextColor::GREEN) {}
+};
 
 class TextManager;
 
@@ -61,15 +61,15 @@ class TESTCOMMON_DLL TextManager {
 #pragma warning(disable : 4251)
   std::shared_ptr<TextManagerState> _state;
   ComObject<IRenderSettingsManager> _settings;
+  ComObject<ID2D1SolidColorBrush> _whiteBrush;
+  ComObject<ID2D1SolidColorBrush> _redBrush;
+  ComObject<ID2D1SolidColorBrush> _greenBrush;
+  ComObject<ID2D1DeviceContext> _d2dContext;
+  ComObject<IDWriteFactory1> _dWriteFactory;
+  ComObject<IDWriteTextFormat> _textFormat;
+  ComObject<ID3D11DeviceContext> _immediateContext;
 #pragma warning(pop)
   IRenderHost *_renderHost;
-  ID2D1SolidColorBrush *_whiteBrush;
-  ID2D1SolidColorBrush *_redBrush;
-  ID2D1SolidColorBrush *_greenBrush;
-  ID2D1DeviceContext *_d2dContext;
-  IDWriteFactory1 *_dWriteFactory;
-  IDWriteTextFormat *_textFormat;
-  ID3D11DeviceContext *_immediateContext;
 };
 }  // namespace Test
 }  // namespace MGDF

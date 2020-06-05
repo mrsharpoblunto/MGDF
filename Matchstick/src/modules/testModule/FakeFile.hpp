@@ -29,27 +29,27 @@ class FakeFile : public MGDF::IFile, public MGDF::IFileReader {
   void AddChild(ComObject<FakeFile> file);
   virtual ~FakeFile(void);
 
-  bool GetParent(IFile **parent) override final;
-  bool GetChild(const wchar_t *name, IFile **child) override final;
-  void GetAllChildren(IFile **childBuffer) override final;
-  size_t GetChildCount() override final;
-  const wchar_t *GetLogicalPath() override final;
+  bool GetParent(IFile **parent) final;
+  bool GetChild(const wchar_t *name, IFile **child) final;
+  void GetAllChildren(IFile **childBuffer) final;
+  size_t GetChildCount() final;
+  const wchar_t *GetLogicalPath() final;
 
-  HRESULT Open(IFileReader **reader) override final;
+  HRESULT Open(IFileReader **reader) final;
 
-  bool IsOpen() const override final;
-  UINT32 Read(void *buffer, UINT32 length) override final;
-  void SetPosition(INT64 pos) override final;
-  INT64 GetPosition() const override final;
-  bool EndOfFile() const override final;
-  INT64 GetSize() const override final;
+  bool IsOpen() const final;
+  UINT32 Read(void *buffer, UINT32 length) final;
+  void SetPosition(INT64 pos) final;
+  INT64 GetPosition() const final;
+  bool EndOfFile() const final;
+  INT64 GetSize() const final;
 
-  bool IsFolder() const override final;
-  bool IsArchive() const override final;
-  const wchar_t *GetArchiveName() const override final;
-  const wchar_t *GetPhysicalPath() const override final;
-  const wchar_t *GetName() const override final;
-  time_t GetLastWriteTime() const override final;
+  bool IsFolder() const final;
+  bool IsArchive() const final;
+  const wchar_t *GetArchiveName() const final;
+  const wchar_t *GetPhysicalPath() const final;
+  const wchar_t *GetName() const final;
+  time_t GetLastWriteTime() const final;
 
   ULONG AddRef() override;
   ULONG Release() override;

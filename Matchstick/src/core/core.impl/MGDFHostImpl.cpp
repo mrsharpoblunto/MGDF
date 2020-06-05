@@ -33,11 +33,11 @@ void Host::SetFatalErrorHandler(const FatalErrorFunction handler) {
 
 HRESULT Host::TryCreate(ComObject<Game> game, HostComponents &components,
                         ComObject<Host> &host) {
-  host = new Host(game, components);
+  host = MakeCom<Host>(game, components);
 
-  HRESULT result = host->Init();
+  const HRESULT result = host->Init();
   if (FAILED(result)) {
-    host = nullptr;
+    host.Clear();
   }
   return result;
 }
@@ -67,7 +67,7 @@ Host::Host(ComObject<Game> game, HostComponents &components)
 ULONG Host::AddRef() { return ++_references; };
 
 ULONG Host::Release() {
-  ULONG refs = --_references;
+  const ULONG refs = --_references;
   if (refs == 0UL) {
     delete this;
   };
@@ -118,7 +118,7 @@ HRESULT Host::Init() {
       return result;
     }
 
-    for (auto handler : handlers) {
+    for (const auto handler : handlers) {
       _vfs->RegisterArchiveHandler(handler);
     }
     LOG("Registered " << length << " custom archive VFS handlers", LOG_LOW);
@@ -153,7 +153,6 @@ HRESULT Host::Init() {
 
 Host::~Host(void) {
   _ASSERTE(_references == 0UL);
-  SAFE_RELEASE(_d3dContext);
   LOG("Uninitialised host successfully", LOG_LOW);
 }
 
@@ -209,13 +208,13 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
     _module->STShutDown(this);
   }
 
-  LARGE_INTEGER inputStart = _timer->GetCurrentTimeTicks();
+  const LARGE_INTEGER inputStart = _timer->GetCurrentTimeTicks();
   _input->ProcessSim();
-  LARGE_INTEGER inputEnd = _timer->GetCurrentTimeTicks();
+  const LARGE_INTEGER inputEnd = _timer->GetCurrentTimeTicks();
 
-  LARGE_INTEGER audioStart = _timer->GetCurrentTimeTicks();
+  const LARGE_INTEGER audioStart = _timer->GetCurrentTimeTicks();
   if (_sound) _sound->Update();
-  LARGE_INTEGER audioEnd = _timer->GetCurrentTimeTicks();
+  const LARGE_INTEGER audioEnd = _timer->GetCurrentTimeTicks();
 
   stats.AppendSimInputAndAudioTimes(
       _timer->ConvertDifferenceToSeconds(inputEnd, inputStart),
@@ -231,7 +230,7 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
 
 void Host::STDisposeModule() {
   LOG("Releasing module...", LOG_MEDIUM);
-  _module = nullptr;
+  _module.Clear();
 }
 
 void Host::RTBeforeFirstDraw() {
@@ -244,7 +243,10 @@ void Host::RTBeforeFirstDraw() {
 }
 
 void Host::RTBeforeDeviceReset() {
-  SAFE_RELEASE(_d3dContext);
+  _d3dContext.Clear();
+  _d2dDevice.Clear();
+  _d3dDevice.Clear();
+  _timer->BeforeDeviceReset();
   if (_module) {
     LOG("Calling module RTBeforeDeviceReset...", LOG_MEDIUM);
     if (!_module->RTBeforeDeviceReset(this)) {
@@ -253,8 +255,9 @@ void Host::RTBeforeDeviceReset() {
   }
 }
 
-void Host::RTSetDevices(HWND window, ID3D11Device *d3dDevice,
-                        ID2D1Device *d2dDevice, IDXGIAdapter1 *adapter) {
+void Host::RTSetDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
+                        const ComObject<ID2D1Device> &d2dDevice,
+                        const ComObject<IDXGIAdapter1> &adapter) {
   LOG("Initializing render settings and GPU timers...", LOG_LOW);
   _renderSettings->InitFromDevice(window, d3dDevice, adapter);
   _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
@@ -271,7 +274,7 @@ void Host::RTSetDevices(HWND window, ID3D11Device *d3dDevice,
 
   _d2dDevice = d2dDevice;
   _d3dDevice = d3dDevice;
-  _d3dDevice->GetImmediateContext(&_d3dContext);
+  _d3dDevice->GetImmediateContext(_d3dContext.Assign());
   _ASSERTE(_d3dContext);
 }
 
@@ -287,6 +290,8 @@ void Host::RTDraw(double alpha) {
 }
 
 void Host::RTBeforeBackBufferChange() {
+  _backBuffer.Clear();
+  _depthStencilBuffer.Clear();
   if (_module) {
     LOG("Calling module RTBeforeBackBufferChange...", LOG_MEDIUM);
     if (!_module->RTBeforeBackBufferChange(this)) {
@@ -295,8 +300,9 @@ void Host::RTBeforeBackBufferChange() {
   }
 }
 
-void Host::RTBackBufferChange(ID3D11Texture2D *backBuffer,
-                              ID3D11Texture2D *depthStencilBuffer) {
+void Host::RTBackBufferChange(
+    const ComObject<ID3D11Texture2D> &backBuffer,
+    const ComObject<ID3D11Texture2D> &depthStencilBuffer) {
   _backBuffer = backBuffer;
   _depthStencilBuffer = depthStencilBuffer;
   if (_module) {
@@ -350,17 +356,15 @@ bool Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
   bitmapProperties.dpiX = 0;
   bitmapProperties.colorContext = nullptr;
 
-  IDXGISurface1 *dxgiSurface;
-  if (!FAILED(_backBuffer->QueryInterface<IDXGISurface1>(&dxgiSurface))) {
-    ID2D1Bitmap1 *bitmap;
+  ComObject<IDXGISurface1> dxgiSurface;
+  if (!FAILED(
+          _backBuffer->QueryInterface<IDXGISurface1>(dxgiSurface.Assign()))) {
+    ComObject<ID2D1Bitmap1> bitmap;
     if (!FAILED(context->CreateBitmapFromDxgiSurface(
-            dxgiSurface, bitmapProperties, &bitmap))) {
+            dxgiSurface, bitmapProperties, bitmap.Assign()))) {
       context->SetTarget(bitmap);
-      SAFE_RELEASE(bitmap);
-      SAFE_RELEASE(dxgiSurface);
       return true;
     }
-    SAFE_RELEASE(dxgiSurface);
   }
   return false;
 }

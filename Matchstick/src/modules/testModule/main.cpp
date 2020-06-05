@@ -9,8 +9,8 @@
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
-                      LPVOID lpReserved) {
+BOOL APIENTRY DllMain(HMODULE const hModule, DWORD const ul_reason_for_call,
+                      LPVOID const lpReserved) {
   (void)lpReserved;
   (void)ul_reason_for_call;
   (void)hModule;

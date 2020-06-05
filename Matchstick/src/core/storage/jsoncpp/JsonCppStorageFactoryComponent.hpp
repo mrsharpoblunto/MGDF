@@ -21,8 +21,8 @@ class JsonCppStorageFactoryComponent : public IStorageFactoryComponent {
   CreatePreferenceConfigStorageHandler() const final;
 };
 
-std::shared_ptr<IStorageFactoryComponent>
-CreateJsonCppStorageFactoryComponent();
+bool CreateJsonCppStorageFactoryComponent(
+    std::shared_ptr<IStorageFactoryComponent> &comp);
 
 }  // namespace jsoncppImpl
 }  // namespace storage

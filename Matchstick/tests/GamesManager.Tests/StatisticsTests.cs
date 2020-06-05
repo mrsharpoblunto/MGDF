@@ -167,9 +167,11 @@ namespace MGDF.GamesManager.Tests
       Game game = new Game(Path.Combine(EnvironmentSettings.Current.AppDirectory, "game\\game.json"));
 
       Resources.InitUserDirectory("Console", false);
-      SettingsManager.Instance.Settings = new GameSettings();
-      SettingsManager.Instance.Settings.GameUid = "Console";
-      SettingsManager.Instance.Settings.StatisticsServiceEnabled = true;
+      SettingsManager.Instance.Settings = new GameSettings
+      {
+        GameUid = "Console",
+        StatisticsServiceEnabled = true
+      };
       SettingsManager.Instance.Save();
 
       Assert.IsTrue(StatisticsSession.GetStatisticsPermission(game, args =>

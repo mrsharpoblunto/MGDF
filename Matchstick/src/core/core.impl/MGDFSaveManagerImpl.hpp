@@ -39,13 +39,11 @@ class GameState : public ComBase<IGameState> {
             SaveManager *saveManager,
             const std::shared_ptr<storage::IStorageFactoryComponent> &factory);
   virtual ~GameState() {}
-  virtual HRESULT GetMetadata(const char *key, char *value,
-                              size_t *length) const final;
-  virtual HRESULT SetMetadata(const char *key, const char *value) final;
-  virtual HRESULT GetSaveDataLocation(wchar_t *folder,
-                                      size_t *size) const final;
-  virtual void GetVersion(Version *version) const final;
-  virtual bool IsNew() const final { return _saveName.empty(); }
+  HRESULT GetMetadata(const char *key, char *value, size_t *length) const final;
+  HRESULT SetMetadata(const char *key, const char *value) final;
+  HRESULT GetSaveDataLocation(wchar_t *folder, size_t *size) const final;
+  void GetVersion(Version *version) const final;
+  bool IsNew() const final { return _saveName.empty(); }
 
   std::string GetSave() const { return _saveName; }
   void SetSave(const std::string &saveName);
@@ -67,7 +65,7 @@ class GameState : public ComBase<IGameState> {
 class SaveManager : public ComBase<ISaveManager> {
  public:
   SaveManager(
-      const ComObject<Game> &game,
+      const Game *game,
       std::shared_ptr<storage::IStorageFactoryComponent> storageFactory);
   ~SaveManager() {}
   size_t GetSaveCount() const final { return _saves.size(); }

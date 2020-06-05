@@ -40,9 +40,9 @@ MGDFApp *_application = nullptr;
 
 D3DAPP_WNDPROC(MGDFAppWndProc, _application)
 
-INT32 WINAPI WinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPreviousInstance, _In_ LPSTR lpCmdLine,
-                     _In_ INT32 nCmdShow) {
+INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
+                     _In_opt_ HINSTANCE const hPreviousInstance,
+                     _In_ LPSTR const lpCmdLine, _In_ INT32 const nCmdShow) {
   (void)nCmdShow;
   (void)lpCmdLine;
   (void)hPreviousInstance;
@@ -168,8 +168,8 @@ DWORD WINAPI CrashDumpThread(LPVOID data) {
           FILE_ATTRIBUTE_NORMAL, NULL);
 
       if (hFile != INVALID_HANDLE_VALUE) {
-        BOOL ok = pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
-                        MiniDumpNormal, _dumpInfo, nullptr, nullptr);
+        const BOOL ok = pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
+                              MiniDumpNormal, _dumpInfo, nullptr, nullptr);
         if (!ok) {
           LOG("Failed to save dump file", LOG_ERROR);
         }

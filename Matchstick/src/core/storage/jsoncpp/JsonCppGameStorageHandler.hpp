@@ -11,7 +11,7 @@ namespace jsoncppImpl {
 
 class JsonCppGameStorageHandler : public IGameStorageHandler {
  public:
-  JsonCppGameStorageHandler() {}
+  JsonCppGameStorageHandler() { SecureZeroMemory(&_version, sizeof(Version)); }
   virtual ~JsonCppGameStorageHandler() {}
 
   std::string GetGameName() const final;

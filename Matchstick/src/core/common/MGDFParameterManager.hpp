@@ -10,6 +10,7 @@ namespace core {
 
 class ParameterManager {
  public:
+  virtual ~ParameterManager() {}
   static ParameterManager &Instance() {
     static ParameterManager pm;
     return pm;
@@ -31,7 +32,6 @@ class ParameterManager {
   virtual MGDFError AddParameterString(const char *paramString);
 
  private:
-  virtual ~ParameterManager() {}
   std::map<std::string, std::string> _parameters;
 };
 

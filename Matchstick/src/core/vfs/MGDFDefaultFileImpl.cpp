@@ -22,15 +22,15 @@ DefaultFileReader::DefaultFileReader(DefaultFileImpl *parent,
 
 DefaultFileReader::~DefaultFileReader() {
   _stream->close();
-  std::lock_guard<std::mutex> lock(_parent->_mutex);
+  const std::lock_guard<std::mutex> lock(_parent->_mutex);
   _parent->_reader = nullptr;
 }
 
 UINT32 DefaultFileReader::Read(void *buffer, UINT32 length) {
   if (buffer && length) {
-    std::ifstream::pos_type oldPosition = _stream->tellg();
-    _stream->read((char *)buffer, length);
-    std::ifstream::pos_type newPosition = _stream->tellg();
+    const auto oldPosition = _stream->tellg();
+    _stream->read(static_cast<char *>(buffer), length);
+    const auto newPosition = _stream->tellg();
     return static_cast<UINT32>(newPosition - oldPosition);
   }
   return 0;

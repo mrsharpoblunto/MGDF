@@ -70,7 +70,7 @@ namespace MGDF.GamesManager.Common.Framework
         string lpValueName
         );
 
-    private UIntPtr _handle;
+    private readonly UIntPtr _handle;
 
     public RegistryKey(UIntPtr handle)
     {
@@ -129,10 +129,10 @@ namespace MGDF.GamesManager.Common.Framework
     {
       uint keyType = 0;
       uint length = 0;
-      int retValue = RegQueryValueEx(Handle, name, 0, ref keyType, null, ref length);
+      _ = RegQueryValueEx(Handle, name, 0, ref keyType, null, ref length);
 
       char[] pvData = new char[(int)length / Marshal.SystemDefaultCharSize];
-      retValue = RegQueryValueEx(Handle, name, 0, ref keyType, pvData, ref length);
+      int retValue = RegQueryValueEx(Handle, name, 0, ref keyType, pvData, ref length);
 
       if (retValue != 0)
       {
@@ -201,10 +201,10 @@ namespace MGDF.GamesManager.Common.Framework
     {
       uint keyType = 0;
       uint length = 0;
-      int retValue = RegQueryValueEx(Handle, name, 0, ref keyType, null, ref length);
+      _ = RegQueryValueEx(Handle, name, 0, ref keyType, null, ref length);
 
       char[] pvData = new char[(int)length / Marshal.SystemDefaultCharSize];
-      retValue = RegQueryValueEx(Handle, name, 0, ref keyType, pvData, ref length);
+      int retValue = RegQueryValueEx(Handle, name, 0, ref keyType, pvData, ref length);
 
       if (retValue != 0)
       {
@@ -328,11 +328,9 @@ namespace MGDF.GamesManager.Common.Framework
 
     public IRegistryKey CreateSubKey(BaseRegistryKey baseKey, string name)
     {
-      uint action;
-      UIntPtr subKey;
       int retValue = RegCreateKeyEx(new UIntPtr((uint)baseKey), name, 0, null, 0,
                                                                   (int)RegWow64Options.KeyWow6464Key | (int)RegistryRights.WriteKey | (int)RegistryRights.ReadKey, 0,
-                                                                  out subKey, out action);
+                                                                  out UIntPtr subKey, out _);
 
       if (retValue == 0)
       {
@@ -343,13 +341,12 @@ namespace MGDF.GamesManager.Common.Framework
 
     public IRegistryKey OpenSubKey(BaseRegistryKey baseKey, string name)
     {
-      UIntPtr subKey;
       int retValue = RegOpenKeyEx(
               new UIntPtr((uint)baseKey),
               name,
               0,
               (int)RegWow64Options.KeyWow6464Key | (int)RegistryRights.ReadKey | (int)RegistryRights.WriteKey,
-              out subKey);
+              out UIntPtr subKey);
 
       if (retValue == 0)
       {
@@ -378,13 +375,12 @@ namespace MGDF.GamesManager.Common.Framework
       if (retVal == 0) return;
 
       //if it fails, open up the key
-      UIntPtr subKey;
       retVal = RegOpenKeyEx(
           new UIntPtr((uint)baseKey),
           name,
           0,
           (int)RegWow64Options.KeyWow6464Key | (int)RegistryRights.ReadKey,
-          out subKey);
+          out UIntPtr subKey);
 
       if (retVal != 0)
       {
@@ -395,9 +391,8 @@ namespace MGDF.GamesManager.Common.Framework
       while (retVal == 0)
       {
         uint dwSize = MAX_PATH;
-        long lastWriteTime;
         StringBuilder subName = new StringBuilder(MAX_PATH);
-        retVal = RegEnumKeyEx(subKey, 0, subName, ref dwSize, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, out lastWriteTime);
+        retVal = RegEnumKeyEx(subKey, 0, subName, ref dwSize, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, out _);
 
         if (retVal == 0)
         {

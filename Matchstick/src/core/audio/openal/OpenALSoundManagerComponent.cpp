@@ -30,15 +30,15 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-ComObject<ISoundManagerComponent>
-OpenALSoundManagerComponentImpl::CreateOpenALSoundManagerComponent() {
-  auto ptr = new OpenALSoundManagerComponentImpl();
-  ComObject<ISoundManagerComponent> impl(ptr);
-  MGDFError error = ptr->Init();
+bool OpenALSoundManagerComponentImpl::CreateOpenALSoundManagerComponent(
+    ComObject<ISoundManagerComponent> &comp) {
+  const auto impl = MakeCom<OpenALSoundManagerComponentImpl>();
+  const MGDFError error = impl->Init();
   if (MGDF_OK != error) {
-    return ComObject<ISoundManagerComponent>();
+    return false;
   }
-  return impl;
+  comp = impl;
+  return true;
 }
 
 OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl()
@@ -51,7 +51,7 @@ OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl()
       _velocity(XMFLOAT3(0.0f, 0.0f, 0.0f)) {}
 
 MGDFError OpenALSoundManagerComponentImpl::Init() {
-  MGDFError error = OpenALSoundSystem::Init();
+  const MGDFError error = OpenALSoundSystem::Init();
   if (MGDF_OK != error) {
     return error;
   }
@@ -106,9 +106,9 @@ void OpenALSoundManagerComponentImpl::Update() {
 
       SoundPosition sp;
       sound->GetPosition(&sp);
-      XMVECTOR distanceVector = XMVectorSet(
+      const XMVECTOR distanceVector = XMVectorSet(
           _position.x - sp.x, _position.y - sp.y, _position.z - sp.z, 1.0f);
-      float distance = XMVectorGetX(XMVector3Length(distanceVector));
+      const float distance = XMVectorGetX(XMVector3Length(distanceVector));
 
       if (distance <= sound->GetInnerRange()) {
         attenuation = 1;
@@ -252,7 +252,7 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundStream(
     return E_FAIL;
   } else {
     ComObject<VorbisStream> s;
-    MGDFError error = VorbisStream::TryCreate(file, this, s);
+    const MGDFError error = VorbisStream::TryCreate(file, this, s);
     if (MGDF_OK != error) {
       return E_FAIL;
     }
@@ -280,7 +280,7 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSound(IFile *file,
   }
 
   ComObject<OpenALSound> s;
-  MGDFError error = OpenALSound::TryCreate(file, this, priority, s);
+  const MGDFError error = OpenALSound::TryCreate(file, this, priority, s);
   if (MGDF_OK != error) {
     return E_FAIL;
   }
@@ -332,7 +332,7 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds(
   sort(sounds.begin(), sounds.end(), &OpenALSoundManagerComponentImpl::Sort);
 
   // detect how many samples will need to be deactivated
-  size_t freeSources = GetFreeSources();
+  const size_t freeSources = GetFreeSources();
   size_t requiringDeactivationCount = deactivatedSoundsCount - freeSources;
   if (requiringDeactivationCount < 0)
     requiringDeactivationCount = 0;  // we can activate all sounds.
@@ -389,9 +389,8 @@ MGDFError OpenALSoundManagerComponentImpl::CreateSoundBuffer(IFile *dataSource,
     }
   }
 
-  char *data;
-  UINT32 truncSize;
   {
+    std::vector<char> data;
     ComObject<IFileReader> reader;
     if (FAILED(dataSource->Open(reader.Assign()))) {
       LOG("Buffer file could not be opened or is already open for reading",
@@ -400,14 +399,13 @@ MGDFError OpenALSoundManagerComponentImpl::CreateSoundBuffer(IFile *dataSource,
       return MGDF_ERR_FILE_IN_USE;
     }
 
-    INT64 size = reader->GetSize();
-    truncSize = size > UINT_MAX ? UINT_MAX : static_cast<UINT32>(size);
-    data = new char[truncSize];
-    reader->Read((void *)data, truncSize);
+    const INT64 size = reader->GetSize();
+    const UINT32 truncSize =
+        size > UINT_MAX ? UINT_MAX : static_cast<UINT32>(size);
+    data.resize(truncSize);
+    reader->Read(data.data(), truncSize);
+    *bufferId = alutCreateBufferFromFileImage((ALvoid *)data.data(), truncSize);
   }
-
-  *bufferId = alutCreateBufferFromFileImage((ALvoid *)data, truncSize);
-  delete[] data;
 
   // if the buffer loaded ok, add it to the list of loaded shared buffers
   if (*bufferId != ALUT_ERROR_AL_ERROR_ON_ENTRY &&

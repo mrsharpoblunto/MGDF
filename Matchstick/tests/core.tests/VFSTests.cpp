@@ -16,35 +16,38 @@ SUITE(VFSTests) {
       Resources::Instance(inst);
       Resources::Instance().SetUserBaseDir(true, "junkship");
 
-      _vfs = CreateVirtualFileSystemComponentImpl();
+      CreateVirtualFileSystemComponentImpl(_vfs);
       _vfs->RegisterArchiveHandler(zip::CreateZipArchiveHandlerImpl());
     }
 
     virtual ~VFSTestFixture() {}
 
-    void ReadLines(ComObject<IFileReader> &reader,
+    void ReadLines(const ComObject<IFileReader> &reader,
                    std::vector<std::string> &list) {
-      UINT32 size = static_cast<UINT32>(reader->GetSize());
-      char *data = new char[size];
-      char *copy = new char[size + 1];
-      reader->Read((void *)data, size);
+      const UINT32 size = static_cast<UINT32>(reader->GetSize());
+
+      std::string data;
+      data.resize(size);
+      reader->Read(data.data(), size);
+
+      std::string copy;
+      copy.resize(size);
+      char *copyPtr = copy.data();
 
       size_t index = 0;
       for (size_t i = 0; i < size; ++i) {
         if (data[i] != '\r' && data[i] != '\t') {
-          copy[index++] = data[i];
+          copyPtr[index++] = data[i];
         }
       }
-      copy[index] = '\0';
-      delete[] data;
+      copyPtr[index] = '\0';
 
       char *context = 0;
-      char *ptr = strtok_s(copy, "\n", &context);
+      char *ptr = strtok_s(copyPtr, "\n", &context);
       while (ptr) {
         list.push_back(std::string(ptr));
         ptr = strtok_s(0, "\n", &context);
       }
-      delete[] copy;
     }
 
    protected:
@@ -170,9 +173,9 @@ SUITE(VFSTests) {
     }
 
     // see if the file has as many lines as we expect
-    CHECK_EQUAL(17, list.size());
+    CHECK_EQUAL(16, list.size());
     // check to see the first and last lines are as expected
     CHECK_EQUAL("{", list[0]);
-    CHECK_EQUAL("}", list[16]);
+    CHECK_EQUAL("}", list[15]);
   }
 }

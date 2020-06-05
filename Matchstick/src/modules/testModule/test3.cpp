@@ -68,12 +68,12 @@ void Test3::Setup(ISimHost *host) {
           // free the pending save to flush the save to permanent storage.
           // The save should no longer be marked as new as it should now
           // have persisted data
-          _pending = nullptr;
+          _pending.Clear();
           if (_state->IsNew()) {
             return TestStep::FAILED;
           }
 
-          _state = nullptr;
+          _state.Clear();
           if (SUCCEEDED(_saves->GetSave(0, _state.Assign())) &&
               _saves->GetSaveCount() == 1) {
             return TestStep::PASSED;
@@ -131,7 +131,7 @@ void Test3::Setup(ISimHost *host) {
         if (vfs->GetFile(L"test.fakearchive/testfile.txt", file.Assign())) {
           ComObject<IFileReader> reader;
           if (!FAILED(file->Open(reader.Assign()))) {
-            UINT32 size = static_cast<UINT32>(reader->GetSize());
+            const UINT32 size = static_cast<UINT32>(reader->GetSize());
             std::string data;
             data.resize(size);
             reader->Read(data.data(), size);

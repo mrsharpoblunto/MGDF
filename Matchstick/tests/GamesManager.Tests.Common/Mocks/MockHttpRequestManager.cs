@@ -54,11 +54,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
       }
     }
 
-    public Stream GetResponseStream(string uri)
-    {
-      long contentLength;
-      return GetResponseStream(uri, 0, out contentLength);
-    }
+    public Stream GetResponseStream(string uri) => GetResponseStream(uri, 0, out _);
 
     public Stream GetResponseStream(string uri, long progress, Func<GetCredentialsEventArgs, bool> getCredentials, out long contentLength)
     {

@@ -37,7 +37,7 @@ ModuleFactory::~ModuleFactory() {
 HRESULT ModuleFactory::TryCreate(std::unique_ptr<ModuleFactory> &factory) {
   factory.reset();
   std::unique_ptr<ModuleFactory> f(new ModuleFactory());
-  auto result = f->Init();
+  const auto result = f->Init();
   if (FAILED(result)) {
     return result;
   }
@@ -91,13 +91,13 @@ HRESULT ModuleFactory::Init() {
 
       return S_OK;
     } else {
-      DWORD errorCode = ::GetLastError();
+      const DWORD errorCode = ::GetLastError();
       LOG("Failed to load Module.dll " << errorCode, LOG_ERROR);
 
 #if defined(_WIN64)
-      bool win64 = true;
+      constexpr bool win64 = true;
 #else
-      bool win64 = false;
+      constexpr bool win64 = false;
 #endif
       bool loggedMessage = false;
 
@@ -105,32 +105,35 @@ HRESULT ModuleFactory::Init() {
       HANDLE file = CreateFileW(Resources::Instance().Module().c_str(),
                                 GENERIC_READ, FILE_SHARE_READ, NULL,
                                 OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
-      if (file == INVALID_HANDLE_VALUE) goto cleanup;
-
-      fileMapping =
-          CreateFileMapping(file, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL);
-      if (fileMapping == NULL) goto cleanup;
-
-      LPVOID addressHeader =
-          MapViewOfFileEx(fileMapping, FILE_MAP_READ, 0, 0, 0, NULL);
-      if (addressHeader == NULL) goto cleanup;  // couldn't memory map the file
-
-      PIMAGE_NT_HEADERS peHeader = ImageNtHeader(addressHeader);
-      if (peHeader == NULL) goto cleanup;  // couldn't read the header
-
-      if (peHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_I386 && win64) {
-        LOG("Failed to load Module.dll - MGDF core is 64 bit and Module is 32 "
-            "bit",
-            LOG_ERROR);
-        loggedMessage = true;
-      } else if (peHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64 &&
-                 !win64) {
-        LOG("Failed to load Module.dll - MGDF core is 32 bit and Module is 64 "
-            "bit",
-            LOG_ERROR);
-        loggedMessage = true;
+      if (file != INVALID_HANDLE_VALUE) {
+        fileMapping = CreateFileMapping(file, NULL, PAGE_READONLY | SEC_IMAGE,
+                                        0, 0, NULL);
+        if (fileMapping != NULL) {
+          LPVOID addressHeader =
+              MapViewOfFileEx(fileMapping, FILE_MAP_READ, 0, 0, 0, NULL);
+          if (addressHeader != NULL) {
+            const PIMAGE_NT_HEADERS peHeader = ImageNtHeader(addressHeader);
+            if (peHeader != NULL) {
+              if (peHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_I386 &&
+                  win64) {
+                LOG("Failed to load Module.dll - MGDF core is 64 bit and "
+                    "Module is 32 "
+                    "bit",
+                    LOG_ERROR);
+                loggedMessage = true;
+              } else if (peHeader->FileHeader.Machine ==
+                             IMAGE_FILE_MACHINE_AMD64 &&
+                         !win64) {
+                LOG("Failed to load Module.dll - MGDF core is 32 bit and "
+                    "Module is 64 "
+                    "bit",
+                    LOG_ERROR);
+                loggedMessage = true;
+              }
+            }
+          }
+        }
       }
-    cleanup:
       if (!loggedMessage) {
         LOG("Failed to load Module.dll - It doesn't appear to be a valid dll",
             LOG_ERROR);

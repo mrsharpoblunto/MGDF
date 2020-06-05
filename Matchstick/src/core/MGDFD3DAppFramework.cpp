@@ -23,16 +23,6 @@ namespace core {
 D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
     : _applicationInstance(hInstance),
       _window(nullptr),
-      _swapChain(nullptr),
-      _factory(nullptr),
-      _immediateContext(nullptr),
-      _d2dDevice(nullptr),
-      _d2dFactory(nullptr),
-      _d3dDevice(nullptr),
-      _backBuffer(nullptr),
-      _renderTargetView(nullptr),
-      _depthStencilView(nullptr),
-      _depthStencilBuffer(nullptr),
       _maximized(false),
       _resizing(false),
       _awaitingResize(false),
@@ -96,8 +86,8 @@ void D3DAppFramework::InitWindow(const std::string &caption,
       _windowStyle &= ~(WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
     }
 
-    INT32 x = _windowRect.left;
-    INT32 y = _windowRect.top;
+    const INT32 x = _windowRect.left;
+    const INT32 y = _windowRect.top;
     _windowRect.bottom -= _windowRect.top;
     _windowRect.right -= _windowRect.left;
     _windowRect.top = 0;
@@ -114,8 +104,8 @@ void D3DAppFramework::InitWindow(const std::string &caption,
       FATALERROR(this, "AdjustWindowRect FAILED");
     }
 
-    INT32 width = _windowRect.right - _windowRect.left;
-    INT32 height = _windowRect.bottom - _windowRect.top;
+    const INT32 width = _windowRect.right - _windowRect.left;
+    const INT32 height = _windowRect.bottom - _windowRect.top;
 
     _window = CreateWindow(WINDOW_CLASS_NAME, caption.c_str(), _windowStyle,
                            CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0,
@@ -198,8 +188,9 @@ void D3DAppFramework::InitD3D() {
   ComObject<IDXGIAdapter1> adapter;
   ComObject<IDXGIAdapter1> bestAdapter;
   char videoCardDescription[128];
-  DXGI_ADAPTER_DESC1 adapterDesc;
-  size_t stringLength;
+  SecureZeroMemory(videoCardDescription, sizeof(videoCardDescription));
+  DXGI_ADAPTER_DESC1 adapterDesc = {};
+  size_t stringLength = 0;
 
   // step through the adapters and ensure we use the best one to create our
   // device
@@ -209,14 +200,14 @@ void D3DAppFramework::InitD3D() {
        i++) {
     adapter->GetDesc1(&adapterDesc);
     size_t length = wcslen(adapterDesc.Description);
-    INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
-                             adapterDesc.Description, length);
+    const INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
+                                   adapterDesc.Description, length);
     _ASSERTE(!error);
     std::string message(videoCardDescription, videoCardDescription + length);
     message.insert(0, "Attempting to create device for adapter ");
     LOG(message, LOG_LOW);
 
-    D3D_FEATURE_LEVEL featureLevel;
+    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
     ComObject<ID3D11Device> device;
     ComObject<ID3D11DeviceContext> context;
 
@@ -290,7 +281,7 @@ void D3DAppFramework::InitD3D() {
 }
 
 void D3DAppFramework::ReinitD3D() {
-  HRESULT reason = _d3dDevice->GetDeviceRemovedReason();
+  const HRESULT reason = _d3dDevice->GetDeviceRemovedReason();
   LOG("Device removed! DXGI_ERROR code " << reason, LOG_ERROR);
 
   OnBeforeDeviceReset();
@@ -300,26 +291,29 @@ void D3DAppFramework::ReinitD3D() {
 
 void D3DAppFramework::UninitD3D() {
   LOG("Cleaning up Direct3D resources...", LOG_LOW);
-  _backBuffer = nullptr;
-  _renderTargetView = nullptr;
-  _depthStencilView = nullptr;
-  _depthStencilBuffer = nullptr;
-  _swapChain = nullptr;
-  _factory = nullptr;
-  _immediateContext = nullptr;
-  _d2dDevice = nullptr;
-  _d2dFactory = nullptr;
+  _backBuffer.Clear();
+  _renderTargetView.Clear();
+  _depthStencilView.Clear();
+  _depthStencilBuffer.Clear();
+  _swapChain.Clear();
+  _factory.Clear();
+  _immediateContext.Clear();
+  _d2dDevice.Clear();
+  _d2dFactory.Clear();
 
+  if (_d3dDevice) {
 #if defined(_DEBUG)
-  ComObject<ID3D11Debug> debug;
-  bool failed = FAILED(_d3dDevice->QueryInterface<ID3D11Debug>(debug.Assign()));
+    ComObject<ID3D11Debug> debug;
+    const bool failed =
+        FAILED(_d3dDevice->QueryInterface<ID3D11Debug>(debug.Assign()));
 #endif
-  _d3dDevice = nullptr;
+    _d3dDevice.Clear();
 #if defined(_DEBUG)
-  if (!failed) {
-    debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+    if (!failed) {
+      debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+    }
+#endif
   }
-#endif
 }
 
 bool D3DAppFramework::AllowTearing() {
@@ -354,10 +348,10 @@ void D3DAppFramework::CreateSwapChain() {
 void D3DAppFramework::ClearBackBuffer() {
   // Release the old views, as they hold references to the buffers we
   // will be destroying.  Also release the old depth/stencil buffer.
-  _backBuffer = nullptr;
-  _renderTargetView = nullptr;
-  _depthStencilView = nullptr;
-  _depthStencilBuffer = nullptr;
+  _backBuffer.Clear();
+  _renderTargetView.Clear();
+  _depthStencilView.Clear();
+  _depthStencilBuffer.Clear();
 }
 
 void D3DAppFramework::ResizeBackBuffer() {
@@ -372,7 +366,7 @@ void D3DAppFramework::ResizeBackBuffer() {
   _currentSize.x = _swapDesc.Width;
   _currentSize.y = _swapDesc.Height;
 
-  HRESULT result =
+  const HRESULT result =
       _swapChain->ResizeBuffers(0, _swapDesc.Width, _swapDesc.Height,
                                 DXGI_FORMAT_UNKNOWN, _swapDesc.Flags);
 
@@ -479,7 +473,7 @@ INT32 D3DAppFramework::Run() {
         }
 
         OnBeforeBackBufferChange();
-        FullScreenDesc newFullScreen =
+        const FullScreenDesc newFullScreen =
             OnResetSwapChain(_swapDesc, _fullscreenSwapDesc, windowSize);
 
         if (_currentFullScreen.ExclusiveMode) {
@@ -578,7 +572,7 @@ INT32 D3DAppFramework::Run() {
           FATALERROR(this, "SwapChain GetContainingOutput failed");
         }
 
-        HRESULT result = _swapChain->Present1(
+        const HRESULT result = _swapChain->Present1(
             0, AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0, &presentParams);
         if (VSyncEnabled()) {
           output->WaitForVBlank();
@@ -633,8 +627,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
   switch (msg) {
     // handle player mouse input
     case WM_MOUSEMOVE: {
-      INT32 x = GET_X_LPARAM(lParam);
-      INT32 y = GET_Y_LPARAM(lParam);
+      const INT32 x = GET_X_LPARAM(lParam);
+      const INT32 y = GET_Y_LPARAM(lParam);
       OnMouseInput(x, y);
     }
       return 0;
@@ -644,17 +638,17 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       UINT32 dwSize = 0U;
       GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize,
                       sizeof(RAWINPUTHEADER));
-      LPBYTE lpb = new BYTE[dwSize];
-      if (lpb != nullptr) {
-        UINT32 readSize = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb,
-                                          &dwSize, sizeof(RAWINPUTHEADER));
+      std::vector<BYTE> lpb(dwSize);
+      if (lpb.size()) {
+        const UINT32 readSize =
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb.data(), &dwSize,
+                            sizeof(RAWINPUTHEADER));
 
         if (readSize != dwSize) {
           FATALERROR(this, "GetRawInputData returned incorrect size");
         } else {
-          RAWINPUT *rawInput = (RAWINPUT *)lpb;
+          RAWINPUT *rawInput = (RAWINPUT *)lpb.data();
           OnRawInput(rawInput);
-          delete[] lpb;
         }
       }
     }

@@ -35,10 +35,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
 
     public override void Write(byte[] data, int offset, int length)
     {
-      if (OnWrite != null)
-      {
-        OnWrite(this, new IOEventArgs { Data = data, Offset = offset, Length = length });
-      }
+      OnWrite?.Invoke(this, new IOEventArgs { Data = data, Offset = offset, Length = length });
       _stream.Write(data, offset, length);
       _data = _stream.ToArray();
     }
@@ -91,10 +88,7 @@ namespace MGDF.GamesManager.Tests.Common.Mocks
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-      if (OnRead != null)
-      {
-        OnRead(this, new IOEventArgs { Data = buffer, Offset = offset, Length = count });
-      }
+      OnRead?.Invoke(this, new IOEventArgs { Data = buffer, Offset = offset, Length = count });
       return _stream.Read(buffer, offset, count);
     }
 

@@ -76,8 +76,7 @@ namespace MGDF.GamesManager.Model
     {
       if (EnvironmentSettings.Current.OSVersion.Major >= 6)
       {
-        Guid guid;
-        if (Success != RetrieveGUIDForApplication(gdfBinPath, out guid))
+        if (Success != RetrieveGUIDForApplication(gdfBinPath, out _))
           return false;
       }
       return true;
@@ -99,8 +98,7 @@ namespace MGDF.GamesManager.Model
     {
       if (EnvironmentSettings.Current.OSVersion.Major >= 6)
       {
-        Guid guid;
-        if (Success != RetrieveGUIDForApplication(gdfBinPath, out guid))
+        if (Success != RetrieveGUIDForApplication(gdfBinPath, out Guid guid))
           throw new Exception("failed retrieving guid; game is probably not installed.");
 
         if (Success != RemoveTasks(ref guid))

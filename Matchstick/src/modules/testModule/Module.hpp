@@ -40,18 +40,18 @@ class Module : public ComBase<IModule> {
   virtual ~Module(void);
   Module();
 
-  bool STNew(ISimHost *simHost, const wchar_t *workingFolder) override final;
-  bool STUpdate(ISimHost *simHost, double elapsedTime) override final;
-  void STShutDown(ISimHost *simHost) override final;
+  bool STNew(ISimHost *simHost, const wchar_t *workingFolder) final;
+  bool STUpdate(ISimHost *simHost, double elapsedTime) final;
+  void STShutDown(ISimHost *simHost) final;
 
-  bool RTBeforeFirstDraw(MGDF::IRenderHost *renderHost) override final;
-  bool RTDraw(IRenderHost *renderHost, double alpha) override final;
-  bool RTBeforeBackBufferChange(IRenderHost *renderHost) override final;
-  bool RTBackBufferChange(IRenderHost *renderHost) override final;
-  bool RTBeforeDeviceReset(IRenderHost *renderHost) override final;
-  bool RTDeviceReset(IRenderHost *renderHost) override final;
+  bool RTBeforeFirstDraw(MGDF::IRenderHost *renderHost) final;
+  bool RTDraw(IRenderHost *renderHost, double alpha) final;
+  bool RTBeforeBackBufferChange(IRenderHost *renderHost) final;
+  bool RTBackBufferChange(IRenderHost *renderHost) final;
+  bool RTBeforeDeviceReset(IRenderHost *renderHost) final;
+  bool RTDeviceReset(IRenderHost *renderHost) final;
 
-  void Panic() override final;
+  void Panic() final;
 
  private:
   std::wstring _workingFolder;

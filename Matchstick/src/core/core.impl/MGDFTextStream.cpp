@@ -45,12 +45,8 @@ TextStyle TextStyle::Pop() {
 
 TextStream::~TextStream() { ClearBrushes(); }
 
-TextStream::TextStream(IDWriteFactory1 *factory)
-    : _factory(factory),
-      _prevLayout(nullptr),
-      _prevFormat(nullptr),
-      _prevMaxHeight(-1.0f),
-      _prevMaxWidth(-1.0f) {}
+TextStream::TextStream(const ComObject<IDWriteFactory1> &factory)
+    : _factory(factory), _prevMaxHeight(-1.0f), _prevMaxWidth(-1.0f) {}
 
 TextStream &TextStream::operator<<(TextStyle const &style) {
   auto offset = static_cast<UINT32>(_ss.str().size());
@@ -69,41 +65,32 @@ void TextStream::ClearText() {
   _openStyles.clear();
 }
 
-void TextStream::ClearBrushes() {
-  for (auto &brush : _brushCache) {
-    SAFE_RELEASE(brush.second);
-  }
-  _brushCache.clear();
-}
+void TextStream::ClearBrushes() { _brushCache.clear(); }
 
 void TextStream::SetF(int f) { _ss.setf(f); }
 
 void TextStream::Precision(std::streamsize size) { _ss.precision(size); }
 
-HRESULT TextStream::GenerateLayout(ID2D1DeviceContext *context,
-                                   IDWriteTextFormat *format, float maxWidth,
-                                   float maxHeight,
-                                   IDWriteTextLayout **textLayout) {
+HRESULT TextStream::GenerateLayout(const ComObject<ID2D1DeviceContext> &context,
+                                   const ComObject<IDWriteTextFormat> &format,
+                                   float maxWidth, float maxHeight,
+                                   ComObject<IDWriteTextLayout> &textLayout) {
   std::wstring text = _ss.str();
 
   // rebuilding layouts is kind of expensive, so lets see if
   // its changed since the last time we generated it
   if (text == _prevText && format == _prevFormat && _prevMaxWidth == maxWidth &&
-      _prevMaxHeight == maxHeight && _prevLayout &&
-      *textLayout == _prevLayout) {
+      _prevMaxHeight == maxHeight && _prevLayout && textLayout == _prevLayout) {
     return ERROR_SUCCESS;
   }
 
-  UINT32 length = static_cast<UINT32>(text.size());
+  const UINT32 length = static_cast<UINT32>(text.size());
   while (_openStyles.size()) {
     PopStyle(length);
   }
 
-  if (*textLayout) {
-    SAFE_RELEASE(*textLayout);
-  }
-  HRESULT hr = _factory->CreateTextLayout(text.c_str(), length, format,
-                                          maxWidth, maxHeight, textLayout);
+  HRESULT hr = _factory->CreateTextLayout(
+      text.c_str(), length, format, maxWidth, maxHeight, textLayout.Assign());
   if (FAILED(hr)) {
     return hr;
   }
@@ -112,22 +99,22 @@ HRESULT TextStream::GenerateLayout(ID2D1DeviceContext *context,
     DWRITE_TEXT_RANGE range = {style.first.first,
                                style.first.second - style.first.first};
     if (style.second._size) {
-      (*textLayout)->SetFontSize(*style.second._size, range);
+      textLayout->SetFontSize(*style.second._size, range);
     }
     if (style.second._weight) {
-      (*textLayout)->SetFontWeight(*style.second._weight, range);
+      textLayout->SetFontWeight(*style.second._weight, range);
     }
     if (style.second._color) {
-      ID2D1SolidColorBrush *brush;
-      hr = GetBrush(context, *style.second._color, &brush);
+      ComObject<ID2D1SolidColorBrush> brush;
+      hr = GetBrush(context, *style.second._color, brush);
       if (FAILED(hr)) {
         return hr;
       }
-      (*textLayout)->SetDrawingEffect(brush, range);
+      textLayout->SetDrawingEffect(brush, range);
     }
   }
 
-  _prevLayout = *textLayout;
+  _prevLayout = textLayout;
   _prevText = text;
   _prevFormat = format;
   _prevMaxWidth = maxWidth;
@@ -136,21 +123,22 @@ HRESULT TextStream::GenerateLayout(ID2D1DeviceContext *context,
   return ERROR_SUCCESS;
 }
 
-HRESULT TextStream::GetBrush(ID2D1DeviceContext *context,
+HRESULT TextStream::GetBrush(const ComObject<ID2D1DeviceContext> &context,
                              const D2D1_COLOR_F &color,
-                             ID2D1SolidColorBrush **brush) {
+                             ComObject<ID2D1SolidColorBrush> &brush) {
   std::ostringstream key;
   key << color.r << '_' << color.g << '_' << color.b << ' ' << color.a;
 
   auto cached = _brushCache.find(key.str());
   if (cached == _brushCache.end()) {
-    HRESULT result = context->CreateSolidColorBrush(color, brush);
+    const HRESULT result =
+        context->CreateSolidColorBrush(color, brush.Assign());
     if (FAILED(result)) {
       return result;
     }
-    _brushCache.insert(std::make_pair(key.str(), *brush));
+    _brushCache.insert(std::make_pair(key.str(), brush));
   } else {
-    *brush = cached->second;
+    brush = cached->second;
   }
   return ERROR_SUCCESS;
 }

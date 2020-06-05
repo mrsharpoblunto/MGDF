@@ -69,7 +69,7 @@ namespace MGDF.GamesManager.Common
     }
 
     // Wrapper for the NULL handle or pointer.
-    static private IntPtr NullPtr = ((IntPtr)((int)(0)));
+    private static readonly IntPtr NullPtr = ((IntPtr)((int)(0)));
 
     // DPAPI key initialization flags.
     private const int CRYPTPROTECT_UI_FORBIDDEN = 0x1;
@@ -125,7 +125,7 @@ namespace MGDF.GamesManager.Common
     public enum KeyType { UserKey = 1, MachineKey };
 
     // It is reasonable to set default key type to user key.
-    private static KeyType defaultKeyType = KeyType.UserKey;
+    private static readonly KeyType defaultKeyType = KeyType.UserKey;
 
     /// <summary>
     /// Calls DPAPI CryptProtectData function to encrypt a plaintext
@@ -395,9 +395,7 @@ namespace MGDF.GamesManager.Common
     /// </remarks>
     public static string Decrypt(string cipherText)
     {
-      string description;
-
-      return Decrypt(cipherText, String.Empty, out description);
+      return Decrypt(cipherText, String.Empty, out _);
     }
 
     /// <summary>

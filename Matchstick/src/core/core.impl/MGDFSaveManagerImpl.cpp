@@ -175,7 +175,7 @@ HRESULT GameState::BeginSave(IPendingSave** p) {
 }
 
 SaveManager::SaveManager(
-    const ComObject<Game>& game,
+    const Game* game,
     std::shared_ptr<storage::IStorageFactoryComponent> storageFactory)
     : _storageFactory(storageFactory) {
   path savePath(Resources::Instance().SaveBaseDir());

@@ -7,7 +7,7 @@
 #endif
 
 Module::~Module(void) {}
-Module::Module() {}
+Module::Module() : _inited(false) {}
 
 bool Module::STNew(MGDF::ISimHost *host, const wchar_t *workingFolder) {
   // This method is called by the host to initialize the module.

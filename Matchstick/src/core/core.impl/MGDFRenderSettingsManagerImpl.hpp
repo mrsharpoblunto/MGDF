@@ -53,10 +53,10 @@ class RenderSettingsManager : public ComBase<IRenderSettingsManager> {
 
   void GetPreferences(IPreferenceSet **preferences) final;
 
-  void LoadPreferences(ComObject<IGame> &game);
+  void LoadPreferences(const ComObject<IGame> &game);
 
-  void InitFromDevice(HWND window, ID3D11Device *d3dDevice,
-                      IDXGIAdapter1 *adapter);
+  void InitFromDevice(HWND window, const ComObject<ID3D11Device> &d3dDevice,
+                      const ComObject<IDXGIAdapter1> &adapter);
   bool IsBackBufferChangePending();
   void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &desc,
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,

@@ -18,17 +18,17 @@ namespace MGDF.GamesManager.MVP.Presenters
 {
   class UpdateGamePresenter : PresenterBase<IProgressView>
   {
-    private string _gameUpdate;
-    private string _gameUpdateHash;
-    private string _frameworkUpdate;
-    private string _frameworkUpdateHash;
+    private readonly string _gameUpdate;
+    private readonly string _gameUpdateHash;
+    private readonly string _frameworkUpdate;
+    private readonly string _frameworkUpdateHash;
 
     private Thread _workerThread;
 
-    private object _lock = new object();
+    private readonly object _lock = new object();
     private FileDownloader _currentDownloader;
     private LongRunningTask _currentTask;
-    private Timer _progressTimer;
+    private readonly Timer _progressTimer;
 
     public UpdateGamePresenter(string gameUpdate, string gameUpdateHash, string frameworkUpdate, string frameworkUpdateHash)
         : base(ViewFactory.Current.CreateView<IProgressView>())

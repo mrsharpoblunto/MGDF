@@ -30,10 +30,7 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   InitResources();
   InitLogger();
 
-  auto storageImpl = storage::CreateStorageFactoryComponentImpl();
-  if (storageImpl != nullptr) {
-    components.Storage = storageImpl;
-  } else {
+  if (!storage::CreateStorageFactoryComponentImpl(components.Storage)) {
     LOG("FATAL ERROR: Unable to register StorageFactory", LOG_ERROR);
     return false;
   }
@@ -43,26 +40,17 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
 
 bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
                                                HostComponents &components) {
-  auto input = input::CreateInputManagerComponentImpl();
-  if (input) {
-    components.Input = input;
-  } else {
+  if (!input::CreateInputManagerComponentImpl(components.Input)) {
     LOG("FATAL ERROR: Unable to register InputManager", LOG_ERROR);
     return false;
   }
 
-  auto vfs = vfs::CreateVirtualFileSystemComponentImpl();
-  if (vfs) {
-    components.VFS = vfs;
-  } else {
+  if (!vfs::CreateVirtualFileSystemComponentImpl(components.VFS)) {
     LOG("FATAL ERROR: Unable to register VirtualFileSystem", LOG_ERROR);
     return false;
   }
 
-  auto audioImpl = audio::CreateSoundManagerComponentImpl();
-  if (audioImpl) {
-    components.Sound = audioImpl;
-  } else {
+  if (!audio::CreateSoundManagerComponentImpl(components.Sound)) {
     // its a problem, but we can still probably run if the soundmanager failed
     // to initialize
     LOG("ERROR: Unable to register SoundManager", LOG_ERROR);
@@ -98,7 +86,7 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   Logger::Instance().MoveOutputFile();
 
   ComObject<Game> game;
-  result = GameBuilder::LoadGame(components.Storage, handler, game);
+  result = GameBuilder::LoadGame(components.Storage, handler.get(), game);
   if (MGDF_OK != result) {
     LOG("FATAL ERROR: Unable to load game configuration", LOG_ERROR);
     return E_FAIL;
@@ -111,7 +99,7 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   }
 
   LOG("Creating host...", LOG_LOW);
-  HRESULT hr = Host::TryCreate(game, components, host);
+  const HRESULT hr = Host::TryCreate(game, components, host);
   if (FAILED(hr)) {
     LOG("FATAL ERROR: Unable to create host", LOG_ERROR);
     return hr;
@@ -123,7 +111,7 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
 void HostBuilder::DisposeHost(ComObject<Host> &host) {
   if (host) {
     host->STDisposeModule();
-    host = nullptr;
+    host.Clear();
   }
 }
 
@@ -202,7 +190,7 @@ void HostBuilder::InitResources(std::string gameUid) {
         Resources::ToWString(gamesDirOverride));
   }
 
-  bool userDirOverride = ParameterManager::Instance().HasParameter(
+  const bool userDirOverride = ParameterManager::Instance().HasParameter(
       ParameterConstants::USER_DIR_OVERRIDE);
 
   Resources::Instance().SetUserBaseDir(userDirOverride, gameUid);

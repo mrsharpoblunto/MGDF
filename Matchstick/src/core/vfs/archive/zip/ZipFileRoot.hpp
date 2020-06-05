@@ -22,7 +22,7 @@ class ZipFileRoot : public DefaultFileImpl {
       : DefaultFileImpl(name, physicalPath, parent),
         _archiveName(name),
         _zip(zip) {}
-  virtual ~ZipFileRoot();
+  ~ZipFileRoot();
   bool IsArchive() const final { return true; }
   const wchar_t *GetArchiveName() const final { return _archiveName.c_str(); }
 

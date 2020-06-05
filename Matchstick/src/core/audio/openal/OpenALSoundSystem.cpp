@@ -43,7 +43,7 @@ MGDFError OpenALSoundSystem::Init() {
   }
 
   if (!alutInitWithoutContext(nullptr, nullptr)) {
-    ALenum alError = alutGetError();
+    const ALenum alError = alutGetError();
     LOG("Failed to initialize alut" << alutGetErrorString(alError), LOG_ERROR);
     return MGDF_ERR_AUDIO_INIT_FAILED;
   }
@@ -79,7 +79,7 @@ OpenALSoundSystem::~OpenALSoundSystem() {
     alcCloseDevice(device);
 
     while (_freeSources.size() > 0) {
-      ALuint source = _freeSources.top();
+      const ALuint source = _freeSources.top();
       _freeSources.pop();
       alDeleteSources(1, &source);
     }
@@ -90,7 +90,7 @@ OpenALSoundSystem::~OpenALSoundSystem() {
 
 MGDFError OpenALSoundSystem::AcquireSource(ALuint *source) {
   _ASSERTE(source);
-  size_t freeSources = GetFreeSources();
+  const size_t freeSources = GetFreeSources();
   if (freeSources > 0) {
     ALuint freeSource = _freeSources.top();
     _freeSources.pop();
