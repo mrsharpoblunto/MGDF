@@ -75,9 +75,9 @@ ULONG Host::Release() {
 }
 HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
   if (!ppvObject) return E_POINTER;
-  if (riid == IID_IUnknown || riid == __uuidof(ILogger) ||
-      riid == __uuidof(ISimHost) || riid == __uuidof(IRenderHost) ||
-      riid == __uuidof(ICommonHost)) {
+  if (riid == IID_IUnknown || riid == __uuidof(IMGDFLogger) ||
+      riid == __uuidof(IMGDFSimHost) || riid == __uuidof(IMGDFRenderHost) ||
+      riid == __uuidof(IMGDFCommonHost)) {
     AddRef();
     *ppvObject = this;
     return S_OK;
@@ -86,7 +86,7 @@ HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
 };
 
 HRESULT Host::Init() {
-  LOG("Creating Module factory...", LOG_LOW);
+  LOG("Creating Module factory...", MGDF_LOG_LOW);
   HRESULT result = ModuleFactory::TryCreate(_moduleFactory);
   if (FAILED(result)) return result;
 
@@ -97,47 +97,47 @@ HRESULT Host::Init() {
 
   // map essential directories to the vfs
   // ensure the vfs automatically enumerates zip files
-  LOG("Registering Zip file VFS handler...", LOG_LOW);
+  LOG("Registering Zip file VFS handler...", MGDF_LOG_LOW);
   _vfs->RegisterArchiveHandler(vfs::zip::CreateZipArchiveHandlerImpl());
 
   // ensure the vfs enumerates any custom defined archive formats
-  LOG("Registering custom archive VFS handlers...", LOG_LOW);
-  UINT32 length = 0;
+  LOG("Registering custom archive VFS handlers...", MGDF_LOG_LOW);
+  UINT64 length = 0;
   result = _moduleFactory->GetCustomArchiveHandlers(
-      nullptr, &length, reinterpret_cast<ILogger *>(this));
+      nullptr, &length, reinterpret_cast<IMGDFLogger *>(this));
   if (FAILED(result)) {
-    LOG("Failed to register custom archive VFS handlers", LOG_ERROR);
+    LOG("Failed to register custom archive VFS handlers", MGDF_LOG_ERROR);
     return result;
   }
   if (length > 0) {
-    ComArray<IArchiveHandler> handlers(length);
+    ComArray<IMGDFArchiveHandler> handlers(length);
     result = _moduleFactory->GetCustomArchiveHandlers(
-        handlers.Data(), &length, reinterpret_cast<ILogger *>(this));
+        handlers.Data(), &length, reinterpret_cast<IMGDFLogger *>(this));
     if (FAILED(result)) {
-      LOG("Failed to register custom archive VFS handlers", LOG_ERROR);
+      LOG("Failed to register custom archive VFS handlers", MGDF_LOG_ERROR);
       return result;
     }
 
     for (const auto handler : handlers) {
       _vfs->RegisterArchiveHandler(handler);
     }
-    LOG("Registered " << length << " custom archive VFS handlers", LOG_LOW);
+    LOG("Registered " << length << " custom archive VFS handlers", MGDF_LOG_LOW);
   } else {
-    LOG("No custom archive VFS handlers to be registered", LOG_LOW);
+    LOG("No custom archive VFS handlers to be registered", MGDF_LOG_LOW);
   }
 
   // enumerate the current games content directory
-  LOG("Mounting content directory into VFS...", LOG_LOW);
+  LOG("Mounting content directory into VFS...", MGDF_LOG_LOW);
   if (!_vfs->Mount(Resources::Instance().ContentDir().c_str())) {
-    LOG("Failed to mount content directory into VFS...", LOG_ERROR);
+    LOG("Failed to mount content directory into VFS...", MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
   // set the initial sound volumes
   if (_sound) {
-    LOG("Setting initial volume...", LOG_HIGH);
+    LOG("Setting initial volume...", MGDF_LOG_HIGH);
     std::string pref;
-    ComObject<IGame> game = _game.As<IGame>();
+    ComObject<IMGDFGame> game = _game.As<IMGDFGame>();
     if (GetPreference(game, PreferenceConstants::SOUND_VOLUME, pref)) {
       _sound->SetSoundVolume(FromString<float>(pref));
     }
@@ -147,17 +147,17 @@ HRESULT Host::Init() {
     }
   }
 
-  LOG("Initialised host components successfully", LOG_LOW);
+  LOG("Initialised host components successfully", MGDF_LOG_LOW);
   return S_OK;
 }
 
 Host::~Host(void) {
   _ASSERTE(_references == 0UL);
-  LOG("Uninitialised host successfully", LOG_LOW);
+  LOG("Uninitialised host successfully", MGDF_LOG_LOW);
 }
 
-void Host::GetDebug(IDebug **debug) {
-  _debugOverlay.AddRawRef<MGDF::IDebug>(debug);
+void Host::GetDebug(IMGDFDebug **debug) {
+  _debugOverlay.AddRawRef<IMGDFDebug>(debug);
 }
 
 ComObject<Debug> Host::GetDebugImpl() { return _debugOverlay; }
@@ -170,8 +170,8 @@ ComObject<input::IInputManagerComponent> Host::GetInputManagerImpl() {
   return _input;
 }
 
-UINT32 Host::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                           UINT32 *featureLevelsSize) {
+UINT64 Host::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                           UINT64 *featureLevelsSize) {
   return _moduleFactory->GetCompatibleFeatureLevels(levels, featureLevelsSize);
 }
 
@@ -204,7 +204,7 @@ void Host::STCreateModule() {
 void Host::STUpdate(double simulationTime, HostStats &stats) {
   bool exp = true;
   if (_module && _shutdownQueued.compare_exchange_strong(exp, false)) {
-    LOG("Calling module STShutDown...", LOG_MEDIUM);
+    LOG("Calling module STShutDown...", MGDF_LOG_MEDIUM);
     _module->STShutDown(this);
   }
 
@@ -221,7 +221,7 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
       _timer->ConvertDifferenceToSeconds(audioEnd, audioStart));
 
   if (_module) {
-    LOG("Calling module STUpdate...", LOG_HIGH);
+    LOG("Calling module STUpdate...", MGDF_LOG_HIGH);
     if (!_module->STUpdate(this, simulationTime)) {
       FATALERROR(this, "Error updating scene in module");
     }
@@ -229,13 +229,13 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
 }
 
 void Host::STDisposeModule() {
-  LOG("Releasing module...", LOG_MEDIUM);
+  LOG("Releasing module...", MGDF_LOG_MEDIUM);
   _module.Clear();
 }
 
 void Host::RTBeforeFirstDraw() {
   if (_module) {
-    LOG("Calling module RTBeforeFirstDraw...", LOG_MEDIUM);
+    LOG("Calling module RTBeforeFirstDraw...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeFirstDraw(this)) {
       FATALERROR(this, "Error in before first draw in module");
     }
@@ -248,7 +248,7 @@ void Host::RTBeforeDeviceReset() {
   _d3dDevice.Clear();
   _timer->BeforeDeviceReset();
   if (_module) {
-    LOG("Calling module RTBeforeDeviceReset...", LOG_MEDIUM);
+    LOG("Calling module RTBeforeDeviceReset...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeDeviceReset(this)) {
       FATALERROR(this, "Error in before device reset in module");
     }
@@ -258,7 +258,7 @@ void Host::RTBeforeDeviceReset() {
 void Host::RTSetDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
                         const ComObject<ID2D1Device> &d2dDevice,
                         const ComObject<IDXGIAdapter1> &adapter) {
-  LOG("Initializing render settings and GPU timers...", LOG_LOW);
+  LOG("Initializing render settings and GPU timers...", MGDF_LOG_LOW);
   _renderSettings->InitFromDevice(window, d3dDevice, adapter);
   _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
 
@@ -267,8 +267,8 @@ void Host::RTSetDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
   }
 
   if (!_d3dDevice) {
-    LOG("Loading Render settings...", LOG_LOW);
-    auto game = _game.As<IGame>();
+    LOG("Loading Render settings...", MGDF_LOG_LOW);
+    auto game = _game.As<IMGDFGame>();
     _renderSettings->LoadPreferences(game);
   }
 
@@ -281,7 +281,7 @@ void Host::RTSetDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
 void Host::RTDraw(double alpha) {
   _timer->Begin();
   if (_module) {
-    LOG("Calling module RTDraw...", LOG_HIGH);
+    LOG("Calling module RTDraw...", MGDF_LOG_HIGH);
     if (!_module->RTDraw(this, alpha)) {
       FATALERROR(this, "Error drawing scene in module");
     }
@@ -293,7 +293,7 @@ void Host::RTBeforeBackBufferChange() {
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
   if (_module) {
-    LOG("Calling module RTBeforeBackBufferChange...", LOG_MEDIUM);
+    LOG("Calling module RTBeforeBackBufferChange...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeBackBufferChange(this)) {
       FATALERROR(this, "Error handling before back buffer change in module");
     }
@@ -306,20 +306,20 @@ void Host::RTBackBufferChange(
   _backBuffer = backBuffer;
   _depthStencilBuffer = depthStencilBuffer;
   if (_module) {
-    LOG("Calling module RTBackBufferChange...", LOG_MEDIUM);
+    LOG("Calling module RTBackBufferChange...", MGDF_LOG_MEDIUM);
     if (!_module->RTBackBufferChange(this)) {
       FATALERROR(this, "Error handling back buffer change in module");
     }
   }
 }
 
-ID3D11Texture2D *Host::GetBackBuffer() const { return _backBuffer; }
+ID3D11Texture2D *Host::GetBackBuffer() { return _backBuffer; }
 
-ID3D11Texture2D *Host::GetDepthStencilBuffer() const { return _backBuffer; }
+ID3D11Texture2D *Host::GetDepthStencilBuffer() { return _backBuffer; }
 
 void Host::GetBackBufferDescription(
     D3D11_TEXTURE2D_DESC *backBufferDesc,
-    D3D11_TEXTURE2D_DESC *depthStencilDesc) const {
+    D3D11_TEXTURE2D_DESC *depthStencilDesc) {
   if (backBufferDesc) {
     _backBuffer->GetDesc(backBufferDesc);
   }
@@ -328,22 +328,22 @@ void Host::GetBackBufferDescription(
   }
 }
 
-ID3D11Device *Host::GetD3DDevice() const { return _d3dDevice; }
+ID3D11Device *Host::GetD3DDevice() { return _d3dDevice; }
 
-ID3D11DeviceContext *Host::GetD3DImmediateContext() const {
+ID3D11DeviceContext *Host::GetD3DImmediateContext() {
   return _d3dContext;
 }
 
-ID2D1Device *Host::GetD2DDevice() const { return _d2dDevice; }
+ID2D1Device *Host::GetD2DDevice() { return _d2dDevice; }
 
-void Host::GetRenderSettings(IRenderSettingsManager **settings) {
+void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
   _renderSettings.AddRawRef(settings);
 }
 
-bool Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
+BOOL Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
   if (!context) return false;
 
-  LOG("Setting D2D device context render target to backbuffer...", LOG_HIGH);
+  LOG("Setting D2D device context render target to backbuffer...", MGDF_LOG_HIGH);
   D2D1_PIXEL_FORMAT pixelFormat;
   pixelFormat.format = DXGI_FORMAT_R8G8B8A8_UNORM;
   pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
@@ -375,9 +375,9 @@ void Host::FatalError(const char *sender, const char *message) {
   if (sender && message) {
     std::ostringstream ss;
     ss << "FATAL ERROR: " << message;
-    Logger::Instance().Log(sender, ss.str().c_str(), LOG_ERROR);
+    Logger::Instance().Log(sender, ss.str().c_str(), MGDF_LOG_ERROR);
   }
-  LOG("Notified of fatal error, telling module to panic", LOG_ERROR);
+  LOG("Notified of fatal error, telling module to panic", MGDF_LOG_ERROR);
   Logger::Instance().Flush();
 
   if (_module) {
@@ -391,19 +391,19 @@ void Host::FatalError(const char *sender, const char *message) {
   TerminateProcess(GetCurrentProcess(), 1);
 }
 
-const Version *Host::GetMGDFVersion() const { return &_version; }
+const MGDFVersion *Host::GetMGDFVersion() { return &_version; }
 
-void Host::SetLoggingLevel(LogLevel level) {
+void Host::SetLoggingLevel(MGDFLogLevel level) {
   Logger::Instance().SetLoggingLevel(level);
 }
-LogLevel Host::GetLoggingLevel() const {
+MGDFLogLevel Host::GetLoggingLevel() {
   return Logger::Instance().GetLoggingLevel();
 }
-void Host::Log(const char *sender, const char *message, LogLevel level) {
+void Host::Log(const char *sender, const char *message, MGDFLogLevel level) {
   Logger::Instance().Log(sender, message, level);
 }
 
-void Host::GetTimer(ITimer **timer) { _timer.AddRawRef(timer); }
+void Host::GetTimer(IMGDFTimer **timer) { _timer.AddRawRef(timer); }
 
 void Host::QueueShutDown() { _shutdownQueued.store(true); }
 
@@ -411,30 +411,30 @@ void Host::ShutDown() {
   _shutDownHandler();  // message the shutdown callback
 }
 
-void Host::GetSaves(ISaveManager **saves) {
-  _saves.AddRawRef<ISaveManager>(saves);
+void Host::GetSaves(IMGDFSaveManager **saves) {
+  _saves.AddRawRef<IMGDFSaveManager>(saves);
 }
 
-void Host::GetGame(IGame **game) { _game.AddRawRef<IGame>(game); }
+void Host::GetGame(IMGDFGame **game) { _game.AddRawRef<IMGDFGame>(game); }
 
-void Host::GetStatistics(IStatisticsManager **statistics) {
-  _stats.AddRawRef(statistics);
+void Host::GetStatistics(IMGDFStatisticsManager **statistics) {
+  _stats.AddRawRef<IMGDFStatisticsManager>(statistics);
 }
 
-void Host::GetVFS(IVirtualFileSystem **vfs) {
-  _vfs.AddRawRef<IVirtualFileSystem>(vfs);
+void Host::GetVFS(IMGDFVirtualFileSystem **vfs) {
+  _vfs.AddRawRef<IMGDFVirtualFileSystem>(vfs);
 }
 
-void Host::GetInput(IInputManager **input) {
-  _input.AddRawRef<IInputManager>(input);
+void Host::GetInput(IMGDFInputManager **input) {
+  _input.AddRawRef<IMGDFInputManager>(input);
 }
 
-void Host::GetSound(ISoundManager **sound) {
-  _sound.AddRawRef<ISoundManager>(sound);
+void Host::GetSound(IMGDFSoundManager **sound) {
+  _sound.AddRawRef<IMGDFSoundManager>(sound);
 }
 
 void Host::ClearWorkingDirectory() {
-  LOG("Clearing working directory...", LOG_HIGH);
+  LOG("Clearing working directory...", MGDF_LOG_HIGH);
   path workingDir(Resources::Instance().WorkingDir());
   if (exists(workingDir)) {
     remove_all(workingDir);
@@ -444,162 +444,13 @@ void Host::ClearWorkingDirectory() {
 }
 
 HRESULT Host::CreateCPUCounter(const char *name,
-                               IPerformanceCounter **counter) {
+                               IMGDFPerformanceCounter **counter) {
   return _timer->CreateCPUCounter(name, counter);
 }
 
 HRESULT Host::CreateGPUCounter(const char *name,
-                               IPerformanceCounter **counter) {
+                               IMGDFPerformanceCounter **counter) {
   return _timer->CreateGPUCounter(name, counter);
-}
-
-const char *Host::GetErrorDescription(MGDFError err) const {
-  static std::string ok("No error");
-  static std::string allocatingBuffer("Error allocating audio buffer");
-  static std::string noFreeSources("No free audio sources");
-  static std::string vorbisFailed("Failed to load vorbis audio library");
-  static std::string invalidFormat("Invalid audio file format");
-  static std::string invalidArchive("Invalid archive file");
-  static std::string invalidFile("Not a valid VFS file");
-  static std::string noPending(
-      "This save name does not match any pending save created by "
-      "BeginSave");
-  static std::string invalidSave(
-      "Invalid save name - only alphanumeric characters and the space "
-      "character are permitted");
-  static std::string archiveToLarge(
-      "Archive file is too large - archive files cannot be over 4GB in "
-      "size");
-  static std::string fileInUse("File is already open for reading elsewhere");
-  static std::string bufferTooSmall(
-      "Target buffer is too small to hold all required data");
-  static std::string fatal("Fatal error - shutting down");
-  static std::string folder("Cannot open a folder for reading");
-  static std::string gpuTimer(
-      "GPU Timers are not supported at this DirectX feature level, only "
-      "10 and "
-      "up is supported");
-  static std::string invalidTimerName("Timer names cannot be null");
-  static std::string invalidJson("Invalid JSON data");
-  static std::string invalidParam("Invalid parameter format");
-  static std::string audioInitFailed("Failed to initialize audio system");
-  static std::string cpuTimer(
-      "High resolution timers are unsupported on this system");
-  static std::string unknown("Unknown error");
-
-  switch (err) {
-    case MGDF_OK:
-      return ok.c_str();
-    case MGDF_ERR_ERROR_ALLOCATING_BUFFER:
-      return allocatingBuffer.c_str();
-    case MGDF_ERR_NO_FREE_SOURCES:
-      return noFreeSources.c_str();
-    case MGDF_ERR_VORBIS_LIB_LOAD_FAILED:
-      return vorbisFailed.c_str();
-    case MGDF_ERR_INVALID_FORMAT:
-      return invalidFormat.c_str();
-    case MGDF_ERR_INVALID_ARCHIVE_FILE:
-      return invalidArchive.c_str();
-    case MGDF_ERR_INVALID_FILE:
-      return invalidFile.c_str();
-    case MGDF_ERR_NO_PENDING_SAVE:
-      return noPending.c_str();
-    case MGDF_ERR_INVALID_SAVE_NAME:
-      return invalidSave.c_str();
-    case MGDF_ERR_ARCHIVE_FILE_TOO_LARGE:
-      return archiveToLarge.c_str();
-    case MGDF_ERR_FILE_IN_USE:
-      return fileInUse.c_str();
-    case MGDF_ERR_BUFFER_TOO_SMALL:
-      return bufferTooSmall.c_str();
-    case MGDF_ERR_FATAL:
-      return fatal.c_str();
-    case MGDF_ERR_IS_FOLDER:
-      return folder.c_str();
-    case MGDF_ERR_GPU_TIMER_UNSUPPORTED:
-      return gpuTimer.c_str();
-    case MGDF_ERR_INVALID_TIMER_NAME:
-      return invalidTimerName.c_str();
-    case MGDF_ERR_INVALID_JSON:
-      return invalidJson.c_str();
-    case MGDF_ERR_INVALID_PARAMETER:
-      return invalidParam.c_str();
-    case MGDF_ERR_AUDIO_INIT_FAILED:
-      return audioInitFailed.c_str();
-    case MGDF_ERR_CPU_TIMER_UNSUPPORTED:
-      return cpuTimer.c_str();
-    default:
-      return unknown.c_str();
-  }
-}
-
-const char *Host::GetErrorString(MGDFError err) const {
-  static std::string ok("MGDF_OK");
-  static std::string allocatingBuffer("MGDF_ERR_ERROR_ALLOCATING_BUFFER");
-  static std::string noFreeSources("MGDF_ERR_NO_FREE_SOURCES");
-  static std::string vorbisFailed("MGDF_ERR_VORBIS_LIB_LOAD_FAILED");
-  static std::string invalidFormat("MGDF_ERR_INVALID_FORMAT");
-  static std::string invalidArchive("MGDF_ERR_INVALID_ARCHIVE_FILE");
-  static std::string invalidFile("MGDF_ERR_INVALID_FILE");
-  static std::string noPending("MGDF_ERR_NO_PENDING_SAVE");
-  static std::string invalidSave("MGDF_ERR_INVALID_SAVE_NAME");
-  static std::string archiveToLarge("MGDF_ERR_ARCHIVE_FILE_TOO_LARGE");
-  static std::string fileInUse("MGDF_ERR_FILE_IN_USE");
-  static std::string bufferTooSmall("MGDF_ERR_BUFFER_TOO_SMALL");
-  static std::string fatal("MGDF_ERR_FATAL");
-  static std::string folder("MGDF_ERR_IS_FOLDER");
-  static std::string gpuTimer("MGDF_ERR_GPU_TIMER_UNSUPPORTED");
-  static std::string invalidTimerName("MGDF_ERR_INVALID_TIMER_NAME");
-  static std::string invalidJson("MGDF_ERR_INVALID_JSON");
-  static std::string invalidParam("MGDF_ERR_INVALID_PARAMETER");
-  static std::string audioInitFailed("MGDF_ERR_AUDIO_INIT_FAILED");
-  static std::string cpuTimer("MGDF_ERR_CPU_TIMER_UNSUPPORTED");
-  static std::string unknown("MGDF_ERR_UNKNOWN");
-
-  switch (err) {
-    case MGDF_OK:
-      return ok.c_str();
-    case MGDF_ERR_ERROR_ALLOCATING_BUFFER:
-      return allocatingBuffer.c_str();
-    case MGDF_ERR_NO_FREE_SOURCES:
-      return noFreeSources.c_str();
-    case MGDF_ERR_VORBIS_LIB_LOAD_FAILED:
-      return vorbisFailed.c_str();
-    case MGDF_ERR_INVALID_FORMAT:
-      return invalidFormat.c_str();
-    case MGDF_ERR_INVALID_ARCHIVE_FILE:
-      return invalidArchive.c_str();
-    case MGDF_ERR_INVALID_FILE:
-      return invalidFile.c_str();
-    case MGDF_ERR_NO_PENDING_SAVE:
-      return noPending.c_str();
-    case MGDF_ERR_INVALID_SAVE_NAME:
-      return invalidSave.c_str();
-    case MGDF_ERR_ARCHIVE_FILE_TOO_LARGE:
-      return archiveToLarge.c_str();
-    case MGDF_ERR_FILE_IN_USE:
-      return fileInUse.c_str();
-    case MGDF_ERR_BUFFER_TOO_SMALL:
-      return bufferTooSmall.c_str();
-    case MGDF_ERR_FATAL:
-      return fatal.c_str();
-    case MGDF_ERR_IS_FOLDER:
-      return folder.c_str();
-    case MGDF_ERR_GPU_TIMER_UNSUPPORTED:
-      return gpuTimer.c_str();
-    case MGDF_ERR_INVALID_TIMER_NAME:
-      return invalidTimerName.c_str();
-    case MGDF_ERR_INVALID_JSON:
-      return invalidJson.c_str();
-    case MGDF_ERR_INVALID_PARAMETER:
-      return invalidParam.c_str();
-    case MGDF_ERR_AUDIO_INIT_FAILED:
-      return audioInitFailed.c_str();
-    case MGDF_ERR_CPU_TIMER_UNSUPPORTED:
-      return cpuTimer.c_str();
-    default:
-      return unknown.c_str();
-  }
 }
 
 }  // namespace core

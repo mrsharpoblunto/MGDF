@@ -1,29 +1,29 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
-class Module : public MGDF::ComBase<MGDF::IModule> {
+class Module : public MGDF::ComBase<IMGDFModule> {
  public:
   virtual ~Module(void);
   Module();
 
-  bool STNew(MGDF::ISimHost *host, const wchar_t *workingFolder) final;
-  bool STUpdate(MGDF::ISimHost *host, double elapsedTime) final;
-  void STShutDown(MGDF::ISimHost *host) final;
+  BOOL STNew(IMGDFSimHost *host, const wchar_t *workingFolder) final;
+  BOOL STUpdate(IMGDFSimHost *host, double elapsedTime) final;
+  void __stdcall STShutDown(IMGDFSimHost *host) final;
 
-  bool RTBeforeFirstDraw(MGDF::IRenderHost *host) final;
-  bool RTDraw(MGDF::IRenderHost *host, double alpha) final;
-  bool RTBeforeBackBufferChange(MGDF::IRenderHost *host) final;
-  bool RTBackBufferChange(MGDF::IRenderHost *host) final;
-  bool RTBeforeDeviceReset(MGDF::IRenderHost *host) final;
-  bool RTDeviceReset(MGDF::IRenderHost *host) final;
+  BOOL RTBeforeFirstDraw(IMGDFRenderHost *host) final;
+  BOOL RTDraw(IMGDFRenderHost *host, double alpha) final;
+  BOOL RTBeforeBackBufferChange(IMGDFRenderHost *host) final;
+  BOOL RTBackBufferChange(IMGDFRenderHost *host) final;
+  BOOL RTBeforeDeviceReset(IMGDFRenderHost *host) final;
+  BOOL RTDeviceReset(IMGDFRenderHost *host) final;
 
-  void Panic() final;
+  void __stdcall Panic() final;
 
  private:
   bool _inited;

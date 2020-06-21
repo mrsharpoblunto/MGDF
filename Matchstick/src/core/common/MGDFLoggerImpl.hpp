@@ -1,7 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
-#include <MGDF/MGDFLogger.hpp>
+#include <MGDF/MGDF.h>
 #include <atomic>
 #include <mutex>
 #include <sstream>
@@ -22,9 +21,9 @@ class Logger {
     return log;
   }
 
-  void SetLoggingLevel(LogLevel level);
-  LogLevel GetLoggingLevel() const;
-  void Log(const char *sender, const char *message, LogLevel level);
+  void SetLoggingLevel(MGDFLogLevel level);
+  MGDFLogLevel GetLoggingLevel() const;
+  void Log(const char *sender, const char *message, MGDFLogLevel level);
 
   void MoveOutputFile();
   void Flush();
@@ -41,7 +40,7 @@ class Logger {
   std::thread _flushThread;
   bool _runLogger;
   std::wstring _filename;
-  std::atomic<LogLevel> _level;
+  std::atomic<MGDFLogLevel> _level;
 };
 
 #define LOG(msg, lvl)                                                        \

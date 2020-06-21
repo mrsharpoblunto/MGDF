@@ -17,13 +17,13 @@ class MGDFApp : public D3DAppFramework {
   virtual ~MGDFApp();
 
  protected:
-  UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                       UINT32 *featureLevelsSize) final;
+  UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                       UINT64 *featureLevelsSize) final;
   bool OnInitWindow(RECT &windowSize) final;
   void OnInitDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
                      const ComObject<ID2D1Device> &d2dDevice,
                      const ComObject<IDXGIAdapter1> &adapter) final;
-  FullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
+  MGDFFullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                   DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                   const RECT &windowSize) final;
   void OnResize(UINT32 width, UINT32 height) final;
@@ -59,8 +59,8 @@ class MGDFApp : public D3DAppFramework {
   Host *_host;
   std::unique_ptr<FrameLimiter> _simFrameLimiter;
   std::unique_ptr<FrameLimiter> _renderFrameLimiter;
-  ComObject<IGame> _game;
-  ComObject<ITimer> _timer;
+  ComObject<IMGDFGame> _game;
+  ComObject<IMGDFTimer> _timer;
   ComObject<RenderSettingsManager> _settings;
 
   HostStats _stats;

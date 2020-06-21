@@ -67,7 +67,7 @@ float FromString(const std::string &str) {
   return static_cast<float>(FromString<double>(str));
 }
 
-bool GetPreference(IGame *game, const std::string &name, std::string &value) {
+bool GetPreference(IMGDFGame *game, const std::string &name, std::string &value) {
   size_t size = 0;
   game->GetPreference(name.c_str(), nullptr, &size);
   value.resize(size);

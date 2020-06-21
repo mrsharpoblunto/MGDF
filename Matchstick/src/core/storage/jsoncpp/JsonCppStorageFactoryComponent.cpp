@@ -29,7 +29,7 @@ JsonCppStorageFactoryComponent::CreateGameStorageHandler() const {
 
 std::unique_ptr<IGameStateStorageHandler>
 JsonCppStorageFactoryComponent::CreateGameStateStorageHandler(
-    const std::string &game, const Version &version) const {
+    const std::string &game, const MGDFVersion &version) const {
   return std::make_unique<JsonCppGameStateStorageHandler>(game, version);
 }
 

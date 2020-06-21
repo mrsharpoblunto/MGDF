@@ -44,13 +44,13 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     FATALERROR(_host, PreferenceConstants::SIM_FPS << " is not an integer");
   }
 
-  if (MGDF_OK != FrameLimiter::TryCreate(simulationFps, _simFrameLimiter)) {
+  if (FAILED(FrameLimiter::TryCreate(simulationFps, _simFrameLimiter))) {
     FATALERROR(_host, "Unable to create sim frame limiter");
   }
 
   if (GetPreference(_game, PreferenceConstants::RENDER_FPS, pref)) {
-    if (MGDF_OK != FrameLimiter::TryCreate(FromString<UINT32>(pref),
-                                           _renderFrameLimiter)) {
+    if (FAILED(FrameLimiter::TryCreate(FromString<UINT32>(pref),
+                                           _renderFrameLimiter))) {
       FATALERROR(_host, "Unable to create render frame limiter");
     }
   }
@@ -88,8 +88,8 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
 
 MGDFApp::~MGDFApp() {}
 
-UINT32 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                              UINT32 *featureLevelsSize) {
+UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                              UINT64 *featureLevelsSize) {
   return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
 }
 
@@ -136,11 +136,11 @@ bool MGDFApp::OnInitWindow(RECT &window) {
          FromString<int>(pref) == 1;
 }
 
-FullScreenDesc MGDFApp::OnResetSwapChain(
+MGDFFullScreenDesc MGDFApp::OnResetSwapChain(
     DXGI_SWAP_CHAIN_DESC1 &swapDesc,
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT &windowSize) {
   _settings->OnResetSwapChain(swapDesc, fullscreenDesc, windowSize);
-  FullScreenDesc desc;
+  MGDFFullScreenDesc desc;
   _settings->GetFullscreen(&desc);
   return desc;
 }
@@ -262,7 +262,7 @@ void MGDFApp::InitBrushes() {
 void MGDFApp::OnUpdateSim() {
   if (!_initialized) {
     _simulationEnd = _timer->GetCurrentTimeTicks();
-    LOG("Creating Module...", LOG_LOW);
+    LOG("Creating Module...", MGDF_LOG_LOW);
     _host->STCreateModule();
     _initialized = true;
   }

@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "FakeArchiveHandler.hpp"
 #include "Module.hpp"
@@ -18,15 +18,15 @@ BOOL APIENTRY DllMain(HMODULE const hModule, DWORD const ul_reason_for_call,
 }
 
 // create module instances as they are requested by the framework
-HRESULT MGDF::GetModule(IModule **module) {
-  ComObject<IModule> m(new MGDF::Test::Module());
+extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
+  auto m = MGDF::MakeCom<MGDF::Test::Module>();
   m.AddRawRef(module);
   return S_OK;
 }
 
 // specify to the framework what kind of d3d device features we want/require
-UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                        UINT32 *featureLevelsSize) {
+extern "C" __declspec(dllexport) UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                        UINT64 *featureLevelsSize) {
   if (*featureLevelsSize != 1) {
     *featureLevelsSize = 1;
     return 1;
@@ -37,16 +37,15 @@ UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
 }
 
 // register custom archive handlers
-HRESULT MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
-                                       ILogger *logger) {
+extern "C" __declspec(dllexport) HRESULT GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
+                                       IMGDFLogger *logger) {
   *length = 1;
   if (!list) {
     return S_OK;
   }
 
   if (*length >= 1) {
-    ComObject<IArchiveHandler> handler(
-        new MGDF::Test::FakeArchiveHandler(logger));
+    auto handler = MGDF::MakeCom<MGDF::Test::FakeArchiveHandler>(logger);
     handler.AddRawRef(list);
     return S_OK;
   }

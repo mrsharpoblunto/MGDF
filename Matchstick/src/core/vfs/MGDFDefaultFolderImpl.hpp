@@ -17,12 +17,12 @@ has to call back into the vfs component to enumerate its children at that time.
 class DefaultFolderImpl : public FolderBaseImpl {
  public:
   DefaultFolderImpl(const std::wstring &name, const std::wstring &physicalPath,
-                    IFile *parent, VirtualFileSystemComponent *vfs);
+                    IMGDFFile *parent, VirtualFileSystemComponent *vfs);
   virtual ~DefaultFolderImpl(void);
 
-  bool GetChild(const wchar_t *name, IFile **child) final;
-  size_t GetChildCount() final;
-  void GetAllChildren(IFile **childBuffer) final;
+  BOOL __stdcall GetChild(const wchar_t *name, IMGDFFile **child) final;
+  UINT64 __stdcall GetChildCount() final;
+  void __stdcall GetAllChildren(IMGDFFile **childBuffer) final;
 
  private:
   VirtualFileSystemComponent *_vfs;

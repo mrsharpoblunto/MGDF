@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "../MGDFStorageFactoryComponent.hpp"
 
@@ -16,7 +16,7 @@ class JsonCppStorageFactoryComponent : public IStorageFactoryComponent {
 
   std::unique_ptr<IGameStorageHandler> CreateGameStorageHandler() const final;
   std::unique_ptr<IGameStateStorageHandler> CreateGameStateStorageHandler(
-      const std::string &, const Version &) const final;
+      const std::string &, const MGDFVersion &) const final;
   std::unique_ptr<IPreferenceConfigStorageHandler>
   CreatePreferenceConfigStorageHandler() const final;
 };

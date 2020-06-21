@@ -15,12 +15,12 @@ class OpenALSoundSystem {
  public:
   virtual ~OpenALSoundSystem(void);
 
-  MGDFError AcquireSource(ALuint *source);
+  HRESULT AcquireSource(ALuint *source);
   void ReleaseSource(ALuint source);
 
  protected:
   OpenALSoundSystem(void);
-  virtual MGDFError Init();
+  virtual HRESULT Init();
 
   size_t GetFreeSources() const { return _freeSources.size(); }
 

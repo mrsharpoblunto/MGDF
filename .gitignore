@@ -8,3 +8,6 @@ ipch/
 Matchstick/src/samples/EmptyGame/user
 Matchstick/dist
 .vs/
+/Matchstick/include/MGDF/MGDF_p.c
+/Matchstick/include/MGDF/MGDF_i.c
+/Matchstick/include/MGDF/dlldata.c

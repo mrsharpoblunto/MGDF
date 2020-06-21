@@ -3,7 +3,7 @@
 #include <time.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "Module.hpp"
 
@@ -19,16 +19,16 @@ class Test2 : public TestModule {
   virtual ~Test2(void);
   Test2();
 
-  void Setup(ISimHost *host) final;
+  void Setup(IMGDFSimHost *host) final;
   TestModule *NextTestModule() final;
 
  private:
   INT32 _x, _y;
-  ComObject<IInputManager> _input;
-  ComObject<IVirtualFileSystem> _vfs;
-  ComObject<ISoundManager> _soundManager;
-  ComObject<ISound> _sound;
-  ComObject<ISoundStream> _stream;
+  ComObject<IMGDFInputManager> _input;
+  ComObject<IMGDFVirtualFileSystem> _vfs;
+  ComObject<IMGDFSoundManager> _soundManager;
+  ComObject<IMGDFSound> _sound;
+  ComObject<IMGDFSoundStream> _stream;
 };
 
 }  // namespace Test

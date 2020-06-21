@@ -21,9 +21,9 @@ Test1::Test1() : _waitingForGamepad(false) { _time.QuadPart = -1; }
 
 TestModule *Test1::NextTestModule() { return new Test2(); }
 
-void Test1::Setup(ISimHost *host) {
+void Test1::Setup(IMGDFSimHost *host) {
   host->GetInput(_input.Assign());
-  ComArray<IGamepad> gamepads(_input->GetGamepadCount());
+  ComArray<IMGDFGamepad> gamepads(_input->GetGamepadCount());
   _input->GetGamepads(gamepads.Data());
   _gamepad = gamepads[0];
   host->GetTimer(_timer.Assign());
@@ -69,7 +69,7 @@ void Test1::Setup(ISimHost *host) {
           [](auto state) { state->AddLine("Now click the left mouse button"); })
       .Step([this](auto state) {
         (void)state;
-        return _input->IsButtonClicked(MOUSE_LEFT) ? TestStep::PASSED
+        return _input->IsButtonClicked(MGDF_MOUSE_LEFT) ? TestStep::PASSED
                                                    : TestStep::CONT;
       })
       .StepOnce([](auto state) { state->AddLine("Now move the mouse up"); })
@@ -92,7 +92,7 @@ void Test1::Setup(ISimHost *host) {
       })
       .Step([this](auto state) {
         (void)state;
-        return _gamepad->IsButtonPress(GAMEPAD_A) ? TestStep::PASSED
+        return _gamepad->IsButtonPress(MGDF_GAMEPAD_A) ? TestStep::PASSED
                                                   : TestStep::CONT;
       })
       .StepOnce([](auto state) {
@@ -114,10 +114,10 @@ void Test1::Setup(ISimHost *host) {
         _gamepad->SetVibrationSpeed(
             static_cast<UINT16>(_gamepad->GetRightTrigger() * 257),
             static_cast<UINT16>(_gamepad->GetRightTrigger() * 257));
-        if (_gamepad->IsButtonPress(GAMEPAD_A)) {
+        if (_gamepad->IsButtonPress(MGDF_GAMEPAD_A)) {
           _gamepad->SetVibrationSpeed(0, 0);
           return TestStep::PASSED;
-        } else if (_gamepad->IsButtonPress(GAMEPAD_B)) {
+        } else if (_gamepad->IsButtonPress(MGDF_GAMEPAD_B)) {
           _gamepad->SetVibrationSpeed(0, 0);
           return TestStep::FAILED;
         }

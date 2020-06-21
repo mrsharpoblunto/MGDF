@@ -36,8 +36,8 @@ bool GuidString(std::string& guid) {
 }
 
 HRESULT PendingSave::GetSaveDataLocation(wchar_t* location,
-                                         size_t* length) const {
-  COPY_WSTR(_saveData, location, length);
+                                         UINT64* length) {
+  return CopyWStr(_saveData, location, length);
 }
 
 PendingSave::PendingSave(ComObject<GameState>& gameState)
@@ -80,7 +80,7 @@ PendingSave::~PendingSave() {
     std::filesystem::rename(_saveData, saveData);
   }
   if (FAILED(_gameState->Save())) {
-    LOG("Unable to update save " << _gameState->GetSave(), LOG_ERROR);
+    LOG("Unable to update save " << _gameState->GetSave(), MGDF_LOG_ERROR);
   }
 }
 
@@ -88,11 +88,11 @@ GameState::GameState(
     const std::string& saveName, const std::string& gameUid, SaveManager* saves,
     const std::shared_ptr<storage::IStorageFactoryComponent>& factory)
     : _saveName(saveName), _gameUid(gameUid), _saves(saves), _factory(factory) {
-  ZeroMemory(&_gameVersion, sizeof(Version));
+  ZeroMemory(&_gameVersion, sizeof(MGDFVersion));
 }
 
 GameState::GameState(
-    const std::string& gameUid, Version& version, SaveManager* saves,
+    const std::string& gameUid, MGDFVersion& version, SaveManager* saves,
     const std::shared_ptr<storage::IStorageFactoryComponent>& factory)
     : _gameUid(gameUid),
       _gameVersion(version),
@@ -112,16 +112,15 @@ HRESULT GameState::Load() {
       _factory->CreateGameStateStorageHandler(_gameUid, _gameVersion);
 
   auto saveFile = Resources::Instance().GameStateSaveFile(_saveName);
-  if (handler->Load(saveFile) != MGDF_OK) {
-    return E_FAIL;
+  const auto result = handler->Load(saveFile);
+  if (SUCCEEDED(result)) {
+    handler->GetVersion(_gameVersion);
+    handler->GetMetadata(_metadata);
   }
-
-  handler->GetVersion(_gameVersion);
-  handler->GetMetadata(_metadata);
-  return S_OK;
+  return result;
 }
 
-HRESULT GameState::Save() const {
+HRESULT GameState::Save() {
   if (IsNew()) {
     return E_FAIL;
   }
@@ -136,13 +135,12 @@ HRESULT GameState::Save() const {
 }
 
 HRESULT GameState::GetMetadata(const char* key, char* value,
-                               size_t* length) const {
+                               UINT64* length) {
   auto found = _metadata.find(key);
   if (found == _metadata.end()) {
-    return E_FAIL;
+    return E_NOT_SET;
   }
-  COPY_STR(found->second, value, length);
-  return S_OK;
+  return CopyStr(found->second, value, length);
 }
 
 HRESULT GameState::SetMetadata(const char* key, const char* value) {
@@ -153,18 +151,17 @@ HRESULT GameState::SetMetadata(const char* key, const char* value) {
   return S_OK;
 }
 
-HRESULT GameState::GetSaveDataLocation(wchar_t* folder, size_t* size) const {
+HRESULT GameState::GetSaveDataLocation(wchar_t* folder, UINT64* size) {
   if (IsNew()) {
-    return E_FAIL;
+    return E_NOT_SET;
   }
   auto saveDir = Resources::Instance().SaveDataDir(_saveName);
-  COPY_WSTR(saveDir, folder, size);
-  return S_OK;
+  return CopyWStr(saveDir, folder, size);
 }
 
-void GameState::GetVersion(Version* version) const { *version = _gameVersion; }
+void GameState::GetVersion(MGDFVersion* version) { *version = _gameVersion; }
 
-HRESULT GameState::BeginSave(IPendingSave** p) {
+HRESULT GameState::BeginSave(IMGDFPendingSave** p) {
   auto state = MakeComFromPtr<GameState>(this);
   auto pending = MakeCom<PendingSave>(state);
   if (FAILED(pending->Init())) {
@@ -175,7 +172,7 @@ HRESULT GameState::BeginSave(IPendingSave** p) {
 }
 
 SaveManager::SaveManager(
-    const Game* game,
+    const ComObject<Game> &game,
     std::shared_ptr<storage::IStorageFactoryComponent> storageFactory)
     : _storageFactory(storageFactory) {
   path savePath(Resources::Instance().SaveBaseDir());
@@ -192,7 +189,7 @@ SaveManager::SaveManager(
   }
 }
 
-HRESULT SaveManager::GetSave(size_t index, IGameState** s) {
+HRESULT SaveManager::GetSave(UINT64 index, IMGDFGameState** s) {
   if (index >= _saves.size()) {
     return E_INVALIDARG;
   }
@@ -207,7 +204,7 @@ HRESULT SaveManager::GetSave(size_t index, IGameState** s) {
   return S_OK;
 }
 
-HRESULT SaveManager::DeleteSave(IGameState* s) {
+HRESULT SaveManager::DeleteSave(IMGDFGameState* s) {
   auto state = MakeComFromPtr<GameState>(s);
   auto found = std::find(_saves.begin(), _saves.end(), state->GetSave());
   if (found == _saves.end()) {
@@ -217,13 +214,13 @@ HRESULT SaveManager::DeleteSave(IGameState* s) {
     remove_all(Resources::Instance().SaveDir(*found));
     _saves.erase(found);
   } catch (...) {
-    LOG("Failed to remove save " << (*found).c_str(), LOG_ERROR);
+    LOG("Failed to remove save " << (*found).c_str(), MGDF_LOG_ERROR);
     return E_FAIL;
   }
   return S_OK;
 }
 
-void SaveManager::CreateGameState(IGameState** save) {
+void SaveManager::CreateGameState(IMGDFGameState** save) {
   auto state =
       MakeCom<GameState>(_gameUid, _gameVersion, this, _storageFactory);
   state.AddRawRef(save);

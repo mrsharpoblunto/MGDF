@@ -3,7 +3,7 @@
 #include <unzip.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -16,13 +16,14 @@ namespace zip {
 /**
 Creates zip archive handlers
 */
-class ZipArchiveHandlerImpl : public ComBase<IArchiveHandler> {
+class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
  public:
   ZipArchiveHandlerImpl();
   ~ZipArchiveHandlerImpl();
-  bool IsArchive(const wchar_t *physicalPath) const final;
-  HRESULT MapArchive(const wchar_t *name, const wchar_t *physicalPath,
-                     IFile *parent, IFile **file) final;
+  
+  BOOL __stdcall IsArchive(const wchar_t *physicalPath) final;
+  HRESULT __stdcall MapArchive(const wchar_t *name, const wchar_t *physicalPath,
+                     IMGDFFile *parent, IMGDFFile **file) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;
@@ -34,11 +35,11 @@ class ZipArchiveHandlerImpl : public ComBase<IArchiveHandler> {
   */
   const wchar_t *GetFileExtension(const wchar_t *file) const;
 
-  ComObject<IFile> CreateParentFile(std::wstring &path, ComObject<IFile> root,
+  ComObject<IMGDFFile> CreateParentFile(std::wstring &path, ComObject<IMGDFFile> root,
                                     const wchar_t **);
 };
 
-ComObject<IArchiveHandler> CreateZipArchiveHandlerImpl();
+ComObject<IMGDFArchiveHandler> CreateZipArchiveHandlerImpl();
 
 }  // namespace zip
 }  // namespace vfs

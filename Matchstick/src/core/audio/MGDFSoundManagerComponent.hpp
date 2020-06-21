@@ -1,14 +1,13 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDFSoundManager.hpp>
-#include <MGDF/MGDFVirtualFileSystem.hpp>
+#include <MGDF/MGDF.h>
 
 namespace MGDF {
 namespace core {
 namespace audio {
 
-class ISoundManagerComponent : public ComBase<ISoundManager> {
+class ISoundManagerComponent : public ComBase<IMGDFSoundManager> {
  public:
   virtual ~ISoundManagerComponent() {}
   virtual void Update() = 0;

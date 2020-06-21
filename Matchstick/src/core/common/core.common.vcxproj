@@ -121,6 +121,7 @@
     <ClCompile Include="MGDFParameterManager.cpp" />
     <ClCompile Include="MGDFPreferenceConstants.cpp" />
     <ClCompile Include="MGDFResources.cpp" />
+    <ClCompile Include="MGDFStringImpl.cpp" />
     <ClCompile Include="MGDFVersionHelper.cpp" />
     <ClCompile Include="MGDFVersionInfo.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
-#include <MGDF/MGDFHost.hpp>
-#include <MGDF/MGDFModule.hpp>
+#include <MGDF/MGDF.h>
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -37,7 +35,7 @@ struct HostComponents {
  reference implementation of the Host interfaces
 \author gcconner
 */
-class Host : public IRenderHost, public ISimHost {
+class Host : public IMGDFRenderHost, public IMGDFSimHost {
  public:
   static HRESULT TryCreate(ComObject<Game> game, HostComponents &components,
                            ComObject<Host> &host);
@@ -68,8 +66,8 @@ class Host : public IRenderHost, public ISimHost {
                           const ComObject<ID3D11Texture2D> &depthStencilBuffer);
   void RTBeforeDeviceReset();
 
-  UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                       UINT32 *featureLevelsSize);
+  UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                       UINT64 *featureLevelsSize);
   ComObject<RenderSettingsManager> GetRenderSettingsImpl();
   ComObject<input::IInputManagerComponent> GetInputManagerImpl();
   ComObject<Debug> GetDebugImpl();
@@ -80,51 +78,49 @@ class Host : public IRenderHost, public ISimHost {
   HRESULT QueryInterface(REFIID riid, void **ppvObject) final;
 
   // ILogger methods
-  void SetLoggingLevel(LogLevel level) final;
-  LogLevel GetLoggingLevel() const final;
-  void Log(const char *sender, const char *message, LogLevel level) final;
+  void _stdcall SetLoggingLevel(MGDFLogLevel level) final;
+  MGDFLogLevel __stdcall GetLoggingLevel() final;
+  void __stdcall Log(const char *sender, const char *message, MGDFLogLevel level) final;
 
   // ICommonHost methods
-  void FatalError(const char *, const char *) final;
-  void GetRenderSettings(IRenderSettingsManager **settings) final;
-  void GetTimer(ITimer **timer) final;
-  const Version *GetMGDFVersion() const final;
-  const char *GetErrorDescription(MGDFError err) const final;
-  const char *GetErrorString(MGDFError err) const final;
-  void GetDebug(IDebug **debug) final;
+  void __stdcall FatalError(const char *, const char *) final;
+  void __stdcall GetRenderSettings(IMGDFRenderSettingsManager **settings) final;
+  void __stdcall GetTimer(IMGDFTimer **timer) final;
+  const MGDFVersion * __stdcall GetMGDFVersion() final;
+  void _stdcall GetDebug(IMGDFDebug **debug) final;
 
   // ISimHost methods
-  void QueueShutDown() final;
-  void GetSaves(ISaveManager **saves) final;
-  void GetVFS(IVirtualFileSystem **vfs) final;
-  void GetSound(ISoundManager **sound) final;
-  void GetStatistics(IStatisticsManager **statistics) final;
-  void GetGame(IGame **game) final;
-  void GetInput(IInputManager **manager) final;
-  void ShutDown() final;
+  void __stdcall QueueShutDown() final;
+  void __stdcall GetSaves(IMGDFSaveManager **saves) final;
+  void __stdcall GetVFS(IMGDFVirtualFileSystem **vfs) final;
+  void __stdcall GetSound(IMGDFSoundManager **sound) final;
+  void __stdcall GetStatistics(IMGDFStatisticsManager **statistics) final;
+  void __stdcall GetGame(IMGDFGame **game) final;
+  void __stdcall GetInput(IMGDFInputManager **manager) final;
+  void __stdcall ShutDown() final;
 
   // IRenderHost methods
-  ID3D11Device *GetD3DDevice() const final;
-  ID3D11DeviceContext *GetD3DImmediateContext() const final;
-  ID2D1Device *GetD2DDevice() const final;
-  bool SetBackBufferRenderTarget(ID2D1DeviceContext *context) final;
-  ID3D11Texture2D *GetBackBuffer() const final;
-  ID3D11Texture2D *GetDepthStencilBuffer() const final;
-  void GetBackBufferDescription(
+  ID3D11Device * __stdcall GetD3DDevice() final;
+  ID3D11DeviceContext * __stdcall GetD3DImmediateContext() final;
+  ID2D1Device * __stdcall GetD2DDevice() final;
+  BOOL __stdcall SetBackBufferRenderTarget(ID2D1DeviceContext *context) final;
+  ID3D11Texture2D * __stdcall GetBackBuffer() final;
+  ID3D11Texture2D * __stdcall GetDepthStencilBuffer() final;
+  void __stdcall GetBackBufferDescription(
       D3D11_TEXTURE2D_DESC *backBufferDesc,
-      D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) const final;
+      D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) final;
 
-  HRESULT CreateCPUCounter(const char *name,
-                           IPerformanceCounter **counter) final;
-  HRESULT CreateGPUCounter(const char *name,
-                           IPerformanceCounter **counter) final;
+  HRESULT __stdcall CreateCPUCounter(const char *name,
+                           IMGDFPerformanceCounter **counter) final;
+  HRESULT __stdcall CreateGPUCounter(const char *name,
+                           IMGDFPerformanceCounter **counter) final;
 
  private:
   HRESULT Init();
 
   void ClearWorkingDirectory();
 
-  ComObject<IModule> _module;  // the currently executing module
+  ComObject<IMGDFModule> _module;  // the currently executing module
   std::unique_ptr<ModuleFactory> _moduleFactory;
 
   std::shared_ptr<storage::IStorageFactoryComponent> _storage;
@@ -145,7 +141,7 @@ class Host : public IRenderHost, public ISimHost {
   ComObject<ID3D11Texture2D> _depthStencilBuffer;
 
   std::mutex _mutex;
-  Version _version;
+  MGDFVersion _version;
   std::atomic<bool> _shutdownQueued;
   std::atomic<ULONG> _references;
   mutable std::atomic<bool> _showDebug;

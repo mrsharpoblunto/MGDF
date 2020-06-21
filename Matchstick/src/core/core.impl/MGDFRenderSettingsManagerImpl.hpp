@@ -4,8 +4,7 @@
 #include <d3d11_1.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
-#include <MGDF/MGDFRenderSettingsManager.hpp>
+#include <MGDF/MGDF.h>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -18,41 +17,41 @@ namespace core {
 
 // this class is accessed by the sim and render threads, so setting values and
 // doing device resets must be synced up with a mutex
-class RenderSettingsManager : public ComBase<IRenderSettingsManager> {
+class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
  public:
   RenderSettingsManager();
   virtual ~RenderSettingsManager();
 
-  bool GetVSync() const final;
-  void SetVSync(bool vsync) final;
+  BOOL __stdcall GetVSync() final;
+  void __stdcall SetVSync(BOOL vsync) final;
 
-  void GetFullscreen(FullScreenDesc *desc) const final;
-  void SetFullscreen(const FullScreenDesc *desc) final;
+  void __stdcall GetFullscreen(MGDFFullScreenDesc *desc) final;
+  void __stdcall SetFullscreen(const MGDFFullScreenDesc *desc) final;
 
-  UINT32 GetMultiSampleLevelCount() const final;
-  bool GetMultiSampleLevel(UINT32 index, UINT32 *level) const final;
+  UINT64 __stdcall GetMultiSampleLevelCount() final;
+  BOOL __stdcall GetMultiSampleLevel(UINT64 index, UINT32 *level) final;
 
-  bool SetBackBufferMultiSampleLevel(UINT32 multisampleLevel) final;
-  UINT32 GetBackBufferMultiSampleLevel() const final;
-  bool SetCurrentMultiSampleLevel(UINT32 multisampleLevel) final;
-  UINT32 GetCurrentMultiSampleLevel(UINT32 *quality) const final;
+  BOOL __stdcall SetBackBufferMultiSampleLevel(UINT32 multisampleLevel) final;
+  UINT32 __stdcall GetBackBufferMultiSampleLevel() final;
+  BOOL __stdcall SetCurrentMultiSampleLevel(UINT32 multisampleLevel) final;
+  UINT32 __stdcall GetCurrentMultiSampleLevel(UINT32 *quality) final;
 
-  UINT32 GetAdaptorModeCount() const final;
-  bool GetAdaptorMode(UINT32 index, AdaptorMode *mode) const final;
-  bool GetAdaptorMode(UINT32 width, UINT32 height,
-                      AdaptorMode *mode) const final;
-  void GetCurrentAdaptorMode(AdaptorMode *mode) const final;
-  bool SetCurrentAdaptorMode(const AdaptorMode *mode) final;
-  bool SetCurrentAdaptorModeToNative() final;
-  void SetWindowSize(UINT32 width, UINT32 height) const final;
+  UINT64 __stdcall GetAdaptorModeCount() final;
+  BOOL __stdcall GetAdaptorMode(UINT64 index, MGDFAdaptorMode *mode) final;
+  BOOL __stdcall GetAdaptorModeFromDimensions(UINT32 width, UINT32 height,
+                      MGDFAdaptorMode *mode) final;
+  MGDFAdaptorMode * __stdcall GetCurrentAdaptorMode(MGDFAdaptorMode *mode) final;
+  BOOL __stdcall SetCurrentAdaptorMode(const MGDFAdaptorMode *mode) final;
+  BOOL __stdcall SetCurrentAdaptorModeToNative(MGDFAdaptorMode *mode) final;
+  void __stdcall SetWindowSize(UINT32 width, UINT32 height) final;
 
-  UINT32 GetScreenX() const final;
-  UINT32 GetScreenY() const final;
-  void ApplySettings() final;
+  UINT32 __stdcall GetScreenX() final;
+  UINT32 __stdcall GetScreenY() final;
+  void __stdcall ApplySettings() final;
 
-  void GetPreferences(IPreferenceSet **preferences) final;
+  void __stdcall GetPreferences(IMGDFPreferenceSet **preferences) final;
 
-  void LoadPreferences(const ComObject<IGame> &game);
+  void LoadPreferences(const ComObject<IMGDFGame> &game);
 
   void InitFromDevice(HWND window, const ComObject<ID3D11Device> &d3dDevice,
                       const ComObject<IDXGIAdapter1> &adapter);
@@ -67,8 +66,8 @@ class RenderSettingsManager : public ComBase<IRenderSettingsManager> {
 
   std::atomic_bool _changePending;
 
-  std::vector<AdaptorMode> _adaptorModes;
-  AdaptorMode _currentAdaptorMode;
+  std::vector<MGDFAdaptorMode> _adaptorModes;
+  MGDFAdaptorMode _currentAdaptorMode;
 
   std::vector<UINT32> _multiSampleLevels;
   std::map<UINT32, UINT32> _multiSampleQuality;
@@ -79,7 +78,7 @@ class RenderSettingsManager : public ComBase<IRenderSettingsManager> {
   HWND _window;
 
   bool _vsync;
-  FullScreenDesc _fullScreen;
+  MGDFFullScreenDesc _fullScreen;
 
   mutable std::mutex _mutex;
 };

@@ -21,10 +21,10 @@ namespace MGDF {
 namespace core {
 namespace vfs {
 
-FileBaseImpl::FileBaseImpl(IFile *parent)
+FileBaseImpl::FileBaseImpl(IMGDFFile *parent)
     : _parent(parent), _children(nullptr) {}
 
-bool FileBaseImpl::GetParent(IFile **parent) {
+BOOL FileBaseImpl::GetParent(IMGDFFile **parent) {
   if (_parent) {
     _parent->AddRef();
     *parent = _parent;
@@ -44,19 +44,19 @@ size_t FileBaseImpl::GetChildCount() {
   return _children->size();
 }
 
-time_t FileBaseImpl::GetLastWriteTime() const {
+UINT64 FileBaseImpl::GetLastWriteTime() {
   std::filesystem::path path(GetPhysicalPath());
   struct _stat64 fileInfo;
   if (_wstati64(path.c_str(), &fileInfo) != 0) {
     LOG("Unable to get last write time for "
             << Resources::ToString(GetPhysicalPath()),
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
     return 0;
   }
   return fileInfo.st_mtime;
 }
 
-bool FileBaseImpl::GetChild(const wchar_t *name, IFile **child) {
+BOOL FileBaseImpl::GetChild(const wchar_t *name, IMGDFFile **child) {
   if (!name) {
     return false;
   }
@@ -74,7 +74,7 @@ bool FileBaseImpl::GetChild(const wchar_t *name, IFile **child) {
   return false;
 }
 
-void FileBaseImpl::GetAllChildren(IFile **childBuffer) {
+void FileBaseImpl::GetAllChildren(IMGDFFile **childBuffer) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (!_children) {
     return;
@@ -85,11 +85,11 @@ void FileBaseImpl::GetAllChildren(IFile **childBuffer) {
   }
 }
 
-void FileBaseImpl::AddChild(ComObject<IFile> &file) {
+void FileBaseImpl::AddChild(ComObject<IMGDFFile> &file) {
   _ASSERTE(file);
   if (!_children) {
     _children = std::make_unique<
-        std::map<const wchar_t *, ComObject<IFile>, WCharCmp>>();
+        std::map<const wchar_t *, ComObject<IMGDFFile>, WCharCmp>>();
   }
   _children->insert(std::make_pair(file->GetName(), file));
 }
@@ -97,10 +97,10 @@ void FileBaseImpl::AddChild(ComObject<IFile> &file) {
 const wchar_t *FileBaseImpl::GetLogicalPath() {
   std::lock_guard<std::mutex> lock(_mutex);
 
-  ComObject<IFile> parent;
+  ComObject<IMGDFFile> parent;
   if (_logicalPath.empty() && GetParent(parent.Assign())) {
-    std::vector<ComObject<IFile>> path;
-    ComObject<IFile> node(this, true);
+    std::vector<ComObject<IMGDFFile>> path;
+    ComObject<IMGDFFile> node(this, true);
     do {
       path.push_back(node);
     } while (node->GetParent(node.Assign()));

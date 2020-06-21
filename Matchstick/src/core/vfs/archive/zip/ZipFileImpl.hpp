@@ -28,16 +28,17 @@ struct ZipFileData {
 
 class ZipFileImpl;
 
-class ZipFileImplReader : public ComBase<IFileReader> {
+class ZipFileImplReader : public ComBase<IMGDFFileReader> {
  public:
   ZipFileImplReader(ZipFileImpl *zip, const ZipFileHeader &header,
                     const ZipFileData &data);
   ~ZipFileImplReader();
-  UINT32 Read(void *buffer, UINT32 length) final;
-  void SetPosition(INT64 pos) final;
-  INT64 GetPosition() const final;
-  bool EndOfFile() const final;
-  INT64 GetSize() const override { return _size; }
+
+  UINT32 __stdcall Read(void *buffer, UINT32 length) final;
+  void __stdcall SetPosition(INT64 pos) final;
+  INT64 __stdcall GetPosition() final;
+  BOOL __stdcall  EndOfFile() final;
+  INT64 __stdcall GetSize() override { return _size; }
 
  private:
   INT64 _readPosition;
@@ -52,7 +53,7 @@ class ZipFileImpl : public FileBaseImpl {
   friend class ZipFileImplReader;
 
  public:
-  ZipFileImpl(IFile *parent, const IFile *root, unzFile zip,
+  ZipFileImpl(IMGDFFile *parent, IMGDFFile *root, unzFile zip,
               ZipFileHeader &&header)
       : FileBaseImpl(parent),
         _root(root),
@@ -61,24 +62,21 @@ class ZipFileImpl : public FileBaseImpl {
         _reader(nullptr) {}
   virtual ~ZipFileImpl();
 
-  bool IsFolder() const final { return false; }
-  bool IsArchive() const final { return true; }
-
-  bool IsOpen() const final { return _reader; }
-
-  HRESULT Open(IFileReader **reader) final;
-
-  time_t GetLastWriteTime() const final { return _root->GetLastWriteTime(); }
-  const wchar_t *GetArchiveName() const final { return _root->GetName(); }
-  const wchar_t *GetPhysicalPath() const final {
+  BOOL __stdcall IsFolder() final { return false; }
+  BOOL __stdcall IsArchive() final { return true; }
+  BOOL __stdcall IsOpen() final { return _reader!=nullptr; }
+  HRESULT __stdcall Open(IMGDFFileReader **reader) final;
+  UINT64 __stdcall GetLastWriteTime() final { return _root->GetLastWriteTime(); }
+  const wchar_t * __stdcall GetArchiveName() final { return _root->GetName(); }
+  const wchar_t * __stdcall GetPhysicalPath() final {
     return _root->GetPhysicalPath();
   }
-  const wchar_t *GetName() const final { return _header.name.c_str(); }
+  const wchar_t * __stdcall GetName() final { return _header.name.c_str(); }
 
  private:
-  const IFile *_root;
+  IMGDFFile *_root;
   ZipFileHeader _header;
-  IFileReader *_reader;
+  IMGDFFileReader *_reader;
   unzFile _zip;
 };
 

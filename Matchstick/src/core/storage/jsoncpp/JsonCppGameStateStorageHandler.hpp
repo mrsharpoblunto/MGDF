@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "../MGDFGameStateStorageHandler.hpp"
 
@@ -12,16 +12,16 @@ namespace jsoncppImpl {
 class JsonCppGameStateStorageHandler : public IGameStateStorageHandler {
  public:
   JsonCppGameStateStorageHandler(const std::string &gameUid,
-                                 const Version &version)
+                                 const MGDFVersion &version)
       : _gameUid(gameUid), _version(version) {}
   virtual ~JsonCppGameStateStorageHandler() {}
 
-  MGDFError Load(const std::wstring &) final;
+  HRESULT Load(const std::wstring &) final;
   void Save(const std::wstring &) const final;
 
   std::string GetGameUid() const final { return _gameUid; };
-  void SetVersion(const Version &version) final { _version = version; };
-  void GetVersion(Version &version) const final { version = _version; };
+  void SetVersion(const MGDFVersion &version) final { _version = version; };
+  void GetVersion(MGDFVersion &version) const final { version = _version; };
 
   void GetMetadata(
       std::unordered_map<std::string, std::string> &metadata) const final {
@@ -35,7 +35,7 @@ class JsonCppGameStateStorageHandler : public IGameStateStorageHandler {
  private:
   std::string _gameUid;
   std::unordered_map<std::string, std::string> _metadata;
-  Version _version;
+  MGDFVersion _version;
 };
 
 }  // namespace jsoncppImpl

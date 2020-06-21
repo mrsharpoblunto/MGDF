@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <string>
 
 namespace MGDF {

@@ -54,7 +54,7 @@ ModuleFactory::ModuleFactory()
 HRESULT ModuleFactory::Init() {
   path globalModule(Resources::Instance().Module());
   if (exists(globalModule)) {
-    LOG("Loading Module.dll", LOG_LOW);
+    LOG("Loading Module.dll", MGDF_LOG_LOW);
     CurrentDirectoryHelper::Instance().Push(Resources::Instance().BinDir());
     _moduleInstance = LoadLibraryW(Resources::Instance().Module().c_str());
     CurrentDirectoryHelper::Instance().Pop();
@@ -63,9 +63,9 @@ HRESULT ModuleFactory::Init() {
       // required exported functions
       _getModule = (GetModulePtr)GetProcAddress(_moduleInstance, "GetModule");
       if (_getModule != nullptr) {
-        LOG("Loaded GetModule from Module.dll", LOG_LOW);
+        LOG("Loaded GetModule from Module.dll", MGDF_LOG_LOW);
       } else {
-        LOG("Module has no exported GetModule function", LOG_ERROR);
+        LOG("Module has no exported GetModule function", MGDF_LOG_ERROR);
         return E_FAIL;
       }
 
@@ -73,26 +73,26 @@ HRESULT ModuleFactory::Init() {
       _getCustomArchiveHandlers = (GetCustomArchiveHandlersPtr)GetProcAddress(
           _moduleInstance, "GetCustomArchiveHandlers");
       if (_getCustomArchiveHandlers != nullptr) {
-        LOG("Loaded GetCustomArchiveHandlers from Module.dll", LOG_LOW);
+        LOG("Loaded GetCustomArchiveHandlers from Module.dll", MGDF_LOG_LOW);
       } else {
         LOG("Module has no exported GetCustomArchiveHandlers function",
-            LOG_LOW);
+            MGDF_LOG_LOW);
       }
 
       _getCompatibleFeatureLevels =
           (GetCompatibleFeatureLevelsPtr)GetProcAddress(
               _moduleInstance, "GetCompatibleFeatureLevels");
       if (_getCompatibleFeatureLevels != nullptr) {
-        LOG("Loaded GetCompatibleFeatureLevels from Module.dll", LOG_LOW);
+        LOG("Loaded GetCompatibleFeatureLevels from Module.dll", MGDF_LOG_LOW);
       } else {
         LOG("Module has no exported GetCompatibleFeatureLevels function",
-            LOG_LOW);
+            MGDF_LOG_LOW);
       }
 
       return S_OK;
     } else {
       const DWORD errorCode = ::GetLastError();
-      LOG("Failed to load Module.dll " << errorCode, LOG_ERROR);
+      LOG("Failed to load Module.dll " << errorCode, MGDF_LOG_ERROR);
 
 #if defined(_WIN64)
       constexpr bool win64 = true;
@@ -119,7 +119,7 @@ HRESULT ModuleFactory::Init() {
                 LOG("Failed to load Module.dll - MGDF core is 64 bit and "
                     "Module is 32 "
                     "bit",
-                    LOG_ERROR);
+                    MGDF_LOG_ERROR);
                 loggedMessage = true;
               } else if (peHeader->FileHeader.Machine ==
                              IMAGE_FILE_MACHINE_AMD64 &&
@@ -127,7 +127,7 @@ HRESULT ModuleFactory::Init() {
                 LOG("Failed to load Module.dll - MGDF core is 32 bit and "
                     "Module is 64 "
                     "bit",
-                    LOG_ERROR);
+                    MGDF_LOG_ERROR);
                 loggedMessage = true;
               }
             }
@@ -136,7 +136,7 @@ HRESULT ModuleFactory::Init() {
       }
       if (!loggedMessage) {
         LOG("Failed to load Module.dll - It doesn't appear to be a valid dll",
-            LOG_ERROR);
+            MGDF_LOG_ERROR);
       }
       if (file != INVALID_HANDLE_VALUE) {
         CloseHandle(file);
@@ -149,9 +149,9 @@ HRESULT ModuleFactory::Init() {
   return E_FAIL;
 }
 
-HRESULT ModuleFactory::GetCustomArchiveHandlers(IArchiveHandler **list,
-                                                UINT32 *length,
-                                                ILogger *logger) const {
+HRESULT ModuleFactory::GetCustomArchiveHandlers(IMGDFArchiveHandler **list,
+                                                UINT64 *length,
+                                                IMGDFLogger *logger) const {
   if (_getCustomArchiveHandlers != nullptr) {
     return _getCustomArchiveHandlers(list, length, logger);
   } else {
@@ -160,7 +160,7 @@ HRESULT ModuleFactory::GetCustomArchiveHandlers(IArchiveHandler **list,
   }
 }
 
-HRESULT ModuleFactory::GetModule(ComObject<IModule> &module) const {
+HRESULT ModuleFactory::GetModule(ComObject<IMGDFModule> &module) const {
   if (_getModule != nullptr) {
     return _getModule(module.Assign());
   } else {
@@ -168,8 +168,8 @@ HRESULT ModuleFactory::GetModule(ComObject<IModule> &module) const {
   }
 }
 
-UINT32 ModuleFactory::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                                 UINT32 *levelSize) const {
+UINT64 ModuleFactory::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                                 UINT64 *levelSize) const {
   if (_getCompatibleFeatureLevels != nullptr) {
     return _getCompatibleFeatureLevels(levels, levelSize);
   } else {

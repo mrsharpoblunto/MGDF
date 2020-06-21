@@ -45,7 +45,7 @@ void Debug::Clear(const char* section, const char* key) {
   }
 }
 
-bool Debug::IsShown() const {
+BOOL Debug::IsShown() {
   bool exp = true;
   return _shown.compare_exchange_weak(exp, true);
 }

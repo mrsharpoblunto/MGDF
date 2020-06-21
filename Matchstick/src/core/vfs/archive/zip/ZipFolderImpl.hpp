@@ -12,18 +12,16 @@ implementation of a folder in a zipped archive
 */
 class ZipFolderImpl : public FolderBaseImpl {
  public:
-  ZipFolderImpl(const wchar_t *name, IFile *parent, const IFile *root)
+  ZipFolderImpl(const wchar_t *name, IMGDFFile *parent, IMGDFFile *root)
       : FolderBaseImpl(name, root->GetPhysicalPath(), parent), _root(root) {}
-  ~ZipFolderImpl();
+  ~ZipFolderImpl(){};
 
-  bool IsArchive() const final { return true; }
-
-  const wchar_t *GetArchiveName() const final { return _root->GetName(); }
-
-  time_t GetLastWriteTime() const final { return _root->GetLastWriteTime(); }
+  BOOL __stdcall IsArchive() final { return true; }
+  const wchar_t * __stdcall GetArchiveName() final { return _root->GetName(); }
+  UINT64 __stdcall GetLastWriteTime() final { return _root->GetLastWriteTime(); }
 
  private:
-  const IFile *_root;
+  IMGDFFile *_root;
 };
 
 }  // namespace zip

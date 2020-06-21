@@ -3,11 +3,12 @@
 #include <al.h>
 #include <alc.h>
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <DirectXMath.h>
 
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundSystem.hpp"
@@ -35,46 +36,46 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   OpenALSoundManagerComponentImpl();
   void Update() final;
 
-  SoundPosition *GetListenerPosition(SoundPosition *position) const final;
-  SoundPosition *GetListenerVelocity(SoundPosition *velocity) const final;
-  SoundPosition *GetListenerOrientationForward(
-      SoundPosition *orientationForward) const final;
-  SoundPosition *GetListenerOrientationUp(
-      SoundPosition *orientationUp) const final;
-  SoundPosition *SetListenerPosition(SoundPosition *position) final;
-  SoundPosition *SetListenerVelocity(SoundPosition *velocity) final;
-  SoundPosition *SetListenerOrientationForward(
-      SoundPosition *orientationForward) final;
-  SoundPosition *SetListenerOrientationUp(SoundPosition *orientationUp) final;
+  MGDFSoundPosition * __stdcall GetListenerPosition(MGDFSoundPosition *position) final;
+  MGDFSoundPosition * __stdcall GetListenerVelocity(MGDFSoundPosition *velocity) final;
+  MGDFSoundPosition * __stdcall GetListenerOrientationForward(
+      MGDFSoundPosition *orientationForward) final;
+  MGDFSoundPosition * __stdcall GetListenerOrientationUp(
+      MGDFSoundPosition *orientationUp) final;
+  MGDFSoundPosition * __stdcall SetListenerPosition(MGDFSoundPosition *position) final;
+  MGDFSoundPosition * __stdcall SetListenerVelocity(MGDFSoundPosition *velocity) final;
+  MGDFSoundPosition * __stdcall SetListenerOrientationForward(
+      MGDFSoundPosition *orientationForward) final;
+  MGDFSoundPosition * __stdcall SetListenerOrientationUp(MGDFSoundPosition *orientationUp) final;
 
-  float GetSoundVolume() const final;
-  void SetSoundVolume(float volume) final;
-  float GetStreamVolume() const final;
-  void SetStreamVolume(float volume) final;
+  float __stdcall GetSoundVolume() final;
+  void __stdcall SetSoundVolume(float volume) final;
+  float __stdcall GetStreamVolume() final;
+  void __stdcall SetStreamVolume(float volume) final;
 
-  bool GetEnableAttenuation() const final;
-  void SetEnableAttenuation(bool enableAttenuation) final;
-  float GetDopplerShiftFactor() const final;
-  void SetDopplerShiftFactor(float dopplerShiftFactor) final;
-  float GetSpeedOfSound() const final;
-  void SetSpeedOfSound(float speedOfSound) final;
+  BOOL __stdcall GetEnableAttenuation() final;
+  void __stdcall SetEnableAttenuation(BOOL enableAttenuation) final;
+  float __stdcall GetDopplerShiftFactor() final;
+  void __stdcall SetDopplerShiftFactor(float dopplerShiftFactor) final;
+  float __stdcall GetSpeedOfSound() final;
+  void __stdcall SetSpeedOfSound(float speedOfSound) final;
 
-  HRESULT CreateSound(IFile *source, INT32 priority, ISound **sound) final;
-  HRESULT CreateSoundStream(IFile *source, ISoundStream **stream) final;
-  void GetPreferences(IPreferenceSet **preferences) final;
-  void RemoveSoundStream(ISoundStream *stream);
-  void RemoveSound(ISound *sound);
+  HRESULT __stdcall CreateSound(IMGDFFile *source, INT32 priority, IMGDFSound **sound) final;
+  HRESULT __stdcall CreateSoundStream(IMGDFFile *source, IMGDFSoundStream **stream) final;
+  void __stdcall GetPreferences(IMGDFPreferenceSet **preferences) final;
 
-  MGDFError CreateSoundBuffer(IFile *dataSource, ALuint *bufferId);
+  void RemoveSoundStream(IMGDFSoundStream *stream);
+  void RemoveSound(IMGDFSound *sound);
+  HRESULT CreateSoundBuffer(IMGDFFile *dataSource, ALuint *bufferId);
   void RemoveSoundBuffer(ALuint bufferId);
 
  private:
-  MGDFError Init() final;
+  HRESULT Init() final;
 
   void DeactivateSound(INT32 priority);
   void PrioritizeSounds(INT32 deactivatedSoundsCount);
 
-  static bool Sort(const OpenALSound *a, const OpenALSound *b);
+  static bool Sort(OpenALSound *a, OpenALSound *b);
 
   DirectX::XMFLOAT3 _position;
   DirectX::XMFLOAT3 _velocity;

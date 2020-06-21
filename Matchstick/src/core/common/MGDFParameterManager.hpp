@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <exception>
 #include <map>
 #include <string>
@@ -24,12 +24,12 @@ class ParameterManager {
    NOTE: flags and values are case sensitive
    NOTE: leading and trailing whitespace are stripped from values
   */
-  virtual MGDFError ParseParameters(const std::string &,
+  virtual HRESULT ParseParameters(const std::string &,
                                     std::map<std::string, std::string> &);
 
   virtual bool HasParameter(const char *param) const;
   virtual const char *GetParameter(const char *param) const;
-  virtual MGDFError AddParameterString(const char *paramString);
+  virtual HRESULT AddParameterString(const char *paramString);
 
  private:
   std::map<std::string, std::string> _parameters;

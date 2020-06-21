@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <sstream>
 
 #include "MGDFResources.hpp"
@@ -60,7 +60,7 @@ double FromString(const std::string &str);
 template <>
 float FromString(const std::string &str);
 
-bool GetPreference(IGame *game, const std::string &name, std::string &value);
+bool GetPreference(IMGDFGame *game, const std::string &name, std::string &value);
 
 }  // namespace core
 }  // namespace MGDF

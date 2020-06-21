@@ -22,4 +22,4 @@
 
 std::string GetJsonValue(const Json::Value &json, const std::string &name);
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>

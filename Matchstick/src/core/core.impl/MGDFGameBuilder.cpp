@@ -21,23 +21,23 @@ namespace core {
 // loads the configuration preferences from the core preferences directory as
 // well as the particular configuration defaults, and synchs them up with any
 // customized user preferences
-MGDFError GameBuilder::LoadGame(
+HRESULT GameBuilder::LoadGame(
     std::shared_ptr<storage::IStorageFactoryComponent> &storage,
     const storage::IGameStorageHandler *handler, ComObject<Game> &game) {
   _ASSERTE(handler);
 
-  Version version;
+  MGDFVersion version;
   handler->GetVersion(version);
   game = MakeCom<Game>(handler->GetGameUid(), handler->GetGameName(), version,
                        storage);
 
   // load the defaults from the core settings (REQUIRED)
-  MGDFError err =
+  auto result =
       game->LoadPreferences(Resources::Instance().CorePreferencesFile());
 
-  if (MGDF_OK != err) {
+  if (FAILED(result)) {
     game.Clear();
-    return err;
+    return result;
   }
 
   // load the defaults for the game if any are present
@@ -51,11 +51,11 @@ MGDFError GameBuilder::LoadGame(
   // only the most recent values kept (this means it auto updates the
   // preferences listing to include newly added prefs)
   if (exists(customPref)) {
-    err = game->LoadPreferences(customPref.wstring());
-    if (MGDF_OK != err) {
+    result = game->LoadPreferences(customPref.wstring());
+    if (FAILED(result)) {
       LOG("Unable to parse customized preferences "
               << Resources::ToString(customPref.wstring()),
-          LOG_ERROR)
+          MGDF_LOG_ERROR)
     }
   }
 
@@ -63,7 +63,7 @@ MGDFError GameBuilder::LoadGame(
   // any subsequent changes made by modules will be saved to this file
   game->SavePreferences(customPref.wstring());
 
-  return MGDF_OK;
+  return S_OK;
 }
 
 }  // namespace core

@@ -26,13 +26,13 @@ const char *ParameterManager::GetParameter(const char *param) const {
   return nullptr;
 }
 
-MGDFError ParameterManager::AddParameterString(const char *paramString) {
+HRESULT ParameterManager::AddParameterString(const char *paramString) {
   _ASSERTE(paramString);
   std::string ps = paramString;
   return ParseParameters(ps, _parameters);
 }
 
-MGDFError ParameterManager::ParseParameters(
+HRESULT ParameterManager::ParseParameters(
     const std::string &paramString,
     std::map<std::string, std::string> &paramMap) {
   auto iter = paramString.begin();
@@ -52,7 +52,7 @@ MGDFError ParameterManager::ParseParameters(
       ++iter;
     } else {
       // expected to get a flag marker
-      return MGDF_ERR_INVALID_PARAMETER;
+      return E_INVALIDARG;
     }
 
     // get the flag string
@@ -62,7 +62,7 @@ MGDFError ParameterManager::ParseParameters(
 
     // check that the key is valid (i.e non null)
     if (key.length() == 0) {
-      return MGDF_ERR_INVALID_PARAMETER;
+      return E_INVALIDARG;
     }
 
     // get up until the next non-whitespace character
@@ -78,7 +78,7 @@ MGDFError ParameterManager::ParseParameters(
 
       // check that the key is valid (i.e non null)
       if (key.size() == 0) {
-        return MGDF_ERR_INVALID_PARAMETER;
+        return E_INVALIDARG;
       }
 
       // erase trailing whitespace
@@ -98,7 +98,7 @@ MGDFError ParameterManager::ParseParameters(
 
     paramMap[key] = value;
   }
-  return MGDF_OK;
+  return S_OK;
 }
 
 }  // namespace core

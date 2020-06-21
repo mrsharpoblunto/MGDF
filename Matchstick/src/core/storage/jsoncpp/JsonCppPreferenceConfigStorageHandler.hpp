@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "../MGDFPreferenceConfigStorageHandler.hpp"
 
@@ -19,7 +19,7 @@ class JsonCppPreferenceConfigStorageHandler
   IPreferenceConfigStorageHandler::iterator begin() const final;
   IPreferenceConfigStorageHandler::iterator end() const final;
 
-  MGDFError Load(const std::wstring &) final;
+  HRESULT Load(const std::wstring &) final;
   void Save(const std::wstring &) const final;
 
  private:

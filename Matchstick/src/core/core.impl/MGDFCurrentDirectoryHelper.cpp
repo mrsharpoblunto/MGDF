@@ -18,10 +18,10 @@ CurrentDirectoryHelper::CurrentDirectoryHelper() {
 
   ret = GetCurrentDirectoryW(MAX_PATH, buffer);
   if (ret == 0) {
-    LOG("unable to get current directory", LOG_ERROR);
+    LOG("unable to get current directory", MGDF_LOG_ERROR);
   }
   if (ret > MAX_PATH) {
-    LOG("unable to get current directory - buffer to small", LOG_ERROR);
+    LOG("unable to get current directory - buffer to small", MGDF_LOG_ERROR);
   }
 
   _currentDirectory = buffer;
@@ -60,7 +60,7 @@ void CurrentDirectoryHelper::Pop() {
 
 void CurrentDirectoryHelper::SetDirectory(const std::wstring &directory) {
   if (directory.length() > MAX_PATH - 1) {
-    LOG("cannot set directory with more than MAX_PATH characters", LOG_ERROR);
+    LOG("cannot set directory with more than MAX_PATH characters", MGDF_LOG_ERROR);
   } else {
     SetCurrentDirectoryW(directory.c_str());
     _currentDirectory = directory;

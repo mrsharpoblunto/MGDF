@@ -21,7 +21,7 @@
 #include <assert.h>
 #include <windows.h>
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #define FATALERROR(obj, msg)                             \
   {                                                      \

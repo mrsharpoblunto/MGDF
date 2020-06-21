@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDFError.hpp>
+#include <MGDF/MGDF.h>
 #include <map>
 #include <string>
 
@@ -17,7 +17,7 @@ class IPreferenceConfigStorageHandler {
   virtual iterator begin() const = 0;
   virtual iterator end() const = 0;
 
-  virtual MGDF::MGDFError Load(const std::wstring &load) = 0;
+  virtual HRESULT Load(const std::wstring &load) = 0;
   virtual void Save(const std::wstring &save) const = 0;
 };
 

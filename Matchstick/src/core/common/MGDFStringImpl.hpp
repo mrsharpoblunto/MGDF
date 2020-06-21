@@ -1,42 +1,28 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
+
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <functional>
 #include <string>
 
 namespace MGDF {
 namespace core {
 
-#define COPY_STR(out, buffer, length) \
-  if (buffer == nullptr) {            \
-    *length = out.size();             \
-    return S_OK;                      \
-  }                                   \
-  return memcpy_s(buffer, *length, out.data(), out.size()) ? E_FAIL : S_OK;
+HRESULT CopyStr(const std::string &out, char *buffer, size_t *length);
+HRESULT CopyWStr(const std::wstring &out, wchar_t *buffer, size_t *length);
 
-#define COPY_WSTR(out, buffer, length) \
-  if (buffer == nullptr) {             \
-    *length = out.size();              \
-    return S_OK;                       \
-  }                                    \
-  return wmemcpy_s(buffer, *length, out.data(), out.size()) ? E_FAIL : S_OK;
+template <typename T>
+std::basic_string<T> ToStr(std::function<void(T *, size_t *)> handler) {
+  size_t size = 0;
+  handler(nullptr, &size);
+  std::basic_string<T> str(size, '\0');
+  handler(str.data(), &size);
+  return str;
+}
 
-#define STR(obj, method)            \
-  [&]() {                           \
-    size_t size = 0;                \
-    obj->method(nullptr, &size);    \
-    std::string str(size, '\0');    \
-    obj->method(str.data(), &size); \
-    return str;                     \
-  }()
+#define STR(obj, method) ToStr<char>([&](auto buffer,auto size) { obj->method(buffer, size); })
+#define WSTR(obj, method) ToStr<wchar_t>([&](auto buffer,auto size) { obj->method(buffer, size); })
 
-#define WSTR(obj, method)           \
-  [&]() {                           \
-    size_t size = 0;                \
-    obj->method(nullptr, &size);    \
-    std::wstring str(size, '\0');   \
-    obj->method(str.data(), &size); \
-    return str;                     \
-  }()
 }  // namespace core
 }  // namespace MGDF

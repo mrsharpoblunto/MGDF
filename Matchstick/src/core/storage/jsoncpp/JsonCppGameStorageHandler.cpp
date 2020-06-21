@@ -20,7 +20,7 @@ std::string JsonCppGameStorageHandler::GetGameName() const { return _gameName; }
 
 std::string JsonCppGameStorageHandler::GetGameUid() const { return _gameUid; }
 
-void JsonCppGameStorageHandler::GetVersion(Version &version) const {
+void JsonCppGameStorageHandler::GetVersion(MGDFVersion &version) const {
   version = _version;
 }
 
@@ -29,13 +29,13 @@ const std::map<std::string, std::string>
   return _preferences;
 }
 
-MGDFError JsonCppGameStorageHandler::Load(const std::wstring &filename) {
+HRESULT JsonCppGameStorageHandler::Load(const std::wstring &filename) {
   std::ifstream input(filename.c_str(), std::ios::in);
   if (input.fail()) {
     // TODO handling for other input methods...
     LOG("Unable to open '" << Resources::ToString(filename).c_str() << "'",
-        LOG_ERROR);
-    return MGDF_ERR_INVALID_FILE;
+        MGDF_LOG_ERROR);
+    return E_FAIL;
   }
 
   Json::Value root;
@@ -51,12 +51,12 @@ MGDFError JsonCppGameStorageHandler::Load(const std::wstring &filename) {
         _preferences.insert(std::make_pair(key, preferences[key].asString()));
       }
     }
-    return MGDF_OK;
+    return S_OK;
   } else {
     LOG("Unable to parse '" << Resources::ToString(filename).c_str() << "'"
                             << reader.getFormatedErrorMessages(),
-        LOG_ERROR);
-    return MGDF_ERR_INVALID_JSON;
+        MGDF_LOG_ERROR);
+    return E_FAIL;
   }
 }
 

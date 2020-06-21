@@ -38,15 +38,15 @@ UINT32 DefaultFileReader::Read(void *buffer, UINT32 length) {
 
 void DefaultFileReader::SetPosition(INT64 pos) { _stream->seekg(pos); }
 
-INT64 DefaultFileReader::GetPosition() const { return _stream->tellg(); }
+INT64 DefaultFileReader::GetPosition() { return _stream->tellg(); }
 
-bool DefaultFileReader::EndOfFile() const { return _stream->eof(); }
+BOOL DefaultFileReader::EndOfFile() { return _stream->eof(); }
 
-INT64 DefaultFileReader::GetSize() const { return _fileSize; }
+INT64 DefaultFileReader::GetSize() { return _fileSize; }
 
 DefaultFileImpl::DefaultFileImpl(const std::wstring &name,
                                  const std::wstring &physicalPath,
-                                 IFile *parent)
+                                 IMGDFFile *parent)
     : FileBaseImpl(parent),
       _name(name),
       _reader(nullptr),
@@ -54,7 +54,7 @@ DefaultFileImpl::DefaultFileImpl(const std::wstring &name,
 
 DefaultFileImpl::~DefaultFileImpl() { _ASSERTE(!_reader); }
 
-HRESULT DefaultFileImpl::Open(IFileReader **reader) {
+HRESULT DefaultFileImpl::Open(IMGDFFileReader **reader) {
   std::lock_guard<std::mutex> lock(_mutex);
 
   if (!_reader) {
@@ -68,12 +68,12 @@ HRESULT DefaultFileImpl::Open(IFileReader **reader) {
     } else {
       LOG("Unable to open file stream for " << Resources::ToString(_path)
                                             << " - " << GetLastError(),
-          LOG_ERROR);
-      return ERROR_OPEN_FAILED;
+          MGDF_LOG_ERROR);
+      return E_FAIL;
     }
   }
-  LOG("File " << Resources::ToString(_path) << " currently in use", LOG_ERROR);
-  return ERROR_ACCESS_DENIED;
+  LOG("File " << Resources::ToString(_path) << " currently in use", MGDF_LOG_ERROR);
+  return E_ACCESSDENIED;
 }
 
 }  // namespace vfs

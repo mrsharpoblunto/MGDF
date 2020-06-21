@@ -1,13 +1,13 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDFInputManager.hpp>
+#include <MGDF/MGDF.h>
 
 namespace MGDF {
 namespace core {
 namespace input {
 
-class IInputManagerComponent : public ComBase<IInputManager> {
+class IInputManagerComponent : public ComBase<IMGDFInputManager> {
  public:
   virtual ~IInputManagerComponent() {}
   virtual void HandleInput(INT32 mouseX,

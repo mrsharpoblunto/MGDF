@@ -130,30 +130,30 @@ void XInputManagerComponent::HandleInput(RAWINPUT *input) {
     // mouse button states
     if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) ==
         RI_MOUSE_LEFT_BUTTON_DOWN) {
-      _pendingMouseButtonDown[MOUSE_LEFT] = 1;
+      _pendingMouseButtonDown[MGDF_MOUSE_LEFT] = 1;
     }
     if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) ==
         RI_MOUSE_LEFT_BUTTON_UP) {
-      _pendingMouseButtonDown[MOUSE_LEFT] = 2;
-      _pendingMouseButtonClick[MOUSE_LEFT] = true;
+      _pendingMouseButtonDown[MGDF_MOUSE_LEFT] = 2;
+      _pendingMouseButtonClick[MGDF_MOUSE_LEFT] = true;
     }
     if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) ==
         RI_MOUSE_MIDDLE_BUTTON_DOWN) {
-      _pendingMouseButtonDown[MOUSE_MIDDLE] = 1;
+      _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] = 1;
     }
     if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) ==
         RI_MOUSE_MIDDLE_BUTTON_UP) {
-      _pendingMouseButtonDown[MOUSE_MIDDLE] = 2;
-      _pendingMouseButtonClick[MOUSE_MIDDLE] = true;
+      _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] = 2;
+      _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE] = true;
     }
     if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) ==
         RI_MOUSE_RIGHT_BUTTON_DOWN) {
-      _pendingMouseButtonDown[MOUSE_RIGHT] = 1;
+      _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] = 1;
     }
     if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) ==
         RI_MOUSE_RIGHT_BUTTON_UP) {
-      _pendingMouseButtonDown[MOUSE_RIGHT] = 2;
-      _pendingMouseButtonClick[MOUSE_RIGHT] = true;
+      _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] = 2;
+      _pendingMouseButtonClick[MGDF_MOUSE_RIGHT] = true;
     }
   }
 }
@@ -188,25 +188,25 @@ void XInputManagerComponent::ProcessSim() {
     _pendingMouseDZ = 0;
 
     // mouse button states
-    if (_pendingMouseButtonDown[MOUSE_LEFT]) {
-      _mouseButtonDown[MOUSE_LEFT] = _pendingMouseButtonDown[MOUSE_LEFT] == 1;
+    if (_pendingMouseButtonDown[MGDF_MOUSE_LEFT]) {
+      _mouseButtonDown[MGDF_MOUSE_LEFT] = _pendingMouseButtonDown[MGDF_MOUSE_LEFT] == 1;
     }
-    if (_pendingMouseButtonDown[MOUSE_MIDDLE]) {
-      _mouseButtonDown[MOUSE_MIDDLE] =
-          _pendingMouseButtonDown[MOUSE_MIDDLE] == 1;
+    if (_pendingMouseButtonDown[MGDF_MOUSE_MIDDLE]) {
+      _mouseButtonDown[MGDF_MOUSE_MIDDLE] =
+          _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] == 1;
     }
-    if (_pendingMouseButtonDown[MOUSE_RIGHT]) {
-      _mouseButtonDown[MOUSE_RIGHT] = _pendingMouseButtonDown[MOUSE_RIGHT] == 1;
+    if (_pendingMouseButtonDown[MGDF_MOUSE_RIGHT]) {
+      _mouseButtonDown[MGDF_MOUSE_RIGHT] = _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] == 1;
     }
     ZeroMemory(_pendingMouseButtonDown, sizeof(_pendingMouseButtonDown));
 
     // mouse clicks
-    _mouseButtonClick[MOUSE_LEFT] = _pendingMouseButtonClick[MOUSE_LEFT];
-    _mouseButtonClick[MOUSE_MIDDLE] = _pendingMouseButtonClick[MOUSE_MIDDLE];
-    _mouseButtonClick[MOUSE_RIGHT] = _pendingMouseButtonClick[MOUSE_RIGHT];
-    _pendingMouseButtonClick[MOUSE_LEFT] = false;
-    _pendingMouseButtonClick[MOUSE_MIDDLE] = false;
-    _pendingMouseButtonClick[MOUSE_RIGHT] = false;
+    _mouseButtonClick[MGDF_MOUSE_LEFT] = _pendingMouseButtonClick[MGDF_MOUSE_LEFT];
+    _mouseButtonClick[MGDF_MOUSE_MIDDLE] = _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE];
+    _mouseButtonClick[MGDF_MOUSE_RIGHT] = _pendingMouseButtonClick[MGDF_MOUSE_RIGHT];
+    _pendingMouseButtonClick[MGDF_MOUSE_LEFT] = false;
+    _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE] = false;
+    _pendingMouseButtonClick[MGDF_MOUSE_RIGHT] = false;
     ZeroMemory(_pendingMouseButtonClick, sizeof(_pendingMouseButtonClick));
 
     // keyboard events
@@ -247,52 +247,52 @@ void XInputManagerComponent::ProcessSim() {
   }
 }
 
-void XInputManagerComponent::ShowCursor(bool show) {
+void XInputManagerComponent::ShowCursor(BOOL show) {
   std::lock_guard<std::mutex> lock(_inputMutex);
   _pendingShowCursor = true;
   _showCursor = show;
 }
 
-bool XInputManagerComponent::IsKeyDown(UINT16 key) const {
+BOOL XInputManagerComponent::IsKeyDown(UINT16 key) {
   return _keyDown[key];
 }
 
-bool XInputManagerComponent::IsKeyUp(UINT16 key) const {
+BOOL XInputManagerComponent::IsKeyUp(UINT16 key) {
   return !_keyDown[key];
 }
 
-bool XInputManagerComponent::IsKeyPress(UINT16 key) const {
+BOOL XInputManagerComponent::IsKeyPress(UINT16 key) {
   return _keyPress[key];
 }
 
-INT32 XInputManagerComponent::GetMouseX(void) const { return _mouseX; }
+INT32 XInputManagerComponent::GetMouseX(void) { return _mouseX; }
 
-INT32 XInputManagerComponent::GetMouseY(void) const { return _mouseY; }
+INT32 XInputManagerComponent::GetMouseY(void) { return _mouseY; }
 
-INT32 XInputManagerComponent::GetMouseDX() const { return _mouseDX; }
+INT32 XInputManagerComponent::GetMouseDX() { return _mouseDX; }
 
-INT32 XInputManagerComponent::GetMouseDY() const { return _mouseDY; }
+INT32 XInputManagerComponent::GetMouseDY() { return _mouseDY; }
 
-INT16 XInputManagerComponent::GetMouseDZ() const { return _mouseDZ; }
+INT16 XInputManagerComponent::GetMouseDZ() { return _mouseDZ; }
 
-bool XInputManagerComponent::IsButtonDown(Mouse mouseButton) const {
+BOOL XInputManagerComponent::IsButtonDown(MGDFMouse mouseButton) {
   return _mouseButtonDown[mouseButton];
 }
 
-bool XInputManagerComponent::IsButtonUp(Mouse mouseButton) const {
+BOOL XInputManagerComponent::IsButtonUp(MGDFMouse mouseButton) {
   return !_mouseButtonDown[mouseButton];
 }
 
-bool XInputManagerComponent::IsButtonClicked(Mouse mouseButton) {
+BOOL XInputManagerComponent::IsButtonClicked(MGDFMouse mouseButton) {
   return _mouseButtonClick[mouseButton];
 }
 
-UINT32 XInputManagerComponent::GetGamepadCount() const {
-  return static_cast<UINT32>(_gamepads.size());
+UINT64 XInputManagerComponent::GetGamepadCount() {
+  return _gamepads.size();
 }
 
-void XInputManagerComponent::GetGamepads(IGamepad **gamepads) {
-  IGamepad **gamepadPtr = gamepads;
+void XInputManagerComponent::GetGamepads(IMGDFGamepad **gamepads) {
+  IMGDFGamepad **gamepadPtr = gamepads;
   for (auto &gamepad : _gamepads) {
     gamepad.AddRawRef(gamepadPtr++);
   }

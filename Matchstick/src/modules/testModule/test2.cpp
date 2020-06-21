@@ -17,7 +17,7 @@ Test2::Test2() : _x(0), _y(0) {}
 
 TestModule *Test2::NextTestModule() { return new Test3(); }
 
-void Test2::Setup(ISimHost *host) {
+void Test2::Setup(IMGDFSimHost *host) {
   host->GetInput(_input.Assign());
   host->GetVFS(_vfs.Assign());
   host->GetSound(_soundManager.Assign());
@@ -32,14 +32,13 @@ void Test2::Setup(ISimHost *host) {
       .Step([this](auto state) {
         state->AddLine("Loading sound chimes.wav");
         _soundManager->SetEnableAttenuation(true);
-        ComObject<IFile> file;
+        ComObject<IMGDFFile> file;
         if (_vfs->GetFile(L"chimes.wav", file.Assign()) &&
-            MGDF_OK != _soundManager->CreateSound(file, 0, _sound.Assign())) {
+            FAILED(_soundManager->CreateSound(file, 0, _sound.Assign()))) {
           return TestStep::FAILED;
         } else {
-          ComObject<ISound> s;
-          if (S_OK != _sound->QueryInterface(__uuidof(MGDF::ISound),
-                                             (void **)s.Assign())) {
+          ComObject<IMGDFSound> s;
+          if (S_OK != _sound->QueryInterface<IMGDFSound>(s.Assign())) {
             return TestStep::FAILED;
           } else {
             return TestStep::PASSED;
@@ -77,7 +76,7 @@ void Test2::Setup(ISimHost *host) {
           _sound.Clear();
           return TestStep::FAILED;
         } else {
-          SoundPosition position;
+          MGDFSoundPosition position;
           _sound->GetPosition(&position);
           if (_input->IsKeyDown(VK_UP)) {
             position.y += 1;
@@ -98,17 +97,15 @@ void Test2::Setup(ISimHost *host) {
       .Step([this](auto state) {
         _sound.Clear();
         state->AddLine("Loading stream stream.ogg");
-        ComObject<IFile> file;
+        ComObject<IMGDFFile> file;
         if (_vfs->GetFile(L"Stream.ogg", file.Assign()) &&
-            MGDF_OK !=
-                _soundManager->CreateSoundStream(file, _stream.Assign())) {
+                FAILED(_soundManager->CreateSoundStream(file, _stream.Assign()))) {
           return TestStep::FAILED;
         } else {
-          ComObject<ISoundStream> ss;
-          if (S_OK != _stream->QueryInterface(__uuidof(MGDF::ISoundStream),
-                                              (void **)ss.Assign())) {
+          ComObject<IMGDFSoundStream> ss;
+          if (S_OK != _stream->QueryInterface<IMGDFSoundStream>(ss.Assign())) {
             return TestStep::FAILED;
-          } else if (MGDF_OK != _stream->Play()) {
+          } else if (FAILED(_stream->Play())) {
             return TestStep::FAILED;
           } else {
             return TestStep::PASSED;
@@ -144,7 +141,7 @@ void Test2::Setup(ISimHost *host) {
         } else {
           if (_input->IsKeyPress('P')) {
             if (_stream->IsPaused()) {
-              if (MGDF_OK != _stream->Play()) {
+              if (FAILED(_stream->Play())) {
                 _stream.Clear();
                 return TestStep::FAILED;
               }

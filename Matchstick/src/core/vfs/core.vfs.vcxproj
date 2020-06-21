@@ -116,8 +116,6 @@
   <ItemGroup>
     <ClCompile Include="archive\zip\ZipArchiveHandlerImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFileImpl.cpp" />
-    <ClCompile Include="archive\zip\ZipFileRoot.cpp" />
-    <ClCompile Include="archive\zip\ZipFolderImpl.cpp" />
     <ClCompile Include="MGDFDefaultFileImpl.cpp" />
     <ClCompile Include="MGDFDefaultFolderImpl.cpp" />
     <ClCompile Include="MGDFFileBaseImpl.cpp" />

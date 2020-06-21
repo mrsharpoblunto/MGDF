@@ -178,7 +178,7 @@ class ComArray {
     _size = 0;
   }
 
-  ComArray(uint32_t size) : _size(size) {
+  ComArray(size_t size) : _size(size) {
     _data = std::make_unique<T *[]>(_size);
     memset(_data.get(), 0, _size);
   }
@@ -199,7 +199,7 @@ class ComArray {
   }
 
   virtual ~ComArray() {
-    for (uint32_t i = 0; i < _size; ++i) {
+    for (size_t i = 0; i < _size; ++i) {
       if (_data[i]) {
         _data[i]->Release();
         _data[i] = nullptr;
@@ -211,7 +211,7 @@ class ComArray {
 
  private:
   std::unique_ptr<T *[]> _data;
-  uint32_t _size;
+  size_t _size;
 };
 
 /**

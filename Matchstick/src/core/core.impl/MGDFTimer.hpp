@@ -3,7 +3,7 @@
 #include <d3d11.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDFTimer.hpp>
+#include <MGDF/MGDF.h>
 #include <deque>
 #include <list>
 #include <mutex>
@@ -19,12 +19,12 @@ namespace core {
 
 class Timer;
 
-class CounterBase : public ComBase<IPerformanceCounter> {
+class CounterBase : public ComBase<IMGDFPerformanceCounter> {
  public:
   virtual ~CounterBase();
   CounterBase(const char *name, UINT32 maxSamples, Timer &timer);
 
-  HRESULT GetName(char *name, size_t *length) const final;
+  HRESULT __stdcall GetName(char *name, UINT64 *length) final;
 
   double GetAvgValue() const;
 
@@ -48,8 +48,8 @@ class CPUPerformanceCounter : public CounterBase {
   CPUPerformanceCounter(const char *name, UINT32 maxSamples, Timer &timer,
                         LARGE_INTEGER frequency);
 
-  void Begin() final;
-  void End() final;
+  void __stdcall Begin() final;
+  void __stdcall End() final;
 
  private:
   LARGE_INTEGER _start;
@@ -61,8 +61,8 @@ class GPUPerformanceCounter : public CounterBase {
   virtual ~GPUPerformanceCounter();
   GPUPerformanceCounter(const char *name, UINT32 maxSamples, Timer &timer);
 
-  void Begin() final;
-  void End() final;
+  void __stdcall Begin() final;
+  void __stdcall End() final;
 
   void ForceEnd();
   void Init(const ComObject<ID3D11Device> &device,
@@ -86,19 +86,19 @@ class GPUPerformanceCounter : public CounterBase {
 /**
 this class is used for timing
 */
-class Timer : public ComBase<ITimer> {
+class Timer : public ComBase<IMGDFTimer> {
  public:
   static HRESULT TryCreate(UINT32 frameSamples, ComObject<Timer> &timer);
   Timer(UINT32 maxSamples);
   virtual ~Timer(void);
 
-  LARGE_INTEGER GetCurrentTimeTicks() const final;
-  LARGE_INTEGER GetTimerFrequency() const final;
-  double ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
-                                    LARGE_INTEGER oldTime) const final;
+  LARGE_INTEGER __stdcall GetCurrentTimeTicks() final;
+  LARGE_INTEGER __stdcall GetTimerFrequency() final;
+  double __stdcall ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
+                                    LARGE_INTEGER oldTime) final;
 
-  HRESULT CreateCPUCounter(const char *name, IPerformanceCounter **counter);
-  HRESULT CreateGPUCounter(const char *name, IPerformanceCounter **counter);
+  HRESULT CreateCPUCounter(const char *name, IMGDFPerformanceCounter **counter);
+  HRESULT CreateGPUCounter(const char *name, IMGDFPerformanceCounter **counter);
 
   void BeforeDeviceReset();
   void InitFromDevice(const ComObject<ID3D11Device> &device, UINT32 bufferSize);

@@ -8,7 +8,7 @@ namespace core {
 
 class GameBuilder {
  public:
-  static MGDFError LoadGame(
+  static HRESULT LoadGame(
       std::shared_ptr<storage::IStorageFactoryComponent> &storage,
       const storage::IGameStorageHandler *handler, ComObject<Game> &game);
 };

@@ -64,7 +64,7 @@ void TextManager::BeforeDeviceReset() {
   _immediateContext.Clear();
 }
 
-TextManager::TextManager(IRenderHost *renderHost) : _renderHost(renderHost) {
+TextManager::TextManager(IMGDFRenderHost *renderHost) : _renderHost(renderHost) {
   _renderHost->GetRenderSettings(_settings.Assign());
 }
 

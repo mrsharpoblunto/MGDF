@@ -21,8 +21,8 @@ namespace core {
 namespace vfs {
 namespace zip {
 
-ComObject<IArchiveHandler> CreateZipArchiveHandlerImpl() {
-  return MakeCom<ZipArchiveHandlerImpl>().As<IArchiveHandler>();
+ComObject<IMGDFArchiveHandler> CreateZipArchiveHandlerImpl() {
+  return MakeCom<ZipArchiveHandlerImpl>().As<IMGDFArchiveHandler>();
 }
 
 ZipArchiveHandlerImpl::ZipArchiveHandlerImpl() {
@@ -33,14 +33,14 @@ ZipArchiveHandlerImpl::~ZipArchiveHandlerImpl() {}
 
 HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
                                           const wchar_t *physicalPath,
-                                          IFile *parent, IFile **file) {
+                                          IMGDFFile *parent, IMGDFFile **file) {
   _ASSERTE(name);
   _ASSERTE(physicalPath);
 
   auto zip = unzOpen(physicalPath);
 
   if (zip) {
-    ComObject<IFile> root(new ZipFileRoot(name, physicalPath, parent, zip));
+    ComObject<IMGDFFile> root(new ZipFileRoot(name, physicalPath, parent, zip));
 
     // We need to map file positions to speed up opening later
     for (INT32 ret = unzGoToFirstFile(zip); ret == UNZ_OK;
@@ -58,7 +58,7 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
       // is the desired behaviour
       const wchar_t *filename = nullptr;
       std::wstring path = Resources::ToWString(nameBuffer);
-      ComObject<IFile> parentFile = CreateParentFile(path, root, &filename);
+      ComObject<IMGDFFile> parentFile = CreateParentFile(path, root, &filename);
 
       if (info.uncompressed_size > 0) {
         _ASSERTE(filename);
@@ -67,9 +67,9 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
         header.size = info.uncompressed_size;
         header.name = filename;  // the name is the last part of the path
 
-        ComObject<IFile> child =
+        ComObject<IMGDFFile> child =
             MakeCom<ZipFileImpl>(parentFile, root, zip, std::move(header))
-                .As<IFile>();
+                .As<IMGDFFile>();
         _ASSERTE(child);
         auto parentPtr = dynamic_cast<FileBaseImpl *>(parentFile.Get());
         _ASSERTE(parentPtr);
@@ -80,13 +80,13 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
     return S_OK;
   } else {
     LOG("Could not open archive " << Resources::ToString(physicalPath),
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
     return ERROR_OPEN_FAILED;
   }
 }
 
-ComObject<IFile> ZipArchiveHandlerImpl::CreateParentFile(
-    std::wstring &path, ComObject<IFile> root, const wchar_t **filename) {
+ComObject<IMGDFFile> ZipArchiveHandlerImpl::CreateParentFile(
+    std::wstring &path, ComObject<IMGDFFile> root, const wchar_t **filename) {
   _ASSERTE(root);
   _ASSERTE(path.size());
 
@@ -101,7 +101,7 @@ ComObject<IFile> ZipArchiveHandlerImpl::CreateParentFile(
 
   size_t start = 0;
   size_t end = 0;
-  ComObject<IFile> parent(root);
+  ComObject<IMGDFFile> parent(root);
 
   while (end < len) {
     while (end < len && path[end] != '/') {
@@ -109,9 +109,9 @@ ComObject<IFile> ZipArchiveHandlerImpl::CreateParentFile(
     }
     if (end != start) {
       path[end] = '\0';
-      ComObject<IFile> child;
+      ComObject<IMGDFFile> child;
       if (!parent->GetChild(&path[start], child.Assign())) {
-        child = ComObject<IFile>(new ZipFolderImpl(&path[start], parent, root));
+        child = ComObject<IMGDFFile>(new ZipFolderImpl(&path[start], parent, root));
         _ASSERTE(child);
         auto parentPtr = dynamic_cast<FileBaseImpl *>(parent.Get());
         _ASSERTE(parentPtr);
@@ -126,7 +126,7 @@ ComObject<IFile> ZipArchiveHandlerImpl::CreateParentFile(
   return parent;
 }
 
-bool ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) const {
+BOOL ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) {
   _ASSERTE(path);
   if (!path) return false;
 

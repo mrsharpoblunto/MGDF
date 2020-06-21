@@ -28,8 +28,8 @@ CounterBase::CounterBase(const char *name, UINT32 maxSamples, Timer &timer)
   _ASSERTE(name);
 }
 
-HRESULT CounterBase::GetName(char *name, size_t *length) const {
-  COPY_STR(_name, name, length);
+HRESULT CounterBase::GetName(char *name, UINT64 *length) {
+  return CopyStr(_name, name, length);
 }
 
 void CounterBase::AddSample(double sample) {
@@ -65,7 +65,7 @@ void CPUPerformanceCounter::Begin() {
   if (_started) {
     LOG("Call to CPU Timer Begin for Timer "
             << _name.c_str() << " that has already started timing",
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
   } else {
     _started = true;
     QueryPerformanceCounter(&_start);
@@ -76,7 +76,7 @@ void CPUPerformanceCounter::End() {
   if (!_started) {
     LOG("Call to GPU Timer End without matching call to Begin on Timer "
             << _name.c_str(),
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
   } else {
     _started = false;
     LARGE_INTEGER newTime;
@@ -113,11 +113,11 @@ void GPUPerformanceCounter::Begin() {
 
   if (_hasRun) {
     LOG("GPU Timer " << _name.c_str() << " has already been used this frame",
-        LOG_HIGH);
+        MGDF_LOG_HIGH);
   } else if (_started) {
     LOG("Call to GPU Timer Begin for Timer "
             << _name.c_str() << " that has already started timing",
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
   } else if (_currentDisjoint) {
     if (!_beginQueries.empty()) {
       _ASSERTE(!_endQueries.empty());
@@ -134,7 +134,7 @@ void GPUPerformanceCounter::Begin() {
       _started = true;
     } else {
       LOG("No available queries to begin GPU Timer " << _name.c_str(),
-          LOG_MEDIUM);
+          MGDF_LOG_MEDIUM);
     }
   }
 }
@@ -156,7 +156,7 @@ void GPUPerformanceCounter::End() {
   } else if (_currentDisjoint) {
     LOG("Call to GPU Timer End without matching call to Begin on Timer "
             << _name.c_str(),
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
   }
 }
 
@@ -165,7 +165,7 @@ void GPUPerformanceCounter::ForceEnd() {
     LOG("GPU Timer " << _name.c_str()
                      << " that was Begun this frame was not Ended this frame - "
                         "forcing End",
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
     End();
   }
 }
@@ -185,7 +185,7 @@ void GPUPerformanceCounter::Init(const ComObject<ID3D11Device> &device,
 
     if (FAILED(device->CreateQuery(&desc, _beginQueries.emplace().Assign())) ||
         FAILED(device->CreateQuery(&desc, _endQueries.emplace().Assign()))) {
-      LOG("GPU timing queries unsupported", LOG_ERROR);
+      LOG("GPU timing queries unsupported", MGDF_LOG_ERROR);
       Reset();
       break;
     }
@@ -210,7 +210,7 @@ void GPUPerformanceCounter::DataDisjoint(ID3D11Query *disjoint) {
   auto it = _pendingQueries.find(disjoint);
   if (it == _pendingQueries.end()) return;
 
-  LOG("Ignoring GPU Timer sample from disjoint query", LOG_MEDIUM);
+  LOG("Ignoring GPU Timer sample from disjoint query", MGDF_LOG_MEDIUM);
   _beginQueries.push(it->second.first);
   _endQueries.push(it->second.second);
   _pendingQueries.erase(it);
@@ -225,14 +225,14 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
       S_OK) {
     LOG("Failed to get Begin Data for GPU Timer " << _name.c_str()
                                                   << "- Ignoring sample",
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
   } else {
     UINT64 timeStampEnd = 0;
     if (_context->GetData(it->second.second, &timeStampEnd, sizeof(UINT64),
                           0) != S_OK) {
       LOG("Failed to bet End Data for GPU Timer " << _name.c_str()
                                                   << "- Ignoring sample",
-          LOG_ERROR);
+          MGDF_LOG_ERROR);
     } else {
       const UINT64 diff = timeStampEnd - min(timeStampBegin, timeStampEnd);
       const double value = ((double)diff / frequency);
@@ -269,7 +269,7 @@ Timer::Timer(UINT32 maxSamples)
 HRESULT Timer::Init() {
   // exit if the  does not support a high performance timer
   if (!QueryPerformanceFrequency(&_freq)) {
-    LOG("High performance timer unsupported", LOG_ERROR);
+    LOG("High performance timer unsupported", MGDF_LOG_ERROR);
     return E_FAIL;
   }
   return S_OK;
@@ -278,18 +278,18 @@ HRESULT Timer::Init() {
 Timer::~Timer(void) {
   for (auto &counter : _cpuCounters) {
     LOG("CPUTimer '" << STR(counter, GetName) << "' still has live references",
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
   }
   for (auto &counter : _gpuCounters) {
     LOG("GPUTimer '" << STR(counter, GetName) << "' still has live references",
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
   }
 
   ResetGPUTimers();
 }
 
 void Timer::ResetGPUTimers() {
-  LOG("Cleaning up GPU Timers...", LOG_LOW);
+  LOG("Cleaning up GPU Timers...", MGDF_LOG_LOW);
   while (!_disjointQueries.empty()) {
     _disjointQueries.pop();
   }
@@ -315,7 +315,7 @@ void Timer::InitFromDevice(const ComObject<ID3D11Device> &device,
   _device = device;
   device->GetImmediateContext(_context.Assign());
 
-  LOG("Initializing GPU Timers...", LOG_LOW);
+  LOG("Initializing GPU Timers...", MGDF_LOG_LOW);
 
   // create a pool of queries to reuse
   for (UINT32 i = 0; i < bufferSize; ++i) {
@@ -325,7 +325,7 @@ void Timer::InitFromDevice(const ComObject<ID3D11Device> &device,
 
     ComObject<ID3D11Query> query;
     if (FAILED(_device->CreateQuery(&desc, query.Assign()))) {
-      LOG("GPU timing queries unsupported", LOG_ERROR);
+      LOG("GPU timing queries unsupported", MGDF_LOG_ERROR);
       _gpuTimersSupported = false;
       break;
     }
@@ -337,27 +337,25 @@ void Timer::InitFromDevice(const ComObject<ID3D11Device> &device,
   }
 }
 
-LARGE_INTEGER Timer::GetCurrentTimeTicks() const {
+LARGE_INTEGER Timer::GetCurrentTimeTicks() {
   LARGE_INTEGER result;
   QueryPerformanceCounter(&result);
   return result;
 }
 
-LARGE_INTEGER Timer::GetTimerFrequency() const { return _freq; }
+LARGE_INTEGER Timer::GetTimerFrequency() { return _freq; }
 
 double Timer::ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
-                                         LARGE_INTEGER oldTime) const {
+                                         LARGE_INTEGER oldTime) {
   const LONGLONG diff = max(newTime.QuadPart, oldTime.QuadPart) -
                         min(newTime.QuadPart, oldTime.QuadPart);
   return max((double)diff / _freq.QuadPart, 0);
 }
 
 HRESULT Timer::CreateCPUCounter(const char *name,
-                                IPerformanceCounter **counter) {
+                                IMGDFPerformanceCounter **counter) {
   if (!name) return E_FAIL;
-
-  ComObject<CPUPerformanceCounter> c(
-      new CPUPerformanceCounter(name, _maxSamples, *this, _freq));
+  auto c = MakeCom<CPUPerformanceCounter>(name, _maxSamples, *this, _freq);
 
   std::lock_guard<std::mutex> lock(_mutex);
   _cpuCounters.insert(c);
@@ -366,10 +364,9 @@ HRESULT Timer::CreateCPUCounter(const char *name,
 }
 
 HRESULT Timer::CreateGPUCounter(const char *name,
-                                IPerformanceCounter **counter) {
+                                IMGDFPerformanceCounter **counter) {
   if (!_gpuTimersSupported || !name) return E_FAIL;
-  ComObject<GPUPerformanceCounter> c(
-      new GPUPerformanceCounter(name, _maxSamples, *this));
+  auto c = MakeCom<GPUPerformanceCounter>(name, _maxSamples, *this);
 
   if (_device) {
     c->Init(_device, _context, _bufferSize);
@@ -434,7 +431,7 @@ void Timer::Begin() {
         counter->SetDisjointQuery(_currentQuery);
       }
     } else {
-      LOG("No available queries to record GPU timer disjoint", LOG_MEDIUM);
+      LOG("No available queries to record GPU timer disjoint", MGDF_LOG_MEDIUM);
       _currentQuery.Clear();
       for (auto counter : _gpuCounters) {
         counter->SetDisjointQuery(nullptr);

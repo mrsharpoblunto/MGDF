@@ -34,7 +34,7 @@ class D3DAppFramework {
   virtual void OnBackBufferChange(
       const ComObject<ID3D11Texture2D> &backBuffer,
       const ComObject<ID3D11Texture2D> &depthStencilBuffer) = 0;
-  virtual FullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
+  virtual MGDFFullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                           DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                           const RECT &windowSize) = 0;
   virtual void OnResize(UINT32 width, UINT32 height) = 0;
@@ -52,8 +52,8 @@ class D3DAppFramework {
                                   LPARAM lParam) = 0;
   virtual void OnMoveWindow(INT32 x, INT32 y) = 0;
 
-  virtual UINT32 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                               UINT32 *featureLevelsSize) = 0;
+  virtual UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                               UINT64 *featureLevelsSize) = 0;
   virtual bool IsBackBufferChangePending() = 0;
   virtual bool VSyncEnabled() const = 0;
   virtual void FatalError(const char *sender, const char *message) = 0;
@@ -104,7 +104,7 @@ class D3DAppFramework {
   bool _awaitingResize;
   bool _internalShutDown;
   bool _allowTearing;
-  FullScreenDesc _currentFullScreen;
+  MGDFFullScreenDesc _currentFullScreen;
 };
 
 // defines a function which calls into an instance of a d3dApp subclass to

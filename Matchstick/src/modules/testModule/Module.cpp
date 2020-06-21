@@ -13,8 +13,8 @@
 namespace MGDF {
 namespace Test {
 
-TestModule* TestModule::Update(ISimHost* host, TextManagerState* state) {
-  ComObject<IInputManager> input;
+TestModule* TestModule::Update(IMGDFSimHost* host, TextManagerState* state) {
+  ComObject<IMGDFInputManager> input;
   host->GetInput(input.Assign());
   if (input->IsKeyPress(VK_ESCAPE)) {
     host->ShutDown();
@@ -65,7 +65,7 @@ Module::Module()
   _stateBuffer.Pending()->AddLine("MGDF functional test suite started");
 }
 
-bool Module::STNew(ISimHost* host, const wchar_t* workingFolder) {
+BOOL Module::STNew(IMGDFSimHost* host, const wchar_t* workingFolder) {
   (void)host;
   _workingFolder = workingFolder;
   _testModule = std::make_unique<Test1>();
@@ -73,7 +73,7 @@ bool Module::STNew(ISimHost* host, const wchar_t* workingFolder) {
   return true;
 }
 
-bool Module::STUpdate(ISimHost* host, double elapsedTime) {
+BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
   (void)elapsedTime;
   if (!_testModuleCounter) {
     host->CreateCPUCounter("Test Module", _testModuleCounter.Assign());
@@ -92,15 +92,15 @@ bool Module::STUpdate(ISimHost* host, double elapsedTime) {
   return true;
 }
 
-void Module::STShutDown(ISimHost* host) { host->ShutDown(); }
+void Module::STShutDown(IMGDFSimHost* host) { host->ShutDown(); }
 
-bool Module::RTBeforeFirstDraw(MGDF::IRenderHost* host) {
+BOOL Module::RTBeforeFirstDraw(IMGDFRenderHost* host) {
   _textManager = std::make_unique<TextManager>(host);
   host->CreateGPUCounter("Text Rendering", _textManagerCounter.Assign());
   return true;
 }
 
-bool Module::RTDraw(IRenderHost* host, double alpha) {
+BOOL Module::RTDraw(IMGDFRenderHost* host, double alpha) {
   (void)host;
   std::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
@@ -112,25 +112,25 @@ bool Module::RTDraw(IRenderHost* host, double alpha) {
   return true;
 }
 
-bool Module::RTBackBufferChange(IRenderHost* host) {
+BOOL Module::RTBackBufferChange(IMGDFRenderHost* host) {
   (void)host;
   _textManager->BackBufferChange();
   return true;
 }
 
-bool Module::RTBeforeBackBufferChange(IRenderHost* host) {
+BOOL Module::RTBeforeBackBufferChange(IMGDFRenderHost* host) {
   (void)host;
   _textManager->BeforeBackBufferChange();
   return true;
 }
 
-bool Module::RTBeforeDeviceReset(IRenderHost* host) {
+BOOL Module::RTBeforeDeviceReset(IMGDFRenderHost* host) {
   (void)host;
   _textManager->BeforeDeviceReset();
   return true;
 }
 
-bool Module::RTDeviceReset(IRenderHost* host) {
+BOOL Module::RTDeviceReset(IMGDFRenderHost* host) {
   (void)host;
   return true;
 }

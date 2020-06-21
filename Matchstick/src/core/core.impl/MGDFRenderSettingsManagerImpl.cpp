@@ -29,7 +29,7 @@ RenderSettingsManager::RenderSettingsManager()
       _screenX(0),
       _screenY(0),
       _window(NULL) {
-  ZeroMemory(&_currentAdaptorMode, sizeof(AdaptorMode));
+  ZeroMemory(&_currentAdaptorMode, sizeof(MGDFAdaptorMode));
 }
 
 void RenderSettingsManager::InitFromDevice(
@@ -74,13 +74,13 @@ void RenderSettingsManager::InitFromDevice(
         !displayMode.Stereo &&  // Stereo adapters not currently supported
         displayMode.Width >= Resources::MIN_SCREEN_X &&
         displayMode.Height >= Resources::MIN_SCREEN_Y) {
-      AdaptorMode adaptorMode;
+      MGDFAdaptorMode adaptorMode;
       adaptorMode.Width = displayMode.Width;
       adaptorMode.Height = displayMode.Height;
       adaptorMode.RefreshRateNumerator = displayMode.RefreshRate.Numerator;
       adaptorMode.RefreshRateDenominator = displayMode.RefreshRate.Denominator;
       _adaptorModes.push_back(adaptorMode);
-      LOG("Found valid adapter mode " << SCREEN_RES(adaptorMode), LOG_MEDIUM);
+      LOG("Found valid adapter mode " << SCREEN_RES(adaptorMode), MGDF_LOG_MEDIUM);
 
       // try to preserve the current adaptor mode settings when devices change
       if (_currentAdaptorMode.Width == adaptorMode.Width &&
@@ -108,7 +108,7 @@ void RenderSettingsManager::InitFromDevice(
         quality == 0) {
       continue;
     }
-    LOG("Found valid multisample level " << i, LOG_MEDIUM);
+    LOG("Found valid multisample level " << i, MGDF_LOG_MEDIUM);
     _multiSampleLevels.push_back(i);
     _multiSampleQuality[i] = quality;
   }
@@ -116,13 +116,13 @@ void RenderSettingsManager::InitFromDevice(
 
 RenderSettingsManager::~RenderSettingsManager(void) {}
 
-UINT32 RenderSettingsManager::GetMultiSampleLevelCount() const {
+UINT64 RenderSettingsManager::GetMultiSampleLevelCount() {
   std::lock_guard<std::mutex> lock(_mutex);
-  return static_cast<UINT32>(_multiSampleLevels.size());
+  return _multiSampleLevels.size();
 }
 
-bool RenderSettingsManager::GetMultiSampleLevel(UINT32 index,
-                                                UINT32 *level) const {
+BOOL RenderSettingsManager::GetMultiSampleLevel(UINT64 index,
+                                                UINT32 *level) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (!level) return false;
   if (index < _multiSampleLevels.size()) {
@@ -132,7 +132,7 @@ bool RenderSettingsManager::GetMultiSampleLevel(UINT32 index,
   return false;
 }
 
-bool RenderSettingsManager::SetCurrentMultiSampleLevel(
+BOOL RenderSettingsManager::SetCurrentMultiSampleLevel(
     UINT32 multisampleLevel) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_multiSampleQuality.find(multisampleLevel) != _multiSampleQuality.end()) {
@@ -144,14 +144,14 @@ bool RenderSettingsManager::SetCurrentMultiSampleLevel(
 }
 
 UINT32 RenderSettingsManager::GetCurrentMultiSampleLevel(
-    UINT32 *quality) const {
+    UINT32 *quality) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (quality)
     *quality = _multiSampleQuality.find(_currentMultiSampleLevel)->second - 1;
   return _currentMultiSampleLevel;
 }
 
-bool RenderSettingsManager::SetBackBufferMultiSampleLevel(
+BOOL RenderSettingsManager::SetBackBufferMultiSampleLevel(
     UINT32 multisampleLevel) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_multiSampleQuality.find(multisampleLevel) != _multiSampleQuality.end()) {
@@ -162,38 +162,38 @@ bool RenderSettingsManager::SetBackBufferMultiSampleLevel(
   }
 }
 
-UINT32 RenderSettingsManager::GetBackBufferMultiSampleLevel() const {
+UINT32 RenderSettingsManager::GetBackBufferMultiSampleLevel() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _backBufferMultiSampleLevel;
 }
 
-bool RenderSettingsManager::GetVSync() const {
+BOOL RenderSettingsManager::GetVSync() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _vsync;
 }
 
-void RenderSettingsManager::SetVSync(bool vsync) {
+void RenderSettingsManager::SetVSync(BOOL vsync) {
   std::lock_guard<std::mutex> lock(_mutex);
   _vsync = vsync;
 }
 
-void RenderSettingsManager::GetFullscreen(FullScreenDesc *desc) const {
+void RenderSettingsManager::GetFullscreen(MGDFFullScreenDesc *desc) {
   std::lock_guard<std::mutex> lock(_mutex);
   *desc = _fullScreen;
 }
 
-void RenderSettingsManager::SetFullscreen(const FullScreenDesc *desc) {
+void RenderSettingsManager::SetFullscreen(const MGDFFullScreenDesc *desc) {
   std::lock_guard<std::mutex> lock(_mutex);
   _fullScreen = *desc;
 }
 
-UINT32 RenderSettingsManager::GetAdaptorModeCount() const {
+UINT64 RenderSettingsManager::GetAdaptorModeCount() {
   std::lock_guard<std::mutex> lock(_mutex);
-  return static_cast<UINT32>(_adaptorModes.size());
+  return _adaptorModes.size();
 }
 
-bool RenderSettingsManager::GetAdaptorMode(UINT32 index,
-                                           AdaptorMode *mode) const {
+BOOL RenderSettingsManager::GetAdaptorMode(UINT64 index,
+                                           MGDFAdaptorMode *mode)  {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_mutex);
   if (index < _adaptorModes.size()) {
@@ -207,8 +207,8 @@ bool RenderSettingsManager::GetAdaptorMode(UINT32 index,
   return false;
 }
 
-bool RenderSettingsManager::GetAdaptorMode(UINT32 width, UINT32 height,
-                                           AdaptorMode *mode) const {
+BOOL RenderSettingsManager::GetAdaptorModeFromDimensions(UINT32 width, UINT32 height,
+                                           MGDFAdaptorMode *mode) {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_mutex);
   bool result = false;
@@ -232,26 +232,27 @@ bool RenderSettingsManager::GetAdaptorMode(UINT32 width, UINT32 height,
   return result;
 }
 
-void RenderSettingsManager::GetCurrentAdaptorMode(AdaptorMode *mode) const {
-  if (!mode) return;
+MGDFAdaptorMode *RenderSettingsManager::GetCurrentAdaptorMode(MGDFAdaptorMode *mode) {
+  if (!mode) return mode;
   std::lock_guard<std::mutex> lock(_mutex);
   mode->Width = _currentAdaptorMode.Width;
   mode->Height = _currentAdaptorMode.Height;
   mode->RefreshRateNumerator = _currentAdaptorMode.RefreshRateNumerator;
   mode->RefreshRateDenominator = _currentAdaptorMode.RefreshRateDenominator;
+  return mode;
 }
 
-UINT32 RenderSettingsManager::GetScreenX() const {
+UINT32 RenderSettingsManager::GetScreenX() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _screenX;
 }
 
-UINT32 RenderSettingsManager::GetScreenY() const {
+UINT32 RenderSettingsManager::GetScreenY() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _screenY;
 }
 
-bool RenderSettingsManager::SetCurrentAdaptorMode(const AdaptorMode *mode) {
+BOOL RenderSettingsManager::SetCurrentAdaptorMode(const MGDFAdaptorMode *mode) {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_mutex);
 
@@ -268,21 +269,24 @@ bool RenderSettingsManager::SetCurrentAdaptorMode(const AdaptorMode *mode) {
   return false;
 }
 
-bool RenderSettingsManager::SetCurrentAdaptorModeToNative() {
+BOOL RenderSettingsManager::SetCurrentAdaptorModeToNative(MGDFAdaptorMode *mode) {
   const INT32 nativeWidth = GetSystemMetrics(SM_CXSCREEN);
   const INT32 nativeHeight = GetSystemMetrics(SM_CYSCREEN);
-  AdaptorMode mode;
-  if (GetAdaptorMode(nativeWidth, nativeHeight, &mode)) {
-    _currentAdaptorMode = mode;
+  MGDFAdaptorMode tmp;
+  if (GetAdaptorModeFromDimensions(nativeWidth, nativeHeight, &tmp)) {
+    _currentAdaptorMode = tmp;
+    if (mode != nullptr) {
+      *mode = tmp;
+    }
     LOG("Set adaptor mode to native resolution "
             << SCREEN_RES(_currentAdaptorMode),
-        LOG_LOW);
+        MGDF_LOG_LOW);
     return true;
   }
   return false;
 }
 
-void RenderSettingsManager::SetWindowSize(UINT32 width, UINT32 height) const {
+void RenderSettingsManager::SetWindowSize(UINT32 width, UINT32 height) {
   if (!_fullScreen.FullScreen && _window) {
     SetWindowPos(_window, 0, 0, 0, width, height,
                  SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
@@ -349,8 +353,8 @@ void RenderSettingsManager::Cleanup() {
   _multiSampleQuality.clear();
 }
 
-void RenderSettingsManager::GetPreferences(IPreferenceSet **preferences) {
-  ComObject<PreferenceSetImpl> p(new PreferenceSetImpl());
+void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
+  ComObject<PreferenceSetImpl> p = MakeCom<PreferenceSetImpl>();
 
   p->Preferences.insert(std::make_pair(PreferenceConstants::FULL_SCREEN,
                                        ToString(_fullScreen.FullScreen)));
@@ -372,7 +376,7 @@ void RenderSettingsManager::GetPreferences(IPreferenceSet **preferences) {
   p.AddRawRef(preferences);
 }
 
-void RenderSettingsManager::LoadPreferences(const ComObject<IGame> &game) {
+void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
   _ASSERTE(game);
   bool hasCurrentMode = false;
 
@@ -394,13 +398,13 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IGame> &game) {
   std::string yPref;
   if (GetPreference(game, PreferenceConstants::SCREEN_X, xPref) &&
       GetPreference(game, PreferenceConstants::SCREEN_Y, yPref)) {
-    hasCurrentMode = GetAdaptorMode(
+    hasCurrentMode = GetAdaptorModeFromDimensions(
         FromString<int>(xPref), FromString<int>(yPref), &_currentAdaptorMode);
   }
 
   if (!hasCurrentMode) {
     // set 1024*768 as the default
-    hasCurrentMode = GetAdaptorMode(
+    hasCurrentMode = GetAdaptorModeFromDimensions(
         Resources::MIN_SCREEN_X, Resources::MIN_SCREEN_Y, &_currentAdaptorMode);
     // or if 1024*768 was unavailble the first adaptor mode in the list
     if (!hasCurrentMode) {
@@ -409,11 +413,11 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IGame> &game) {
 
     // try to find the native resolution if possible, otherwise stick to the
     // default found above if none are found.
-    SetCurrentAdaptorModeToNative();
+    SetCurrentAdaptorModeToNative(nullptr);
 
     LOG("No screen resolution preferences found, using "
             << SCREEN_RES(_currentAdaptorMode),
-        LOG_LOW);
+        MGDF_LOG_LOW);
     game->SetPreference(PreferenceConstants::SCREEN_X,
                         ToString(_currentAdaptorMode.Width).c_str());
     game->SetPreference(PreferenceConstants::SCREEN_Y,
@@ -422,7 +426,7 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IGame> &game) {
   } else {
     LOG("Loaded screen resolution preference for "
             << SCREEN_RES(_currentAdaptorMode),
-        LOG_LOW);
+        MGDF_LOG_LOW);
   }
 
   // ensure the multisample level is not above what is supported.
@@ -436,7 +440,7 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IGame> &game) {
         _multiSampleLevels.at(_multiSampleLevels.size() - 1);
     LOG("RT multisample preference is not supported, using "
             << _currentMultiSampleLevel << " instead",
-        LOG_LOW);
+        MGDF_LOG_LOW);
     game->SetPreference(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
                         ToString(_currentMultiSampleLevel).c_str());
     savePreferences = true;
@@ -451,7 +455,7 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IGame> &game) {
         _multiSampleLevels.at(_multiSampleLevels.size() - 1);
     LOG("Backbuffer multisample preference is not supported, using "
             << _backBufferMultiSampleLevel << " instead",
-        LOG_LOW);
+        MGDF_LOG_LOW);
     game->SetPreference(PreferenceConstants::MULTISAMPLE_LEVEL,
                         ToString(_backBufferMultiSampleLevel).c_str());
     savePreferences = true;

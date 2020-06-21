@@ -15,4 +15,4 @@
 #include <stdlib.h>
 #endif
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>

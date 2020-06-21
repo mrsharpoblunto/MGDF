@@ -16,7 +16,7 @@ namespace core {
 namespace storage {
 namespace jsoncppImpl {
 
-MGDFError JsonCppGameStateStorageHandler::Load(const std::wstring &filename) {
+HRESULT JsonCppGameStateStorageHandler::Load(const std::wstring &filename) {
   std::ifstream input(filename.c_str(), std::ios::in);
 
   Json::Value root;
@@ -25,8 +25,8 @@ MGDFError JsonCppGameStateStorageHandler::Load(const std::wstring &filename) {
   if (input.fail()) {
     // TODO handling for other input methods...
     LOG("Unable to open '" << Resources::ToString(filename).c_str() << "'",
-        LOG_ERROR);
-    return MGDF_ERR_INVALID_FILE;
+        MGDF_LOG_ERROR);
+    return E_FAIL;
   }
   if (reader.parse(input, root)) {
     _gameUid = GetJsonValue(root, "gameUid");
@@ -39,12 +39,12 @@ MGDFError JsonCppGameStateStorageHandler::Load(const std::wstring &filename) {
         _metadata[key] = GetJsonValue(meta, key);
       }
     }
-    return MGDF_OK;
+    return S_OK;
   } else {
     LOG("Unable to parse '" << Resources::ToString(filename).c_str() << "'"
                             << reader.getFormatedErrorMessages(),
-        LOG_ERROR);
-    return MGDF_ERR_INVALID_JSON;
+        MGDF_LOG_ERROR);
+    return E_FAIL;
   }
 }
 

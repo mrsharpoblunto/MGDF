@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDFDebug.hpp>
+#include <MGDF/MGDF.h>
 #include <atomic>
 #include <map>
 #include <sstream>
@@ -14,14 +14,14 @@
 namespace MGDF {
 namespace core {
 
-class Debug : public ComBase<IDebug> {
+class Debug : public ComBase<IMGDFDebug> {
  public:
   virtual ~Debug(){};
   Debug(Timer *timer);
-  void Set(const char *section, const char *key, const char *value) final;
-  void Clear(const char *section, const char *key) final;
-  bool IsShown() const final;
-  void ToggleShown() final;
+  void __stdcall Set(const char *section, const char *key, const char *value) final;
+  void __stdcall Clear(const char *section, const char *key) final;
+  BOOL __stdcall IsShown() final;
+  void __stdcall ToggleShown() final;
 
   void DumpInfo(const HostStats &stats, TextStream &ss) const;
 

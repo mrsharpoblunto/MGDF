@@ -2,7 +2,7 @@
 
 #include "MGDFHostBuilder.hpp"
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <filesystem>
 #include <fstream>
 
@@ -31,7 +31,7 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   InitLogger();
 
   if (!storage::CreateStorageFactoryComponentImpl(components.Storage)) {
-    LOG("FATAL ERROR: Unable to register StorageFactory", LOG_ERROR);
+    LOG("FATAL ERROR: Unable to register StorageFactory", MGDF_LOG_ERROR);
     return false;
   }
 
@@ -41,19 +41,19 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
 bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
                                                HostComponents &components) {
   if (!input::CreateInputManagerComponentImpl(components.Input)) {
-    LOG("FATAL ERROR: Unable to register InputManager", LOG_ERROR);
+    LOG("FATAL ERROR: Unable to register InputManager", MGDF_LOG_ERROR);
     return false;
   }
 
   if (!vfs::CreateVirtualFileSystemComponentImpl(components.VFS)) {
-    LOG("FATAL ERROR: Unable to register VirtualFileSystem", LOG_ERROR);
+    LOG("FATAL ERROR: Unable to register VirtualFileSystem", MGDF_LOG_ERROR);
     return false;
   }
 
   if (!audio::CreateSoundManagerComponentImpl(components.Sound)) {
     // its a problem, but we can still probably run if the soundmanager failed
     // to initialize
-    LOG("ERROR: Unable to register SoundManager", LOG_ERROR);
+    LOG("ERROR: Unable to register SoundManager", MGDF_LOG_ERROR);
   }
 
   return true;
@@ -75,9 +75,9 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   auto handler(components.Storage->CreateGameStorageHandler());
   _ASSERTE(handler.get());
 
-  MGDFError result = handler->Load(Resources::Instance().GameFile());
-  if (MGDF_OK != result) {
-    return E_FAIL;
+  auto result = handler->Load(Resources::Instance().GameFile());
+  if (FAILED(result)) {
+    return result;
   }
 
   // now that we know the UID for the game, we'll set up the user resources
@@ -87,9 +87,9 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
 
   ComObject<Game> game;
   result = GameBuilder::LoadGame(components.Storage, handler.get(), game);
-  if (MGDF_OK != result) {
-    LOG("FATAL ERROR: Unable to load game configuration", LOG_ERROR);
-    return E_FAIL;
+  if (FAILED(result)) {
+    LOG("FATAL ERROR: Unable to load game configuration", MGDF_LOG_ERROR);
+    return result;
   }
 
   // now that the game file loaded, initialize everything else
@@ -98,11 +98,11 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
     return E_FAIL;
   }
 
-  LOG("Creating host...", LOG_LOW);
-  const HRESULT hr = Host::TryCreate(game, components, host);
-  if (FAILED(hr)) {
-    LOG("FATAL ERROR: Unable to create host", LOG_ERROR);
-    return hr;
+  LOG("Creating host...", MGDF_LOG_LOW);
+  result = Host::TryCreate(game, components, host);
+  if (FAILED(result)) {
+    LOG("FATAL ERROR: Unable to create host", MGDF_LOG_ERROR);
+    return result;
   }
 
   return S_OK;
@@ -163,16 +163,16 @@ void HostBuilder::InitLogger() {
         ParameterConstants::LOG_LEVEL);
 
     if (level == ParameterConstants::VALUE_LOG_LEVEL_ERROR) {
-      Logger::Instance().SetLoggingLevel(LOG_ERROR);
+      Logger::Instance().SetLoggingLevel(MGDF_LOG_ERROR);
     }
     if (level == ParameterConstants::VALUE_LOG_LEVEL_LOW) {
-      Logger::Instance().SetLoggingLevel(LOG_LOW);
+      Logger::Instance().SetLoggingLevel(MGDF_LOG_LOW);
     }
     if (level == ParameterConstants::VALUE_LOG_LEVEL_MEDIUM) {
-      Logger::Instance().SetLoggingLevel(LOG_MEDIUM);
+      Logger::Instance().SetLoggingLevel(MGDF_LOG_MEDIUM);
     }
     if (level == ParameterConstants::VALUE_LOG_LEVEL_HIGH) {
-      Logger::Instance().SetLoggingLevel(LOG_HIGH);
+      Logger::Instance().SetLoggingLevel(MGDF_LOG_HIGH);
     }
   }
 }

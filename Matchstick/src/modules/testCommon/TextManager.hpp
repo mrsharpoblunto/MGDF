@@ -4,7 +4,7 @@
 #include <dwrite_1.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <memory>
 
 #include "Common.hpp"
@@ -49,7 +49,7 @@ class TESTCOMMON_DLL TextManagerState {
 class TESTCOMMON_DLL TextManager {
  public:
   virtual ~TextManager();
-  TextManager(IRenderHost *renderHost);
+  TextManager(IMGDFRenderHost *renderHost);
   void SetState(std::shared_ptr<TextManagerState> state);
   void BackBufferChange();
   void BeforeBackBufferChange();
@@ -60,7 +60,7 @@ class TESTCOMMON_DLL TextManager {
 #pragma warning(push)
 #pragma warning(disable : 4251)
   std::shared_ptr<TextManagerState> _state;
-  ComObject<IRenderSettingsManager> _settings;
+  ComObject<IMGDFRenderSettingsManager> _settings;
   ComObject<ID2D1SolidColorBrush> _whiteBrush;
   ComObject<ID2D1SolidColorBrush> _redBrush;
   ComObject<ID2D1SolidColorBrush> _greenBrush;
@@ -69,7 +69,7 @@ class TESTCOMMON_DLL TextManager {
   ComObject<IDWriteTextFormat> _textFormat;
   ComObject<ID3D11DeviceContext> _immediateContext;
 #pragma warning(pop)
-  IRenderHost *_renderHost;
+  IMGDFRenderHost *_renderHost;
 };
 }  // namespace Test
 }  // namespace MGDF

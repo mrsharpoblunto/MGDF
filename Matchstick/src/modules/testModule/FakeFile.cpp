@@ -16,7 +16,7 @@ namespace MGDF {
 namespace Test {
 
 FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-                   MGDF::IFile *parent)
+                   IMGDFFile *parent)
     : _parent(parent),
       _children(nullptr),
       _name(name),
@@ -59,8 +59,8 @@ ULONG FakeFile::Release() {
 
 HRESULT FakeFile::QueryInterface(REFIID riid, void **ppvObject) {
   if (!ppvObject) return E_POINTER;
-  if (riid == IID_IUnknown || riid == __uuidof(MGDF::IFile) ||
-      (_isOpen && riid == _uuidof(MGDF::IFileReader))) {
+  if (riid == IID_IUnknown || riid == __uuidof(IMGDFFile) ||
+      (_isOpen && riid == _uuidof(IMGDFFileReader))) {
     AddRef();
     *ppvObject = this;
     return S_OK;
@@ -68,22 +68,22 @@ HRESULT FakeFile::QueryInterface(REFIID riid, void **ppvObject) {
   return E_NOINTERFACE;
 };
 
-bool FakeFile::GetParent(IFile **parent) {
+BOOL FakeFile::GetParent(IMGDFFile **parent) {
   _parent->AddRef();
   *parent = _parent;
   return true;
 }
 
-size_t FakeFile::GetChildCount() {
+UINT64 FakeFile::GetChildCount() {
   if (_children) {
     return _children->size();
   }
   return 0;
 }
 
-time_t FakeFile::GetLastWriteTime() const { return 0; }
+UINT64 FakeFile::GetLastWriteTime() { return 0; }
 
-bool FakeFile::GetChild(const wchar_t *name, IFile **child) {
+BOOL FakeFile::GetChild(const wchar_t *name, IMGDFFile **child) {
   if (!_children || !name) return false;
 
   auto it = _children->find(name);
@@ -94,7 +94,7 @@ bool FakeFile::GetChild(const wchar_t *name, IFile **child) {
   return false;
 }
 
-void FakeFile::GetAllChildren(IFile **childBuffer) {
+void FakeFile::GetAllChildren(IMGDFFile **childBuffer) {
   for (auto child : *_children) {
     child.second.AddRawRef(childBuffer++);
   }
@@ -112,8 +112,8 @@ void FakeFile::AddChild(ComObject<FakeFile> file) {
 const wchar_t *FakeFile::GetLogicalPath() {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_logicalPath.empty()) {
-    std::vector<ComObject<IFile>> path;
-    ComObject<IFile> node(this, true);
+    std::vector<ComObject<IMGDFFile>> path;
+    ComObject<IMGDFFile> node(this, true);
     do {
       path.push_back(node);
     } while (node->GetParent(node.Assign()));
@@ -129,12 +129,12 @@ const wchar_t *FakeFile::GetLogicalPath() {
   return _logicalPath.c_str();
 }
 
-bool FakeFile::IsOpen() const {
+BOOL FakeFile::IsOpen() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _isOpen;
 }
 
-HRESULT FakeFile::Open(IFileReader **reader) {
+HRESULT FakeFile::Open(IMGDFFileReader **reader) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (!_data.empty() && !_isOpen) {
     _isOpen = true;
@@ -143,7 +143,7 @@ HRESULT FakeFile::Open(IFileReader **reader) {
     *reader = this;
     return S_OK;
   }
-  return ERROR_ACCESS_DENIED;
+  return E_FAIL;
 }
 
 UINT32 FakeFile::Read(void *buffer, UINT32 length) {
@@ -164,7 +164,7 @@ void FakeFile::SetPosition(INT64 pos) {
   }
 }
 
-INT64 FakeFile::GetPosition() const {
+INT64 FakeFile::GetPosition() {
   if (_isOpen) {
     return _position;
   } else {
@@ -172,7 +172,7 @@ INT64 FakeFile::GetPosition() const {
   }
 }
 
-bool FakeFile::EndOfFile() const {
+BOOL FakeFile::EndOfFile() {
   if (_isOpen) {
     return _position == _data.size();
   } else {
@@ -180,21 +180,21 @@ bool FakeFile::EndOfFile() const {
   }
 }
 
-INT64 FakeFile::GetSize() const { return _data.size(); }
+INT64 FakeFile::GetSize() { return _data.size(); }
 
-bool FakeFile::IsFolder() const { return _data.empty(); }
+BOOL FakeFile::IsFolder() { return _data.empty(); }
 
-bool FakeFile::IsArchive() const { return true; }
+BOOL FakeFile::IsArchive() { return true; }
 
-const wchar_t *FakeFile::GetArchiveName() const {
+const wchar_t *FakeFile::GetArchiveName() {
   return _physicalPath.c_str();
 }
 
-const wchar_t *FakeFile::GetPhysicalPath() const {
+const wchar_t *FakeFile::GetPhysicalPath() {
   return _physicalPath.c_str();
 }
 
-const wchar_t *FakeFile::GetName() const { return _name.c_str(); }
+const wchar_t *FakeFile::GetName() { return _name.c_str(); }
 
 }  // namespace Test
 }  // namespace MGDF

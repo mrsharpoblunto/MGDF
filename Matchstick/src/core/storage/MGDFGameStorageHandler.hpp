@@ -1,7 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDFError.hpp>
-#include <MGDF/MGDFVersion.hpp>
+#include <MGDF/MGDF.h>
 #include <exception>
 #include <map>
 #include <string>
@@ -15,8 +14,8 @@ class IGameStorageHandler {
   virtual ~IGameStorageHandler() {}
   virtual std::string GetGameName() const = 0;
   virtual std::string GetGameUid() const = 0;
-  virtual void GetVersion(Version &version) const = 0;
-  virtual MGDFError Load(const std::wstring &load) = 0;
+  virtual void GetVersion(MGDFVersion &version) const = 0;
+  virtual HRESULT Load(const std::wstring &load) = 0;
   virtual const std::map<std::string, std::string> &GetPreferences() const = 0;
 };
 

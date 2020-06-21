@@ -18,7 +18,7 @@ Test3::Test3() {}
 
 TestModule *Test3::NextTestModule() { return nullptr; }
 
-void Test3::Setup(ISimHost *host) {
+void Test3::Setup(IMGDFSimHost *host) {
   host->GetInput(_input.Assign());
   host->GetSaves(_saves.Assign());
 
@@ -28,7 +28,7 @@ void Test3::Setup(ISimHost *host) {
     state->AddLine("");
 
     while (_saves->GetSaveCount() > 0) {
-      ComObject<IGameState> s;
+      ComObject<IMGDFGameState> s;
       _saves->GetSave(0, s.Assign());
       _saves->DeleteSave(s);
     }
@@ -86,7 +86,7 @@ void Test3::Setup(ISimHost *host) {
         state->AddLine("Load game state");
 
         // check the version
-        MGDF::Version version;
+        MGDFVersion version;
         _state->GetVersion(&version);
         if (version.Major != 0 || version.Minor != 1) {
           return TestStep::FAILED;
@@ -124,12 +124,12 @@ void Test3::Setup(ISimHost *host) {
       .Step([host](auto state) {
         state->AddLine("Testing custom VFS archive handler registration");
 
-        ComObject<IVirtualFileSystem> vfs;
+        ComObject<IMGDFVirtualFileSystem> vfs;
         host->GetVFS(vfs.Assign());
 
-        ComObject<IFile> file;
+        ComObject<IMGDFFile> file;
         if (vfs->GetFile(L"test.fakearchive/testfile.txt", file.Assign())) {
-          ComObject<IFileReader> reader;
+          ComObject<IMGDFFileReader> reader;
           if (!FAILED(file->Open(reader.Assign()))) {
             const UINT32 size = static_cast<UINT32>(reader->GetSize());
             std::string data;
@@ -155,9 +155,9 @@ void Test3::Setup(ISimHost *host) {
           return TestStep::FAILED;
         } else {
           if (_input->IsKeyPress('F')) {
-            ComObject<IRenderSettingsManager> settings;
+            ComObject<IMGDFRenderSettingsManager> settings;
             host->GetRenderSettings(settings.Assign());
-            MGDF::FullScreenDesc desc;
+            MGDFFullScreenDesc desc;
             settings->GetFullscreen(&desc);
             desc.FullScreen = !desc.FullScreen;
             settings->SetFullscreen(&desc);

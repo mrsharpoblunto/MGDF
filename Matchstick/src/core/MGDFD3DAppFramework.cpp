@@ -34,7 +34,7 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
   _resize.store(false);
   _runRenderThread.clear();
 
-  SecureZeroMemory(&_currentFullScreen, sizeof(FullScreenDesc));
+  SecureZeroMemory(&_currentFullScreen, sizeof(MGDFFullScreenDesc));
   SecureZeroMemory(&_windowRect, sizeof(RECT));
   SecureZeroMemory(&_currentSize, sizeof(POINT));
   SecureZeroMemory(&_swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC1));
@@ -64,7 +64,7 @@ void D3DAppFramework::InitWindow(const std::string &caption,
                                  WNDPROC windowProcedure) {
   // if the window has not already been created
   if (!_window) {
-    LOG("Initializing window...", LOG_LOW);
+    LOG("Initializing window...", MGDF_LOG_LOW);
     WNDCLASS wc;
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = windowProcedure;
@@ -127,8 +127,8 @@ void D3DAppFramework::InitWindow(const std::string &caption,
 
     InitRawInput();
 
-    LOG("Getting compatible D3D feature levels...", LOG_LOW);
-    UINT32 levelsSize = 0;
+    LOG("Getting compatible D3D feature levels...", MGDF_LOG_LOW);
+    UINT64 levelsSize = 0;
     if (GetCompatibleD3DFeatureLevels(nullptr, &levelsSize)) {
       _levels.resize(levelsSize);
       GetCompatibleD3DFeatureLevels(_levels.data(), &levelsSize);
@@ -139,7 +139,7 @@ void D3DAppFramework::InitWindow(const std::string &caption,
 }
 
 void D3DAppFramework::InitRawInput() {
-  LOG("Initializing Raw Input...", LOG_LOW);
+  LOG("Initializing Raw Input...", MGDF_LOG_LOW);
   RAWINPUTDEVICE Rid[2];
 
   Rid[0].usUsagePage = 0x01;  // desktop input
@@ -160,7 +160,7 @@ void D3DAppFramework::InitRawInput() {
 }
 
 void D3DAppFramework::InitD3D() {
-  LOG("Initializing Direct3D...", LOG_LOW);
+  LOG("Initializing Direct3D...", MGDF_LOG_LOW);
   UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #if defined(DEBUG) || defined(_DEBUG)
   createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -194,7 +194,7 @@ void D3DAppFramework::InitD3D() {
 
   // step through the adapters and ensure we use the best one to create our
   // device
-  LOG("Enumerating display adapters...", LOG_LOW);
+  LOG("Enumerating display adapters...", MGDF_LOG_LOW);
   for (INT32 i = 0;
        _factory->EnumAdapters1(i, adapter.Assign()) != DXGI_ERROR_NOT_FOUND;
        i++) {
@@ -205,7 +205,7 @@ void D3DAppFramework::InitD3D() {
     _ASSERTE(!error);
     std::string message(videoCardDescription, videoCardDescription + length);
     message.insert(0, "Attempting to create device for adapter ");
-    LOG(message, LOG_LOW);
+    LOG(message, MGDF_LOG_LOW);
 
     D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
     ComObject<ID3D11Device> device;
@@ -228,11 +228,11 @@ void D3DAppFramework::InitD3D() {
         bestAdapter = adapter;
         _d3dDevice = device;
         _immediateContext = context;
-        LOG("Adapter is the best found so far", LOG_LOW);
+        LOG("Adapter is the best found so far", MGDF_LOG_LOW);
       }
       // this adapter is no better than what we already have, so ignore it
       else {
-        LOG("A better adapter has already been found - Ignoring", LOG_LOW);
+        LOG("A better adapter has already been found - Ignoring", MGDF_LOG_LOW);
       }
     }
   }
@@ -243,7 +243,7 @@ void D3DAppFramework::InitD3D() {
   } else {
     LOG("Created device with D3D Feature level: "
             << _d3dDevice->GetFeatureLevel(),
-        LOG_LOW);
+        MGDF_LOG_LOW);
   }
 
   D2D1_FACTORY_OPTIONS options;
@@ -282,7 +282,7 @@ void D3DAppFramework::InitD3D() {
 
 void D3DAppFramework::ReinitD3D() {
   const HRESULT reason = _d3dDevice->GetDeviceRemovedReason();
-  LOG("Device removed! DXGI_ERROR code " << reason, LOG_ERROR);
+  LOG("Device removed! DXGI_ERROR code " << reason, MGDF_LOG_ERROR);
 
   OnBeforeDeviceReset();
   UninitD3D();
@@ -290,7 +290,7 @@ void D3DAppFramework::ReinitD3D() {
 }
 
 void D3DAppFramework::UninitD3D() {
-  LOG("Cleaning up Direct3D resources...", LOG_LOW);
+  LOG("Cleaning up Direct3D resources...", MGDF_LOG_LOW);
   _backBuffer.Clear();
   _renderTargetView.Clear();
   _depthStencilView.Clear();
@@ -333,7 +333,7 @@ void D3DAppFramework::CreateSwapChain() {
   _immediateContext->ClearState();
   _immediateContext->Flush();
 
-  LOG("Creating swapchain...", LOG_LOW);
+  LOG("Creating swapchain...", MGDF_LOG_LOW);
   if (FAILED(_factory->CreateSwapChainForHwnd(_d3dDevice, _window, &_swapDesc,
                                               nullptr, nullptr,
                                               _swapChain.Assign()))) {
@@ -361,7 +361,7 @@ void D3DAppFramework::ResizeBackBuffer() {
   ClearBackBuffer();
 
   LOG("Setting backbuffer to " << _swapDesc.Width << "x" << _swapDesc.Height,
-      LOG_MEDIUM);
+      MGDF_LOG_MEDIUM);
 
   _currentSize.x = _swapDesc.Width;
   _currentSize.y = _swapDesc.Height;
@@ -444,16 +444,16 @@ INT32 D3DAppFramework::Run() {
   std::thread simThread([this, &runSimThread]() {
     runSimThread.test_and_set();
 
-    LOG("Starting sim thread...", LOG_LOW);
+    LOG("Starting sim thread...", MGDF_LOG_LOW);
     while (runSimThread.test_and_set()) {
       OnUpdateSim();
     }
-    LOG("Stopping sim thread...", LOG_LOW);
+    LOG("Stopping sim thread...", MGDF_LOG_LOW);
   });
 
   // run the renderer in its own thread
   _renderThread = std::make_unique<std::thread>([this]() {
-    LOG("Starting render thread...", LOG_LOW);
+    LOG("Starting render thread...", MGDF_LOG_LOW);
     OnBeforeFirstDraw();
 
     DXGI_PRESENT_PARAMETERS presentParams;
@@ -465,7 +465,7 @@ INT32 D3DAppFramework::Run() {
 
       // the game logic step may force the device to reset, so lets check
       if (IsBackBufferChangePending()) {
-        LOG("Module has scheduled a backbuffer change...", LOG_LOW);
+        LOG("Module has scheduled a backbuffer change...", MGDF_LOG_LOW);
 
         RECT windowSize;
         if (!GetClientRect(_window, &windowSize)) {
@@ -473,7 +473,7 @@ INT32 D3DAppFramework::Run() {
         }
 
         OnBeforeBackBufferChange();
-        const FullScreenDesc newFullScreen =
+        const MGDFFullScreenDesc newFullScreen =
             OnResetSwapChain(_swapDesc, _fullscreenSwapDesc, windowSize);
 
         if (_currentFullScreen.ExclusiveMode) {
@@ -550,7 +550,7 @@ INT32 D3DAppFramework::Run() {
       }
       // a window event may also have triggered a resize event.
       else if (_resize.compare_exchange_strong(exp, false)) {
-        LOG("Resizing...", LOG_MEDIUM);
+        LOG("Resizing...", MGDF_LOG_MEDIUM);
         OnBeforeBackBufferChange();
         OnResize(_swapDesc.Width, _swapDesc.Height);
         ResizeBackBuffer();
@@ -592,12 +592,12 @@ INT32 D3DAppFramework::Run() {
         }
       }
     }
-    LOG("Stopping render thread...", LOG_LOW);
+    LOG("Stopping render thread...", MGDF_LOG_LOW);
   });
 
   MSG msg;
   msg.message = WM_NULL;
-  LOG("Starting input loop...", LOG_LOW);
+  LOG("Starting input loop...", MGDF_LOG_LOW);
 
   while (GetMessage(&msg, _window, 0, 0) > 0) {
     // deal with any windows messages on the main thread, this allows us
@@ -606,7 +606,7 @@ INT32 D3DAppFramework::Run() {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
-  LOG("Stopping input loop...", LOG_LOW);
+  LOG("Stopping input loop...", MGDF_LOG_LOW);
 
   runSimThread.clear();
   simThread.join();
@@ -615,7 +615,7 @@ INT32 D3DAppFramework::Run() {
 }
 
 void D3DAppFramework::CloseWindow() {
-  LOG("Sending WM_CLOSE message...", LOG_HIGH);
+  LOG("Sending WM_CLOSE message...", MGDF_LOG_HIGH);
   _internalShutDown = true;
   PostMessage(_window, WM_CLOSE, 0, 0);
 }

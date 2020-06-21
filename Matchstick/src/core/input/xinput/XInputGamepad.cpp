@@ -20,17 +20,17 @@ XInputGamepad::XInputGamepad(INT32 id, bool connected)
 
 void XInputGamepad::UpdateState(const XINPUT_STATE &state) { _state = state; }
 
-bool XInputGamepad::IsConnected() const { return _connected; }
+BOOL XInputGamepad::IsConnected() { return _connected; }
 
-bool XInputGamepad::IsButtonDown(GamepadButton button) const {
+BOOL XInputGamepad::IsButtonDown(MGDFGamepadButton button) {
   return (_state.Gamepad.wButtons & button) == button;
 }
 
-bool XInputGamepad::IsButtonUp(GamepadButton button) const {
+BOOL XInputGamepad::IsButtonUp(MGDFGamepadButton button) {
   return (_state.Gamepad.wButtons & button) != button;
 }
 
-bool XInputGamepad::IsButtonPress(GamepadButton button) {
+BOOL XInputGamepad::IsButtonPress(MGDFGamepadButton button) {
   if (IsButtonDown(button)) _buttonpressState[button] = 1;
 
   if (_buttonpressState[button] == 1)
@@ -44,37 +44,37 @@ bool XInputGamepad::IsButtonPress(GamepadButton button) {
   return false;
 }
 
-INT32 XInputGamepad::GetLeftTrigger() const {
+UINT8 XInputGamepad::GetLeftTrigger() {
   return _state.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
              ? _state.Gamepad.bLeftTrigger
              : 0;
 }
 
-INT32 XInputGamepad::GetRightTrigger() const {
+UINT8 XInputGamepad::GetRightTrigger() {
   return _state.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
              ? _state.Gamepad.bRightTrigger
              : 0;
 }
 
-INT32 XInputGamepad::GetLeftThumbX() const {
+INT32 XInputGamepad::GetLeftThumbX() {
   const INT32 absX = abs(_state.Gamepad.sThumbLX);
   return absX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLX
                                                    : 0;
 }
 
-INT32 XInputGamepad::GetLeftThumbY() const {
+INT32 XInputGamepad::GetLeftThumbY() {
   const INT32 absY = abs(_state.Gamepad.sThumbLY);
   return absY > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? _state.Gamepad.sThumbLY
                                                    : 0;
 }
 
-INT32 XInputGamepad::GetRightThumbX() const {
+INT32 XInputGamepad::GetRightThumbX() {
   const INT32 absX = abs(_state.Gamepad.sThumbRX);
   return absX > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRX
                                                     : 0;
 }
 
-INT32 XInputGamepad::GetRightThumbY() const {
+INT32 XInputGamepad::GetRightThumbY() {
   const INT32 absY = abs(_state.Gamepad.sThumbRY);
   return absY > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ? _state.Gamepad.sThumbRY
                                                     : 0;

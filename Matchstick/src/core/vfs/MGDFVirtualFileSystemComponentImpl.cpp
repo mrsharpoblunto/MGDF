@@ -30,41 +30,41 @@ VirtualFileSystemComponent::VirtualFileSystemComponent() {}
 bool VirtualFileSystemComponent::Mount(const wchar_t *physicalDirectory) {
   _ASSERTE(physicalDirectory);
   _ASSERTE(!_root);
-  Map(physicalDirectory, ComObject<IFile>(), _root);
+  Map(physicalDirectory, ComObject<IMGDFFile>(), _root);
   return _root && _root->IsFolder();
 }
 
-void VirtualFileSystemComponent::Map(const path &path, ComObject<IFile> parent,
-                                     ComObject<IFile> &child) {
+void VirtualFileSystemComponent::Map(const path &path, ComObject<IMGDFFile> parent,
+                                     ComObject<IMGDFFile> &child) {
   // wpath path( physicalPath );
   if (is_directory(path)) {
-    child = ComObject<IFile>(
+    child = ComObject<IMGDFFile>(
         new DefaultFolderImpl(path.filename(), path.wstring(), parent, this));
   } else {
     // if its an archive
-    ComObject<IArchiveHandler> archiveHandler;
+    ComObject<IMGDFArchiveHandler> archiveHandler;
     if (GetArchiveHandler(path.wstring(), archiveHandler)) {
       auto filename = path.filename();
       auto fullpath = path.wstring();
-      ComObject<IFile> mappedFile;
+      ComObject<IMGDFFile> mappedFile;
       if (!FAILED(archiveHandler->MapArchive(filename.c_str(), fullpath.c_str(),
                                              parent, mappedFile.Assign()))) {
         child = mappedFile;
         return;
       } else {
         LOG("Unable to map archive " << Resources::ToString(path.wstring()),
-            LOG_ERROR);
+            MGDF_LOG_ERROR);
       }
     }
 
     // otherwise its just a plain old file
-    child = ComObject<IFile>(
+    child = ComObject<IMGDFFile>(
         new DefaultFileImpl(path.filename(), path.wstring(), parent));
   }
 }
 
 bool VirtualFileSystemComponent::GetArchiveHandler(
-    const std::wstring &path, ComObject<IArchiveHandler> &handler) {
+    const std::wstring &path, ComObject<IMGDFArchiveHandler> &handler) {
   for (auto h : _archiveHandlers) {
     if (h->IsArchive(path.c_str())) {
       handler = h;
@@ -74,8 +74,8 @@ bool VirtualFileSystemComponent::GetArchiveHandler(
   return false;
 }
 
-bool VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
-                                         IFile **file) {
+BOOL VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
+                                         IMGDFFile **file) {
   if (!logicalPath) {
     _root.AddRawRef(file);
     return true;
@@ -87,9 +87,9 @@ bool VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
   wcscpy_s(copy.data(), destinationLength, logicalPath);
   wchar_t *components = wcstok_s(copy.data(), L"/", &context);
 
-  ComObject<IFile> node(_root);
+  ComObject<IMGDFFile> node(_root);
   while (components) {
-    ComObject<IFile> tmp;
+    ComObject<IMGDFFile> tmp;
     if (!node->GetChild(components, tmp.Assign())) {
       return false;
     }
@@ -101,12 +101,12 @@ bool VirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
   return true;
 }
 
-void VirtualFileSystemComponent::GetRoot(IFile **root) {
+void VirtualFileSystemComponent::GetRoot(IMGDFFile **root) {
   _root.AddRawRef(root);
 }
 
 void VirtualFileSystemComponent::RegisterArchiveHandler(
-    ComObject<IArchiveHandler> handler) {
+    ComObject<IMGDFArchiveHandler> handler) {
   _ASSERTE(handler);
   _archiveHandlers.push_back(handler);
 }

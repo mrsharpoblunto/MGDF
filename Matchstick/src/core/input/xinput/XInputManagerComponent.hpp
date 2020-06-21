@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -29,20 +29,20 @@ class XInputManagerComponent : public IInputManagerComponent {
   void ProcessSim() final;
   void ProcessInput() final;
 
-  void ShowCursor(bool show) final;
-  bool IsKeyDown(UINT16 key) const final;
-  bool IsKeyUp(UINT16 key) const final;
-  bool IsKeyPress(UINT16 key) const final;
-  INT32 GetMouseX(void) const final;
-  INT32 GetMouseY(void) const final;
-  INT32 GetMouseDX(void) const final;
-  INT32 GetMouseDY(void) const final;
-  INT16 GetMouseDZ(void) const final;
-  bool IsButtonDown(Mouse mouseButton) const final;
-  bool IsButtonUp(Mouse mouseButton) const final;
-  bool IsButtonClicked(Mouse mouseButton) final;
-  UINT32 GetGamepadCount() const final;
-  void GetGamepads(IGamepad **gamepads) final;
+  void __stdcall ShowCursor(BOOL show) final;
+  BOOL __stdcall IsKeyDown(UINT16 key) final;
+  BOOL __stdcall IsKeyUp(UINT16 key) final;
+  BOOL __stdcall IsKeyPress(UINT16 key) final;
+  INT32 __stdcall GetMouseX(void) final;
+  INT32 __stdcall GetMouseY(void) final;
+  INT32 __stdcall GetMouseDX(void) final;
+  INT32 __stdcall GetMouseDY(void) final;
+  INT16 __stdcall GetMouseDZ(void) final;
+  BOOL __stdcall IsButtonDown(MGDFMouse mouseButton) final;
+  BOOL __stdcall IsButtonUp(MGDFMouse mouseButton) final;
+  BOOL __stdcall IsButtonClicked(MGDFMouse mouseButton) final;
+  UINT64 GetGamepadCount() final;
+  void __stdcall GetGamepads(IMGDFGamepad **gamepads) final;
 
  private:
   std::mutex _simMutex;

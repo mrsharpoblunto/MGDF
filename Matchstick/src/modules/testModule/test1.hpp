@@ -2,7 +2,7 @@
 
 #include <time.h>
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "Module.hpp"
 
@@ -18,15 +18,15 @@ class Test1 : public TestModule {
   virtual ~Test1(void);
   Test1();
 
-  void Setup(ISimHost *host) final;
+  void Setup(IMGDFSimHost *host) final;
   TestModule *NextTestModule() final;
 
  private:
   bool _waitingForGamepad;
   LARGE_INTEGER _time;
-  ComObject<IInputManager> _input;
-  ComObject<IGamepad> _gamepad;
-  ComObject<ITimer> _timer;
+  ComObject<IMGDFInputManager> _input;
+  ComObject<IMGDFGamepad> _gamepad;
+  ComObject<IMGDFTimer> _timer;
 };
 
 }  // namespace Test

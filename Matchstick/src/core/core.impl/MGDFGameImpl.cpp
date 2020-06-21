@@ -15,7 +15,7 @@ namespace MGDF {
 namespace core {
 
 Game::Game(const std::string &uid, const std::string &name,
-           const Version &version,
+           const MGDFVersion &version,
            std::shared_ptr<storage::IStorageFactoryComponent> &storageFactory)
     : _uid(uid),
       _name(name),
@@ -24,20 +24,20 @@ Game::Game(const std::string &uid, const std::string &name,
   _ASSERTE(storageFactory);
 }
 
-bool Game::HasPreference(const char *name) const {
+BOOL Game::HasPreference(const char *name) {
   if (!name) return false;
 
   return _preferences.find(name) != _preferences.end();
 }
 
-HRESULT Game::GetPreference(const char *name, char *value, size_t *length) {
-  if (!name) return E_FAIL;
+HRESULT Game::GetPreference(const char *name, char *value, UINT64 *length) {
+  if (!name) return E_INVALIDARG;
 
   auto iter = _preferences.find(name);
   if (iter != _preferences.end()) {
-    COPY_STR(iter->second, value, length);
+    return CopyStr(iter->second, value, length);
   } else {
-    return E_FAIL;
+    return E_NOT_SET;
   }
 }
 
@@ -52,7 +52,7 @@ void Game::SetPreference(const char *name, const char *value) {
   }
 }
 
-void Game::SetPreferences(IPreferenceSet *preferences) {
+void Game::SetPreferences(IMGDFPreferenceSet *preferences) {
   if (!preferences) return;
   auto prefs = dynamic_cast<PreferenceSetImpl *>(preferences);
   _ASSERTE(prefs);
@@ -63,7 +63,7 @@ void Game::SetPreferences(IPreferenceSet *preferences) {
 
 void Game::ResetPreferences() { LoadPreferences(_preferencesFile.c_str()); }
 
-void Game::SavePreferences() const {
+void Game::SavePreferences() {
   std::unique_ptr<storage::IPreferenceConfigStorageHandler> handler(
       _storageFactory->CreatePreferenceConfigStorageHandler());
   for (auto &pref : _preferences) {
@@ -72,7 +72,7 @@ void Game::SavePreferences() const {
   handler->Save(_preferencesFile);
   LOG("Saved preferences to '" << Resources::ToString(_preferencesFile)
                                << "' successfully",
-      LOG_LOW);
+      MGDF_LOG_LOW);
 }
 
 void Game::SavePreferences(const std::wstring &filename) {
@@ -80,11 +80,11 @@ void Game::SavePreferences(const std::wstring &filename) {
   SavePreferences();
 }
 
-MGDFError Game::LoadPreferences(const std::wstring &filename) {
+HRESULT Game::LoadPreferences(const std::wstring &filename) {
   std::unique_ptr<storage::IPreferenceConfigStorageHandler> handler(
       _storageFactory->CreatePreferenceConfigStorageHandler());
-  const MGDFError result = handler->Load(filename);
-  if (MGDF_OK != result) {
+  const auto result = handler->Load(filename);
+  if (FAILED(result)) {
     return result;
   } else {
     for (auto storedPreference : *handler) {
@@ -92,8 +92,8 @@ MGDFError Game::LoadPreferences(const std::wstring &filename) {
     }
     LOG("Loaded preferences from '" + Resources::ToString(filename) +
             "' successfully",
-        LOG_LOW);
-    return MGDF_OK;
+        MGDF_LOG_LOW);
+    return S_OK;
   }
 }
 

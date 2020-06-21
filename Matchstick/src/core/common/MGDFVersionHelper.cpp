@@ -12,7 +12,7 @@
 namespace MGDF {
 namespace core {
 
-std::string VersionHelper::Format(const Version &version) {
+std::string VersionHelper::Format(const MGDFVersion &version) {
   std::ostringstream ss;
 
   ss << version.Major << '.' << version.Minor;
@@ -26,8 +26,8 @@ std::string VersionHelper::Format(const Version &version) {
   return ss.str();
 }
 
-Version VersionHelper::Create(const std::string &version) {
-  Version result;
+MGDFVersion VersionHelper::Create(const std::string &version) {
+  MGDFVersion result;
   result.Major = result.Minor = result.Build = result.Revision = -1;
 
   std::string copy(version);
@@ -55,7 +55,7 @@ Version VersionHelper::Create(const std::string &version) {
   return result;
 }
 
-INT32 VersionHelper::Compare(const Version &a, const Version &b) {
+INT32 VersionHelper::Compare(const MGDFVersion &a, const MGDFVersion &b) {
   if (a.Major != b.Major) {
     return a.Major > b.Major ? 1 : -1;
   } else if (a.Minor != b.Minor) {

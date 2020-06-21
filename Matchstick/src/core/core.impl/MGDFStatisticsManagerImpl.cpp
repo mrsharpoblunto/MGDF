@@ -24,12 +24,12 @@ StatisticsManager::StatisticsManager() : _startTime(time(NULL)) {
   std::ofstream file(_statisticsFile.c_str(),
                      std::ios_base::out | std::ios_base::trunc);
   file.close();
-  LOG("StatisticsManager enabled", LOG_LOW);
+  LOG("StatisticsManager enabled", MGDF_LOG_LOW);
 }
 
 StatisticsManager::~StatisticsManager() {
   if (_saveBuffer.size() > 0) {
-    LOG("Saving remaining statistics...", LOG_LOW);
+    LOG("Saving remaining statistics...", MGDF_LOG_LOW);
     SaveAll();
   }
 }
@@ -58,7 +58,7 @@ void StatisticsManager::SaveAll() {
     }
     file.close();
   } catch (const std::exception& e) {
-    LOG("Error saving statistics: " << e.what(), LOG_ERROR);
+    LOG("Error saving statistics: " << e.what(), MGDF_LOG_ERROR);
   }
   _saveBuffer.clear();
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -21,39 +21,39 @@ struct WCharCmp {
  instances aswell as the zip and other archive file implementations of the
  standard ifile interface
 */
-class FakeFile : public MGDF::IFile, public MGDF::IFileReader {
+class FakeFile : public IMGDFFile, public IMGDFFileReader {
  public:
   FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-           MGDF::IFile *parent);
+           IMGDFFile *parent);
   FakeFile(const std::wstring &name, FakeFile *parent, const std::string &data);
   void AddChild(ComObject<FakeFile> file);
   virtual ~FakeFile(void);
 
-  bool GetParent(IFile **parent) final;
-  bool GetChild(const wchar_t *name, IFile **child) final;
-  void GetAllChildren(IFile **childBuffer) final;
-  size_t GetChildCount() final;
+  BOOL GetParent(IMGDFFile **parent) final;
+  BOOL GetChild(const wchar_t *name, IMGDFFile **child) final;
+  void GetAllChildren(IMGDFFile **childBuffer) final;
+  UINT64 GetChildCount() final;
   const wchar_t *GetLogicalPath() final;
 
-  HRESULT Open(IFileReader **reader) final;
+  HRESULT Open(IMGDFFileReader **reader) final;
 
-  bool IsOpen() const final;
+  BOOL IsOpen() final;
   UINT32 Read(void *buffer, UINT32 length) final;
   void SetPosition(INT64 pos) final;
-  INT64 GetPosition() const final;
-  bool EndOfFile() const final;
-  INT64 GetSize() const final;
+  INT64 GetPosition() final;
+  BOOL EndOfFile() final;
+  INT64 GetSize() final;
 
-  bool IsFolder() const final;
-  bool IsArchive() const final;
-  const wchar_t *GetArchiveName() const final;
-  const wchar_t *GetPhysicalPath() const final;
-  const wchar_t *GetName() const final;
-  time_t GetLastWriteTime() const final;
+  BOOL IsFolder() final;
+  BOOL IsArchive() final;
+  const wchar_t *GetArchiveName() final;
+  const wchar_t *GetPhysicalPath() final;
+  const wchar_t *GetName() final;
+  UINT64 GetLastWriteTime() final;
 
-  ULONG AddRef() override;
-  ULONG Release() override;
-  HRESULT QueryInterface(REFIID riid, void **ppvObject) override;
+  ULONG AddRef() final;
+  ULONG Release() final;
+  HRESULT QueryInterface(REFIID riid, void **ppvObject) final;
 
  protected:
   mutable std::mutex _mutex;
@@ -61,7 +61,7 @@ class FakeFile : public MGDF::IFile, public MGDF::IFileReader {
 
   std::unique_ptr<std::map<const wchar_t *, ComObject<FakeFile>, WCharCmp>>
       _children;
-  MGDF::IFile *_parent;
+  IMGDFFile *_parent;
   std::wstring _name;
   std::wstring _physicalPath;
 

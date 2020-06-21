@@ -41,19 +41,19 @@ SUITE(StorageTests) {
     std::unique_ptr<IGameStorageHandler> handler(
         _storage->CreateGameStorageHandler());
 
-    ComObject<IFile> file;
+    ComObject<IMGDFFile> file;
     CHECK(_vfs->GetFile(L"console.json", file.Assign()));
     std::wstring path = file->GetPhysicalPath();
     handler->Load(path);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
     CHECK_EQUAL("Lua Console", handler->GetGameName());
-    Version expected;
+    MGDFVersion expected;
     expected.Major = 0;
     expected.Minor = 1;
     expected.Build = -1;
     expected.Revision = -1;
-    Version v;
+    MGDFVersion v;
     handler->GetVersion(v);
     CHECK_EQUAL(0, VersionHelper::Compare(v, expected));
   }
@@ -62,7 +62,7 @@ SUITE(StorageTests) {
   ensure that game state files can be read by the engine
   */
   TEST_FIXTURE(StorageTestFixture, StorageGameStateHandlerTest) {
-    Version expected = VersionHelper::Create("0.1");
+    MGDFVersion expected = VersionHelper::Create("0.1");
     CHECK_EQUAL("0.1", VersionHelper::Format(expected));
     CHECK_EQUAL(0,
                 VersionHelper::Compare(expected, VersionHelper::Create("0.1")));
@@ -73,13 +73,13 @@ SUITE(StorageTests) {
 
     auto handler = _storage->CreateGameStateStorageHandler("Console", expected);
 
-    ComObject<IFile> file;
+    ComObject<IMGDFFile> file;
     CHECK(_vfs->GetFile(L"gameState.json", file.Assign()));
     std::wstring path = file->GetPhysicalPath();
     handler->Load(path);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
-    Version v;
+    MGDFVersion v;
     handler->GetVersion(v);
     CHECK_EQUAL(0, VersionHelper::Compare(v, expected));
 
@@ -104,7 +104,7 @@ SUITE(StorageTests) {
   TEST_FIXTURE(StorageTestFixture, StoragePreferencesHandlerTest) {
     auto handler = _storage->CreatePreferenceConfigStorageHandler();
 
-    ComObject<IFile> file;
+    ComObject<IMGDFFile> file;
     CHECK(_vfs->GetFile(L"preferences.json", file.Assign()));
     std::wstring path = file->GetPhysicalPath();
     handler->Load(path);

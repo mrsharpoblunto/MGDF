@@ -54,6 +54,6 @@
     obj->FatalError(ss.str().c_str(), ms.str().c_str()); \
   }
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 constexpr auto TIMER_SAMPLES = 60;

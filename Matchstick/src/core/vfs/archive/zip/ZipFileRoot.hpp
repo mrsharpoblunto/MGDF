@@ -18,13 +18,14 @@ namespace zip {
 class ZipFileRoot : public DefaultFileImpl {
  public:
   ZipFileRoot(const std::wstring &name, const std::wstring &physicalPath,
-              IFile *parent, unzFile zip)
+              IMGDFFile *parent, unzFile zip)
       : DefaultFileImpl(name, physicalPath, parent),
         _archiveName(name),
         _zip(zip) {}
-  ~ZipFileRoot();
-  bool IsArchive() const final { return true; }
-  const wchar_t *GetArchiveName() const final { return _archiveName.c_str(); }
+  ~ZipFileRoot() { unzClose(_zip); }
+
+  BOOL __stdcall IsArchive() final { return true; }
+  const wchar_t * __stdcall GetArchiveName() final { return _archiveName.c_str(); }
 
  private:
   std::wstring _archiveName;

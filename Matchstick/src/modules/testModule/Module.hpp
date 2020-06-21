@@ -3,7 +3,7 @@
 #include <time.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <functional>
 
 #include "BufferedGameState.hpp"
@@ -22,12 +22,12 @@ class TestModule {
 
   TestModule() : _testIndex(0) {}
   virtual ~TestModule(void) {}
-  virtual TestModule *Update(ISimHost *host, TextManagerState *state);
+  virtual TestModule *Update(IMGDFSimHost *host, TextManagerState *state);
   TestModule &Step(std::function<TestStep(TextManagerState *)> step);
   TestModule &StepOnce(std::function<void(TextManagerState *)> step);
 
  protected:
-  virtual void Setup(ISimHost *host) = 0;
+  virtual void Setup(IMGDFSimHost *host) = 0;
   virtual TestModule *NextTestModule() = 0;
 
  private:
@@ -35,23 +35,21 @@ class TestModule {
   int _testIndex;
 };
 
-class Module : public ComBase<IModule> {
+class Module : public ComBase<IMGDFModule> {
  public:
   virtual ~Module(void);
   Module();
 
-  bool STNew(ISimHost *simHost, const wchar_t *workingFolder) final;
-  bool STUpdate(ISimHost *simHost, double elapsedTime) final;
-  void STShutDown(ISimHost *simHost) final;
-
-  bool RTBeforeFirstDraw(MGDF::IRenderHost *renderHost) final;
-  bool RTDraw(IRenderHost *renderHost, double alpha) final;
-  bool RTBeforeBackBufferChange(IRenderHost *renderHost) final;
-  bool RTBackBufferChange(IRenderHost *renderHost) final;
-  bool RTBeforeDeviceReset(IRenderHost *renderHost) final;
-  bool RTDeviceReset(IRenderHost *renderHost) final;
-
-  void Panic() final;
+  BOOL __stdcall STNew(IMGDFSimHost *simHost, const wchar_t *workingFolder) final;
+  BOOL __stdcall STUpdate(IMGDFSimHost *simHost, double elapsedTime) final;
+  void __stdcall STShutDown(IMGDFSimHost *simHost) final;
+  BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *renderHost) final;
+  BOOL __stdcall RTDraw(IMGDFRenderHost *renderHost, double alpha) final;
+  BOOL __stdcall RTBeforeBackBufferChange(IMGDFRenderHost *renderHost) final;
+  BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *renderHost) final;
+  BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *renderHost) final;
+  BOOL __stdcall RTDeviceReset(IMGDFRenderHost *renderHost) final;
+  void __stdcall Panic() final;
 
  private:
   std::wstring _workingFolder;
@@ -59,8 +57,8 @@ class Module : public ComBase<IModule> {
   std::unique_ptr<TestModule> _testModule;
   BufferedGameState<TextManagerState> _stateBuffer;
   std::unique_ptr<TextManager> _textManager;
-  ComObject<MGDF::IPerformanceCounter> _textManagerCounter;
-  ComObject<MGDF::IPerformanceCounter> _testModuleCounter;
+  ComObject<IMGDFPerformanceCounter> _textManagerCounter;
+  ComObject<IMGDFPerformanceCounter> _testModuleCounter;
 };
 
 }  // namespace Test

@@ -65,13 +65,13 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
 
   SetErrorMode(SEM_NOGPFAULTERRORBOX);
 
-  LOG("starting up...", LOG_LOW);
+  LOG("starting up...", MGDF_LOG_LOW);
 
   {
     // create the host object and related components
     ComObject<Host> host;
-    if (MGDF_OK != HostBuilder::TryCreateHost(host)) {
-      LOG("failed to start up", LOG_ERROR);
+    if (FAILED(HostBuilder::TryCreateHost(host))) {
+      LOG("failed to start up", MGDF_LOG_ERROR);
       return -1;
     }
 
@@ -85,12 +85,12 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
     HostBuilder::DisposeHost(host);
   }
 
-  LOG("shutting down...", LOG_LOW);
+  LOG("shutting down...", MGDF_LOG_LOW);
   delete _application;
 
   timeEndPeriod(1);
 
-  LOG("shut down successfully", LOG_LOW);
+  LOG("shut down successfully", MGDF_LOG_LOW);
   return 0;
 }
 
@@ -102,8 +102,8 @@ UnhandledExceptionCallBack(struct _EXCEPTION_POINTERS *pExceptionInfo) {
   _ASSERTE(pExceptionInfo);
   LOG("WIN32 ERROR: " << Win32Exception::TranslateError(
           pExceptionInfo->ExceptionRecord->ExceptionCode),
-      LOG_ERROR);
-  LOG("Generating Minidump file minidump.dmp...", LOG_ERROR);
+      MGDF_LOG_ERROR);
+  LOG("Generating Minidump file minidump.dmp...", MGDF_LOG_ERROR);
 
   _dumpInfo = (_MINIDUMP_EXCEPTION_INFORMATION *)malloc(
       sizeof(_MINIDUMP_EXCEPTION_INFORMATION));
@@ -156,7 +156,7 @@ DWORD WINAPI CrashDumpThread(LPVOID data) {
   (void)data;
   WaitForSingleObject(_dumpEvent, INFINITE);
 
-  LOG("Generating Minidump file minidump.dmp...", LOG_ERROR);
+  LOG("Generating Minidump file minidump.dmp...", MGDF_LOG_ERROR);
   HMODULE hDll = LoadLibraryW(L"DBGHELP.DLL");
   if (hDll) {
     MINIDUMPWRITEDUMP pDump =
@@ -171,11 +171,11 @@ DWORD WINAPI CrashDumpThread(LPVOID data) {
         const BOOL ok = pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
                               MiniDumpNormal, _dumpInfo, nullptr, nullptr);
         if (!ok) {
-          LOG("Failed to save dump file", LOG_ERROR);
+          LOG("Failed to save dump file", MGDF_LOG_ERROR);
         }
         CloseHandle(hFile);
       } else {
-        LOG("Failed to save dump file", LOG_ERROR);
+        LOG("Failed to save dump file", MGDF_LOG_ERROR);
       }
     }
   }

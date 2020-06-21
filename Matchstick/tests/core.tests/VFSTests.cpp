@@ -22,7 +22,7 @@ SUITE(VFSTests) {
 
     virtual ~VFSTestFixture() {}
 
-    void ReadLines(const ComObject<IFileReader> &reader,
+    void ReadLines(const ComObject<IMGDFFileReader> &reader,
                    std::vector<std::string> &list) {
       const UINT32 size = static_cast<UINT32>(reader->GetSize());
 
@@ -62,12 +62,12 @@ SUITE(VFSTests) {
         (Resources::Instance().RootDir() + L"../../../tests/content/test.zip")
             .c_str());
 
-    ComObject<IFile> root;
+    ComObject<IMGDFFile> root;
     _vfs->GetRoot(root.Assign());
     CHECK_WS_EQUAL(L"test.zip", root->GetName());
     CHECK_EQUAL(6, root->GetChildCount());
 
-    ComObject<IFile> file;
+    ComObject<IMGDFFile> file;
     for (auto f : std::vector({L"game.xml", L"gameIcon.png", L"preferences.xml",
                                L"preferenceTemplates.xml"})) {
       CHECK(_vfs->GetFile(f, file.Assign()));
@@ -92,11 +92,11 @@ SUITE(VFSTests) {
         (Resources::Instance().RootDir() + L"../../../tests/content/test.zip")
             .c_str());
 
-    ComObject<IFile> file;
+    ComObject<IMGDFFile> file;
     CHECK(_vfs->GetFile(L"content/test.lua", file.Assign()));
     std::vector<std::string> list;
     {
-      ComObject<IFileReader> reader;
+      ComObject<IMGDFFileReader> reader;
       CHECK_EQUAL(S_OK, file->Open(reader.Assign()));
       CHECK(reader);
 
@@ -119,12 +119,12 @@ SUITE(VFSTests) {
         (Resources::Instance().RootDir() + L"../../../tests/content/test.zip")
             .c_str());
 
-    ComObject<IFile> root;
+    ComObject<IMGDFFile> root;
     _vfs->GetRoot(root.Assign());
     CHECK(root);
     CHECK_EQUAL(6, root->GetChildCount());
 
-    ComArray<IFile> buffer2(6);
+    ComArray<IMGDFFile> buffer2(6);
     root->GetAllChildren(buffer2.Data());
     CHECK_WS_EQUAL(L"boot", buffer2[0]->GetName());
     CHECK_WS_EQUAL(L"content", buffer2[1]->GetName());
@@ -141,14 +141,14 @@ SUITE(VFSTests) {
     _vfs->Mount(
         (Resources::Instance().RootDir() + L"../../../tests/content").c_str());
 
-    ComObject<IFile> root;
+    ComObject<IMGDFFile> root;
     _vfs->GetRoot(root.Assign());
     CHECK_EQUAL(5, root->GetChildCount());
 
     for (auto f :
          std::vector({L"test.zip", L"console.json", L"preferences.json",
                       L"gameState.json", L"Update.json"})) {
-      ComObject<IFile> file;
+      ComObject<IMGDFFile> file;
       CHECK(_vfs->GetFile(f, file.Assign()));
       CHECK_WS_EQUAL(f, file->GetName());
     }
@@ -161,12 +161,12 @@ SUITE(VFSTests) {
     CHECK(_vfs->Mount(
         (Resources::Instance().RootDir() + L"../../../tests/content").c_str()));
 
-    ComObject<IFile> file;
+    ComObject<IMGDFFile> file;
     CHECK(_vfs->GetFile(L"console.json", file.Assign()));
 
     std::vector<std::string> list;
     {
-      ComObject<IFileReader> reader;
+      ComObject<IMGDFFileReader> reader;
       CHECK_EQUAL(S_OK, file->Open(reader.Assign()));
       CHECK(reader);
       ReadLines(reader, list);

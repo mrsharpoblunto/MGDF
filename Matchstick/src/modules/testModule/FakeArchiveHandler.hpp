@@ -1,8 +1,7 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
-#include <MGDF/MGDFVirtualFileSystem.hpp>
+#include <MGDF/MGDF.h>
 #include <atomic>
 #include <string>
 #include <vector>
@@ -10,17 +9,17 @@
 namespace MGDF {
 namespace Test {
 
-class FakeArchiveHandler : public ComBase<MGDF::IArchiveHandler> {
+class FakeArchiveHandler : public ComBase<IMGDFArchiveHandler> {
  public:
-  FakeArchiveHandler(MGDF::ILogger *logger);
+  FakeArchiveHandler(IMGDFLogger *logger);
   ~FakeArchiveHandler();
-  bool IsArchive(const wchar_t *path) const final;
+  BOOL IsArchive(const wchar_t *path) final;
   HRESULT MapArchive(const wchar_t *name, const wchar_t *archiveFile,
-                     MGDF::IFile *parent, MGDF::IFile **child) final;
+                     IMGDFFile *parent, IMGDFFile **child) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;
-  MGDF::ILogger *_logger;
+  IMGDFLogger *_logger;
   std::atomic<ULONG> _references;
 
   /**

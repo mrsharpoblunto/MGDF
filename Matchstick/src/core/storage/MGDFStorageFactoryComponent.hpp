@@ -17,7 +17,7 @@ class IStorageFactoryComponent {
       const = 0;
   virtual std::unique_ptr<IGameStateStorageHandler>
   CreateGameStateStorageHandler(const std::string &game,
-                                const MGDF::Version &version) const = 0;
+                                const MGDFVersion &version) const = 0;
   virtual std::unique_ptr<IPreferenceConfigStorageHandler>
   CreatePreferenceConfigStorageHandler() const = 0;
 };

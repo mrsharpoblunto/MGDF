@@ -1,6 +1,6 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "Module.hpp"
 
@@ -19,15 +19,15 @@ class Test3 : public TestModule {
   virtual ~Test3(void);
   Test3();
 
-  void Setup(ISimHost *host) final;
+  void Setup(IMGDFSimHost *host) final;
 
   TestModule *NextTestModule() final;
 
  private:
-  ComObject<IInputManager> _input;
-  ComObject<ISaveManager> _saves;
-  ComObject<IGameState> _state;
-  ComObject<IPendingSave> _pending;
+  ComObject<IMGDFInputManager> _input;
+  ComObject<IMGDFSaveManager> _saves;
+  ComObject<IMGDFGameState> _state;
+  ComObject<IMGDFPendingSave> _pending;
 };
 
 }  // namespace Test

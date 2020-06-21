@@ -21,4 +21,4 @@
 #include <xutility>
 #pragma warning(pop)
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>

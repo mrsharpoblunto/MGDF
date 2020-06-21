@@ -12,8 +12,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
 }
 
 // specify to the framework what kind of d3d device features we want/require
-UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                        UINT32 *featureLevelsSize) {
+extern "C" __declspec(dllexport) UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                        UINT64 *featureLevelsSize) {
   // if you want to use the default feature support levels
   // just set featureLevelsSize to 0 and return 0
 
@@ -35,15 +35,15 @@ UINT32 MGDF::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
 }
 
 // create a module instance when requested by the host
-HRESULT MGDF::GetModule(MGDF::IModule **module) {
-  MGDF::ComObject<MGDF::IModule> m(new Module());
+extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
+  auto m = MGDF::MakeCom<Module>();
   m.AddRawRef(module);
   return S_OK;
 }
 
 // register custom archive handlers
-HRESULT MGDF::GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
-                                       ILogger *logger) {
+extern "C" __declspec(dllexport) HRESULT GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
+                                       IMGDFLogger *logger) {
   *length = 0;
   return S_OK;
 }

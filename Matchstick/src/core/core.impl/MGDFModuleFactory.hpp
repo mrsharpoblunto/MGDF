@@ -1,25 +1,25 @@
 #pragma once
 
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 namespace MGDF {
 namespace core {
 
-typedef HRESULT (*GetCustomArchiveHandlersPtr)(IArchiveHandler **list,
-                                               UINT32 *length, ILogger *logger);
-typedef HRESULT (*GetModulePtr)(IModule **);
-typedef UINT32 (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *, UINT32 *);
+typedef HRESULT (*GetCustomArchiveHandlersPtr)(IMGDFArchiveHandler **list,
+                                               UINT64 *length, IMGDFLogger *logger);
+typedef HRESULT (*GetModulePtr)(IMGDFModule **);
+typedef UINT64 (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *, UINT64 *);
 
 class ModuleFactory {
  public:
   virtual ~ModuleFactory();
   static HRESULT TryCreate(std::unique_ptr<ModuleFactory> &);
 
-  HRESULT GetCustomArchiveHandlers(IArchiveHandler **list, UINT32 *length,
-                                   ILogger *logger) const;
-  HRESULT GetModule(ComObject<IModule> &module) const;
-  UINT32 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                    UINT32 *levelSize) const;
+  HRESULT GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
+                                   IMGDFLogger *logger) const;
+  HRESULT GetModule(ComObject<IMGDFModule> &module) const;
+  UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                    UINT64 *levelSize) const;
   bool GetLastError(std::string &error) const;
 
  private:

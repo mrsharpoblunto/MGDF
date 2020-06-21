@@ -18,7 +18,7 @@ namespace core {
 
 #define LOG_BUFFER_SIZE 10
 
-void Logger::Log(const char *sender, const char *message, LogLevel level) {
+void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
   _ASSERTE(sender);
   _ASSERTE(message);
 
@@ -53,7 +53,7 @@ void Logger::Flush() {
 }
 
 Logger::Logger() {
-  SetLoggingLevel(LOG_MEDIUM);
+  SetLoggingLevel(MGDF_LOG_MEDIUM);
   SetOutputFile(Resources::Instance().LogFile());
 
   _runLogger = true;
@@ -98,9 +98,9 @@ void Logger::SetOutputFile(const std::wstring &filename) {
   outFile.close();
 }
 
-void Logger::SetLoggingLevel(LogLevel level) { _level.store(level); }
+void Logger::SetLoggingLevel(MGDFLogLevel level) { _level.store(level); }
 
-LogLevel Logger::GetLoggingLevel() const { return _level; }
+MGDFLogLevel Logger::GetLoggingLevel() const { return _level; }
 
 Logger::~Logger(void) {
   {

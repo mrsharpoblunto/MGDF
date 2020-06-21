@@ -21,17 +21,16 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-MGDFError OpenALSound::TryCreate(IFile *source,
+HRESULT OpenALSound::TryCreate(IMGDFFile *source,
                                  OpenALSoundManagerComponentImpl *manager,
                                  INT32 priority,
                                  ComObject<OpenALSound> &sound) {
   sound = MakeCom<OpenALSound>(manager, priority);
-  const MGDFError error = sound->Init(source);
-  if (MGDF_OK != error) {
+  const auto result = sound->Init(source);
+  if (FAILED(result)) {
     sound.Clear();
-    return error;
   }
-  return MGDF_OK;
+  return result;
 }
 
 OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
@@ -56,16 +55,15 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
   _globalVolume = manager->GetSoundVolume();
 }
 
-MGDFError OpenALSound::Init(IFile *source) {
+HRESULT OpenALSound::Init(IMGDFFile *source) {
   _ASSERTE(source);
   _name = source->GetName();
 
-  const MGDFError error = _soundManager->CreateSoundBuffer(source, &_bufferId);
-  if (MGDF_OK != error) {
-    return error;
+  const auto result = _soundManager->CreateSoundBuffer(source, &_bufferId);
+  if (SUCCEEDED(result)) {
+    Reactivate();
   }
-  Reactivate();
-  return MGDF_OK;
+  return result;
 }
 
 OpenALSound::~OpenALSound() {
@@ -75,10 +73,10 @@ OpenALSound::~OpenALSound() {
 }
 
 void OpenALSound::Reactivate() {
-  if (MGDF_OK == _soundManager->AcquireSource(&_sourceId)) {
+  if (SUCCEEDED(_soundManager->AcquireSource(&_sourceId))) {
     alSourcei(_sourceId, AL_BUFFER, _bufferId);
     if (alGetError() != AL_NO_ERROR) {
-      LOG("Unable to allocate buffer to audio source", LOG_ERROR);
+      LOG("Unable to allocate buffer to audio source", MGDF_LOG_ERROR);
       Deactivate();
     } else {
       _isActive = true;
@@ -107,7 +105,7 @@ void OpenALSound::Deactivate() {
   }
 }
 
-void OpenALSound::SetSourceRelative(bool sourceRelative) {
+void OpenALSound::SetSourceRelative(BOOL sourceRelative) {
   _isSourceRelative = sourceRelative;
   if (_isActive) {
     if (_isSourceRelative) {
@@ -123,40 +121,40 @@ void OpenALSound::SetSourceRelative(bool sourceRelative) {
 }
 
 HRESULT OpenALSound::GetName(wchar_t *name, size_t *length) {
-  COPY_STR(_name, name, length);
+  return CopyWStr(_name, name, length);
 }
 
-SoundPosition *OpenALSound::GetPosition(SoundPosition *sp) const {
-  memcpy_s(sp, sizeof(SoundPosition), &_position, sizeof(DirectX::XMFLOAT3));
+MGDFSoundPosition *OpenALSound::GetPosition(MGDFSoundPosition *sp) {
+  memcpy_s(sp, sizeof(MGDFSoundPosition), &_position, sizeof(DirectX::XMFLOAT3));
   return sp;
 }
 
-SoundPosition *OpenALSound::GetVelocity(SoundPosition *sp) const {
-  memcpy_s(sp, sizeof(SoundPosition), &_velocity, sizeof(DirectX::XMFLOAT3));
+MGDFSoundPosition *OpenALSound::GetVelocity(MGDFSoundPosition *sp) {
+  memcpy_s(sp, sizeof(MGDFSoundPosition), &_velocity, sizeof(DirectX::XMFLOAT3));
   return sp;
 }
 
-SoundPosition *OpenALSound::SetPosition(SoundPosition *sp) {
-  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp, sizeof(SoundPosition));
+MGDFSoundPosition *OpenALSound::SetPosition(MGDFSoundPosition *sp) {
+  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp, sizeof(MGDFSoundPosition));
   return sp;
 }
 
-SoundPosition *OpenALSound::SetVelocity(SoundPosition *sp) {
-  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp, sizeof(SoundPosition));
+MGDFSoundPosition *OpenALSound::SetVelocity(MGDFSoundPosition *sp) {
+  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp, sizeof(MGDFSoundPosition));
   return sp;
 }
 
-float OpenALSound::GetInnerRange() const { return _innerRange; }
+float OpenALSound::GetInnerRange() { return _innerRange; }
 
 void OpenALSound::SetInnerRange(float innerRange) { _innerRange = innerRange; }
 
-float OpenALSound::GetOuterRange() const { return _outerRange; }
+float OpenALSound::GetOuterRange() { return _outerRange; }
 
 void OpenALSound::SetOuterRange(float outerRange) { _outerRange = outerRange; }
 
-bool OpenALSound::GetSourceRelative() const { return _isSourceRelative; }
+BOOL OpenALSound::GetSourceRelative() { return _isSourceRelative; }
 
-float OpenALSound::GetVolume() const { return _volume; }
+float OpenALSound::GetVolume() { return _volume; }
 
 float OpenALSound::GetAttenuatedVolume() const {
   return _volume * _attenuationFactor;
@@ -190,7 +188,7 @@ void OpenALSound::Update(float attenuationFactor) {
   }
 }
 
-float OpenALSound::GetPitch() const { return _pitch; }
+float OpenALSound::GetPitch() { return _pitch; }
 
 void OpenALSound::SetPitch(float pitch) {
   _pitch = pitch;
@@ -201,11 +199,11 @@ void OpenALSound::SetPitch(float pitch) {
 
 void OpenALSound::SetPriority(INT32 priority) { _priority = priority; }
 
-INT32 OpenALSound::GetPriority() const { return _priority; }
+INT32 OpenALSound::GetPriority() { return _priority; }
 
-bool OpenALSound::GetLooping() const { return _isLooping; }
+BOOL OpenALSound::GetLooping() { return _isLooping; }
 
-void OpenALSound::SetLooping(bool looping) {
+void OpenALSound::SetLooping(BOOL looping) {
   _isLooping = looping;
   if (_isActive) {
     alSourcei(_sourceId, AL_LOOPING, _isLooping ? AL_TRUE : AL_FALSE);
@@ -234,25 +232,25 @@ void OpenALSound::Play() {
   }
 }
 
-bool OpenALSound::IsStopped() const {
+BOOL OpenALSound::IsStopped() {
   ALint state;
   alGetSourcei(_sourceId, AL_SOURCE_STATE, &state);
   return state == AL_STOPPED;
 }
 
-bool OpenALSound::IsPaused() const {
+BOOL OpenALSound::IsPaused() {
   ALint state;
   alGetSourcei(_sourceId, AL_SOURCE_STATE, &state);
   return state == AL_PAUSED;
 }
 
-bool OpenALSound::IsPlaying() const {
+BOOL OpenALSound::IsPlaying() {
   ALint state;
   alGetSourcei(_sourceId, AL_SOURCE_STATE, &state);
   return _startPlaying || state == AL_PLAYING;
 }
 
-bool OpenALSound::IsActive() const { return _isActive; }
+BOOL OpenALSound::IsActive() { return _isActive; }
 
 }  // namespace openal_audio
 }  // namespace audio

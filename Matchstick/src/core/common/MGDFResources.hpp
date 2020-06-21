@@ -3,7 +3,7 @@
 #include <windows.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <string>
 
 namespace MGDF {

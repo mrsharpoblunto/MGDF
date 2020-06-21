@@ -48,16 +48,16 @@ UINT32 ZipFileImplReader::Read(void* buffer, UINT32 length) {
 
 void ZipFileImplReader::SetPosition(INT64 pos) { _readPosition = pos; }
 
-INT64 ZipFileImplReader::GetPosition() const { return _readPosition; }
+INT64 ZipFileImplReader::GetPosition() { return _readPosition; }
 
-bool ZipFileImplReader::EndOfFile() const { return _readPosition >= _size; }
+BOOL ZipFileImplReader::EndOfFile() { return _readPosition >= _size; }
 
 ZipFileImpl::~ZipFileImpl() { _ASSERTE(!_reader); }
 
-HRESULT ZipFileImpl::Open(IFileReader** reader) {
+HRESULT ZipFileImpl::Open(IMGDFFileReader** reader) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_reader) {
-    return ERROR_ACCESS_DENIED;
+    return E_ACCESSDENIED;
   }
 
   // if the entry is already in the map then the file is already open
@@ -68,7 +68,7 @@ HRESULT ZipFileImpl::Open(IFileReader** reader) {
     std::string message = "Archive files cannot be over 4GB in size";
     LOG("Archive files cannot be over 4GB in size "
             << Resources::ToString(_header.name),
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
@@ -85,7 +85,7 @@ HRESULT ZipFileImpl::Open(IFileReader** reader) {
     return S_OK;
   } else {
     LOG("Invalid archive file " << Resources::ToString(_header.name),
-        LOG_ERROR);
+        MGDF_LOG_ERROR);
     free(data.data);
     data.data = nullptr;
     return E_FAIL;

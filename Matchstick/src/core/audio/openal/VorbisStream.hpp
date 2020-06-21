@@ -6,7 +6,7 @@
 #include <alc.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 
 #include "OpenALSoundManagerComponent.hpp"
 
@@ -29,36 +29,36 @@ typedef INT32 (*LPOVOPENCALLBACKS)(void *datasource, OggVorbis_File *vf,
                                    ov_callbacks callbacks);
 enum VorbisStreamState { NOT_STARTED, PLAY, PAUSE, STOP };
 
-class VorbisStream : public ComBase<ISoundStream> {
+class VorbisStream : public ComBase<IMGDFSoundStream> {
  public:
   virtual ~VorbisStream();
-  VorbisStream(IFile *source, OpenALSoundManagerComponentImpl *manager);
-  static MGDFError TryCreate(IFile *source,
+  VorbisStream(IMGDFFile *source, OpenALSoundManagerComponentImpl *manager);
+  static HRESULT TryCreate(IMGDFFile *source,
                              OpenALSoundManagerComponentImpl *manager,
                              ComObject<VorbisStream> &stream);
 
-  HRESULT GetName(wchar_t *name, size_t *length) final;
-  float GetVolume() const final;
-  void SetVolume(float volume) final;
-  void Stop() final;
-  void Pause() final;
-  HRESULT Play() final;
-  bool IsStopped() const final;
-  bool IsPaused() const final;
-  bool IsPlaying() const final;
-  UINT32 GetPosition() final;
-  UINT32 GetLength() final;
+  HRESULT __stdcall GetName(wchar_t *name, UINT64 *length) final;
+  float __stdcall GetVolume() final;
+  void __stdcall SetVolume(float volume) final;
+  void __stdcall Stop() final;
+  void __stdcall Pause() final;
+  HRESULT __stdcall Play() final;
+  BOOL __stdcall IsStopped() final;
+  BOOL __stdcall IsPaused() final;
+  BOOL __stdcall IsPlaying() final;
+  UINT32 __stdcall GetPosition() final;
+  UINT32 __stdcall GetLength() final;
 
   void Update();
   void SetGlobalVolume(float globalVolume);
 
  private:
-  MGDFError InitStream();
+  HRESULT InitStream();
   void UninitStream();
 
   std::wstring _name;
-  ComObject<IFile> _dataSource;
-  ComObject<IFileReader> _reader;
+  ComObject<IMGDFFile> _dataSource;
+  ComObject<IMGDFFileReader> _reader;
   ALuint _buffers[VORBIS_BUFFER_COUNT];
   ALuint _source;
   ALint _totalBuffersProcessed;
@@ -90,7 +90,7 @@ class VorbisStream : public ComBase<ISoundStream> {
                                  unsigned long bufferSize,
                                  unsigned long channels);
 
-  static MGDFError InitVorbis();
+  static HRESULT InitVorbis();
   static void UninitVorbis();
   static void Swap(short &s1, short &s2);
 

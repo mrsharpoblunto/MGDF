@@ -1,6 +1,6 @@
 #pragma once
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDFGame.hpp>
+#include <MGDF/MGDF.h>
 #include <map>
 #include <unordered_map>
 
@@ -15,39 +15,39 @@ namespace core {
 /**
 this class is the concrete implementation of the configuration interface
 */
-class Game : public ComBase<IGame> {
+class Game : public ComBase<IMGDFGame> {
  public:
-  Game(const std::string &uid, const std::string &name, const Version &version,
+  Game(const std::string &uid, const std::string &name, const MGDFVersion &version,
        std::shared_ptr<storage::IStorageFactoryComponent> &storageFactory);
   virtual ~Game(void) {}
 
-  const char *GetUid() const final { return _uid.c_str(); }
+  const char * __stdcall GetUid() final { return _uid.c_str(); }
 
-  const char *GetName() const final { return _name.c_str(); }
+  const char * __stdcall GetName() final { return _name.c_str(); }
 
-  void GetVersion(Version *version) const final {
+  void __stdcall GetVersion(MGDFVersion *version) final {
     if (version == nullptr) {
       return;
     }
     *version = _version;
   }
 
-  bool HasPreference(const char *name) const final;
-  HRESULT GetPreference(const char *name, char *value, size_t *length) final;
-  void SetPreference(const char *name, const char *value) final;
-  void SetPreferences(IPreferenceSet *preferences) final;
-  void SavePreferences() const final;
-  void ResetPreferences() final;
+  BOOL __stdcall HasPreference(const char *name) final;
+  HRESULT __stdcall GetPreference(const char *name, char *value, UINT64 *length) final;
+  void __stdcall SetPreference(const char *name, const char *value) final;
+  void __stdcall SetPreferences(IMGDFPreferenceSet *preferences) final;
+  void __stdcall SavePreferences() final;
+  void __stdcall ResetPreferences() final;
 
   void SavePreferences(const std::wstring &filename);
-  MGDFError LoadPreferences(const std::wstring &filename);
+  HRESULT LoadPreferences(const std::wstring &filename);
   void LoadPreferences(const std::map<std::string, std::string> &preferences);
 
  private:
   std::shared_ptr<storage::IStorageFactoryComponent> _storageFactory;
   std::string _uid, _name;
   std::wstring _preferencesFile;
-  Version _version;
+  MGDFVersion _version;
   std::map<std::string, std::string> _preferences;
 };
 

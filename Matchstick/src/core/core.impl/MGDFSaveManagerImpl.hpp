@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.hpp>
+#include <MGDF/MGDF.h>
 #include <unordered_map>
 #include <vector>
 
@@ -15,11 +15,11 @@ bool GuidString(std::string &guid);
 
 class GameState;
 
-class PendingSave : public ComBase<IPendingSave> {
+class PendingSave : public ComBase<IMGDFPendingSave> {
  public:
   PendingSave(ComObject<GameState> &gameState);
   virtual ~PendingSave();
-  HRESULT GetSaveDataLocation(wchar_t *location, size_t *length) const final;
+  HRESULT __stdcall GetSaveDataLocation(wchar_t *location, UINT64 *length) final;
   HRESULT Init();
 
  private:
@@ -30,55 +30,55 @@ class PendingSave : public ComBase<IPendingSave> {
 
 class SaveManager;
 
-class GameState : public ComBase<IGameState> {
+class GameState : public ComBase<IMGDFGameState> {
  public:
   GameState(const std::string &saveName, const std::string &gameUid,
             SaveManager *saveManager,
             const std::shared_ptr<storage::IStorageFactoryComponent> &factory);
-  GameState(const std::string &gameUid, Version &version,
+  GameState(const std::string &gameUid, MGDFVersion &version,
             SaveManager *saveManager,
             const std::shared_ptr<storage::IStorageFactoryComponent> &factory);
   virtual ~GameState() {}
-  HRESULT GetMetadata(const char *key, char *value, size_t *length) const final;
-  HRESULT SetMetadata(const char *key, const char *value) final;
-  HRESULT GetSaveDataLocation(wchar_t *folder, size_t *size) const final;
-  void GetVersion(Version *version) const final;
-  bool IsNew() const final { return _saveName.empty(); }
+  HRESULT __stdcall GetMetadata(const char *key, char *value, UINT64 *length) final;
+  HRESULT __stdcall SetMetadata(const char *key, const char *value) final;
+  HRESULT __stdcall GetSaveDataLocation(wchar_t *folder, UINT64 *size) final;
+  void __stdcall GetVersion(MGDFVersion *version) final;
+  BOOL __stdcall IsNew() final { return _saveName.empty(); }
+  HRESULT __stdcall BeginSave(IMGDFPendingSave **pending) final;
 
   std::string GetSave() const { return _saveName; }
   void SetSave(const std::string &saveName);
 
   HRESULT Load();
-  HRESULT Save() const;
+  HRESULT Save();
 
-  HRESULT BeginSave(IPendingSave **pending) final;
 
  private:
   SaveManager *_saves;
   std::unordered_map<std::string, std::string> _metadata;
   std::string _gameUid;
-  Version _gameVersion;
+  MGDFVersion _gameVersion;
   std::string _saveName;
   std::shared_ptr<storage::IStorageFactoryComponent> _factory;
 };
 
-class SaveManager : public ComBase<ISaveManager> {
+class SaveManager : public ComBase<IMGDFSaveManager> {
  public:
   SaveManager(
-      const Game *game,
+      const ComObject<Game> &game,
       std::shared_ptr<storage::IStorageFactoryComponent> storageFactory);
   ~SaveManager() {}
-  size_t GetSaveCount() const final { return _saves.size(); }
-  HRESULT GetSave(size_t index, IGameState **save) final;
-  HRESULT DeleteSave(IGameState *save) final;
-  void CreateGameState(IGameState **save) final;
+  UINT64 __stdcall GetSaveCount() final { return _saves.size(); }
+  HRESULT __stdcall GetSave(UINT64 index, IMGDFGameState **save) final;
+  HRESULT __stdcall DeleteSave(IMGDFGameState *save) final;
+  void __stdcall CreateGameState(IMGDFGameState **save) final;
 
   void AppendSave(const std::string &save) { _saves.push_back(save); }
 
  private:
   std::shared_ptr<storage::IStorageFactoryComponent> _storageFactory;
   std::string _gameUid;
-  Version _gameVersion;
+  MGDFVersion _gameVersion;
   std::vector<std::string> _saves;
 };
 

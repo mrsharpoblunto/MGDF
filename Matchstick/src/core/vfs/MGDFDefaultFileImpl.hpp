@@ -11,16 +11,16 @@ namespace vfs {
 
 class DefaultFileImpl;
 
-class DefaultFileReader : public ComBase<IFileReader> {
+class DefaultFileReader : public ComBase<IMGDFFileReader> {
  public:
   DefaultFileReader(DefaultFileImpl *parent,
                     std::shared_ptr<std::ifstream> stream);
   virtual ~DefaultFileReader();
-  UINT32 Read(void *buffer, UINT32 length) final;
-  void SetPosition(INT64 pos) final;
-  INT64 GetPosition() const final;
-  bool EndOfFile() const final;
-  INT64 GetSize() const final;
+  UINT32 __stdcall Read(void *buffer, UINT32 length) final;
+  void __stdcall SetPosition(INT64 pos) final;
+  INT64 __stdcall GetPosition() final;
+  BOOL __stdcall EndOfFile() final;
+  INT64 __stdcall GetSize() final;
 
  private:
   ComObject<DefaultFileImpl> _parent;
@@ -33,18 +33,16 @@ class DefaultFileImpl : public FileBaseImpl {
 
  public:
   DefaultFileImpl(const std::wstring &name, const std::wstring &physicalPath,
-                  IFile *parent);
+                  IMGDFFile *parent);
   virtual ~DefaultFileImpl();
 
-  bool IsOpen() const final { return _reader; }
-
-  HRESULT Open(IFileReader **reader) final;
-
-  bool IsFolder() const final { return false; }
-  bool IsArchive() const override { return false; }
-  const wchar_t *GetArchiveName() const override { return nullptr; }
-  const wchar_t *GetPhysicalPath() const final { return _path.c_str(); }
-  const wchar_t *GetName() const final { return _name.c_str(); }
+  BOOL __stdcall IsOpen() final { return _reader!=nullptr; }
+  HRESULT __stdcall Open(IMGDFFileReader **reader) final;
+  BOOL __stdcall IsFolder() final { return false; }
+  BOOL __stdcall IsArchive() override { return false; }
+  const wchar_t * __stdcall GetArchiveName() override { return nullptr; }
+  const wchar_t * __stdcall GetPhysicalPath() final { return _path.c_str(); }
+  const wchar_t * __stdcall GetName() final { return _name.c_str(); }
 
  private:
   std::wstring _name;

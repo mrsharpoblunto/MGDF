@@ -14,7 +14,7 @@ namespace Test {
 
 static const wchar_t *FAKE_EXT = L".fakearchive";
 
-FakeArchiveHandler::FakeArchiveHandler(MGDF::ILogger *logger)
+FakeArchiveHandler::FakeArchiveHandler(IMGDFLogger *logger)
     : _logger(logger), _references(1UL) {
   _fileExtensions.push_back(FAKE_EXT);
 }
@@ -23,8 +23,8 @@ FakeArchiveHandler::~FakeArchiveHandler() {}
 
 HRESULT FakeArchiveHandler::MapArchive(const wchar_t *name,
                                        const wchar_t *archiveFile,
-                                       MGDF::IFile *parent,
-                                       MGDF::IFile **child) {
+                                       IMGDFFile *parent,
+                                       IMGDFFile **child) {
   ComObject<FakeFile> rootFile(new FakeFile(name, archiveFile, parent));
 
   ComObject<FakeFile> subFile(
@@ -35,7 +35,7 @@ HRESULT FakeArchiveHandler::MapArchive(const wchar_t *name,
   return S_OK;
 }
 
-bool FakeArchiveHandler::IsArchive(const wchar_t *path) const {
+BOOL FakeArchiveHandler::IsArchive(const wchar_t *path) {
   _ASSERTE(path);
   const wchar_t *extension = GetFileExtension(path);
   if (!extension) return false;

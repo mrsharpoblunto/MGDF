@@ -14,14 +14,14 @@
 namespace MGDF {
 namespace core {
 
-MGDFError FrameLimiter::TryCreate(UINT32 maxFps,
+HRESULT FrameLimiter::TryCreate(UINT32 maxFps,
                                   std::unique_ptr<FrameLimiter> &limiter) {
   auto l = std::make_unique<FrameLimiter>(maxFps);
-  const MGDFError error = l->Init();
-  if (MGDF_OK == error) {
+  const auto result = l->Init();
+  if (SUCCEEDED(result)) {
     limiter.swap(l);
   }
-  return error;
+  return result;
 }
 
 FrameLimiter::FrameLimiter(UINT32 maxFps) : _maxFps(maxFps) {
@@ -30,17 +30,17 @@ FrameLimiter::FrameLimiter(UINT32 maxFps) : _maxFps(maxFps) {
   SecureZeroMemory(&_previousFrameEnd, sizeof(LARGE_INTEGER));
 }
 
-MGDFError FrameLimiter::Init() {
+HRESULT FrameLimiter::Init() {
   // exit if the  does not support a high performance timer
   if (!QueryPerformanceFrequency(&_freq)) {
-    LOG("High performance timer unsupported", LOG_ERROR);
-    return MGDF_ERR_CPU_TIMER_UNSUPPORTED;
+    LOG("High performance timer unsupported", MGDF_LOG_ERROR);
+    return E_FAIL;
   }
 
   QueryPerformanceCounter(&_previousFrameEnd);
   _frameTime = (LONGLONG)_freq.QuadPart /
                _maxFps;  // set the frame diff in ticks for fps times per second
-  return MGDF_OK;
+  return S_OK;
 }
 
 FrameLimiter::~FrameLimiter(void) {}
