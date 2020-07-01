@@ -40,7 +40,7 @@ class Module : public ComBase<IMGDFModule> {
   virtual ~Module(void);
   Module();
 
-  BOOL __stdcall STNew(IMGDFSimHost *simHost, const wchar_t *workingFolder) final;
+  BOOL __stdcall STNew(IMGDFSimHost *simHost) final;
   BOOL __stdcall STUpdate(IMGDFSimHost *simHost, double elapsedTime) final;
   void __stdcall STShutDown(IMGDFSimHost *simHost) final;
   BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *renderHost) final;
@@ -52,8 +52,6 @@ class Module : public ComBase<IMGDFModule> {
   void __stdcall Panic() final;
 
  private:
-  std::wstring _workingFolder;
-
   std::unique_ptr<TestModule> _testModule;
   BufferedGameState<TextManagerState> _stateBuffer;
   std::unique_ptr<TextManager> _textManager;

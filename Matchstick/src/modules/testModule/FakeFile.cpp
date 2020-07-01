@@ -16,7 +16,7 @@ namespace MGDF {
 namespace Test {
 
 FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-                   IMGDFFile *parent)
+                   IMGDFReadOnlyFile *parent)
     : _parent(parent),
       _children(nullptr),
       _name(name),
@@ -68,7 +68,7 @@ HRESULT FakeFile::QueryInterface(REFIID riid, void **ppvObject) {
   return E_NOINTERFACE;
 };
 
-BOOL FakeFile::GetParent(IMGDFFile **parent) {
+BOOL FakeFile::GetParent(IMGDFReadOnlyFile **parent) {
   _parent->AddRef();
   *parent = _parent;
   return true;
@@ -83,7 +83,7 @@ UINT64 FakeFile::GetChildCount() {
 
 UINT64 FakeFile::GetLastWriteTime() { return 0; }
 
-BOOL FakeFile::GetChild(const wchar_t *name, IMGDFFile **child) {
+BOOL FakeFile::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
   if (!_children || !name) return false;
 
   auto it = _children->find(name);
@@ -94,7 +94,7 @@ BOOL FakeFile::GetChild(const wchar_t *name, IMGDFFile **child) {
   return false;
 }
 
-void FakeFile::GetAllChildren(IMGDFFile **childBuffer) {
+void FakeFile::GetAllChildren(IMGDFReadOnlyFile **childBuffer) {
   for (auto child : *_children) {
     child.second.AddRawRef(childBuffer++);
   }
@@ -107,26 +107,6 @@ void FakeFile::AddChild(ComObject<FakeFile> file) {
         std::map<const wchar_t *, ComObject<FakeFile>, WCharCmp>>();
   }
   _children->insert(std::make_pair(file->GetName(), std::move(file)));
-}
-
-const wchar_t *FakeFile::GetLogicalPath() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (_logicalPath.empty()) {
-    std::vector<ComObject<IMGDFFile>> path;
-    ComObject<IMGDFFile> node(this, true);
-    do {
-      path.push_back(node);
-    } while (node->GetParent(node.Assign()));
-
-    std::wostringstream ss;
-    for (auto file : path) {
-      ss << file->GetName();
-      if (file != this) ss << '/';
-    }
-    _logicalPath = ss.str();
-  }
-
-  return _logicalPath.c_str();
 }
 
 BOOL FakeFile::IsOpen() {

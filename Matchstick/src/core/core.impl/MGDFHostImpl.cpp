@@ -56,7 +56,6 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _saves(MakeCom<SaveManager>(game, components.Storage)),
       _references(1UL),
       _d3dDevice(nullptr),
-      _d3dContext(nullptr),
       _d2dDevice(nullptr),
       _depthStencilBuffer(nullptr),
       _backBuffer(nullptr) {
@@ -121,7 +120,8 @@ HRESULT Host::Init() {
     for (const auto handler : handlers) {
       _vfs->RegisterArchiveHandler(handler);
     }
-    LOG("Registered " << length << " custom archive VFS handlers", MGDF_LOG_LOW);
+    LOG("Registered " << length << " custom archive VFS handlers",
+        MGDF_LOG_LOW);
   } else {
     LOG("No custom archive VFS handlers to be registered", MGDF_LOG_LOW);
   }
@@ -132,6 +132,11 @@ HRESULT Host::Init() {
     LOG("Failed to mount content directory into VFS...", MGDF_LOG_ERROR);
     return E_FAIL;
   }
+
+  auto working = Resources::Instance().WorkingDir();
+  LOG("Mounting working directory \'" << Resources::ToString(working) << "\' into VFS",
+      MGDF_LOG_LOW);
+  _workingVfs = MakeCom<vfs::WriteableVirtualFileSystem>(working.c_str());
 
   // set the initial sound volumes
   if (_sound) {
@@ -195,7 +200,7 @@ void Host::STCreateModule() {
 
     // init the module
     ClearWorkingDirectory();
-    if (!_module->STNew(this, Resources::Instance().WorkingDir().c_str())) {
+    if (!_module->STNew(this)) {
       FATALERROR(this, "Error initialising module");
     }
   }
@@ -243,7 +248,6 @@ void Host::RTBeforeFirstDraw() {
 }
 
 void Host::RTBeforeDeviceReset() {
-  _d3dContext.Clear();
   _d2dDevice.Clear();
   _d3dDevice.Clear();
   _timer->BeforeDeviceReset();
@@ -251,6 +255,15 @@ void Host::RTBeforeDeviceReset() {
     LOG("Calling module RTBeforeDeviceReset...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeDeviceReset(this)) {
       FATALERROR(this, "Error in before device reset in module");
+    }
+  }
+}
+
+void Host::RTDeviceReset() {
+  if (_module) {
+    LOG("Calling module RTDeviceReset...", MGDF_LOG_MEDIUM);
+    if (!_module->RTDeviceReset(this)) {
+      FATALERROR(this, "Error in device reset in module");
     }
   }
 }
@@ -274,8 +287,6 @@ void Host::RTSetDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
 
   _d2dDevice = d2dDevice;
   _d3dDevice = d3dDevice;
-  _d3dDevice->GetImmediateContext(_d3dContext.Assign());
-  _ASSERTE(_d3dContext);
 }
 
 void Host::RTDraw(double alpha) {
@@ -313,13 +324,16 @@ void Host::RTBackBufferChange(
   }
 }
 
-ID3D11Texture2D *Host::GetBackBuffer() { return _backBuffer; }
+void Host::GetBackBuffer(ID3D11Texture2D **backBuffer) {
+  _backBuffer.AddRawRef(backBuffer);
+}
 
-ID3D11Texture2D *Host::GetDepthStencilBuffer() { return _backBuffer; }
+void Host::GetDepthStencilBuffer(ID3D11Texture2D **stencilBuffer) {
+  _depthStencilBuffer.AddRawRef(stencilBuffer);
+}
 
-void Host::GetBackBufferDescription(
-    D3D11_TEXTURE2D_DESC *backBufferDesc,
-    D3D11_TEXTURE2D_DESC *depthStencilDesc) {
+void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
+                                    D3D11_TEXTURE2D_DESC *depthStencilDesc) {
   if (backBufferDesc) {
     _backBuffer->GetDesc(backBufferDesc);
   }
@@ -328,13 +342,9 @@ void Host::GetBackBufferDescription(
   }
 }
 
-ID3D11Device *Host::GetD3DDevice() { return _d3dDevice; }
+void Host::GetD3DDevice(ID3D11Device **device) { _d3dDevice.AddRawRef(device); }
 
-ID3D11DeviceContext *Host::GetD3DImmediateContext() {
-  return _d3dContext;
-}
-
-ID2D1Device *Host::GetD2DDevice() { return _d2dDevice; }
+void Host::GetD2DDevice(ID2D1Device **device) { _d2dDevice.AddRawRef(device); }
 
 void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
   _renderSettings.AddRawRef(settings);
@@ -343,7 +353,8 @@ void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
 BOOL Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
   if (!context) return false;
 
-  LOG("Setting D2D device context render target to backbuffer...", MGDF_LOG_HIGH);
+  LOG("Setting D2D device context render target to backbuffer...",
+      MGDF_LOG_HIGH);
   D2D1_PIXEL_FORMAT pixelFormat;
   pixelFormat.format = DXGI_FORMAT_R8G8B8A8_UNORM;
   pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
@@ -421,8 +432,12 @@ void Host::GetStatistics(IMGDFStatisticsManager **statistics) {
   _stats.AddRawRef<IMGDFStatisticsManager>(statistics);
 }
 
-void Host::GetVFS(IMGDFVirtualFileSystem **vfs) {
-  _vfs.AddRawRef<IMGDFVirtualFileSystem>(vfs);
+void Host::GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) {
+  _vfs.AddRawRef<IMGDFReadOnlyVirtualFileSystem>(vfs);
+}
+
+void Host::GetWorkingVFS(IMGDFWriteableVirtualFileSystem **vfs) {
+  _workingVfs.AddRawRef<IMGDFWriteableVirtualFileSystem>(vfs);
 }
 
 void Host::GetInput(IMGDFInputManager **input) {

@@ -11,7 +11,8 @@
 #include "../common/MGDFParameterManager.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
 #include "../storage/MGDFStorageFactoryComponentImpl.hpp"
-#include "../vfs/MGDFVirtualFileSystemComponentImpl.hpp"
+#include "../vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
+#include "../vfs/MGDFWriteableVirtualFileSystem.hpp"
 #include "MGDFDebugImpl.hpp"
 #include "MGDFGameImpl.hpp"
 #include "MGDFHostStats.hpp"
@@ -28,7 +29,7 @@ struct HostComponents {
   std::shared_ptr<storage::IStorageFactoryComponent> Storage;
   ComObject<input::IInputManagerComponent> Input;
   ComObject<audio::ISoundManagerComponent> Sound;
-  ComObject<vfs::IVirtualFileSystemComponent> VFS;
+  ComObject<vfs::IReadOnlyVirtualFileSystemComponent> VFS;
 };
 
 /**
@@ -65,6 +66,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void RTBackBufferChange(const ComObject<ID3D11Texture2D> &backBuffer,
                           const ComObject<ID3D11Texture2D> &depthStencilBuffer);
   void RTBeforeDeviceReset();
+  void RTDeviceReset();
 
   UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                        UINT64 *featureLevelsSize);
@@ -88,11 +90,12 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void __stdcall GetTimer(IMGDFTimer **timer) final;
   const MGDFVersion * __stdcall GetMGDFVersion() final;
   void _stdcall GetDebug(IMGDFDebug **debug) final;
+  void __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
+  void __stdcall GetWorkingVFS(IMGDFWriteableVirtualFileSystem **vfs) final;
 
   // ISimHost methods
   void __stdcall QueueShutDown() final;
   void __stdcall GetSaves(IMGDFSaveManager **saves) final;
-  void __stdcall GetVFS(IMGDFVirtualFileSystem **vfs) final;
   void __stdcall GetSound(IMGDFSoundManager **sound) final;
   void __stdcall GetStatistics(IMGDFStatisticsManager **statistics) final;
   void __stdcall GetGame(IMGDFGame **game) final;
@@ -100,12 +103,11 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void __stdcall ShutDown() final;
 
   // IRenderHost methods
-  ID3D11Device * __stdcall GetD3DDevice() final;
-  ID3D11DeviceContext * __stdcall GetD3DImmediateContext() final;
-  ID2D1Device * __stdcall GetD2DDevice() final;
+  void __stdcall GetD3DDevice(ID3D11Device **device) final;
+  void __stdcall GetD2DDevice(ID2D1Device **device) final;
   BOOL __stdcall SetBackBufferRenderTarget(ID2D1DeviceContext *context) final;
-  ID3D11Texture2D * __stdcall GetBackBuffer() final;
-  ID3D11Texture2D * __stdcall GetDepthStencilBuffer() final;
+  void __stdcall GetBackBuffer(ID3D11Texture2D **backbuffer) final;
+  void __stdcall GetDepthStencilBuffer(ID3D11Texture2D **depthStencil) final;
   void __stdcall GetBackBufferDescription(
       D3D11_TEXTURE2D_DESC *backBufferDesc,
       D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) final;
@@ -127,7 +129,8 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<SaveManager> _saves;
   ComObject<input::IInputManagerComponent> _input;
   ComObject<audio::ISoundManagerComponent> _sound;
-  ComObject<vfs::IVirtualFileSystemComponent> _vfs;
+  ComObject<vfs::IReadOnlyVirtualFileSystemComponent> _vfs;
+  ComObject<vfs::WriteableVirtualFileSystem> _workingVfs;
   ComObject<Debug> _debugOverlay;
   ComObject<Game> _game;
   ComObject<Timer> _timer;
@@ -135,7 +138,6 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<StatisticsManager> _stats;
 
   ComObject<ID3D11Device> _d3dDevice;
-  ComObject<ID3D11DeviceContext> _d3dContext;
   ComObject<ID2D1Device> _d2dDevice;
   ComObject<ID3D11Texture2D> _backBuffer;
   ComObject<ID3D11Texture2D> _depthStencilBuffer;

@@ -158,6 +158,8 @@ void MGDFApp::OnBeforeDeviceReset() {
   _host->RTBeforeDeviceReset();
 }
 
+void MGDFApp::OnDeviceReset() { _host->RTDeviceReset();}
+
 void MGDFApp::OnBeforeBackBufferChange() {
   _context->SetTarget(nullptr);
   _host->RTBeforeBackBufferChange();

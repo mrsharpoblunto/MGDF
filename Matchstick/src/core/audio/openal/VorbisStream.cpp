@@ -27,7 +27,7 @@ LPOVINFO VorbisStream::fn_ov_info = nullptr;
 LPOVCOMMENT VorbisStream::fn_ov_comment = nullptr;
 LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks = nullptr;
 
-VorbisStream::VorbisStream(IMGDFFile *source,
+VorbisStream::VorbisStream(IMGDFReadOnlyFile *source,
                            OpenALSoundManagerComponentImpl *manager)
     : _soundManager(manager),
       _volume(1.0),
@@ -52,7 +52,7 @@ VorbisStream::~VorbisStream() {
   _soundManager->RemoveSoundStream(this);
 }
 
-HRESULT VorbisStream::TryCreate(IMGDFFile *source,
+HRESULT VorbisStream::TryCreate(IMGDFReadOnlyFile *source,
                                   OpenALSoundManagerComponentImpl *manager,
                                   ComObject<VorbisStream> &stream) {
   stream = MakeCom<VorbisStream>(source, manager);

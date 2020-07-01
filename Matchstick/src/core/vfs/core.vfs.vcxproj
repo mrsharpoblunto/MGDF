@@ -116,10 +116,13 @@
   <ItemGroup>
     <ClCompile Include="archive\zip\ZipArchiveHandlerImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFileImpl.cpp" />
-    <ClCompile Include="MGDFDefaultFileImpl.cpp" />
-    <ClCompile Include="MGDFDefaultFolderImpl.cpp" />
-    <ClCompile Include="MGDFFileBaseImpl.cpp" />
-    <ClCompile Include="MGDFVirtualFileSystemComponentImpl.cpp" />
+    <ClCompile Include="MGDFDefaultReadOnlyFileImpl.cpp" />
+    <ClCompile Include="MGDFDefaultFileReader.cpp" />
+    <ClCompile Include="MGDFDefaultReadOnlyFolderImpl.cpp" />
+    <ClCompile Include="MGDFDefaultWriteableFileImpl.cpp" />
+    <ClCompile Include="MGDFReadOnlyFileBaseImpl.cpp" />
+    <ClCompile Include="MGDFReadOnlyVirtualFileSystemComponentImpl.cpp" />
+    <ClCompile Include="MGDFWriteableVirtualFileSystem.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -130,11 +133,14 @@
     <ClInclude Include="archive\zip\ZipFileImpl.hpp" />
     <ClInclude Include="archive\zip\ZipFileRoot.hpp" />
     <ClInclude Include="archive\zip\ZipFolderImpl.hpp" />
-    <ClInclude Include="MGDFDefaultFileImpl.hpp" />
-    <ClInclude Include="MGDFDefaultFolderImpl.hpp" />
-    <ClInclude Include="MGDFFileBaseImpl.hpp" />
-    <ClInclude Include="MGDFFolderBaseImpl.hpp" />
-    <ClInclude Include="MGDFVirtualFileSystemComponentImpl.hpp" />
+    <ClInclude Include="MGDFDefaultFileReader.hpp" />
+    <ClInclude Include="MGDFDefaultReadOnlyFileImpl.hpp" />
+    <ClInclude Include="MGDFDefaultReadOnlyFolderImpl.hpp" />
+    <ClInclude Include="MGDFDefaultWriteableFileImpl.hpp" />
+    <ClInclude Include="MGDFReadOnlyFileBaseImpl.hpp" />
+    <ClInclude Include="MGDFReadOnlyFolderBaseImpl.hpp" />
+    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponentImpl.hpp" />
+    <ClInclude Include="MGDFWriteableVirtualFileSystem.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

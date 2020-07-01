@@ -131,7 +131,8 @@ void OpenALSoundManagerComponentImpl::Update() {
   }
 }
 
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::GetListenerOrientationForward(
+MGDFSoundPosition *
+OpenALSoundManagerComponentImpl::GetListenerOrientationForward(
     MGDFSoundPosition *sp) {
   memcpy_s(sp, sizeof(MGDFSoundPosition), &_orientationForward,
            sizeof(DirectX::XMFLOAT3));
@@ -147,17 +148,20 @@ MGDFSoundPosition *OpenALSoundManagerComponentImpl::GetListenerOrientationUp(
 
 MGDFSoundPosition *OpenALSoundManagerComponentImpl::GetListenerPosition(
     MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_position, sizeof(DirectX::XMFLOAT3));
+  memcpy_s(sp, sizeof(MGDFSoundPosition), &_position,
+           sizeof(DirectX::XMFLOAT3));
   return sp;
 }
 
 MGDFSoundPosition *OpenALSoundManagerComponentImpl::GetListenerVelocity(
     MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_velocity, sizeof(DirectX::XMFLOAT3));
+  memcpy_s(sp, sizeof(MGDFSoundPosition), &_velocity,
+           sizeof(DirectX::XMFLOAT3));
   return sp;
 }
 
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::SetListenerOrientationForward(
+MGDFSoundPosition *
+OpenALSoundManagerComponentImpl::SetListenerOrientationForward(
     MGDFSoundPosition *sp) {
   memcpy_s(&_orientationForward, sizeof(DirectX::XMFLOAT3), sp,
            sizeof(MGDFSoundPosition));
@@ -173,13 +177,15 @@ MGDFSoundPosition *OpenALSoundManagerComponentImpl::SetListenerOrientationUp(
 
 MGDFSoundPosition *OpenALSoundManagerComponentImpl::SetListenerPosition(
     MGDFSoundPosition *sp) {
-  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp, sizeof(MGDFSoundPosition));
+  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp,
+           sizeof(MGDFSoundPosition));
   return sp;
 }
 
 MGDFSoundPosition *OpenALSoundManagerComponentImpl::SetListenerVelocity(
     MGDFSoundPosition *sp) {
-  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp, sizeof(MGDFSoundPosition));
+  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp,
+           sizeof(MGDFSoundPosition));
   return sp;
 }
 
@@ -192,9 +198,7 @@ void OpenALSoundManagerComponentImpl::SetEnableAttenuation(
   _enableAttenuation = enableAttenuation;
 }
 
-float OpenALSoundManagerComponentImpl::GetSoundVolume() {
-  return _soundVolume;
-}
+float OpenALSoundManagerComponentImpl::GetSoundVolume() { return _soundVolume; }
 
 void OpenALSoundManagerComponentImpl::SetSoundVolume(float volume) {
   _soundVolume = volume;
@@ -232,7 +236,7 @@ void OpenALSoundManagerComponentImpl::SetSpeedOfSound(float speedOfSound) {
 }
 
 HRESULT OpenALSoundManagerComponentImpl::CreateSoundStream(
-    IMGDFFile *file, IMGDFSoundStream **stream) {
+    IMGDFReadOnlyFile *file, IMGDFSoundStream **stream) {
   if (!file) {
     LOG("The stream datasource cannot be null", MGDF_LOG_ERROR);
     return E_INVALIDARG;
@@ -261,7 +265,7 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundStream(
   }
 }
 
-HRESULT OpenALSoundManagerComponentImpl::CreateSound(IMGDFFile *file,
+HRESULT OpenALSoundManagerComponentImpl::CreateSound(IMGDFReadOnlyFile *file,
                                                      INT32 priority,
                                                      IMGDFSound **sound) {
   if (!file) {
@@ -351,8 +355,7 @@ void OpenALSoundManagerComponentImpl::PrioritizeSounds(
 }
 
 // sort sounds into the lowest->highest priority
-bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a,
-                                           OpenALSound *b) {
+bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a, OpenALSound *b) {
   _ASSERTE(a);
   _ASSERTE(b);
 
@@ -367,20 +370,37 @@ bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a,
   }
 }
 
-HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(IMGDFFile *dataSource,
-                                                             ALuint *bufferId) {
+std::wstring OpenALSoundManagerComponentImpl::GetLogicalPath(
+    IMGDFReadOnlyFile *file) const {
+  std::vector<ComObject<IMGDFReadOnlyFile>> path;
+  ComObject<IMGDFReadOnlyFile> node(file, true);
+  do {
+    path.push_back(node);
+  } while (node->GetParent(node.Assign()));
+
+  std::wostringstream ss;
+  for (auto f : path) {
+    ss << f->GetName();
+    if (f != file) ss << '/';
+  }
+  return ss.str();
+}
+
+HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
+    IMGDFReadOnlyFile *dataSource, ALuint *bufferId) {
   _ASSERTE(dataSource);
 
   LOG("Getting sound buffer...", MGDF_LOG_MEDIUM);
 
-  std::wstring dataSourceName = dataSource->GetLogicalPath();
+  std::wstring dataSourceName = GetLogicalPath(dataSource);
   dataSourceName.append(L"/");
   dataSourceName.append(dataSource->GetName());
 
   // see if the buffer already exists in memory before trying to create it
   for (auto buffer : _sharedBuffers) {
     if (buffer.second->BufferSource == dataSourceName) {
-      LOG("Sound buffer already loaded into memory - re-using", MGDF_LOG_MEDIUM);
+      LOG("Sound buffer already loaded into memory - re-using",
+          MGDF_LOG_MEDIUM);
       ++buffer.second->References;
       *bufferId = buffer.first;
       return S_OK;
@@ -433,7 +453,8 @@ void OpenALSoundManagerComponentImpl::RemoveSoundBuffer(ALuint bufferId) {
   }
 }
 
-void OpenALSoundManagerComponentImpl::RemoveSoundStream(IMGDFSoundStream *stream) {
+void OpenALSoundManagerComponentImpl::RemoveSoundStream(
+    IMGDFSoundStream *stream) {
   if (!stream) return;
   LOG("Removing sound stream", MGDF_LOG_MEDIUM);
   _soundStreams.erase(static_cast<VorbisStream *>(stream));

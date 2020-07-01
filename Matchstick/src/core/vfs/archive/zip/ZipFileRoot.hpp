@@ -2,7 +2,7 @@
 
 #include <unzip.h>
 
-#include "../../MGDFDefaultFileImpl.hpp"
+#include "../../MGDFDefaultReadOnlyFileImpl.hpp"
 
 namespace MGDF {
 namespace core {
@@ -15,11 +15,11 @@ namespace zip {
  phsyical zip file to be accessed like any other file, but it also allows for
  accessing the contents of the zip file as if it were a folder
  */
-class ZipFileRoot : public DefaultFileImpl {
+class ZipFileRoot : public DefaultReadOnlyFileImpl {
  public:
   ZipFileRoot(const std::wstring &name, const std::wstring &physicalPath,
-              IMGDFFile *parent, unzFile zip)
-      : DefaultFileImpl(name, physicalPath, parent),
+              IMGDFReadOnlyFile *parent, unzFile zip)
+      : DefaultReadOnlyFileImpl(name, physicalPath, parent),
         _archiveName(name),
         _zip(zip) {}
   ~ZipFileRoot() { unzClose(_zip); }

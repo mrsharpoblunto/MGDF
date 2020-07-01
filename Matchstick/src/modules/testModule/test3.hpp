@@ -27,7 +27,7 @@ class Test3 : public TestModule {
   ComObject<IMGDFInputManager> _input;
   ComObject<IMGDFSaveManager> _saves;
   ComObject<IMGDFGameState> _state;
-  ComObject<IMGDFPendingSave> _pending;
+  ComObject<IMGDFWriteableVirtualFileSystem> _pending;
 };
 
 }  // namespace Test

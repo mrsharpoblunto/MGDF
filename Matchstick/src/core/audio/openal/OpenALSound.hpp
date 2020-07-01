@@ -21,7 +21,7 @@ class OpenALSound : public ComBase<IMGDFSound> {
  public:
   virtual ~OpenALSound();
   OpenALSound(OpenALSoundManagerComponentImpl *manager, INT32 priority);
-  static HRESULT TryCreate(IMGDFFile *source,
+  static HRESULT TryCreate(IMGDFReadOnlyFile *source,
                              OpenALSoundManagerComponentImpl *manager,
                              INT32 priority, ComObject<OpenALSound> &sound);
 
@@ -59,7 +59,7 @@ class OpenALSound : public ComBase<IMGDFSound> {
   void Update(float attenuationFactor);
 
  private:
-  HRESULT Init(IMGDFFile *source);
+  HRESULT Init(IMGDFReadOnlyFile *source);
 
   std::wstring _name;
   OpenALSoundManagerComponentImpl *_soundManager;

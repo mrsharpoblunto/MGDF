@@ -7,7 +7,10 @@
     <Filter Include="archive\zip">
       <UniqueIdentifier>{11e0b8bc-dfdc-4a97-9878-52375febe5db}</UniqueIdentifier>
     </Filter>
-    <Filter Include="file">
+    <Filter Include="writeable">
+      <UniqueIdentifier>{57cdae95-5462-4038-86d6-7298b8975c29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="readonly">
       <UniqueIdentifier>{e482f410-19a0-4157-a46d-3e33dc7fd82f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -18,17 +21,26 @@
     <ClCompile Include="archive\zip\ZipFileImpl.cpp">
       <Filter>archive\zip</Filter>
     </ClCompile>
-    <ClCompile Include="MGDFDefaultFileImpl.cpp">
-      <Filter>file</Filter>
-    </ClCompile>
-    <ClCompile Include="MGDFDefaultFolderImpl.cpp">
-      <Filter>file</Filter>
-    </ClCompile>
-    <ClCompile Include="MGDFFileBaseImpl.cpp">
-      <Filter>file</Filter>
-    </ClCompile>
-    <ClCompile Include="MGDFVirtualFileSystemComponentImpl.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="MGDFDefaultReadOnlyFolderImpl.cpp">
+      <Filter>readonly</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFReadOnlyFileBaseImpl.cpp">
+      <Filter>readonly</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFDefaultWriteableFileImpl.cpp">
+      <Filter>writeable</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFDefaultReadOnlyFileImpl.cpp">
+      <Filter>readonly</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFDefaultFileReader.cpp" />
+    <ClCompile Include="MGDFWriteableVirtualFileSystem.cpp">
+      <Filter>writeable</Filter>
+    </ClCompile>
+    <ClCompile Include="MGDFReadOnlyVirtualFileSystemComponentImpl.cpp">
+      <Filter>readonly</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="archive\zip\ZipArchiveHandlerImpl.hpp">
@@ -43,19 +55,28 @@
     <ClInclude Include="archive\zip\ZipFolderImpl.hpp">
       <Filter>archive\zip</Filter>
     </ClInclude>
-    <ClInclude Include="MGDFDefaultFileImpl.hpp">
-      <Filter>file</Filter>
-    </ClInclude>
-    <ClInclude Include="MGDFDefaultFolderImpl.hpp">
-      <Filter>file</Filter>
-    </ClInclude>
-    <ClInclude Include="MGDFFileBaseImpl.hpp">
-      <Filter>file</Filter>
-    </ClInclude>
-    <ClInclude Include="MGDFFolderBaseImpl.hpp">
-      <Filter>file</Filter>
-    </ClInclude>
-    <ClInclude Include="MGDFVirtualFileSystemComponentImpl.hpp" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="MGDFDefaultReadOnlyFileImpl.hpp">
+      <Filter>readonly</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFDefaultReadOnlyFolderImpl.hpp">
+      <Filter>readonly</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFReadOnlyFileBaseImpl.hpp">
+      <Filter>readonly</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFReadOnlyFolderBaseImpl.hpp">
+      <Filter>readonly</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFDefaultWriteableFileImpl.hpp">
+      <Filter>writeable</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFDefaultFileReader.hpp" />
+    <ClInclude Include="MGDFWriteableVirtualFileSystem.hpp">
+      <Filter>writeable</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponentImpl.hpp">
+      <Filter>readonly</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

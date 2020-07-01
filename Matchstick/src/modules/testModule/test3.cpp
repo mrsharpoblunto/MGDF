@@ -3,7 +3,7 @@
 #include "Test3.hpp"
 
 #include <MGDF/ComObject.hpp>
-#include <fstream>
+#include <sstream>
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -45,17 +45,24 @@ void Test3::Setup(IMGDFSimHost *host) {
     if (FAILED(_state->BeginSave(_pending.Assign()))) {
       return TestStep::FAILED;
     } else {
-      size_t size;
-      std::wstring saveDir;
-      _pending->GetSaveDataLocation(nullptr, &size);
-      saveDir.resize(size);
-      _pending->GetSaveDataLocation(saveDir.data(), &size);
+      ComObject<IMGDFWriteableFile> saveFile;
+      _pending->GetFile(L"subfolder/currentState.txt", saveFile.Assign());
+      if (saveFile->Exists()) {
+        return TestStep::FAILED;
+      }
 
-      std::wstring saveFile(saveDir);
-      saveFile += L"currentState.txt";
-      std::ofstream out(saveFile.c_str(), std::ios::out);
-      out << 2;
-      out.close();
+      {
+        ComObject<IMGDFFileWriter> saveWriter;
+        if (FAILED(saveFile->OpenWrite(saveWriter.Assign()))) {
+          return TestStep::FAILED;
+        }
+        std::string data("2");
+        saveWriter->Write(data.data(), static_cast<UINT32>(data.size()));
+      }
+
+      if (!saveFile->Exists() || saveFile->IsFolder()) {
+        return TestStep::FAILED;
+      }
       return TestStep::PASSED;
     }
   })
@@ -103,31 +110,31 @@ void Test3::Setup(IMGDFSimHost *host) {
           return TestStep::FAILED;
         }
 
-        // check the saved data
-        std::wstring saveDir;
-        _state->GetSaveDataLocation(nullptr, &size);
-        saveDir.resize(size);
-        _state->GetSaveDataLocation(saveDir.data(), &size);
-
-        std::wstring saveFile(saveDir);
-        saveFile += L"currentState.txt";
-        std::ifstream in(saveFile.c_str(), std::ios::in);
-        if (in.fail()) {
+        ComObject<IMGDFReadOnlyVirtualFileSystem> vfs;
+        if (FAILED(_state->GetVFS(vfs.Assign()))) {
           return TestStep::FAILED;
-        } else {
-          int data;
-          in >> data;
-          in.close();
-          return data == 2 ? TestStep::PASSED : TestStep::FAILED;
         }
+        ComObject<IMGDFReadOnlyFile> saveFile;
+        vfs->GetFile(L"subfolder/currentState.txt", saveFile.Assign());
+
+        ComObject<IMGDFFileReader> saveReader;
+        if (FAILED(saveFile->Open(saveReader.Assign()))) {
+          return TestStep::FAILED;
+        }
+
+        std::string data;
+        data.resize(saveReader->GetSize());
+        saveReader->Read(data.data(), static_cast<UINT32>(data.size()));
+
+        return data == "2" ? TestStep::PASSED : TestStep::FAILED;
       })
       .Step([host](auto state) {
         state->AddLine("Testing custom VFS archive handler registration");
 
-        ComObject<IMGDFVirtualFileSystem> vfs;
+        ComObject<IMGDFReadOnlyVirtualFileSystem> vfs;
         host->GetVFS(vfs.Assign());
 
-        ComObject<IMGDFFile> file;
+        ComObject<IMGDFReadOnlyFile> file;
         if (vfs->GetFile(L"test.fakearchive/testfile.txt", file.Assign())) {
           ComObject<IMGDFFileReader> reader;
           if (!FAILED(file->Open(reader.Assign()))) {

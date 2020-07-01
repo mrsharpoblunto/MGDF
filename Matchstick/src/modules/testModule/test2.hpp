@@ -25,7 +25,7 @@ class Test2 : public TestModule {
  private:
   INT32 _x, _y;
   ComObject<IMGDFInputManager> _input;
-  ComObject<IMGDFVirtualFileSystem> _vfs;
+  ComObject<IMGDFReadOnlyVirtualFileSystem> _vfs;
   ComObject<IMGDFSoundManager> _soundManager;
   ComObject<IMGDFSound> _sound;
   ComObject<IMGDFSoundStream> _stream;

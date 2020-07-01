@@ -114,11 +114,32 @@ typedef interface IMGDFFileReader IMGDFFileReader;
 #endif 	/* __IMGDFFileReader_FWD_DEFINED__ */
 
 
+#ifndef __IMGDFFileWriter_FWD_DEFINED__
+#define __IMGDFFileWriter_FWD_DEFINED__
+typedef interface IMGDFFileWriter IMGDFFileWriter;
+
+#endif 	/* __IMGDFFileWriter_FWD_DEFINED__ */
+
+
 #ifndef __IMGDFFile_FWD_DEFINED__
 #define __IMGDFFile_FWD_DEFINED__
 typedef interface IMGDFFile IMGDFFile;
 
 #endif 	/* __IMGDFFile_FWD_DEFINED__ */
+
+
+#ifndef __IMGDFReadOnlyFile_FWD_DEFINED__
+#define __IMGDFReadOnlyFile_FWD_DEFINED__
+typedef interface IMGDFReadOnlyFile IMGDFReadOnlyFile;
+
+#endif 	/* __IMGDFReadOnlyFile_FWD_DEFINED__ */
+
+
+#ifndef __IMGDFWriteableFile_FWD_DEFINED__
+#define __IMGDFWriteableFile_FWD_DEFINED__
+typedef interface IMGDFWriteableFile IMGDFWriteableFile;
+
+#endif 	/* __IMGDFWriteableFile_FWD_DEFINED__ */
 
 
 #ifndef __IMGDFArchiveHandler_FWD_DEFINED__
@@ -128,11 +149,18 @@ typedef interface IMGDFArchiveHandler IMGDFArchiveHandler;
 #endif 	/* __IMGDFArchiveHandler_FWD_DEFINED__ */
 
 
-#ifndef __IMGDFVirtualFileSystem_FWD_DEFINED__
-#define __IMGDFVirtualFileSystem_FWD_DEFINED__
-typedef interface IMGDFVirtualFileSystem IMGDFVirtualFileSystem;
+#ifndef __IMGDFReadOnlyVirtualFileSystem_FWD_DEFINED__
+#define __IMGDFReadOnlyVirtualFileSystem_FWD_DEFINED__
+typedef interface IMGDFReadOnlyVirtualFileSystem IMGDFReadOnlyVirtualFileSystem;
 
-#endif 	/* __IMGDFVirtualFileSystem_FWD_DEFINED__ */
+#endif 	/* __IMGDFReadOnlyVirtualFileSystem_FWD_DEFINED__ */
+
+
+#ifndef __IMGDFWriteableVirtualFileSystem_FWD_DEFINED__
+#define __IMGDFWriteableVirtualFileSystem_FWD_DEFINED__
+typedef interface IMGDFWriteableVirtualFileSystem IMGDFWriteableVirtualFileSystem;
+
+#endif 	/* __IMGDFWriteableVirtualFileSystem_FWD_DEFINED__ */
 
 
 #ifndef __IMGDFSound_FWD_DEFINED__
@@ -175,13 +203,6 @@ typedef interface IMGDFCommonHost IMGDFCommonHost;
 typedef interface IMGDFRenderHost IMGDFRenderHost;
 
 #endif 	/* __IMGDFRenderHost_FWD_DEFINED__ */
-
-
-#ifndef __IMGDFPendingSave_FWD_DEFINED__
-#define __IMGDFPendingSave_FWD_DEFINED__
-typedef interface IMGDFPendingSave IMGDFPendingSave;
-
-#endif 	/* __IMGDFPendingSave_FWD_DEFINED__ */
 
 
 #ifndef __IMGDFGameState_FWD_DEFINED__
@@ -1725,6 +1746,106 @@ EXTERN_C const IID IID_IMGDFFileReader;
 #endif 	/* __IMGDFFileReader_INTERFACE_DEFINED__ */
 
 
+#ifndef __IMGDFFileWriter_INTERFACE_DEFINED__
+#define __IMGDFFileWriter_INTERFACE_DEFINED__
+
+/* interface IMGDFFileWriter */
+/* [local][object][uuid] */ 
+
+
+EXTERN_C const IID IID_IMGDFFileWriter;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("46A8D28E-CE6A-4E99-BACF-AF9947008FA0")
+    IMGDFFileWriter : public IUnknown
+    {
+    public:
+        virtual UINT32 STDMETHODCALLTYPE Write( 
+            /* [out] */ void *buffer,
+            UINT32 length) = 0;
+        
+        virtual void STDMETHODCALLTYPE SetPosition( 
+            INT64 pos) = 0;
+        
+        virtual INT64 STDMETHODCALLTYPE GetPosition( void) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IMGDFFileWriterVtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IMGDFFileWriter * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IMGDFFileWriter * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IMGDFFileWriter * This);
+        
+        UINT32 ( STDMETHODCALLTYPE *Write )( 
+            IMGDFFileWriter * This,
+            /* [out] */ void *buffer,
+            UINT32 length);
+        
+        void ( STDMETHODCALLTYPE *SetPosition )( 
+            IMGDFFileWriter * This,
+            INT64 pos);
+        
+        INT64 ( STDMETHODCALLTYPE *GetPosition )( 
+            IMGDFFileWriter * This);
+        
+        END_INTERFACE
+    } IMGDFFileWriterVtbl;
+
+    interface IMGDFFileWriter
+    {
+        CONST_VTBL struct IMGDFFileWriterVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IMGDFFileWriter_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IMGDFFileWriter_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IMGDFFileWriter_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IMGDFFileWriter_Write(This,buffer,length)	\
+    ( (This)->lpVtbl -> Write(This,buffer,length) ) 
+
+#define IMGDFFileWriter_SetPosition(This,pos)	\
+    ( (This)->lpVtbl -> SetPosition(This,pos) ) 
+
+#define IMGDFFileWriter_GetPosition(This)	\
+    ( (This)->lpVtbl -> GetPosition(This) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IMGDFFileWriter_INTERFACE_DEFINED__ */
+
+
 #ifndef __IMGDFFile_INTERFACE_DEFINED__
 #define __IMGDFFile_INTERFACE_DEFINED__
 
@@ -1740,18 +1861,6 @@ EXTERN_C const IID IID_IMGDFFile;
     IMGDFFile : public IUnknown
     {
     public:
-        virtual const wchar_t *STDMETHODCALLTYPE GetName( void) = 0;
-        
-        virtual BOOL STDMETHODCALLTYPE GetParent( 
-            IMGDFFile **parent) = 0;
-        
-        virtual BOOL STDMETHODCALLTYPE GetChild( 
-            /* [in] */ const wchar_t *name,
-            /* [out] */ IMGDFFile **child) = 0;
-        
-        virtual void STDMETHODCALLTYPE GetAllChildren( 
-            /* [out] */ IMGDFFile **childBuffer) = 0;
-        
         virtual UINT64 STDMETHODCALLTYPE GetChildCount( void) = 0;
         
         virtual BOOL STDMETHODCALLTYPE IsFolder( void) = 0;
@@ -1760,14 +1869,6 @@ EXTERN_C const IID IID_IMGDFFile;
         
         virtual HRESULT STDMETHODCALLTYPE Open( 
             /* [out] */ IMGDFFileReader **reader) = 0;
-        
-        virtual BOOL STDMETHODCALLTYPE IsArchive( void) = 0;
-        
-        virtual const wchar_t *STDMETHODCALLTYPE GetArchiveName( void) = 0;
-        
-        virtual const wchar_t *STDMETHODCALLTYPE GetPhysicalPath( void) = 0;
-        
-        virtual const wchar_t *STDMETHODCALLTYPE GetLogicalPath( void) = 0;
         
         virtual UINT64 STDMETHODCALLTYPE GetLastWriteTime( void) = 0;
         
@@ -1792,22 +1893,6 @@ EXTERN_C const IID IID_IMGDFFile;
         ULONG ( STDMETHODCALLTYPE *Release )( 
             IMGDFFile * This);
         
-        const wchar_t *( STDMETHODCALLTYPE *GetName )( 
-            IMGDFFile * This);
-        
-        BOOL ( STDMETHODCALLTYPE *GetParent )( 
-            IMGDFFile * This,
-            IMGDFFile **parent);
-        
-        BOOL ( STDMETHODCALLTYPE *GetChild )( 
-            IMGDFFile * This,
-            /* [in] */ const wchar_t *name,
-            /* [out] */ IMGDFFile **child);
-        
-        void ( STDMETHODCALLTYPE *GetAllChildren )( 
-            IMGDFFile * This,
-            /* [out] */ IMGDFFile **childBuffer);
-        
         UINT64 ( STDMETHODCALLTYPE *GetChildCount )( 
             IMGDFFile * This);
         
@@ -1820,18 +1905,6 @@ EXTERN_C const IID IID_IMGDFFile;
         HRESULT ( STDMETHODCALLTYPE *Open )( 
             IMGDFFile * This,
             /* [out] */ IMGDFFileReader **reader);
-        
-        BOOL ( STDMETHODCALLTYPE *IsArchive )( 
-            IMGDFFile * This);
-        
-        const wchar_t *( STDMETHODCALLTYPE *GetArchiveName )( 
-            IMGDFFile * This);
-        
-        const wchar_t *( STDMETHODCALLTYPE *GetPhysicalPath )( 
-            IMGDFFile * This);
-        
-        const wchar_t *( STDMETHODCALLTYPE *GetLogicalPath )( 
-            IMGDFFile * This);
         
         UINT64 ( STDMETHODCALLTYPE *GetLastWriteTime )( 
             IMGDFFile * This);
@@ -1859,18 +1932,6 @@ EXTERN_C const IID IID_IMGDFFile;
     ( (This)->lpVtbl -> Release(This) ) 
 
 
-#define IMGDFFile_GetName(This)	\
-    ( (This)->lpVtbl -> GetName(This) ) 
-
-#define IMGDFFile_GetParent(This,parent)	\
-    ( (This)->lpVtbl -> GetParent(This,parent) ) 
-
-#define IMGDFFile_GetChild(This,name,child)	\
-    ( (This)->lpVtbl -> GetChild(This,name,child) ) 
-
-#define IMGDFFile_GetAllChildren(This,childBuffer)	\
-    ( (This)->lpVtbl -> GetAllChildren(This,childBuffer) ) 
-
 #define IMGDFFile_GetChildCount(This)	\
     ( (This)->lpVtbl -> GetChildCount(This) ) 
 
@@ -1882,18 +1943,6 @@ EXTERN_C const IID IID_IMGDFFile;
 
 #define IMGDFFile_Open(This,reader)	\
     ( (This)->lpVtbl -> Open(This,reader) ) 
-
-#define IMGDFFile_IsArchive(This)	\
-    ( (This)->lpVtbl -> IsArchive(This) ) 
-
-#define IMGDFFile_GetArchiveName(This)	\
-    ( (This)->lpVtbl -> GetArchiveName(This) ) 
-
-#define IMGDFFile_GetPhysicalPath(This)	\
-    ( (This)->lpVtbl -> GetPhysicalPath(This) ) 
-
-#define IMGDFFile_GetLogicalPath(This)	\
-    ( (This)->lpVtbl -> GetLogicalPath(This) ) 
 
 #define IMGDFFile_GetLastWriteTime(This)	\
     ( (This)->lpVtbl -> GetLastWriteTime(This) ) 
@@ -1907,6 +1956,356 @@ EXTERN_C const IID IID_IMGDFFile;
 
 
 #endif 	/* __IMGDFFile_INTERFACE_DEFINED__ */
+
+
+#ifndef __IMGDFReadOnlyFile_INTERFACE_DEFINED__
+#define __IMGDFReadOnlyFile_INTERFACE_DEFINED__
+
+/* interface IMGDFReadOnlyFile */
+/* [local][object][uuid] */ 
+
+
+EXTERN_C const IID IID_IMGDFReadOnlyFile;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("D7F3A3C2-BEDB-4C20-8DD6-452793A11BE1")
+    IMGDFReadOnlyFile : public IMGDFFile
+    {
+    public:
+        virtual const wchar_t *STDMETHODCALLTYPE GetName( void) = 0;
+        
+        virtual const wchar_t *STDMETHODCALLTYPE GetPhysicalPath( void) = 0;
+        
+        virtual BOOL STDMETHODCALLTYPE GetParent( 
+            IMGDFReadOnlyFile **parent) = 0;
+        
+        virtual BOOL STDMETHODCALLTYPE GetChild( 
+            /* [in] */ const wchar_t *name,
+            /* [out] */ IMGDFReadOnlyFile **child) = 0;
+        
+        virtual void STDMETHODCALLTYPE GetAllChildren( 
+            /* [out] */ IMGDFReadOnlyFile **childBuffer) = 0;
+        
+        virtual BOOL STDMETHODCALLTYPE IsArchive( void) = 0;
+        
+        virtual const wchar_t *STDMETHODCALLTYPE GetArchiveName( void) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IMGDFReadOnlyFileVtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IMGDFReadOnlyFile * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IMGDFReadOnlyFile * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IMGDFReadOnlyFile * This);
+        
+        UINT64 ( STDMETHODCALLTYPE *GetChildCount )( 
+            IMGDFReadOnlyFile * This);
+        
+        BOOL ( STDMETHODCALLTYPE *IsFolder )( 
+            IMGDFReadOnlyFile * This);
+        
+        BOOL ( STDMETHODCALLTYPE *IsOpen )( 
+            IMGDFReadOnlyFile * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *Open )( 
+            IMGDFReadOnlyFile * This,
+            /* [out] */ IMGDFFileReader **reader);
+        
+        UINT64 ( STDMETHODCALLTYPE *GetLastWriteTime )( 
+            IMGDFReadOnlyFile * This);
+        
+        const wchar_t *( STDMETHODCALLTYPE *GetName )( 
+            IMGDFReadOnlyFile * This);
+        
+        const wchar_t *( STDMETHODCALLTYPE *GetPhysicalPath )( 
+            IMGDFReadOnlyFile * This);
+        
+        BOOL ( STDMETHODCALLTYPE *GetParent )( 
+            IMGDFReadOnlyFile * This,
+            IMGDFReadOnlyFile **parent);
+        
+        BOOL ( STDMETHODCALLTYPE *GetChild )( 
+            IMGDFReadOnlyFile * This,
+            /* [in] */ const wchar_t *name,
+            /* [out] */ IMGDFReadOnlyFile **child);
+        
+        void ( STDMETHODCALLTYPE *GetAllChildren )( 
+            IMGDFReadOnlyFile * This,
+            /* [out] */ IMGDFReadOnlyFile **childBuffer);
+        
+        BOOL ( STDMETHODCALLTYPE *IsArchive )( 
+            IMGDFReadOnlyFile * This);
+        
+        const wchar_t *( STDMETHODCALLTYPE *GetArchiveName )( 
+            IMGDFReadOnlyFile * This);
+        
+        END_INTERFACE
+    } IMGDFReadOnlyFileVtbl;
+
+    interface IMGDFReadOnlyFile
+    {
+        CONST_VTBL struct IMGDFReadOnlyFileVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IMGDFReadOnlyFile_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IMGDFReadOnlyFile_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IMGDFReadOnlyFile_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IMGDFReadOnlyFile_GetChildCount(This)	\
+    ( (This)->lpVtbl -> GetChildCount(This) ) 
+
+#define IMGDFReadOnlyFile_IsFolder(This)	\
+    ( (This)->lpVtbl -> IsFolder(This) ) 
+
+#define IMGDFReadOnlyFile_IsOpen(This)	\
+    ( (This)->lpVtbl -> IsOpen(This) ) 
+
+#define IMGDFReadOnlyFile_Open(This,reader)	\
+    ( (This)->lpVtbl -> Open(This,reader) ) 
+
+#define IMGDFReadOnlyFile_GetLastWriteTime(This)	\
+    ( (This)->lpVtbl -> GetLastWriteTime(This) ) 
+
+
+#define IMGDFReadOnlyFile_GetName(This)	\
+    ( (This)->lpVtbl -> GetName(This) ) 
+
+#define IMGDFReadOnlyFile_GetPhysicalPath(This)	\
+    ( (This)->lpVtbl -> GetPhysicalPath(This) ) 
+
+#define IMGDFReadOnlyFile_GetParent(This,parent)	\
+    ( (This)->lpVtbl -> GetParent(This,parent) ) 
+
+#define IMGDFReadOnlyFile_GetChild(This,name,child)	\
+    ( (This)->lpVtbl -> GetChild(This,name,child) ) 
+
+#define IMGDFReadOnlyFile_GetAllChildren(This,childBuffer)	\
+    ( (This)->lpVtbl -> GetAllChildren(This,childBuffer) ) 
+
+#define IMGDFReadOnlyFile_IsArchive(This)	\
+    ( (This)->lpVtbl -> IsArchive(This) ) 
+
+#define IMGDFReadOnlyFile_GetArchiveName(This)	\
+    ( (This)->lpVtbl -> GetArchiveName(This) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IMGDFReadOnlyFile_INTERFACE_DEFINED__ */
+
+
+#ifndef __IMGDFWriteableFile_INTERFACE_DEFINED__
+#define __IMGDFWriteableFile_INTERFACE_DEFINED__
+
+/* interface IMGDFWriteableFile */
+/* [local][object][uuid] */ 
+
+
+EXTERN_C const IID IID_IMGDFWriteableFile;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("8B17D0A7-9A51-4D28-A5A2-84F38CD5A86E")
+    IMGDFWriteableFile : public IMGDFFile
+    {
+    public:
+        virtual BOOL STDMETHODCALLTYPE Exists( void) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE GetName( 
+            /* [out][in] */ wchar_t *name,
+            /* [out][in] */ UINT64 *length) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE GetPhysicalPath( 
+            /* [out][in] */ wchar_t *name,
+            /* [out][in] */ UINT64 *length) = 0;
+        
+        virtual BOOL STDMETHODCALLTYPE GetParent( 
+            IMGDFWriteableFile **parent) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE GetChild( 
+            /* [in] */ const wchar_t *name,
+            /* [out] */ IMGDFWriteableFile **child) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE GetAllChildren( 
+            /* [out] */ IMGDFWriteableFile **childBuffer) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE OpenWrite( 
+            /* [out] */ IMGDFFileWriter **writer) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE CreateFolder( void) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IMGDFWriteableFileVtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IMGDFWriteableFile * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IMGDFWriteableFile * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IMGDFWriteableFile * This);
+        
+        UINT64 ( STDMETHODCALLTYPE *GetChildCount )( 
+            IMGDFWriteableFile * This);
+        
+        BOOL ( STDMETHODCALLTYPE *IsFolder )( 
+            IMGDFWriteableFile * This);
+        
+        BOOL ( STDMETHODCALLTYPE *IsOpen )( 
+            IMGDFWriteableFile * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *Open )( 
+            IMGDFWriteableFile * This,
+            /* [out] */ IMGDFFileReader **reader);
+        
+        UINT64 ( STDMETHODCALLTYPE *GetLastWriteTime )( 
+            IMGDFWriteableFile * This);
+        
+        BOOL ( STDMETHODCALLTYPE *Exists )( 
+            IMGDFWriteableFile * This);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetName )( 
+            IMGDFWriteableFile * This,
+            /* [out][in] */ wchar_t *name,
+            /* [out][in] */ UINT64 *length);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetPhysicalPath )( 
+            IMGDFWriteableFile * This,
+            /* [out][in] */ wchar_t *name,
+            /* [out][in] */ UINT64 *length);
+        
+        BOOL ( STDMETHODCALLTYPE *GetParent )( 
+            IMGDFWriteableFile * This,
+            IMGDFWriteableFile **parent);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetChild )( 
+            IMGDFWriteableFile * This,
+            /* [in] */ const wchar_t *name,
+            /* [out] */ IMGDFWriteableFile **child);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetAllChildren )( 
+            IMGDFWriteableFile * This,
+            /* [out] */ IMGDFWriteableFile **childBuffer);
+        
+        HRESULT ( STDMETHODCALLTYPE *OpenWrite )( 
+            IMGDFWriteableFile * This,
+            /* [out] */ IMGDFFileWriter **writer);
+        
+        HRESULT ( STDMETHODCALLTYPE *CreateFolder )( 
+            IMGDFWriteableFile * This);
+        
+        END_INTERFACE
+    } IMGDFWriteableFileVtbl;
+
+    interface IMGDFWriteableFile
+    {
+        CONST_VTBL struct IMGDFWriteableFileVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IMGDFWriteableFile_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IMGDFWriteableFile_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IMGDFWriteableFile_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IMGDFWriteableFile_GetChildCount(This)	\
+    ( (This)->lpVtbl -> GetChildCount(This) ) 
+
+#define IMGDFWriteableFile_IsFolder(This)	\
+    ( (This)->lpVtbl -> IsFolder(This) ) 
+
+#define IMGDFWriteableFile_IsOpen(This)	\
+    ( (This)->lpVtbl -> IsOpen(This) ) 
+
+#define IMGDFWriteableFile_Open(This,reader)	\
+    ( (This)->lpVtbl -> Open(This,reader) ) 
+
+#define IMGDFWriteableFile_GetLastWriteTime(This)	\
+    ( (This)->lpVtbl -> GetLastWriteTime(This) ) 
+
+
+#define IMGDFWriteableFile_Exists(This)	\
+    ( (This)->lpVtbl -> Exists(This) ) 
+
+#define IMGDFWriteableFile_GetName(This,name,length)	\
+    ( (This)->lpVtbl -> GetName(This,name,length) ) 
+
+#define IMGDFWriteableFile_GetPhysicalPath(This,name,length)	\
+    ( (This)->lpVtbl -> GetPhysicalPath(This,name,length) ) 
+
+#define IMGDFWriteableFile_GetParent(This,parent)	\
+    ( (This)->lpVtbl -> GetParent(This,parent) ) 
+
+#define IMGDFWriteableFile_GetChild(This,name,child)	\
+    ( (This)->lpVtbl -> GetChild(This,name,child) ) 
+
+#define IMGDFWriteableFile_GetAllChildren(This,childBuffer)	\
+    ( (This)->lpVtbl -> GetAllChildren(This,childBuffer) ) 
+
+#define IMGDFWriteableFile_OpenWrite(This,writer)	\
+    ( (This)->lpVtbl -> OpenWrite(This,writer) ) 
+
+#define IMGDFWriteableFile_CreateFolder(This)	\
+    ( (This)->lpVtbl -> CreateFolder(This) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IMGDFWriteableFile_INTERFACE_DEFINED__ */
 
 
 #ifndef __IMGDFArchiveHandler_INTERFACE_DEFINED__
@@ -1927,8 +2326,8 @@ EXTERN_C const IID IID_IMGDFArchiveHandler;
         virtual HRESULT STDMETHODCALLTYPE MapArchive( 
             /* [in] */ const wchar_t *name,
             /* [in] */ const wchar_t *physicalPath,
-            /* [in] */ IMGDFFile *parent,
-            /* [out] */ IMGDFFile **root) = 0;
+            /* [in] */ IMGDFReadOnlyFile *parent,
+            /* [out] */ IMGDFReadOnlyFile **root) = 0;
         
         virtual BOOL STDMETHODCALLTYPE IsArchive( 
             /* [in] */ const wchar_t *physicalPath) = 0;
@@ -1958,8 +2357,8 @@ EXTERN_C const IID IID_IMGDFArchiveHandler;
             IMGDFArchiveHandler * This,
             /* [in] */ const wchar_t *name,
             /* [in] */ const wchar_t *physicalPath,
-            /* [in] */ IMGDFFile *parent,
-            /* [out] */ IMGDFFile **root);
+            /* [in] */ IMGDFReadOnlyFile *parent,
+            /* [out] */ IMGDFReadOnlyFile **root);
         
         BOOL ( STDMETHODCALLTYPE *IsArchive )( 
             IMGDFArchiveHandler * This,
@@ -2005,64 +2404,64 @@ EXTERN_C const IID IID_IMGDFArchiveHandler;
 #endif 	/* __IMGDFArchiveHandler_INTERFACE_DEFINED__ */
 
 
-#ifndef __IMGDFVirtualFileSystem_INTERFACE_DEFINED__
-#define __IMGDFVirtualFileSystem_INTERFACE_DEFINED__
+#ifndef __IMGDFReadOnlyVirtualFileSystem_INTERFACE_DEFINED__
+#define __IMGDFReadOnlyVirtualFileSystem_INTERFACE_DEFINED__
 
-/* interface IMGDFVirtualFileSystem */
+/* interface IMGDFReadOnlyVirtualFileSystem */
 /* [local][object][uuid] */ 
 
 
-EXTERN_C const IID IID_IMGDFVirtualFileSystem;
+EXTERN_C const IID IID_IMGDFReadOnlyVirtualFileSystem;
 
 #if defined(__cplusplus) && !defined(CINTERFACE)
     
     MIDL_INTERFACE("235AB71E-BAE5-4ACB-BA98-82086378C939")
-    IMGDFVirtualFileSystem : public IUnknown
+    IMGDFReadOnlyVirtualFileSystem : public IUnknown
     {
     public:
         virtual BOOL STDMETHODCALLTYPE GetFile( 
             /* [in] */ const wchar_t *logicalPath,
-            /* [out] */ IMGDFFile **file) = 0;
+            /* [out] */ IMGDFReadOnlyFile **file) = 0;
         
         virtual void STDMETHODCALLTYPE GetRoot( 
-            /* [out] */ IMGDFFile **root) = 0;
+            /* [out] */ IMGDFReadOnlyFile **root) = 0;
         
     };
     
     
 #else 	/* C style interface */
 
-    typedef struct IMGDFVirtualFileSystemVtbl
+    typedef struct IMGDFReadOnlyVirtualFileSystemVtbl
     {
         BEGIN_INTERFACE
         
         HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
-            IMGDFVirtualFileSystem * This,
+            IMGDFReadOnlyVirtualFileSystem * This,
             /* [in] */ REFIID riid,
             /* [annotation][iid_is][out] */ 
             _COM_Outptr_  void **ppvObject);
         
         ULONG ( STDMETHODCALLTYPE *AddRef )( 
-            IMGDFVirtualFileSystem * This);
+            IMGDFReadOnlyVirtualFileSystem * This);
         
         ULONG ( STDMETHODCALLTYPE *Release )( 
-            IMGDFVirtualFileSystem * This);
+            IMGDFReadOnlyVirtualFileSystem * This);
         
         BOOL ( STDMETHODCALLTYPE *GetFile )( 
-            IMGDFVirtualFileSystem * This,
+            IMGDFReadOnlyVirtualFileSystem * This,
             /* [in] */ const wchar_t *logicalPath,
-            /* [out] */ IMGDFFile **file);
+            /* [out] */ IMGDFReadOnlyFile **file);
         
         void ( STDMETHODCALLTYPE *GetRoot )( 
-            IMGDFVirtualFileSystem * This,
-            /* [out] */ IMGDFFile **root);
+            IMGDFReadOnlyVirtualFileSystem * This,
+            /* [out] */ IMGDFReadOnlyFile **root);
         
         END_INTERFACE
-    } IMGDFVirtualFileSystemVtbl;
+    } IMGDFReadOnlyVirtualFileSystemVtbl;
 
-    interface IMGDFVirtualFileSystem
+    interface IMGDFReadOnlyVirtualFileSystem
     {
-        CONST_VTBL struct IMGDFVirtualFileSystemVtbl *lpVtbl;
+        CONST_VTBL struct IMGDFReadOnlyVirtualFileSystemVtbl *lpVtbl;
     };
 
     
@@ -2070,20 +2469,20 @@ EXTERN_C const IID IID_IMGDFVirtualFileSystem;
 #ifdef COBJMACROS
 
 
-#define IMGDFVirtualFileSystem_QueryInterface(This,riid,ppvObject)	\
+#define IMGDFReadOnlyVirtualFileSystem_QueryInterface(This,riid,ppvObject)	\
     ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
 
-#define IMGDFVirtualFileSystem_AddRef(This)	\
+#define IMGDFReadOnlyVirtualFileSystem_AddRef(This)	\
     ( (This)->lpVtbl -> AddRef(This) ) 
 
-#define IMGDFVirtualFileSystem_Release(This)	\
+#define IMGDFReadOnlyVirtualFileSystem_Release(This)	\
     ( (This)->lpVtbl -> Release(This) ) 
 
 
-#define IMGDFVirtualFileSystem_GetFile(This,logicalPath,file)	\
+#define IMGDFReadOnlyVirtualFileSystem_GetFile(This,logicalPath,file)	\
     ( (This)->lpVtbl -> GetFile(This,logicalPath,file) ) 
 
-#define IMGDFVirtualFileSystem_GetRoot(This,root)	\
+#define IMGDFReadOnlyVirtualFileSystem_GetRoot(This,root)	\
     ( (This)->lpVtbl -> GetRoot(This,root) ) 
 
 #endif /* COBJMACROS */
@@ -2094,10 +2493,102 @@ EXTERN_C const IID IID_IMGDFVirtualFileSystem;
 
 
 
-#endif 	/* __IMGDFVirtualFileSystem_INTERFACE_DEFINED__ */
+#endif 	/* __IMGDFReadOnlyVirtualFileSystem_INTERFACE_DEFINED__ */
 
 
-/* interface __MIDL_itf_MGDF_0000_0013 */
+#ifndef __IMGDFWriteableVirtualFileSystem_INTERFACE_DEFINED__
+#define __IMGDFWriteableVirtualFileSystem_INTERFACE_DEFINED__
+
+/* interface IMGDFWriteableVirtualFileSystem */
+/* [local][object][uuid] */ 
+
+
+EXTERN_C const IID IID_IMGDFWriteableVirtualFileSystem;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("2EAC465E-F424-43EB-AEE8-EA930215A811")
+    IMGDFWriteableVirtualFileSystem : public IUnknown
+    {
+    public:
+        virtual BOOL STDMETHODCALLTYPE GetFile( 
+            /* [in] */ const wchar_t *logicalPath,
+            /* [out] */ IMGDFWriteableFile **file) = 0;
+        
+        virtual void STDMETHODCALLTYPE GetRoot( 
+            /* [out] */ IMGDFWriteableFile **root) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IMGDFWriteableVirtualFileSystemVtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IMGDFWriteableVirtualFileSystem * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IMGDFWriteableVirtualFileSystem * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IMGDFWriteableVirtualFileSystem * This);
+        
+        BOOL ( STDMETHODCALLTYPE *GetFile )( 
+            IMGDFWriteableVirtualFileSystem * This,
+            /* [in] */ const wchar_t *logicalPath,
+            /* [out] */ IMGDFWriteableFile **file);
+        
+        void ( STDMETHODCALLTYPE *GetRoot )( 
+            IMGDFWriteableVirtualFileSystem * This,
+            /* [out] */ IMGDFWriteableFile **root);
+        
+        END_INTERFACE
+    } IMGDFWriteableVirtualFileSystemVtbl;
+
+    interface IMGDFWriteableVirtualFileSystem
+    {
+        CONST_VTBL struct IMGDFWriteableVirtualFileSystemVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IMGDFWriteableVirtualFileSystem_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IMGDFWriteableVirtualFileSystem_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IMGDFWriteableVirtualFileSystem_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IMGDFWriteableVirtualFileSystem_GetFile(This,logicalPath,file)	\
+    ( (This)->lpVtbl -> GetFile(This,logicalPath,file) ) 
+
+#define IMGDFWriteableVirtualFileSystem_GetRoot(This,root)	\
+    ( (This)->lpVtbl -> GetRoot(This,root) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IMGDFWriteableVirtualFileSystem_INTERFACE_DEFINED__ */
+
+
+/* interface __MIDL_itf_MGDF_0000_0017 */
 /* [local] */ 
 
 typedef struct MGDFSoundPosition
@@ -2109,8 +2600,8 @@ typedef struct MGDFSoundPosition
 
 
 
-extern RPC_IF_HANDLE __MIDL_itf_MGDF_0000_0013_v0_0_c_ifspec;
-extern RPC_IF_HANDLE __MIDL_itf_MGDF_0000_0013_v0_0_s_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_MGDF_0000_0017_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_MGDF_0000_0017_v0_0_s_ifspec;
 
 #ifndef __IMGDFSound_INTERFACE_DEFINED__
 #define __IMGDFSound_INTERFACE_DEFINED__
@@ -2645,12 +3136,12 @@ EXTERN_C const IID IID_IMGDFSoundManager;
             float speedOfSound) = 0;
         
         virtual HRESULT STDMETHODCALLTYPE CreateSound( 
-            /* [in] */ IMGDFFile *file,
+            /* [in] */ IMGDFReadOnlyFile *file,
             INT32 priority,
             /* [out] */ IMGDFSound **sound) = 0;
         
         virtual HRESULT STDMETHODCALLTYPE CreateSoundStream( 
-            /* [in] */ IMGDFFile *file,
+            /* [in] */ IMGDFReadOnlyFile *file,
             /* [out] */ IMGDFSoundStream **stream) = 0;
         
         virtual void STDMETHODCALLTYPE GetPreferences( 
@@ -2746,13 +3237,13 @@ EXTERN_C const IID IID_IMGDFSoundManager;
         
         HRESULT ( STDMETHODCALLTYPE *CreateSound )( 
             IMGDFSoundManager * This,
-            /* [in] */ IMGDFFile *file,
+            /* [in] */ IMGDFReadOnlyFile *file,
             INT32 priority,
             /* [out] */ IMGDFSound **sound);
         
         HRESULT ( STDMETHODCALLTYPE *CreateSoundStream )( 
             IMGDFSoundManager * This,
-            /* [in] */ IMGDFFile *file,
+            /* [in] */ IMGDFReadOnlyFile *file,
             /* [out] */ IMGDFSoundStream **stream);
         
         void ( STDMETHODCALLTYPE *GetPreferences )( 
@@ -2966,11 +3457,16 @@ EXTERN_C const IID IID_IMGDFCommonHost;
         virtual const MGDFVersion *STDMETHODCALLTYPE GetMGDFVersion( void) = 0;
         
         virtual void STDMETHODCALLTYPE GetVFS( 
-            /* [out] */ IMGDFVirtualFileSystem **vfs) = 0;
+            /* [out] */ IMGDFReadOnlyVirtualFileSystem **vfs) = 0;
         
-        virtual ID3D11Device *STDMETHODCALLTYPE GetD3DDevice( void) = 0;
+        virtual void STDMETHODCALLTYPE GetWorkingVFS( 
+            /* [out] */ IMGDFWriteableVirtualFileSystem **vfs) = 0;
         
-        virtual ID2D1Device *STDMETHODCALLTYPE GetD2DDevice( void) = 0;
+        virtual void STDMETHODCALLTYPE GetD3DDevice( 
+            /* [out] */ ID3D11Device **device) = 0;
+        
+        virtual void STDMETHODCALLTYPE GetD2DDevice( 
+            /* [out] */ ID2D1Device **device) = 0;
         
         virtual void STDMETHODCALLTYPE GetDebug( 
             /* [out] */ IMGDFDebug **debug) = 0;
@@ -3031,13 +3527,19 @@ EXTERN_C const IID IID_IMGDFCommonHost;
         
         void ( STDMETHODCALLTYPE *GetVFS )( 
             IMGDFCommonHost * This,
-            /* [out] */ IMGDFVirtualFileSystem **vfs);
+            /* [out] */ IMGDFReadOnlyVirtualFileSystem **vfs);
         
-        ID3D11Device *( STDMETHODCALLTYPE *GetD3DDevice )( 
-            IMGDFCommonHost * This);
+        void ( STDMETHODCALLTYPE *GetWorkingVFS )( 
+            IMGDFCommonHost * This,
+            /* [out] */ IMGDFWriteableVirtualFileSystem **vfs);
         
-        ID2D1Device *( STDMETHODCALLTYPE *GetD2DDevice )( 
-            IMGDFCommonHost * This);
+        void ( STDMETHODCALLTYPE *GetD3DDevice )( 
+            IMGDFCommonHost * This,
+            /* [out] */ ID3D11Device **device);
+        
+        void ( STDMETHODCALLTYPE *GetD2DDevice )( 
+            IMGDFCommonHost * This,
+            /* [out] */ ID2D1Device **device);
         
         void ( STDMETHODCALLTYPE *GetDebug )( 
             IMGDFCommonHost * This,
@@ -3096,11 +3598,14 @@ EXTERN_C const IID IID_IMGDFCommonHost;
 #define IMGDFCommonHost_GetVFS(This,vfs)	\
     ( (This)->lpVtbl -> GetVFS(This,vfs) ) 
 
-#define IMGDFCommonHost_GetD3DDevice(This)	\
-    ( (This)->lpVtbl -> GetD3DDevice(This) ) 
+#define IMGDFCommonHost_GetWorkingVFS(This,vfs)	\
+    ( (This)->lpVtbl -> GetWorkingVFS(This,vfs) ) 
 
-#define IMGDFCommonHost_GetD2DDevice(This)	\
-    ( (This)->lpVtbl -> GetD2DDevice(This) ) 
+#define IMGDFCommonHost_GetD3DDevice(This,device)	\
+    ( (This)->lpVtbl -> GetD3DDevice(This,device) ) 
+
+#define IMGDFCommonHost_GetD2DDevice(This,device)	\
+    ( (This)->lpVtbl -> GetD2DDevice(This,device) ) 
 
 #define IMGDFCommonHost_GetDebug(This,debug)	\
     ( (This)->lpVtbl -> GetDebug(This,debug) ) 
@@ -3134,14 +3639,14 @@ EXTERN_C const IID IID_IMGDFRenderHost;
     IMGDFRenderHost : public IMGDFCommonHost
     {
     public:
-        virtual ID3D11DeviceContext *STDMETHODCALLTYPE GetD3DImmediateContext( void) = 0;
-        
         virtual BOOL STDMETHODCALLTYPE SetBackBufferRenderTarget( 
             ID2D1DeviceContext *context) = 0;
         
-        virtual ID3D11Texture2D *STDMETHODCALLTYPE GetBackBuffer( void) = 0;
+        virtual void STDMETHODCALLTYPE GetBackBuffer( 
+            /* [out] */ ID3D11Texture2D **backbuffer) = 0;
         
-        virtual ID3D11Texture2D *STDMETHODCALLTYPE GetDepthStencilBuffer( void) = 0;
+        virtual void STDMETHODCALLTYPE GetDepthStencilBuffer( 
+            /* [out] */ ID3D11Texture2D **stencilBuffer) = 0;
         
         virtual void STDMETHODCALLTYPE GetBackBufferDescription( 
             D3D11_TEXTURE2D_DESC *backBufferDesc,
@@ -3203,13 +3708,19 @@ EXTERN_C const IID IID_IMGDFRenderHost;
         
         void ( STDMETHODCALLTYPE *GetVFS )( 
             IMGDFRenderHost * This,
-            /* [out] */ IMGDFVirtualFileSystem **vfs);
+            /* [out] */ IMGDFReadOnlyVirtualFileSystem **vfs);
         
-        ID3D11Device *( STDMETHODCALLTYPE *GetD3DDevice )( 
-            IMGDFRenderHost * This);
+        void ( STDMETHODCALLTYPE *GetWorkingVFS )( 
+            IMGDFRenderHost * This,
+            /* [out] */ IMGDFWriteableVirtualFileSystem **vfs);
         
-        ID2D1Device *( STDMETHODCALLTYPE *GetD2DDevice )( 
-            IMGDFRenderHost * This);
+        void ( STDMETHODCALLTYPE *GetD3DDevice )( 
+            IMGDFRenderHost * This,
+            /* [out] */ ID3D11Device **device);
+        
+        void ( STDMETHODCALLTYPE *GetD2DDevice )( 
+            IMGDFRenderHost * This,
+            /* [out] */ ID2D1Device **device);
         
         void ( STDMETHODCALLTYPE *GetDebug )( 
             IMGDFRenderHost * This,
@@ -3220,18 +3731,17 @@ EXTERN_C const IID IID_IMGDFRenderHost;
             /* [in] */ const small *name,
             /* [out] */ IMGDFPerformanceCounter **counter);
         
-        ID3D11DeviceContext *( STDMETHODCALLTYPE *GetD3DImmediateContext )( 
-            IMGDFRenderHost * This);
-        
         BOOL ( STDMETHODCALLTYPE *SetBackBufferRenderTarget )( 
             IMGDFRenderHost * This,
             ID2D1DeviceContext *context);
         
-        ID3D11Texture2D *( STDMETHODCALLTYPE *GetBackBuffer )( 
-            IMGDFRenderHost * This);
+        void ( STDMETHODCALLTYPE *GetBackBuffer )( 
+            IMGDFRenderHost * This,
+            /* [out] */ ID3D11Texture2D **backbuffer);
         
-        ID3D11Texture2D *( STDMETHODCALLTYPE *GetDepthStencilBuffer )( 
-            IMGDFRenderHost * This);
+        void ( STDMETHODCALLTYPE *GetDepthStencilBuffer )( 
+            IMGDFRenderHost * This,
+            /* [out] */ ID3D11Texture2D **stencilBuffer);
         
         void ( STDMETHODCALLTYPE *GetBackBufferDescription )( 
             IMGDFRenderHost * This,
@@ -3291,11 +3801,14 @@ EXTERN_C const IID IID_IMGDFRenderHost;
 #define IMGDFRenderHost_GetVFS(This,vfs)	\
     ( (This)->lpVtbl -> GetVFS(This,vfs) ) 
 
-#define IMGDFRenderHost_GetD3DDevice(This)	\
-    ( (This)->lpVtbl -> GetD3DDevice(This) ) 
+#define IMGDFRenderHost_GetWorkingVFS(This,vfs)	\
+    ( (This)->lpVtbl -> GetWorkingVFS(This,vfs) ) 
 
-#define IMGDFRenderHost_GetD2DDevice(This)	\
-    ( (This)->lpVtbl -> GetD2DDevice(This) ) 
+#define IMGDFRenderHost_GetD3DDevice(This,device)	\
+    ( (This)->lpVtbl -> GetD3DDevice(This,device) ) 
+
+#define IMGDFRenderHost_GetD2DDevice(This,device)	\
+    ( (This)->lpVtbl -> GetD2DDevice(This,device) ) 
 
 #define IMGDFRenderHost_GetDebug(This,debug)	\
     ( (This)->lpVtbl -> GetDebug(This,debug) ) 
@@ -3304,17 +3817,14 @@ EXTERN_C const IID IID_IMGDFRenderHost;
     ( (This)->lpVtbl -> CreateCPUCounter(This,name,counter) ) 
 
 
-#define IMGDFRenderHost_GetD3DImmediateContext(This)	\
-    ( (This)->lpVtbl -> GetD3DImmediateContext(This) ) 
-
 #define IMGDFRenderHost_SetBackBufferRenderTarget(This,context)	\
     ( (This)->lpVtbl -> SetBackBufferRenderTarget(This,context) ) 
 
-#define IMGDFRenderHost_GetBackBuffer(This)	\
-    ( (This)->lpVtbl -> GetBackBuffer(This) ) 
+#define IMGDFRenderHost_GetBackBuffer(This,backbuffer)	\
+    ( (This)->lpVtbl -> GetBackBuffer(This,backbuffer) ) 
 
-#define IMGDFRenderHost_GetDepthStencilBuffer(This)	\
-    ( (This)->lpVtbl -> GetDepthStencilBuffer(This) ) 
+#define IMGDFRenderHost_GetDepthStencilBuffer(This,stencilBuffer)	\
+    ( (This)->lpVtbl -> GetDepthStencilBuffer(This,stencilBuffer) ) 
 
 #define IMGDFRenderHost_GetBackBufferDescription(This,backBufferDesc,depthStencilBufferDesc)	\
     ( (This)->lpVtbl -> GetBackBufferDescription(This,backBufferDesc,depthStencilBufferDesc) ) 
@@ -3331,88 +3841,6 @@ EXTERN_C const IID IID_IMGDFRenderHost;
 
 
 #endif 	/* __IMGDFRenderHost_INTERFACE_DEFINED__ */
-
-
-#ifndef __IMGDFPendingSave_INTERFACE_DEFINED__
-#define __IMGDFPendingSave_INTERFACE_DEFINED__
-
-/* interface IMGDFPendingSave */
-/* [local][object][uuid] */ 
-
-
-EXTERN_C const IID IID_IMGDFPendingSave;
-
-#if defined(__cplusplus) && !defined(CINTERFACE)
-    
-    MIDL_INTERFACE("55333E24-25ED-452B-9CDC-9031A9584C59")
-    IMGDFPendingSave : public IUnknown
-    {
-    public:
-        virtual HRESULT STDMETHODCALLTYPE GetSaveDataLocation( 
-            /* [out][in] */ wchar_t *folder,
-            /* [out][in] */ UINT64 *size) = 0;
-        
-    };
-    
-    
-#else 	/* C style interface */
-
-    typedef struct IMGDFPendingSaveVtbl
-    {
-        BEGIN_INTERFACE
-        
-        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
-            IMGDFPendingSave * This,
-            /* [in] */ REFIID riid,
-            /* [annotation][iid_is][out] */ 
-            _COM_Outptr_  void **ppvObject);
-        
-        ULONG ( STDMETHODCALLTYPE *AddRef )( 
-            IMGDFPendingSave * This);
-        
-        ULONG ( STDMETHODCALLTYPE *Release )( 
-            IMGDFPendingSave * This);
-        
-        HRESULT ( STDMETHODCALLTYPE *GetSaveDataLocation )( 
-            IMGDFPendingSave * This,
-            /* [out][in] */ wchar_t *folder,
-            /* [out][in] */ UINT64 *size);
-        
-        END_INTERFACE
-    } IMGDFPendingSaveVtbl;
-
-    interface IMGDFPendingSave
-    {
-        CONST_VTBL struct IMGDFPendingSaveVtbl *lpVtbl;
-    };
-
-    
-
-#ifdef COBJMACROS
-
-
-#define IMGDFPendingSave_QueryInterface(This,riid,ppvObject)	\
-    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
-
-#define IMGDFPendingSave_AddRef(This)	\
-    ( (This)->lpVtbl -> AddRef(This) ) 
-
-#define IMGDFPendingSave_Release(This)	\
-    ( (This)->lpVtbl -> Release(This) ) 
-
-
-#define IMGDFPendingSave_GetSaveDataLocation(This,folder,size)	\
-    ( (This)->lpVtbl -> GetSaveDataLocation(This,folder,size) ) 
-
-#endif /* COBJMACROS */
-
-
-#endif 	/* C style interface */
-
-
-
-
-#endif 	/* __IMGDFPendingSave_INTERFACE_DEFINED__ */
 
 
 #ifndef __IMGDFGameState_INTERFACE_DEFINED__
@@ -3439,17 +3867,16 @@ EXTERN_C const IID IID_IMGDFGameState;
             /* [out][in] */ const small *key,
             /* [out][in] */ const small *value) = 0;
         
-        virtual HRESULT STDMETHODCALLTYPE GetSaveDataLocation( 
-            /* [out][in] */ wchar_t *folder,
-            /* [out][in] */ UINT64 *size) = 0;
-        
         virtual BOOL STDMETHODCALLTYPE IsNew( void) = 0;
         
         virtual void STDMETHODCALLTYPE GetVersion( 
-            MGDFVersion *version) = 0;
+            /* [out][in] */ MGDFVersion *version) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE GetVFS( 
+            /* [out] */ IMGDFReadOnlyVirtualFileSystem **vfs) = 0;
         
         virtual HRESULT STDMETHODCALLTYPE BeginSave( 
-            /* [out] */ IMGDFPendingSave **pending) = 0;
+            /* [out] */ IMGDFWriteableVirtualFileSystem **pending) = 0;
         
     };
     
@@ -3483,21 +3910,20 @@ EXTERN_C const IID IID_IMGDFGameState;
             /* [out][in] */ const small *key,
             /* [out][in] */ const small *value);
         
-        HRESULT ( STDMETHODCALLTYPE *GetSaveDataLocation )( 
-            IMGDFGameState * This,
-            /* [out][in] */ wchar_t *folder,
-            /* [out][in] */ UINT64 *size);
-        
         BOOL ( STDMETHODCALLTYPE *IsNew )( 
             IMGDFGameState * This);
         
         void ( STDMETHODCALLTYPE *GetVersion )( 
             IMGDFGameState * This,
-            MGDFVersion *version);
+            /* [out][in] */ MGDFVersion *version);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetVFS )( 
+            IMGDFGameState * This,
+            /* [out] */ IMGDFReadOnlyVirtualFileSystem **vfs);
         
         HRESULT ( STDMETHODCALLTYPE *BeginSave )( 
             IMGDFGameState * This,
-            /* [out] */ IMGDFPendingSave **pending);
+            /* [out] */ IMGDFWriteableVirtualFileSystem **pending);
         
         END_INTERFACE
     } IMGDFGameStateVtbl;
@@ -3528,14 +3954,14 @@ EXTERN_C const IID IID_IMGDFGameState;
 #define IMGDFGameState_SetMetadata(This,key,value)	\
     ( (This)->lpVtbl -> SetMetadata(This,key,value) ) 
 
-#define IMGDFGameState_GetSaveDataLocation(This,folder,size)	\
-    ( (This)->lpVtbl -> GetSaveDataLocation(This,folder,size) ) 
-
 #define IMGDFGameState_IsNew(This)	\
     ( (This)->lpVtbl -> IsNew(This) ) 
 
 #define IMGDFGameState_GetVersion(This,version)	\
     ( (This)->lpVtbl -> GetVersion(This,version) ) 
+
+#define IMGDFGameState_GetVFS(This,vfs)	\
+    ( (This)->lpVtbl -> GetVFS(This,vfs) ) 
 
 #define IMGDFGameState_BeginSave(This,pending)	\
     ( (This)->lpVtbl -> BeginSave(This,pending) ) 
@@ -3747,13 +4173,19 @@ EXTERN_C const IID IID_IMGDFSimHost;
         
         void ( STDMETHODCALLTYPE *GetVFS )( 
             IMGDFSimHost * This,
-            /* [out] */ IMGDFVirtualFileSystem **vfs);
+            /* [out] */ IMGDFReadOnlyVirtualFileSystem **vfs);
         
-        ID3D11Device *( STDMETHODCALLTYPE *GetD3DDevice )( 
-            IMGDFSimHost * This);
+        void ( STDMETHODCALLTYPE *GetWorkingVFS )( 
+            IMGDFSimHost * This,
+            /* [out] */ IMGDFWriteableVirtualFileSystem **vfs);
         
-        ID2D1Device *( STDMETHODCALLTYPE *GetD2DDevice )( 
-            IMGDFSimHost * This);
+        void ( STDMETHODCALLTYPE *GetD3DDevice )( 
+            IMGDFSimHost * This,
+            /* [out] */ ID3D11Device **device);
+        
+        void ( STDMETHODCALLTYPE *GetD2DDevice )( 
+            IMGDFSimHost * This,
+            /* [out] */ ID2D1Device **device);
         
         void ( STDMETHODCALLTYPE *GetDebug )( 
             IMGDFSimHost * This,
@@ -3838,11 +4270,14 @@ EXTERN_C const IID IID_IMGDFSimHost;
 #define IMGDFSimHost_GetVFS(This,vfs)	\
     ( (This)->lpVtbl -> GetVFS(This,vfs) ) 
 
-#define IMGDFSimHost_GetD3DDevice(This)	\
-    ( (This)->lpVtbl -> GetD3DDevice(This) ) 
+#define IMGDFSimHost_GetWorkingVFS(This,vfs)	\
+    ( (This)->lpVtbl -> GetWorkingVFS(This,vfs) ) 
 
-#define IMGDFSimHost_GetD2DDevice(This)	\
-    ( (This)->lpVtbl -> GetD2DDevice(This) ) 
+#define IMGDFSimHost_GetD3DDevice(This,device)	\
+    ( (This)->lpVtbl -> GetD3DDevice(This,device) ) 
+
+#define IMGDFSimHost_GetD2DDevice(This,device)	\
+    ( (This)->lpVtbl -> GetD2DDevice(This,device) ) 
 
 #define IMGDFSimHost_GetDebug(This,debug)	\
     ( (This)->lpVtbl -> GetDebug(This,debug) ) 
@@ -3899,8 +4334,7 @@ EXTERN_C const IID IID_IMGDFModule;
     {
     public:
         virtual BOOL STDMETHODCALLTYPE STNew( 
-            IMGDFSimHost *host,
-            const wchar_t *workingFolder) = 0;
+            IMGDFSimHost *host) = 0;
         
         virtual BOOL STDMETHODCALLTYPE STUpdate( 
             IMGDFSimHost *host,
@@ -3953,8 +4387,7 @@ EXTERN_C const IID IID_IMGDFModule;
         
         BOOL ( STDMETHODCALLTYPE *STNew )( 
             IMGDFModule * This,
-            IMGDFSimHost *host,
-            const wchar_t *workingFolder);
+            IMGDFSimHost *host);
         
         BOOL ( STDMETHODCALLTYPE *STUpdate )( 
             IMGDFModule * This,
@@ -4016,8 +4449,8 @@ EXTERN_C const IID IID_IMGDFModule;
     ( (This)->lpVtbl -> Release(This) ) 
 
 
-#define IMGDFModule_STNew(This,host,workingFolder)	\
-    ( (This)->lpVtbl -> STNew(This,host,workingFolder) ) 
+#define IMGDFModule_STNew(This,host)	\
+    ( (This)->lpVtbl -> STNew(This,host) ) 
 
 #define IMGDFModule_STUpdate(This,host,elapsedTime)	\
     ( (This)->lpVtbl -> STUpdate(This,host,elapsedTime) ) 

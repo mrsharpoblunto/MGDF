@@ -32,8 +32,8 @@ enum VorbisStreamState { NOT_STARTED, PLAY, PAUSE, STOP };
 class VorbisStream : public ComBase<IMGDFSoundStream> {
  public:
   virtual ~VorbisStream();
-  VorbisStream(IMGDFFile *source, OpenALSoundManagerComponentImpl *manager);
-  static HRESULT TryCreate(IMGDFFile *source,
+  VorbisStream(IMGDFReadOnlyFile *source, OpenALSoundManagerComponentImpl *manager);
+  static HRESULT TryCreate(IMGDFReadOnlyFile *source,
                              OpenALSoundManagerComponentImpl *manager,
                              ComObject<VorbisStream> &stream);
 

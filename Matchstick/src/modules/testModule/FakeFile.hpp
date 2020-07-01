@@ -21,19 +21,18 @@ struct WCharCmp {
  instances aswell as the zip and other archive file implementations of the
  standard ifile interface
 */
-class FakeFile : public IMGDFFile, public IMGDFFileReader {
+class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
  public:
   FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-           IMGDFFile *parent);
+           IMGDFReadOnlyFile *parent);
   FakeFile(const std::wstring &name, FakeFile *parent, const std::string &data);
   void AddChild(ComObject<FakeFile> file);
   virtual ~FakeFile(void);
 
-  BOOL GetParent(IMGDFFile **parent) final;
-  BOOL GetChild(const wchar_t *name, IMGDFFile **child) final;
-  void GetAllChildren(IMGDFFile **childBuffer) final;
+  BOOL GetParent(IMGDFReadOnlyFile **parent) final;
+  BOOL GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
+  void GetAllChildren(IMGDFReadOnlyFile **childBuffer) final;
   UINT64 GetChildCount() final;
-  const wchar_t *GetLogicalPath() final;
 
   HRESULT Open(IMGDFFileReader **reader) final;
 
@@ -61,7 +60,7 @@ class FakeFile : public IMGDFFile, public IMGDFFileReader {
 
   std::unique_ptr<std::map<const wchar_t *, ComObject<FakeFile>, WCharCmp>>
       _children;
-  IMGDFFile *_parent;
+  IMGDFReadOnlyFile *_parent;
   std::wstring _name;
   std::wstring _physicalPath;
 

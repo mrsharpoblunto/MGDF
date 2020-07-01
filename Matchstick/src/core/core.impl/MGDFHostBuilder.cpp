@@ -45,7 +45,7 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
     return false;
   }
 
-  if (!vfs::CreateVirtualFileSystemComponentImpl(components.VFS)) {
+  if (!vfs::CreateReadOnlyVirtualFileSystemComponentImpl(components.VFS)) {
     LOG("FATAL ERROR: Unable to register VirtualFileSystem", MGDF_LOG_ERROR);
     return false;
   }

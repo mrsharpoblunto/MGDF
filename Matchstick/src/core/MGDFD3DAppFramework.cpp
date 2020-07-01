@@ -287,6 +287,7 @@ void D3DAppFramework::ReinitD3D() {
   OnBeforeDeviceReset();
   UninitD3D();
   InitD3D();
+  OnDeviceReset();
 }
 
 void D3DAppFramework::UninitD3D() {

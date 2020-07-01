@@ -5,7 +5,7 @@
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
 #include "../../src/core/storage/MGDFStorageFactoryComponentImpl.hpp"
-#include "../../src/core/vfs/MGDFVirtualFileSystemComponentImpl.hpp"
+#include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
 
 using namespace MGDF;
 using namespace MGDF::core;
@@ -22,7 +22,7 @@ SUITE(StorageTests) {
       Resources::Instance(inst);
       Resources::Instance().SetUserBaseDir(true, "junkship");
 
-      CreateVirtualFileSystemComponentImpl(_vfs);
+      CreateReadOnlyVirtualFileSystemComponentImpl(_vfs);
       _vfs->Mount((Resources::Instance().RootDir() + L"../../../tests/content")
                       .c_str());
       CreateStorageFactoryComponentImpl(_storage);
@@ -30,7 +30,7 @@ SUITE(StorageTests) {
     virtual ~StorageTestFixture() {}
 
    protected:
-    ComObject<IVirtualFileSystemComponent> _vfs;
+    ComObject<IReadOnlyVirtualFileSystemComponent> _vfs;
     std::shared_ptr<IStorageFactoryComponent> _storage;
   };
 
@@ -41,7 +41,7 @@ SUITE(StorageTests) {
     std::unique_ptr<IGameStorageHandler> handler(
         _storage->CreateGameStorageHandler());
 
-    ComObject<IMGDFFile> file;
+    ComObject<IMGDFReadOnlyFile> file;
     CHECK(_vfs->GetFile(L"console.json", file.Assign()));
     std::wstring path = file->GetPhysicalPath();
     handler->Load(path);
@@ -73,7 +73,7 @@ SUITE(StorageTests) {
 
     auto handler = _storage->CreateGameStateStorageHandler("Console", expected);
 
-    ComObject<IMGDFFile> file;
+    ComObject<IMGDFReadOnlyFile> file;
     CHECK(_vfs->GetFile(L"gameState.json", file.Assign()));
     std::wstring path = file->GetPhysicalPath();
     handler->Load(path);
@@ -104,7 +104,7 @@ SUITE(StorageTests) {
   TEST_FIXTURE(StorageTestFixture, StoragePreferencesHandlerTest) {
     auto handler = _storage->CreatePreferenceConfigStorageHandler();
 
-    ComObject<IMGDFFile> file;
+    ComObject<IMGDFReadOnlyFile> file;
     CHECK(_vfs->GetFile(L"preferences.json", file.Assign()));
     std::wstring path = file->GetPhysicalPath();
     handler->Load(path);

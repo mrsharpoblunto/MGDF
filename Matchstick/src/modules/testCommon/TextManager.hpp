@@ -67,7 +67,6 @@ class TESTCOMMON_DLL TextManager {
   ComObject<ID2D1DeviceContext> _d2dContext;
   ComObject<IDWriteFactory1> _dWriteFactory;
   ComObject<IDWriteTextFormat> _textFormat;
-  ComObject<ID3D11DeviceContext> _immediateContext;
 #pragma warning(pop)
   IMGDFRenderHost *_renderHost;
 };

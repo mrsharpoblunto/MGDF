@@ -21,7 +21,7 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-HRESULT OpenALSound::TryCreate(IMGDFFile *source,
+HRESULT OpenALSound::TryCreate(IMGDFReadOnlyFile *source,
                                  OpenALSoundManagerComponentImpl *manager,
                                  INT32 priority,
                                  ComObject<OpenALSound> &sound) {
@@ -55,7 +55,7 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
   _globalVolume = manager->GetSoundVolume();
 }
 
-HRESULT OpenALSound::Init(IMGDFFile *source) {
+HRESULT OpenALSound::Init(IMGDFReadOnlyFile *source) {
   _ASSERTE(source);
   _name = source->GetName();
 

@@ -15,7 +15,7 @@ class FakeArchiveHandler : public ComBase<IMGDFArchiveHandler> {
   ~FakeArchiveHandler();
   BOOL IsArchive(const wchar_t *path) final;
   HRESULT MapArchive(const wchar_t *name, const wchar_t *archiveFile,
-                     IMGDFFile *parent, IMGDFFile **child) final;
+                     IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **child) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;

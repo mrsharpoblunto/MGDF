@@ -34,6 +34,7 @@ class MGDFApp : public D3DAppFramework {
       const ComObject<ID3D11Texture2D> &backBuffer,
       const ComObject<ID3D11Texture2D> &depthStencilBuffer) final;
   void OnBeforeDeviceReset() final;
+  void OnDeviceReset() final;
   void OnBeforeFirstDraw() final;
   void OnDraw() final;
 

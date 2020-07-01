@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../MGDFFolderBaseImpl.hpp"
+#include "../../MGDFReadOnlyFolderBaseImpl.hpp"
 
 namespace MGDF {
 namespace core {
@@ -10,10 +10,10 @@ namespace zip {
 /**
 implementation of a folder in a zipped archive
 */
-class ZipFolderImpl : public FolderBaseImpl {
+class ZipFolderImpl : public ReadOnlyFolderBaseImpl {
  public:
-  ZipFolderImpl(const wchar_t *name, IMGDFFile *parent, IMGDFFile *root)
-      : FolderBaseImpl(name, root->GetPhysicalPath(), parent), _root(root) {}
+  ZipFolderImpl(const wchar_t *name, IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile *root)
+      : ReadOnlyFolderBaseImpl(name, root->GetPhysicalPath(), parent), _root(root) {}
   ~ZipFolderImpl(){};
 
   BOOL __stdcall IsArchive() final { return true; }
@@ -21,7 +21,7 @@ class ZipFolderImpl : public FolderBaseImpl {
   UINT64 __stdcall GetLastWriteTime() final { return _root->GetLastWriteTime(); }
 
  private:
-  IMGDFFile *_root;
+  IMGDFReadOnlyFile *_root;
 };
 
 }  // namespace zip

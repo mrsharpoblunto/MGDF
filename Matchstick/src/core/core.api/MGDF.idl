@@ -635,6 +635,32 @@ interface IMGDFFileReader : IUnknown {
 };
 
 /**
+ Provides an interface for writing data to a file
+ */
+[uuid("46A8D28E-CE6A-4E99-BACF-AF9947008FA0"), object, local]
+ interface IMGDFFileWriter : IUnknown {
+  /**
+  writes the specified number of bytes into the buffer
+  \param buffer a buffer to store the write data
+  \param length the max amount of data to write to the file
+  \return the amount of bytes actually written to the file
+  */
+  UINT32 Write([out] void *buffer, UINT32 length);
+
+  /**
+  sets the write position of the file in bytes
+  \param pos the write position of the file in bytes
+  */
+  void SetPosition(INT64 pos);
+
+  /**
+  get the current write position of the file in bytes
+  \return the write position in the file
+  */
+  INT64 GetPosition();
+};
+
+/**
 Provides an interface for navigating a file/directory structure in the virtual
 filesystem. Directories have no data but can have subfiles Files have no
 subfiles (except for archives) but may have data. Archives that have been added
@@ -644,36 +670,6 @@ uncompressed archive data
 */
 [uuid("7EB85F59-65C6-45AC-B505-F263E1771C7F"), object, local]
 interface IMGDFFile : IUnknown {
-  /**
-  Gets the name of this file
-  \return the name of this file
-  */
-  const wchar_t *GetName();
-
-  /**
-  Gets the parent of this file. If this file is the root of the virtual
-  filesystem, then this will be nullptr
-  \param parent pointer to the parent of this file.
-  \return If this file is the root of the filesystem, then return false
-  */
-  BOOL GetParent(IMGDFFile * *parent);
-
-  /**
-  Gets a child of this file with the given name (if any)
-  \param name the child name of this file
-  \return the child file of the current file. If no such file exists, nullptr is
-  returned
-  */
-  BOOL GetChild([in] const wchar_t *name,
-                                          [out] IMGDFFile **child);
-
-  /**
-   Get all the children of this file (non-recursive)
-   \param childBuffer an array to store the results (must be large enough to
-   hold GetChildCount entries)
-   */
-  void GetAllChildren([out] IMGDFFile * *childBuffer);
-
   /**
   Get how many children this file has
   \return how many children this file has
@@ -702,6 +698,52 @@ interface IMGDFFile : IUnknown {
   HRESULT Open([out] IMGDFFileReader **reader);
 
   /**
+  find the last write time of the file
+  \return a timestamp indicating the last write time
+  */
+  UINT64 GetLastWriteTime();
+};
+
+[uuid("D7F3A3C2-BEDB-4C20-8DD6-452793A11BE1"), object, local]
+interface IMGDFReadOnlyFile : IMGDFFile {
+  /**
+  Gets the name of this file
+  \return the name of this file
+  */
+  const wchar_t *GetName();
+
+  /**
+  get the pyshical path to the IFile in the filesystem
+  \return the pyshical path to the IFile in the filesystem, in the case of an
+  archive submember this will be the address to the containing archive
+  */
+  const wchar_t *GetPhysicalPath();
+
+  /**
+  Gets the parent of this file. If this file is the root of the virtual
+  filesystem, then this will be nullptr
+  \param parent pointer to the parent of this file.
+  \return If this file is the root of the filesystem, then return false
+  */
+  BOOL GetParent(IMGDFReadOnlyFile * *parent);
+
+  /**
+  Gets a child of this file with the given name (if any)
+  \param name the child name of this file
+  \return the child file of the current file. If no such file exists, nullptr is
+  returned
+  */
+  BOOL GetChild([in] const wchar_t *name,
+                                          [out] IMGDFReadOnlyFile **child);
+
+  /**
+   Get all the children of this file (non-recursive)
+   \param childBuffer an array to store the results (must be large enough to
+   hold GetChildCount entries)
+   */
+  void GetAllChildren([out] IMGDFReadOnlyFile * *childBuffer);
+
+  /**
   determines if the file is a (or is a member of) an archive file
   \return true if the file is a (or is a member of) an archive file
   */
@@ -713,26 +755,53 @@ interface IMGDFFile : IUnknown {
   returns nullptr
   */
   const wchar_t *GetArchiveName();
+};
+
+[uuid("8B17D0A7-9A51-4D28-A5A2-84F38CD5A86E"), object, local] 
+interface IMGDFWriteableFile : IMGDFFile {
+  BOOL Exists();
 
   /**
-  get the pyshical path to the IFile in the filesystem
-  \return the pyshical path to the IFile in the filesystem, in the case of an
-  archive submember this will be the address to the containing archive
+  Gets the name of this file
+  \return the name of this file
   */
-  const wchar_t *GetPhysicalPath();
+  HRESULT GetName([in, out] wchar_t * name, [in, out] UINT64 * length);
+  HRESULT GetPhysicalPath([in, out] wchar_t * name, [in, out] UINT64 * length);
 
   /**
-  get the path to the file as expressed as a vfs logical file path (i.e. paths
-  are relative to the vfs root)
-  \return the path to the file as expressed as a vfs logical file path
+  Gets the parent of this file. If this file is the root of the virtual
+  filesystem, then this will be nullptr
+  \param parent pointer to the parent of this file.
+  \return If this file is the root of the filesystem, then return false
   */
-  const wchar_t *GetLogicalPath();
+  BOOL GetParent(IMGDFWriteableFile * *parent);
 
   /**
-  find the last write time of the file
-  \return a timestamp indicating the last write time
+  Gets a child of this file with the given name (if any)
+  \param name the child name of this file
+  \return the child file of the current file. If no such file exists, nullptr is
+  returned
   */
-  UINT64 GetLastWriteTime();
+  HRESULT GetChild([in] const wchar_t *name,
+                                          [out] IMGDFWriteableFile **child);
+
+  /**
+   Get all the children of this file (non-recursive)
+   \param childBuffer an array to store the results (must be large enough to
+   hold GetChildCount entries)
+   */
+  HRESULT GetAllChildren([out] IMGDFWriteableFile * *childBuffer);
+
+  /**
+  attempt to open the file for writing if the path to this file doesn't exist
+  it will be created
+  */
+  HRESULT OpenWrite([out] IMGDFFileWriter **writer);
+
+  /**
+  creates this as a folder (and any necessary parent folders along the way)
+  */
+  HRESULT CreateFolder();
 };
 
 /**
@@ -750,7 +819,7 @@ interface IMGDFArchiveHandler : IUnknown {
   */
   HRESULT MapArchive([in] const wchar_t *name,
                                                [in] const wchar_t *physicalPath,
-                                               [in] IMGDFFile *parent, [out] IMGDFFile **root);
+                                               [in] IMGDFReadOnlyFile *parent, [out] IMGDFReadOnlyFile **root);
 
   /**
   whether this file/directory is recognised as an archive type
@@ -767,7 +836,7 @@ only interface to access game content files. The root MGDF filesystem is
 mounted from the game/content folder.
 */
 [uuid("235AB71E-BAE5-4ACB-BA98-82086378C939"), object, local]
-interface IMGDFVirtualFileSystem : IUnknown {
+interface IMGDFReadOnlyVirtualFileSystem : IUnknown {
   /**
   Get the file/folder/archive in the specified logical directory. paths are
   delimited using the / character and names are case sensitive. The
@@ -779,15 +848,22 @@ interface IMGDFVirtualFileSystem : IUnknown {
   if the file could be found
   */
   BOOL GetFile([in] const wchar_t *logicalPath,
-                                         [out] IMGDFFile **file);
+                                         [out] IMGDFReadOnlyFile **file);
 
   /**
   Get the root node of the filesystem. In the physical filesystem this
   corresponds to the /game/content folder.
   \param root pointer to the root node of the filesystem
   */
-  void GetRoot([out] IMGDFFile * *root);
+  void GetRoot([out] IMGDFReadOnlyFile * *root);
 };
+
+[uuid("2EAC465E-F424-43EB-AEE8-EA930215A811"), object, local] 
+interface IMGDFWriteableVirtualFileSystem: IUnknown {
+  BOOL GetFile([in] const wchar_t *logicalPath, [out] IMGDFWriteableFile **file);
+  void GetRoot([out] IMGDFWriteableFile **root);
+};
+
 typedef struct MGDFSoundPosition {
   float x, y, z;
 } MGDFSoundPosition;
@@ -1188,7 +1264,7 @@ listener \return the vector representing the upward direction of the listener
   successfully, this will point to the created sound \return MGDF_OK if the
   sound was created successfully, otherwise an error code will be returned
   */
-  HRESULT CreateSound([in] IMGDFFile * file, INT32 priority,
+  HRESULT CreateSound([in] IMGDFReadOnlyFile * file, INT32 priority,
                                                 [out] IMGDFSound * *sound);
 
   /**
@@ -1199,7 +1275,7 @@ listener \return the vector representing the upward direction of the listener
   be returned
   */
   HRESULT CreateSoundStream(
-      [in] IMGDFFile * file, [out] IMGDFSoundStream * *stream);
+      [in] IMGDFReadOnlyFile * file, [out] IMGDFSoundStream * *stream);
 
   /**
   Gets the current persistable sound settings. Note: this only consists of
@@ -1261,22 +1337,29 @@ interface IMGDFCommonHost : IMGDFLogger {
   const MGDFVersion *GetMGDFVersion();
 
   /**
-  get the filesystem
+  get the readonly content filesystem
   \return the filesystem
   */
-  void GetVFS([out] IMGDFVirtualFileSystem * *vfs);
+  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
+
+  /**
+  get the read/write working folder
+  \return the filesystem
+  */
+  void GetWorkingVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
+
 
   /**
   get the direct3d device object from the host
   \return the direct3d device object from the host
   */
-  ID3D11Device *GetD3DDevice();
+  void GetD3DDevice([out] ID3D11Device **device);
 
   /**
   get the direct2d device object from the host
   \return the direct2d device object from the host
   */
-  ID2D1Device *GetD2DDevice();
+  void GetD2DDevice([out] ID2D1Device **device);
 
   /**
   get the onscreen debug overlay interface
@@ -1303,12 +1386,6 @@ interface IMGDFCommonHost : IMGDFLogger {
 [uuid("514EBD97-3C53-4235-90E1-7AD3B7F517BD"), object, local]
 interface IMGDFRenderHost : IMGDFCommonHost {
   /**
-  get the direct3d device immediate context object from the host
-  \return the direct3d deviceimmediate context object from the host
-  */
-  ID3D11DeviceContext *GetD3DImmediateContext();
-
-  /**
   set the current back buffer as the render target for the specified d2d device
   context 
   \param context the d2d device context to set the render target for
@@ -1321,13 +1398,13 @@ interface IMGDFRenderHost : IMGDFCommonHost {
   Gets the current back buffer texture. The pointer returned by this method
   becomes invalid when the modules OnReset event is fired
   */
-  ID3D11Texture2D *GetBackBuffer();
+  void GetBackBuffer([out] ID3D11Texture2D **backbuffer);
 
   /**
   Gets the current depth stencil buffer texture. The pointer returned by this
   method becomes invalid when the modules OnReset event is fired
   */
-  ID3D11Texture2D *GetDepthStencilBuffer();
+  void GetDepthStencilBuffer([out] ID3D11Texture2D **stencilBuffer);
 
   /**
   Gets the description of the backbuffer and depthStencilBuffer textures.
@@ -1350,19 +1427,14 @@ interface IMGDFRenderHost : IMGDFCommonHost {
                                    [out] IMGDFPerformanceCounter **counter);
 };
 
-[uuid("55333E24-25ED-452B-9CDC-9031A9584C59"), object, local]
-interface IMGDFPendingSave : IUnknown {
-  HRESULT GetSaveDataLocation([in, out] wchar_t * folder, [in, out] UINT64 * size);
-};
-
 [uuid("B34FC7A2-2F84-4FC7-B821-4AEDA8AB9F20"), object, local]
 interface IMGDFGameState : IUnknown {
   HRESULT GetMetadata([in] const small *key, [in, out] small *value, [in, out] UINT64 *length);
   HRESULT SetMetadata([in, out] const small *key, [in, out] const small *value);
-  HRESULT GetSaveDataLocation([in, out] wchar_t * folder, [in, out] UINT64 * size);
   BOOL IsNew();
-  void GetVersion(MGDFVersion * version);
-  HRESULT BeginSave([out] IMGDFPendingSave * *pending);
+  void GetVersion([in, out] MGDFVersion * version);
+  HRESULT GetVFS([out] IMGDFReadOnlyVirtualFileSystem **vfs);
+  HRESULT BeginSave([out] IMGDFWriteableVirtualFileSystem * *pending);
 };
 
 [uuid("58D65D58-358D-4999-B32C-F32CF0B0AC83"), object, local]
@@ -1424,11 +1496,9 @@ interface IMGDFModule : IUnknown {
    Called by the host after a module is first created and should be used
    to do perform any initialization required by the module
    \param host the simulation thread host
-   \param workingFolder a folder that the module can read/write data to while
-   its running
    \return false if the module experiences a fatal error on initialization
    */
-  BOOL STNew(IMGDFSimHost * host,const wchar_t *workingFolder);
+  BOOL STNew(IMGDFSimHost * host);
 
   /**
    Called once per simulation timestep by the host once the game is running and

@@ -9,10 +9,8 @@
 Module::~Module(void) {}
 Module::Module() : _inited(false) {}
 
-BOOL Module::STNew(IMGDFSimHost *host, const wchar_t *workingFolder) {
+BOOL Module::STNew(IMGDFSimHost *host) {
   // This method is called by the host to initialize the module.
-  // the workingFolder is a folder on disk that the game can use
-  // to write out temporary files if needed.
   return true;
 }
 BOOL Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {

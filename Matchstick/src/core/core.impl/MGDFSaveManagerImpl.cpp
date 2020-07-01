@@ -35,11 +35,6 @@ bool GuidString(std::string& guid) {
   return true;
 }
 
-HRESULT PendingSave::GetSaveDataLocation(wchar_t* location,
-                                         UINT64* length) {
-  return CopyWStr(_saveData, location, length);
-}
-
 PendingSave::PendingSave(ComObject<GameState>& gameState)
     : _gameState(gameState) {}
 
@@ -51,7 +46,26 @@ HRESULT PendingSave::Init() {
 
   _saveData = Resources::Instance().SaveDir(_pendingName);
   create_directories(_saveData);
+  LOG("Mounting pending save directory \'" << Resources::ToString(_saveData)
+                                           << "\' into VFS",
+      MGDF_LOG_LOW);
+  _vfs = MakeCom<vfs::WriteableVirtualFileSystem>(_saveData);
   return S_OK;
+}
+
+BOOL PendingSave::GetFile(const wchar_t* logicalPath,
+                          IMGDFWriteableFile** file) {
+  if (!_vfs) {
+    return false;
+  }
+  return _vfs->GetFile(logicalPath, file);
+}
+
+void PendingSave::GetRoot(IMGDFWriteableFile** root) {
+  if (!_vfs) {
+    return;
+  }
+  _vfs->GetRoot(root);
 }
 
 PendingSave::~PendingSave() {
@@ -134,8 +148,7 @@ HRESULT GameState::Save() {
   return S_OK;
 }
 
-HRESULT GameState::GetMetadata(const char* key, char* value,
-                               UINT64* length) {
+HRESULT GameState::GetMetadata(const char* key, char* value, UINT64* length) {
   auto found = _metadata.find(key);
   if (found == _metadata.end()) {
     return E_NOT_SET;
@@ -151,17 +164,9 @@ HRESULT GameState::SetMetadata(const char* key, const char* value) {
   return S_OK;
 }
 
-HRESULT GameState::GetSaveDataLocation(wchar_t* folder, UINT64* size) {
-  if (IsNew()) {
-    return E_NOT_SET;
-  }
-  auto saveDir = Resources::Instance().SaveDataDir(_saveName);
-  return CopyWStr(saveDir, folder, size);
-}
-
 void GameState::GetVersion(MGDFVersion* version) { *version = _gameVersion; }
 
-HRESULT GameState::BeginSave(IMGDFPendingSave** p) {
+HRESULT GameState::BeginSave(IMGDFWriteableVirtualFileSystem** p) {
   auto state = MakeComFromPtr<GameState>(this);
   auto pending = MakeCom<PendingSave>(state);
   if (FAILED(pending->Init())) {
@@ -171,8 +176,23 @@ HRESULT GameState::BeginSave(IMGDFPendingSave** p) {
   return S_OK;
 }
 
+HRESULT GameState::GetVFS(IMGDFReadOnlyVirtualFileSystem** vfs) {
+  if (IsNew()) {
+    return E_NOT_SET;
+  }
+  auto saveDir = Resources::Instance().SaveDataDir(_saveName);
+
+  ComObject<vfs::IReadOnlyVirtualFileSystemComponent> vfsImpl;
+  if (!vfs::CreateReadOnlyVirtualFileSystemComponentImpl(vfsImpl) ||
+      !vfsImpl->Mount(saveDir.c_str())) {
+    return E_FAIL;
+  }
+  vfsImpl.AddRawRef(vfs);
+  return S_OK;
+}
+
 SaveManager::SaveManager(
-    const ComObject<Game> &game,
+    const ComObject<Game>& game,
     std::shared_ptr<storage::IStorageFactoryComponent> storageFactory)
     : _storageFactory(storageFactory) {
   path savePath(Resources::Instance().SaveBaseDir());
@@ -182,7 +202,7 @@ SaveManager::SaveManager(
   for (directory_iterator itr(savePath); itr != end_itr; ++itr) {
     if (is_directory(itr->path())) {
       std::wstring saveName(itr->path().filename());
-      if (saveName.find(PENDING_SAVE_MARKER) != 0) {
+      if (saveName.find(PENDING_SAVE_MARKER) == std::wstring::npos) {
         _saves.push_back(Resources::ToString(saveName));
       }
     }

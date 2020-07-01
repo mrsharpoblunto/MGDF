@@ -33,14 +33,14 @@ ZipArchiveHandlerImpl::~ZipArchiveHandlerImpl() {}
 
 HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
                                           const wchar_t *physicalPath,
-                                          IMGDFFile *parent, IMGDFFile **file) {
+                                          IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **file) {
   _ASSERTE(name);
   _ASSERTE(physicalPath);
 
   auto zip = unzOpen(physicalPath);
 
   if (zip) {
-    ComObject<IMGDFFile> root(new ZipFileRoot(name, physicalPath, parent, zip));
+    ComObject<IMGDFReadOnlyFile> root(new ZipFileRoot(name, physicalPath, parent, zip));
 
     // We need to map file positions to speed up opening later
     for (INT32 ret = unzGoToFirstFile(zip); ret == UNZ_OK;
@@ -58,7 +58,7 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
       // is the desired behaviour
       const wchar_t *filename = nullptr;
       std::wstring path = Resources::ToWString(nameBuffer);
-      ComObject<IMGDFFile> parentFile = CreateParentFile(path, root, &filename);
+      ComObject<IMGDFReadOnlyFile> parentFile = CreateParentFile(path, root, &filename);
 
       if (info.uncompressed_size > 0) {
         _ASSERTE(filename);
@@ -67,11 +67,11 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
         header.size = info.uncompressed_size;
         header.name = filename;  // the name is the last part of the path
 
-        ComObject<IMGDFFile> child =
+        ComObject<IMGDFReadOnlyFile> child =
             MakeCom<ZipFileImpl>(parentFile, root, zip, std::move(header))
-                .As<IMGDFFile>();
+                .As<IMGDFReadOnlyFile>();
         _ASSERTE(child);
-        auto parentPtr = dynamic_cast<FileBaseImpl *>(parentFile.Get());
+        auto parentPtr = dynamic_cast<ReadOnlyFileBaseImpl *>(parentFile.Get());
         _ASSERTE(parentPtr);
         parentPtr->AddChild(child);
       }
@@ -85,8 +85,8 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
   }
 }
 
-ComObject<IMGDFFile> ZipArchiveHandlerImpl::CreateParentFile(
-    std::wstring &path, ComObject<IMGDFFile> root, const wchar_t **filename) {
+ComObject<IMGDFReadOnlyFile> ZipArchiveHandlerImpl::CreateParentFile(
+    std::wstring &path, ComObject<IMGDFReadOnlyFile> root, const wchar_t **filename) {
   _ASSERTE(root);
   _ASSERTE(path.size());
 
@@ -101,7 +101,7 @@ ComObject<IMGDFFile> ZipArchiveHandlerImpl::CreateParentFile(
 
   size_t start = 0;
   size_t end = 0;
-  ComObject<IMGDFFile> parent(root);
+  ComObject<IMGDFReadOnlyFile> parent(root);
 
   while (end < len) {
     while (end < len && path[end] != '/') {
@@ -109,11 +109,11 @@ ComObject<IMGDFFile> ZipArchiveHandlerImpl::CreateParentFile(
     }
     if (end != start) {
       path[end] = '\0';
-      ComObject<IMGDFFile> child;
+      ComObject<IMGDFReadOnlyFile> child;
       if (!parent->GetChild(&path[start], child.Assign())) {
-        child = ComObject<IMGDFFile>(new ZipFolderImpl(&path[start], parent, root));
+        child = ComObject<IMGDFReadOnlyFile>(new ZipFolderImpl(&path[start], parent, root));
         _ASSERTE(child);
-        auto parentPtr = dynamic_cast<FileBaseImpl *>(parent.Get());
+        auto parentPtr = dynamic_cast<ReadOnlyFileBaseImpl *>(parent.Get());
         _ASSERTE(parentPtr);
         parentPtr->AddChild(child);
       }

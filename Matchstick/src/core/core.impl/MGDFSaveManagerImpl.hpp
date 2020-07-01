@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "../storage/MGDFStorageFactoryComponent.hpp"
+#include "../vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
+#include "../vfs/MGDFWriteableVirtualFileSystem.hpp"
 #include "MGDFGameImpl.hpp"
 
 namespace MGDF {
@@ -15,14 +17,17 @@ bool GuidString(std::string &guid);
 
 class GameState;
 
-class PendingSave : public ComBase<IMGDFPendingSave> {
+class PendingSave : public ComBase<IMGDFWriteableVirtualFileSystem> {
  public:
   PendingSave(ComObject<GameState> &gameState);
   virtual ~PendingSave();
-  HRESULT __stdcall GetSaveDataLocation(wchar_t *location, UINT64 *length) final;
   HRESULT Init();
 
+  BOOL __stdcall GetFile(const wchar_t *logicalPath,
+                         IMGDFWriteableFile **file) final;
+  void __stdcall GetRoot(IMGDFWriteableFile **root) final;
  private:
+  ComObject<vfs::WriteableVirtualFileSystem> _vfs;
   std::wstring _saveData;
   ComObject<GameState> _gameState;
   std::string _pendingName;
@@ -41,10 +46,10 @@ class GameState : public ComBase<IMGDFGameState> {
   virtual ~GameState() {}
   HRESULT __stdcall GetMetadata(const char *key, char *value, UINT64 *length) final;
   HRESULT __stdcall SetMetadata(const char *key, const char *value) final;
-  HRESULT __stdcall GetSaveDataLocation(wchar_t *folder, UINT64 *size) final;
   void __stdcall GetVersion(MGDFVersion *version) final;
   BOOL __stdcall IsNew() final { return _saveName.empty(); }
-  HRESULT __stdcall BeginSave(IMGDFPendingSave **pending) final;
+  HRESULT __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
+  HRESULT __stdcall BeginSave(IMGDFWriteableVirtualFileSystem **pending) final;
 
   std::string GetSave() const { return _saveName; }
   void SetSave(const std::string &saveName);

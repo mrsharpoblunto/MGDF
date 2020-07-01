@@ -61,7 +61,6 @@ void TextManager::BeforeDeviceReset() {
   _d2dContext.Clear();
   _dWriteFactory.Clear();
   _textFormat.Clear();
-  _immediateContext.Clear();
 }
 
 TextManager::TextManager(IMGDFRenderHost *renderHost) : _renderHost(renderHost) {
@@ -73,10 +72,10 @@ void TextManager::SetState(std::shared_ptr<TextManagerState> state) {
 }
 
 void TextManager::DrawText() {
-  if (!_immediateContext) {
-    _renderHost->GetD3DDevice()->GetImmediateContext(
-        _immediateContext.Assign());
-    if (FAILED(_renderHost->GetD2DDevice()->CreateDeviceContext(
+  if (!_d2dContext) {
+    ComObject<ID2D1Device> d2dDevice;
+    _renderHost->GetD2DDevice(d2dDevice.Assign());
+    if (FAILED(d2dDevice->CreateDeviceContext(
             D2D1_DEVICE_CONTEXT_OPTIONS_NONE, _d2dContext.Assign()))) {
       FATALERROR(_renderHost, "Unable to create ID2D1DeviceContext");
     }

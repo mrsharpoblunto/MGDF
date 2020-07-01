@@ -1,14 +1,14 @@
 #pragma once
 
+#include <DirectXMath.h>
+#include <MGDF/MGDF.h>
 #include <al.h>
 #include <alc.h>
 
-#include <MGDF/MGDF.h>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <DirectXMath.h>
 
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundSystem.hpp"
@@ -36,17 +36,22 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   OpenALSoundManagerComponentImpl();
   void Update() final;
 
-  MGDFSoundPosition * __stdcall GetListenerPosition(MGDFSoundPosition *position) final;
-  MGDFSoundPosition * __stdcall GetListenerVelocity(MGDFSoundPosition *velocity) final;
-  MGDFSoundPosition * __stdcall GetListenerOrientationForward(
+  MGDFSoundPosition *__stdcall GetListenerPosition(
+      MGDFSoundPosition *position) final;
+  MGDFSoundPosition *__stdcall GetListenerVelocity(
+      MGDFSoundPosition *velocity) final;
+  MGDFSoundPosition *__stdcall GetListenerOrientationForward(
       MGDFSoundPosition *orientationForward) final;
-  MGDFSoundPosition * __stdcall GetListenerOrientationUp(
+  MGDFSoundPosition *__stdcall GetListenerOrientationUp(
       MGDFSoundPosition *orientationUp) final;
-  MGDFSoundPosition * __stdcall SetListenerPosition(MGDFSoundPosition *position) final;
-  MGDFSoundPosition * __stdcall SetListenerVelocity(MGDFSoundPosition *velocity) final;
-  MGDFSoundPosition * __stdcall SetListenerOrientationForward(
+  MGDFSoundPosition *__stdcall SetListenerPosition(
+      MGDFSoundPosition *position) final;
+  MGDFSoundPosition *__stdcall SetListenerVelocity(
+      MGDFSoundPosition *velocity) final;
+  MGDFSoundPosition *__stdcall SetListenerOrientationForward(
       MGDFSoundPosition *orientationForward) final;
-  MGDFSoundPosition * __stdcall SetListenerOrientationUp(MGDFSoundPosition *orientationUp) final;
+  MGDFSoundPosition *__stdcall SetListenerOrientationUp(
+      MGDFSoundPosition *orientationUp) final;
 
   float __stdcall GetSoundVolume() final;
   void __stdcall SetSoundVolume(float volume) final;
@@ -60,13 +65,15 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   float __stdcall GetSpeedOfSound() final;
   void __stdcall SetSpeedOfSound(float speedOfSound) final;
 
-  HRESULT __stdcall CreateSound(IMGDFFile *source, INT32 priority, IMGDFSound **sound) final;
-  HRESULT __stdcall CreateSoundStream(IMGDFFile *source, IMGDFSoundStream **stream) final;
+  HRESULT __stdcall CreateSound(IMGDFReadOnlyFile *source, INT32 priority,
+                                IMGDFSound **sound) final;
+  HRESULT __stdcall CreateSoundStream(IMGDFReadOnlyFile *source,
+                                      IMGDFSoundStream **stream) final;
   void __stdcall GetPreferences(IMGDFPreferenceSet **preferences) final;
 
   void RemoveSoundStream(IMGDFSoundStream *stream);
   void RemoveSound(IMGDFSound *sound);
-  HRESULT CreateSoundBuffer(IMGDFFile *dataSource, ALuint *bufferId);
+  HRESULT CreateSoundBuffer(IMGDFReadOnlyFile *dataSource, ALuint *bufferId);
   void RemoveSoundBuffer(ALuint bufferId);
 
  private:
@@ -74,6 +81,8 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
 
   void DeactivateSound(INT32 priority);
   void PrioritizeSounds(INT32 deactivatedSoundsCount);
+
+  std::wstring GetLogicalPath(IMGDFReadOnlyFile *file) const;
 
   static bool Sort(OpenALSound *a, OpenALSound *b);
 

@@ -25,6 +25,7 @@ class D3DAppFramework {
  protected:
   virtual void OnBeforeFirstDraw() = 0;
   virtual void OnBeforeDeviceReset() = 0;
+  virtual void OnDeviceReset() = 0;
   virtual bool OnInitWindow(RECT &windowSize) = 0;
   virtual void OnInitDevices(HWND window,
                              const ComObject<ID3D11Device> &d3dDevice,

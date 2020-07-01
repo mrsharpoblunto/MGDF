@@ -12,7 +12,7 @@ class Module : public MGDF::ComBase<IMGDFModule> {
   virtual ~Module(void);
   Module();
 
-  BOOL STNew(IMGDFSimHost *host, const wchar_t *workingFolder) final;
+  BOOL STNew(IMGDFSimHost *host) final;
   BOOL STUpdate(IMGDFSimHost *host, double elapsedTime) final;
   void __stdcall STShutDown(IMGDFSimHost *host) final;
 

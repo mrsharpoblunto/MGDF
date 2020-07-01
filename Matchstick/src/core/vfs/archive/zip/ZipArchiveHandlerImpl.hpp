@@ -23,7 +23,7 @@ class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
   
   BOOL __stdcall IsArchive(const wchar_t *physicalPath) final;
   HRESULT __stdcall MapArchive(const wchar_t *name, const wchar_t *physicalPath,
-                     IMGDFFile *parent, IMGDFFile **file) final;
+                     IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **file) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;
@@ -35,7 +35,7 @@ class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
   */
   const wchar_t *GetFileExtension(const wchar_t *file) const;
 
-  ComObject<IMGDFFile> CreateParentFile(std::wstring &path, ComObject<IMGDFFile> root,
+  ComObject<IMGDFReadOnlyFile> CreateParentFile(std::wstring &path, ComObject<IMGDFReadOnlyFile> root,
                                     const wchar_t **);
 };
 

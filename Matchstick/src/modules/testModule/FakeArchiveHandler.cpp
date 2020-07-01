@@ -23,8 +23,8 @@ FakeArchiveHandler::~FakeArchiveHandler() {}
 
 HRESULT FakeArchiveHandler::MapArchive(const wchar_t *name,
                                        const wchar_t *archiveFile,
-                                       IMGDFFile *parent,
-                                       IMGDFFile **child) {
+                                       IMGDFReadOnlyFile *parent,
+                                       IMGDFReadOnlyFile **child) {
   ComObject<FakeFile> rootFile(new FakeFile(name, archiveFile, parent));
 
   ComObject<FakeFile> subFile(

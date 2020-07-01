@@ -32,7 +32,7 @@ void Test2::Setup(IMGDFSimHost *host) {
       .Step([this](auto state) {
         state->AddLine("Loading sound chimes.wav");
         _soundManager->SetEnableAttenuation(true);
-        ComObject<IMGDFFile> file;
+        ComObject<IMGDFReadOnlyFile> file;
         if (_vfs->GetFile(L"chimes.wav", file.Assign()) &&
             FAILED(_soundManager->CreateSound(file, 0, _sound.Assign()))) {
           return TestStep::FAILED;
@@ -97,7 +97,7 @@ void Test2::Setup(IMGDFSimHost *host) {
       .Step([this](auto state) {
         _sound.Clear();
         state->AddLine("Loading stream stream.ogg");
-        ComObject<IMGDFFile> file;
+        ComObject<IMGDFReadOnlyFile> file;
         if (_vfs->GetFile(L"Stream.ogg", file.Assign()) &&
                 FAILED(_soundManager->CreateSoundStream(file, _stream.Assign()))) {
           return TestStep::FAILED;

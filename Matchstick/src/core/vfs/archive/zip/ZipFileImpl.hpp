@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "../../MGDFFileBaseImpl.hpp"
+#include "../../MGDFReadOnlyFileBaseImpl.hpp"
 
 namespace MGDF {
 namespace core {
@@ -49,13 +49,13 @@ class ZipFileImplReader : public ComBase<IMGDFFileReader> {
 /**
 implementation of a file in a zipped archive
 */
-class ZipFileImpl : public FileBaseImpl {
+class ZipFileImpl : public ReadOnlyFileBaseImpl {
   friend class ZipFileImplReader;
 
  public:
-  ZipFileImpl(IMGDFFile *parent, IMGDFFile *root, unzFile zip,
+  ZipFileImpl(IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile *root, unzFile zip,
               ZipFileHeader &&header)
-      : FileBaseImpl(parent),
+      : ReadOnlyFileBaseImpl(parent),
         _root(root),
         _header(header),
         _zip(zip),
@@ -74,7 +74,7 @@ class ZipFileImpl : public FileBaseImpl {
   const wchar_t * __stdcall GetName() final { return _header.name.c_str(); }
 
  private:
-  IMGDFFile *_root;
+  IMGDFReadOnlyFile *_root;
   ZipFileHeader _header;
   IMGDFFileReader *_reader;
   unzFile _zip;

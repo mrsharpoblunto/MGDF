@@ -65,9 +65,8 @@ Module::Module()
   _stateBuffer.Pending()->AddLine("MGDF functional test suite started");
 }
 
-BOOL Module::STNew(IMGDFSimHost* host, const wchar_t* workingFolder) {
+BOOL Module::STNew(IMGDFSimHost* host) {
   (void)host;
-  _workingFolder = workingFolder;
   _testModule = std::make_unique<Test1>();
 
   return true;
