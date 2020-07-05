@@ -109,7 +109,6 @@
     <Compile Include="FileDownloader.cs" />
     <Compile Include="FrameworkUpdater.cs" />
     <Compile Include="GameDownloader.cs" />
-    <Compile Include="GameExplorer.cs" />
     <Compile Include="GameUpdater.cs" />
     <Compile Include="GameRegistrar.cs" />
     <Compile Include="Helpers\ArchiveFileHelper.cs" />

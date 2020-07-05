@@ -86,7 +86,6 @@ namespace MGDF.GamesManager.Model
       {
         imageFile = installer.GameContents.GetFile(Resources.GameIcon);
       }
-      IArchiveFile gdfFile = installer.GameContents.GetFile(Resources.GameDefinitionFileBinary);
       IArchiveFile preferencesFile = installer.GameContents.GetFile(Resources.PreferencesConfig);
 
       var vfsUtils = new ArchiveFileHelper();
@@ -95,7 +94,6 @@ namespace MGDF.GamesManager.Model
       total += ArchiveFileHelper.GetSubTreeData(contentDir).BytesCount;
       total += ArchiveFileHelper.GetSubTreeData(binDir).BytesCount;
       total += ArchiveFileHelper.GetSubTreeData(imageFile).BytesCount;
-      total += ArchiveFileHelper.GetSubTreeData(gdfFile).BytesCount;
       total += ArchiveFileHelper.GetSubTreeData(preferencesFile).BytesCount;
 
       uint uTotal = total > uint.MaxValue ? uint.MaxValue : (uint)total;
@@ -119,11 +117,6 @@ namespace MGDF.GamesManager.Model
       {
         vfsUtils.CopyVfsFile(imageFile, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon));
         IconManager.Current.CreateIcon(installer.Game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
-      }
-
-      if (gdfFile != null)
-      {
-        vfsUtils.CopyVfsFile(gdfFile, FileSystem.Combine(Resources.GameBaseDir, Resources.GameDefinitionFileBinary));
       }
 
       if (preferencesFile != null)

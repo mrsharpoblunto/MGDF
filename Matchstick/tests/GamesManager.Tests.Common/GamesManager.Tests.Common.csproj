@@ -79,7 +79,6 @@
     <Compile Include="Mocks\MockFile.cs" />
     <Compile Include="Mocks\MockStream.cs" />
     <Compile Include="Mocks\MockFileSystem.cs" />
-    <Compile Include="Mocks\MockGameExplorer.cs" />
     <Compile Include="Mocks\MockHttpRequestManager.cs" />
     <Compile Include="Mocks\MockIconManager.cs" />
     <Compile Include="Mocks\MockIdentityGenerator.cs" />

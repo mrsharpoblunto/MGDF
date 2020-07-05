@@ -28,7 +28,6 @@ namespace MGDF.GamesManager.Tests
       ArchiveFactory.Current = new MockArchiveFactory();
 
       //managers relevant to installing and installing games.
-      GameExplorer.Current = new MockGameExplorer();
       IconManager.Current = new MockIconManager();
       ProcessManager.Current = new MockProcessManager();
       ShortcutManager.Current = new MockShortcutManager();

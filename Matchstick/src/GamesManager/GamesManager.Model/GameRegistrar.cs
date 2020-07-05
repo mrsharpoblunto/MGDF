@@ -30,7 +30,6 @@ namespace MGDF.GamesManager.Model
       {
         CreateSystemIcon();
         AddToInstalledPrograms();
-        AddToGamesExplorer();
         AddToStartMenu();
         AddDesktopShortcut();
         DependencyInstaller.Install();
@@ -52,40 +51,6 @@ namespace MGDF.GamesManager.Model
         if (FileSystem.Current.FileExists(FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon)))
         {
           IconManager.Current.CreateIcon(_game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
-        }
-      }
-    }
-
-    private void AddToGamesExplorer()
-    {
-      //add the game to the game explorer if we're on vista/win7 and the Game has a gdf file
-      if (FileSystem.Current.FileExists(Resources.GameDefinitionFileBin()))
-      {
-        try
-        {
-          if (GameExplorer.Current.IsInstalled(Resources.GameDefinitionFileBin()))
-          {
-            GameExplorer.Current.UninstallGame(Resources.GameDefinitionFileBin());
-          }
-
-          if (_register)
-          {
-            Guid instanceId = GameExplorer.Current.InstallGame(
-                Resources.GameDefinitionFileBin(),
-                EnvironmentSettings.Current.AppDirectory,
-                Resources.GamesManagerExecutable,
-                Resources.GamesManagerBootArguments(string.Empty, string.Empty, string.Empty, string.Empty));
-
-            //add homepage link
-            if (!string.IsNullOrEmpty(_game.Homepage))
-            {
-              GameExplorer.Current.AddGameTask(instanceId, TaskCount.One, "Homepage", _game.Homepage, string.Empty);
-            }
-          }
-        }
-        catch (Exception ex)
-        {
-          Logger.Current.Write(ex, "Unable to add game to games explorer");
         }
       }
     }

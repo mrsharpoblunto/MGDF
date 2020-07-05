@@ -31,7 +31,6 @@ namespace MGDF.GamesManager.Common
     public const string Statistics = @"statistics.txt";
     public const string GameIcon = "gameicon.png";
     public const string GameSystemIcon = "gamesystemicon.ico";
-    public const string GameDefinitionFileBinary = "gdf.dll";
     public const string LastUpdate = ".lastupdate";
 
     public const string CoreResources = "resources";
@@ -94,11 +93,6 @@ namespace MGDF.GamesManager.Common
       return (!string.IsNullOrEmpty(gameUpdate) ? (" -updategame \"" + gameUpdate + "\" -gameupdatehash \"" + gameUpdateHash + "\"") : string.Empty) +
              (!string.IsNullOrEmpty(frameworkUpdate) ? (" -updateframework \"" + frameworkUpdate + "\" -frameworkupdatehash \"" + frameworkUpdateHash + "\"") : string.Empty) +
              (_userDirOverridden ? "-userdiroverride" : string.Empty);
-    }
-
-    public static string GameDefinitionFileBin()
-    {
-      return FileSystem.Combine(GameBaseDir, GameDefinitionFileBinary);
     }
 
     public static string GameIconFile()

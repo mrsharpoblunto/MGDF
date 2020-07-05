@@ -355,17 +355,12 @@ namespace MGDF.GamesManager.Tests
     }
 
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public void TestUpdateLocalGameWithFullInstaller(bool includeGdfDll)
+    [Test]
+    public void TestUpdateLocalGameWithFullInstaller()
     {
       MockArchiveFile archive = new MockArchiveFile(null, "C:\\Documents and Settings\\user\\desktop\\game.zip");
       new MockArchiveFile(archive, "game.json", ReadTextFile("console.json"));
       new MockArchiveFile(archive, "preferences.json", ReadTextFile("preferences.json"));
-      if (includeGdfDll)
-      {
-        new MockArchiveFile(archive, "gdf.dll", "GAMES_EXPLORER_DEFINITION");
-      }
       new MockArchiveFile(archive, "content");
       new MockArchiveFile(archive, "bin");
       ((MockArchiveFactory)ArchiveFactory.Current).VirtualArchives.Add("C:\\Documents and Settings\\user\\desktop\\game.zip", archive);
@@ -407,9 +402,6 @@ namespace MGDF.GamesManager.Tests
       Assert.IsTrue(FileSystem.Current.GetDirectory("c:\\Documents and Settings\\user\\start menu\\no8 interactive").Exists);
       Assert.IsTrue(FileSystem.Current.GetFile("c:\\Documents and Settings\\user\\start menu\\no8 interactive\\Lua Console.lnk").Exists);
 
-      //assert the the game has been added to the games explorer
-      Assert.AreEqual(includeGdfDll, GameExplorer.Current.IsInstalled("c:\\program files\\MGDF\\game\\gdf.dll"));
-
       //deregister the game
       registrar = new GameRegistrar(false, game);
       registrar.Start();
@@ -421,12 +413,6 @@ namespace MGDF.GamesManager.Tests
       //shortcuts should have been removed
       Assert.IsFalse(FileSystem.Current.GetFile("c:\\Documents and Settings\\user\\desktop\\Lua Console.lnk").Exists);
       Assert.IsFalse(FileSystem.Current.GetFile("c:\\Documents and Settings\\user\\start menu\\no8 interactive\\Lua Console.lnk").Exists);
-
-      if (includeGdfDll)
-      {
-        //assert the the game has been removed from the games explorer
-        Assert.IsTrue(!GameExplorer.Current.IsInstalled("c:\\program files\\MGDF\\game\\gdf.dll"));
-      }
     }
 
     [Test]
