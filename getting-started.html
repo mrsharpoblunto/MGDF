@@ -66,7 +66,7 @@ layout: default
         </div>
 
         <h2>The GamesManager <small>(GamesManager.exe)</small></h2>
-        <p>This is written in C# (.NET 4.6) and consists a windows forms application which provides a minimalist launcher that checks for game updates and displays friendly error messages if the core crashes. It is also responsible for sending game statistics if this feature is used. 
+        <p>This is written in C# (.NET 4.8) and consists a windows forms application which provides a minimalist launcher that checks for game updates and displays friendly error messages if the core crashes. It is also responsible for sending game statistics if this feature is used. 
            In addition to this, the GamesManager also can be used by an installer to handle the usual tasks of windows program installation such as adding a installed programs entry in the registry, a start menu entry, and a desktop icon (see the <a href="{{ site.baseurl }}/api#commandline">command line options</a> for more details)</p>
         <p class="alert alert-info"  ><strong>NOTE</strong> This component is optional. If you plan on using your own solution for launching the game and managing updates (Steam, Itch.io, etc.), you can omit this piece of the framework from your game and start your game by running core.exe directly instead of launching it via GamesManager.exe</p>
     
@@ -102,7 +102,6 @@ layout: default
                     <li><h4>game.json <small><em>[Required]</em></small></h4><p>This JSON file contains metadata including the name, version, and preference settings for the game. This file is required and the game will not run unless it is present.</p></li>
                     <li><h4>gameIcon.png <small><em>[Optional]</em></small></h4><p>This 50x50 PNG file is used to display the game logo in the GamesManager UI as well as the installed programs registry entry, and the desktop icon. This file is optional, and if not specified a default MGDF icon will be used instead.</p></li>
                     <li><h4>gameSystemIcon.ico <small><em>[Optional]</em></small></h4><p>By default the PNG image above will be converted automatically into an icon file for display in parts of the system that cannot use PNGs. If you don't wish to use the automatically converted icon file (sometimes the conversion results in messy transparency), and instead want to provide one, you can do so here.</p></li>
-                    <li><h4>gdf.dll <small><em>[Optional]</em></small></h4><p>If you want to integrate your game with the Windows game explorer, create a game definition file using the windows SDK GDF tools (GDFMaker.exe is included in the <a href="http://msdn.microsoft.com/en-us/windows/hardware/hh852363">Windows SDK</a> and comes with Visual Studio 2013) and put the resulting dll file here.</p></li>
                 </ul>
             </li>
         </ul>
