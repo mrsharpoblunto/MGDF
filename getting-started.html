@@ -68,7 +68,7 @@ layout: default
         <h2>The GamesManager <small>(GamesManager.exe)</small></h2>
         <p>This is written in C# (.NET 4.6) and consists a windows forms application which provides a minimalist launcher that checks for game updates and displays friendly error messages if the core crashes. It is also responsible for sending game statistics if this feature is used. 
            In addition to this, the GamesManager also can be used by an installer to handle the usual tasks of windows program installation such as adding a installed programs entry in the registry, a start menu entry, and a desktop icon (see the <a href="{{ site.baseurl }}/api#commandline">command line options</a> for more details)</p>
-        <p class="alert alert-info"  ><strong>NOTE</strong> This component is optional. If you plan on using your own solution for launching the game and managing updates (Steam, Desura, etc.), you can omit this piece of the framework from your game and start your game by running core.exe directly instead of launching it via GamesManager.exe</p>
+        <p class="alert alert-info"  ><strong>NOTE</strong> This component is optional. If you plan on using your own solution for launching the game and managing updates (Steam, Itch.io, etc.), you can omit this piece of the framework from your game and start your game by running core.exe directly instead of launching it via GamesManager.exe</p>
     
         <h1 id="newgame" class="page-header">Building a new game</h1>
         <p id="folderstructure">MGDF takes a convention over configuration approach for the most part and assumes that a number of files will be provided by the game and that these files will exist in a standard folder structure inside the root MGDF install folder. The standard folder layout with the relevant locations highlighted are as follows.</p>
@@ -122,35 +122,36 @@ layout: default
 {% endhighlight %}
 
         <h2 id="gamemodule">Module.dll</h2>
-        <p>Module.dll is the actual entry point into your game. This dll requires a <a href="{{ site.baseurl }}/api#functions">number of functions</a> to be exported, and must be able to provide the mgdf host with an instance of the <a href="{{ site.baseurl }}/api#class_m_g_d_f_1_1_i_module">IModule</a> interface in order for the host to be able to run your game code.</p>
+        <p>Module.dll is the actual entry point into your game. This dll requires a <a href="{{ site.baseurl }}/api#functions">number of functions</a> to be exported, and must be able to provide the mgdf host with an instance of the <a href="{{ site.baseurl }}/api#IMGDFModule">IMGDFModule</a> interface in order for the host to be able to run your game code.</p>
         <p>MGDF is multithreaded and runs two main threads, the <em>Sim thread</em> and the <em>Render thread</em>. The Render thread is responsible for all rendering, and the Sim thread is responsible for handling input, audio, game logic. It is important to handle the sharing of data between these threads in a threadsafe manner for a game to work correctly. For the most part this means minimizing the amount of
         shared state between the Sim and Rendering parts of your game and ensuring that appropriate locking strategies are in place. </p>
         <p>One method for managing this is to use a Double Buffered game state, i.e. the Sim thread modifies the game state and on each tick makes a copy of the current game state (or as much of a copy as the renderer needs to do its job) and copies it into a buffer which the Render thread can pick up when it's ready to render the next frame. In this way the Sim and Render threads can operate mostly independantly of each
         other without having to worry about concurrency issues. By default the Render thread will not run more than once per Sim tick, so you don't have to worry about buffer underrun in this case either (though this behaviour is configurable - if you have a very slow Sim framerate and want to interpolate a single game state over several render frames - check out the host.interpolateFrames preference option in the <a href="{{ site.baseurl }}/api#gamemanifeset">Game.json API reference</a>)</p>
         <p class="alert alert-info"><strong>NOTE</strong> The SDK includes a sample visual studio game project in src/samples/EmptyGame. This project contains a game.json file and will create a compatible module.dll with a stub module class.</p>
-        <h4>Implementing the IModule interface</h4>
-        <p>Below is a stub implmentation of the IModule interface. Once a module instance is created, the host communicates events to the module by calling into the various methods provided. You may notice that all methods except Panic are prefixed with ST or RT - RT methods will be called by the host from the render thread, and ST methods will be called by the host from the sim thread. Panic may be called from either thread.</p>
+        <h4>Implementing the IMGDFModule interface</h4>
+        <p>Below is a stub implmentation of the IMGDFModule interface. All MGDF interfaces are COM objects and inherit from IUnknown, so it is the users responsibility to release them when no longer required. Once a module instance is created, the host communicates events to the module by calling into the various methods provided. You may notice that all methods except Panic are prefixed with ST or RT - RT methods will be called by the host from the render thread, and ST methods will be called by the host from the sim thread. Panic may be called from either thread.</p>
         <h5>Module.h</h5>
 {% highlight c++ %}
 #pragma once
-#include <MGDF/MGDF.hpp>;
+#include <MGDF/ComObject.hpp>
+#include <MGDF/MGDF.h>
 
-class Module: public MGDF::IModule
+class Module: public MGDF::ComBase<IMGDFModule>
 {
 public:
 	virtual ~Module( void );
 	Module();
-	bool STNew( MGDF::ISimHost *host, const wchar_t *workingFolder ) override final;
-	bool STUpdate( MGDF::ISimHost *host, double elapsedTime ) override final;
-	void STShutDown( MGDF::ISimHost *host ) override final;
-	bool STDispose( MGDF::ISimHost *host ) override final;
-	bool RTBeforeFirstDraw( MGDF::IRenderHost *host ) override final;
-	bool RTDraw( MGDF::IRenderHost *host, double alpha ) override final;
-	bool RTBeforeBackBufferChange( MGDF::IRenderHost *host ) override final;
-	bool RTBackBufferChange( MGDF::IRenderHost *host ) override final;
-	bool RTBeforeDeviceReset( MGDF::IRenderHost *host ) override final;
-	bool RTDeviceReset( MGDF::IRenderHost *host ) override final;
-	void Panic() override final;
+	BOOL __stdcall STNew( IMGDFSimHost *host ) final;
+	BOOL __stdcall STUpdate( IMGDFSimHost *host, double elapsedTime ) final;
+	void __stdcall STShutDown( IMGDFSimHost *host ) final;
+	BOOL __stdcall STDispose( IMGDFSimHost *host ) final;
+	BOOL __stdcall RTBeforeFirstDraw( IMGDFRenderHost *host ) final;
+	BOOL __stdcall RTDraw( IMGDFRenderHost *host, double alpha ) final;
+	BOOL __stdcall RTBeforeBackBufferChange( IMGDFRenderHost *host ) final;
+	BOOL __stdcall RTBackBufferChange( IMGDFRenderHost *host ) final;
+	BOOL __stdcall RTBeforeDeviceReset( IMGDFRenderHost *host ) final;
+	BOOL __stdcall RTDeviceReset( IMGDFRenderHost *host ) final;
+	void __stdcall Panic() final;
 };
 {% endhighlight %}
         <h5>Module.cpp</h5>
@@ -163,66 +164,64 @@ Module::~Module( void )
 Module::Module()
 {
 }
-bool Module::STNew( MGDF::ISimHost *host, const wchar_t *workingFolder )
+BOOL Module::STNew( IMGDFSimHost *host )
 {
     // This method is called by the host to initialize the module.
-    // the workingFolder is a folder on disk that the game can use
-    // to write out temporary files if needed.
     return true;
 }
-bool Module::STUpdate( MGDF::ISimHost *host, double elapsedTime )
+BOOL Module::STUpdate( IMGDFSimHost *host, double elapsedTime )
 {
     // Game logic goes here, the host calls this function once per
     // tick of the simulation thread
     return true;
 }
-void Module::STShutDown( MGDF::ISimHost *host )
+void Module::STShutDown( IMGDFSimHost *host )
 {
     // Called by the host to indicate to the module that it should shut down
     // as soon as possible. Note that shutdown will not actually occur until
     // the module then calls host->Shutdown(), which it can do at its discretion
     host->ShutDown();
 }
-bool Module::STDispose( MGDF::ISimHost *host  )
+BOOL Module::STDispose( IMGDFSimHost *host  )
 {
     // called by the host when the module is to be destroyed
     delete this;
     return true;
 }
-bool Module::RTBeforeFirstDraw( MGDF::IRenderHost *host )
+BOOL Module::RTBeforeFirstDraw( IMGDFRenderHost *host )
 {
     // Called by the host before any rendering occurs on the render thread
     // Any first time rendering initialization stuff should go here
     return true;
 }
-bool Module::RTDraw( MGDF::IRenderHost *host, double alpha )
+BOOL Module::RTDraw( IMGDFRenderHost *host, double alpha )
 {
     // Called by the host once per tick of the render thread
     // Any rendering goes here.
     return true;
 }
-bool Module::RTBeforeBackBufferChange( MGDF::IRenderHost *host )
+BOOL Module::RTBeforeBackBufferChange( IMGDFRenderHost *host )
 {
     // Called before the host resizes the current backbuffer
     // Anything holding a reference to the backbuffer should release it now
     // otherwise Direct3D will not be able to change the backbuffer
     return true;
 }
-bool Module::RTBackBufferChange( MGDF::IRenderHost *host )
+BOOL Module::RTBackBufferChange( IMGDFRenderHost *host )
 {
     // Called after the host has created a newly resized back buffer
     // Any Direct3D resources that may need to be updated as a result of the backbuffer
     // changing should be handled here.
     return true;
 }
-bool Module::RTBeforeDeviceReset( MGDF::IRenderHost *host )
+BOOL Module::RTBeforeDeviceReset( IMGDFRenderHost *host )
 {
     // Called by the host before resetting the Direct3D Device
     // Anything holding a reference to ANY device dependent resource should release it now
     // as these references to the removed device are now invalid
     return true;
 }
-bool Module::RTDeviceReset( MGDF::IRenderHost *host )
+BOOL Module::RTDeviceReset( IMGDFRenderHost *host )
 {
     // Called by the host after resetting the Direct3D device
     // Recreate any resources cleared out in RTBeforeDeviceReset
@@ -236,8 +235,7 @@ void Module::Panic()
 
     <h4>Implementing main.cpp</h4>
     <p>Now that we have a module implementation, we need to make it available to the host. Below is a sample main.cpp file for a module dll. When the host starts up, it will first call the 
-       IsCompatibleInterfaceVersion function and will pass in the version of the interface it supports (currently always 1). If this function returns true, it will then call GetModule, and 
-        will invoke events on that module instance for the rest of the hosts lifetime.</p>
+       GetCompatibleFeatureLevels function. It will then call GetModule, and will invoke events on that module instance for the rest of the hosts lifetime.</p>
 {% highlight c++ %}
 #include "Module.hpp"
 
@@ -249,16 +247,23 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	return TRUE;
 }
 
-bool MGDF::IsCompatibleInterfaceVersion( INT32 interfaceVersion )
-{
-	return interfaceVersion == 1; //compatible with v1 interface
+extern "C" __declspec(dllexport) UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                        UINT64 *featureLevelsSize) {
+  if (*featureLevelsSize != 1) {
+    *featureLevelsSize = 1;
+    return 1;
+  } else {
+    levels[0] = D3D_FEATURE_LEVEL_11_0;
+    return 0;
+  }
 }
 
-//create a module instance when requested by the host
-MGDF::IModule *MGDF::GetModule()
-{
-	return new Module();
+extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
+  auto m = MGDF::MakeCom<Module>();
+  m.AddRawRef(module);
+  return S_OK;
 }
+
 {% endhighlight %}
     <h1 id="running" class="page-header">Running a game</h1>
     <p>When distributing a game to users, one simply has to put the game content and module in the prescribed locations inside the framework redistributable (as shown <a href="#folderstructure">here</a>). Users can then run the game by running GamesManager.exe.</p>

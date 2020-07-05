@@ -215,9 +215,9 @@ Content-Length: 29
         </pre>
        
         <h1 id="functions" class="page-header">Functions</h1>
-        <p>There are a number of functions which can be exported by a module which are used by the host to create the module instance and to query the requirements of the module.</p>
-        {% for f in site.data.api.Functions %}
-            <div class="panel panel-default" id="@f.Id">
+        <p>There are a number of entrypoint functions which can be exported by a module which are used by the host to create the module instance and to query the requirements of the module.</p>
+        {% for f in site.data.moduleApi.Functions %}
+            <div class="panel panel-default" id="{{ f.Id }}">
                 <div class="panel-heading"><h4>{{ f.Name }} <small>{{ f.Description }}</small></h4></div>
                 <div class="panel-body">
                     <code>
@@ -410,7 +410,7 @@ Content-Length: 29
                 <li>
                     <a href="#functions">Functions</a>
                     <ul class="nav">
-                        {% for f in site.data.api.Functions %}
+                        {% for f in site.data.moduleApi.Functions %}
                             <li><a href="#{{ f.Id }}">{{ f.Name }}</a></li>
                         {% endfor %}
                     </ul>

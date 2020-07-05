@@ -1,0 +1,76 @@
+{
+  "Functions": [
+    {
+      "MemberType": 1,
+      "Id": "GetCompatibleFeatureLevels",
+      "Name": "GetCompatibleFeatureLevels",
+      "Description": "Allows a module to tell the host what D3D11 feature level to try and use when creating the D3D device. ",
+      "ReturnType": "UINT64",
+      "ReturnDescription": "Should return 0 if the supplied levels array is large enough, otherwise should return the size required",
+      "ReturnTypeRefId": null,
+      "Args": [
+        {
+          "Name": "levels",
+          "Type": "D3D_FEATURE_LEVEL *",
+          "TypeRefId": null,
+          "Description": "An array supplied to the module to fill with acceptable D3D feature levels "
+        },
+        {
+          "Name": "featureLevelSize",
+          "Type": "UINT64 *",
+          "TypeRefId": null,
+          "Description": "The size of the levels array "
+        }
+      ],
+      "Const": false
+    },
+    {
+      "MemberType": 1,
+      "Id": "GetCustomArchiveHandlers",
+      "Name": "GetCustomArchiveHandlers",
+      "Description": "Allows a module to tell the host if it is going to provide any custom virtual file system handlers. ",
+      "ReturnType": "HRESULT",
+      "ReturnDescription": "Should return S_OK if the supplied list is large enough to contain all the items in the list, otherwise return E_FAIL and sets the required size in the length parameter ",
+      "ReturnTypeRefId": null,
+      "Args": [
+        {
+          "Name": "list",
+          "Type": "IMGDFArchiveHandler **",
+          "TypeRefId": "IMGDFArchiveHandler",
+          "Description": "Pointer to a buffer to store the list of provided archive handlers"
+        },
+        {
+          "Name": "length",
+          "Type": "UINT64 *",
+          "TypeRefId": null,
+          "Description": "The length of the provided buffer"
+        },
+        {
+          "Name": "logger",
+          "Type": "IMGDFLogger *",
+          "TypeRefId": "IMGDFLogger",
+          "Description": "An interface allowing the archive handler to write to the MGDF logs "
+        }
+      ],
+      "Const": false
+    },
+    {
+      "MemberType": 1,
+      "Id": "GetModule",
+      "Name": "GetModule",
+      "Description": "Factory function which returns an instance of the module to the host. ",
+      "ReturnType": "HRESULT",
+      "ReturnDescription": "Should return S_OK if the module could be created, otherwise E_FAIL",
+      "ReturnTypeRefId": null,
+      "Args": [
+        {
+          "Name": "module",
+          "Type": "IMGDFModule **",
+          "TypeRefId": "IMGDFModule",
+          "Description": "An instance of the module interface"
+        }
+      ],
+      "Const": false
+    }
+  ]
+}
