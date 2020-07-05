@@ -147,7 +147,7 @@ void GPUPerformanceCounter::End() {
   if (_started) {
     _ASSERTE(_currentDisjoint);
 
-    auto it = _pendingQueries.find(_currentDisjoint);
+    const auto it = _pendingQueries.find(_currentDisjoint);
     _ASSERTE(it != _pendingQueries.end());
     _context->End(it->second.second);
 
@@ -207,7 +207,7 @@ void GPUPerformanceCounter::Reset() {
 }
 
 void GPUPerformanceCounter::DataDisjoint(ID3D11Query *disjoint) {
-  auto it = _pendingQueries.find(disjoint);
+  const auto it = _pendingQueries.find(disjoint);
   if (it == _pendingQueries.end()) return;
 
   LOG("Ignoring GPU Timer sample from disjoint query", MGDF_LOG_MEDIUM);
@@ -217,7 +217,7 @@ void GPUPerformanceCounter::DataDisjoint(ID3D11Query *disjoint) {
 }
 
 void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
-  auto it = _pendingQueries.find(disjoint);
+  const auto it = _pendingQueries.find(disjoint);
   if (it == _pendingQueries.end()) return;
 
   UINT64 timeStampBegin = 0;

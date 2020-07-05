@@ -33,7 +33,7 @@ BOOL Game::HasPreference(const char *name) {
 HRESULT Game::GetPreference(const char *name, char *value, UINT64 *length) {
   if (!name) return E_INVALIDARG;
 
-  auto iter = _preferences.find(name);
+  const auto iter = _preferences.find(name);
   if (iter != _preferences.end()) {
     return CopyStr(iter->second, value, length);
   } else {
@@ -44,7 +44,7 @@ HRESULT Game::GetPreference(const char *name, char *value, UINT64 *length) {
 void Game::SetPreference(const char *name, const char *value) {
   if (!name || !value) return;
 
-  auto it = _preferences.find(name);
+  const auto it = _preferences.find(name);
   if (it != _preferences.end()) {
     it->second = value;
   } else {

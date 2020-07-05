@@ -163,14 +163,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CD098AAC
 	ProjectSection(SolutionItems) = preProject
 		build\build.cake = build\build.cake
 		build\build.ps1 = build\build.ps1
-		build\documentation.Doxyfile = build\documentation.Doxyfile
+		build\tools\packages.config = build\tools\packages.config
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DocGen", "DocGen", "{F7F8841C-8BE3-4E4F-86C9-4850BCA326DE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatchstickFramework.Docgen", "src\DocGen\MatchstickFramework.Docgen\MatchstickFramework.Docgen.csproj", "{811FDD54-AE80-4ED5-867F-E3313E07DEDD}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatchstickFramework.Docgen.Model", "src\DocGen\MatchstickFramework.Docgen.Model\MatchstickFramework.Docgen.Model.csproj", "{71C65593-1C51-4DF2-A709-FFB77C9A8855}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CBEF9DE4-3405-4CA7-BA90-A5582800754B}"
 	ProjectSection(SolutionItems) = preProject
@@ -511,18 +509,6 @@ Global
 		{811FDD54-AE80-4ED5-867F-E3313E07DEDD}.Release|x64.Build.0 = Release|Any CPU
 		{811FDD54-AE80-4ED5-867F-E3313E07DEDD}.Release|x86.ActiveCfg = Release|Any CPU
 		{811FDD54-AE80-4ED5-867F-E3313E07DEDD}.Release|x86.Build.0 = Release|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Debug|x64.Build.0 = Debug|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Debug|x86.Build.0 = Debug|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Release|Any CPU.Build.0 = Release|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Release|x64.ActiveCfg = Release|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Release|x64.Build.0 = Release|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Release|x86.ActiveCfg = Release|Any CPU
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855}.Release|x86.Build.0 = Release|Any CPU
 		{531A9FF9-F1EC-41D8-8C34-531E640139BA}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{531A9FF9-F1EC-41D8-8C34-531E640139BA}.Debug|x64.ActiveCfg = Debug|x64
 		{531A9FF9-F1EC-41D8-8C34-531E640139BA}.Debug|x64.Build.0 = Debug|x64
@@ -579,7 +565,6 @@ Global
 		{64A4FEFE-0461-4E95-8CC1-91EF5F57DBC6} = {28C3B38B-2DE5-4423-A225-2E18B2C2F820}
 		{C93E74C8-D021-4DA6-92DE-4BF63FAC418B} = {28C3B38B-2DE5-4423-A225-2E18B2C2F820}
 		{811FDD54-AE80-4ED5-867F-E3313E07DEDD} = {F7F8841C-8BE3-4E4F-86C9-4850BCA326DE}
-		{71C65593-1C51-4DF2-A709-FFB77C9A8855} = {F7F8841C-8BE3-4E4F-86C9-4850BCA326DE}
 		{531A9FF9-F1EC-41D8-8C34-531E640139BA} = {5656FE26-2995-4842-B088-D8E29338C13E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

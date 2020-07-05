@@ -10,7 +10,6 @@ namespace MatchstickFramework.Docgen.Model
   {
     public List<ClassDoc> Classes;
     public List<ClassDoc> Structs;
-    public List<MemberDoc> Functions;
     public List<EnumDoc> Enums;
     public Dictionary<string, string> Mappings;
   }
@@ -58,5 +57,11 @@ namespace MatchstickFramework.Docgen.Model
     public string Description;
     public string Name;
     public List<string> Values;
+  }
+
+  public class CommentBlock {
+    public string Description;
+    public string ReturnDescription;
+    public Dictionary<string, string> ParamDescriptions;
   }
 }

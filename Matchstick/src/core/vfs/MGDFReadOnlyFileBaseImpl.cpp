@@ -66,7 +66,7 @@ BOOL ReadOnlyFileBaseImpl::GetChild(const wchar_t *name, IMGDFReadOnlyFile **chi
     return false;
   }
 
-  auto it = _children->find(name);
+  const auto it = _children->find(name);
   if (it != _children->end()) {
     it->second.AddRawRef(child);
     return true;

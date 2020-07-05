@@ -149,7 +149,7 @@ HRESULT GameState::Save() {
 }
 
 HRESULT GameState::GetMetadata(const char* key, char* value, UINT64* length) {
-  auto found = _metadata.find(key);
+  const auto found = _metadata.find(key);
   if (found == _metadata.end()) {
     return E_NOT_SET;
   }

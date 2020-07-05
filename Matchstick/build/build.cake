@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
-#addin nuget:?package=Cake.FileHelpers
-#addin nuget:?package=Cake.Json
-#addin nuget:?package=Cake.AWS.S3
-#addin nuget:?package=Cake.Git
+#addin nuget:?package=Cake.FileHelpers&version=3.3.0
+#addin nuget:?package=Cake.Json&version=5.1.1
+#addin nuget:?package=Cake.AWS.S3&version=0.6.9
+#addin nuget:?package=Cake.Git&version=0.22.0
 #addin nuget:?package=Newtonsoft.Json&version=9.0.1
 
 var target = Argument("target", "Default");
@@ -47,19 +47,24 @@ Task("VersionInfo").Does(() => {
 	FileWriteText("../src/core/common/MGDFVersionInfo.cpp", versionInfo);
 });
 
-Task("Documentation").Does(() => {
-	StartProcess("tools/Doxygen/tools/doxygen.exe", new ProcessSettings() {
-		WorkingDirectory = new DirectoryPath("."),
-		Arguments = new ProcessArgumentBuilder().AppendQuoted("documentation.Doxyfile")
-	});
-});
+Task("Documentation")
+  .IsDependentOn("BuildX64")
+  .Does(() => {
+    // Generate docs
+    CreateDirectory("../dist/documentation");
+    StartProcess($@"../src/Docgen/MatchstickFramework.Docgen/bin/{buildConfiguration}/MatchstickFramework.Docgen.exe", new ProcessSettings() {
+      WorkingDirectory = new DirectoryPath(".."),
+      Arguments = new ProcessArgumentBuilder()
+        .AppendQuoted("src/core/core.api/MGDF.idl")
+        .AppendQuoted("dist/documentation/api.json")
+    });
+  });
 
 Task("TestGamesManager")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
 	NUnit3($@"../tests/GamesManager.Tests/bin/{buildConfiguration}/GamesManager.Tests.dll", new NUnit3Settings() {
 		StopOnError = true,
-		TeamCity = true,
 		NoResults = true
 	});
 });	
@@ -133,7 +138,8 @@ Task("Dist")
 		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.pdb"), "../dist/symbols/x64");
 
 		// copy MGDF headers
-		CopyDirectory("../include", "../dist/SDK/include");
+		CreateDirectory("../dist/SDK/include/MGDF");
+		CopyFiles(GetFiles("../include/MGDF/*.h*"), "../dist/SDK/include/MGDF");
     
 		// copy packagegen to SDK bin dir
 		CreateDirectory("../dist/SDK/bin");
@@ -222,13 +228,8 @@ Task("Publish").Does(async () => {
 			.Append("gh-pages")
 	});
 
-	// Generate docs
-	StartProcess($@"../src/Docgen/MatchstickFramework.Docgen/bin/{buildConfiguration}/MatchstickFramework.Docgen.exe", new ProcessSettings() {
-		WorkingDirectory = new DirectoryPath(".."),
-		Arguments = new ProcessArgumentBuilder()
-			.AppendQuoted("dist/documentation/xml")
-			.AppendQuoted("build/gh-pages/_data/api.json")
-	});
+	// Copy docs
+  CopyFile($@"../dist/documentation/api.json", $@"gh-pages/_data/api.json");
 
 	// Update the website download link
 	string configYaml = FileReadText("gh-pages/_config.yml");

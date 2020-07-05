@@ -129,7 +129,7 @@ HRESULT TextStream::GetBrush(const ComObject<ID2D1DeviceContext> &context,
   std::ostringstream key;
   key << color.r << '_' << color.g << '_' << color.b << ' ' << color.a;
 
-  auto cached = _brushCache.find(key.str());
+  const auto cached = _brushCache.find(key.str());
   if (cached == _brushCache.end()) {
     const HRESULT result =
         context->CreateSolidColorBrush(color, brush.Assign());

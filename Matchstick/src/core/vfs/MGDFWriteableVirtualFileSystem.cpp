@@ -21,8 +21,8 @@ namespace vfs {
 
 using namespace std::filesystem;
 
-const std::wstring S_DOT(L".");
-const std::wstring S_DOTDOT(L"..");
+const constexpr std::wstring_view S_DOT(L".");
+const constexpr std::wstring_view S_DOTDOT(L"..");
 
 BOOL WriteableVirtualFileSystem::GetFile(const wchar_t *logicalPath,
                                          IMGDFWriteableFile **file) {

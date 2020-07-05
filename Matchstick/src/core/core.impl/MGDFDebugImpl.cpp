@@ -37,7 +37,7 @@ void Debug::Clear(const char* section, const char* key) {
   if (!key) {
     _data.erase(section);
   } else {
-    auto sectionMap = _data.find(section);
+    const auto sectionMap = _data.find(section);
     if (sectionMap == _data.end()) {
       return;
     }

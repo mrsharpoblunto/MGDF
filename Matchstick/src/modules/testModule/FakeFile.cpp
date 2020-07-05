@@ -86,7 +86,7 @@ UINT64 FakeFile::GetLastWriteTime() { return 0; }
 BOOL FakeFile::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
   if (!_children || !name) return false;
 
-  auto it = _children->find(name);
+  const auto it = _children->find(name);
   if (it != _children->end()) {
     it->second.AddRawRef(child);
     return true;

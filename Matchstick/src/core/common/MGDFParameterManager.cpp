@@ -19,7 +19,7 @@ bool ParameterManager::HasParameter(const char *param) const {
 const char *ParameterManager::GetParameter(const char *param) const {
   _ASSERTE(param);
   std::string p = param;
-  auto iter = _parameters.find(p);
+  const auto iter = _parameters.find(p);
   if (iter != _parameters.end()) {
     return iter->second.c_str();
   }

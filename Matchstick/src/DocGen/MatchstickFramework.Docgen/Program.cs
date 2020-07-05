@@ -32,185 +32,626 @@ namespace MatchstickFramework.Docgen
         return;
       }
 
-      string xmlDocsPath = args[0];
+      string input = System.IO.File.ReadAllText(args[0]);
 
-      XDocument doc = XDocument.Load(Path.Combine(xmlDocsPath, "namespace_m_g_d_f.xml"));
-
-      var classElements = doc.Descendants("innerclass").Select(c => new
-      {
-        Name = c.Value,
-        Ref = c.Attribute("refid").Value
-      });
-
-      var api = new ApiDoc
-      {
-        Classes = new List<ClassDoc>(),
-        Structs = new List<ClassDoc>(),
-        Functions = new List<MemberDoc>(),
-        Enums = new List<EnumDoc>(),
-        Mappings = new Dictionary<string, string>()
-      };
-
-      // parse out all class information
-      foreach (var c in classElements)
-      {
-        XDocument classDoc = XDocument.Load(Path.Combine(xmlDocsPath, c.Ref + ".xml"));
-        var newClass = new ClassDoc
-        {
-          Id = c.Ref,
-          Name = c.Name.Replace("MGDF::", string.Empty),
-          Description = classDoc.Descendants("compounddef").First().Element("briefdescription").Value.Capitalize(),
-          Members = new List<MemberDoc>(),
-          InheritsFromTypeRefIds = new List<string>(),
-          InheritsFromUnreferencedType = new List<string>()
-        };
-        Console.WriteLine($@"Processing class {newClass.Name}");
-
-        if (classDoc.Descendants("compounddef").First().Element("detaileddescription") != null)
-        {
-          newClass.Description += classDoc.Descendants("compounddef").First().Element("detaileddescription").Value;
-        }
-
-        Console.WriteLine($@"  computing inheritance tree...");
-        // figure out what classes this class inherits from
-        var inherits = classDoc.Descendants("compounddef").First().Element("inheritancegraph");
-        if (inherits != null)
-        {
-          var self = inherits.Descendants("node").Single(n =>
-                    {
-                      var link = n.Element("link");
-                      return link != null && link.Attribute("refid").Value == newClass.Id;
-                    });
-          if (self.Elements("childnode").Count() != 0)
-          {
-            var parent = inherits.Descendants("node").SingleOrDefault(n => n.Attribute("id").Value == self.Elements("childnode").First().Attribute("refid").Value);
-            while (true)
-            {
-              if (parent.Element("link") != null)
-              {
-                newClass.InheritsFromTypeRefIds.Add(parent.Element("link").Attribute("refid").Value);
-              }
-              else
-              {
-                newClass.InheritsFromUnreferencedType.Add(parent.Element("label").Value);
-              }
-              if (parent.Elements("childnode").Count() == 0) break;
-              parent = inherits.Descendants("node").SingleOrDefault(n => n.Attribute("id").Value == parent.Elements("childnode").First().Attribute("refid").Value);
-            }
-          }
-        }
-
-        api.Mappings.Add(newClass.Id, newClass.Name);
-
-        Console.WriteLine($@"  parsing members...");
-        foreach (var m in classDoc.Descendants("memberdef"))
-        {
-          var newMember = ParseMemberDoc(m);
-          newClass.Members.Add(newMember);
-        }
-        if (classDoc.Descendants("compounddef").First().Attribute("kind").Value == "class")
-        {
-          api.Classes.Add(newClass);
-        }
-        else
-        {
-          api.Structs.Add(newClass);
-        }
-
-      }
-
-      // parse out all free function information
-      var functionElements = doc.Descendants("memberdef").Where(m => m.Attribute("kind").Value == "function");
-      foreach (var f in functionElements)
-      {
-        var m = ParseMemberDoc(f);
-        api.Functions.Add(m);
-        Console.WriteLine($@"Processing function {m.Name}");
-      }
-
-      // parse out all enum information
-      var enumElements = doc.Descendants("memberdef").Where(m => m.Attribute("kind").Value == "enum");
-      foreach (var e in enumElements)
-      {
-        var newEnum = new EnumDoc
-        {
-          Id = e.Attribute("id").Value,
-          Name = e.Element("name").Value,
-          Description = e.Element("briefdescription").Value.Capitalize(),
-          Values = new List<string>()
-        };
-        Console.WriteLine($@"Processing enum {newEnum.Name}");
-        api.Mappings.Add(newEnum.Id, newEnum.Name);
-
-        foreach (var value in e.Descendants("enumvalue"))
-        {
-          newEnum.Values.Add(value.Element("name").Value);
-        }
-        api.Enums.Add(newEnum);
-      }
-
+      var api = ParseInput(input);
       api.Classes.Sort((a, b) => a.Name.CompareTo(b.Name));
-      api.Functions.Sort((a, b) => a.Name.CompareTo(b.Name));
+      api.Structs.Sort((a, b) => a.Name.CompareTo(b.Name));
       api.Enums.Sort((a, b) => a.Name.CompareTo(b.Name));
 
       string output = JsonConvert.SerializeObject(api);
       File.WriteAllText(args[1], output);
+
     }
 
-    private static MemberDoc ParseMemberDoc(XElement m)
+    static ApiDoc ParseInput(string input)
     {
-      var newMember = new MemberDoc
+      ApiDoc api = new ApiDoc
       {
-        Id = m.Attribute("id").Value,
-        Name = m.Element("name").Value,
-        ReturnType = m.Element("type").Value,
-        Description = m.Element("briefdescription").Value,
-        MemberType = m.Attribute("kind").Value == "function" ? MemberType.Function : MemberType.Field,
-        Const = m.Attribute("const") != null && m.Attribute("const").Value == "yes",
-        Args = new List<FunctionArg>()
+        Classes = new List<ClassDoc>(),
+        Enums = new List<EnumDoc>(),
+        Structs = new List<ClassDoc>(),
+        Mappings = new Dictionary<string, string>(),
       };
-      if (!string.IsNullOrEmpty(newMember.Description))
-      {
-        newMember.Description = newMember.Description.Capitalize();
-      }
-      if (m.Element("type").Element("ref") != null)
-      {
-        newMember.ReturnTypeRefId = m.Element("type").Element("ref").Attribute("refid").Value;
-      }
-      var returnDesc = m.Descendants("simplesect").Where(s => s.Attribute("kind").Value == "return").SingleOrDefault();
-      if (returnDesc != null)
-      {
-        newMember.ReturnDescription = returnDesc.Value.Capitalize();
-      }
 
-      if (newMember.MemberType == MemberType.Function)
+      CommentBlock lastComment = null;
+      using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(input)))
       {
-        foreach (var a in m.Elements("param"))
+        using (var reader = new StreamReader(stream))
         {
-          if (a.Element("type").Value == "void") continue;
-          var newArg = new FunctionArg()
+          while (!reader.EndOfStream)
           {
-            Name = a.Element("declname").Value,
-            Type = a.Element("type").Value,
-            Description = string.Empty
-          };
-          if (a.Element("type").Element("ref") != null)
-          {
-            newArg.TypeRefId = a.Element("type").Element("ref").Attribute("refid").Value;
-          }
+            var ch = (char)reader.Peek();
+            switch (ch)
+            {
+              case '/':
+                reader.Read();
+                if (reader.Peek() == '*')
+                {
+                  reader.Read();
+                  if (reader.Peek() == '*')
+                  {
+                    reader.Read();
+                  }
+                  lastComment = ParseCommentBlock(reader);
+                }
+                break;
+              case 'i':
+                {
+                  var word = CaptureWord(reader);
+                  if (word == "interface")
+                  {
+                    var c = ParseInterface(reader, api.Mappings);
+                    if (c != null)
+                    {
+                      if (lastComment != null)
+                      {
+                        c.Description = lastComment.Description;
+                      }
+                      if (string.IsNullOrEmpty(c.Description))
+                      {
+                        throw new Exception($"no description found for interface {c.Name}");
+                      }
+                      api.Classes.Add(c);
+                    }
+                    lastComment = null;
+                  }
+                }
+                break;
+              case 't':
+                {
+                  var word = CaptureWord(reader);
+                  if (word == "typedef")
+                  {
+                    var type = CaptureWord(reader);
+                    if (type == "enum")
+                    {
+                      var e = ParseEnum(reader, api.Mappings);
+                      if (e != null)
+                      {
+                        if (lastComment != null)
+                        {
+                          e.Description = lastComment.Description;
+                        }
+                        if (string.IsNullOrEmpty(e.Description))
+                        {
+                          throw new Exception($"no description found for enum {e.Name}");
+                        }
+                        api.Enums.Add(e);
+                        lastComment = null;
+                      }
+                    }
+                    else if (type == "struct")
+                    {
+                      var s = ParseStruct(reader, api.Mappings);
+                      if (s != null)
+                      {
+                        if (lastComment != null)
+                        {
+                          s.Description = lastComment.Description;
+                        }
+                        if (string.IsNullOrEmpty(s.Description))
+                        {
+                          throw new Exception($"no description found for struct {s.Name}");
+                        }
+                        api.Structs.Add(s);
+                        lastComment = null;
+                      }
+                    }
 
-          var parameterItem = m.Descendants("parameteritem").SingleOrDefault(p => p.Descendants("parametername").First().Value == newArg.Name);
-          if (parameterItem != null)
-          {
-            newArg.Description = parameterItem
-              .Element("parameterdescription")
-              .Element("para")
-              .Value.Capitalize();
+                  }
+                }
+                break;
+              default:
+                reader.Read();
+                break;
+
+
+            }
           }
-          newMember.Args.Add(newArg);
         }
       }
-      return newMember;
+      return api;
+    }
+
+    static EnumDoc ParseEnum(StreamReader reader, Dictionary<string, string> mappings)
+    {
+      EnumDoc e = new EnumDoc
+      {
+        Values = new List<string>(),
+      };
+
+      e.Id = e.Name = CaptureWord(reader);
+      mappings.Add(e.Name, e.Name);
+
+      if (CapturePunctuation(reader) != "{")
+      {
+        throw new Exception($"Expected {{ after identifier in enum ${e.Name}");
+      }
+
+      char ch;
+      do
+      {
+        // skip over comment blocks for individual values
+        if (reader.Peek() == '*')
+        {
+          reader.Read();
+          if (reader.Peek() == '*')
+          {
+            reader.Read();
+          }
+          ParseCommentBlock(reader);
+        }
+
+        e.Values.Add(CaptureWord(reader));
+
+        // skip past the enum value
+        do
+        {
+          ch = (char)reader.Read();
+        }
+        while (ch != ',' && ch != '}');
+      } while (ch != '}' && !reader.EndOfStream);
+
+      do
+      {
+        ch = (char)reader.Read();
+      } while (ch != ';');
+
+      return e;
+    }
+    static ClassDoc ParseStruct(StreamReader reader, Dictionary<string, string> mappings)
+    {
+      ClassDoc s = new ClassDoc
+      {
+        InheritsFromTypeRefIds = new List<string>(),
+        InheritsFromUnreferencedType = new List<string>(),
+        Members = new List<MemberDoc>(),
+      };
+      CommentBlock lastComment = null;
+      MemberDoc prevMember = null;
+
+      s.Id = s.Name = CaptureWord(reader);
+      mappings.Add(s.Name, s.Name);
+
+      if (CapturePunctuation(reader) != "{")
+      {
+        throw new Exception($"Expected {{ after identifier in struct ${s.Name}");
+      }
+      SkipWhitespace(reader);
+
+      char ch;
+      while (reader.Peek() != '}')
+      {
+        // skip over comment blocks for individual values
+        if (reader.Peek() == '*')
+        {
+          reader.Read();
+          if (reader.Peek() == '*')
+          {
+            reader.Read();
+          }
+          lastComment = ParseCommentBlock(reader);
+        }
+
+        if (prevMember == null)
+        {
+          // struct member with its own type declaration
+          prevMember = new MemberDoc
+          {
+            Args = new List<FunctionArg>(),
+            Const = false,
+            MemberType = MemberType.Field,
+          };
+
+          var modifierOrType = CaptureWord(reader);
+          if (modifierOrType == "const")
+          {
+            var type = CaptureWord(reader);
+            if (mappings.ContainsKey(type))
+            {
+              prevMember.ReturnTypeRefId = type;
+            }
+            modifierOrType += " " + type;
+          }
+          else if (mappings.ContainsKey(modifierOrType))
+          {
+            prevMember.ReturnTypeRefId = modifierOrType;
+          }
+          // reference or pointer types
+          var pointer = CapturePunctuation(reader);
+          if (pointer != "")
+          {
+            modifierOrType += " " + pointer;
+          }
+          prevMember.ReturnType = modifierOrType;
+        }
+        else
+        {
+          // an additional member re-using a previously declared type
+          prevMember = new MemberDoc
+          {
+            Args = new List<FunctionArg>(),
+            Const = false,
+            MemberType = MemberType.Field,
+            ReturnTypeRefId = prevMember.ReturnTypeRefId,
+            ReturnType = prevMember.ReturnType,
+          };
+        }
+
+        prevMember.Id = prevMember.Name = CaptureWord(reader);
+        if (lastComment != null)
+        {
+          prevMember.Description = lastComment.Description;
+        }
+        s.Members.Add(prevMember);
+        lastComment = null;
+
+        // skip to the next member
+        do
+        {
+          ch = (char)reader.Read();
+        }
+        while (ch != ',' && ch != ';');
+        if (ch == ';')
+        {
+          lastComment = null;
+          prevMember = null;
+        }
+
+        SkipWhitespace(reader);
+      }
+      do
+      {
+        ch = (char)reader.Read();
+      } while (ch != ';');
+      return s;
+    }
+
+    static ClassDoc ParseInterface(StreamReader reader, Dictionary<string, string> mappings)
+    {
+      ClassDoc c = new ClassDoc
+      {
+        InheritsFromTypeRefIds = new List<string>(),
+        InheritsFromUnreferencedType = new List<string>(),
+        Members = new List<MemberDoc>(),
+      };
+
+      c.Id = c.Name = CaptureWord(reader);
+      mappings.Add(c.Name, c.Name);
+
+      var separator = CapturePunctuation(reader);
+      // forward declarations - ignore
+      if (separator == ";")
+      {
+        return null;
+      }
+      // inheritance
+      else if (separator == ":")
+      {
+        var super = CaptureWord(reader);
+        (mappings.ContainsKey(super) ? c.InheritsFromTypeRefIds : c.InheritsFromUnreferencedType).Add(super);
+        separator = CapturePunctuation(reader);
+        while (separator == ",")
+        {
+          super = CaptureWord(reader);
+          (mappings.ContainsKey(super) ? c.InheritsFromTypeRefIds : c.InheritsFromUnreferencedType).Add(super);
+          separator = CapturePunctuation(reader);
+        }
+      }
+
+      if (separator == "{};")
+      {
+        // empty class declaration
+      }
+      // not the opening brace we expected
+      else if (separator != "{")
+      {
+        throw new Exception($"Expected after {{ in interface declaration {c.Id}");
+      }
+      else
+      {
+        ParseInterfaceMembers(reader, c, mappings);
+      }
+
+      return c;
+    }
+
+    static void ParseInterfaceMembers(StreamReader reader, ClassDoc c, Dictionary<string, string> mappings)
+    {
+      CommentBlock lastComment = null;
+      while (!reader.EndOfStream)
+      {
+        SkipWhitespace(reader);
+        var ch = (char)reader.Peek();
+        switch (ch)
+        {
+          case '/':
+            reader.Read();
+            if (reader.Peek() == '*')
+            {
+              reader.Read();
+              if (reader.Peek() == '*')
+              {
+                reader.Read();
+              }
+              lastComment = ParseCommentBlock(reader);
+            }
+            break;
+          case '}':
+            reader.Read();
+            if (reader.Peek() != ';')
+            {
+              throw new Exception($"Expected ; after closing }} in  {c.Name}");
+            }
+            return;
+          default:
+            {
+              MemberDoc member = new MemberDoc
+              {
+                Args = new List<FunctionArg>(),
+                Const = false,
+                MemberType = MemberType.Function,
+              };
+
+              var modifierOrType = CaptureWord(reader);
+              if (modifierOrType == "const")
+              {
+                var type = CaptureWord(reader);
+                if (mappings.ContainsKey(type))
+                {
+                  member.ReturnTypeRefId = type;
+                }
+                modifierOrType += " " + type;
+              }
+              else if (mappings.ContainsKey(modifierOrType))
+              {
+                member.ReturnTypeRefId = modifierOrType;
+              }
+              // reference or pointer types
+              var pointer = CapturePunctuation(reader);
+              if (pointer != "")
+              {
+                modifierOrType += " " + pointer;
+              }
+              member.ReturnType = modifierOrType;
+
+              member.Id = member.Name = CaptureWord(reader);
+
+              SkipWhitespace(reader);
+              if (reader.Peek() != '(')
+              {
+                throw new Exception($"Expected ( after identifier in interface member {c.Name}.{member.Name}");
+              }
+
+              ParseArguments(reader, c, member, mappings);
+              if (lastComment != null)
+              {
+                member.Description = lastComment.Description;
+                if (string.IsNullOrEmpty(member.Description))
+                {
+                  throw new Exception($"no description found for interface member {c.Name}.{member.Name}");
+                }
+                member.ReturnDescription = lastComment.ReturnDescription;
+                if (string.IsNullOrEmpty(member.ReturnDescription) && member.ReturnType != "void")
+                {
+                  throw new Exception($"No \\return description found for interface member {c.Name}.{member.Name}");
+                }
+                member.Args.ForEach((arg) =>
+                {
+                  if (!lastComment.ParamDescriptions.ContainsKey(arg.Name))
+                  {
+                    throw new Exception($"No \\param description found for {arg.Name} in interface member {c.Name}.{member.Name}");
+                  }
+                  arg.Description = lastComment.ParamDescriptions[arg.Name];
+                });
+              }
+              c.Members.Add(member);
+              lastComment = null;
+            }
+            break;
+
+
+        }
+      }
+    }
+
+    static void ParseArguments(StreamReader reader, ClassDoc c, MemberDoc member, Dictionary<string, string> mappings)
+    {
+      while (!reader.EndOfStream)
+      {
+        SkipWhitespace(reader);
+        var ch = (char)reader.Peek();
+        switch (ch)
+        {
+          case '(':
+            reader.Read();
+            break;
+
+          case ')':
+            {
+              while (reader.Peek() != ';')
+              {
+                reader.Read();
+              }
+              reader.Read();
+              SkipWhitespace(reader);
+              return;
+            }
+
+          case ',':
+            {
+              reader.Read();
+              SkipWhitespace(reader);
+            }
+            break;
+
+          case '[':
+            {
+              while (reader.Peek() != ']')
+              {
+                reader.Read();
+              }
+              reader.Read();
+              SkipWhitespace(reader);
+            }
+            break;
+
+          default:
+            {
+              FunctionArg arg = new FunctionArg();
+              var modifierOrType = CaptureWord(reader);
+              if (modifierOrType == "const")
+              {
+                var type = CaptureWord(reader);
+                if (mappings.ContainsKey(type))
+                {
+                  arg.TypeRefId = type;
+                }
+                modifierOrType += " " + type;
+              }
+              else if (mappings.ContainsKey(modifierOrType))
+              {
+                arg.TypeRefId = modifierOrType;
+              }
+              // reference or pointer types
+              var pointer = CapturePunctuation(reader);
+              if (pointer != "")
+              {
+                modifierOrType += " " + pointer;
+              }
+              arg.Type = modifierOrType;
+              arg.Name = CaptureWord(reader);
+              if (string.IsNullOrEmpty(arg.Name))
+              {
+                throw new Exception($"Unnamed argument in interface member {c.Name}.{member.Name}");
+              }
+              member.Args.Add(arg);
+            }
+            break;
+        }
+      }
+
+    }
+
+    static string CaptureWord(StreamReader reader)
+    {
+      StringBuilder buffer = new StringBuilder();
+
+      SkipWhitespace(reader);
+      while (!reader.EndOfStream)
+      {
+        var ch = (char)reader.Peek();
+        if (!char.IsLetterOrDigit(ch) && ch != '_')
+        {
+          return buffer.ToString();
+        }
+        else
+        {
+          buffer.Append(ch);
+          reader.Read();
+        }
+      }
+      return buffer.ToString();
+    }
+    static string CapturePunctuation(StreamReader reader)
+    {
+      StringBuilder buffer = new StringBuilder();
+
+      SkipWhitespace(reader);
+      while (!reader.EndOfStream)
+      {
+        var ch = (char)reader.Peek();
+        if (!char.IsPunctuation(ch) || ch == '_')
+        {
+          return buffer.ToString();
+        }
+        else
+        {
+          buffer.Append(ch);
+          reader.Read();
+        }
+      }
+      return buffer.ToString();
+    }
+
+    static void SkipWhitespace(StreamReader reader)
+    {
+      while (!reader.EndOfStream)
+      {
+        var ch = (char)reader.Peek();
+        if (!char.IsWhiteSpace(ch))
+        {
+          break;
+        }
+        else
+        {
+          reader.Read();
+        }
+      }
+    }
+
+    delegate void SetComment(StringBuilder sb);
+
+    static string CaptureTidyDescription(StringBuilder sb)
+    {
+      var value = sb.ToString().Trim().Replace("\r\n", " ").Capitalize(); 
+      sb.Clear();
+      return value;
+    }
+
+    static CommentBlock ParseCommentBlock(StreamReader reader)
+    {
+      var comment = new CommentBlock
+      {
+        ParamDescriptions = new Dictionary<string, string>()
+      };
+      SetComment setter = (StringBuilder b) => { comment.Description = CaptureTidyDescription(b); };
+
+      StringBuilder buffer = new StringBuilder();
+      while (!reader.EndOfStream)
+      {
+        var ch = (char)reader.Read();
+        switch (ch)
+        {
+          case '*':
+            {
+              if (reader.Peek() == '/')
+              {
+                reader.Read();
+                setter(buffer);
+                return comment;
+              }
+            }
+            break;
+          case '\\':
+            var word = CaptureWord(reader);
+            if (word == "param" || word == "return")
+            {
+              setter(buffer);
+              if (word == "param")
+              {
+                var paramName = CaptureWord(reader);
+                setter = (StringBuilder b) => { comment.ParamDescriptions.Add(paramName, CaptureTidyDescription(b)); };
+              }
+              else
+              {
+                setter = (StringBuilder b) => { comment.ReturnDescription = CaptureTidyDescription(b); };
+              }
+            }
+            else
+            {
+              buffer.Append(ch);
+              buffer.Append(word);
+            }
+            break;
+          default:
+            buffer.Append(ch);
+            break;
+        }
+      }
+      setter(buffer);
+      return comment;
     }
   }
 }

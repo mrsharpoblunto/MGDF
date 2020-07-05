@@ -113,7 +113,7 @@ HRESULT OpenALSoundSystem::AcquireSource(ALuint *source) {
 }
 
 void OpenALSoundSystem::ReleaseSource(ALuint source) {
-  auto iter = _allocatedSources.find(source);
+  const auto iter = _allocatedSources.find(source);
   if (iter != _allocatedSources.end()) {
     // stop the source, clear out its buffer and re add it to the free source
     // pool.
