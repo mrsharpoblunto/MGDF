@@ -98,37 +98,43 @@ Installer package created
             <dt>statisticsPrivacyPolicy</dt>
             <dd><em>[Required if statisticsservice is set]</em> A url containing the privacy policy information for a developer who wishes to collect game statistics. This url is shown to the user when the GamesManager asks thier permission to gather statistics. If it is not specified, then no statistics can be collected</dd>
             <dt>preferences</dt>
-            <dd><em>[Optional]</em> A dictionary of strings specifying any preferences used by the game. These can be accessed via the <a href="#class_m_g_d_f_1_1_i_game">IGame</a> Get/Set/HasPreference methods. A number of built in preferences are also used by the MGDF host and are always prefixed with <strong>host.</strong> The full list of built in preferences is shown below. These built in preferences can be overridden by specifying them in the game.json file.</dd>
+            <dd><em>[Optional]</em> A dictionary of strings specifying any preferences used by the game. These can be accessed via the <a href="#IMGDFGame">IMGDFGame</a> Get/Set/HasPreference methods. A number of built in preferences are also used by the MGDF host and are always prefixed with <strong>host.</strong> The full list of built in preferences is shown below. These built in preferences can be overridden by specifying them in the game.json file.</dd>
         </dl>
 
         <h4>Built in host preferences</h4>
         <dl class ="dl-horizontal">
             <dt>host.musicVolume</dt>
-            <dd>A string value between 0 and 1 that sets the volume for all music played using <a href="#class_m_g_d_f_1_1_i_sound_stream">ISoundStreams</a>. Defaults to "1.0"</dd>
+            <dd>A string value between 0 and 1 that sets the volume for all music played using <a href="#IMGDFSoundStream">IMGDFSoundStreams</a>. Defaults to "1.0"</dd>
             <dt>host.soundVolume</dt>
-            <dd>A string value between 0 and 1 that sets the volume for all sounds played using <a href="#class_m_g_d_f_1_1_i_sound">ISounds</a>. defaults to "1.0"</dd>
+            <dd>A string value between 0 and 1 that sets the volume for all sounds played using <a href="#IMGDFSound">IMGDFSounds</a>. defaults to "1.0"</dd>
             <dt>host.simFps</dt>
             <dd>The target framerate of the sim thread. If the sim thread is able to run faster than this, the host will add in sleeps between timesteps to ensure that the sim is limited to this framerate (note the render thread framerate is unaffected by this setting). Defaults to "60"</dd>
-            <dt>host.screenX</dt>
+            <dt>host.renderFps</dt>
+            <dd>The target framerate of the render thread. If vsync is disabled or the refresh rate of the monitor is faster, the host will add in sleeps between renders to ensure that the rendering is limited to this framerate (note the sim thread framerate is unaffected by this setting). Not set by default</dd>
+	    <dt>host.screenX</dt>
             <dd>The desired horizontal resolution to display the game at when running in fullscreen. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "1024"</dd>
             <dt>host.screenY</dt>
             <dd>The desired vertical resolution to display the game at when running in fullscreen. If this resolution is not possible on the current display, then the native resolution will be used instead. Defaults to "768"</dd>
             <dt>host.fullScreen</dt>
             <dd>Whether to start the game in fullscreen ("1") or in windowed mode ("0"). Defaults to "0"</dd>
+	    <dt>host.fullScreenExclusive</dt>
+            <dd>Should fullscreen use exclusive mode ("1") or windowed mode ("0"). Defaults to "0"</dd>
             <dt>host.multiSampleLevel</dt>
             <dd>The desired multisample level to use for the backbuffer, if this is not supported on the current display device, then the next highest level that is supported will be used instead. Defaults to "1"</dd>
             <dt>host.RTMultiSampleLevel</dt>
             <dd>The desired multisample level to use for render target buffers. Modules don't have to use this setting, though it is recommended. Defaults to "1"</dd>
             <dt>host.vsync</dt>
             <dd>Whether or not to use vsync on the render thread ("1"), or whether to render frames fast as possible ("0"). Defaults to "1"</dd>
-            <dt>host.interpolateFrames</dt>
-            <dd>Determines whether the render thread waits at least 1 simulation tick before rendering a new frame ("0"), or whether it should render multiple frames or the same simulation state ("1") and have an interpolation factor passed in by the host. Defaults to "0". Games which have a simulation fps that is the same or higher than the render framerate should typically pick "0", however for games with a simulation fps slower than the renderer frame rate, using "1", may be the only way to prevent slow or 'janky' animation</dd>
             <dt>host.windowResize</dt>
             <dd>Whether to allow resizing of the game window in windowed mode ("1") or to have a fixed size window ("0"). This setting is provided as resizing the window may cause a D3D device reset. Because of this, having a resizable window means your game will have to be able to handle this. If you don't want to worry about this, leave it at the default of "0"</dd>
             <dt>host.windowSizeX</dt>
             <dd>The desired horizontal size of the window when in windowed mode. Defaults to "1024"</dd>
             <dt>host.windowSizeY</dt>
             <dd>The desired vertical size of the window when in windowed mode. Defaults to "768"</dd>
+	    <dt>host.windowPositionX</dt>
+            <dd>The desired horizontal position of the window when in windowed mode. Defaults to null (position determined by the OS)</dd>
+            <dt>host.windowPositionY</dt>
+            <dd>The desired vertical position of the window when in windowed mode. Defaults to null (position determined by the OS)</dd>
 
 		</dl>
 
