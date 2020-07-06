@@ -326,26 +326,10 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
     !insertmacro MUI_LANGUAGE "English"
   
 ;--------------------------------
-; check for and install .net 4.6
-Section "Install .NET Framework 4.6"
-    IfSilent Ignoredotnetsetup
-    Call IsNetfx46Installed
-    Pop $0
-    IntCmp $0 0 Ignoredotnetsetup
-    MessageBox MB_YESNO "New game requires that The .NET Framework 4.6 is installed, do you want to install it now?" IDYES Installdotnet
-    Quit
-Installdotnet:
-    SetOutPath $TEMP\NewGame
-    File dotNetFx46_Full_setup.exe
-    ExecWait '"$TEMP\NewGame\dotNetFx46_Full_setup.exe" /q /norestart'
-    Delete $TEMP\NewGame\dotNetFx46_Full_setup.exe
-	
-    Call IsNetfx46Installed ; check to see that the framework actually installed and that it wasn't cancelled.
-    Pop $0
-	
-    IntCmp $0 0 Ignoredotnetsetup
-    MessageBox MB_OK "The .NET Framework 4.6 was not installed, installation cannot continue."
-    Quit
+; check for and install .net 4.8
+Section "Install .NET Framework 4.8"
+IfSilent Ignoredotnetsetup
+    Call CheckAndInstallDotNet
 Ignoredotnetsetup:
 SectionEnd
 
@@ -386,23 +370,31 @@ Section "Uninstall"
     RMDIR /r $INSTDIR
 SectionEnd
 
-Function IsNetfx46Installed
-;Check is Net 4.6 installed
-; https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed#net_d
-;Push 0 for true, Pop -1 for false
-;SetRegView 64
-ReadRegDWORD $0  HKLM "Software\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
-IntCmp $0 393295 is_equal is_less is_greater
-is_equal:
-    Goto Installed
-is_greater:
-    Goto Installed
-is_less:
-    Push -1
-Goto EndCheck
-Installed:
-Push 0
-EndCheck:
+Function CheckAndInstallDotNet
+;--- https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed#net_d
+    ClearErrors
+    ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
+
+    IfErrors NotDetected
+
+    ${If} $0 >= 528040
+        DetailPrint "Microsoft .NET Framework 4.8 is installed ($0)"
+    ${Else}
+    NotDetected:
+        DetailPrint "Installing Microsoft .NET Framework 4.8"
+        SetDetailsPrint listonly
+		SetOutPath $TEMP\Junkship
+		File ndp48-web.exe
+        ExecWait '"$TEMP\Junkship\ndp48-web.exe" /q /norestart' $0
+        ${If} $0 == 3010 
+        ${OrIf} $0 == 1641
+            DetailPrint "Microsoft .NET Framework 4.8 installer requested reboot"
+            SetRebootFlag true
+        ${EndIf}
+        SetDetailsPrint lastused
+        DetailPrint "Microsoft .NET Framework 4.8 installer returned $0"
+		Delete $TEMP\Junkship\ndp48-web.exe
+    ${EndIf}
 FunctionEnd
 </pre>
     <h2 id="updating">Updating</h2>
