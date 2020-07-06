@@ -439,7 +439,7 @@ FunctionEnd
         <li><strong>statisticsService</strong> - This value should point to a url where a compatible statistics web service is hosted (for more information on hosting a statistics service, or implementing your own see the <a href="{{ site.baseurl }}/api#statsservice">API reference</a>)</li>
         <li><strong>statisticsPrivacyPolicy</strong> - This value should point to a url containing your privacy policy for usage of the statistics. This will be displayed to the user when they are prompted if they want to accept the statistics tracking or not. If this value is not present, no statistics tracking will be performed.</li>
     </ol>
-    <p>You can then upload statistics (as key value pairs) using the <a href="{{ site.baseurl }}/api#class_m_g_d_f_1_1_i_statistics_manager">IStatisticsManager</a> API. The GamesManager will upload any statistics recorded once a users play session has ended.</p>
+    <p>You can then upload statistics (as key value pairs) using the <a href="{{ site.baseurl }}/api#IMGDFStatisticsManager">IMGDFStatisticsManager</a> API. The GamesManager will upload any statistics recorded once a users play session has ended.</p>
     </div>
     <div class="col-md-3 hidden-xs hidden-sm">
         <div class="side-nav">
