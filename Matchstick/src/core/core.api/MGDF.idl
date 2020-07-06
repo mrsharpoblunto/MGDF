@@ -840,6 +840,13 @@ interface IMGDFWriteableFile : IMGDFFile {
   \return S_OK if the folder could be created, otherwise E_FAIL
   */
   HRESULT CreateFolder();
+
+  /**
+  deletes this file or folder (and its descendants). Note the root of a VFS cannot be deleted
+  and will fail if attempted
+  \return S_OK if the file or folder could be deleted, otherwise E_FAIL
+  */
+  HRESULT Delete();
 };
 
 /**

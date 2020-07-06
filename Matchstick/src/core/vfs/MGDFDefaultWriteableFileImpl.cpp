@@ -41,7 +41,6 @@ void DefaultFileWriter::SetPosition(INT64 pos) { _stream->seekp(pos); }
 
 INT64 DefaultFileWriter::GetPosition() { return _stream->tellp(); }
 
-
 BOOL DefaultWriteableFileImpl::Exists() { return exists(_physicalPath); }
 
 BOOL DefaultWriteableFileImpl::IsFolder() {
@@ -133,6 +132,14 @@ HRESULT DefaultWriteableFileImpl::CreateFolder() {
   std::error_code code;
   return (create_directories(_physicalPath, code) && !code.value()) ? S_OK
                                                                     : E_FAIL;
+}
+
+HRESULT DefaultWriteableFileImpl::Delete() {
+  if (!Exists() || _physicalPath == _rootPath) {
+    return E_FAIL;
+  }
+  std::error_code code;
+  return (remove_all(_physicalPath, code) && !code.value()) ? S_OK : E_FAIL;
 }
 
 HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {

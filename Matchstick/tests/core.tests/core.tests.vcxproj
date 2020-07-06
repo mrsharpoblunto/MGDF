@@ -134,13 +134,16 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="VFSTests.cpp">
+    <ClCompile Include="ReadOnlyVFSTests.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="VFSCommon.cpp" />
+    <ClCompile Include="WriteableVFSTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="VFSCommon.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\vendor\UnitTest++\UnitTest++.vsnet2005.vcxproj">

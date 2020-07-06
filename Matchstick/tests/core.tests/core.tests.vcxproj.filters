@@ -4,11 +4,14 @@
     <ClCompile Include="ParameterManagerTests.cpp" />
     <ClCompile Include="ResourcesTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
-    <ClCompile Include="VFSTests.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ReadOnlyVFSTests.cpp" />
+    <ClCompile Include="WriteableVFSTests.cpp" />
+    <ClCompile Include="VFSCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="VFSCommon.hpp" />
   </ItemGroup>
 </Project>

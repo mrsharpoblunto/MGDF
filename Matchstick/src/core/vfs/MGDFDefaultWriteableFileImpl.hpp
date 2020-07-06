@@ -52,6 +52,7 @@ class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile> {
   UINT64 __stdcall GetChildCount() final;
   UINT64 __stdcall GetLastWriteTime() final;
   HRESULT CreateFolder() final;
+  HRESULT Delete() final;
 
  private:
  std::mutex _mutex;
