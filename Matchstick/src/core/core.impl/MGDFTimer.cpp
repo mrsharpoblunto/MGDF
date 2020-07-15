@@ -29,7 +29,7 @@ CounterBase::CounterBase(const char *name, UINT32 maxSamples, Timer &timer)
 }
 
 HRESULT CounterBase::GetName(char *name, UINT64 *length) {
-  return CopyStr(_name, name, length);
+  return StringWriter::Write(_name, name, length);
 }
 
 void CounterBase::AddSample(double sample) {
@@ -277,11 +277,15 @@ HRESULT Timer::Init() {
 
 Timer::~Timer(void) {
   for (auto &counter : _cpuCounters) {
-    LOG("CPUTimer '" << STR(counter, GetName) << "' still has live references",
+    LOG("CPUTimer '" << StringReader<&IMGDFPerformanceCounter::GetName>::Read(
+                            counter)
+                     << "' still has live references",
         MGDF_LOG_ERROR);
   }
   for (auto &counter : _gpuCounters) {
-    LOG("GPUTimer '" << STR(counter, GetName) << "' still has live references",
+    LOG("GPUTimer '" << StringReader<&IMGDFPerformanceCounter::GetName>::Read(
+                            counter)
+                     << "' still has live references",
         MGDF_LOG_ERROR);
   }
 
@@ -458,7 +462,8 @@ void Timer::GetCounterInformation(TextStream &outputStream) const {
     KeyValueHeatMap<GPUPerformanceCounter *, double>(
         _gpuCounters,
         [](const auto counter, auto &out) {
-          out.first = STR(counter, GetName);
+          out.first =
+              StringReader<&IMGDFPerformanceCounter::GetName>::Read(counter);
           out.second = counter->GetAvgValue();
         },
         outputStream);
@@ -470,7 +475,8 @@ void Timer::GetCounterInformation(TextStream &outputStream) const {
     KeyValueHeatMap<CPUPerformanceCounter *, double>(
         _cpuCounters,
         [](const auto counter, auto &out) {
-          out.first = STR(counter, GetName);
+          out.first =
+              StringReader<&IMGDFPerformanceCounter::GetName>::Read(counter);
           out.second = counter->GetAvgValue();
         },
         outputStream);

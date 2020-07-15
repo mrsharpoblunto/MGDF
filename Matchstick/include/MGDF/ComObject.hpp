@@ -2,6 +2,7 @@
 
 #include <array>
 #include <atomic>
+#include <memory>
 #include <string>
 
 #include "unknwn.h"
@@ -256,14 +257,31 @@ ComObject<T> MakeComFromPtr(U *ptr) {
   return ComObject<T>(sub, true);
 }
 
-template <typename T, typename U>
-T ToString(const ComObject<U> &str) {
-  T s;
-  s.resize(str->GetSize());
-  bool result = str->Copy(s.data(), s.size());
-  _ASSERTE(result);
-  return s;
-}
+template <auto F>
+struct StringReader;
+
+template <typename Owner, typename Arg, typename Char,
+          HRESULT (Owner::*F)(Arg, Char *, size_t *)>
+struct StringReader<F> {
+  static std::basic_string<Char> &&Read(Owner *owner, Arg arg) {
+    size_t size = 0;
+    (owner->*F)(arg, nullptr, &size);
+    std::basic_string<Char> str(size, '\0');
+    (owner->*F)(arg, str.data(), &size);
+    return std::move(str);
+  }
+};
+
+template <typename Owner, typename Char, HRESULT (Owner::*F)(Char *, size_t *)>
+struct StringReader<F> {
+  static std::basic_string<Char> &&Read(Owner *owner) {
+    size_t size = 0;
+    (owner->*F)(nullptr, &size);
+    std::basic_string<Char> str(size, '\0');
+    (owner->*F)(str.data(), &size);
+    return std::move(str);
+  }
+};
 
 }  // namespace MGDF
 

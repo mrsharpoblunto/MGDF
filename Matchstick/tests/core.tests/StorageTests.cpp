@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include "../../src/core/common/MGDFResources.hpp"
+#include "../../src/core/common/MGDFStringImpl.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
 #include "../../src/core/storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
@@ -43,7 +44,8 @@ SUITE(StorageTests) {
 
     ComObject<IMGDFReadOnlyFile> file;
     CHECK(_vfs->GetFile(L"console.json", file.Assign()));
-    std::wstring path = file->GetPhysicalPath();
+    std::wstring path =
+        StringReader<&IMGDFReadOnlyFile::GetPhysicalPath>::Read(file);
     handler->Load(path);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
@@ -75,7 +77,8 @@ SUITE(StorageTests) {
 
     ComObject<IMGDFReadOnlyFile> file;
     CHECK(_vfs->GetFile(L"gameState.json", file.Assign()));
-    std::wstring path = file->GetPhysicalPath();
+    std::wstring path =
+        StringReader<&IMGDFReadOnlyFile::GetPhysicalPath>::Read(file);
     handler->Load(path);
 
     CHECK_EQUAL("Console", handler->GetGameUid());
@@ -106,7 +109,8 @@ SUITE(StorageTests) {
 
     ComObject<IMGDFReadOnlyFile> file;
     CHECK(_vfs->GetFile(L"preferences.json", file.Assign()));
-    std::wstring path = file->GetPhysicalPath();
+    std::wstring path =
+        StringReader<&IMGDFReadOnlyFile::GetPhysicalPath>::Read(file);
     handler->Load(path);
 
     INT32 count = 0;

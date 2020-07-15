@@ -31,8 +31,9 @@ namespace audio {
 namespace openal_audio {
 
 bool OpenALSoundManagerComponentImpl::CreateOpenALSoundManagerComponent(
+    const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs,
     ComObject<ISoundManagerComponent> &comp) {
-  const auto impl = MakeCom<OpenALSoundManagerComponentImpl>();
+  const auto impl = MakeCom<OpenALSoundManagerComponentImpl>(vfs);
   const auto result = impl->Init();
   if (FAILED(result)) {
     return false;
@@ -41,8 +42,10 @@ bool OpenALSoundManagerComponentImpl::CreateOpenALSoundManagerComponent(
   return true;
 }
 
-OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl()
+OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(
+    const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs)
     : _enableAttenuation(false),
+      _vfs(vfs),
       _soundVolume(0.0f),
       _streamVolume(0.0f),
       _orientationForward(XMFLOAT3(0.0f, 0.0f, 1.0f)),
@@ -63,12 +66,12 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
 
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
   for (auto sound : _sounds) {
-    std::wstring name = WSTR(sound, GetName);
+    std::wstring name = StringReader<&IMGDFSound::GetName>::Read(sound);
     LOG("Sound '" << Resources::ToString(name) << "' still has live references",
         MGDF_LOG_ERROR);
   }
   for (auto stream : _soundStreams) {
-    std::wstring name = WSTR(stream, GetName);
+    std::wstring name = StringReader<&IMGDFSoundStream::GetName>::Read(stream);
     LOG("SoundStream '" << Resources::ToString(name)
                         << "' still has live references",
         MGDF_LOG_ERROR);
@@ -370,31 +373,15 @@ bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a, OpenALSound *b) {
   }
 }
 
-std::wstring OpenALSoundManagerComponentImpl::GetLogicalPath(
-    IMGDFReadOnlyFile *file) const {
-  std::vector<ComObject<IMGDFReadOnlyFile>> path;
-  ComObject<IMGDFReadOnlyFile> node(file, true);
-  do {
-    path.push_back(node);
-  } while (node->GetParent(node.Assign()));
-
-  std::wostringstream ss;
-  for (auto f : path) {
-    ss << f->GetName();
-    if (f != file) ss << '/';
-  }
-  return ss.str();
-}
-
 HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
     IMGDFReadOnlyFile *dataSource, ALuint *bufferId) {
   _ASSERTE(dataSource);
 
   LOG("Getting sound buffer...", MGDF_LOG_MEDIUM);
 
-  std::wstring dataSourceName = GetLogicalPath(dataSource);
-  dataSourceName.append(L"/");
-  dataSourceName.append(dataSource->GetName());
+  std::wstring dataSourceName =
+      StringReader<&IMGDFReadOnlyVirtualFileSystem::GetLogicalPath>::Read(
+          _vfs, dataSource);
 
   // see if the buffer already exists in memory before trying to create it
   for (auto buffer : _sharedBuffers) {

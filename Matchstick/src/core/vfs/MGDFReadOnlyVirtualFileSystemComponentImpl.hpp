@@ -5,7 +5,10 @@
 #include <MGDF/ComObject.hpp>
 #include <filesystem>
 #include <map>
+#include <mutex>
 #include <vector>
+
+#include "MGDFLogicalPathResolver.h"
 
 namespace MGDF {
 namespace core {
@@ -32,6 +35,8 @@ class ReadOnlyVirtualFileSystemComponent
   BOOL __stdcall GetFile(const wchar_t *logicalPath,
                          IMGDFReadOnlyFile **file) final;
   void __stdcall GetRoot(IMGDFReadOnlyFile **root) final;
+  HRESULT __stdcall GetLogicalPath(IMGDFReadOnlyFile *file, wchar_t *path,
+                                   UINT64 *length) final;
 
   bool Mount(const wchar_t *physicalDirectory) final;
   void RegisterArchiveHandler(ComObject<IMGDFArchiveHandler> handler) final;
@@ -45,6 +50,7 @@ class ReadOnlyVirtualFileSystemComponent
 
   bool GetArchiveHandler(const std::wstring &path,
                          ComObject<IMGDFArchiveHandler> &handler);
+  LogicalPathResolver<IMGDFReadOnlyFile> _resolver;
 };
 
 bool CreateReadOnlyVirtualFileSystemComponentImpl(

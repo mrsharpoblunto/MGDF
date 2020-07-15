@@ -40,12 +40,8 @@ SUITE(WriteableVFSTests) {
                       L"gameState.json", L"Update.json"})) {
       ComObject<IMGDFWriteableFile> file;
       CHECK(_vfs->GetFile(f, file.Assign()));
-      std::wstring name;
-      UINT64 length = 0;
-      CHECK_EQUAL(S_OK, file->GetName(nullptr, &length));
-      name.resize(length);
-      CHECK_EQUAL(S_OK, file->GetName(name.data(), &length));
-      CHECK_WS_EQUAL(f, name.c_str());
+      CHECK_WS_EQUAL(
+          f, StringReader<&IMGDFWriteableFile::GetPhysicalName>::Read(file));
     }
   }
 

@@ -3,6 +3,7 @@
 #include "MGDFHostBuilder.hpp"
 
 #include <MGDF/MGDF.h>
+
 #include <filesystem>
 #include <fstream>
 
@@ -50,7 +51,9 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
     return false;
   }
 
-  if (!audio::CreateSoundManagerComponentImpl(components.Sound)) {
+  if (!audio::CreateSoundManagerComponentImpl(
+          components.VFS.As<IMGDFReadOnlyVirtualFileSystem>(),
+          components.Sound)) {
     // its a problem, but we can still probably run if the soundmanager failed
     // to initialize
     LOG("ERROR: Unable to register SoundManager", MGDF_LOG_ERROR);
@@ -73,7 +76,9 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   _ASSERTE(components.Storage);
 
   auto handler(components.Storage->CreateGameStorageHandler());
-  _ASSERTE(handler.get());
+  if (!handler) {
+    return E_FAIL;
+  }
 
   auto result = handler->Load(Resources::Instance().GameFile());
   if (FAILED(result)) {
@@ -86,7 +91,7 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   Logger::Instance().MoveOutputFile();
 
   ComObject<Game> game;
-  result = GameBuilder::LoadGame(components.Storage, handler.get(), game);
+  result = GameBuilder::LoadGame(components.Storage, handler, game);
   if (FAILED(result)) {
     LOG("FATAL ERROR: Unable to load game configuration", MGDF_LOG_ERROR);
     return result;

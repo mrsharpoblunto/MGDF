@@ -2,37 +2,33 @@ import "oaidl.idl";
 import "ocidl.idl";
 import "d3d11.idl";
 
-cpp_quote("#ifdef __cplusplus")
-cpp_quote("}")
-cpp_quote("#endif")
-cpp_quote("#include \"d2d1_1.h\"")
-cpp_quote("#ifdef __cplusplus")
-cpp_quote("extern \"C\" {")
-cpp_quote("#endif")
-interface ID2D1Device;
+cpp_quote("#ifdef __cplusplus") cpp_quote("}") cpp_quote("#endif")
+    cpp_quote("#include \"d2d1_1.h\"") cpp_quote("#ifdef __cplusplus")
+        cpp_quote("extern \"C\" {") cpp_quote("#endif") interface ID2D1Device;
 interface ID2D1DeviceContext;
 
 /**
-Controls the data displayed in the MGDF debug overlay sheet 
+Controls the data displayed in the MGDF debug overlay sheet
 (press ALT-F12 to see in game)
 */
-[uuid("D69DC4E5-238B-4427-AF03-628818464E41"), object, local]
-interface IMGDFDebug: IUnknown {
+[
+  uuid("D69DC4E5-238B-4427-AF03-628818464E41"), object,
+  local
+] interface IMGDFDebug : IUnknown {
   /**
    Set some data to display in the overlay
    \param section The section to display the key:value in
    \param key The key to display
    \param value the value to display
    */
-  void Set([in, string] const small *section, [in] const small *key,
-                                     [in, string] const small *value);
+  void Set([ in, string ] const small *section, [in] const small *key,
+           [ in, string ] const small *value);
   /**
    Clear some data out of the overlay
    \param section to clear the key from
    \param key The key to clear (if null, clears all keys in the section)
    */
-  void Clear([in] const small *section,
-                                     [in] const small *key);
+  void Clear([in] const small *section, [in] const small *key);
 
   /**
    Whether the debug overlay is currently visible
@@ -56,15 +52,19 @@ typedef struct MGDFVersion {
 /**
 A set of preferences that can be persisted
 */
-[uuid("167C7A2B-AA85-493B-842A-534A14669371"), object, local]
-interface IMGDFPreferenceSet : IUnknown {};
+[
+  uuid("167C7A2B-AA85-493B-842A-534A14669371"), object,
+  local
+] interface IMGDFPreferenceSet : IUnknown{};
 
 /**
 Provides information regarding the current game being run
 and the preferences associated with that game
 */
-[uuid("8BC6BFEF-09BC-4954-AF2F-5D2619F2CEEE"), object, local]
-interface IMGDFGame : IUnknown {
+[
+  uuid("8BC6BFEF-09BC-4954-AF2F-5D2619F2CEEE"), object,
+  local
+] interface IMGDFGame : IUnknown {
   /**
   get the name of the current game running
   \return the name of the current game running
@@ -81,7 +81,7 @@ interface IMGDFGame : IUnknown {
   get the version of the current game running
   \param version the version of the current game running
   */
-  void GetVersion([in, out] MGDFVersion *version);
+  void GetVersion([ in, out ] MGDFVersion * version);
 
   /**
   determine if the game has a preference for the given key
@@ -99,23 +99,22 @@ interface IMGDFGame : IUnknown {
   \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the value was found and the buffer was the correct length otherwise E_FAIL
   */
-  HRESULT GetPreference([in] const small *name, [in, out] small *value,
-                                                  [in, out] UINT64 *length);
+  HRESULT GetPreference([in] const small *name, [ in, out ] small *value,
+                        [ in, out ] UINT64 *length);
 
   /**
   change the value of a preference
   \param name the preference name
   \param value the new preference value
   */
-  void SetPreference([in] const small *name,
-                                               [in] const small *value);
+  void SetPreference([in] const small *name, [in] const small *value);
 
   /**
   Sets a number of preferences in one go. Used for applying system render &
   sound settings
   \param preferences a set of preferences
   */
-  void SetPreferences([in] IMGDFPreferenceSet *preferences);
+  void SetPreferences([in] IMGDFPreferenceSet * preferences);
 
   /**
   save the current preferences list
@@ -132,7 +131,11 @@ interface IMGDFGame : IUnknown {
 this is represents all the various mouse buttons that are recognized by the
 input manager
 */
-typedef enum MGDFMouse { MGDF_MOUSE_LEFT, MGDF_MOUSE_RIGHT, MGDF_MOUSE_MIDDLE } MGDFMouse;
+typedef enum MGDFMouse {
+  MGDF_MOUSE_LEFT,
+  MGDF_MOUSE_RIGHT,
+  MGDF_MOUSE_MIDDLE
+} MGDFMouse;
 
 /**
 All the gamepad button types recognized by the input manager
@@ -158,8 +161,10 @@ typedef enum MGDFGamepadButton {
 Provides the ability to query the state of and control other properties of an
 XInput compatible gamepad connected to the PC
 */
-[uuid("84C7C6BF-827E-4958-8C64-D7FA78D69D0B"), object, local]
-interface IMGDFGamepad : IUnknown {
+[
+  uuid("84C7C6BF-827E-4958-8C64-D7FA78D69D0B"), object,
+  local
+] interface IMGDFGamepad : IUnknown {
   /**
   determines if a controller is connected
   \return true if if a controller is connected
@@ -225,8 +230,8 @@ interface IMGDFGamepad : IUnknown {
 
   /**
   sets the vibration intensity in the left and right vibrator motors of the
-  controller, valid values are 0-65535 
-  \param left the intensity of the left vibrator motor 
+  controller, valid values are 0-65535
+  \param left the intensity of the left vibrator motor
   \param right the intensity of the right vibrator motor
   */
   void SetVibrationSpeed(UINT16 left, UINT16 right);
@@ -236,8 +241,10 @@ interface IMGDFGamepad : IUnknown {
 Provides a means for modules to access information regarding user input
 from the mouse, keyboard, and xinput controllers
 */
-[uuid("98EC499D-5359-4902-8BA9-6E36686E9898"), object, local]
-interface IMGDFInputManager : IUnknown {
+[
+  uuid("98EC499D-5359-4902-8BA9-6E36686E9898"), object,
+  local
+] interface IMGDFInputManager : IUnknown {
   /**
   determines whether the OS cursor is displayed or not
   \param show Whether to show the cursor or not
@@ -337,20 +344,27 @@ interface IMGDFInputManager : IUnknown {
   \param gamepads pointer to an array of gamepads (must be large enough to fit
   GetGamepadCount entries)
   */
-  void GetGamepads([out] IMGDFGamepad **gamepads);
+  void GetGamepads([out] IMGDFGamepad * *gamepads);
 };
 
 /**
 The logging levels available, LOG_ERROR is of the highest importance with
 LOG_HIGH messages being of the least importance
 */
-typedef enum MGDFLogLevel { MGDF_LOG_ERROR, MGDF_LOG_LOW, MGDF_LOG_MEDIUM, MGDF_LOG_HIGH } MGDFLogLevel;
+typedef enum MGDFLogLevel {
+  MGDF_LOG_ERROR,
+  MGDF_LOG_LOW,
+  MGDF_LOG_MEDIUM,
+  MGDF_LOG_HIGH
+} MGDFLogLevel;
 
 /**
  The MGDF logging system
  */
-[uuid("B20785A5-B39E-494D-8D22-9FD0DAE1C4F9"), object, local]
-interface IMGDFLogger : IUnknown {
+[
+  uuid("B20785A5-B39E-494D-8D22-9FD0DAE1C4F9"), object,
+  local
+] interface IMGDFLogger : IUnknown {
   /**
    set the current logging verbosity level
    \param level the verbosity level
@@ -370,7 +384,8 @@ interface IMGDFLogger : IUnknown {
    \param level the verbosity filter for writing out the message. The message
    will be written if this is less than or equal to the current logging level
    */
-  void Log([in] const small *sender, [in] const small *message, MGDFLogLevel level);
+  void Log([in] const small *sender, [in] const small *message,
+           MGDFLogLevel level);
 };
 
 /**
@@ -378,15 +393,17 @@ interface IMGDFLogger : IUnknown {
  events. The results of these counters are shown in the MGDF debug overlay
  (press ALT-F12 to see in game)
  */
-[uuid("E2E9FE7E-4D07-40FE-9858-8E583D73CB37"), object, local]
-interface IMGDFPerformanceCounter : IUnknown {
+[
+  uuid("E2E9FE7E-4D07-40FE-9858-8E583D73CB37"), object,
+  local
+] interface IMGDFPerformanceCounter : IUnknown {
   /**
    Gets the name of the counter
   \param name buffer to store the counter name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the buffer was the correct length otherwise E_FAIL
    */
-  HRESULT GetName([in, out] small *name, [in, out] UINT64 *length);
+  HRESULT GetName([ in, out ] small * name, [ in, out ] UINT64 * length);
 
   /**
    Begin timing
@@ -403,8 +420,10 @@ interface IMGDFPerformanceCounter : IUnknown {
 /**
  Provides an interface to the hosts high resolution CPU timer
  */
-[uuid("4DA26ED2-514E-4CB2-B9D4-6AC4170DFDCE"), object, local]
-interface IMGDFTimer : IUnknown {
+[
+  uuid("4DA26ED2-514E-4CB2-B9D4-6AC4170DFDCE"), object,
+  local
+] interface IMGDFTimer : IUnknown {
   /**
   Get the current system time in ticks
   \return the current system time in ticks
@@ -424,7 +443,7 @@ interface IMGDFTimer : IUnknown {
   \return the difference betweeen the two parameters converted into seconds
   */
   double ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
-                                            LARGE_INTEGER oldTime);
+                                    LARGE_INTEGER oldTime);
 };
 
 /**
@@ -448,8 +467,10 @@ typedef struct MGDFFullScreenDesc {
 /**
 Provides an interface for getting and setting the hosts various display settings
 */
-[uuid("BAF10DDF-1874-4299-A497-1F62C0691C8B"), object, local]
-interface IMGDFRenderSettingsManager : IUnknown {
+[
+  uuid("BAF10DDF-1874-4299-A497-1F62C0691C8B"), object,
+  local
+] interface IMGDFRenderSettingsManager : IUnknown {
   /**
   gets the current vsync setting
   \return true if vsync is enabled
@@ -466,7 +487,7 @@ interface IMGDFRenderSettingsManager : IUnknown {
   gets the current fullscreen setting
   \param fullscreen a description of the current fullscreen settings
   */
-  void GetFullscreen([in, out] MGDFFullScreenDesc * fullscreen);
+  void GetFullscreen([ in, out ] MGDFFullScreenDesc * fullscreen);
 
   /**
   sets the current fullscreen setting
@@ -492,8 +513,8 @@ interface IMGDFRenderSettingsManager : IUnknown {
 
   /**
   set the display adaptors current multisample level, this changed setting is
-  not applied until ApplySettings is called. 
-  \param multisampleLevel the desired multisample level for the backbuffer 
+  not applied until ApplySettings is called.
+  \param multisampleLevel the desired multisample level for the backbuffer
   \return returns false if the desired multisample level cannot be set.
   */
   BOOL SetBackBufferMultiSampleLevel(UINT32 multisampleLevel);
@@ -508,8 +529,8 @@ interface IMGDFRenderSettingsManager : IUnknown {
   set the desired multisample level for off screen render targets. This setting
   is not used directly by the framework but any client code should query this
   property when creating render targets that may require multisampling (see also
-  GetCurrentMultiSampleLevel() ) 
-  \param multisampleLevel the desired multisample level for off screen render targets 
+  GetCurrentMultiSampleLevel() )
+  \param multisampleLevel the desired multisample level for off screen render targets
   \return returns false if the desired multisample level cannot be set.
   */
   BOOL SetCurrentMultiSampleLevel(UINT32 multisampleLevel);
@@ -529,49 +550,50 @@ interface IMGDFRenderSettingsManager : IUnknown {
   UINT64 GetAdaptorModeCount();
 
   /**
-  get a supported adaptor mode at the given index (0 to GetAdaptorModeCount - 1) 
-  \param index the adaptor mode index 
-  \param mode will be set to the the adaptor mode at the given index 
+  get a supported adaptor mode at the given index (0 to GetAdaptorModeCount - 1)
+  \param index the adaptor mode index
+  \param mode will be set to the the adaptor mode at the given index
   \return true if an adaptor mode exists at a particular index
   */
-  BOOL GetAdaptorMode(UINT64 index, [in, out] MGDFAdaptorMode * mode);
+  BOOL GetAdaptorMode(UINT64 index, [ in, out ] MGDFAdaptorMode * mode);
 
   /**
   get the adaptor mode (if any) matching the requested width and height, if no
-  matching adaptor is found, false is returned 
-  \param width the desired width of the adaptor mode 
-  \param height the desired height of the adaptor mode 
-  \param mode will be set to the matching adaptor mode found (if any) 
+  matching adaptor is found, false is returned
+  \param width the desired width of the adaptor mode
+  \param height the desired height of the adaptor mode
+  \param mode will be set to the matching adaptor mode found (if any)
   \return true if a supported adaptor mode exists for the given width and height
   */
-  BOOL GetAdaptorModeFromDimensions(UINT32 width, UINT32 height, [in, out] MGDFAdaptorMode * mode);
+  BOOL GetAdaptorModeFromDimensions(UINT32 width, UINT32 height,
+                                    [ in, out ] MGDFAdaptorMode * mode);
 
   /**
   get the current adaptor mode being used when running in fullscreen mode
   \param mode will be set to the current adaptor mode being used.
   \return the current adaptor mode being used (a pointer to mode)
   */
-  MGDFAdaptorMode *GetCurrentAdaptorMode([in, out] MGDFAdaptorMode * mode);
+  MGDFAdaptorMode *GetCurrentAdaptorMode([ in, out ] MGDFAdaptorMode * mode);
 
   /**
   sets the current display adaptor mode when running in fullscreen mode, this
-  changed setting is not applied until ApplyChanges is called. 
-  \param mode the adaptor mode to use 
+  changed setting is not applied until ApplyChanges is called.
+  \param mode the adaptor mode to use
   \return true if the adaptor mode is supported and can be applied, false otherwise
   */
   BOOL SetCurrentAdaptorMode([in] const MGDFAdaptorMode *mode);
 
   /**
   sets the current display adaptor mode when running in fullscreen mode to the
-  screens native fullscreen resolution. 
-  \param mode the adaptor that was chosen 
+  screens native fullscreen resolution.
+  \param mode the adaptor that was chosen
   \return true if the adaptor mode could be changed, false otherwise
   */
-  BOOL SetCurrentAdaptorModeToNative([in, out] MGDFAdaptorMode *mode);
+  BOOL SetCurrentAdaptorModeToNative([ in, out ] MGDFAdaptorMode * mode);
 
   /**
   sets the size of the window when running in windowed mode. While running in
-  fullscreen, this function has no effect. 
+  fullscreen, this function has no effect.
   \param width the width of the window
   \param height the height of the window
   */
@@ -579,14 +601,14 @@ interface IMGDFRenderSettingsManager : IUnknown {
 
   /**
   get the current screen width, based on the current adaptor mode in fullscreen,
-  or on the window dimensions otherwise 
+  or on the window dimensions otherwise
   \return the current screen width
   */
   UINT32 GetScreenX();
 
   /**
   get the current screen height, based on the current adaptor mode in
-  fullscreen, or on the window dimensions otherwise 
+  fullscreen, or on the window dimensions otherwise
   \return thr current screen height
   */
   UINT32 GetScreenY();
@@ -602,14 +624,16 @@ interface IMGDFRenderSettingsManager : IUnknown {
   \param preferences a pointer to a preference set that can be passed into the
   IMGDFGame SetPreferences method to set the preferences
   */
-  void GetPreferences([out] IMGDFPreferenceSet **preferences);
+  void GetPreferences([out] IMGDFPreferenceSet * *preferences);
 };
 
 /**
  Provides an interface for reading data from a file
  */
-[uuid("3C07D9A2-D197-4CDC-9DF6-3D244B854FB1"), object, local]
-interface IMGDFFileReader : IUnknown {
+[
+  uuid("3C07D9A2-D197-4CDC-9DF6-3D244B854FB1"), object,
+  local
+] interface IMGDFFileReader : IUnknown {
   /**
   reads the specified number of bytes into the buffer
   \param buffer a buffer to store the read data
@@ -647,8 +671,10 @@ interface IMGDFFileReader : IUnknown {
 /**
  Provides an interface for writing data to a file
  */
-[uuid("46A8D28E-CE6A-4E99-BACF-AF9947008FA0"), object, local]
- interface IMGDFFileWriter : IUnknown {
+[
+  uuid("46A8D28E-CE6A-4E99-BACF-AF9947008FA0"), object,
+  local
+] interface IMGDFFileWriter : IUnknown {
   /**
   writes the specified number of bytes into the buffer
   \param buffer a buffer to store the write data
@@ -674,8 +700,10 @@ interface IMGDFFileReader : IUnknown {
 Provides a base interface for filesystem access that is common across the
 readonly virtual filesystem and writeable save and working directories.
 */
-[uuid("7EB85F59-65C6-45AC-B505-F263E1771C7F"), object, local]
-interface IMGDFFile : IUnknown {
+[
+  uuid("7EB85F59-65C6-45AC-B505-F263E1771C7F"), object,
+  local
+] interface IMGDFFile : IUnknown {
   /**
   Get how many children this file has
   \return how many children this file has
@@ -697,50 +725,66 @@ interface IMGDFFile : IUnknown {
   /**
   attempt to open the file for reading. Only one fileReader can be open for a
   file at any time. Because of this, you should ensure that any reader is closed
-  after it is no longer needed. 
+  after it is no longer needed.
   \param reader pointer to any reader that is created
-  \return S_OK if the reader was created, E_FAIL if the file could not be opened or 
+  \return S_OK if the reader was created, E_FAIL if the file could not be opened or
   E_ACCESSDENIED if it was already open
   */
-  HRESULT Open([out] IMGDFFileReader **reader);
+  HRESULT Open([out] IMGDFFileReader * *reader);
 
   /**
   find the last write time of the file
   \return a timestamp indicating the last write time
   */
   UINT64 GetLastWriteTime();
+
+  /**
+  Gets the physical name of this file on disk
+  \param name buffer to store the file name
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
+  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  */
+  HRESULT GetPhysicalName([ in, out ] wchar_t * name,
+                          [ in, out ] UINT64 * length);
+
+  /**
+  Gets the physical path to this file
+  \param name buffer to store the file path
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
+  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  */
+  HRESULT GetPhysicalPath([ in, out ] wchar_t * name,
+                          [ in, out ] UINT64 * length);
+
+  /**
+  Gets the logical name of this file
+  \param name buffer to store the file name
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
+  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  */
+  HRESULT GetLogicalName([ in, out ] wchar_t * name,
+                         [ in, out ] UINT64 * length);
 };
 
 /**
-Provides an interface for navigating a readonly file/directory structure in the virtual
-filesystem. Directories have no data but can have subfiles Files have no
+Provides an interface for navigating a readonly file/directory structure in the
+virtual filesystem. Directories have no data but can have subfiles Files have no
 subfiles (except for archives) but may have data. Archives that have been added
 to the vfs are mapped as files with the same name as the archive filename, but
 unlike normal files they also have a tree of subdirectories containing the
 uncompressed archive data
 */
-[uuid("D7F3A3C2-BEDB-4C20-8DD6-452793A11BE1"), object, local]
-interface IMGDFReadOnlyFile : IMGDFFile {
-  /**
-  Gets the name of this file
-  \return the name of this file
-  */
-  const wchar_t *GetName();
-
-  /**
-  get the pyshical path to the IFile in the filesystem
-  \return the pyshical path to the IFile in the filesystem, in the case of an
-  archive submember this will be the address to the containing archive
-  */
-  const wchar_t *GetPhysicalPath();
-
+[
+  uuid("D7F3A3C2-BEDB-4C20-8DD6-452793A11BE1"), object,
+  local
+] interface IMGDFReadOnlyFile : IMGDFFile {
   /**
   Gets the parent of this file. If this file is the root of the virtual
   filesystem, then this will be nullptr
   \param parent pointer to the parent of this file.
   \return If this file is the root of the filesystem, then return false
   */
-  BOOL GetParent(IMGDFReadOnlyFile **parent);
+  BOOL GetParent(IMGDFReadOnlyFile * *parent);
 
   /**
   Gets a child of this file with the given name (if any)
@@ -749,37 +793,30 @@ interface IMGDFReadOnlyFile : IMGDFFile {
   returned
   \return true if the child could be found
   */
-  BOOL GetChild([in] const wchar_t *name,
-                                          [out] IMGDFReadOnlyFile **child);
+  BOOL GetChild([in] const wchar_t *name, [out] IMGDFReadOnlyFile **child);
 
   /**
    Get all the children of this file (non-recursive)
    \param childBuffer an array to store the results (must be large enough to
    hold GetChildCount entries)
    */
-  void GetAllChildren([out] IMGDFReadOnlyFile **childBuffer);
+  void GetAllChildren([out] IMGDFReadOnlyFile * *childBuffer);
 
   /**
   determines if the file is a (or is a member of) an archive file
   \return true if the file is a (or is a member of) an archive file
   */
   BOOL IsArchive();
-
-  /**
-  gets the name of the archive the file belongs to (if any)
-  \return the name of the archive file the entity belongs to, otherwise it
-  returns nullptr
-  */
-  const wchar_t *GetArchiveName();
 };
 
 /**
 Provides an interface for navigating a writeable file/directory structure. These
 include writeable folders such as the working directory and save game folders.
 */
-[uuid("8B17D0A7-9A51-4D28-A5A2-84F38CD5A86E"), object, local] 
-interface IMGDFWriteableFile : IMGDFFile {
-
+[
+  uuid("8B17D0A7-9A51-4D28-A5A2-84F38CD5A86E"), object,
+  local
+] interface IMGDFWriteableFile : IMGDFFile {
   /**
   Does the file/folder exist
   \return true if the file/folder exists
@@ -787,28 +824,12 @@ interface IMGDFWriteableFile : IMGDFFile {
   BOOL Exists();
 
   /**
-  Gets the name of this file
-  \param name buffer to store the file name
-  \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
-  */
-  HRESULT GetName([in, out] wchar_t * name, [in, out] UINT64 * length);
-
-  /**
-  Gets the physical path to this file
-  \param name buffer to store the file path
-  \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
-  */
-  HRESULT GetPhysicalPath([in, out] wchar_t * name, [in, out] UINT64 * length);
-
-  /**
   Gets the parent of this file. If this file is the root of the virtual
   filesystem, then this will be nullptr
   \param parent pointer to the parent of this file.
   \return If this file is the root of the filesystem then return false, otherwise true.
   */
-  BOOL GetParent(IMGDFWriteableFile **parent);
+  BOOL GetParent(IMGDFWriteableFile * *parent);
 
   /**
   Gets a child of this file with the given name (if any)
@@ -816,8 +837,7 @@ interface IMGDFWriteableFile : IMGDFFile {
   \param child the child file of the current file
   \return S_OK if the child file could be found, E_FAIL otherwise
   */
-  HRESULT GetChild([in] const wchar_t *name,
-                                          [out] IMGDFWriteableFile **child);
+  HRESULT GetChild([in] const wchar_t *name, [out] IMGDFWriteableFile **child);
 
   /**
    Get all the children of this file (non-recursive)
@@ -825,7 +845,7 @@ interface IMGDFWriteableFile : IMGDFFile {
    hold GetChildCount entries)
    \return S_OK if all the children could be stored in the provided buffer
    */
-  HRESULT GetAllChildren([out] IMGDFWriteableFile **childBuffer);
+  HRESULT GetAllChildren([out] IMGDFWriteableFile * *childBuffer);
 
   /**
   attempt to open the file for writing if the path to this file doesn't exist
@@ -833,7 +853,7 @@ interface IMGDFWriteableFile : IMGDFFile {
   \param writer pointer to a writer instance to be created
   \return S_OK if the writer could be created, otherwise E_FAIL or E_ACCESSDENIED
   */
-  HRESULT OpenWrite([out] IMGDFFileWriter **writer);
+  HRESULT OpenWrite([out] IMGDFFileWriter * *writer);
 
   /**
   creates this as a folder (and any necessary parent folders along the way)
@@ -842,18 +862,28 @@ interface IMGDFWriteableFile : IMGDFFile {
   HRESULT CreateFolder();
 
   /**
-  deletes this file or folder (and its descendants). Note the root of a VFS cannot be deleted
-  and will fail if attempted
+  deletes this file or folder (and its descendants). Note the root of a VFS
+  cannot be deleted and will fail if attempted
   \return S_OK if the file or folder could be deleted, otherwise E_FAIL
   */
   HRESULT Delete();
+
+  /**
+  moves this file or folder to the desired target location
+  \param destination the target location for this file/folder. If the destination exists
+  it should be deleted first or else this call will fail.
+  \return S_OK if the file/folder could be moved, otherwise E_FAIL
+  */
+  HRESULT MoveTo([in] IMGDFWriteableFile * destination);
 };
 
 /**
 Provides an interface for creating portions of the vfs tree from archive files
 */
-[uuid("09A21A95-9E64-4CCE-8CA3-CD938D94DD4D"), object, local]
-interface IMGDFArchiveHandler : IUnknown {
+[
+  uuid("09A21A95-9E64-4CCE-8CA3-CD938D94DD4D"), object,
+  local
+] interface IMGDFArchiveHandler : IUnknown {
   /**
   get the root node of the mapped vfs subtree
   \param name the name of the archive
@@ -862,9 +892,9 @@ interface IMGDFArchiveHandler : IUnknown {
   \param root pointer to the root node of the mapped vfs subtree
   \return S_OK if the archive could be mapped correctly, otherwise E_FAIL
   */
-  HRESULT MapArchive([in] const wchar_t *name,
-                                               [in] const wchar_t *physicalPath,
-                                               [in] IMGDFReadOnlyFile *parent, [out] IMGDFReadOnlyFile **root);
+  HRESULT
+  MapArchive([in] const wchar_t *name, [in] const wchar_t *physicalPath,
+             [in] IMGDFReadOnlyFile *parent, [out] IMGDFReadOnlyFile **root);
 
   /**
   whether this file/directory is recognised as an archive type
@@ -876,12 +906,14 @@ interface IMGDFArchiveHandler : IUnknown {
 };
 
 /**
-Provides an interface for accessing the readonly filesystem, which is a fast read
-only interface to access game content files. The root MGDF filesystem is
+Provides an interface for accessing the readonly filesystem, which is a fast
+read only interface to access game content files. The root MGDF filesystem is
 mounted from the game/content folder.
 */
-[uuid("235AB71E-BAE5-4ACB-BA98-82086378C939"), object, local]
-interface IMGDFReadOnlyVirtualFileSystem : IUnknown {
+[
+  uuid("235AB71E-BAE5-4ACB-BA98-82086378C939"), object,
+  local
+] interface IMGDFReadOnlyVirtualFileSystem : IUnknown {
   /**
   Get the file/folder/archive in the specified logical directory. paths are
   delimited using the / character and names are case sensitive. The
@@ -889,42 +921,64 @@ interface IMGDFReadOnlyVirtualFileSystem : IUnknown {
   the logical filesystem, and no access outside of this folder is permitted.
   \param logicalPath the vfs path to the file
   \param file pointer to the file/folder/archive in the specified logical directory. paths
-  are delimited using the / character and names are case sensitive 
+  are delimited using the / character and names are case sensitive
   \return true if the file could be found
   */
-  BOOL GetFile([in] const wchar_t *logicalPath,
-                                         [out] IMGDFReadOnlyFile **file);
+  BOOL GetFile([in] const wchar_t *logicalPath, [out] IMGDFReadOnlyFile **file);
 
   /**
   Get the root node of the filesystem. In the physical filesystem this
   corresponds to the /game/content folder.
   \param root pointer to the root node of the filesystem
   */
-  void GetRoot([out] IMGDFReadOnlyFile **root);
+  void GetRoot([out] IMGDFReadOnlyFile * *root);
+
+  /**
+  Get the logical path to a file
+  \param file the file to get the logical path to
+  \param path buffer to store the logical path
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
+  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  */
+  HRESULT GetLogicalPath(IMGDFReadOnlyFile * file, wchar_t * path,
+                         UINT64 * length);
 };
 
 /**
 Provides an interface for accessing the writable filesystem, which is used for
 save game folders and the working directory
 */
-[uuid("2EAC465E-F424-43EB-AEE8-EA930215A811"), object, local] 
-interface IMGDFWriteableVirtualFileSystem: IUnknown {
+[
+  uuid("2EAC465E-F424-43EB-AEE8-EA930215A811"), object,
+  local
+] interface IMGDFWriteableVirtualFileSystem : IUnknown {
   /**
   Get the file/folder/archive in the specified logical directory. paths are
-  delimited using the / character and names are case sensitive. 
+  delimited using the / character and names are case sensitive.
   \param logicalPath the vfs path to the file
   \param file pointer to the file/folder/archive in the specified logical directory. paths
-  are delimited using the / character and names are case sensitive 
+  are delimited using the / character and names are case sensitive
   \return true if the file could be found
   */
-  BOOL GetFile([in] const wchar_t *logicalPath, [out] IMGDFWriteableFile **file);
+  BOOL
+  GetFile([in] const wchar_t *logicalPath, [out] IMGDFWriteableFile **file);
 
   /**
   Get the root node of the filesystem. In the physical filesystem this
   corresponds to the /game/content folder.
   \param root pointer to the root node of the filesystem
   */
-  void GetRoot([out] IMGDFWriteableFile **root);
+  void GetRoot([out] IMGDFWriteableFile * *root);
+
+  /**
+  Get the logical path to a file
+  \param file the file to get the logical path to
+  \param path buffer to store the logical path
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
+  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  */
+  HRESULT GetLogicalPath(IMGDFWriteableFile * file, wchar_t * path,
+                         UINT64 * length);
 };
 
 /**
@@ -937,16 +991,17 @@ typedef struct MGDFSoundPosition {
 /**
 An sound source in 3d space
 */
-[uuid("EBCC1B73-815F-4870-BC80-67A5379E65FC"), object, local]
-interface IMGDFSound : IUnknown {
+[
+  uuid("EBCC1B73-815F-4870-BC80-67A5379E65FC"), object,
+  local
+] interface IMGDFSound : IUnknown {
   /**
   The name of the sound
   \param name buffer to store the sound name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the buffer was the correct length otherwise E_FAIL
   */
-  HRESULT GetName([in, out] wchar_t * name,
-                                            [in, out] UINT64 * length);
+  HRESULT GetName([ in, out ] wchar_t * name, [ in, out ] UINT64 * length);
 
   /**
   The position of the sound
@@ -967,14 +1022,14 @@ interface IMGDFSound : IUnknown {
   \param position the position of the sound
   \return the position of the sound
   */
-  MGDFSoundPosition *SetPosition(MGDFSoundPosition *position);
+  MGDFSoundPosition *SetPosition(MGDFSoundPosition * position);
 
   /**
   Set the velocity of the sound
   \param velocity the velocity of the sound
   \return the velocity of the sound
   */
-  MGDFSoundPosition *SetVelocity(MGDFSoundPosition *velocity);
+  MGDFSoundPosition *SetVelocity(MGDFSoundPosition * velocity);
 
   /**
   The distance (from the observer) at which the sound intensity reaches its
@@ -988,7 +1043,7 @@ interface IMGDFSound : IUnknown {
   /**
    Set The distance (from the observer) at which the sound intensity reaches its
    maximum. Getting closer than this will not cause the sound intensity to get
-   any greater 
+   any greater
    \param innerRange The distance (from the observer) at which the
    sound intensity reaches its maximum. Getting closer than this will not cause
    the sound intensity to get any greater
@@ -1011,7 +1066,7 @@ interface IMGDFSound : IUnknown {
 
   /**
    Does the sound stay relative to the listeners position or is it fixed in
-   absolute space 
+   absolute space
    \return true if the sound is always relative to the listeners
    position
    */
@@ -1019,7 +1074,7 @@ interface IMGDFSound : IUnknown {
 
   /**
    Does the sound stay relative to the listeners position or is it fixed in
-   absolute space 
+   absolute space
    \param sourceRelative true if the sound is always relative to
    the listeners position
    */
@@ -1125,16 +1180,17 @@ interface IMGDFSound : IUnknown {
 /**
 A vorbis sound stream
 */
-[uuid("2F0555E6-B5C3-40C4-9399-F74699A38811"), object, local]
-interface IMGDFSoundStream : IUnknown {
+[
+  uuid("2F0555E6-B5C3-40C4-9399-F74699A38811"), object,
+  local
+] interface IMGDFSoundStream : IUnknown {
   /**
   The name of the sound stream
   \param name buffer to store the sound stream name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the buffer was the correct length otherwise E_FAIL
   */
-  HRESULT GetName([in, out] wchar_t * name,
-                                            [in, out] UINT64 * length);
+  HRESULT GetName([ in, out ] wchar_t * name, [ in, out ] UINT64 * length);
 
   /**
   Get the volume level (0-1)
@@ -1198,74 +1254,77 @@ interface IMGDFSoundStream : IUnknown {
 };
 
 /**
- An interface for controlling positional sounds as well as streaming sound sources
+ An interface for controlling positional sounds as well as streaming sound
+ sources
 */
-[uuid("1E14DC82-8588-4686-888A-149993E4AE9B"), object, local]
-interface IMGDFSoundManager : IUnknown {
+[
+  uuid("1E14DC82-8588-4686-888A-149993E4AE9B"), object,
+  local
+] interface IMGDFSoundManager : IUnknown {
   /**
   determine the position of the listener (i.e. the player)
   \param listener the position of the listener (i.e. the player)
   \return the position of the listener (i.e. the player)
   */
-  MGDFSoundPosition* GetListenerPosition(
-      MGDFSoundPosition * listener);
+  MGDFSoundPosition *GetListenerPosition(MGDFSoundPosition * listener);
 
   /**
   determine the velocity of the listener (i.e. the player)
   \param velocity the velocity of the listener (i.e. the player)
   \return the velocity of the listener (i.e. the player)
   */
-  MGDFSoundPosition* GetListenerVelocity(
-      MGDFSoundPosition * velocity);
+  MGDFSoundPosition *GetListenerVelocity(MGDFSoundPosition * velocity);
 
   /**
    Get the vector representing the forward direction of the listener (i.e. the
    player)
-   \param orientationForward the vector representing the forward direction of the listener 
+   \param orientationForward the vector representing the forward direction of the listener
    \return the vector representing the forward direction of the listener
   */
-  MGDFSoundPosition* GetListenerOrientationForward(
-      MGDFSoundPosition * orientationForward);
+  MGDFSoundPosition *GetListenerOrientationForward(MGDFSoundPosition *
+                                                   orientationForward);
 
   /**
    Get the vector representing the upward direction of the listener (i.e. the
    player)
-   \param orientationUp the vector representing the upward direction of the listener 
+   \param orientationUp the vector representing the upward direction of the listener
    \return the vector representing the upward direction of the listener
    */
-  MGDFSoundPosition* GetListenerOrientationUp(
-      MGDFSoundPosition * orientationUp);
+  MGDFSoundPosition *GetListenerOrientationUp(MGDFSoundPosition *
+                                              orientationUp);
 
   /**
   set the position of the listener (i.e. the player)
   \param listener the position of the listener (i.e. the player)
   \return the position of the listener (i.e. the player)
   */
-  MGDFSoundPosition* SetListenerPosition(MGDFSoundPosition *listener);
+  MGDFSoundPosition *SetListenerPosition(MGDFSoundPosition * listener);
 
   /**
   set the velocity of the listener (i.e. the player)
   \param velocity the velocity of the listener (i.e. the player)
   \return the velocity of the listener (i.e. the player)
   */
-  MGDFSoundPosition* SetListenerVelocity(MGDFSoundPosition *velocity);
+  MGDFSoundPosition *SetListenerVelocity(MGDFSoundPosition * velocity);
 
   /**
    set the vector representing the forward direction of the listener (i.e. the
    player)
    \param orientationForward the vector representing the forward direction of
-  the listener 
+  the listener
    \return the vector representing the forward direction of the listener
    */
-  MGDFSoundPosition* SetListenerOrientationForward(MGDFSoundPosition * orientationForward);
+  MGDFSoundPosition *SetListenerOrientationForward(MGDFSoundPosition *
+                                                   orientationForward);
 
   /**
    set the vector representing the upward direction of the listener (i.e. the
    player)
-   \param orientationUp the vector representing the upward direction of the listener 
+   \param orientationUp the vector representing the upward direction of the listener
    \return the vector representing the upward direction of the listener
    */
-  MGDFSoundPosition* SetListenerOrientationUp(MGDFSoundPosition * orientationUp);
+  MGDFSoundPosition *SetListenerOrientationUp(MGDFSoundPosition *
+                                              orientationUp);
 
   /**
   Get the master volume (0-1) All sounds volumes are relative to this setting
@@ -1302,19 +1361,18 @@ interface IMGDFSoundManager : IUnknown {
   \param enableAttenuation true if sounds should attenuate with thier distance
   from the listener
   */
-  void SetEnableAttenuation(
-      BOOL enableAttenuation);
+  void SetEnableAttenuation(BOOL enableAttenuation);
 
   /**
   Get whether sounds will doppler shift based on thier relative velocity to the
-  listener 
+  listener
   \return whether sounds will doppler shift based on thier relative velocity to the listener
   */
   float GetDopplerShiftFactor();
 
   /**
   Set whether sounds will doppler shift based on thier relative velocity to the
-  listener 
+  listener
   \param dopplerShiftFactor true if sounds should doppler shift based
   on thier relative velocity to the listener
   */
@@ -1335,26 +1393,27 @@ interface IMGDFSoundManager : IUnknown {
 
   /**
   create a sound by loading a file in the VFS into memory. When no INT32er used
-  it should be Released 
-  \param file the data source for the sound 
+  it should be Released
+  \param file the data source for the sound
   \param priority the priority of the sound (used to determine what should play if no
-  free audio sources are available 
-  \param sound If the sound is created successfully, this will point to the created sound 
+  free audio sources are available
+  \param sound If the sound is created successfully, this will point to the created sound
   \return S_OK if the sound was created successfully, otherwise an error code will be returned
   */
-  HRESULT CreateSound([in] IMGDFReadOnlyFile * file, INT32 priority,
-                                                [out] IMGDFSound **sound);
+  HRESULT CreateSound([in] IMGDFReadOnlyFile * file,
+                      INT32 priority, [out] IMGDFSound * *sound);
 
   /**
   create a sound stream from a file in the VFS. When no longer used it should be
-  Released 
-  \param file the data source for the sound stream 
-  \param stream If the stream is created successfully, this will point to the created stream 
+  Released
+  \param file the data source for the sound stream
+  \param stream If the stream is created successfully, this will point to the created stream
   \return S_OK if the stream was created successfully, otherwise an error code will
   be returned
   */
-  HRESULT CreateSoundStream(
-      [in] IMGDFReadOnlyFile * file, [out] IMGDFSoundStream **stream);
+  HRESULT
+  CreateSoundStream([in] IMGDFReadOnlyFile * file, [out] IMGDFSoundStream *
+                                                       *stream);
 
   /**
   Gets the current persistable sound settings. Note: this only consists of
@@ -1363,7 +1422,7 @@ interface IMGDFSoundManager : IUnknown {
   \param preferences a pointer to a preference set that can be passed into the
   IMGDFGame setPreferences method to set the preferences
   */
-  void GetPreferences([out] IMGDFPreferenceSet **preferences);
+  void GetPreferences([out] IMGDFPreferenceSet * *preferences);
 };
 
 /**
@@ -1371,13 +1430,15 @@ interface IMGDFSoundManager : IUnknown {
  If the game has a statistics service configured, the stats log will be uploaded
  by the GamesManager at the end of a play session.
  */
-[uuid("F809B9CB-AE6B-43EE-8ACC-40BCB11014E1"), object, local]
-interface IMGDFStatisticsManager : IUnknown {
+[
+  uuid("F809B9CB-AE6B-43EE-8ACC-40BCB11014E1"), object,
+  local
+] interface IMGDFStatisticsManager : IUnknown {
   /**
    Logs a statistic as a key/value pair
    \param name the name of the statistic tracker key
    \param value the value of the statistic
-   \return S_OK if the statistic could be saved, otherwise E_FAIL. Note names or values 
+   \return S_OK if the statistic could be saved, otherwise E_FAIL. Note names or values
    more than 255 characters in length are invalid and will fail
    */
   HRESULT SaveStatistic([in] const small *name, [in] const small *value);
@@ -1387,8 +1448,10 @@ interface IMGDFStatisticsManager : IUnknown {
  Provides an entrypoint for a module to interact with the MGDF host. Methods in
  this interface are safe to be used from any thread
 */
-[uuid("B6FDBA44-D098-4EF7-AF79-7368FB85AA6C"), object, local]
-interface IMGDFCommonHost : IMGDFLogger {
+[
+  uuid("B6FDBA44-D098-4EF7-AF79-7368FB85AA6C"), object,
+  local
+] interface IMGDFCommonHost : IMGDFLogger {
   /**
    * This method should be invoked when a fatal error is encountered
    * \param sender the location or component the error occurred in
@@ -1400,13 +1463,13 @@ interface IMGDFCommonHost : IMGDFLogger {
   get the render settings manager
   \param settings the render settings manager
   */
-  void GetRenderSettings([out] IMGDFRenderSettingsManager **settings);
+  void GetRenderSettings([out] IMGDFRenderSettingsManager * *settings);
 
   /**
   get the host timer
   \param timer pointer to the host timer
   */
-  void GetTimer([out] IMGDFTimer **timer);
+  void GetTimer([out] IMGDFTimer * *timer);
 
   /**
   gets the current version of the framework
@@ -1418,42 +1481,41 @@ interface IMGDFCommonHost : IMGDFLogger {
   get the readonly content filesystem
   \param vfs the readonly filesystem
   */
-  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem **vfs);
+  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
 
   /**
   get the read/write working folder
   \param vfs the writeable filesystem
   */
-  void GetWorkingVFS([out] IMGDFWriteableVirtualFileSystem **vfs);
-
+  void GetWorkingVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
 
   /**
   get the direct3d device object from the host
   \param device the direct3d device object from the host
   */
-  void GetD3DDevice([out] ID3D11Device **device);
+  void GetD3DDevice([out] ID3D11Device * *device);
 
   /**
   get the direct2d device object from the host
   \param device the direct2d device object from the host
   */
-  void GetD2DDevice([out] ID2D1Device **device);
+  void GetD2DDevice([out] ID2D1Device * *device);
 
   /**
   get the onscreen debug overlay interface
   \param debug pointer to a debug overlay object
   */
-  void GetDebug([out] IMGDFDebug **debug);
+  void GetDebug([out] IMGDFDebug * *debug);
 
   /**
    create a performance counter for profiling CPU time taken. When no INT32er
    used it should be Released
-  \param name the name of the counter 
-  \param counter points to the created counter 
+  \param name the name of the counter
+  \param counter points to the created counter
   \return S_OK if the counter could be created, otherwise an error code is returned
    */
-  HRESULT CreateCPUCounter([in] const small *name,
-                                   [out] IMGDFPerformanceCounter **counter);
+  HRESULT CreateCPUCounter([in] const small *name, [out] IMGDFPerformanceCounter
+                                                       **counter);
 };
 
 /**
@@ -1461,11 +1523,13 @@ interface IMGDFCommonHost : IMGDFLogger {
  interface inherits from ICommonHost and provides additional methods which are
  safe to be used ONLY from the render thread.
 */
-[uuid("514EBD97-3C53-4235-90E1-7AD3B7F517BD"), object, local]
-interface IMGDFRenderHost : IMGDFCommonHost {
+[
+  uuid("514EBD97-3C53-4235-90E1-7AD3B7F517BD"), object,
+  local
+] interface IMGDFRenderHost : IMGDFCommonHost {
   /**
   set the current back buffer as the render target for the specified d2d device
-  context 
+  context
   \param context the d2d device context to set the render target for
   \return true if the back buffer can be set as the render target for the device
   context
@@ -1473,47 +1537,48 @@ interface IMGDFRenderHost : IMGDFCommonHost {
   BOOL SetBackBufferRenderTarget(ID2D1DeviceContext * context);
 
   /**
-  Gets the current back buffer texture. 
+  Gets the current back buffer texture.
   \param backbuffer the current back buffer texture. The pointer returned by this method
   becomes invalid when the modules OnReset event is fired
   */
-  void GetBackBuffer([out] ID3D11Texture2D **backbuffer);
+  void GetBackBuffer([out] ID3D11Texture2D * *backbuffer);
 
   /**
-  Gets the current depth stencil buffer texture. 
+  Gets the current depth stencil buffer texture.
   \param stencilBuffer the current stencil buffer texture. The pointer returned by this method
   becomes invalid when the modules OnReset event is fired
   */
-  void GetDepthStencilBuffer([out] ID3D11Texture2D **stencilBuffer);
+  void GetDepthStencilBuffer([out] ID3D11Texture2D * *stencilBuffer);
 
   /**
   Gets the description of the backbuffer and depthStencilBuffer textures.
   \param backBufferDesc the backbuffer description to populate. If null is
-  passed, this field is not populated 
-  \param depthStencilBufferDesc the backbuffer description to populate. If 
+  passed, this field is not populated
+  \param depthStencilBufferDesc the backbuffer description to populate. If
   null is passed, this field is not populated
   */
-  void GetBackBufferDescription(
-      D3D11_TEXTURE2D_DESC * backBufferDesc,
-      D3D11_TEXTURE2D_DESC * depthStencilBufferDesc);
+  void GetBackBufferDescription(D3D11_TEXTURE2D_DESC * backBufferDesc,
+                                D3D11_TEXTURE2D_DESC * depthStencilBufferDesc);
 
   /**
    create a performance counter for profiling GPU time taken in DirectX API
-   calls. When no longer used it should be Released 
-   \param name the name of the counter 
-   \param counter points to the created counter 
-   \return E_FAIL if GPU counters are unsupported (using D3D_FEATURE_LEVEL_9_3 or less) 
+   calls. When no longer used it should be Released
+   \param name the name of the counter
+   \param counter points to the created counter
+   \return E_FAIL if GPU counters are unsupported (using D3D_FEATURE_LEVEL_9_3 or less)
    otherwise returns S_OK
    */
-  HRESULT CreateGPUCounter([in] const small *name,
-                                   [out] IMGDFPerformanceCounter **counter);
+  HRESULT CreateGPUCounter([in] const small *name, [out] IMGDFPerformanceCounter
+                                                       **counter);
 };
 
 /**
  A saved game state and its associated metadata
 */
-[uuid("B34FC7A2-2F84-4FC7-B821-4AEDA8AB9F20"), object, local]
-interface IMGDFGameState : IUnknown {
+[
+  uuid("B34FC7A2-2F84-4FC7-B821-4AEDA8AB9F20"), object,
+  local
+] interface IMGDFGameState : IUnknown {
   /**
   Gets the value of a metadata key
   \param key the name of the metadata key
@@ -1521,7 +1586,8 @@ interface IMGDFGameState : IUnknown {
   \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the value was found and the buffer was the correct length otherwise E_FAIL
   */
-  HRESULT GetMetadata([in] const small *key, [in, out] small *value, [in, out] UINT64 *length);
+  HRESULT GetMetadata([in] const small *key, [ in, out ] small *value,
+                      [ in, out ] UINT64 *length);
 
   /**
   Sets the value of a metadata key
@@ -1529,11 +1595,12 @@ interface IMGDFGameState : IUnknown {
   \param value the value associated with the key
   \return S_OK if the value could be stored
   */
-  HRESULT SetMetadata([in, out] const small *key, [in, out] const small *value);
+  HRESULT SetMetadata([ in, out ] const small *key,
+                      [ in, out ] const small *value);
 
   /**
-  Is this a new game state with no persisted data that has been created from a recent call
-  to CreateGameState
+  Is this a new game state with no persisted data that has been created from a
+  recent call to CreateGameState
   \return true if the game state is new with no persisted data
   */
   BOOL IsNew();
@@ -1542,30 +1609,34 @@ interface IMGDFGameState : IUnknown {
   Get the version of the Module that saved this game state
   \param version the version of the Module that saved this game state
   */
-  void GetVersion([in, out] MGDFVersion * version);
+  void GetVersion([ in, out ] MGDFVersion * version);
 
   /**
-  Get the readonly virtual filesystem for the game states previously persisted data.
+  Get the readonly virtual filesystem for the game states previously persisted
+  data.
   \param vfs the virtual filesystem for accessing the game states data
   \return S_OK if the virtual filesystem could be mounted, will fail if the game state is new
   */
-  HRESULT GetVFS([out] IMGDFReadOnlyVirtualFileSystem **vfs);
+  HRESULT GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
 
   /**
-  Begins the process of saving the gamestate data. Once finished saving all data to the VFS
+  Begins the process of saving the gamestate data. Once finished saving all data
+  to the VFS
   instance returned. Modules should release the VFS to commit the save
   \param pending A VFS mounted in a temporary save directory, once released any data in this
   directory will be copied into the permanent game state data directory
   \return S_OK if the VFS could be mounted
   */
-  HRESULT BeginSave([out] IMGDFWriteableVirtualFileSystem **pending);
+  HRESULT BeginSave([out] IMGDFWriteableVirtualFileSystem * *pending);
 };
 
 /**
 An interface to control saving/loading gamestate data
 */
-[uuid("58D65D58-358D-4999-B32C-F32CF0B0AC83"), object, local]
-interface IMGDFSaveManager : IUnknown {
+[
+  uuid("58D65D58-358D-4999-B32C-F32CF0B0AC83"), object,
+  local
+] interface IMGDFSaveManager : IUnknown {
   /**
   Get the number of saved gamestates available
   \return the number of saved gamestates available
@@ -1578,7 +1649,7 @@ interface IMGDFSaveManager : IUnknown {
   \param save pointer to the gamestate at the given index
   \return S_OK if a valid gamestate exists at the given index, otherwise an error code is returned
   */
-  HRESULT GetSave(UINT64 index, [out] IMGDFGameState **save);
+  HRESULT GetSave(UINT64 index, [out] IMGDFGameState * *save);
 
   /**
   Deletes a saved gamestate
@@ -1591,46 +1662,48 @@ interface IMGDFSaveManager : IUnknown {
   Creates a new empty gamestate without metadata or any persisted data
   \param save a pointer to the created gamestate.
   */
-  void CreateGameState([out] IMGDFGameState **save);
+  void CreateGameState([out] IMGDFGameState * *save);
 };
 
 /**
 Provides an entrypoint for a module to interact with the MGDF host. This
-interface inherits from IMGDFCommonHost and provides additional methods which are
-safe to be used ONLY from the sim thread.
+interface inherits from IMGDFCommonHost and provides additional methods which
+are safe to be used ONLY from the sim thread.
 */
-[uuid("381AD5F1-8058-4739-992F-A5B551AA0E87"), object, local]
-interface IMGDFSimHost : IMGDFCommonHost {
+[
+  uuid("381AD5F1-8058-4739-992F-A5B551AA0E87"), object,
+  local
+] interface IMGDFSimHost : IMGDFCommonHost {
   /**
   Gets the save manager
   \param save the save manager object
   */
-  void GetSaves([out] IMGDFSaveManager **save);
+  void GetSaves([out] IMGDFSaveManager * *save);
 
   /**
   get information regarding the current game and its preferences
   \param game pointer to object containing information regarding the game and its preferences
   */
-  void GetGame([out] IMGDFGame **game);
+  void GetGame([out] IMGDFGame * *game);
 
   /**
   get the sound manager
   \param sound the sound manager, nullptr if the audio subsystem failed to
   initialize
   */
-  void GetSound([out] IMGDFSoundManager **sound);
+  void GetSound([out] IMGDFSoundManager * *sound);
 
   /**
   get the statistics manager
   \param statistics the statistics manager
   */
-  void GetStatistics([out] IMGDFStatisticsManager **statistics);
+  void GetStatistics([out] IMGDFStatisticsManager * *statistics);
 
   /**
   get the input manager
   \param input pointer to an input manager
   */
-  void GetInput([out] IMGDFInputManager **input);
+  void GetInput([out] IMGDFInputManager * *input);
 
   /**
   tells the host to shut down the game immediately
@@ -1646,8 +1719,10 @@ interface IMGDFSimHost : IMGDFCommonHost {
 /**
  The interface to be implemented by an MGDF game
 */
-[uuid("08D1F4AD-366B-4659-B4A6-AA04B458D6DB"), object, local]
-interface IMGDFModule : IUnknown {
+[
+  uuid("08D1F4AD-366B-4659-B4A6-AA04B458D6DB"), object,
+  local
+] interface IMGDFModule : IUnknown {
   /**
    Called by the host after a module is first created and should be used
    to do perform any initialization required by the module
@@ -1699,7 +1774,7 @@ interface IMGDFModule : IUnknown {
   \param host the render thread host
   \return false if the module experiences a fatal error
   */
-  BOOL RTBeforeBackBufferChange(IMGDFRenderHost *host);
+  BOOL RTBeforeBackBufferChange(IMGDFRenderHost * host);
 
   /**
   Called by the host after the swap chain options has been changed, or the

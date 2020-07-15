@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include "../common/MGDFStringImpl.hpp"
+
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)
@@ -15,11 +17,10 @@ namespace vfs {
 
 using namespace std::filesystem;
 
-DefaultReadOnlyFolderImpl::DefaultReadOnlyFolderImpl(const std::wstring &name,
-                                     const std::wstring &physicalPath,
-                                     IMGDFReadOnlyFile *parent,
-                                     ReadOnlyVirtualFileSystemComponent *vfs)
-    : ReadOnlyFolderBaseImpl(name, physicalPath, parent), _vfs(vfs) {
+DefaultReadOnlyFolderImpl::DefaultReadOnlyFolderImpl(
+    const std::wstring &name, const std::wstring &physicalPath,
+    IMGDFReadOnlyFile *parent, ReadOnlyVirtualFileSystemComponent *vfs)
+    : DefaultReadOnlyFileImpl(name, physicalPath, parent), _vfs(vfs) {
   _ASSERTE(vfs);
 }
 
@@ -29,10 +30,10 @@ DefaultReadOnlyFolderImpl::~DefaultReadOnlyFolderImpl() {}
 void DefaultReadOnlyFolderImpl::MapChildren() {
   std::lock_guard<std::mutex> lock(_mutex);
   if (!_children) {
-    _children = std::make_unique<
-        std::map<const wchar_t *, ComObject<IMGDFReadOnlyFile>, WCharCmp>>();
+    _children =
+        std::make_unique<std::map<const wchar_t *, ChildFileRef, WCharCmp>>();
 
-    path path(GetPhysicalPath());
+    path path(_path);
     _ASSERTE(is_directory(path));
 
     ComObject<IMGDFReadOnlyFile> parent(this, true);
@@ -40,27 +41,33 @@ void DefaultReadOnlyFolderImpl::MapChildren() {
       ComObject<IMGDFReadOnlyFile> mappedChild;
       _vfs->Map(p, parent, mappedChild);
       _ASSERTE(mappedChild);
-      _children->insert(
-          std::make_pair(mappedChild->GetName(), std::move(mappedChild)));
+
+      ChildFileRef ref;
+      ref.Ref = std::move(mappedChild);
+      ref.Name =
+          StringReader<&IMGDFReadOnlyFile::GetPhysicalName>::Read(mappedChild);
+      _children->insert(std::make_pair(ref.Name.data(), std::move(ref)));
     }
   }
 }
 
-BOOL DefaultReadOnlyFolderImpl::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
+BOOL DefaultReadOnlyFolderImpl::GetChild(const wchar_t *name,
+                                         IMGDFReadOnlyFile **child) {
   if (!name) return false;
 
   MapChildren();
-  return ReadOnlyFolderBaseImpl::GetChild(name, child);
+  return ReadOnlyFileBaseImpl::GetChild(name, child);
 }
 
 UINT64 DefaultReadOnlyFolderImpl::GetChildCount() {
   MapChildren();
-  return ReadOnlyFolderBaseImpl::GetChildCount();
+  return ReadOnlyFileBaseImpl::GetChildCount();
 }
 
-void DefaultReadOnlyFolderImpl::GetAllChildren(IMGDFReadOnlyFile **childBuffer) {
+void DefaultReadOnlyFolderImpl::GetAllChildren(
+    IMGDFReadOnlyFile **childBuffer) {
   MapChildren();
-  return ReadOnlyFolderBaseImpl::GetAllChildren(childBuffer);
+  return ReadOnlyFileBaseImpl::GetAllChildren(childBuffer);
 }
 
 }  // namespace vfs

@@ -88,7 +88,7 @@ BOOL FakeFile::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
 
   const auto it = _children->find(name);
   if (it != _children->end()) {
-    it->second.AddRawRef(child);
+    it->second.Ref.AddRawRef(child);
     return true;
   }
   return false;
@@ -96,7 +96,7 @@ BOOL FakeFile::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
 
 void FakeFile::GetAllChildren(IMGDFReadOnlyFile **childBuffer) {
   for (auto child : *_children) {
-    child.second.AddRawRef(childBuffer++);
+    child.second.Ref.AddRawRef(childBuffer++);
   }
 }
 
@@ -104,9 +104,16 @@ void FakeFile::AddChild(ComObject<FakeFile> file) {
   _ASSERTE(file);
   if (!_children) {
     _children = std::make_unique<
-        std::map<const wchar_t *, ComObject<FakeFile>, WCharCmp>>();
+        std::map<const wchar_t *, FakeFile::ChildFileRef, WCharCmp>>();
   }
-  _children->insert(std::make_pair(file->GetName(), std::move(file)));
+  ChildFileRef ref;
+  UINT64 length = 0;
+  file->GetLogicalName(nullptr, &length);
+  ref.Name.resize(length);
+  file->GetLogicalName(ref.Name.data(), &length);
+  ref.Ref = std::move(file);
+
+  _children->insert(std::make_pair(ref.Name.data(), std::move(ref)));
 }
 
 BOOL FakeFile::IsOpen() {
@@ -166,15 +173,29 @@ BOOL FakeFile::IsFolder() { return _data.empty(); }
 
 BOOL FakeFile::IsArchive() { return true; }
 
-const wchar_t *FakeFile::GetArchiveName() {
-  return _physicalPath.c_str();
+HRESULT FakeFile::GetLogicalName(wchar_t *path, UINT64 *length) {
+  if (!path) {
+    *length = _name.size();
+    return S_OK;
+  }
+  return wmemcpy_s(path, *length, _name.data(), _name.size())
+             ? E_NOT_SUFFICIENT_BUFFER
+             : S_OK;
 }
 
-const wchar_t *FakeFile::GetPhysicalPath() {
-  return _physicalPath.c_str();
+HRESULT FakeFile::GetPhysicalPath(wchar_t *path, UINT64 *length) {
+  if (!path) {
+    *length = _physicalPath.size();
+    return S_OK;
+  }
+  return wmemcpy_s(path, *length, _physicalPath.data(), _physicalPath.size())
+             ? E_NOT_SUFFICIENT_BUFFER
+             : S_OK;
 }
 
-const wchar_t *FakeFile::GetName() { return _name.c_str(); }
+HRESULT FakeFile::GetPhysicalName(wchar_t *path, UINT64 *length) {
+  return GetLogicalName(path, length);
+}
 
 }  // namespace Test
 }  // namespace MGDF

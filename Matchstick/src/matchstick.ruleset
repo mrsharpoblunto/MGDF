@@ -33,7 +33,7 @@
     <Rule Id="C26407" Action="Warning" />
     <Rule Id="C26408" Action="None" />
     <Rule Id="C26409" Action="None" />
-    <Rule Id="C26410" Action="Warning" />
+    <Rule Id="C26410" Action="None" />
     <Rule Id="C26411" Action="Warning" />
     <Rule Id="C26414" Action="Warning" />
     <Rule Id="C26415" Action="None" />

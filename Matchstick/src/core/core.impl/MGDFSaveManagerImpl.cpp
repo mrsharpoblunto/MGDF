@@ -68,6 +68,14 @@ void PendingSave::GetRoot(IMGDFWriteableFile** root) {
   _vfs->GetRoot(root);
 }
 
+HRESULT PendingSave::GetLogicalPath(IMGDFWriteableFile* file, wchar_t* path,
+                                    UINT64* length) {
+  if (!_vfs) {
+    return E_FAIL;
+  }
+  return _vfs->GetLogicalPath(file, path, length);
+}
+
 PendingSave::~PendingSave() {
   if (_saveData.empty()) {
     // don't do anything if the pending save wasn't initialized correctly
@@ -153,7 +161,7 @@ HRESULT GameState::GetMetadata(const char* key, char* value, UINT64* length) {
   if (found == _metadata.end()) {
     return E_NOT_SET;
   }
-  return CopyStr(found->second, value, length);
+  return StringWriter::Write(found->second, value, length);
 }
 
 HRESULT GameState::SetMetadata(const char* key, const char* value) {

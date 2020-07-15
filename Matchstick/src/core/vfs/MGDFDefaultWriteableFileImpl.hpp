@@ -1,10 +1,10 @@
 #pragma once
 
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <mutex>
-#include <filesystem>
 
 #include "MGDFDefaultFileReader.hpp"
 
@@ -29,7 +29,8 @@ class DefaultFileWriter : public ComBase<IMGDFFileWriter> {
 class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile> {
  public:
   DefaultWriteableFileImpl(const std::wstring &name,
-                           const std::filesystem::path &physicalPath, const std::filesystem::path &rootPath)
+                           const std::filesystem::path &physicalPath,
+                           const std::filesystem::path &rootPath)
       : _name(name),
         _physicalPath(physicalPath),
         _reader(nullptr),
@@ -41,21 +42,24 @@ class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile> {
   BOOL __stdcall IsFolder() final;
   BOOL __stdcall GetParent(IMGDFWriteableFile **parent) final;
   HRESULT __stdcall GetChild(const wchar_t *name,
-                          IMGDFWriteableFile **child) final;
+                             IMGDFWriteableFile **child) final;
   HRESULT __stdcall GetAllChildren(IMGDFWriteableFile **childBuffer) final;
   HRESULT __stdcall OpenWrite(IMGDFFileWriter **writer) final;
 
-  HRESULT __stdcall GetName(wchar_t *name, UINT64 *length) final;
+  HRESULT __stdcall GetPhysicalName(wchar_t *name, UINT64 *length) final;
   HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final;
+  HRESULT __stdcall GetLogicalName(wchar_t *name, UINT64 *length) final;
+
   BOOL __stdcall IsOpen() final;
   HRESULT __stdcall Open(IMGDFFileReader **reader) final;
   UINT64 __stdcall GetChildCount() final;
   UINT64 __stdcall GetLastWriteTime() final;
-  HRESULT CreateFolder() final;
-  HRESULT Delete() final;
+  HRESULT __stdcall CreateFolder() final;
+  HRESULT __stdcall Delete() final;
+  HRESULT __stdcall MoveTo(IMGDFWriteableFile *destination) final;
 
  private:
- std::mutex _mutex;
+  std::mutex _mutex;
   std::wstring _name;
   std::filesystem::path _physicalPath;
   std::filesystem::path _rootPath;

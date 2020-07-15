@@ -16,24 +16,25 @@ class DefaultReadOnlyFileImpl : public ReadOnlyFileBaseImpl {
                           const std::wstring &physicalPath,
                           IMGDFReadOnlyFile *parent)
       : _name(name),
-        _physicalPath(physicalPath),
+        _path(physicalPath),
         _reader(nullptr),
         ReadOnlyFileBaseImpl(parent) {}
   virtual ~DefaultReadOnlyFileImpl() {}
 
-  BOOL __stdcall IsFolder() final { return false; }
+  BOOL __stdcall IsFolder() override { return false; }
   BOOL __stdcall IsArchive() override { return false; }
-  const wchar_t *__stdcall GetArchiveName() override { return nullptr; }
-  const wchar_t *__stdcall GetName() final { return _name.c_str(); }
-  const wchar_t *__stdcall GetPhysicalPath() final {
-    return _physicalPath.c_str();
-  }
-  BOOL __stdcall IsOpen() final { return _reader!=nullptr; }
+  HRESULT
+  __stdcall GetPhysicalName(wchar_t *name, UINT64 *length) final;
+  HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final;
+  HRESULT
+  __stdcall GetLogicalName(wchar_t *name, UINT64 *length) final;
+  BOOL __stdcall IsOpen() final { return _reader != nullptr; }
   HRESULT __stdcall Open(IMGDFFileReader **reader) final;
+  UINT64 __stdcall GetLastWriteTime() final;
 
- private:
+ protected:
   std::wstring _name;
-  std::wstring _physicalPath;
+  std::wstring _path;
   DefaultFileReader *_reader;
 };
 

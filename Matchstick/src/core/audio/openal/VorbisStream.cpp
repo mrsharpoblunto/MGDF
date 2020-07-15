@@ -32,8 +32,8 @@ VorbisStream::VorbisStream(IMGDFReadOnlyFile *source,
     : _soundManager(manager),
       _volume(1.0),
       _dataSource(ComObject(source, true)),
-      _name(source->GetName()),
       _initLevel(0),
+      _name(StringReader<&IMGDFReadOnlyFile::GetLogicalName>::Read(source)),
       _state(NOT_STARTED),
       _totalBuffersProcessed(0),
       _frequency(0),
@@ -41,8 +41,8 @@ VorbisStream::VorbisStream(IMGDFReadOnlyFile *source,
       _format(0),
       _channels(0) {
   _ASSERTE(manager);
-  _globalVolume = manager->GetStreamVolume();
   _ASSERTE(source);
+  _globalVolume = manager->GetStreamVolume();
   ZeroMemory(_buffers, sizeof(_buffers));
 }
 
@@ -53,8 +53,8 @@ VorbisStream::~VorbisStream() {
 }
 
 HRESULT VorbisStream::TryCreate(IMGDFReadOnlyFile *source,
-                                  OpenALSoundManagerComponentImpl *manager,
-                                  ComObject<VorbisStream> &stream) {
+                                OpenALSoundManagerComponentImpl *manager,
+                                ComObject<VorbisStream> &stream) {
   stream = MakeCom<VorbisStream>(source, manager);
   const auto result = stream->InitStream();
   if (FAILED(result)) {
@@ -146,7 +146,8 @@ HRESULT VorbisStream::InitStream() {
   }
 
   if (_format == 0) {
-    LOG("Failed to find format information, or unsupported format", MGDF_LOG_ERROR);
+    LOG("Failed to find format information, or unsupported format",
+        MGDF_LOG_ERROR);
     UninitVorbis();
     UninitStream();
     return E_FAIL;
@@ -248,7 +249,7 @@ void VorbisStream::UninitVorbis() {
 }
 
 HRESULT VorbisStream::GetName(wchar_t *name, size_t *length) {
-  return CopyWStr(_name, name, length);
+  return StringWriter::Write(_name, name, length);
 }
 
 BOOL VorbisStream::IsStopped() { return _state == STOP; }

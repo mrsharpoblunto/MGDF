@@ -22,9 +22,8 @@ namespace audio {
 namespace openal_audio {
 
 HRESULT OpenALSound::TryCreate(IMGDFReadOnlyFile *source,
-                                 OpenALSoundManagerComponentImpl *manager,
-                                 INT32 priority,
-                                 ComObject<OpenALSound> &sound) {
+                               OpenALSoundManagerComponentImpl *manager,
+                               INT32 priority, ComObject<OpenALSound> &sound) {
   sound = MakeCom<OpenALSound>(manager, priority);
   const auto result = sound->Init(source);
   if (FAILED(result)) {
@@ -57,7 +56,7 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
 
 HRESULT OpenALSound::Init(IMGDFReadOnlyFile *source) {
   _ASSERTE(source);
-  _name = source->GetName();
+  _name = StringReader<&IMGDFReadOnlyFile::GetLogicalName>::Read(source);
 
   const auto result = _soundManager->CreateSoundBuffer(source, &_bufferId);
   if (SUCCEEDED(result)) {
@@ -121,26 +120,30 @@ void OpenALSound::SetSourceRelative(BOOL sourceRelative) {
 }
 
 HRESULT OpenALSound::GetName(wchar_t *name, size_t *length) {
-  return CopyWStr(_name, name, length);
+  return StringWriter::Write(_name, name, length);
 }
 
 MGDFSoundPosition *OpenALSound::GetPosition(MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_position, sizeof(DirectX::XMFLOAT3));
+  memcpy_s(sp, sizeof(MGDFSoundPosition), &_position,
+           sizeof(DirectX::XMFLOAT3));
   return sp;
 }
 
 MGDFSoundPosition *OpenALSound::GetVelocity(MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_velocity, sizeof(DirectX::XMFLOAT3));
+  memcpy_s(sp, sizeof(MGDFSoundPosition), &_velocity,
+           sizeof(DirectX::XMFLOAT3));
   return sp;
 }
 
 MGDFSoundPosition *OpenALSound::SetPosition(MGDFSoundPosition *sp) {
-  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp, sizeof(MGDFSoundPosition));
+  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp,
+           sizeof(MGDFSoundPosition));
   return sp;
 }
 
 MGDFSoundPosition *OpenALSound::SetVelocity(MGDFSoundPosition *sp) {
-  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp, sizeof(MGDFSoundPosition));
+  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp,
+           sizeof(MGDFSoundPosition));
   return sp;
 }
 

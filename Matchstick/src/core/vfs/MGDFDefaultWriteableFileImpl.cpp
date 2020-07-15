@@ -49,13 +49,19 @@ BOOL DefaultWriteableFileImpl::IsFolder() {
 
 BOOL DefaultWriteableFileImpl::IsOpen() { return _writer || _reader; }
 
-HRESULT DefaultWriteableFileImpl::GetName(wchar_t* name, UINT64* length) {
-  return CopyWStr(_name, name, length);
+HRESULT DefaultWriteableFileImpl::GetPhysicalName(wchar_t* name,
+                                                  UINT64* length) {
+  return StringWriter::Write(_name, name, length);
+}
+
+HRESULT DefaultWriteableFileImpl::GetLogicalName(wchar_t* name,
+                                                 UINT64* length) {
+  return StringWriter::Write(_name, name, length);
 }
 
 HRESULT DefaultWriteableFileImpl::GetPhysicalPath(wchar_t* path,
                                                   UINT64* length) {
-  return CopyWStr(_physicalPath.wstring(), path, length);
+  return StringWriter::Write(_physicalPath.wstring(), path, length);
 }
 
 BOOL DefaultWriteableFileImpl::GetParent(IMGDFWriteableFile** parent) {
@@ -140,6 +146,28 @@ HRESULT DefaultWriteableFileImpl::Delete() {
   }
   std::error_code code;
   return (remove_all(_physicalPath, code) && !code.value()) ? S_OK : E_FAIL;
+}
+
+HRESULT DefaultWriteableFileImpl::MoveTo(IMGDFWriteableFile* destination) {
+  if (!Exists() || destination->Exists()) {
+    return E_FAIL;
+  }
+
+  // create all parent directories to the destination
+  std::wstring destPathString(
+      StringReader<&IMGDFWriteableFile::GetPhysicalPath>::Read(destination));
+  path destinationPath(destPathString);
+  auto parentPath = destinationPath.parent_path();
+  if (!exists(parentPath)) {
+    std::error_code code;
+    if (!create_directories(parentPath, code) || code.value()) {
+      return E_FAIL;
+    }
+  }
+
+  std::error_code code;
+  rename(_physicalPath, destinationPath, code);
+  return !code.value() ? S_OK : E_FAIL;
 }
 
 HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {

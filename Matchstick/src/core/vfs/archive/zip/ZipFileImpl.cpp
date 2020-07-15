@@ -6,6 +6,7 @@
 
 #include "../../../common/MGDFLoggerImpl.hpp"
 #include "../../../common/MGDFResources.hpp"
+#include "../../../common/MGDFStringImpl.hpp"
 
 // std min&max are used instead of the macros
 #ifdef min
@@ -53,6 +54,10 @@ INT64 ZipFileImplReader::GetPosition() { return _readPosition; }
 BOOL ZipFileImplReader::EndOfFile() { return _readPosition >= _size; }
 
 ZipFileImpl::~ZipFileImpl() { _ASSERTE(!_reader); }
+
+HRESULT ZipFileImpl::GetLogicalName(wchar_t* name, UINT64* length) {
+  return StringWriter::Write(_header.name, name, length);
+}
 
 HRESULT ZipFileImpl::Open(IMGDFFileReader** reader) {
   std::lock_guard<std::mutex> lock(_mutex);

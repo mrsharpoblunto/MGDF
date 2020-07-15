@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "../../src/core/common/MGDFResources.hpp"
+#include "../../src/core/common/MGDFStringImpl.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
 #include "../../src/core/vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 #include "VFSCommon.hpp"
@@ -27,6 +28,8 @@ SUITE(ReadOnlyVFSTests) {
     ComObject<IReadOnlyVirtualFileSystemComponent> _vfs;
   };
 
+  typedef StringReader<&IMGDFReadOnlyFile::GetLogicalName> GetLogicalName;
+
   /**
   check that zip archives are enumerated correctly by the vfs
   */
@@ -37,22 +40,22 @@ SUITE(ReadOnlyVFSTests) {
 
     ComObject<IMGDFReadOnlyFile> root;
     _vfs->GetRoot(root.Assign());
-    CHECK_WS_EQUAL(L"test.zip", root->GetName());
+    CHECK_WS_EQUAL(L"test.zip", GetLogicalName::Read(root));
     CHECK_EQUAL(6, root->GetChildCount());
 
     ComObject<IMGDFReadOnlyFile> file;
     for (auto f : std::vector({L"game.xml", L"gameIcon.png", L"preferences.xml",
                                L"preferenceTemplates.xml"})) {
       CHECK(_vfs->GetFile(f, file.Assign()));
-      CHECK_WS_EQUAL(f, file->GetName());
+      CHECK_WS_EQUAL(f, GetLogicalName::Read(file));
     }
 
     CHECK(_vfs->GetFile(L"boot/gameState.xml", file.Assign()));
-    CHECK_WS_EQUAL(L"gameState.xml", file->GetName());
+    CHECK_WS_EQUAL(L"gameState.xml", GetLogicalName::Read(file));
     CHECK(_vfs->GetFile(L"boot/persistency.xml", file.Assign()));
-    CHECK_WS_EQUAL(L"persistency.xml", file->GetName());
+    CHECK_WS_EQUAL(L"persistency.xml", GetLogicalName::Read(file));
     CHECK(_vfs->GetFile(L"content/test.lua", file.Assign()));
-    CHECK_WS_EQUAL(L"test.lua", file->GetName());
+    CHECK_WS_EQUAL(L"test.lua", GetLogicalName::Read(file));
     CHECK(_vfs->GetFile(L"content", file.Assign()));
     CHECK(file->IsFolder());
   }
@@ -99,12 +102,13 @@ SUITE(ReadOnlyVFSTests) {
 
     ComArray<IMGDFReadOnlyFile> buffer2(6);
     root->GetAllChildren(buffer2.Data());
-    CHECK_WS_EQUAL(L"boot", buffer2[0]->GetName());
-    CHECK_WS_EQUAL(L"content", buffer2[1]->GetName());
-    CHECK_WS_EQUAL(L"game.xml", buffer2[2]->GetName());
-    CHECK_WS_EQUAL(L"gameIcon.png", buffer2[3]->GetName());
-    CHECK_WS_EQUAL(L"preferenceTemplates.xml", buffer2[4]->GetName());
-    CHECK_WS_EQUAL(L"preferences.xml", buffer2[5]->GetName());
+    CHECK_WS_EQUAL(L"boot", GetLogicalName::Read(buffer2[0]));
+    CHECK_WS_EQUAL(L"content", GetLogicalName::Read(buffer2[1]));
+    CHECK_WS_EQUAL(L"game.xml", GetLogicalName::Read(buffer2[2]));
+    CHECK_WS_EQUAL(L"gameIcon.png", GetLogicalName::Read(buffer2[3]));
+    CHECK_WS_EQUAL(L"preferenceTemplates.xml",
+                   GetLogicalName::Read(buffer2[4]));
+    CHECK_WS_EQUAL(L"preferences.xml", GetLogicalName::Read(buffer2[5]));
 
     ComObject<IMGDFReadOnlyFile> parent;
     buffer2[0]->GetParent(parent.Assign());
@@ -127,7 +131,7 @@ SUITE(ReadOnlyVFSTests) {
                       L"gameState.json", L"Update.json"})) {
       ComObject<IMGDFReadOnlyFile> file;
       CHECK(_vfs->GetFile(f, file.Assign()));
-      CHECK_WS_EQUAL(f, file->GetName());
+      CHECK_WS_EQUAL(f, GetLogicalName::Read(file));
     }
   }
 

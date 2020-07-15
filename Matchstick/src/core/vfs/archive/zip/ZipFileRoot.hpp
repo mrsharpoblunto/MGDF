@@ -19,16 +19,12 @@ class ZipFileRoot : public DefaultReadOnlyFileImpl {
  public:
   ZipFileRoot(const std::wstring &name, const std::wstring &physicalPath,
               IMGDFReadOnlyFile *parent, unzFile zip)
-      : DefaultReadOnlyFileImpl(name, physicalPath, parent),
-        _archiveName(name),
-        _zip(zip) {}
+      : DefaultReadOnlyFileImpl(name, physicalPath, parent), _zip(zip) {}
   ~ZipFileRoot() { unzClose(_zip); }
 
   BOOL __stdcall IsArchive() final { return true; }
-  const wchar_t * __stdcall GetArchiveName() final { return _archiveName.c_str(); }
 
  private:
-  std::wstring _archiveName;
   unzFile _zip;
 };
 

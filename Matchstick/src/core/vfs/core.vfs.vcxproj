@@ -116,6 +116,7 @@
   <ItemGroup>
     <ClCompile Include="archive\zip\ZipArchiveHandlerImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFileImpl.cpp" />
+    <ClCompile Include="archive\zip\ZipFolderImpl.cpp" />
     <ClCompile Include="MGDFDefaultReadOnlyFileImpl.cpp" />
     <ClCompile Include="MGDFDefaultFileReader.cpp" />
     <ClCompile Include="MGDFDefaultReadOnlyFolderImpl.cpp" />
@@ -138,8 +139,8 @@
     <ClInclude Include="MGDFDefaultReadOnlyFolderImpl.hpp" />
     <ClInclude Include="MGDFDefaultWriteableFileImpl.hpp" />
     <ClInclude Include="MGDFReadOnlyFileBaseImpl.hpp" />
-    <ClInclude Include="MGDFReadOnlyFolderBaseImpl.hpp" />
     <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponentImpl.hpp" />
+    <ClInclude Include="MGDFLogicalPathResolver.h" />
     <ClInclude Include="MGDFWriteableVirtualFileSystem.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

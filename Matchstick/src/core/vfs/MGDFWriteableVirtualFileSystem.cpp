@@ -52,9 +52,14 @@ BOOL WriteableVirtualFileSystem::GetFile(const wchar_t *logicalPath,
 }
 
 void WriteableVirtualFileSystem::GetRoot(IMGDFWriteableFile **root) {
-    auto r = MakeCom<DefaultWriteableFileImpl>(
-        _rootPath.filename().wstring(), _rootPath.wstring(), _rootPath.wstring());
-    r.AddRawRef(root);
+  auto r = MakeCom<DefaultWriteableFileImpl>(
+      _rootPath.filename().wstring(), _rootPath.wstring(), _rootPath.wstring());
+  r.AddRawRef(root);
+}
+
+HRESULT __stdcall WriteableVirtualFileSystem::GetLogicalPath(
+    IMGDFWriteableFile *file, wchar_t *path, UINT64 *length) {
+  return _resolver.GetLogicalPath(file, path, length);
 }
 
 }  // namespace vfs

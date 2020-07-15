@@ -30,7 +30,6 @@ HRESULT FakeArchiveHandler::MapArchive(const wchar_t *name,
   ComObject<FakeFile> subFile(
       new FakeFile(L"testfile.txt", rootFile, "hello world"));
   rootFile->AddChild(subFile);
-
   rootFile.AddRawRef(child);
   return S_OK;
 }

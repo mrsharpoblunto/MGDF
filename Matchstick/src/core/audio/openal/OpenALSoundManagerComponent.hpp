@@ -18,7 +18,7 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-typedef struct {
+typedef struct SharedBuffer {
   std::wstring BufferSource;
   INT32 References = 0;
 } SharedBuffer;
@@ -30,10 +30,12 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
 
  public:
   static bool CreateOpenALSoundManagerComponent(
+      const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs,
       ComObject<ISoundManagerComponent> &comp);
 
   virtual ~OpenALSoundManagerComponentImpl();
-  OpenALSoundManagerComponentImpl();
+  OpenALSoundManagerComponentImpl(
+      const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs);
   void Update() final;
 
   MGDFSoundPosition *__stdcall GetListenerPosition(
@@ -82,8 +84,6 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   void DeactivateSound(INT32 priority);
   void PrioritizeSounds(INT32 deactivatedSoundsCount);
 
-  std::wstring GetLogicalPath(IMGDFReadOnlyFile *file) const;
-
   static bool Sort(OpenALSound *a, OpenALSound *b);
 
   DirectX::XMFLOAT3 _position;
@@ -96,6 +96,7 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
   std::unordered_map<ALuint, SharedBuffer *> _sharedBuffers;
   std::set<OpenALSound *> _sounds;
   std::set<VorbisStream *> _soundStreams;
+  ComObject<IMGDFReadOnlyVirtualFileSystem> _vfs;
 };
 
 }  // namespace openal_audio

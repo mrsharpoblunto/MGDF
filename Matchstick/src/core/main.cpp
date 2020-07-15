@@ -99,27 +99,28 @@ log & handle unexpected win32 errors before the exception is thrown
 */
 LONG WINAPI
 UnhandledExceptionCallBack(struct _EXCEPTION_POINTERS *pExceptionInfo) {
-  _ASSERTE(pExceptionInfo);
-  LOG("WIN32 ERROR: " << Win32Exception::TranslateError(
-          pExceptionInfo->ExceptionRecord->ExceptionCode),
-      MGDF_LOG_ERROR);
-  LOG("Generating Minidump file minidump.dmp...", MGDF_LOG_ERROR);
+  if (pExceptionInfo) {
+    LOG("WIN32 ERROR: " << Win32Exception::TranslateError(
+            pExceptionInfo->ExceptionRecord->ExceptionCode),
+        MGDF_LOG_ERROR);
+    LOG("Generating Minidump file minidump.dmp...", MGDF_LOG_ERROR);
 
-  _dumpInfo = (_MINIDUMP_EXCEPTION_INFORMATION *)malloc(
-      sizeof(_MINIDUMP_EXCEPTION_INFORMATION));
-  _dumpInfo->ThreadId = GetCurrentThreadId();
-  _dumpInfo->ExceptionPointers = pExceptionInfo;
-  _dumpInfo->ClientPointers = 0;
+    _dumpInfo = (_MINIDUMP_EXCEPTION_INFORMATION *)malloc(
+        sizeof(_MINIDUMP_EXCEPTION_INFORMATION));
+    _dumpInfo->ThreadId = GetCurrentThreadId();
+    _dumpInfo->ExceptionPointers = pExceptionInfo;
+    _dumpInfo->ClientPointers = 0;
 
-  WriteMinidump();
+    WriteMinidump();
 
-  if (!ParameterManager::Instance().HasParameter("hideerrors")) {
-    MessageBox(nullptr,
-               ("Unexpected Win32 error\r\n\r\nFor more information, please "
-                "view the log file\r\n'" +
-                Resources::ToString(Resources::Instance().LogFile()) + "'")
-                   .c_str(),
-               "FATAL ERROR", MB_OK);  // output a nasty error message
+    if (!ParameterManager::Instance().HasParameter("hideerrors")) {
+      MessageBox(nullptr,
+                 ("Unexpected Win32 error\r\n\r\nFor more information, please "
+                  "view the log file\r\n'" +
+                  Resources::ToString(Resources::Instance().LogFile()) + "'")
+                     .c_str(),
+                 "FATAL ERROR", MB_OK);  // output a nasty error message
+    }
   }
   return EXCEPTION_EXECUTE_HANDLER;
 }

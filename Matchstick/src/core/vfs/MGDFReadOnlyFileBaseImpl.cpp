@@ -11,6 +11,7 @@
 
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFResources.hpp"
+#include "../common/MGDFStringImpl.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -44,19 +45,8 @@ size_t ReadOnlyFileBaseImpl::GetChildCount() {
   return _children->size();
 }
 
-UINT64 ReadOnlyFileBaseImpl::GetLastWriteTime() {
-  std::filesystem::path path(GetPhysicalPath());
-  struct _stat64 fileInfo;
-  if (_wstati64(path.c_str(), &fileInfo) != 0) {
-    LOG("Unable to get last write time for "
-            << Resources::ToString(GetPhysicalPath()),
-        MGDF_LOG_ERROR);
-    return 0;
-  }
-  return fileInfo.st_mtime;
-}
-
-BOOL ReadOnlyFileBaseImpl::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
+BOOL ReadOnlyFileBaseImpl::GetChild(const wchar_t *name,
+                                    IMGDFReadOnlyFile **child) {
   if (!name) {
     return false;
   }
@@ -68,7 +58,7 @@ BOOL ReadOnlyFileBaseImpl::GetChild(const wchar_t *name, IMGDFReadOnlyFile **chi
 
   const auto it = _children->find(name);
   if (it != _children->end()) {
-    it->second.AddRawRef(child);
+    it->second.Ref.AddRawRef(child);
     return true;
   }
   return false;
@@ -81,17 +71,20 @@ void ReadOnlyFileBaseImpl::GetAllChildren(IMGDFReadOnlyFile **childBuffer) {
   }
 
   for (auto &child : *_children) {
-    child.second.AddRawRef(childBuffer++);
+    child.second.Ref.AddRawRef(childBuffer++);
   }
 }
 
-void ReadOnlyFileBaseImpl::AddChild(ComObject<IMGDFReadOnlyFile> &file) {
+void ReadOnlyFileBaseImpl::AddChild(const ComObject<IMGDFReadOnlyFile> &file) {
   _ASSERTE(file);
   if (!_children) {
-    _children = std::make_unique<
-        std::map<const wchar_t *, ComObject<IMGDFReadOnlyFile>, WCharCmp>>();
+    _children =
+        std::make_unique<std::map<const wchar_t *, ChildFileRef, WCharCmp>>();
   }
-  _children->insert(std::make_pair(file->GetName(), file));
+  ChildFileRef ref;
+  ref.Ref = file;
+  ref.Name = StringReader<&IMGDFReadOnlyFile::GetLogicalName>::Read(file);
+  _children->insert(std::make_pair(ref.Name.data(), std::move(ref)));
 }
 
 }  // namespace vfs

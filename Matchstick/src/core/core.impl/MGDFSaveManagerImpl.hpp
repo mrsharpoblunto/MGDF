@@ -1,7 +1,8 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 #include <unordered_map>
 #include <vector>
 
@@ -26,6 +27,9 @@ class PendingSave : public ComBase<IMGDFWriteableVirtualFileSystem> {
   BOOL __stdcall GetFile(const wchar_t *logicalPath,
                          IMGDFWriteableFile **file) final;
   void __stdcall GetRoot(IMGDFWriteableFile **root) final;
+  HRESULT __stdcall GetLogicalPath(IMGDFWriteableFile *file, wchar_t *path,
+                                   UINT64 *length) final;
+
  private:
   ComObject<vfs::WriteableVirtualFileSystem> _vfs;
   std::wstring _saveData;
@@ -44,7 +48,8 @@ class GameState : public ComBase<IMGDFGameState> {
             SaveManager *saveManager,
             const std::shared_ptr<storage::IStorageFactoryComponent> &factory);
   virtual ~GameState() {}
-  HRESULT __stdcall GetMetadata(const char *key, char *value, UINT64 *length) final;
+  HRESULT __stdcall GetMetadata(const char *key, char *value,
+                                UINT64 *length) final;
   HRESULT __stdcall SetMetadata(const char *key, const char *value) final;
   void __stdcall GetVersion(MGDFVersion *version) final;
   BOOL __stdcall IsNew() final { return _saveName.empty(); }
@@ -56,7 +61,6 @@ class GameState : public ComBase<IMGDFGameState> {
 
   HRESULT Load();
   HRESULT Save();
-
 
  private:
   SaveManager *_saves;

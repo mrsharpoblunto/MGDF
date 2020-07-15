@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../MGDFReadOnlyFolderBaseImpl.hpp"
+#include "../../MGDFReadOnlyFileBaseImpl.hpp"
 
 namespace MGDF {
 namespace core {
@@ -10,18 +10,39 @@ namespace zip {
 /**
 implementation of a folder in a zipped archive
 */
-class ZipFolderImpl : public ReadOnlyFolderBaseImpl {
+class ZipFolderImpl : public ReadOnlyFileBaseImpl {
  public:
-  ZipFolderImpl(const wchar_t *name, IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile *root)
-      : ReadOnlyFolderBaseImpl(name, root->GetPhysicalPath(), parent), _root(root) {}
+  ZipFolderImpl(const wchar_t *name, IMGDFReadOnlyFile *parent,
+                IMGDFReadOnlyFile *root)
+      : ReadOnlyFileBaseImpl(parent), _name(name), _root(root) {}
   ~ZipFolderImpl(){};
 
   BOOL __stdcall IsArchive() final { return true; }
-  const wchar_t * __stdcall GetArchiveName() final { return _root->GetName(); }
-  UINT64 __stdcall GetLastWriteTime() final { return _root->GetLastWriteTime(); }
+  BOOL __stdcall IsFolder() final { return true; }
+
+  HRESULT __stdcall GetPhysicalName(wchar_t *name, UINT64 *length) final {
+    return _root->GetPhysicalName(name, length);
+  }
+
+  HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final {
+    return _root->GetPhysicalPath(path, length);
+  }
+
+  HRESULT GetLogicalName(wchar_t *name, UINT64 *length) final;
+
+  BOOL __stdcall IsOpen() final { return false; }
+  HRESULT __stdcall Open(IMGDFFileReader **reader) final {
+    (void)reader;
+    return E_FAIL;
+  }
+
+  UINT64 __stdcall GetLastWriteTime() final {
+    return _root->GetLastWriteTime();
+  }
 
  private:
   IMGDFReadOnlyFile *_root;
+  std::wstring _name;
 };
 
 }  // namespace zip

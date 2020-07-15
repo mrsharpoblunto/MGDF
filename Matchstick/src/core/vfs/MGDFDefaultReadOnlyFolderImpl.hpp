@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include "MGDFReadOnlyFolderBaseImpl.hpp"
+#include "MGDFDefaultReadOnlyFileImpl.hpp"
 #include "MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
 
 namespace MGDF {
@@ -14,12 +14,15 @@ folders map thier children lazily to speed up initial vfs enumeration on program
 startup, this means that when a request is made for the children of a folder, it
 has to call back into the vfs component to enumerate its children at that time.
 */
-class DefaultReadOnlyFolderImpl : public ReadOnlyFolderBaseImpl {
+class DefaultReadOnlyFolderImpl : public DefaultReadOnlyFileImpl {
  public:
-  DefaultReadOnlyFolderImpl(const std::wstring &name, const std::wstring &physicalPath,
-                    IMGDFReadOnlyFile *parent, ReadOnlyVirtualFileSystemComponent *vfs);
+  DefaultReadOnlyFolderImpl(const std::wstring &name,
+                            const std::wstring &physicalPath,
+                            IMGDFReadOnlyFile *parent,
+                            ReadOnlyVirtualFileSystemComponent *vfs);
   virtual ~DefaultReadOnlyFolderImpl(void);
 
+  BOOL __stdcall IsFolder() final { return true; }
   BOOL __stdcall GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
   UINT64 __stdcall GetChildCount() final;
   void __stdcall GetAllChildren(IMGDFReadOnlyFile **childBuffer) final;

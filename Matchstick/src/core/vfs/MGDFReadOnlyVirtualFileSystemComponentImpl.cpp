@@ -113,6 +113,11 @@ void ReadOnlyVirtualFileSystemComponent::RegisterArchiveHandler(
   _archiveHandlers.push_back(handler);
 }
 
+HRESULT __stdcall ReadOnlyVirtualFileSystemComponent::GetLogicalPath(
+    IMGDFReadOnlyFile *file, wchar_t *path, UINT64 *length) {
+  return _resolver.GetLogicalPath(file, path, length);
+}
+
 }  // namespace vfs
 }  // namespace core
 }  // namespace MGDF

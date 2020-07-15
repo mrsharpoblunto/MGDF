@@ -37,7 +37,7 @@ class ZipFileImplReader : public ComBase<IMGDFFileReader> {
   UINT32 __stdcall Read(void *buffer, UINT32 length) final;
   void __stdcall SetPosition(INT64 pos) final;
   INT64 __stdcall GetPosition() final;
-  BOOL __stdcall  EndOfFile() final;
+  BOOL __stdcall EndOfFile() final;
   INT64 __stdcall GetSize() override { return _size; }
 
  private:
@@ -62,16 +62,25 @@ class ZipFileImpl : public ReadOnlyFileBaseImpl {
         _reader(nullptr) {}
   virtual ~ZipFileImpl();
 
-  BOOL __stdcall IsFolder() final { return false; }
   BOOL __stdcall IsArchive() final { return true; }
-  BOOL __stdcall IsOpen() final { return _reader!=nullptr; }
-  HRESULT __stdcall Open(IMGDFFileReader **reader) final;
-  UINT64 __stdcall GetLastWriteTime() final { return _root->GetLastWriteTime(); }
-  const wchar_t * __stdcall GetArchiveName() final { return _root->GetName(); }
-  const wchar_t * __stdcall GetPhysicalPath() final {
-    return _root->GetPhysicalPath();
+  BOOL __stdcall IsFolder() final { return false; }
+
+  HRESULT __stdcall GetPhysicalName(wchar_t *name, UINT64 *length) final {
+    return _root->GetPhysicalName(name, length);
   }
-  const wchar_t * __stdcall GetName() final { return _header.name.c_str(); }
+
+  HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final {
+    return _root->GetPhysicalPath(path, length);
+  }
+
+  HRESULT __stdcall GetLogicalName(wchar_t *name, UINT64 *length) final;
+
+  BOOL __stdcall IsOpen() final { return _reader != nullptr; }
+  HRESULT __stdcall Open(IMGDFFileReader **reader) final;
+
+  UINT64 __stdcall GetLastWriteTime() final {
+    return _root->GetLastWriteTime();
+  }
 
  private:
   IMGDFReadOnlyFile *_root;

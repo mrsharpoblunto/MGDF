@@ -1,7 +1,8 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -29,25 +30,27 @@ class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
   void AddChild(ComObject<FakeFile> file);
   virtual ~FakeFile(void);
 
-  BOOL GetParent(IMGDFReadOnlyFile **parent) final;
-  BOOL GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
-  void GetAllChildren(IMGDFReadOnlyFile **childBuffer) final;
-  UINT64 GetChildCount() final;
+  BOOL __stdcall GetParent(IMGDFReadOnlyFile **parent) final;
+  BOOL __stdcall GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
+  void __stdcall GetAllChildren(IMGDFReadOnlyFile **childBuffer) final;
+  UINT64 __stdcall GetChildCount() final;
 
-  HRESULT Open(IMGDFFileReader **reader) final;
+  HRESULT __stdcall Open(IMGDFFileReader **reader) final;
 
-  BOOL IsOpen() final;
-  UINT32 Read(void *buffer, UINT32 length) final;
-  void SetPosition(INT64 pos) final;
-  INT64 GetPosition() final;
-  BOOL EndOfFile() final;
-  INT64 GetSize() final;
+  BOOL __stdcall IsOpen() final;
+  UINT32 __stdcall Read(void *buffer, UINT32 length) final;
+  void __stdcall SetPosition(INT64 pos) final;
+  INT64 __stdcall GetPosition() final;
+  BOOL __stdcall EndOfFile() final;
+  INT64 __stdcall GetSize() final;
 
-  BOOL IsFolder() final;
-  BOOL IsArchive() final;
-  const wchar_t *GetArchiveName() final;
-  const wchar_t *GetPhysicalPath() final;
-  const wchar_t *GetName() final;
+  BOOL __stdcall IsFolder() final;
+  BOOL __stdcall IsArchive() final;
+
+  HRESULT __stdcall GetLogicalName(wchar_t *path, UINT64 *length) final;
+  HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final;
+  HRESULT __stdcall GetPhysicalName(wchar_t *path, UINT64 *length) final;
+
   UINT64 GetLastWriteTime() final;
 
   ULONG AddRef() final;
@@ -55,10 +58,15 @@ class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
   HRESULT QueryInterface(REFIID riid, void **ppvObject) final;
 
  protected:
+  struct ChildFileRef {
+    ComObject<FakeFile> Ref;
+    std::wstring Name;
+  };
+
   mutable std::mutex _mutex;
   mutable std::wstring _logicalPath;
 
-  std::unique_ptr<std::map<const wchar_t *, ComObject<FakeFile>, WCharCmp>>
+  std::unique_ptr<std::map<const wchar_t *, FakeFile::ChildFileRef, WCharCmp>>
       _children;
   IMGDFReadOnlyFile *_parent;
   std::wstring _name;

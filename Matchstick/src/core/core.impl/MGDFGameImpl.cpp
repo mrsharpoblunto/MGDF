@@ -35,7 +35,7 @@ HRESULT Game::GetPreference(const char *name, char *value, UINT64 *length) {
 
   const auto iter = _preferences.find(name);
   if (iter != _preferences.end()) {
-    return CopyStr(iter->second, value, length);
+    return StringWriter::Write(iter->second, value, length);
   } else {
     return E_NOT_SET;
   }
