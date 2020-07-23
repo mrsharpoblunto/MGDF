@@ -18,6 +18,17 @@ namespace core {
 
 #define LOG_BUFFER_SIZE 10
 
+void MGDFLog(std::function<void(std::ostringstream &)> msg, MGDFLogLevel level,
+             const char *file, int line) {
+  if (level <= Logger::Instance().GetLoggingLevel()) {
+    std::ostringstream ss;
+    ss << file << ':' << line;
+    std::ostringstream ms;
+    msg(ms);
+    Logger::Instance().Log(ss.str().c_str(), ms.str().c_str(), level);
+  }
+}
+
 void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
   _ASSERTE(sender);
   _ASSERTE(message);

@@ -56,7 +56,7 @@ HRESULT GameBuilder::LoadGame(
     if (FAILED(result)) {
       LOG("Unable to parse customized preferences "
               << Resources::ToString(customPref.wstring()),
-          MGDF_LOG_ERROR)
+          MGDF_LOG_ERROR);
     }
   }
 

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
+
 #include <atomic>
+#include <functional>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -9,6 +11,12 @@
 
 namespace MGDF {
 namespace core {
+
+#define LOG(msg, lvl) \
+  MGDFLog([&](auto &oss) { oss << msg; }, lvl, __FILE__, __LINE__)
+
+void MGDFLog(std::function<void(std::ostringstream &)> msg, MGDFLogLevel level,
+             const char *file, int line);
 
 /**
  singleton event log - uses buffered file writes to increase efficiency.
@@ -42,18 +50,6 @@ class Logger {
   std::wstring _filename;
   std::atomic<MGDFLogLevel> _level;
 };
-
-#define LOG(msg, lvl)                                                        \
-  {                                                                          \
-    if (lvl <= MGDF::core::Logger::Instance().GetLoggingLevel()) {           \
-      std::ostringstream ss;                                                 \
-      ss << __FILE__ << ':' << __LINE__;                                     \
-      std::ostringstream ms;                                                 \
-      ms << msg;                                                             \
-      MGDF::core::Logger::Instance().Log(ss.str().c_str(), ms.str().c_str(), \
-                                         lvl);                               \
-    }                                                                        \
-  }
 
 }  // namespace core
 }  // namespace MGDF
