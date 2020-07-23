@@ -14,11 +14,12 @@ class DefaultReadOnlyFileImpl : public ReadOnlyFileBaseImpl {
  public:
   DefaultReadOnlyFileImpl(const std::wstring &name,
                           const std::wstring &physicalPath,
-                          IMGDFReadOnlyFile *parent)
+                          IMGDFReadOnlyFile *parent,
+                          IMGDFReadOnlyVirtualFileSystem *vfs)
       : _name(name),
         _path(physicalPath),
         _reader(nullptr),
-        ReadOnlyFileBaseImpl(parent) {}
+        ReadOnlyFileBaseImpl(parent, vfs) {}
   virtual ~DefaultReadOnlyFileImpl() {}
 
   BOOL __stdcall IsFolder() override { return false; }

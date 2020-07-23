@@ -101,7 +101,7 @@ void Test3::Setup(IMGDFSimHost *host) {
 
         // check the metadata
         std::string metadataValue =
-            StringReader<&IMGDFGameState::GetMetadata>::Read(_state, "key");
+            ComString<&IMGDFGameState::GetMetadata>::Read(_state, "key");
         if (metadataValue != "value") {
           return TestStep::FAILED;
         }

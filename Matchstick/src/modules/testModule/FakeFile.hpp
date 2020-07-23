@@ -25,7 +25,7 @@ struct WCharCmp {
 class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
  public:
   FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-           IMGDFReadOnlyFile *parent);
+           IMGDFReadOnlyFile *parent, IMGDFReadOnlyVirtualFileSystem *vfs);
   FakeFile(const std::wstring &name, FakeFile *parent, const std::string &data);
   void AddChild(ComObject<FakeFile> file);
   virtual ~FakeFile(void);
@@ -34,6 +34,8 @@ class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
   BOOL __stdcall GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
   void __stdcall GetAllChildren(IMGDFReadOnlyFile **childBuffer) final;
   UINT64 __stdcall GetChildCount() final;
+  void __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
+  HRESULT __stdcall GetLogicalPath(wchar_t *path, UINT64 *length) final;
 
   HRESULT __stdcall Open(IMGDFFileReader **reader) final;
 
@@ -69,6 +71,7 @@ class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
   std::unique_ptr<std::map<const wchar_t *, FakeFile::ChildFileRef, WCharCmp>>
       _children;
   IMGDFReadOnlyFile *_parent;
+  IMGDFReadOnlyVirtualFileSystem *_vfs;
   std::wstring _name;
   std::wstring _physicalPath;
 

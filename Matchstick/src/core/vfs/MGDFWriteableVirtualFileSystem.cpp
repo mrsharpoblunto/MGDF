@@ -45,15 +45,15 @@ BOOL WriteableVirtualFileSystem::GetFile(const wchar_t *logicalPath,
     components = wcstok_s(0, L"/", &context);
   }
 
-  auto node = MakeCom<DefaultWriteableFileImpl>(
-      path.filename().wstring(), path.wstring(), _rootPath.wstring());
+  auto node = MakeCom<DefaultWriteableFileImpl>(path.filename().wstring(),
+                                                path.wstring(), this);
   node.AddRawRef(file);
   return true;
 }
 
 void WriteableVirtualFileSystem::GetRoot(IMGDFWriteableFile **root) {
-  auto r = MakeCom<DefaultWriteableFileImpl>(
-      _rootPath.filename().wstring(), _rootPath.wstring(), _rootPath.wstring());
+  auto r = MakeCom<DefaultWriteableFileImpl>(_rootPath.filename().wstring(),
+                                             _rootPath.wstring(), this);
   r.AddRawRef(root);
 }
 

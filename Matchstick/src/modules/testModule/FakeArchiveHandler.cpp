@@ -24,8 +24,9 @@ FakeArchiveHandler::~FakeArchiveHandler() {}
 HRESULT FakeArchiveHandler::MapArchive(const wchar_t *name,
                                        const wchar_t *archiveFile,
                                        IMGDFReadOnlyFile *parent,
+                                       IMGDFReadOnlyVirtualFileSystem *vfs,
                                        IMGDFReadOnlyFile **child) {
-  ComObject<FakeFile> rootFile(new FakeFile(name, archiveFile, parent));
+  ComObject<FakeFile> rootFile(new FakeFile(name, archiveFile, parent, vfs));
 
   ComObject<FakeFile> subFile(
       new FakeFile(L"testfile.txt", rootFile, "hello world"));

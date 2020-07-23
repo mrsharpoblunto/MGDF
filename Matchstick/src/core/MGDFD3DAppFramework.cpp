@@ -47,16 +47,6 @@ D3DAppFramework::~D3DAppFramework() {
     UnregisterClass(WINDOW_CLASS_NAME, GetModuleHandle(nullptr));
   }
 
-  if (_immediateContext) {
-    _immediateContext->ClearState();
-    _immediateContext->Flush();
-  }
-
-  if (_swapChain) {
-    // d3d has to be in windowed mode to cleanup correctly
-    _swapChain->SetFullscreenState(false, nullptr);
-  }
-
   UninitD3D();
 }
 
@@ -280,18 +270,27 @@ void D3DAppFramework::InitD3D() {
   ResizeBackBuffer();
 }
 
-void D3DAppFramework::ReinitD3D() {
+void D3DAppFramework::PrepareToReinitD3D() {
   const HRESULT reason = _d3dDevice->GetDeviceRemovedReason();
   LOG("Device removed! DXGI_ERROR code " << reason, MGDF_LOG_ERROR);
 
+  _awaitingD3DReset.store(true);
   OnBeforeDeviceReset();
   UninitD3D();
-  InitD3D();
-  OnDeviceReset();
 }
 
 void D3DAppFramework::UninitD3D() {
   LOG("Cleaning up Direct3D resources...", MGDF_LOG_LOW);
+  if (_immediateContext) {
+    _immediateContext->ClearState();
+    _immediateContext->Flush();
+  }
+
+  if (_swapChain) {
+    // d3d has to be in windowed mode to cleanup correctly
+    _swapChain->SetFullscreenState(false, nullptr);
+  }
+
   _backBuffer.Clear();
   _renderTargetView.Clear();
   _depthStencilView.Clear();
@@ -315,6 +314,13 @@ void D3DAppFramework::UninitD3D() {
     }
 #endif
   }
+}
+
+void D3DAppFramework::QueueResetDevice() { _awaitingD3DReset.store(false); }
+
+void D3DAppFramework::ReinitD3D() {
+  InitD3D();
+  OnDeviceReset();
 }
 
 bool D3DAppFramework::AllowTearing() {
@@ -374,7 +380,7 @@ void D3DAppFramework::ResizeBackBuffer() {
   // Resize the swap chain and recreate the render target view.
   if (result == DXGI_ERROR_DEVICE_REMOVED ||
       result == DXGI_ERROR_DEVICE_RESET) {
-    ReinitD3D();
+    PrepareToReinitD3D();
     return;
   } else if (FAILED(result)) {
     FATALERROR(this, "Failed to resize swapchain buffers");
@@ -463,9 +469,24 @@ INT32 D3DAppFramework::Run() {
     while (_runRenderThread.test_and_set()) {
       bool exp = true;
       ComObject<IDXGIOutput> target;
+      const bool awaitingReset = _awaitingD3DReset.load();
 
-      // the game logic step may force the device to reset, so lets check
-      if (IsBackBufferChangePending()) {
+      if (awaitingReset) {
+        // waiting for the module to signal that its cleaned up all
+        // its D3D resources and is ready for a device reset
+        Sleep(100);
+        continue;
+      }
+
+      if (!_d3dDevice) {
+        if (!awaitingReset) {
+          LOG("Reinitializing D3D after Device Reset...", MGDF_LOG_MEDIUM);
+          ReinitD3D();
+        } else {
+          continue;
+        }
+      } else if (IsBackBufferChangePending()) {
+        // the game logic step may force the device to reset, so lets check
         LOG("Module has scheduled a backbuffer change...", MGDF_LOG_LOW);
 
         RECT windowSize;
@@ -546,6 +567,7 @@ INT32 D3DAppFramework::Run() {
           if (FAILED(_swapChain->SetFullscreenState(true, target))) {
             FATALERROR(this, "SetFullscreenState failed");
           }
+          target.Clear();
         }
         ResizeBackBuffer();
       }
@@ -557,8 +579,7 @@ INT32 D3DAppFramework::Run() {
         ResizeBackBuffer();
       }
 
-      if (!_minimized
-               .load()) {  // don't bother rendering if the window is minimzed
+      if (!_minimized.load() && _d3dDevice) {
         const float black[4] = {0.0f, 0.0f, 0.0f, 1.0f};  // RGBA
         _immediateContext->ClearRenderTargetView(
             _renderTargetView, reinterpret_cast<const float *>(&black));
@@ -568,20 +589,24 @@ INT32 D3DAppFramework::Run() {
 
         OnDraw();
 
-        ComObject<IDXGIOutput> output;
-        if (FAILED(_swapChain->GetContainingOutput(output.Assign()))) {
-          FATALERROR(this, "SwapChain GetContainingOutput failed");
-        }
+        HRESULT result = S_OK;
+        {
+          ComObject<IDXGIOutput> output;
+          if (FAILED(_swapChain->GetContainingOutput(output.Assign()))) {
+            FATALERROR(this, "SwapChain GetContainingOutput failed");
+          }
 
-        const HRESULT result = _swapChain->Present1(
-            0, AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0, &presentParams);
-        if (VSyncEnabled()) {
-          output->WaitForVBlank();
+          result = _swapChain->Present1(
+              0, AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0,
+              &presentParams);
+          if (VSyncEnabled()) {
+            output->WaitForVBlank();
+          }
         }
 
         if (result == DXGI_ERROR_DEVICE_REMOVED ||
             result == DXGI_ERROR_DEVICE_RESET) {
-          ReinitD3D();
+          PrepareToReinitD3D();
         } else if (FAILED(result)) {
           FATALERROR(this, "Direct3d Present1 failed");
         } else if (_swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD ||

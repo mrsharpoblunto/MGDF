@@ -28,6 +28,8 @@ class WriteableVirtualFileSystem
   HRESULT __stdcall GetLogicalPath(IMGDFWriteableFile *file, wchar_t *path,
                                    UINT64 *length) final;
 
+  const std::filesystem::path &GetRootPath() { return _rootPath; }
+
  private:
   std::filesystem::path _rootPath;
   LogicalPathResolver<IMGDFWriteableFile> _resolver;

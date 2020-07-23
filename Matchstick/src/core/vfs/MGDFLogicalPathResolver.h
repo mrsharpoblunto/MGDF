@@ -18,9 +18,10 @@ class LogicalPathResolver {
   LogicalPathResolver() : _queryKey(nullptr) {}
 
   HRESULT GetLogicalPath(T *file, wchar_t *path, UINT64 *length) {
+    _ASSERTE(file);
     std::lock_guard<std::mutex> lock(_mutex);
 
-    if (_queryKey == nullptr && _queryKey != file) {
+    if (_queryKey != file) {
       // cache the last lookup so that when the caller does the typical
       // double call of this function (to get the size required, then to
       // actually fill the buffer) we don't have to calculate the logical path
@@ -31,7 +32,11 @@ class LogicalPathResolver {
         return E_FAIL;
       }
     }
-    return StringWriter::Write(_queryCache, path, length);
+    auto result = StringWriter::Write(_queryCache, path, length);
+    if (SUCCEEDED(result)) {
+      _queryKey = nullptr;
+    }
+    return result;
   }
 
  private:

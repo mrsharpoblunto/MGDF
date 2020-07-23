@@ -28,7 +28,7 @@ SUITE(ReadOnlyVFSTests) {
     ComObject<IReadOnlyVirtualFileSystemComponent> _vfs;
   };
 
-  typedef StringReader<&IMGDFReadOnlyFile::GetLogicalName> GetLogicalName;
+  typedef ComString<&IMGDFReadOnlyFile::GetLogicalName> GetLogicalName;
 
   /**
   check that zip archives are enumerated correctly by the vfs

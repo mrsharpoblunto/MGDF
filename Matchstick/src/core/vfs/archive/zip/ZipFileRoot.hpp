@@ -18,8 +18,9 @@ namespace zip {
 class ZipFileRoot : public DefaultReadOnlyFileImpl {
  public:
   ZipFileRoot(const std::wstring &name, const std::wstring &physicalPath,
-              IMGDFReadOnlyFile *parent, unzFile zip)
-      : DefaultReadOnlyFileImpl(name, physicalPath, parent), _zip(zip) {}
+              IMGDFReadOnlyFile *parent, IMGDFReadOnlyVirtualFileSystem *vfs,
+              unzFile zip)
+      : DefaultReadOnlyFileImpl(name, physicalPath, parent, vfs), _zip(zip) {}
   ~ZipFileRoot() { unzClose(_zip); }
 
   BOOL __stdcall IsArchive() final { return true; }

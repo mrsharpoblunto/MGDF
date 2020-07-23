@@ -19,7 +19,7 @@ class DefaultReadOnlyFolderImpl : public DefaultReadOnlyFileImpl {
   DefaultReadOnlyFolderImpl(const std::wstring &name,
                             const std::wstring &physicalPath,
                             IMGDFReadOnlyFile *parent,
-                            ReadOnlyVirtualFileSystemComponent *vfs);
+                            IMGDFReadOnlyVirtualFileSystem *vfs);
   virtual ~DefaultReadOnlyFolderImpl(void);
 
   BOOL __stdcall IsFolder() final { return true; }
@@ -28,8 +28,6 @@ class DefaultReadOnlyFolderImpl : public DefaultReadOnlyFileImpl {
   void __stdcall GetAllChildren(IMGDFReadOnlyFile **childBuffer) final;
 
  private:
-  ReadOnlyVirtualFileSystemComponent *_vfs;
-
   void MapChildren();
 };
 

@@ -66,12 +66,12 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
 
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
   for (auto sound : _sounds) {
-    std::wstring name = StringReader<&IMGDFSound::GetName>::Read(sound);
+    std::wstring name = ComString<&IMGDFSound::GetName>::Read(sound);
     LOG("Sound '" << Resources::ToString(name) << "' still has live references",
         MGDF_LOG_ERROR);
   }
   for (auto stream : _soundStreams) {
-    std::wstring name = StringReader<&IMGDFSoundStream::GetName>::Read(stream);
+    std::wstring name = ComString<&IMGDFSoundStream::GetName>::Read(stream);
     LOG("SoundStream '" << Resources::ToString(name)
                         << "' still has live references",
         MGDF_LOG_ERROR);
@@ -380,7 +380,7 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
   LOG("Getting sound buffer...", MGDF_LOG_MEDIUM);
 
   std::wstring dataSourceName =
-      StringReader<&IMGDFReadOnlyVirtualFileSystem::GetLogicalPath>::Read(
+      ComString<&IMGDFReadOnlyVirtualFileSystem::GetLogicalPath>::Read(
           _vfs, dataSource);
 
   // see if the buffer already exists in memory before trying to create it

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
+
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -47,10 +48,13 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   // handler callbacks
   typedef std::function<void(void)>
       ShutDownFunction;  // shutDown callback function signature
+  typedef std::function<void(void)>
+      DeviceResetFunction;  // shutDown callback function signature
   typedef std::function<void(const std::string &, const std::string &)>
       FatalErrorFunction;  // fatal error callback function signature
 
   void SetShutDownHandler(const ShutDownFunction handler);
+  void SetDeviceResetHandler(const DeviceResetFunction handler);
   void SetFatalErrorHandler(const FatalErrorFunction handler);
 
   void STCreateModule();
@@ -82,16 +86,18 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   // ILogger methods
   void _stdcall SetLoggingLevel(MGDFLogLevel level) final;
   MGDFLogLevel __stdcall GetLoggingLevel() final;
-  void __stdcall Log(const char *sender, const char *message, MGDFLogLevel level) final;
+  void __stdcall Log(const char *sender, const char *message,
+                     MGDFLogLevel level) final;
 
   // ICommonHost methods
   void __stdcall FatalError(const char *, const char *) final;
   void __stdcall GetRenderSettings(IMGDFRenderSettingsManager **settings) final;
   void __stdcall GetTimer(IMGDFTimer **timer) final;
-  const MGDFVersion * __stdcall GetMGDFVersion() final;
+  const MGDFVersion *__stdcall GetMGDFVersion() final;
   void _stdcall GetDebug(IMGDFDebug **debug) final;
   void __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
   void __stdcall GetWorkingVFS(IMGDFWriteableVirtualFileSystem **vfs) final;
+  void __stdcall QueueDeviceReset() final;
 
   // ISimHost methods
   void __stdcall QueueShutDown() final;
@@ -113,9 +119,9 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
       D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) final;
 
   HRESULT __stdcall CreateCPUCounter(const char *name,
-                           IMGDFPerformanceCounter **counter) final;
+                                     IMGDFPerformanceCounter **counter) final;
   HRESULT __stdcall CreateGPUCounter(const char *name,
-                           IMGDFPerformanceCounter **counter) final;
+                                     IMGDFPerformanceCounter **counter) final;
 
  private:
   HRESULT Init();
@@ -150,6 +156,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
 
   // event callbacks
   ShutDownFunction _shutDownHandler;
+  DeviceResetFunction _deviceResetHandler;
   FatalErrorFunction _fatalErrorHandler;
 };
 

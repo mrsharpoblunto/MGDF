@@ -1,7 +1,8 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 #include <atomic>
 #include <string>
 #include <vector>
@@ -15,7 +16,9 @@ class FakeArchiveHandler : public ComBase<IMGDFArchiveHandler> {
   ~FakeArchiveHandler();
   BOOL IsArchive(const wchar_t *path) final;
   HRESULT MapArchive(const wchar_t *name, const wchar_t *archiveFile,
-                     IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **child) final;
+                     IMGDFReadOnlyFile *parent,
+                     IMGDFReadOnlyVirtualFileSystem *vfs,
+                     IMGDFReadOnlyFile **child) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;

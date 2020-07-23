@@ -7,6 +7,7 @@
 #include <mutex>
 
 #include "MGDFDefaultFileReader.hpp"
+#include "MGDFWriteableVirtualFileSystem.hpp"
 
 namespace MGDF {
 namespace core {
@@ -26,16 +27,16 @@ class DefaultFileWriter : public ComBase<IMGDFFileWriter> {
   std::shared_ptr<std::ofstream> _stream;
 };
 
-class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile> {
+class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile, IMGDFFile> {
  public:
   DefaultWriteableFileImpl(const std::wstring &name,
                            const std::filesystem::path &physicalPath,
-                           const std::filesystem::path &rootPath)
+                           WriteableVirtualFileSystem *vfs)
       : _name(name),
         _physicalPath(physicalPath),
         _reader(nullptr),
         _writer(nullptr),
-        _rootPath(rootPath) {}
+        _vfs(vfs) {}
   virtual ~DefaultWriteableFileImpl() {}
 
   BOOL __stdcall Exists() final;
@@ -49,6 +50,8 @@ class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile> {
   HRESULT __stdcall GetPhysicalName(wchar_t *name, UINT64 *length) final;
   HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final;
   HRESULT __stdcall GetLogicalName(wchar_t *name, UINT64 *length) final;
+  void __stdcall GetVFS(IMGDFWriteableVirtualFileSystem **vfs) final;
+  HRESULT __stdcall GetLogicalPath(wchar_t *path, UINT64 *length) final;
 
   BOOL __stdcall IsOpen() final;
   HRESULT __stdcall Open(IMGDFFileReader **reader) final;
@@ -58,13 +61,14 @@ class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile> {
   HRESULT __stdcall Delete() final;
   HRESULT __stdcall MoveTo(IMGDFWriteableFile *destination) final;
 
+ protected:
  private:
   std::mutex _mutex;
   std::wstring _name;
   std::filesystem::path _physicalPath;
-  std::filesystem::path _rootPath;
   DefaultFileWriter *_writer;
   DefaultFileReader *_reader;
+  WriteableVirtualFileSystem *_vfs;
 };
 
 }  // namespace vfs

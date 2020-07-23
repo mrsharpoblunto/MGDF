@@ -31,6 +31,10 @@ void Host::SetFatalErrorHandler(const FatalErrorFunction handler) {
   _fatalErrorHandler = handler;
 }
 
+void Host::SetDeviceResetHandler(const DeviceResetFunction handler) {
+  _deviceResetHandler = handler;
+}
+
 HRESULT Host::TryCreate(ComObject<Game> game, HostComponents &components,
                         ComObject<Host> &host) {
   host = MakeCom<Host>(game, components);
@@ -134,7 +138,8 @@ HRESULT Host::Init() {
   }
 
   auto working = Resources::Instance().WorkingDir();
-  LOG("Mounting working directory \'" << Resources::ToString(working) << "\' into VFS",
+  LOG("Mounting working directory \'" << Resources::ToString(working)
+                                      << "\' into VFS",
       MGDF_LOG_LOW);
   _workingVfs = MakeCom<vfs::WriteableVirtualFileSystem>(working.c_str());
 
@@ -248,15 +253,20 @@ void Host::RTBeforeFirstDraw() {
 }
 
 void Host::RTBeforeDeviceReset() {
-  _d2dDevice.Clear();
-  _d3dDevice.Clear();
-  _timer->BeforeDeviceReset();
   if (_module) {
     LOG("Calling module RTBeforeDeviceReset...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeDeviceReset(this)) {
       FATALERROR(this, "Error in before device reset in module");
     }
   }
+  _timer->BeforeDeviceReset();
+  _d2dDevice.Clear();
+  _d3dDevice.Clear();
+}
+
+void Host::QueueDeviceReset() {
+  LOG("Module ready for Device Reset...", MGDF_LOG_MEDIUM);
+  _deviceResetHandler();
 }
 
 void Host::RTDeviceReset() {

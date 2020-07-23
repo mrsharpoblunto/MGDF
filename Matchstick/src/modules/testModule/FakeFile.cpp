@@ -16,8 +16,10 @@ namespace MGDF {
 namespace Test {
 
 FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-                   IMGDFReadOnlyFile *parent)
+                   IMGDFReadOnlyFile *parent,
+                   IMGDFReadOnlyVirtualFileSystem *vfs)
     : _parent(parent),
+      _vfs(vfs),
       _children(nullptr),
       _name(name),
       _physicalPath(physicalFile),
@@ -37,7 +39,11 @@ FakeFile::FakeFile(const std::wstring &name, FakeFile *parent,
       _isOpen(false),
       _position(0),
       _logicalPath(L""),
-      _references(1UL) {}
+      _references(1UL) {
+  ComObject<IMGDFReadOnlyVirtualFileSystem> vfs;
+  parent->GetVFS(vfs.Assign());
+  _vfs = vfs;
+}
 
 FakeFile::~FakeFile() {}
 
@@ -195,6 +201,15 @@ HRESULT FakeFile::GetPhysicalPath(wchar_t *path, UINT64 *length) {
 
 HRESULT FakeFile::GetPhysicalName(wchar_t *path, UINT64 *length) {
   return GetLogicalName(path, length);
+}
+
+void FakeFile::GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) {
+  _vfs->AddRef();
+  *vfs = _vfs;
+}
+
+HRESULT FakeFile::GetLogicalPath(wchar_t *path, UINT64 *length) {
+  return _vfs->GetLogicalPath(this, path, length);
 }
 
 }  // namespace Test

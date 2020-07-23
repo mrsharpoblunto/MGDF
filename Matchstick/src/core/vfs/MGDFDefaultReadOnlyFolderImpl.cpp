@@ -19,8 +19,8 @@ using namespace std::filesystem;
 
 DefaultReadOnlyFolderImpl::DefaultReadOnlyFolderImpl(
     const std::wstring &name, const std::wstring &physicalPath,
-    IMGDFReadOnlyFile *parent, ReadOnlyVirtualFileSystemComponent *vfs)
-    : DefaultReadOnlyFileImpl(name, physicalPath, parent), _vfs(vfs) {
+    IMGDFReadOnlyFile *parent, IMGDFReadOnlyVirtualFileSystem *vfs)
+    : DefaultReadOnlyFileImpl(name, physicalPath, parent, vfs) {
   _ASSERTE(vfs);
 }
 
@@ -30,8 +30,8 @@ DefaultReadOnlyFolderImpl::~DefaultReadOnlyFolderImpl() {}
 void DefaultReadOnlyFolderImpl::MapChildren() {
   std::lock_guard<std::mutex> lock(_mutex);
   if (!_children) {
-    _children =
-        std::make_unique<std::map<const wchar_t *, ChildFileRef, WCharCmp>>();
+    _children = std::make_unique<
+        std::map<std::wstring, ComObject<IMGDFReadOnlyFile>, WStrCmp>>();
 
     path path(_path);
     _ASSERTE(is_directory(path));
@@ -39,14 +39,15 @@ void DefaultReadOnlyFolderImpl::MapChildren() {
     ComObject<IMGDFReadOnlyFile> parent(this, true);
     for (auto &p : directory_iterator(path)) {
       ComObject<IMGDFReadOnlyFile> mappedChild;
-      _vfs->Map(p, parent, mappedChild);
+      auto vfsComponent =
+          dynamic_cast<ReadOnlyVirtualFileSystemComponent *>(_vfs);
+      _ASSERTE(vfsComponent);
+      vfsComponent->Map(p, parent, mappedChild);
       _ASSERTE(mappedChild);
 
-      ChildFileRef ref;
-      ref.Ref = std::move(mappedChild);
-      ref.Name =
-          StringReader<&IMGDFReadOnlyFile::GetPhysicalName>::Read(mappedChild);
-      _children->insert(std::make_pair(ref.Name.data(), std::move(ref)));
+      _children->insert(std::make_pair(
+          ComString<&IMGDFReadOnlyFile::GetPhysicalName>::Read(mappedChild),
+          std::move(mappedChild)));
     }
   }
 }

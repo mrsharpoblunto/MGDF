@@ -13,8 +13,8 @@ implementation of a folder in a zipped archive
 class ZipFolderImpl : public ReadOnlyFileBaseImpl {
  public:
   ZipFolderImpl(const wchar_t *name, IMGDFReadOnlyFile *parent,
-                IMGDFReadOnlyFile *root)
-      : ReadOnlyFileBaseImpl(parent), _name(name), _root(root) {}
+                IMGDFReadOnlyVirtualFileSystem *vfs, IMGDFReadOnlyFile *root)
+      : ReadOnlyFileBaseImpl(parent, vfs), _name(name), _root(root) {}
   ~ZipFolderImpl(){};
 
   BOOL __stdcall IsArchive() final { return true; }

@@ -50,7 +50,8 @@ void ReadOnlyVirtualFileSystemComponent::Map(
       auto fullpath = path.wstring();
       ComObject<IMGDFReadOnlyFile> mappedFile;
       if (!FAILED(archiveHandler->MapArchive(filename.c_str(), fullpath.c_str(),
-                                             parent, mappedFile.Assign()))) {
+                                             parent, this,
+                                             mappedFile.Assign()))) {
         child = mappedFile;
         return;
       } else {
@@ -60,8 +61,8 @@ void ReadOnlyVirtualFileSystemComponent::Map(
     }
 
     // otherwise its just a plain old file
-    child = ComObject<IMGDFReadOnlyFile>(
-        new DefaultReadOnlyFileImpl(path.filename(), path.wstring(), parent));
+    child = ComObject<IMGDFReadOnlyFile>(new DefaultReadOnlyFileImpl(
+        path.filename(), path.wstring(), parent, this));
   }
 }
 

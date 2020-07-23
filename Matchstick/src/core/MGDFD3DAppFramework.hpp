@@ -36,8 +36,8 @@ class D3DAppFramework {
       const ComObject<ID3D11Texture2D> &backBuffer,
       const ComObject<ID3D11Texture2D> &depthStencilBuffer) = 0;
   virtual MGDFFullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
-                                          DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
-                                          const RECT &windowSize) = 0;
+                                              DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
+                                              const RECT &windowSize) = 0;
   virtual void OnResize(UINT32 width, UINT32 height) = 0;
 
   virtual void OnDraw() = 0;
@@ -59,9 +59,11 @@ class D3DAppFramework {
   virtual bool VSyncEnabled() const = 0;
   virtual void FatalError(const char *sender, const char *message) = 0;
   void CloseWindow();
+  void QueueResetDevice();
 
  private:
   void InitD3D();
+  void PrepareToReinitD3D();
   void ReinitD3D();
   void UninitD3D();
   void InitRawInput();
@@ -95,7 +97,7 @@ class D3DAppFramework {
   POINT _currentSize;
   DWORD _windowStyle;
 
-  std::atomic_bool _resize, _minimized;
+  std::atomic_bool _resize, _minimized, _awaitingD3DReset;
   std::atomic_flag _runRenderThread;
 
   std::unique_ptr<std::thread> _renderThread;

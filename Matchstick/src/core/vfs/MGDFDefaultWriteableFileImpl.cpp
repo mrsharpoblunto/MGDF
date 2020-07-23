@@ -64,16 +64,26 @@ HRESULT DefaultWriteableFileImpl::GetPhysicalPath(wchar_t* path,
   return StringWriter::Write(_physicalPath.wstring(), path, length);
 }
 
+void DefaultWriteableFileImpl::GetVFS(IMGDFWriteableVirtualFileSystem** vfs) {
+  _vfs->AddRef();
+  *vfs = _vfs;
+}
+
+HRESULT DefaultWriteableFileImpl::GetLogicalPath(wchar_t* path,
+                                                 UINT64* length) {
+  return _vfs->GetLogicalPath(this, path, length);
+}
+
 BOOL DefaultWriteableFileImpl::GetParent(IMGDFWriteableFile** parent) {
-  if (_physicalPath == _rootPath) {
+  if (_physicalPath == _vfs->GetRootPath()) {
     *parent = nullptr;
     return false;
   }
 
   auto parentPath = _physicalPath.parent_path();
   auto parentName = parentPath.filename();
-  auto parentFile = MakeCom<DefaultWriteableFileImpl>(parentName.wstring(),
-                                                      parentPath, _rootPath);
+  auto parentFile =
+      MakeCom<DefaultWriteableFileImpl>(parentName.wstring(), parentPath, _vfs);
   parentFile.AddRawRef(parent);
   return true;
 }
@@ -85,8 +95,7 @@ HRESULT DefaultWriteableFileImpl::GetChild(const wchar_t* name,
   }
 
   auto childPath = _physicalPath / name;
-  auto childFile =
-      MakeCom<DefaultWriteableFileImpl>(name, childPath, _rootPath);
+  auto childFile = MakeCom<DefaultWriteableFileImpl>(name, childPath, _vfs);
   childFile.AddRawRef(child);
   return S_OK;
 }
@@ -112,8 +121,8 @@ HRESULT DefaultWriteableFileImpl::GetAllChildren(
 
   for (auto& p : directory_iterator(_physicalPath)) {
     auto childName = p.path().filename();
-    auto childFile = MakeCom<DefaultWriteableFileImpl>(childName.wstring(),
-                                                       p.path(), _rootPath);
+    auto childFile =
+        MakeCom<DefaultWriteableFileImpl>(childName.wstring(), p.path(), _vfs);
     childFile.AddRawRef(childBuffer++);
   }
   return S_OK;
@@ -141,7 +150,7 @@ HRESULT DefaultWriteableFileImpl::CreateFolder() {
 }
 
 HRESULT DefaultWriteableFileImpl::Delete() {
-  if (!Exists() || _physicalPath == _rootPath) {
+  if (!Exists() || _physicalPath == _vfs->GetRootPath()) {
     return E_FAIL;
   }
   std::error_code code;
@@ -155,7 +164,7 @@ HRESULT DefaultWriteableFileImpl::MoveTo(IMGDFWriteableFile* destination) {
 
   // create all parent directories to the destination
   std::wstring destPathString(
-      StringReader<&IMGDFWriteableFile::GetPhysicalPath>::Read(destination));
+      ComString<&IMGDFWriteableFile::GetPhysicalPath>::Read(destination));
   path destinationPath(destPathString);
   auto parentPath = destinationPath.parent_path();
   if (!exists(parentPath)) {

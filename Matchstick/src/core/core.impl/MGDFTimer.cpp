@@ -277,13 +277,13 @@ HRESULT Timer::Init() {
 
 Timer::~Timer(void) {
   for (auto &counter : _cpuCounters) {
-    LOG("CPUTimer '" << StringReader<&IMGDFPerformanceCounter::GetName>::Read(
+    LOG("CPUTimer '" << ComString<&IMGDFPerformanceCounter::GetName>::Read(
                             counter)
                      << "' still has live references",
         MGDF_LOG_ERROR);
   }
   for (auto &counter : _gpuCounters) {
-    LOG("GPUTimer '" << StringReader<&IMGDFPerformanceCounter::GetName>::Read(
+    LOG("GPUTimer '" << ComString<&IMGDFPerformanceCounter::GetName>::Read(
                             counter)
                      << "' still has live references",
         MGDF_LOG_ERROR);
@@ -450,7 +450,10 @@ void Timer::End() {
   for (auto counter : _gpuCounters) {
     counter->ForceEnd();
   }
-  if (_gpuTimersSupported && _currentQuery) _context->End(_currentQuery);
+  if (_gpuTimersSupported && _currentQuery) {
+    _context->End(_currentQuery);
+    _currentQuery.Clear();
+  }
 }
 
 void Timer::GetCounterInformation(TextStream &outputStream) const {
@@ -463,7 +466,7 @@ void Timer::GetCounterInformation(TextStream &outputStream) const {
         _gpuCounters,
         [](const auto counter, auto &out) {
           out.first =
-              StringReader<&IMGDFPerformanceCounter::GetName>::Read(counter);
+              ComString<&IMGDFPerformanceCounter::GetName>::Read(counter);
           out.second = counter->GetAvgValue();
         },
         outputStream);
@@ -476,7 +479,7 @@ void Timer::GetCounterInformation(TextStream &outputStream) const {
         _cpuCounters,
         [](const auto counter, auto &out) {
           out.first =
-              StringReader<&IMGDFPerformanceCounter::GetName>::Read(counter);
+              ComString<&IMGDFPerformanceCounter::GetName>::Read(counter);
           out.second = counter->GetAvgValue();
         },
         outputStream);

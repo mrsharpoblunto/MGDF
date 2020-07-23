@@ -50,7 +50,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
 
   if (GetPreference(_game, PreferenceConstants::RENDER_FPS, pref)) {
     if (FAILED(FrameLimiter::TryCreate(FromString<UINT32>(pref),
-                                           _renderFrameLimiter))) {
+                                       _renderFrameLimiter))) {
       FATALERROR(_host, "Unable to create render frame limiter");
     }
   }
@@ -63,27 +63,9 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     _game->SavePreferences();
     CloseWindow();
   });
+  _host->SetDeviceResetHandler([this]() { QueueResetDevice(); });
 
-  if (FAILED(DWriteCreateFactory(
-          DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory1),
-          reinterpret_cast<IUnknown **>(_dWriteFactory.Assign())))) {
-    FATALERROR(_host, "Unable to create IDWriteFactory");
-  }
-
-  _textStream = std::make_unique<TextStream>(_dWriteFactory);
-
-  ComObject<IDWriteFontCollection> fontCollection;
-  if (FAILED(
-          _dWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
-    FATALERROR(_host, "Unable to get  font collection");
-  }
-
-  if (FAILED(_dWriteFactory->CreateTextFormat(
-          L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
-          DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14, L"",
-          _textFormat.Assign()))) {
-    FATALERROR(_host, "Unable to create text format");
-  }
+  InitDirectWrite();
 }
 
 MGDFApp::~MGDFApp() {}
@@ -149,16 +131,45 @@ void MGDFApp::OnResize(UINT32 width, UINT32 height) {
   _settings->OnResize(width, height);
 }
 
+void MGDFApp::InitDirectWrite() {
+  if (FAILED(DWriteCreateFactory(
+          DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory1),
+          reinterpret_cast<IUnknown **>(_dWriteFactory.Assign())))) {
+    FATALERROR(_host, "Unable to create IDWriteFactory");
+  }
+
+  ComObject<IDWriteFontCollection> fontCollection;
+  if (FAILED(
+          _dWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
+    FATALERROR(_host, "Unable to get  font collection");
+  }
+
+  if (FAILED(_dWriteFactory->CreateTextFormat(
+          L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
+          DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14, L"",
+          _textFormat.Assign()))) {
+    FATALERROR(_host, "Unable to create text format");
+  }
+
+  _textStream = std::make_unique<TextStream>(_dWriteFactory);
+}
+
 void MGDFApp::OnBeforeDeviceReset() {
+  OnBeforeBackBufferChange();
   _context.Clear();
   _blackBrush.Clear();
   _whiteBrush.Clear();
   _textLayout.Clear();
-  _textStream->ClearBrushes();
+  _textStream.reset();
+  _textFormat.Clear();
+  _dWriteFactory.Clear();
   _host->RTBeforeDeviceReset();
 }
 
-void MGDFApp::OnDeviceReset() { _host->RTDeviceReset();}
+void MGDFApp::OnDeviceReset() {
+  InitDirectWrite();
+  _host->RTDeviceReset();
+}
 
 void MGDFApp::OnBeforeBackBufferChange() {
   _context->SetTarget(nullptr);

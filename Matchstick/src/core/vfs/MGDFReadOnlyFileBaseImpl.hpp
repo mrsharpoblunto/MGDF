@@ -11,25 +11,21 @@ namespace MGDF {
 namespace core {
 namespace vfs {
 
-struct WCharCmp {
-  bool operator()(const wchar_t *a, const wchar_t *b) const {
-    return std::wcscmp(a, b) < 0;
+struct WStrCmp {
+  bool operator()(const std::wstring &a, const std::wstring &b) const {
+    return a < b;
   }
 };
-
-typedef struct ChildFileRef {
-  ComObject<IMGDFReadOnlyFile> Ref;
-  std::wstring Name;
-} ChildFileRef;
 
 /**
  abstract class which contains the common functionality to default file
  instances aswell as the zip and other archive file implementations of the
  standard ifile interface
 */
-class ReadOnlyFileBaseImpl : public ComBase<IMGDFReadOnlyFile> {
+class ReadOnlyFileBaseImpl : public ComBase<IMGDFReadOnlyFile, IMGDFFile> {
  public:
-  ReadOnlyFileBaseImpl(IMGDFReadOnlyFile *parent);
+  ReadOnlyFileBaseImpl(IMGDFReadOnlyFile *parent,
+                       IMGDFReadOnlyVirtualFileSystem *vfs);
   virtual ~ReadOnlyFileBaseImpl(){};
 
   BOOL __stdcall GetParent(IMGDFReadOnlyFile **parent) final;
@@ -37,6 +33,8 @@ class ReadOnlyFileBaseImpl : public ComBase<IMGDFReadOnlyFile> {
                           IMGDFReadOnlyFile **child) override;
   UINT64 __stdcall GetChildCount() override;
   void __stdcall GetAllChildren(IMGDFReadOnlyFile **childBuffer) override;
+  void __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
+  HRESULT __stdcall GetLogicalPath(wchar_t *path, UINT64 *length) final;
 
   // These internal methods are not threadsafe, so ensure
   // that the mutex for this file is acquired or that only
@@ -45,11 +43,13 @@ class ReadOnlyFileBaseImpl : public ComBase<IMGDFReadOnlyFile> {
 
  protected:
   std::mutex _mutex;
-  std::unique_ptr<std::map<const wchar_t *, ChildFileRef, WCharCmp>> _children;
+  std::unique_ptr<std::map<std::wstring, ComObject<IMGDFReadOnlyFile>, WStrCmp>>
+      _children;
   std::wstring _logicalPath;
   // hold a raw reference here as we don't want children
   // to hold their parent files in scope
   IMGDFReadOnlyFile *_parent;
+  IMGDFReadOnlyVirtualFileSystem *_vfs;
 };
 
 }  // namespace vfs

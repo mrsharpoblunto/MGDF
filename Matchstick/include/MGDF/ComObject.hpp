@@ -215,25 +215,35 @@ class ComArray {
   size_t _size;
 };
 
+template <typename First, typename Second, typename... Args>
+BOOL IIDMatch(REFIID riid) {
+  return (__uuidof(First) == riid) || IIDMatch<Second, Args...>(riid);
+}
+
+template <typename Last>
+BOOL IIDMatch(REFIID riid) {
+  return (__uuidof(Last) == riid) || (IID_IUnknown == riid);
+}
+
 /**
 Provides a base implementation of the IUnknown COM interface
 */
-template <typename T>
+template <typename T, typename... Super>
 class ComBase : public T {
  public:
   ComBase() : _references(1UL) {}
   virtual ~ComBase() { _ASSERTE(_references == 0UL); }
-  ULONG AddRef() final { return ++_references; };
-  ULONG Release() final {
+  ULONG __stdcall AddRef() final { return ++_references; };
+  ULONG __stdcall Release() final {
     const ULONG refs = --_references;
     if (refs == 0UL) {
       delete this;
     };
     return refs;
   }
-  HRESULT QueryInterface(REFIID riid, void **ppvObject) final {
+  HRESULT __stdcall QueryInterface(REFIID riid, void **ppvObject) final {
     if (!ppvObject) return E_POINTER;
-    if (riid == IID_IUnknown || riid == __uuidof(T)) {
+    if (IIDMatch<T, Super...>(riid)) {
       AddRef();
       *ppvObject = this;
       return S_OK;
@@ -258,28 +268,28 @@ ComObject<T> MakeComFromPtr(U *ptr) {
 }
 
 template <auto F>
-struct StringReader;
+struct ComString;
 
 template <typename Owner, typename Arg, typename Char,
           HRESULT (Owner::*F)(Arg, Char *, size_t *)>
-struct StringReader<F> {
-  static std::basic_string<Char> &&Read(Owner *owner, Arg arg) {
+struct ComString<F> {
+  static std::basic_string<Char> Read(Owner *owner, Arg arg) {
     size_t size = 0;
     (owner->*F)(arg, nullptr, &size);
     std::basic_string<Char> str(size, '\0');
     (owner->*F)(arg, str.data(), &size);
-    return std::move(str);
+    return str;
   }
 };
 
 template <typename Owner, typename Char, HRESULT (Owner::*F)(Char *, size_t *)>
-struct StringReader<F> {
-  static std::basic_string<Char> &&Read(Owner *owner) {
+struct ComString<F> {
+  static std::basic_string<Char> Read(Owner *owner) {
     size_t size = 0;
     (owner->*F)(nullptr, &size);
     std::basic_string<Char> str(size, '\0');
     (owner->*F)(str.data(), &size);
-    return std::move(str);
+    return str;
   }
 };
 

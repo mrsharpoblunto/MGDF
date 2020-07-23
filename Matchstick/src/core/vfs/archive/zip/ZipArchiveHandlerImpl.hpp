@@ -1,9 +1,9 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <unzip.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -20,10 +20,12 @@ class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
  public:
   ZipArchiveHandlerImpl();
   ~ZipArchiveHandlerImpl();
-  
+
   BOOL __stdcall IsArchive(const wchar_t *physicalPath) final;
   HRESULT __stdcall MapArchive(const wchar_t *name, const wchar_t *physicalPath,
-                     IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **file) final;
+                               IMGDFReadOnlyFile *parent,
+                               IMGDFReadOnlyVirtualFileSystem *vfs,
+                               IMGDFReadOnlyFile **file) final;
 
  private:
   std::vector<const wchar_t *> _fileExtensions;
@@ -35,8 +37,9 @@ class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
   */
   const wchar_t *GetFileExtension(const wchar_t *file) const;
 
-  ComObject<IMGDFReadOnlyFile> CreateParentFile(std::wstring &path, ComObject<IMGDFReadOnlyFile> root,
-                                    const wchar_t **);
+  ComObject<IMGDFReadOnlyFile> CreateParentFile(
+      std::wstring &path, IMGDFReadOnlyVirtualFileSystem *vfs,
+      ComObject<IMGDFReadOnlyFile> root, const wchar_t **);
 };
 
 ComObject<IMGDFArchiveHandler> CreateZipArchiveHandlerImpl();

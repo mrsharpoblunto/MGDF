@@ -41,7 +41,7 @@ SUITE(WriteableVFSTests) {
       ComObject<IMGDFWriteableFile> file;
       CHECK(_vfs->GetFile(f, file.Assign()));
       CHECK_WS_EQUAL(
-          f, StringReader<&IMGDFWriteableFile::GetPhysicalName>::Read(file));
+          f, ComString<&IMGDFWriteableFile::GetPhysicalName>::Read(file));
     }
   }
 

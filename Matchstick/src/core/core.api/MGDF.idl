@@ -764,7 +764,18 @@ readonly virtual filesystem and writeable save and working directories.
   */
   HRESULT GetLogicalName([ in, out ] wchar_t * name,
                          [ in, out ] UINT64 * length);
+
+  /**
+  Gets the logical path to this file
+  \param name buffer to store the file name
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
+  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  */
+  HRESULT GetLogicalPath([ in, out ] wchar_t * name,
+                         [ in, out ] UINT64 * length);
 };
+
+interface IMGDFReadOnlyVirtualFileSystem;
 
 /**
 Provides an interface for navigating a readonly file/directory structure in the
@@ -807,7 +818,15 @@ uncompressed archive data
   \return true if the file is a (or is a member of) an archive file
   */
   BOOL IsArchive();
+
+  /**
+  Get the virtual filesystem this file belongs to
+  \param vfs the virtual filesystem this file belongs to
+  */
+  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
 };
+
+interface IMGDFWriteableVirtualFileSystem;
 
 /**
 Provides an interface for navigating a writeable file/directory structure. These
@@ -875,6 +894,12 @@ include writeable folders such as the working directory and save game folders.
   \return S_OK if the file/folder could be moved, otherwise E_FAIL
   */
   HRESULT MoveTo([in] IMGDFWriteableFile * destination);
+
+  /**
+  Get the virtual filesystem this file belongs to
+  \param vfs the virtual filesystem this file belongs to
+  */
+  void GetVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
 };
 
 /**
@@ -889,12 +914,15 @@ Provides an interface for creating portions of the vfs tree from archive files
   \param name the name of the archive
   \param physicalPath the physical path on disk containing the archive
   \param parent the VFS parent node of the archive
+  \param vfs the VFS the archive will belong to
   \param root pointer to the root node of the mapped vfs subtree
   \return S_OK if the archive could be mapped correctly, otherwise E_FAIL
   */
   HRESULT
   MapArchive([in] const wchar_t *name, [in] const wchar_t *physicalPath,
-             [in] IMGDFReadOnlyFile *parent, [out] IMGDFReadOnlyFile **root);
+             [in] IMGDFReadOnlyFile *parent,
+             [in] IMGDFReadOnlyVirtualFileSystem *vfs,
+             [out] IMGDFReadOnlyFile **root);
 
   /**
   whether this file/directory is recognised as an archive type
@@ -1516,6 +1544,13 @@ A vorbis sound stream
    */
   HRESULT CreateCPUCounter([in] const small *name, [out] IMGDFPerformanceCounter
                                                        **counter);
+
+  /**
+  After a module receives an RTOnBeforeDeviceReset callback, calling this tells
+  the host that all references to the previous D3D device have been cleaned up
+  and that the device can be safely reset
+  */
+  void QueueDeviceReset();
 };
 
 /**

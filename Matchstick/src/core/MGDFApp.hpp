@@ -54,6 +54,7 @@ class MGDFApp : public D3DAppFramework {
  private:
   void DrawSystemOverlay();
   void InitBrushes();
+  void InitDirectWrite();
 
   bool _initialized;
 

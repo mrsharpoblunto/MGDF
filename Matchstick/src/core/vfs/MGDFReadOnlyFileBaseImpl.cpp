@@ -22,8 +22,9 @@ namespace MGDF {
 namespace core {
 namespace vfs {
 
-ReadOnlyFileBaseImpl::ReadOnlyFileBaseImpl(IMGDFReadOnlyFile *parent)
-    : _parent(parent), _children(nullptr) {}
+ReadOnlyFileBaseImpl::ReadOnlyFileBaseImpl(IMGDFReadOnlyFile *parent,
+                                           IMGDFReadOnlyVirtualFileSystem *vfs)
+    : _parent(parent), _vfs(vfs), _children(nullptr) {}
 
 BOOL ReadOnlyFileBaseImpl::GetParent(IMGDFReadOnlyFile **parent) {
   if (_parent) {
@@ -58,7 +59,7 @@ BOOL ReadOnlyFileBaseImpl::GetChild(const wchar_t *name,
 
   const auto it = _children->find(name);
   if (it != _children->end()) {
-    it->second.Ref.AddRawRef(child);
+    it->second.AddRawRef(child);
     return true;
   }
   return false;
@@ -71,20 +72,36 @@ void ReadOnlyFileBaseImpl::GetAllChildren(IMGDFReadOnlyFile **childBuffer) {
   }
 
   for (auto &child : *_children) {
-    child.second.Ref.AddRawRef(childBuffer++);
+    child.second.AddRawRef(childBuffer++);
   }
 }
 
 void ReadOnlyFileBaseImpl::AddChild(const ComObject<IMGDFReadOnlyFile> &file) {
   _ASSERTE(file);
   if (!_children) {
-    _children =
-        std::make_unique<std::map<const wchar_t *, ChildFileRef, WCharCmp>>();
+    _children = std::make_unique<
+        std::map<std::wstring, ComObject<IMGDFReadOnlyFile>, WStrCmp>>();
   }
-  ChildFileRef ref;
-  ref.Ref = file;
-  ref.Name = StringReader<&IMGDFReadOnlyFile::GetLogicalName>::Read(file);
-  _children->insert(std::make_pair(ref.Name.data(), std::move(ref)));
+  _children->insert(std::make_pair(
+      ComString<&IMGDFReadOnlyFile::GetLogicalName>::Read(file), file));
+}
+
+void ReadOnlyFileBaseImpl::GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) {
+  _vfs->AddRef();
+  *vfs = _vfs;
+}
+
+HRESULT ReadOnlyFileBaseImpl::GetLogicalPath(wchar_t *path, UINT64 *length) {
+  if (!_logicalPath.size()) {
+    const auto result = _vfs->GetLogicalPath(this, path, length);
+    if (SUCCEEDED(result) && path != nullptr) {
+      // cache the result
+      _logicalPath.resize(*length);
+      wmemcpy_s(_logicalPath.data(), _logicalPath.size(), path, *length);
+    }
+    return result;
+  }
+  return StringWriter::Write(_logicalPath, path, length);
 }
 
 }  // namespace vfs

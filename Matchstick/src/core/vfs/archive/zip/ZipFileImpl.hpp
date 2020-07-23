@@ -53,9 +53,9 @@ class ZipFileImpl : public ReadOnlyFileBaseImpl {
   friend class ZipFileImplReader;
 
  public:
-  ZipFileImpl(IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile *root, unzFile zip,
-              ZipFileHeader &&header)
-      : ReadOnlyFileBaseImpl(parent),
+  ZipFileImpl(IMGDFReadOnlyFile *parent, IMGDFReadOnlyVirtualFileSystem *vfs,
+              IMGDFReadOnlyFile *root, unzFile zip, ZipFileHeader &&header)
+      : ReadOnlyFileBaseImpl(parent, vfs),
         _root(root),
         _header(header),
         _zip(zip),
