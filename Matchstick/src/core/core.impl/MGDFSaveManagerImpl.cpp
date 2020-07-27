@@ -238,14 +238,16 @@ HRESULT SaveManager::DeleteSave(IMGDFGameState* s) {
   if (found == _saves.end()) {
     return E_INVALIDARG;
   }
-  try {
-    remove_all(Resources::Instance().SaveDir(*found));
-    _saves.erase(found);
-  } catch (...) {
+
+  std::error_code code;
+  remove_all(Resources::Instance().SaveDir(*found), code);
+  if (code.value()) {
     LOG("Failed to remove save " << (*found).c_str(), MGDF_LOG_ERROR);
     return E_FAIL;
+  } else {
+    _saves.erase(found);
+    return S_OK;
   }
-  return S_OK;
 }
 
 void SaveManager::CreateGameState(IMGDFGameState** save) {

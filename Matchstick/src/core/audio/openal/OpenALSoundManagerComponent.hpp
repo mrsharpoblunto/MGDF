@@ -93,7 +93,7 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
 
   float _soundVolume, _streamVolume;
   bool _enableAttenuation;
-  std::unordered_map<ALuint, SharedBuffer *> _sharedBuffers;
+  std::unordered_map<ALuint, std::unique_ptr<SharedBuffer>> _sharedBuffers;
   std::set<OpenALSound *> _sounds;
   std::set<VorbisStream *> _soundStreams;
   ComObject<IMGDFReadOnlyVirtualFileSystem> _vfs;

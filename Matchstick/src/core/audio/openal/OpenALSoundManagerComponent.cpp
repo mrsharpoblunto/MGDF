@@ -76,9 +76,8 @@ OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
                         << "' still has live references",
         MGDF_LOG_ERROR);
   }
-  for (auto buffer : _sharedBuffers) {
+  for (auto &buffer : _sharedBuffers) {
     alDeleteBuffers(1, &buffer.first);
-    delete buffer.second;
   }
 }
 
@@ -384,7 +383,7 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
           _vfs, dataSource);
 
   // see if the buffer already exists in memory before trying to create it
-  for (auto buffer : _sharedBuffers) {
+  for (auto &buffer : _sharedBuffers) {
     if (buffer.second->BufferSource == dataSourceName) {
       LOG("Sound buffer already loaded into memory - re-using",
           MGDF_LOG_MEDIUM);
@@ -415,10 +414,10 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
   if (*bufferId != ALUT_ERROR_AL_ERROR_ON_ENTRY &&
       *bufferId != ALUT_ERROR_ALC_ERROR_ON_ENTRY && *bufferId != AL_NONE) {
     LOG("Loaded shared sound buffer into memory", MGDF_LOG_MEDIUM);
-    SharedBuffer *sharedBuffer = new SharedBuffer();
+    auto sharedBuffer = std::make_unique<SharedBuffer>();
     sharedBuffer->BufferSource = dataSourceName;
     sharedBuffer->References = 1;
-    _sharedBuffers[*bufferId] = sharedBuffer;
+    _sharedBuffers.insert(std::make_pair(*bufferId, std::move(sharedBuffer)));
     return S_OK;
   }
 
@@ -434,7 +433,6 @@ void OpenALSoundManagerComponentImpl::RemoveSoundBuffer(ALuint bufferId) {
       LOG("No more references to shared sound buffer - removing...",
           MGDF_LOG_MEDIUM);
       alDeleteBuffers(1, &bufferId);
-      delete _sharedBuffers[bufferId];
       _sharedBuffers.erase(bufferId);
     }
   }

@@ -49,16 +49,18 @@ HRESULT StatisticsManager::SaveStatistic(const char* name, const char* value) {
 }
 
 void StatisticsManager::SaveAll() {
-  try {
-    std::ofstream file(_statisticsFile.c_str(),
-                       std::ios_base::out | std::ios_base::app);
+  std::ofstream file(_statisticsFile.c_str(),
+                     std::ios_base::out | std::ios_base::app);
+  if (!file.bad() && file.is_open()) {
     for (auto& pair : _saveBuffer) {
       file << std::get<0>(pair) << ":" << std::get<1>(pair) << " "
            << std::get<2>(pair) << "\r\n";
     }
     file.close();
-  } catch (const std::exception& e) {
-    LOG("Error saving statistics: " << e.what(), MGDF_LOG_ERROR);
+
+  } else {
+    LOG("Error saving statistics to " << Resources::ToString(_statisticsFile),
+        MGDF_LOG_ERROR);
   }
   _saveBuffer.clear();
 }
