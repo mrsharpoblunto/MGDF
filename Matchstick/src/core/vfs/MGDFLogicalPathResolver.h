@@ -32,7 +32,7 @@ class LogicalPathResolver {
         return E_FAIL;
       }
     }
-    auto result = StringWriter::Write(_queryCache, path, length);
+    const auto result = StringWriter::Write(_queryCache, path, length);
     if (SUCCEEDED(result)) {
       _queryKey = nullptr;
     }

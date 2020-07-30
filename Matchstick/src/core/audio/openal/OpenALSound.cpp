@@ -56,7 +56,7 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
 
 HRESULT OpenALSound::Init(IMGDFReadOnlyFile *source) {
   _ASSERTE(source);
-  _name = ComString<&IMGDFReadOnlyFile::GetLogicalName>::Read(source);
+  _name = ComString<&IMGDFReadOnlyFile::GetLogicalName>(source);
 
   const auto result = _soundManager->CreateSoundBuffer(source, &_bufferId);
   if (SUCCEEDED(result)) {

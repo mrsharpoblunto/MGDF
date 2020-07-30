@@ -83,7 +83,7 @@ void ReadOnlyFileBaseImpl::AddChild(const ComObject<IMGDFReadOnlyFile> &file) {
         std::map<std::wstring, ComObject<IMGDFReadOnlyFile>, WStrCmp>>();
   }
   _children->insert(std::make_pair(
-      ComString<&IMGDFReadOnlyFile::GetLogicalName>::Read(file), file));
+      ComString<&IMGDFReadOnlyFile::GetLogicalName>(file), file));
 }
 
 void ReadOnlyFileBaseImpl::GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) {

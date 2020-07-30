@@ -46,7 +46,7 @@ void DefaultReadOnlyFolderImpl::MapChildren() {
       _ASSERTE(mappedChild);
 
       _children->insert(std::make_pair(
-          ComString<&IMGDFReadOnlyFile::GetPhysicalName>::Read(mappedChild),
+          ComString<&IMGDFReadOnlyFile::GetPhysicalName>(mappedChild),
           std::move(mappedChild)));
     }
   }

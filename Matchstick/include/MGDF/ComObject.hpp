@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 #include <memory>
+#include <ostream>
 #include <string>
 
 #include "unknwn.h"
@@ -273,31 +274,61 @@ struct ComString;
 template <typename Owner, typename Arg, typename Char,
           HRESULT (Owner::*F)(Arg, Char *, size_t *)>
 struct ComString<F> {
-  static std::basic_string<Char> Read(Owner *owner, Arg arg) {
+ public:
+  ComString(Owner *owner, Arg arg) : _owner(owner), _arg(arg) {}
+
+  operator std::basic_string<Char>() const {
     size_t size = 0;
-    (owner->*F)(arg, nullptr, &size);
+    (_owner->*F)(_arg, nullptr, &size);
     std::basic_string<Char> str(size, '\0');
-    (owner->*F)(arg, str.data(), &size);
+    (_owner->*F)(_arg, str.data(), &size);
     return str;
   }
+
+  std::ostream &Stream(std::ostream &out) {
+    auto str = this->operator std::basic_string<Char>();
+    out << str;
+    return out;
+  }
+
+ private:
+  Owner *_owner;
+  Arg _arg;
 };
 
 template <typename Owner, typename Char, HRESULT (Owner::*F)(Char *, size_t *)>
 struct ComString<F> {
-  static std::basic_string<Char> Read(Owner *owner) {
+ public:
+  ComString(Owner *owner) : _owner(owner) {}
+  operator std::basic_string<Char>() const {
     size_t size = 0;
-    (owner->*F)(nullptr, &size);
+    (_owner->*F)(nullptr, &size);
     std::basic_string<Char> str(size, '\0');
-    (owner->*F)(str.data(), &size);
+    (_owner->*F)(str.data(), &size);
     return str;
   }
+
+  std::ostream &Stream(std::ostream &out) const {
+    auto str = this->operator std::basic_string<Char>();
+    out << str;
+    return out;
+  }
+
+ private:
+  Owner *_owner;
 };
 
 }  // namespace MGDF
 
 namespace std {
-// sort and hash this wrapper type just like its pointer equivilant
 
+template <auto F>
+std::ostream &operator<<(std::ostream &out, const MGDF::ComString<F> &c) {
+  c.Stream(out);
+  return out;
+}
+
+// sort and hash this wrapper type just like its pointer equivalent
 template <typename T>
 struct hash<MGDF::ComObject<T>> {
   std::size_t operator()(const MGDF::ComObject<T> &k) const {

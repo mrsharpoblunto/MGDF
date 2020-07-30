@@ -40,22 +40,22 @@ SUITE(ReadOnlyVFSTests) {
 
     ComObject<IMGDFReadOnlyFile> root;
     _vfs->GetRoot(root.Assign());
-    CHECK_WS_EQUAL(L"test.zip", GetLogicalName::Read(root));
+    CHECK_WS_EQUAL(L"test.zip", GetLogicalName(root));
     CHECK_EQUAL(6, root->GetChildCount());
 
     ComObject<IMGDFReadOnlyFile> file;
     for (auto f : std::vector({L"game.xml", L"gameIcon.png", L"preferences.xml",
                                L"preferenceTemplates.xml"})) {
       CHECK(_vfs->GetFile(f, file.Assign()));
-      CHECK_WS_EQUAL(f, GetLogicalName::Read(file));
+      CHECK_WS_EQUAL(f, GetLogicalName(file));
     }
 
     CHECK(_vfs->GetFile(L"boot/gameState.xml", file.Assign()));
-    CHECK_WS_EQUAL(L"gameState.xml", GetLogicalName::Read(file));
+    CHECK_WS_EQUAL(L"gameState.xml", GetLogicalName(file));
     CHECK(_vfs->GetFile(L"boot/persistency.xml", file.Assign()));
-    CHECK_WS_EQUAL(L"persistency.xml", GetLogicalName::Read(file));
+    CHECK_WS_EQUAL(L"persistency.xml", GetLogicalName(file));
     CHECK(_vfs->GetFile(L"content/test.lua", file.Assign()));
-    CHECK_WS_EQUAL(L"test.lua", GetLogicalName::Read(file));
+    CHECK_WS_EQUAL(L"test.lua", GetLogicalName(file));
     CHECK(_vfs->GetFile(L"content", file.Assign()));
     CHECK(file->IsFolder());
   }
@@ -102,13 +102,12 @@ SUITE(ReadOnlyVFSTests) {
 
     ComArray<IMGDFReadOnlyFile> buffer2(6);
     root->GetAllChildren(buffer2.Data());
-    CHECK_WS_EQUAL(L"boot", GetLogicalName::Read(buffer2[0]));
-    CHECK_WS_EQUAL(L"content", GetLogicalName::Read(buffer2[1]));
-    CHECK_WS_EQUAL(L"game.xml", GetLogicalName::Read(buffer2[2]));
-    CHECK_WS_EQUAL(L"gameIcon.png", GetLogicalName::Read(buffer2[3]));
-    CHECK_WS_EQUAL(L"preferenceTemplates.xml",
-                   GetLogicalName::Read(buffer2[4]));
-    CHECK_WS_EQUAL(L"preferences.xml", GetLogicalName::Read(buffer2[5]));
+    CHECK_WS_EQUAL(L"boot", GetLogicalName(buffer2[0]));
+    CHECK_WS_EQUAL(L"content", GetLogicalName(buffer2[1]));
+    CHECK_WS_EQUAL(L"game.xml", GetLogicalName(buffer2[2]));
+    CHECK_WS_EQUAL(L"gameIcon.png", GetLogicalName(buffer2[3]));
+    CHECK_WS_EQUAL(L"preferenceTemplates.xml", GetLogicalName(buffer2[4]));
+    CHECK_WS_EQUAL(L"preferences.xml", GetLogicalName(buffer2[5]));
 
     ComObject<IMGDFReadOnlyFile> parent;
     buffer2[0]->GetParent(parent.Assign());
@@ -131,7 +130,7 @@ SUITE(ReadOnlyVFSTests) {
                       L"gameState.json", L"Update.json"})) {
       ComObject<IMGDFReadOnlyFile> file;
       CHECK(_vfs->GetFile(f, file.Assign()));
-      CHECK_WS_EQUAL(f, GetLogicalName::Read(file));
+      CHECK_WS_EQUAL(f, GetLogicalName(file));
     }
   }
 

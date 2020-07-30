@@ -163,8 +163,8 @@ HRESULT DefaultWriteableFileImpl::MoveTo(IMGDFWriteableFile* destination) {
   }
 
   // create all parent directories to the destination
-  std::wstring destPathString(
-      ComString<&IMGDFWriteableFile::GetPhysicalPath>::Read(destination));
+  std::wstring destPathString =
+      ComString<&IMGDFWriteableFile::GetPhysicalPath>(destination);
   path destinationPath(destPathString);
   auto parentPath = destinationPath.parent_path();
   if (!exists(parentPath)) {

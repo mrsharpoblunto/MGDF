@@ -40,8 +40,7 @@ SUITE(WriteableVFSTests) {
                       L"gameState.json", L"Update.json"})) {
       ComObject<IMGDFWriteableFile> file;
       CHECK(_vfs->GetFile(f, file.Assign()));
-      CHECK_WS_EQUAL(
-          f, ComString<&IMGDFWriteableFile::GetPhysicalName>::Read(file));
+      CHECK_WS_EQUAL(f, ComString<&IMGDFWriteableFile::GetPhysicalName>(file));
     }
   }
 
