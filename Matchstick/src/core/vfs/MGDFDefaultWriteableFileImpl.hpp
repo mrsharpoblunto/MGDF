@@ -60,6 +60,7 @@ class DefaultWriteableFileImpl : public ComBase<IMGDFWriteableFile, IMGDFFile> {
   HRESULT __stdcall CreateFolder() final;
   HRESULT __stdcall Delete() final;
   HRESULT __stdcall MoveTo(IMGDFWriteableFile *destination) final;
+  HRESULT __stdcall CopyTo(IMGDFWriteableFile *destination) final;
 
  protected:
  private:

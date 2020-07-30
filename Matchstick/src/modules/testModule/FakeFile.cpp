@@ -203,6 +203,11 @@ HRESULT FakeFile::GetPhysicalName(wchar_t *path, UINT64 *length) {
   return GetLogicalName(path, length);
 }
 
+HRESULT FakeFile::CopyTo(IMGDFWriteableFile *destination) {
+  (void)destination;
+  return E_FAIL;  // not supported
+}
+
 void FakeFile::GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) {
   _vfs->AddRef();
   *vfs = _vfs;

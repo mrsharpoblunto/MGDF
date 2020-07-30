@@ -775,57 +775,6 @@ readonly virtual filesystem and writeable save and working directories.
                          [ in, out ] UINT64 * length);
 };
 
-interface IMGDFReadOnlyVirtualFileSystem;
-
-/**
-Provides an interface for navigating a readonly file/directory structure in the
-virtual filesystem. Directories have no data but can have subfiles Files have no
-subfiles (except for archives) but may have data. Archives that have been added
-to the vfs are mapped as files with the same name as the archive filename, but
-unlike normal files they also have a tree of subdirectories containing the
-uncompressed archive data
-*/
-[
-  uuid("D7F3A3C2-BEDB-4C20-8DD6-452793A11BE1"), object,
-  local
-] interface IMGDFReadOnlyFile : IMGDFFile {
-  /**
-  Gets the parent of this file. If this file is the root of the virtual
-  filesystem, then this will be nullptr
-  \param parent pointer to the parent of this file.
-  \return If this file is the root of the filesystem, then return false
-  */
-  BOOL GetParent(IMGDFReadOnlyFile * *parent);
-
-  /**
-  Gets a child of this file with the given name (if any)
-  \param name the child name of this file
-  \param child the child file of the current file. If no such file exists, nullptr is
-  returned
-  \return true if the child could be found
-  */
-  BOOL GetChild([in] const wchar_t *name, [out] IMGDFReadOnlyFile **child);
-
-  /**
-   Get all the children of this file (non-recursive)
-   \param childBuffer an array to store the results (must be large enough to
-   hold GetChildCount entries)
-   */
-  void GetAllChildren([out] IMGDFReadOnlyFile * *childBuffer);
-
-  /**
-  determines if the file is a (or is a member of) an archive file
-  \return true if the file is a (or is a member of) an archive file
-  */
-  BOOL IsArchive();
-
-  /**
-  Get the virtual filesystem this file belongs to
-  \param vfs the virtual filesystem this file belongs to
-  */
-  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
-};
-
 interface IMGDFWriteableVirtualFileSystem;
 
 /**
@@ -896,10 +845,77 @@ include writeable folders such as the working directory and save game folders.
   HRESULT MoveTo([in] IMGDFWriteableFile * destination);
 
   /**
+  copies this file or folder to the desired target location
+  \param destination the target location for this file/folder. If the destination exists
+  it should be deleted first or else this call will fail.
+  \return S_OK if the file/folder could be copied, otherwise E_FAIL
+  */
+  HRESULT CopyTo([in] IMGDFWriteableFile * destination);
+
+  /**
   Get the virtual filesystem this file belongs to
   \param vfs the virtual filesystem this file belongs to
   */
   void GetVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
+};
+
+interface IMGDFReadOnlyVirtualFileSystem;
+
+/**
+Provides an interface for navigating a readonly file/directory structure in the
+virtual filesystem. Directories have no data but can have subfiles Files have no
+subfiles (except for archives) but may have data. Archives that have been added
+to the vfs are mapped as files with the same name as the archive filename, but
+unlike normal files they also have a tree of subdirectories containing the
+uncompressed archive data
+*/
+[
+  uuid("D7F3A3C2-BEDB-4C20-8DD6-452793A11BE1"), object,
+  local
+] interface IMGDFReadOnlyFile : IMGDFFile {
+  /**
+  Gets the parent of this file. If this file is the root of the virtual
+  filesystem, then this will be nullptr
+  \param parent pointer to the parent of this file.
+  \return If this file is the root of the filesystem, then return false
+  */
+  BOOL GetParent(IMGDFReadOnlyFile * *parent);
+
+  /**
+  Gets a child of this file with the given name (if any)
+  \param name the child name of this file
+  \param child the child file of the current file. If no such file exists, nullptr is
+  returned
+  \return true if the child could be found
+  */
+  BOOL GetChild([in] const wchar_t *name, [out] IMGDFReadOnlyFile **child);
+
+  /**
+   Get all the children of this file (non-recursive)
+   \param childBuffer an array to store the results (must be large enough to
+   hold GetChildCount entries)
+   */
+  void GetAllChildren([out] IMGDFReadOnlyFile * *childBuffer);
+
+  /**
+  determines if the file is a (or is a member of) an archive file
+  \return true if the file is a (or is a member of) an archive file
+  */
+  BOOL IsArchive();
+
+  /**
+  Get the virtual filesystem this file belongs to
+  \param vfs the virtual filesystem this file belongs to
+  */
+  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
+
+  /**
+  copies this file or folder to the desired writeable target location
+  \param destination the target location for this file/folder. If the destination exists
+  it should be deleted first or else this call will fail.
+  \return S_OK if the file/folder could be copied, otherwise E_FAIL
+  */
+  HRESULT CopyTo([in] IMGDFWriteableFile * destination);
 };
 
 /**

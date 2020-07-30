@@ -179,6 +179,29 @@ HRESULT DefaultWriteableFileImpl::MoveTo(IMGDFWriteableFile* destination) {
   return !code.value() ? S_OK : E_FAIL;
 }
 
+HRESULT DefaultWriteableFileImpl::CopyTo(IMGDFWriteableFile* destination) {
+  if (destination->Exists()) {
+    return E_FAIL;
+  }
+
+  // create all parent directories to the destination
+  std::wstring destPathString =
+      ComString<&IMGDFWriteableFile::GetPhysicalPath>(destination);
+  path destinationPath(destPathString);
+  auto parentPath = destinationPath.parent_path();
+  if (!exists(parentPath)) {
+    std::error_code code;
+    if (!create_directories(parentPath, code) || code.value()) {
+      return E_FAIL;
+    }
+  }
+
+  std::error_code code;
+  copy(_physicalPath, destinationPath,
+       IsFolder() ? copy_options::recursive : copy_options::none, code);
+  return !code.value() ? S_OK : E_FAIL;
+}
+
 HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (IsFolder()) {

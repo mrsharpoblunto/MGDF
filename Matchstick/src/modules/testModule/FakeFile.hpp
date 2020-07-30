@@ -36,6 +36,7 @@ class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
   UINT64 __stdcall GetChildCount() final;
   void __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
   HRESULT __stdcall GetLogicalPath(wchar_t *path, UINT64 *length) final;
+  HRESULT __stdcall CopyTo(IMGDFWriteableFile *destination) final;
 
   HRESULT __stdcall Open(IMGDFFileReader **reader) final;
 

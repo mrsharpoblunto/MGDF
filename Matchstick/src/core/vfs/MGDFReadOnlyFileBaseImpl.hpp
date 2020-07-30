@@ -35,6 +35,7 @@ class ReadOnlyFileBaseImpl : public ComBase<IMGDFReadOnlyFile, IMGDFFile> {
   void __stdcall GetAllChildren(IMGDFReadOnlyFile **childBuffer) override;
   void __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
   HRESULT __stdcall GetLogicalPath(wchar_t *path, UINT64 *length) final;
+  HRESULT __stdcall CopyTo(IMGDFWriteableFile *destination) final;
 
   // These internal methods are not threadsafe, so ensure
   // that the mutex for this file is acquired or that only
