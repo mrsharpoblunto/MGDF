@@ -22,7 +22,7 @@ void MGDFLog(std::function<void(std::ostringstream &)> msg, MGDFLogLevel level,
              const char *file, int line) {
   if (level <= Logger::Instance().GetLoggingLevel()) {
     std::ostringstream ss;
-    ss << file << ':' << line;
+    ss << file << "(" << line << "): ";
     std::ostringstream ms;
     msg(ms);
     Logger::Instance().Log(ss.str().c_str(), ms.str().c_str(), level);
@@ -37,7 +37,7 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
     std::ostringstream stream;
     stream << sender << " " << message << "\n";
 #if defined(_DEBUG)
-    OutputDebugString(("MGDF: " + stream.str()).c_str());
+    OutputDebugString(stream.str().c_str());
 #endif
     {
       std::unique_lock<std::mutex> lock(_mutex);
