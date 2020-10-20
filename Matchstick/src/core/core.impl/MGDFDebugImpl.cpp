@@ -85,10 +85,10 @@ void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
   else
     ss << 1 / timings.AvgRenderTime << "\r\n";
 
-  ss.Precision(4);
-  ss << " Render CPU : " << timings.AvgActiveRenderTime << "\r\n";
-  ss << " Idle CPU : " << timings.AvgRenderTime - timings.AvgActiveRenderTime
-     << "\r\n";
+  ss.Precision(1);
+  ss << " Render CPU : " << timings.AvgActiveRenderTime * 1000 << "\r\n";
+  ss << " Idle CPU : "
+     << (timings.AvgRenderTime - timings.AvgActiveRenderTime) * 1000 << "\r\n";
 
   ss << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD) << "\r\nSim Thread\r\n"
      << TextStyle::Pop();
@@ -105,7 +105,7 @@ void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
   else
     ss << 1 / timings.AvgSimTime;
 
-  ss.Precision(4);
+  ss.Precision(1);
   std::set<std::pair<std::string, double>> simTimings;
   simTimings.insert(std::make_pair("Input CPU", timings.AvgSimInputTime));
   simTimings.insert(std::make_pair("Audio CPU", timings.AvgSimAudioTime));
@@ -114,11 +114,12 @@ void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
       "Idle CPU", (timings.AvgSimTime - timings.AvgActiveSimTime -
                    timings.AvgSimInputTime - timings.AvgSimAudioTime)));
 
+  ss.Precision(2);
   KeyValueHeatMap<std::pair<std::string, double>, double>(
       simTimings,
       [](const auto& in, auto& out) {
         out.first = in.first;
-        out.second = in.second;
+        out.second = in.second * 1000;
       },
       ss);
 

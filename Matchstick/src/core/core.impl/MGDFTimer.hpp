@@ -1,9 +1,9 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <d3d11.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
 #include <deque>
 #include <list>
 #include <mutex>
@@ -95,7 +95,7 @@ class Timer : public ComBase<IMGDFTimer> {
   LARGE_INTEGER __stdcall GetCurrentTimeTicks() final;
   LARGE_INTEGER __stdcall GetTimerFrequency() final;
   double __stdcall ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
-                                    LARGE_INTEGER oldTime) final;
+                                              LARGE_INTEGER oldTime) final;
 
   HRESULT CreateCPUCounter(const char *name, IMGDFPerformanceCounter **counter);
   HRESULT CreateGPUCounter(const char *name, IMGDFPerformanceCounter **counter);
@@ -138,7 +138,7 @@ class Timer : public ComBase<IMGDFTimer> {
   mutable std::mutex _mutex;
   std::set<CPUPerformanceCounter *> _cpuCounters;
   std::set<GPUPerformanceCounter *> _gpuCounters;
-};
+};  // namespace core
 
 template <>
 void Timer::RemoveInternal(GPUPerformanceCounter *counter);

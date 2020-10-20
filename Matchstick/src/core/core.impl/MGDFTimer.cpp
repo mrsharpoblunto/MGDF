@@ -331,6 +331,7 @@ void Timer::InitFromDevice(const ComObject<ID3D11Device> &device,
       _gpuTimersSupported = false;
       break;
     }
+    _ASSERTE(query);
     _disjointQueries.push(query);
   }
 
@@ -395,6 +396,7 @@ void Timer::Begin() {
     if (!_pendingQueries.empty()) {
       // see if the oldest query is ready yet
       auto query = _pendingQueries.back();
+      _ASSERTE(query);
       D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint = {};
 
       // if it is, then notify the gpu timers waiting for this query
@@ -464,7 +466,7 @@ void Timer::GetCounterInformation(TextStream &outputStream) const {
         _gpuCounters,
         [](const auto counter, auto &out) {
           out.first = ComString<&IMGDFPerformanceCounter::GetName>(counter);
-          out.second = counter->GetAvgValue();
+          out.second = counter->GetAvgValue() * 1000;
         },
         outputStream);
   }
@@ -476,7 +478,7 @@ void Timer::GetCounterInformation(TextStream &outputStream) const {
         _cpuCounters,
         [](const auto counter, auto &out) {
           out.first = ComString<&IMGDFPerformanceCounter::GetName>(counter);
-          out.second = counter->GetAvgValue();
+          out.second = counter->GetAvgValue() * 1000;
         },
         outputStream);
   }

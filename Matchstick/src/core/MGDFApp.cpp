@@ -198,9 +198,10 @@ void MGDFApp::OnBeforeFirstDraw() {
 }
 
 void MGDFApp::OnDraw() {
-  const LARGE_INTEGER currentTime = _renderFrameLimiter
-                                        ? _renderFrameLimiter->LimitFps()
-                                        : _timer->GetCurrentTimeTicks();
+  bool didLimit = false;
+  const LARGE_INTEGER currentTime =
+      _renderFrameLimiter ? _renderFrameLimiter->LimitFps(didLimit)
+                          : _timer->GetCurrentTimeTicks();
 
   const double elapsedTime =
       _timer->ConvertDifferenceToSeconds(currentTime, _renderStart);
@@ -290,7 +291,8 @@ void MGDFApp::OnUpdateSim() {
       _timer->ConvertDifferenceToSeconds(activeSimulationEnd, simulationEnd));
 
   // wait until the next frame to begin if we have any spare time left over
-  _simulationEnd = _simFrameLimiter->LimitFps();
+  bool didLimit;
+  _simulationEnd = _simFrameLimiter->LimitFps(didLimit);
   _stats.AppendSimTime(
       _timer->ConvertDifferenceToSeconds(_simulationEnd, simulationEnd));
 }

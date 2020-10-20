@@ -124,7 +124,7 @@ HRESULT ReadOnlyFileBaseImpl::CopyTo(IMGDFWriteableFile *destination) {
 
     auto position = reader->GetPosition();
     while (position < reader->GetSize()) {
-      auto read = reader->Read(buffer.data(), BUFFER_SIZE);
+      const auto read = reader->Read(buffer.data(), BUFFER_SIZE);
       position += read;
       if (writer->Write(buffer.data(), read) != read) {
         return E_FAIL;

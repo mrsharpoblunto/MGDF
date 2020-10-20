@@ -93,6 +93,8 @@ void D3DAppFramework::InitWindow(const std::string &caption,
     if (!AdjustWindowRect(&_windowRect, _windowStyle, false)) {
       FATALERROR(this, "AdjustWindowRect FAILED");
     }
+    _clientOffset.x = abs(_windowRect.left);
+    _clientOffset.y = abs(_windowRect.top);
 
     const INT32 width = _windowRect.right - _windowRect.left;
     const INT32 height = _windowRect.bottom - _windowRect.top;
@@ -740,7 +742,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
 
     case WM_MOVE: {
       if (!_currentFullScreen.FullScreen) {
-        OnMoveWindow((int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
+        OnMoveWindow((int)(short)LOWORD(lParam) - _clientOffset.x,
+                     (int)(short)HIWORD(lParam) - _clientOffset.y);
       }
     }
       return 0;

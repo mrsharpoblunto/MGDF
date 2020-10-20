@@ -11,14 +11,14 @@ this class is used for timing and frame limiting
 class FrameLimiter {
  public:
   static HRESULT TryCreate(UINT32 maxFps,
-                             std::unique_ptr<FrameLimiter> &limiter);
+                           std::unique_ptr<FrameLimiter> &limiter);
   FrameLimiter(UINT32 maxFps);
   ~FrameLimiter(void);
 
   /**
   limit the Fps to maxFps
   */
-  LARGE_INTEGER LimitFps();
+  LARGE_INTEGER LimitFps(bool &limitApplied);
 
  private:
   HRESULT Init();

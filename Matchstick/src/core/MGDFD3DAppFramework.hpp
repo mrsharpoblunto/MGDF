@@ -96,6 +96,7 @@ class D3DAppFramework {
   RECT _windowRect;
   POINT _currentSize;
   DWORD _windowStyle;
+  POINT _clientOffset;
 
   std::atomic_bool _resize, _minimized, _awaitingD3DReset;
   std::atomic_flag _runRenderThread;

@@ -15,7 +15,7 @@ namespace MGDF {
 namespace core {
 
 HRESULT FrameLimiter::TryCreate(UINT32 maxFps,
-                                  std::unique_ptr<FrameLimiter> &limiter) {
+                                std::unique_ptr<FrameLimiter> &limiter) {
   auto l = std::make_unique<FrameLimiter>(maxFps);
   const auto result = l->Init();
   if (SUCCEEDED(result)) {
@@ -50,9 +50,11 @@ pauses for an unspecified amount of time in order that approximately maxFps
 occur each second code based on timing code from Ryan Geiss
 http://www.geisswerks.com/ryan/FAQS/timing.html
 */
-LARGE_INTEGER FrameLimiter::LimitFps() {
+LARGE_INTEGER FrameLimiter::LimitFps(bool &limitApplied) {
   LARGE_INTEGER currentTime;
   QueryPerformanceCounter(&currentTime);
+  bool first = true;
+  limitApplied = true;
 
   if (_previousFrameEnd.QuadPart != 0) {
     bool done = false;
@@ -65,9 +67,15 @@ LARGE_INTEGER FrameLimiter::LimitFps() {
 
       if (currentTime.QuadPart < _previousFrameEnd.QuadPart)  // time wrap
         done = true;
-      if (timePassed >= _frameTime) done = true;
+      if (timePassed >= _frameTime) {
+        done = true;
+        if (first) {
+          limitApplied = false;
+        }
+      }
 
       if (!done) {
+        first = false;
         // if > 0.002s left, do Sleep(1), which will actually sleep some
         //   steady amount, probably 1-2 ms,
         //   and do so in a nice way (cpu meter drops; laptop battery spared).
