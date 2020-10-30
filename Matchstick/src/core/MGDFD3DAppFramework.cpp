@@ -34,6 +34,7 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
   _resize.store(false);
   _runRenderThread.clear();
 
+  SecureZeroMemory(&_clientOffset, sizeof(POINT));
   SecureZeroMemory(&_currentFullScreen, sizeof(MGDFFullScreenDesc));
   SecureZeroMemory(&_windowRect, sizeof(RECT));
   SecureZeroMemory(&_currentSize, sizeof(POINT));

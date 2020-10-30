@@ -26,7 +26,7 @@ class CounterBase : public ComBase<IMGDFPerformanceCounter> {
 
   HRESULT __stdcall GetName(char *name, UINT64 *length) final;
 
-  double GetAvgValue() const;
+  double __stdcall GetAvgValue() final;
 
  protected:
   void AddSample(double sample);

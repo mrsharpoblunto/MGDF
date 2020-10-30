@@ -46,7 +46,7 @@ void CounterBase::AddSample(double sample) {
   _avg /= _samples.size();
 }
 
-double CounterBase::GetAvgValue() const {
+double CounterBase::GetAvgValue() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _avg;
 }
@@ -428,6 +428,7 @@ void Timer::Begin() {
     if (!_disjointQueries.empty()) {
       _currentQuery = _disjointQueries.top();
       _disjointQueries.pop();
+      _ASSERTE(_currentQuery);
       _pendingQueries.push_front(_currentQuery);
 
       _context->Begin(_currentQuery);
