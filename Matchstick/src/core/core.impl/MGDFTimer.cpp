@@ -426,14 +426,14 @@ void Timer::Begin() {
     // if theres a free disjoint query available in the pool, use it
     // and notify all timers
     if (!_disjointQueries.empty()) {
-      _currentQuery = _disjointQueries.top();
+      auto query = _currentQuery = _disjointQueries.top();
+      _ASSERTE(query);
+      _pendingQueries.push_front(query);
       _disjointQueries.pop();
-      _ASSERTE(_currentQuery);
-      _pendingQueries.push_front(_currentQuery);
 
-      _context->Begin(_currentQuery);
+      _context->Begin(query);
       for (auto counter : _gpuCounters) {
-        counter->SetDisjointQuery(_currentQuery);
+        counter->SetDisjointQuery(query);
       }
     } else {
       LOG("No available queries to record GPU timer disjoint", MGDF_LOG_MEDIUM);
