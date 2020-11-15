@@ -40,9 +40,9 @@ Task("SolutionInfo").Does(() => {
 Task("VersionInfo").Does(() => {
 	string versionInfo = FileReadText("../src/core/common/MGDFVersionInfo.cpp");
 
-	//const std::string MGDFVersionInfo::_mgdfVersion = "1.0.0.0";
-    Regex versionRegex = new Regex(@"const\sstd\:\:string\sMGDFVersionInfo\:\:_mgdfVersion\s=\s"".+"";");
-	versionInfo = versionRegex.Replace(versionInfo,$@"const std::string MGDFVersionInfo::_mgdfVersion = ""{buildNumber}"";");
+	//constexpr char _mgdfVersion[] = "1.0.0.0";
+  Regex versionRegex = new Regex(@"constexpr\schar\s_mgdfVersion\[\]\s=\s"".+"";");
+	versionInfo = versionRegex.Replace(versionInfo,$@"constexpr char _mgdfVersion[] = ""{buildNumber}"";");
 
 	FileWriteText("../src/core/common/MGDFVersionInfo.cpp", versionInfo);
 });

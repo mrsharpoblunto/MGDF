@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyCompany("Team Junkship")]
 [assembly: AssemblyProduct("Matchstick game development framework")]
-[assembly: AssemblyCopyright("Copyright @ Team Junkship 2011")]
+[assembly: AssemblyCopyright("Copyright @ Team Junkship 2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
