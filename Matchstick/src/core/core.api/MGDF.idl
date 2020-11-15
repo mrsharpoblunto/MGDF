@@ -334,7 +334,8 @@ from the mouse, keyboard, and xinput controllers
 
   /**
   get the maximum number of gamepads available (not all of them may be
-  connected) \return the maximum number of gamepads available (not all of them
+  connected)
+  \return the maximum number of gamepads available (not all of them
   may be connected)
   */
   UINT64 GetGamepadCount();
@@ -418,6 +419,7 @@ typedef enum MGDFLogLevel {
 
   /**
   Get the average value of the timer
+  \return the average value of the timer over the last 60 frames
   */
   double GetAvgValue();
 };

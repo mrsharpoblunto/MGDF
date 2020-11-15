@@ -318,7 +318,11 @@ namespace MatchstickFramework.Docgen
       };
 
       c.Id = c.Name = CaptureWord(reader);
-      mappings.Add(c.Name, c.Name);
+      // may have already been forward declared, in which case ignore
+      if (!mappings.ContainsKey(c.Name))
+      {
+        mappings.Add(c.Name, c.Name);
+      }
 
       var separator = CapturePunctuation(reader);
       // forward declarations - ignore
@@ -515,10 +519,17 @@ namespace MatchstickFramework.Docgen
                 arg.TypeRefId = modifierOrType;
               }
               // reference or pointer types
-              var pointer = CapturePunctuation(reader);
-              if (pointer != "")
+              string pointer = CapturePunctuation(reader);
+              string pointerModifier = "";
+              while (pointer != "")
               {
-                modifierOrType += " " + pointer;
+                pointerModifier += pointer;
+                pointer = CapturePunctuation(reader);
+
+              }
+              if (pointerModifier != "")
+              {
+                modifierOrType += " " + pointerModifier;
               }
               arg.Type = modifierOrType;
               arg.Name = CaptureWord(reader);
@@ -595,7 +606,7 @@ namespace MatchstickFramework.Docgen
 
     static string CaptureTidyDescription(StringBuilder sb)
     {
-      var value = sb.ToString().Trim().Replace("\r\n", " ").Capitalize(); 
+      var value = sb.ToString().Trim().Replace("\r\n", " ").Capitalize();
       sb.Clear();
       return value;
     }
