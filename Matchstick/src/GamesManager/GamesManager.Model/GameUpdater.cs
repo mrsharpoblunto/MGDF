@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.IconLib.Exceptions;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -116,7 +117,14 @@ namespace MGDF.GamesManager.Model
       if (imageFile != null)
       {
         vfsUtils.CopyVfsFile(imageFile, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon));
-        IconManager.Current.CreateIcon(installer.Game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
+        try
+        {
+          IconManager.Current.CreateIcon(installer.Game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
+        }
+        catch (ImageAlreadyExistsException)
+        {
+          // if the icon already exists this is fine
+        }
       }
 
       if (preferencesFile != null)
