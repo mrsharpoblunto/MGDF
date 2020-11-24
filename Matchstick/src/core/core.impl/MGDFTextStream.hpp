@@ -44,7 +44,7 @@ class TextStream {
     _ss << rhs;
     return *this;
   }
-  TextStream &TextStream::operator<<(TextStyle const &style);
+  TextStream &operator<<(TextStyle const &style);
   HRESULT GenerateLayout(const ComObject<ID2D1DeviceContext> &context,
                          const ComObject<IDWriteTextFormat> &format,
                          float maxWidth, float maxHeight,

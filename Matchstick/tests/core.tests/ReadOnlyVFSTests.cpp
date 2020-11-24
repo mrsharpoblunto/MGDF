@@ -111,7 +111,7 @@ SUITE(ReadOnlyVFSTests) {
 
     ComObject<IMGDFReadOnlyFile> parent;
     buffer2[0]->GetParent(parent.Assign());
-    CHECK_EQUAL(root, parent);
+    CHECK_EQUAL(root.Get(), parent.Get());
   }
 
   /**

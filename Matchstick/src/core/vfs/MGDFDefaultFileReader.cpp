@@ -29,7 +29,7 @@ UINT32 DefaultFileReader::Read(void *buffer, UINT32 length) {
   if (buffer && length) {
     const auto oldPosition = _stream->tellg();
     _stream->read(static_cast<char *>(buffer), length);
-    const auto newPosition = _stream->tellg();
+    const INT64 newPosition = _stream->tellg();
     return static_cast<UINT32>((_stream->eof() ? _fileSize : newPosition) -
                                oldPosition);
   }

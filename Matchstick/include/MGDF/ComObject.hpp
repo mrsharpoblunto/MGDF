@@ -216,14 +216,14 @@ class ComArray {
   size_t _size;
 };
 
-template <typename First, typename Second, typename... Args>
-BOOL IIDMatch(REFIID riid) {
-  return (__uuidof(First) == riid) || IIDMatch<Second, Args...>(riid);
-}
-
 template <typename Last>
 BOOL IIDMatch(REFIID riid) {
   return (__uuidof(Last) == riid) || (IID_IUnknown == riid);
+}
+
+template <typename First, typename Second, typename... Args>
+BOOL IIDMatch(REFIID riid) {
+  return (__uuidof(First) == riid) || IIDMatch<Second, Args...>(riid);
 }
 
 /**
