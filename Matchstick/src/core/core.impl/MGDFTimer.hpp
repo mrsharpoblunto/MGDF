@@ -128,7 +128,7 @@ class Timer : public ComBase<IMGDFTimer> {
   LARGE_INTEGER _freq;
 
   std::deque<ComObject<ID3D11Query>> _pendingQueries;
-  std::stack<ComObject<ID3D11Query>> _disjointQueries;
+  std::vector<ComObject<ID3D11Query>> _disjointQueries;
   ComObject<ID3D11Query> _currentQuery;
 
   UINT32 _bufferSize;

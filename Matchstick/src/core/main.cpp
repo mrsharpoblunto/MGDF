@@ -154,7 +154,7 @@ void WriteMinidump() {
 }
 
 DWORD WINAPI CrashDumpThread(LPVOID data) {
-  (void)data;
+  std::ignore = data;
   WaitForSingleObject(_dumpEvent, INFINITE);
 
   LOG("Generating Minidump file minidump.dmp...", MGDF_LOG_ERROR);

@@ -221,16 +221,17 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
   if (it == _pendingQueries.end()) return;
 
   UINT64 timeStampBegin = 0;
-  if (_context->GetData(it->second.first, &timeStampBegin, sizeof(UINT64), 0) !=
-      S_OK) {
+  _ASSERTE(_context);
+  if (!_context || _context->GetData(it->second.first, &timeStampBegin,
+                                     sizeof(UINT64), 0) != S_OK) {
     LOG("Failed to get Begin Data for GPU Timer " << _name.c_str()
                                                   << "- Ignoring sample",
         MGDF_LOG_ERROR);
   } else {
     UINT64 timeStampEnd = 0;
-    if (_context->GetData(it->second.second, &timeStampEnd, sizeof(UINT64),
-                          0) != S_OK) {
-      LOG("Failed to bet End Data for GPU Timer " << _name.c_str()
+    if (!_context || _context->GetData(it->second.second, &timeStampEnd,
+                                       sizeof(UINT64), 0) != S_OK) {
+      LOG("Failed to get End Data for GPU Timer " << _name.c_str()
                                                   << "- Ignoring sample",
           MGDF_LOG_ERROR);
     } else {
@@ -293,7 +294,7 @@ Timer::~Timer(void) {
 void Timer::ResetGPUTimers() {
   LOG("Cleaning up GPU Timers...", MGDF_LOG_LOW);
   while (!_disjointQueries.empty()) {
-    _disjointQueries.pop();
+    _disjointQueries.pop_back();
   }
   _pendingQueries.clear();
 
@@ -332,7 +333,7 @@ void Timer::InitFromDevice(const ComObject<ID3D11Device> &device,
       break;
     }
     _ASSERTE(query);
-    _disjointQueries.push(query);
+    _disjointQueries.push_back(query);
   }
 
   for (auto gpuCounter : _gpuCounters) {
@@ -393,9 +394,11 @@ void Timer::RemoveInternal(GPUPerformanceCounter *counter) {
 
 void Timer::Begin() {
   if (_gpuTimersSupported) {
+    std::lock_guard<std::mutex> lock(_mutex);
+
     if (!_pendingQueries.empty()) {
       // see if the oldest query is ready yet
-      auto query = _pendingQueries.back();
+      const auto query = _pendingQueries.back();
       _ASSERTE(query);
       D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint = {};
 
@@ -403,7 +406,6 @@ void Timer::Begin() {
       if (_context->GetData(query, &disjoint,
                             sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT),
                             0) == S_OK) {
-        std::lock_guard<std::mutex> lock(_mutex);
         for (auto counter : _gpuCounters) {
           if (!disjoint.Disjoint) {
             // data is ready, let the timer know
@@ -417,19 +419,18 @@ void Timer::Begin() {
         // remove the query from active checking and push
         // it back into the query pool
         _pendingQueries.pop_back();
-        _disjointQueries.push(query);
+        _ASSERTE(query);
+        _disjointQueries.push_back(query);
       }
     }
-
-    std::lock_guard<std::mutex> lock(_mutex);
 
     // if theres a free disjoint query available in the pool, use it
     // and notify all timers
     if (!_disjointQueries.empty()) {
-      auto query = _currentQuery = _disjointQueries.top();
-      _ASSERTE(query);
+      const auto query = _currentQuery = _disjointQueries.back();
+      _ASSERTE(query && _currentQuery);
       _pendingQueries.push_front(query);
-      _disjointQueries.pop();
+      _disjointQueries.pop_back();
 
       _context->Begin(query);
       for (auto counter : _gpuCounters) {

@@ -24,8 +24,8 @@ class MGDFApp : public D3DAppFramework {
                      const ComObject<ID2D1Device> &d2dDevice,
                      const ComObject<IDXGIAdapter1> &adapter) final;
   MGDFFullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
-                                  DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
-                                  const RECT &windowSize) final;
+                                      DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
+                                      const RECT &windowSize) final;
   void OnResize(UINT32 width, UINT32 height) final;
   bool IsBackBufferChangePending() final;
   bool VSyncEnabled() const final;
@@ -45,7 +45,6 @@ class MGDFApp : public D3DAppFramework {
                           LPARAM lParam) final;
   void OnExternalClose() final;
   void OnRawInput(RAWINPUT *input) final;
-  void OnClearInput() final;
   void OnMouseInput(INT32 x, INT32 y) final;
   void OnMoveWindow(INT32 x, INT32 y) final;
 

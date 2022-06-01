@@ -313,7 +313,8 @@ void D3DAppFramework::UninitD3D() {
     _d3dDevice.Clear();
 #if defined(_DEBUG)
     if (!failed) {
-      debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+      debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL |
+                                     D3D11_RLDO_IGNORE_INTERNAL);
     }
 #endif
   }
@@ -659,8 +660,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       const INT32 x = GET_X_LPARAM(lParam);
       const INT32 y = GET_Y_LPARAM(lParam);
       OnMouseInput(x, y);
-    }
       return 0;
+    }
 
     // Handle player keyboard input
     case WM_INPUT: {
@@ -680,17 +681,11 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
           OnRawInput(rawInput);
         }
       }
-    }
       // Even if you handle the event, you have to call DefWindowProx after a
       // WM_Input message so the  can perform cleanup
       // http://msdn.microsoft.com/en-us/library/windows/desktop/ms645590%28v=vs.85%29.aspx
       return DefWindowProc(hwnd, msg, wParam, lParam);
-
-    case WM_ACTIVATE:
-      if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE) {
-        OnClearInput();
-      }
-      break;
+    }
 
     // WM_SIZE is sent when the user resizes the window.
     case WM_SIZE:
@@ -738,16 +733,16 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       PMINMAXINFO info = (PMINMAXINFO)lParam;
       info->ptMinTrackSize.x = _windowRect.right - _windowRect.left;
       info->ptMinTrackSize.y = _windowRect.bottom - _windowRect.top;
-    }
       return 0;
+    }
 
     case WM_MOVE: {
       if (!_currentFullScreen.FullScreen) {
         OnMoveWindow((int)(short)LOWORD(lParam) - _clientOffset.x,
                      (int)(short)HIWORD(lParam) - _clientOffset.y);
       }
-    }
       return 0;
+    }
 
     // WM_CLOSE is sent when the user presses the 'X' button in the
     // caption bar menu, when the host schedules a shutdown
@@ -775,8 +770,10 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // Don't beep when we alt-enter.
     case WM_MENUCHAR:
       return MAKELRESULT(0, MNC_CLOSE);
+
+    default:
+      return OnHandleMessage(hwnd, msg, wParam, lParam);
   }
-  return OnHandleMessage(hwnd, msg, wParam, lParam);
 }
 
 }  // namespace core

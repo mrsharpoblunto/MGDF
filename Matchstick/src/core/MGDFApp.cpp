@@ -302,8 +302,6 @@ void MGDFApp::OnRawInput(RAWINPUT *input) {
   _host->GetInputManagerImpl()->HandleInput(input);
 }
 
-void MGDFApp::OnClearInput() { _host->GetInputManagerImpl()->ClearInput(); }
-
 void MGDFApp::OnMouseInput(INT32 x, INT32 y) {
   _host->GetInputManagerImpl()->HandleInput(x, y);
 }
@@ -328,11 +326,17 @@ LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
   switch (msg) {
     case WM_SYSKEYDOWN:
       switch (wParam) {
-        case VK_F12: {
+        case VK_F12:
           _host->GetDebugImpl()->ToggleShown();
-        } break;
+          return 0;
+        default:
+          return 0;
       }
-      return 0;
+    case WM_ACTIVATE:
+      if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE) {
+        _host->GetInputManagerImpl()->ClearInput();
+      }
+      [[fallthrough]];
     default:
       return DefWindowProc(hwnd, msg, wParam, lParam);
   }
