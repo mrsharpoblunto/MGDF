@@ -2,12 +2,22 @@
 
 #include "MGDFHostStats.hpp"
 
+#include "../common/MGDFParameterManager.hpp"
+#include "MGDFParameterConstants.hpp"
+
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
 namespace MGDF {
 namespace core {
+
+void HostStatsServer::OnRequest(struct mg_connection* c, int ev,
+                                void* ev_data) {
+  std::ignore = c;
+  std::ignore = ev;
+  std::ignore = ev_data;
+}
 
 HostStats::HostStats(UINT32 maxSamples)
     : _avgActiveRenderTime(0),
@@ -18,9 +28,14 @@ HostStats::HostStats(UINT32 maxSamples)
       _avgSimInputTime(0),
       _avgSimAudioTime(0) {
   _maxSamples = maxSamples;
+  auto metricsPort = ParameterManager::Instance().GetParameter(
+      ParameterConstants::METRICS_PORT);
+  if (metricsPort) {
+    _server.Listen(metricsPort);
+  }
 }
 
-void HostStats::GetTimings(Timings &timings) const {
+void HostStats::GetTimings(Timings& timings) const {
   std::lock_guard<std::mutex> lock(_statsMutex);
   timings.AvgActiveRenderTime = _avgActiveRenderTime / _maxSamples;
   timings.AvgRenderTime = _avgRenderTime / _maxSamples;
@@ -60,8 +75,8 @@ void HostStats::AppendSimInputAndAudioTimes(double inputValue,
   Append(audioValue, _avgSimAudioTime, _simAudioTime);
 }
 
-void HostStats::Append(double value, double &averageValue,
-                       std::list<double> &list) {
+void HostStats::Append(double value, double& averageValue,
+                       std::list<double>& list) {
   list.push_front(value);
   averageValue += value;
   if (list.size() > _maxSamples) {

@@ -105,6 +105,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="MGDFComponents.hpp" />
+    <ClInclude Include="MGDFHttp.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />
     <ClInclude Include="MGDFPreferenceConstants.hpp" />
@@ -113,10 +114,12 @@
     <ClInclude Include="MGDFStringImpl.hpp" />
     <ClInclude Include="MGDFVersionHelper.hpp" />
     <ClInclude Include="MGDFVersionInfo.hpp" />
+    <ClInclude Include="mongoose.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="win32Exception.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MGDFHttp.cpp" />
     <ClCompile Include="MGDFLoggerImpl.cpp" />
     <ClCompile Include="MGDFParameterManager.cpp" />
     <ClCompile Include="MGDFPreferenceConstants.cpp" />
@@ -124,6 +127,10 @@
     <ClCompile Include="MGDFStringImpl.cpp" />
     <ClCompile Include="MGDFVersionHelper.cpp" />
     <ClCompile Include="MGDFVersionInfo.cpp" />
+    <ClCompile Include="mongoose.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

@@ -3,8 +3,15 @@
 #include <list>
 #include <mutex>
 
+#include "../common/MGDFHttp.hpp"
+
 namespace MGDF {
 namespace core {
+
+class HostStatsServer : public common::HttpServer {
+ public:
+  void OnRequest(struct mg_connection *c, int ev, void *ev_data) final;
+};
 
 struct Timings {
   double AvgActiveRenderTime;
@@ -31,6 +38,7 @@ class HostStats {
   void AppendSimInputAndAudioTimes(double inputValue, double audioValue);
 
  private:
+  HostStatsServer _server;
   mutable std::mutex _statsMutex;
   UINT32 _maxSamples;
   double _expectedSimTime;

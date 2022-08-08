@@ -1559,8 +1559,8 @@ A vorbis sound stream
   void GetDebug([out] IMGDFDebug * *debug);
 
   /**
-   create a performance counter for profiling CPU time taken. When no INT32er
-   used it should be Released
+   create a performance counter for profiling CPU time taken. When no longer
+   used it should be released
   \param name the name of the counter
   \param counter points to the created counter
   \return S_OK if the counter could be created, otherwise an error code is returned

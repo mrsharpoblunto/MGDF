@@ -8,6 +8,11 @@
 #define _WIN32_WINNT 0x0601
 #endif
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+///
+#include <WinSock2.h>
+
 // CRT's memory leak detection
 #if defined(DEBUG) | defined(_DEBUG)
 #define _CRTDBG_MAP_ALLOC

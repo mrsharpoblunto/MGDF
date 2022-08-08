@@ -90,7 +90,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL;../../../vendor/Mongoose</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -148,7 +148,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
 </Command>
     </PreBuildEvent>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL;../../../vendor/Mongoose</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
