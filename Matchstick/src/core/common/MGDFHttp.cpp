@@ -5,14 +5,11 @@
 namespace MGDF {
 namespace common {
 
-HttpServer::HttpServer() : _conn(nullptr), _running(false) {
-  mg_mgr_init(&_mgr);
-}
+HttpServer::HttpServer() : _conn(nullptr), _running(false) {}
 
 HttpServer::~HttpServer() {
   _running = false;
   _pollThread.join();
-  mg_mgr_free(&_mgr);
 }
 
 void HttpServer::Listen(const std::string& port) {
@@ -20,6 +17,7 @@ void HttpServer::Listen(const std::string& port) {
     return;
   }
   std::string listenAddress = "0.0.0.0:" + port;
+  mg_mgr_init(&_mgr);
   _conn = mg_http_listen(&_mgr, listenAddress.c_str(),
                          &HttpServer::HandleRequest, this);
   if (_conn) {
@@ -28,6 +26,7 @@ void HttpServer::Listen(const std::string& port) {
       while (_running) {
         mg_mgr_poll(&_mgr, 1000);
       }
+      mg_mgr_free(&_mgr);
     });
   }
 }
@@ -37,8 +36,10 @@ void HttpServer::HandleRequest(struct mg_connection* c, int ev, void* ev_data,
   std::ignore = c;
   std::ignore = ev_data;
   std::ignore = ev;
-  HttpServer* server = static_cast<HttpServer*>(fn_data);
-  server->OnRequest(c, ev, ev_data);
+  if (ev == MG_EV_HTTP_MSG || ev == MG_EV_HTTP_CHUNK) {
+    HttpServer* server = static_cast<HttpServer*>(fn_data);
+    server->OnRequest(c, ev, ev_data);
+  }
 }
 
 }  // namespace common

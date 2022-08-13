@@ -127,6 +127,11 @@ MGDFFullScreenDesc MGDFApp::OnResetSwapChain(
   return desc;
 }
 
+void MGDFApp::OnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) {
+  swapchain.As<IDXGISwapChain2>()->SetMaximumFrameLatency(
+      _settings->GetMaxFrameLatency());
+}
+
 void MGDFApp::OnResize(UINT32 width, UINT32 height) {
   _settings->OnResize(width, height);
 }

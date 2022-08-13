@@ -38,6 +38,7 @@ class D3DAppFramework {
   virtual MGDFFullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                               DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                               const RECT &windowSize) = 0;
+  virtual void OnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) = 0;
   virtual void OnResize(UINT32 width, UINT32 height) = 0;
 
   virtual void OnDraw() = 0;
@@ -96,6 +97,7 @@ class D3DAppFramework {
   POINT _currentSize;
   DWORD _windowStyle;
   POINT _clientOffset;
+  HANDLE _frameWaitableObject;
 
   std::atomic_bool _resize, _minimized, _awaitingD3DReset;
   std::atomic_flag _runRenderThread;

@@ -92,8 +92,8 @@ void CPUPerformanceCounter::End() {
 /** ------------GPU counter ---------*/
 
 GPUPerformanceCounter::~GPUPerformanceCounter() {
-  Reset();
   _timer.RemoveCounter(this);
+  Reset();
 }
 
 GPUPerformanceCounter::GPUPerformanceCounter(const char *name,

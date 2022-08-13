@@ -479,6 +479,20 @@ Provides an interface for getting and setting the hosts various display settings
   local
 ] interface IMGDFRenderSettingsManager : IUnknown {
   /**
+  gets the number of frames that the swap chain is allowed to queue for
+  rendering.
+  \return true if vsync is enabled
+  */
+  UINT32 GetMaxFrameLatency();
+
+  /**
+  gets the number of frames that the swap chain is allowed to queue for
+  rendering.
+  \param frames the maximum number of frames that can be queued (1+)
+  */
+  void SetMaxFrameLatency(UINT32 frames);
+
+  /**
   gets the current vsync setting
   \return true if vsync is enabled
   */

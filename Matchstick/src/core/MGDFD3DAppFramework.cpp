@@ -29,7 +29,8 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
       _renderThread(nullptr),
       _internalShutDown(false),
       _windowStyle(WS_OVERLAPPEDWINDOW),
-      _allowTearing(false) {
+      _allowTearing(false),
+      _frameWaitableObject(nullptr) {
   _minimized.store(false);
   _resize.store(false);
   _runRenderThread.clear();
@@ -109,7 +110,23 @@ void D3DAppFramework::InitWindow(const std::string &caption,
     }
 
     if (x || y) {
-      SetWindowPos(_window, HWND_NOTOPMOST, x, y, 0, 0, SWP_NOSIZE);
+      POINT pt;
+      pt.x = x;
+      pt.y = y;
+      HMONITOR monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+
+      MONITORINFO monitorInfo;
+      memset(&monitorInfo, 0, sizeof(MONITORINFO));
+      monitorInfo.cbSize = sizeof(MONITORINFO);
+      if (!GetMonitorInfo(monitor, &monitorInfo)) {
+        FATALERROR(this, "GetMonitorInfo failed");
+      }
+
+      SetWindowPos(
+          _window, HWND_NOTOPMOST,
+          min(max(x, monitorInfo.rcWork.left), monitorInfo.rcWork.right),
+          min(max(y, monitorInfo.rcWork.top), monitorInfo.rcWork.bottom), 0, 0,
+          SWP_NOSIZE);
     }
 
     ShowWindow(_window, SW_SHOW);
@@ -350,6 +367,16 @@ void D3DAppFramework::CreateSwapChain() {
                                               _swapChain.Assign()))) {
     FATALERROR(this, "Failed to create swap chain");
   }
+
+  if ((_swapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) ==
+      DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) {
+    _frameWaitableObject =
+        _swapChain.As<IDXGISwapChain2>()->GetFrameLatencyWaitableObject();
+  } else {
+    _frameWaitableObject = nullptr;
+  }
+  OnSwapChainCreated(_swapChain);
+
   if (FAILED(_factory->MakeWindowAssociation(
           _window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES))) {
     FATALERROR(this, "Failed to disable alt-enter");
@@ -467,9 +494,6 @@ INT32 D3DAppFramework::Run() {
     LOG("Starting render thread...", MGDF_LOG_LOW);
     OnBeforeFirstDraw();
 
-    DXGI_PRESENT_PARAMETERS presentParams;
-    SecureZeroMemory(&presentParams, sizeof(DXGI_PRESENT_PARAMETERS));
-
     while (_runRenderThread.test_and_set()) {
       bool exp = true;
       ComObject<IDXGIOutput> target;
@@ -503,7 +527,8 @@ INT32 D3DAppFramework::Run() {
             OnResetSwapChain(_swapDesc, _fullscreenSwapDesc, windowSize);
 
         if (_currentFullScreen.ExclusiveMode) {
-          // clean up the old swap chain, then recreate it with the new settings
+          // clean up the old swap chain, then recreate it with the new
+          // settings
           BOOL fullscreen = false;
           if (_swapChain) {
             if (FAILED(_swapChain->GetFullscreenState(&fullscreen,
@@ -564,8 +589,8 @@ INT32 D3DAppFramework::Run() {
         }
         CreateSwapChain();
 
-        // reset the swap chain to fullscreen if it was previously fullscreen or
-        // if this backbuffer change was for a toggle from windowed to
+        // reset the swap chain to fullscreen if it was previously fullscreen
+        // or if this backbuffer change was for a toggle from windowed to
         // fullscreen
         if (newFullScreen.FullScreen && newFullScreen.ExclusiveMode) {
           if (FAILED(_swapChain->SetFullscreenState(true, target))) {
@@ -584,6 +609,15 @@ INT32 D3DAppFramework::Run() {
       }
 
       if (!_minimized.load() && _d3dDevice) {
+        if (_frameWaitableObject) {
+          const DWORD wait =
+              WaitForSingleObjectEx(_frameWaitableObject, 1000, true);
+          if (wait == WAIT_ABANDONED || wait == WAIT_TIMEOUT ||
+              wait == WAIT_FAILED) {
+            FATALERROR(this, "Failed to wait on FrameWaitableObject");
+          }
+        }
+
         const float black[4] = {0.0f, 0.0f, 0.0f, 1.0f};  // RGBA
         _immediateContext->ClearRenderTargetView(
             _renderTargetView, reinterpret_cast<const float *>(&black));
@@ -595,17 +629,9 @@ INT32 D3DAppFramework::Run() {
 
         HRESULT result = S_OK;
         {
-          ComObject<IDXGIOutput> output;
-          if (FAILED(_swapChain->GetContainingOutput(output.Assign()))) {
-            FATALERROR(this, "SwapChain GetContainingOutput failed");
-          }
-
-          result = _swapChain->Present1(
-              0, AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0,
-              &presentParams);
-          if (VSyncEnabled()) {
-            output->WaitForVBlank();
-          }
+          result = _swapChain->Present(
+              VSyncEnabled() ? 1 : 0,
+              AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0);
         }
 
         if (result == DXGI_ERROR_DEVICE_REMOVED ||
@@ -728,7 +754,8 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       }
       return 0;
 
-    // Don't allow window sizes smaller than the min required screen resolution
+    // Don't allow window sizes smaller than the min required screen
+    // resolution
     case WM_GETMINMAXINFO: {
       PMINMAXINFO info = (PMINMAXINFO)lParam;
       info->ptMinTrackSize.x = _windowRect.right - _windowRect.left;

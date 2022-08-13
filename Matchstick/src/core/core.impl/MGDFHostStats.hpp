@@ -10,6 +10,7 @@ namespace core {
 
 class HostStatsServer : public common::HttpServer {
  public:
+  virtual ~HostStatsServer() {}
   void OnRequest(struct mg_connection *c, int ev, void *ev_data) final;
 };
 

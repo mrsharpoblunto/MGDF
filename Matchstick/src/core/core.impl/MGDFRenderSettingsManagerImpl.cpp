@@ -28,6 +28,7 @@ RenderSettingsManager::RenderSettingsManager()
       _vsync(true),
       _screenX(0),
       _screenY(0),
+      _maxFrameLatency(1),
       _window(NULL) {
   ZeroMemory(&_currentAdaptorMode, sizeof(MGDFAdaptorMode));
 }
@@ -80,7 +81,8 @@ void RenderSettingsManager::InitFromDevice(
       adaptorMode.RefreshRateNumerator = displayMode.RefreshRate.Numerator;
       adaptorMode.RefreshRateDenominator = displayMode.RefreshRate.Denominator;
       _adaptorModes.push_back(adaptorMode);
-      LOG("Found valid adapter mode " << SCREEN_RES(adaptorMode), MGDF_LOG_MEDIUM);
+      LOG("Found valid adapter mode " << SCREEN_RES(adaptorMode),
+          MGDF_LOG_MEDIUM);
 
       // try to preserve the current adaptor mode settings when devices change
       if (_currentAdaptorMode.Width == adaptorMode.Width &&
@@ -121,8 +123,7 @@ UINT64 RenderSettingsManager::GetMultiSampleLevelCount() {
   return _multiSampleLevels.size();
 }
 
-BOOL RenderSettingsManager::GetMultiSampleLevel(UINT64 index,
-                                                UINT32 *level) {
+BOOL RenderSettingsManager::GetMultiSampleLevel(UINT64 index, UINT32 *level) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (!level) return false;
   if (index < _multiSampleLevels.size()) {
@@ -143,8 +144,7 @@ BOOL RenderSettingsManager::SetCurrentMultiSampleLevel(
   }
 }
 
-UINT32 RenderSettingsManager::GetCurrentMultiSampleLevel(
-    UINT32 *quality) {
+UINT32 RenderSettingsManager::GetCurrentMultiSampleLevel(UINT32 *quality) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (quality)
     *quality = _multiSampleQuality.find(_currentMultiSampleLevel)->second - 1;
@@ -165,6 +165,16 @@ BOOL RenderSettingsManager::SetBackBufferMultiSampleLevel(
 UINT32 RenderSettingsManager::GetBackBufferMultiSampleLevel() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _backBufferMultiSampleLevel;
+}
+
+UINT32 RenderSettingsManager::GetMaxFrameLatency() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _maxFrameLatency;
+}
+
+void RenderSettingsManager::SetMaxFrameLatency(UINT32 frames) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  _maxFrameLatency = frames;
 }
 
 BOOL RenderSettingsManager::GetVSync() {
@@ -193,7 +203,7 @@ UINT64 RenderSettingsManager::GetAdaptorModeCount() {
 }
 
 BOOL RenderSettingsManager::GetAdaptorMode(UINT64 index,
-                                           MGDFAdaptorMode *mode)  {
+                                           MGDFAdaptorMode *mode) {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_mutex);
   if (index < _adaptorModes.size()) {
@@ -207,8 +217,8 @@ BOOL RenderSettingsManager::GetAdaptorMode(UINT64 index,
   return false;
 }
 
-BOOL RenderSettingsManager::GetAdaptorModeFromDimensions(UINT32 width, UINT32 height,
-                                           MGDFAdaptorMode *mode) {
+BOOL RenderSettingsManager::GetAdaptorModeFromDimensions(
+    UINT32 width, UINT32 height, MGDFAdaptorMode *mode) {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_mutex);
   bool result = false;
@@ -232,7 +242,8 @@ BOOL RenderSettingsManager::GetAdaptorModeFromDimensions(UINT32 width, UINT32 he
   return result;
 }
 
-MGDFAdaptorMode *RenderSettingsManager::GetCurrentAdaptorMode(MGDFAdaptorMode *mode) {
+MGDFAdaptorMode *RenderSettingsManager::GetCurrentAdaptorMode(
+    MGDFAdaptorMode *mode) {
   if (!mode) return mode;
   std::lock_guard<std::mutex> lock(_mutex);
   mode->Width = _currentAdaptorMode.Width;
@@ -269,7 +280,8 @@ BOOL RenderSettingsManager::SetCurrentAdaptorMode(const MGDFAdaptorMode *mode) {
   return false;
 }
 
-BOOL RenderSettingsManager::SetCurrentAdaptorModeToNative(MGDFAdaptorMode *mode) {
+BOOL RenderSettingsManager::SetCurrentAdaptorModeToNative(
+    MGDFAdaptorMode *mode) {
   const INT32 nativeWidth = GetSystemMetrics(SM_CXSCREEN);
   const INT32 nativeHeight = GetSystemMetrics(SM_CYSCREEN);
   MGDFAdaptorMode tmp;
@@ -332,7 +344,8 @@ void RenderSettingsManager::OnResetSwapChain(
   desc.BufferCount = 2;
   desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-  desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+  desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH |
+               DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
   desc.Format = BACKBUFFER_FORMAT;
   desc.SampleDesc.Count = _backBufferMultiSampleLevel;
   desc.SampleDesc.Quality =
@@ -363,6 +376,8 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
                      ToString(_fullScreen.ExclusiveMode)));
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::VSYNC, ToString(_vsync)));
+  p->Preferences.insert(std::make_pair(PreferenceConstants::MAX_FRAME_LATENCY,
+                                       ToString(_maxFrameLatency)));
   p->Preferences.insert(std::make_pair(PreferenceConstants::SCREEN_X,
                                        ToString(_currentAdaptorMode.Width)));
   p->Preferences.insert(std::make_pair(PreferenceConstants::SCREEN_Y,
@@ -392,6 +407,10 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
 
   if (GetPreference(game, PreferenceConstants::VSYNC, pref)) {
     _vsync = FromString<bool>(pref);
+  }
+
+  if (GetPreference(game, PreferenceConstants::MAX_FRAME_LATENCY, pref)) {
+    _maxFrameLatency = FromString<UINT32>(pref);
   }
 
   std::string xPref;

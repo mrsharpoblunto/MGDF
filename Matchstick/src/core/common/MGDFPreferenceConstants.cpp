@@ -23,6 +23,7 @@ const char *PreferenceConstants::MULTISAMPLE_LEVEL = "host.multiSampleLevel";
 const char *PreferenceConstants::RT_MULTISAMPLE_LEVEL =
     "host.RTMultiSampleLevel";
 const char *PreferenceConstants::VSYNC = "host.vsync";
+const char *PreferenceConstants::MAX_FRAME_LATENCY = "host.maxFrameLatency";
 const char *PreferenceConstants::WINDOW_RESIZE = "host.windowResize";
 const char *PreferenceConstants::WINDOW_SIZEX = "host.windowSizeX";
 const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
@@ -67,7 +68,8 @@ float FromString(const std::string &str) {
   return static_cast<float>(FromString<double>(str));
 }
 
-bool GetPreference(IMGDFGame *game, const std::string &name, std::string &value) {
+bool GetPreference(IMGDFGame *game, const std::string &name,
+                   std::string &value) {
   size_t size = 0;
   game->GetPreference(name.c_str(), nullptr, &size);
   value.resize(size);

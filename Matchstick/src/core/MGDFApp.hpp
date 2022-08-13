@@ -26,6 +26,7 @@ class MGDFApp : public D3DAppFramework {
   MGDFFullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                       DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                       const RECT &windowSize) final;
+  void OnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) final;
   void OnResize(UINT32 width, UINT32 height) final;
   bool IsBackBufferChangePending() final;
   bool VSyncEnabled() const final;

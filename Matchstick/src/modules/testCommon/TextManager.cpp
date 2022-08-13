@@ -34,7 +34,7 @@ void TextManagerState::SetStatus(TextColor color, const std::string &text) {
 
 std::shared_ptr<TextManagerState> TextManagerState::Interpolate(
     const TextManagerState *endState, double alpha) {
-  (void)alpha;
+  std::ignore = alpha;
   // interpolation isn't really possible with this type of gamestate, so just
   // use the most recent.
   return std::shared_ptr<TextManagerState>(new TextManagerState(endState));
@@ -63,7 +63,8 @@ void TextManager::BeforeDeviceReset() {
   _textFormat.Clear();
 }
 
-TextManager::TextManager(IMGDFRenderHost *renderHost) : _renderHost(renderHost) {
+TextManager::TextManager(IMGDFRenderHost *renderHost)
+    : _renderHost(renderHost) {
   _renderHost->GetRenderSettings(_settings.Assign());
 }
 
@@ -75,8 +76,8 @@ void TextManager::DrawText() {
   if (!_d2dContext) {
     ComObject<ID2D1Device> d2dDevice;
     _renderHost->GetD2DDevice(d2dDevice.Assign());
-    if (FAILED(d2dDevice->CreateDeviceContext(
-            D2D1_DEVICE_CONTEXT_OPTIONS_NONE, _d2dContext.Assign()))) {
+    if (FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
+                                              _d2dContext.Assign()))) {
       FATALERROR(_renderHost, "Unable to create ID2D1DeviceContext");
     }
     BackBufferChange();

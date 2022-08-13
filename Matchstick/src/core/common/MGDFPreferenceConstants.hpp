@@ -1,7 +1,8 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 #include <sstream>
 
 #include "MGDFResources.hpp"
@@ -22,6 +23,7 @@ class PreferenceConstants {
   static const char *MULTISAMPLE_LEVEL;
   static const char *RT_MULTISAMPLE_LEVEL;
   static const char *VSYNC;
+  static const char *MAX_FRAME_LATENCY;
   static const char *WINDOW_RESIZE;
   static const char *WINDOW_SIZEX;
   static const char *WINDOW_SIZEY;
@@ -60,7 +62,8 @@ double FromString(const std::string &str);
 template <>
 float FromString(const std::string &str);
 
-bool GetPreference(IMGDFGame *game, const std::string &name, std::string &value);
+bool GetPreference(IMGDFGame *game, const std::string &name,
+                   std::string &value);
 
 }  // namespace core
 }  // namespace MGDF

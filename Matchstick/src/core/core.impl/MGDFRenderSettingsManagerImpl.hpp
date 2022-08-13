@@ -1,10 +1,10 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <d3d11.h>
 #include <d3d11_1.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -21,6 +21,9 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
  public:
   RenderSettingsManager();
   virtual ~RenderSettingsManager();
+
+  UINT32 __stdcall GetMaxFrameLatency() final;
+  void __stdcall SetMaxFrameLatency(UINT32 frames) final;
 
   BOOL __stdcall GetVSync() final;
   void __stdcall SetVSync(BOOL vsync) final;
@@ -39,8 +42,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT64 __stdcall GetAdaptorModeCount() final;
   BOOL __stdcall GetAdaptorMode(UINT64 index, MGDFAdaptorMode *mode) final;
   BOOL __stdcall GetAdaptorModeFromDimensions(UINT32 width, UINT32 height,
-                      MGDFAdaptorMode *mode) final;
-  MGDFAdaptorMode * __stdcall GetCurrentAdaptorMode(MGDFAdaptorMode *mode) final;
+                                              MGDFAdaptorMode *mode) final;
+  MGDFAdaptorMode *__stdcall GetCurrentAdaptorMode(MGDFAdaptorMode *mode) final;
   BOOL __stdcall SetCurrentAdaptorMode(const MGDFAdaptorMode *mode) final;
   BOOL __stdcall SetCurrentAdaptorModeToNative(MGDFAdaptorMode *mode) final;
   void __stdcall SetWindowSize(UINT32 width, UINT32 height) final;
@@ -75,6 +78,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 _backBufferMultiSampleLevel;
 
   UINT32 _screenX, _screenY;
+  UINT32 _maxFrameLatency;
   HWND _window;
 
   bool _vsync;
