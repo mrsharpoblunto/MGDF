@@ -164,6 +164,9 @@ HRESULT Host::Init() {
 
 Host::~Host(void) {
   _ASSERTE(_references == 0UL);
+  for (auto &it : _metrics) {
+    it.second->Release();
+  }
   LOG("Uninitialised host successfully", MGDF_LOG_LOW);
 }
 
@@ -237,6 +240,9 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
       FATALERROR(this, "Error updating scene in module");
     }
   }
+
+  std::lock_guard lock(_metricMutex);
+  stats.UpdateMetrics(_metrics);
 }
 
 void Host::STDisposeModule() {
@@ -482,17 +488,15 @@ HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
 HRESULT Host::CreateCounterMetric(const small *name, const small *description,
                                   IMGDFMetric **metric) {
   if (!name || !description) return E_FAIL;
-  return CreateMetric<CounterMetric>(name, metric, [=]() {
-    return std::make_shared<CounterMetric>(name, description);
-  });
+  return CreateMetric<CounterMetric>(
+      name, metric, [=]() { return new CounterMetric(name, description); });
 }
 
 HRESULT Host::CreateGaugeMetric(const small *name, const small *description,
                                 IMGDFMetric **metric) {
   if (!name || !description) return E_FAIL;
-  return CreateMetric<GaugeMetric>(name, metric, [=]() {
-    return std::make_shared<GaugeMetric>(name, description);
-  });
+  return CreateMetric<GaugeMetric>(
+      name, metric, [=]() { return new GaugeMetric(name, description); });
 }
 
 HRESULT Host::CreateHistogramMetric(const small *name, const small *description,
@@ -501,8 +505,7 @@ HRESULT Host::CreateHistogramMetric(const small *name, const small *description,
                                     IMGDFMetric **metric) {
   if (!name || !description || (!buckets && bucketCount)) return E_FAIL;
   return CreateMetric<HistogramMetric>(name, metric, [=]() {
-    return std::make_shared<HistogramMetric>(name, description, buckets,
-                                             bucketCount);
+    return new HistogramMetric(name, description, buckets, bucketCount);
   });
 }
 

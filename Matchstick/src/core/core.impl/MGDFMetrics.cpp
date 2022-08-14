@@ -15,35 +15,31 @@ const char* S_EMPTY_KEY = "{}";
 
 void CounterMetric::DoDump(
     std::ostringstream& output, std::string& name,
-    std::unordered_map<std::string, typename MetricImpl<double>::MetricStorage>&
-        storage) {
+    std::unordered_map<std::string, MetricStorage>& storage) {
   output << "# TYPE " << name << " counter" << std::endl;
   for (auto& it : storage) {
-    const std::string_view key = it.first == "{}" ? "" : it.first;
+    const char* key = it.first == "{}" ? "" : it.first.c_str();
     output << name << key << " " << it.second.Metric << " "
            << it.second.Timestamp << std::endl;
   }
 }
 
-void CounterMetric::DoRecord(
-    double value, typename MetricImpl<double>::MetricStorage& storage) {
+void CounterMetric::DoRecord(double value, MetricStorage& storage) {
   storage.Metric += value;
 }
 
 void GaugeMetric::DoDump(
     std::ostringstream& output, std::string& name,
-    std::unordered_map<std::string, typename MetricImpl<double>::MetricStorage>&
-        storage) {
+    std::unordered_map<std::string, MetricStorage>& storage) {
   output << "# TYPE " << name << " gauge" << std::endl;
   for (auto& it : storage) {
-    const std::string_view key = it.first == "{}" ? "" : it.first;
+    const char* key = it.first == "{}" ? "" : it.first.c_str();
     output << name << key << " " << it.second.Metric << " "
            << it.second.Timestamp << std::endl;
   }
 }
 
-void GaugeMetric::DoRecord(
-    double value, typename MetricImpl<double>::MetricStorage& storage) {
+void GaugeMetric::DoRecord(double value, MetricStorage& storage) {
   storage.Metric = value;
 }
 
@@ -58,9 +54,7 @@ HistogramMetric::HistogramMetric(const char* name, const char* description,
   _buckets.emplace_back(std::make_pair(DBL_MAX, 0U));
 }
 
-void HistogramMetric::DoRecord(
-    double value,
-    typename MetricImpl<HistogramStorage>::MetricStorage& storage) {
+void HistogramMetric::DoRecord(double value, MetricStorage& storage) {
   if (!storage.Metric.Buckets.size()) {
     storage.Metric.Buckets = _buckets;
   }
@@ -75,18 +69,17 @@ void HistogramMetric::DoRecord(
 
 void HistogramMetric::DoDump(
     std::ostringstream& output, std::string& name,
-    std::unordered_map<std::string,
-                       typename MetricImpl<HistogramStorage>::MetricStorage>&
-        storage) {
+    std::unordered_map<std::string, MetricStorage>& storage) {
   output << "# TYPE " << name << " histogram" << std::endl;
   for (auto& it : storage) {
-    const std::string_view key = it.first == "{}" ? "" : it.first;
+    const bool emptyKey = it.first == "{}";
+    const char* key = emptyKey ? "" : it.first.c_str();
     size_t i = 0;
     for (auto& b : it.second.Metric.Buckets) {
       const auto last = i == it.second.Metric.Buckets.size() - 1;
       output << name << "_bucket{le=\""
              << (last ? "+Inf" : std::to_string(b.first)) << "\""
-             << (key.size() > 2 ? "," : "") << key.substr(1) << " " << b.second
+             << (!emptyKey ? "," : "") << &(key[1]) << " " << b.second
              << std::endl;
       ++i;
     }

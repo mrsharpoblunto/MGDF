@@ -40,8 +40,7 @@ class HostStats {
   void GetTimings(Timings &timings) const;
   double ExpectedSimTime() const;
 
-  void UpdateMetrics(
-      std::unordered_map<std::string, std::shared_ptr<MetricBase>> &metrics);
+  void UpdateMetrics(std::unordered_map<std::string, MetricBase *> &metrics);
 
   void AppendRenderTimes(double renderValue, double activeRenderValue);
   void SetExpectedSimTime(double value);

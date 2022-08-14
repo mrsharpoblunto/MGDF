@@ -445,6 +445,12 @@ typedef enum MGDFLogLevel {
   HRESULT
   Begin([in] const small **tags, [in] const small **tagValues,
         [in] UINT64 tagCount, [out] IMGDFPerformanceCounterScope **scope);
+
+  /**
+  Get the average value recorded by this timer
+  \return the average value recorded by the timer
+  */
+  double GetAverageValue();
 };
 
 /**

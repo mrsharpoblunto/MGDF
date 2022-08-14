@@ -4,6 +4,7 @@
 
 #include <MGDF/ComObject.hpp>
 #include <map>
+#include <mutex>
 #include <sstream>
 #include <string_view>
 #include <unordered_map>
@@ -26,7 +27,7 @@ class MetricImpl : public MetricBase {
   };
 
   MetricImpl(const char *name, const char *description)
-      : _name(name), _description(description) {}
+      : _name(name), _description(description), _hasRecorded(false) {}
 
   virtual ~MetricImpl() {}
 
@@ -51,21 +52,28 @@ class MetricImpl : public MetricBase {
     }
     tagKey << "}";
 
-    auto found = _metric.find(tagKey.str());
-    if (found == _metric.end()) {
-      found = _metric
-                  .emplace(std::make_pair(tagKey.str(),
-                                          MetricStorage{.Timestamp = 0}))
-                  .first;
+    {
+      std::lock_guard lock(_mutex);
+      auto found = _metric.find(tagKey.str());
+      if (found == _metric.end()) {
+        found = _metric
+                    .emplace(std::make_pair(tagKey.str(),
+                                            MetricStorage{.Timestamp = 0}))
+                    .first;
+      }
+      found->second.Timestamp = std::time(0);
+      DoRecord(value, found->second);
+      _hasRecorded = true;
     }
-    found->second.Timestamp = std::time(0);
-    DoRecord(value, found->second);
   }
 
   void Dump(std::ostringstream &output) final {
-    output << "# HELP " << _description << std::endl;
-    DoDump(output, _name, _metric);
-    output << std::endl;
+    std::lock_guard lock(_mutex);
+    if (_hasRecorded) {
+      output << "# HELP " << _description << std::endl;
+      DoDump(output, _name, _metric);
+      output << std::endl;
+    }
   }
 
  protected:
@@ -75,9 +83,11 @@ class MetricImpl : public MetricBase {
       std::unordered_map<std::string, MetricStorage> &storage) = 0;
 
  private:
+  bool _hasRecorded;
   std::string _description;
   std::string _name;
   std::unordered_map<std::string, MetricStorage> _metric;
+  std::mutex _mutex;
 };
 
 class CounterMetric : public MetricImpl<double> {
@@ -87,12 +97,9 @@ class CounterMetric : public MetricImpl<double> {
   virtual ~CounterMetric() {}
 
  protected:
-  void DoRecord(double value,
-                typename MetricImpl<double>::MetricStorage &storage) final;
+  void DoRecord(double value, MetricStorage &storage) final;
   void DoDump(std::ostringstream &output, std::string &name,
-              std::unordered_map<std::string,
-                                 typename MetricImpl<double>::MetricStorage>
-                  &storage) final;
+              std::unordered_map<std::string, MetricStorage> &storage) final;
 };
 
 class GaugeMetric : public MetricImpl<double> {
@@ -102,12 +109,9 @@ class GaugeMetric : public MetricImpl<double> {
   virtual ~GaugeMetric() {}
 
  protected:
-  void DoRecord(double value,
-                typename MetricImpl<double>::MetricStorage &storage) final;
+  void DoRecord(double value, MetricStorage &storage) final;
   void DoDump(std::ostringstream &output, std::string &name,
-              std::unordered_map<std::string,
-                                 typename MetricImpl<double>::MetricStorage>
-                  &storage) final;
+              std::unordered_map<std::string, MetricStorage> &storage) final;
 };
 
 struct HistogramStorage {
@@ -124,14 +128,9 @@ class HistogramMetric : public MetricImpl<HistogramStorage> {
   virtual ~HistogramMetric() {}
 
  protected:
-  void DoRecord(
-      double value,
-      typename MetricImpl<HistogramStorage>::MetricStorage &storage) final;
-  void DoDump(
-      std::ostringstream &output, std::string &name,
-      std::unordered_map<std::string,
-                         typename MetricImpl<HistogramStorage>::MetricStorage>
-          &storage) final;
+  void DoRecord(double value, MetricStorage &storage) final;
+  void DoDump(std::ostringstream &output, std::string &name,
+              std::unordered_map<std::string, MetricStorage> &storage) final;
 
  private:
   std::vector<std::pair<double, UINT64>> _buckets;

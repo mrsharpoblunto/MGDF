@@ -20,7 +20,28 @@ namespace core {
 CounterBase::~CounterBase() {}
 
 CounterBase::CounterBase(IMGDFMetric *metric, Timer &timer)
-    : _timer(timer), _metric(MakeComFromPtr<IMGDFMetric>(metric)) {}
+    : _timer(timer),
+      _average(0U),
+      _metric(MakeComFromPtr<IMGDFMetric>(metric)) {}
+
+void CounterBase::AddSample(double sample) {
+  std::lock_guard<std::mutex> lock(_mutex);
+
+  _samples.push_front(sample);
+  if (_samples.size() >= MaxSamples) {
+    _samples.pop_back();
+  }
+  _average = 0;
+  for (auto s : _samples) {
+    _average += s;
+  }
+  _average /= _samples.size();
+}
+
+double CounterBase::GetAverageValue() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _average;
+}
 
 void CounterBase::GetMetric(IMGDFMetric **metric) { _metric.AddRawRef(metric); }
 
@@ -48,14 +69,18 @@ CPUPerformanceCounterScope::~CPUPerformanceCounterScope() {
   const LONGLONG diff =
       newTime.QuadPart - min(_start.QuadPart, newTime.QuadPart);
 
-  std::vector<const char *> tags(_tags.size());
-  std::vector<const char *> tagValues(_tags.size());
+  std::vector<const char *> tagNames;
+  std::vector<const char *> tagValues;
+  tagNames.reserve(_tags.size());
+  tagValues.reserve(_tags.size());
   for (auto &it : _tags) {
-    tags.emplace_back(it.first.c_str());
+    tagNames.emplace_back(it.first.c_str());
     tagValues.emplace_back(it.second.c_str());
   }
-  _counter->_metric->Record((double)diff / _counter->_frequency.QuadPart,
-                            tags.data(), tagValues.data(), tags.size());
+  const auto value = (double)diff / _counter->_frequency.QuadPart;
+  _counter->AddSample(value);
+  _counter->_metric->Record(value, tagNames.data(), tagValues.data(),
+                            tagNames.size());
 }
 
 CPUPerformanceCounter::~CPUPerformanceCounter() { _timer.RemoveCounter(this); }
@@ -67,11 +92,6 @@ CPUPerformanceCounter::CPUPerformanceCounter(IMGDFMetric *metric, Timer &timer,
 HRESULT CPUPerformanceCounter::DoBegin(std::map<std::string, std::string> &tags,
                                        IMGDFPerformanceCounterScope **scope) {
   auto newScope = MakeCom<CPUPerformanceCounterScope>(this, tags);
-  /** std::ignore = tags;
-  auto context = ComObject<ID3D11DeviceContext>();
-  auto query = ComObject<ID3D11Query>();
-  auto newScope = MakeCom<GPUPerformanceCounterScope>(context, query);
-  */
   newScope.AddRawRef(scope);
   return S_OK;
 }
@@ -124,7 +144,7 @@ HRESULT GPUPerformanceCounter::DoBegin(std::map<std::string, std::string> &tags,
         ScopeMapping{.Begin = _beginQueries.top(),
                      .End = _endQueries.top(),
                      .Tags = std::move(tags)});
-    _context->Begin(scopeMapping.Begin);
+    _context->End(scopeMapping.Begin);
     _beginQueries.pop();
     _endQueries.pop();
 
@@ -196,13 +216,17 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
       } else {
         const UINT64 diff = timeStampEnd - min(timeStampBegin, timeStampEnd);
         const double value = ((double)diff / frequency);
-        std::vector<const char *> tags(jt.Tags.size());
-        std::vector<const char *> tagValues(jt.Tags.size());
+        std::vector<const char *> tagNames;
+        std::vector<const char *> tagValues;
+        tagNames.reserve(jt.Tags.size());
+        tagValues.reserve(jt.Tags.size());
         for (auto &t : jt.Tags) {
-          tags.emplace_back(t.first.c_str());
+          tagNames.emplace_back(t.first.c_str());
           tagValues.emplace_back(t.second.c_str());
         }
-        _metric->Record(value, tags.data(), tagValues.data(), jt.Tags.size());
+        AddSample(value);
+        _metric->Record(value, tagNames.data(), tagValues.data(),
+                        jt.Tags.size());
       }
     }
 

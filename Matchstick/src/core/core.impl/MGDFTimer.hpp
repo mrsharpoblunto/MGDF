@@ -22,6 +22,8 @@ class Timer;
 
 class CounterBase : public ComBase<IMGDFPerformanceCounter> {
  public:
+  static constexpr const size_t MaxSamples = 5;
+
   virtual ~CounterBase();
   CounterBase(IMGDFMetric *metric, Timer &timer);
 
@@ -30,11 +32,17 @@ class CounterBase : public ComBase<IMGDFPerformanceCounter> {
                           UINT64 tagCount,
                           IMGDFPerformanceCounterScope **scope) final;
 
+  double __stdcall GetAverageValue() final;
+
  protected:
+  void AddSample(double sample);
   virtual HRESULT DoBegin(std::map<std::string, std::string> &tags,
                           IMGDFPerformanceCounterScope **scope) = 0;
   Timer &_timer;
   ComObject<IMGDFMetric> _metric;
+  std::deque<double> _samples;
+  double _average;
+  std::mutex _mutex;
 };
 
 class CPUPerformanceCounter;

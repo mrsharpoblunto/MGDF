@@ -139,13 +139,13 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   HRESULT Init();
   template <typename T>
   HRESULT CreateMetric(const small *name, IMGDFMetric **metric,
-                       std::function<std::shared_ptr<T>()> metricFactory) {
+                       std::function<T *()> metricFactory) {
     std::lock_guard lock(_metricMutex);
     auto found = _metrics.find(name);
     if (found == _metrics.end()) {
       found = _metrics.insert(std::make_pair(name, metricFactory())).first;
     }
-    auto com = MakeComFromPtr<IMGDFMetric>(found->second.get());
+    ComObject<IMGDFMetric> com(found->second, true);
     com.AddRawRef(metric);
     return S_OK;
   }
@@ -179,7 +179,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   mutable std::atomic<bool> _showDebug;
 
   std::mutex _metricMutex;
-  std::unordered_map<std::string, std::shared_ptr<MetricBase>> _metrics;
+  std::unordered_map<std::string, MetricBase *> _metrics;
 
   // event callbacks
   ShutDownFunction _shutDownHandler;

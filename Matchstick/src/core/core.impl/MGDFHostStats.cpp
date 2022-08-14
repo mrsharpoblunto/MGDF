@@ -45,12 +45,14 @@ HostStats::HostStats(UINT32 maxSamples)
 }
 
 void HostStats::UpdateMetrics(
-    std::unordered_map<std::string, std::shared_ptr<MetricBase>>& metrics) {
+    std::unordered_map<std::string, MetricBase*>& metrics) {
   std::ostringstream oss;
-  for (auto& it : metrics) {
-    it.second->Dump(oss);
+  if (_server.Listening()) {
+    for (auto& it : metrics) {
+      it.second->Dump(oss);
+    }
+    _server.UpdateResponse(oss.str());
   }
-  _server.UpdateResponse(oss.str());
 }
 
 void HostStats::GetTimings(Timings& timings) const {
