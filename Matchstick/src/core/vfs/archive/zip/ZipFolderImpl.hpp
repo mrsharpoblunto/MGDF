@@ -32,7 +32,7 @@ class ZipFolderImpl : public ReadOnlyFileBaseImpl {
 
   BOOL __stdcall IsOpen() final { return false; }
   HRESULT __stdcall Open(IMGDFFileReader **reader) final {
-    (void)reader;
+    std::ignore = reader;
     return E_FAIL;
   }
 

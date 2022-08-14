@@ -390,6 +390,35 @@ typedef enum MGDFLogLevel {
 };
 
 /**
+ Allows recording of a metric value over time. These can then be exposed via the
+ Prometheus metrics server endpoint when enabled
+*/
+[
+  uuid("6BA6CD00-4B01-474E-BD98-7B8432B48D12"), object,
+  local
+] interface IMGDFMetric : IUnknown {
+  /**
+  records the latest value of the metric
+  \param value the latest value of the metric
+  \param tags any tags to identify with this recording of the metric, pass NULL if no tags are to be included
+  \param tagValues the values for any tags in this recording of the metric, pass NULL if no tags are to be included
+  \param tagCount the number of tags in the tags array, pass 0 if no tags are to be included
+*/
+  void Record([in] double value, [in] const small **tags,
+              [in] const small **tagValues, [in] const UINT64 tagCount);
+};
+
+/**
+ Tracks an interval of time being recorded by a performance counter. When
+ released the timing recorded will be the duration of time between the scopes
+ creation and release
+*/
+[
+  uuid("6750875D-62A5-47FA-84C1-BF52430424B7"), object,
+  local
+] interface IMGDFPerformanceCounterScope : IUnknown{};
+
+/**
  A names performance counter that can be used to time the duration of
  events. The results of these counters are shown in the MGDF debug overlay
  (press ALT-F12 to see in game)
@@ -399,29 +428,23 @@ typedef enum MGDFLogLevel {
   local
 ] interface IMGDFPerformanceCounter : IUnknown {
   /**
-   Gets the name of the counter
-  \param name buffer to store the counter name
-  \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
+   Gets the metric the counter updates
+  \param metric the metric the counter updates
    */
-  HRESULT GetName([ in, out ] small * name, [ in, out ] UINT64 * length);
+  void GetMetric([out] IMGDFMetric * *metric);
 
   /**
-   Begin timing
+   Begin timing by creating a performance counter scope. The timing is recorded
+ at the point the scope is released
+  \param tags any tags to identify with this counter, pass NULL if no tags are to be included
+  \param tagValues the values for any tags in this recording of the metric, pass NULL if no tags are to be included
+  \param tagCount the number of tags in the tags array, pass 0 if no tags are to be included
+  \param scope points to the performance counter scope created
+  \return S_OK if the the performance counter scope was created, otherwise will return an error code
    */
-  void Begin();
-
-  /**
-   End timing and record the duration between the time when begin was called
-   and when End was called
-   */
-  void End();
-
-  /**
-  Get the average value of the timer
-  \return the average value of the timer over the last 60 frames
-  */
-  double GetAvgValue();
+  HRESULT
+  Begin([in] const small **tags, [in] const small **tagValues,
+        [in] UINT64 tagCount, [out] IMGDFPerformanceCounterScope **scope);
 };
 
 /**
@@ -1510,8 +1533,8 @@ A vorbis sound stream
 };
 
 /**
- Provides an entrypoint for a module to interact with the MGDF host. Methods in
- this interface are safe to be used from any thread
+Provides an entrypoint for a module to interact with the MGDF host. Methods in
+this interface are safe to be used from any thread
 */
 [
   uuid("B6FDBA44-D098-4EF7-AF79-7368FB85AA6C"), object,
@@ -1575,12 +1598,48 @@ A vorbis sound stream
   /**
    create a performance counter for profiling CPU time taken. When no longer
    used it should be released
-  \param name the name of the counter
+  \param metric the metric the counter should update
   \param counter points to the created counter
   \return S_OK if the counter could be created, otherwise an error code is returned
    */
-  HRESULT CreateCPUCounter([in] const small *name, [out] IMGDFPerformanceCounter
-                                                       **counter);
+  HRESULT CreateCPUCounter([in] IMGDFMetric * metric,
+                           [out] IMGDFPerformanceCounter * *counter);
+
+  /**
+  create or get an existing metric for a monotonically increasing counter
+  \param name the name of the metric
+  \param description a description of what the metric is measuring
+  \param metric points to the created metric
+  \return S_OK if the metric could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateCounterMetric([in] const small *name, [in] const small *description,
+                      [out] IMGDFMetric **metric);
+
+  /**
+  create or get an existing metric that can go up and down over time
+  \param name the name of the metric
+  \param description a description of what the metric is measuring
+  \param metric points to the created metric
+  \return S_OK if the metric could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateGaugeMetric([in] const small *name, [in] const small *description,
+                    [out] IMGDFMetric **metric);
+
+  /**
+  create or get an existing metric that can go up and down over time
+  \param name the name of the metric
+  \param description a description of what the metric is measuring
+  \param buckets pointer to an array of buckets used in the histogram
+  \param bucketCount the length of the buckets array parameter
+  \param metric points to the created metric
+  \return S_OK if the metric could be created, otherwise an error code is returned
+  */
+  HRESULT CreateHistogramMetric(
+      [in] const small *name, [in] const small *description,
+      [in] const double *buckets, [in] const UINT64 bucketCount,
+      [out] IMGDFMetric **metric);
 
   /**
   After a module receives an RTOnBeforeDeviceReset callback, calling this tells
@@ -1635,13 +1694,13 @@ A vorbis sound stream
   /**
    create a performance counter for profiling GPU time taken in DirectX API
    calls. When no longer used it should be Released
-   \param name the name of the counter
+   \param metric the metric the counter should update
    \param counter points to the created counter
    \return E_FAIL if GPU counters are unsupported (using D3D_FEATURE_LEVEL_9_3 or less)
    otherwise returns S_OK
    */
-  HRESULT CreateGPUCounter([in] const small *name, [out] IMGDFPerformanceCounter
-                                                       **counter);
+  HRESULT CreateGPUCounter([in] IMGDFMetric * metric,
+                           [out] IMGDFPerformanceCounter * *counter);
 };
 
 /**

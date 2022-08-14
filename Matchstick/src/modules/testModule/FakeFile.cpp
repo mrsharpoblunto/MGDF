@@ -204,7 +204,7 @@ HRESULT FakeFile::GetPhysicalName(wchar_t *path, UINT64 *length) {
 }
 
 HRESULT FakeFile::CopyTo(IMGDFWriteableFile *destination) {
-  (void)destination;
+  std::ignore = destination;
   return E_FAIL;  // not supported
 }
 

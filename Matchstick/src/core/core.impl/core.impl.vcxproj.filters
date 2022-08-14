@@ -46,6 +46,7 @@
     <ClCompile Include="MGDFSaveManagerImpl.cpp">
       <Filter>System</Filter>
     </ClCompile>
+    <ClCompile Include="MGDFMetrics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MGDFGameBuilder.hpp">
@@ -85,5 +86,6 @@
     <ClInclude Include="MGDFSaveManagerImpl.hpp">
       <Filter>System</Filter>
     </ClInclude>
+    <ClInclude Include="MGDFMetrics.hpp" />
   </ItemGroup>
 </Project>

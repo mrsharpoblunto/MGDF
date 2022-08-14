@@ -1,9 +1,12 @@
 #pragma once
 
+#include <MGDF/ComObject.hpp>
 #include <list>
 #include <mutex>
+#include <unordered_map>
 
 #include "../common/MGDFHttp.hpp"
+#include "MGDFMetrics.hpp"
 
 namespace MGDF {
 namespace core {
@@ -11,7 +14,12 @@ namespace core {
 class HostStatsServer : public common::HttpServer {
  public:
   virtual ~HostStatsServer() {}
-  void OnRequest(struct mg_connection *c, int ev, void *ev_data) final;
+  void OnRequest(struct mg_connection *c, struct mg_http_message *m) final;
+  void UpdateResponse(const std::string &response);
+
+ private:
+  std::string _response;
+  std::mutex _responseMutex;
 };
 
 struct Timings {
@@ -31,6 +39,9 @@ class HostStats {
 
   void GetTimings(Timings &timings) const;
   double ExpectedSimTime() const;
+
+  void UpdateMetrics(
+      std::unordered_map<std::string, std::shared_ptr<MetricBase>> &metrics);
 
   void AppendRenderTimes(double renderValue, double activeRenderValue);
   void SetExpectedSimTime(double value);

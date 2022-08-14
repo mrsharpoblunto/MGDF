@@ -66,26 +66,31 @@ Module::Module()
 }
 
 BOOL Module::STNew(IMGDFSimHost* host) {
-  (void)host;
+  std::ignore = host;
   _testModule = std::make_unique<Test1>();
 
   return true;
 }
 
 BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
-  (void)elapsedTime;
+  std::ignore = elapsedTime;
   if (!_testModuleCounter) {
-    host->CreateCPUCounter("Test Module", _testModuleCounter.Assign());
+    ComObject<IMGDFMetric> gauge;
+    host->CreateGaugeMetric("test_module", "a test counter", gauge.Assign());
+    host->CreateCPUCounter(gauge, _testModuleCounter.Assign());
   }
+  _ASSERTE(_testModuleCounter);
 
-  if (_testModuleCounter) _testModuleCounter->Begin();
-  auto next = std::unique_ptr<TestModule>(
-      _testModule->Update(host, _stateBuffer.Pending()));
+  {
+    ComObject<IMGDFPerformanceCounterScope> counterScope;
+    _testModuleCounter->Begin(nullptr, nullptr, 0, counterScope.Assign());
+    auto next = std::unique_ptr<TestModule>(
+        _testModule->Update(host, _stateBuffer.Pending()));
 
-  if (next != nullptr) {
-    _testModule.swap(next);
+    if (next != nullptr) {
+      _testModule.swap(next);
+    }
   }
-  if (_testModuleCounter) _testModuleCounter->End();
 
   _stateBuffer.Flip();
   return true;
@@ -95,42 +100,46 @@ void Module::STShutDown(IMGDFSimHost* host) { host->ShutDown(); }
 
 BOOL Module::RTBeforeFirstDraw(IMGDFRenderHost* host) {
   _textManager = std::make_unique<TextManager>(host);
-  host->CreateGPUCounter("Text Rendering", _textManagerCounter.Assign());
+  ComObject<IMGDFMetric> gauge;
+  host->CreateGaugeMetric("text_rendering", "Text rendering time",
+                          gauge.Assign());
+  host->CreateGPUCounter(gauge, _textManagerCounter.Assign());
   return true;
 }
 
 BOOL Module::RTDraw(IMGDFRenderHost* host, double alpha) {
-  (void)host;
+  std::ignore = host;
   std::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
-    if (_textManagerCounter) _textManagerCounter->Begin();
+    ComObject<IMGDFPerformanceCounterScope> counter;
+    if (_textManagerCounter)
+      _textManagerCounter->Begin(nullptr, nullptr, 0, counter.Assign());
     _textManager->SetState(state);
     _textManager->DrawText();
-    if (_textManagerCounter) _textManagerCounter->End();
   }
   return true;
 }
 
 BOOL Module::RTBackBufferChange(IMGDFRenderHost* host) {
-  (void)host;
+  std::ignore = host;
   _textManager->BackBufferChange();
   return true;
 }
 
 BOOL Module::RTBeforeBackBufferChange(IMGDFRenderHost* host) {
-  (void)host;
+  std::ignore = host;
   _textManager->BeforeBackBufferChange();
   return true;
 }
 
 BOOL Module::RTBeforeDeviceReset(IMGDFRenderHost* host) {
-  (void)host;
+  std::ignore = host;
   _textManager->BeforeDeviceReset();
   return true;
 }
 
 BOOL Module::RTDeviceReset(IMGDFRenderHost* host) {
-  (void)host;
+  std::ignore = host;
   return true;
 }
 

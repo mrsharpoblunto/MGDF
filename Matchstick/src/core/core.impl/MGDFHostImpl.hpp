@@ -118,13 +118,37 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
       D3D11_TEXTURE2D_DESC *backBufferDesc,
       D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) final;
 
-  HRESULT __stdcall CreateCPUCounter(const char *name,
+  HRESULT __stdcall CreateCPUCounter(IMGDFMetric *metric,
                                      IMGDFPerformanceCounter **counter) final;
-  HRESULT __stdcall CreateGPUCounter(const char *name,
+  HRESULT __stdcall CreateGPUCounter(IMGDFMetric *metric,
                                      IMGDFPerformanceCounter **counter) final;
+
+  HRESULT __stdcall CreateCounterMetric(const small *name,
+                                        const small *description,
+                                        IMGDFMetric **metric) final;
+  HRESULT __stdcall CreateGaugeMetric(const small *name,
+                                      const small *description,
+                                      IMGDFMetric **metric) final;
+  HRESULT __stdcall CreateHistogramMetric(const small *name,
+                                          const small *description,
+                                          const double *buckets,
+                                          const UINT64 bucketCount,
+                                          IMGDFMetric **metric) final;
 
  private:
   HRESULT Init();
+  template <typename T>
+  HRESULT CreateMetric(const small *name, IMGDFMetric **metric,
+                       std::function<std::shared_ptr<T>()> metricFactory) {
+    std::lock_guard lock(_metricMutex);
+    auto found = _metrics.find(name);
+    if (found == _metrics.end()) {
+      found = _metrics.insert(std::make_pair(name, metricFactory())).first;
+    }
+    auto com = MakeComFromPtr<IMGDFMetric>(found->second.get());
+    com.AddRawRef(metric);
+    return S_OK;
+  }
 
   void ClearWorkingDirectory();
 
@@ -153,6 +177,9 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   std::atomic<bool> _shutdownQueued;
   std::atomic<ULONG> _references;
   mutable std::atomic<bool> _showDebug;
+
+  std::mutex _metricMutex;
+  std::unordered_map<std::string, std::shared_ptr<MetricBase>> _metrics;
 
   // event callbacks
   ShutDownFunction _shutDownHandler;

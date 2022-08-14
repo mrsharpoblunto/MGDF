@@ -151,7 +151,7 @@ void Test3::Setup(IMGDFSimHost *host) {
             "[Y/N] if this works correctly");
       })
       .Step([host, this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -175,7 +175,7 @@ void Test3::Setup(IMGDFSimHost *host) {
             "[Y/N] if this works correctly");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {

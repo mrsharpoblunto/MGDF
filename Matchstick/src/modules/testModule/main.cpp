@@ -11,9 +11,9 @@
 
 BOOL APIENTRY DllMain(HMODULE const hModule, DWORD const ul_reason_for_call,
                       LPVOID const lpReserved) {
-  (void)lpReserved;
-  (void)ul_reason_for_call;
-  (void)hModule;
+  std::ignore = lpReserved;
+  std::ignore = ul_reason_for_call;
+  std::ignore = hModule;
   return TRUE;
 }
 
@@ -25,8 +25,9 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
 }
 
 // specify to the framework what kind of d3d device features we want/require
-extern "C" __declspec(dllexport) UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                        UINT64 *featureLevelsSize) {
+extern "C" __declspec(dllexport) UINT64
+    GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                               UINT64 *featureLevelsSize) {
   if (*featureLevelsSize != 1) {
     *featureLevelsSize = 1;
     return 1;
@@ -37,8 +38,9 @@ extern "C" __declspec(dllexport) UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_L
 }
 
 // register custom archive handlers
-extern "C" __declspec(dllexport) HRESULT GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
-                                       IMGDFLogger *logger) {
+extern "C" __declspec(dllexport) HRESULT
+    GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
+                             IMGDFLogger *logger) {
   *length = 1;
   if (!list) {
     return S_OK;

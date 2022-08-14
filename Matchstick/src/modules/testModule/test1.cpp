@@ -33,7 +33,7 @@ void Test1::Setup(IMGDFSimHost *host) {
     state->AddLine("Press the [ENTER] key");
   })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         return _input->IsKeyPress(VK_RETURN) ? TestStep::PASSED
                                              : TestStep::CONT;
       })
@@ -41,7 +41,7 @@ void Test1::Setup(IMGDFSimHost *host) {
         state->AddLine("Press and hold [UP ARROW] key for at least one second");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyDown(VK_UP)) {
           _time = _timer->GetCurrentTimeTicks();
           return TestStep::NEXT;
@@ -50,7 +50,7 @@ void Test1::Setup(IMGDFSimHost *host) {
         }
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyDown(VK_UP)) {
           if (_timer->ConvertDifferenceToSeconds(_timer->GetCurrentTimeTicks(),
                                                  _time) > 1) {
@@ -62,19 +62,19 @@ void Test1::Setup(IMGDFSimHost *host) {
       .StepOnce(
           [](auto state) { state->AddLine("Now release the [UP ARROW] key"); })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         return _input->IsKeyUp(VK_UP) ? TestStep::PASSED : TestStep::CONT;
       })
       .StepOnce(
           [](auto state) { state->AddLine("Now click the left mouse button"); })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         return _input->IsButtonClicked(MGDF_MOUSE_LEFT) ? TestStep::PASSED
-                                                   : TestStep::CONT;
+                                                        : TestStep::CONT;
       })
       .StepOnce([](auto state) { state->AddLine("Now move the mouse up"); })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         return _input->GetMouseDY() < 0 ? TestStep::PASSED : TestStep::CONT;
       })
       .Step([this](auto state) {
@@ -91,15 +91,15 @@ void Test1::Setup(IMGDFSimHost *host) {
         state->AddLine("Press the [A] button on controller 1");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         return _gamepad->IsButtonPress(MGDF_GAMEPAD_A) ? TestStep::PASSED
-                                                  : TestStep::CONT;
+                                                       : TestStep::CONT;
       })
       .StepOnce([](auto state) {
         state->AddLine("Pull the left trigger on controller 1");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         return _gamepad->GetLeftTrigger() == 255 ? TestStep::PASSED
                                                  : TestStep::CONT;
       })
@@ -110,7 +110,7 @@ void Test1::Setup(IMGDFSimHost *host) {
             "vibrates, [B] if it does not.");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         _gamepad->SetVibrationSpeed(
             static_cast<UINT16>(_gamepad->GetRightTrigger() * 257),
             static_cast<UINT16>(_gamepad->GetRightTrigger() * 257));

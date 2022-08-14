@@ -15,7 +15,8 @@ class HttpServer {
 
   void Listen(const std::string &port);
   bool Listening() const { return _conn != nullptr; }
-  virtual void OnRequest(struct mg_connection *c, int ev, void *ev_data) = 0;
+  virtual void OnRequest(struct mg_connection *c,
+                         struct mg_http_message *m) = 0;
 
  private:
   static void HandleRequest(struct mg_connection *c, int ev, void *ev_data,

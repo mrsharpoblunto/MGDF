@@ -12,11 +12,20 @@
 namespace MGDF {
 namespace core {
 
-void HostStatsServer::OnRequest(struct mg_connection* c, int ev,
-                                void* ev_data) {
-  std::ignore = c;
-  std::ignore = ev;
-  std::ignore = ev_data;
+void HostStatsServer::OnRequest(struct mg_connection* c,
+                                struct mg_http_message* m) {
+  if (mg_http_match_uri(m, "/metrics")) {
+    std::lock_guard l(_responseMutex);
+    mg_http_reply(c, 200, "Content-Type: text/plain; version=0.0.4\r\n",
+                  _response.c_str());
+  } else {
+    mg_http_reply(c, 404, "", "Not Found");
+  }
+}
+
+void HostStatsServer::UpdateResponse(const std::string& response) {
+  std::lock_guard lock(_responseMutex);
+  _response = response;
 }
 
 HostStats::HostStats(UINT32 maxSamples)
@@ -33,6 +42,15 @@ HostStats::HostStats(UINT32 maxSamples)
   if (metricsPort) {
     _server.Listen(metricsPort);
   }
+}
+
+void HostStats::UpdateMetrics(
+    std::unordered_map<std::string, std::shared_ptr<MetricBase>>& metrics) {
+  std::ostringstream oss;
+  for (auto& it : metrics) {
+    it.second->Dump(oss);
+  }
+  _server.UpdateResponse(oss.str());
 }
 
 void HostStats::GetTimings(Timings& timings) const {

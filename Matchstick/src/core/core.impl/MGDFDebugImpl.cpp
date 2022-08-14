@@ -123,8 +123,6 @@ void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
       },
       ss);
 
-  _timer->GetCounterInformation(ss);
-
   for (auto section = _data.cbegin(); section != _data.cend(); ++section) {
     ss << "\r\n\r\n"
        << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)

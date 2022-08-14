@@ -53,7 +53,7 @@ void Test2::Setup(IMGDFSimHost *host) {
         state->AddLine("Is a sound playing? [Y/N]");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -69,7 +69,7 @@ void Test2::Setup(IMGDFSimHost *host) {
             "adjusts accordingly");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -99,7 +99,7 @@ void Test2::Setup(IMGDFSimHost *host) {
         state->AddLine("Loading stream stream.ogg");
         ComObject<IMGDFReadOnlyFile> file;
         if (_vfs->GetFile(L"Stream.ogg", file.Assign()) &&
-                FAILED(_soundManager->CreateSoundStream(file, _stream.Assign()))) {
+            FAILED(_soundManager->CreateSoundStream(file, _stream.Assign()))) {
           return TestStep::FAILED;
         } else {
           ComObject<IMGDFSoundStream> ss;
@@ -117,7 +117,7 @@ void Test2::Setup(IMGDFSimHost *host) {
             "Playing stream, press [Y/N] if the stream is actually playing");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
@@ -131,7 +131,7 @@ void Test2::Setup(IMGDFSimHost *host) {
             "Use [P] to toggle pause/play, press [Y/N] if this is working.");
       })
       .Step([this](auto state) {
-        (void)state;
+        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           _stream.Clear();
           return TestStep::PASSED;

@@ -6,6 +6,7 @@
 #include <MGDF/ComObject.hpp>
 #include <deque>
 #include <list>
+#include <map>
 #include <mutex>
 #include <set>
 #include <stack>
@@ -22,65 +23,94 @@ class Timer;
 class CounterBase : public ComBase<IMGDFPerformanceCounter> {
  public:
   virtual ~CounterBase();
-  CounterBase(const char *name, UINT32 maxSamples, Timer &timer);
+  CounterBase(IMGDFMetric *metric, Timer &timer);
 
-  HRESULT __stdcall GetName(char *name, UINT64 *length) final;
-
-  double __stdcall GetAvgValue() final;
+  void __stdcall GetMetric(IMGDFMetric **metric) final;
+  HRESULT __stdcall Begin(const small **tags, const small **tagValues,
+                          UINT64 tagCount,
+                          IMGDFPerformanceCounterScope **scope) final;
 
  protected:
-  void AddSample(double sample);
-  bool _started;
-  std::string _name;
+  virtual HRESULT DoBegin(std::map<std::string, std::string> &tags,
+                          IMGDFPerformanceCounterScope **scope) = 0;
   Timer &_timer;
+  ComObject<IMGDFMetric> _metric;
+};
+
+class CPUPerformanceCounter;
+
+class CPUPerformanceCounterScope
+    : public ComBase<IMGDFPerformanceCounterScope> {
+ public:
+  CPUPerformanceCounterScope(CPUPerformanceCounter *counter,
+                             std::map<std::string, std::string> &tags);
+  virtual ~CPUPerformanceCounterScope();
 
  private:
-  mutable std::mutex _mutex;
-  double _avg;
-
-  UINT32 _maxSamples;
-  std::deque<double> _samples;
+  std::map<std::string, std::string> _tags;
+  CPUPerformanceCounter *_counter;
+  LARGE_INTEGER _start;
 };
 
 class CPUPerformanceCounter : public CounterBase {
  public:
+  friend class CPUPerformanceCounterScope;
   virtual ~CPUPerformanceCounter();
-  CPUPerformanceCounter(const char *name, UINT32 maxSamples, Timer &timer,
+  CPUPerformanceCounter(IMGDFMetric *metric, Timer &timer,
                         LARGE_INTEGER frequency);
 
-  void __stdcall Begin() final;
-  void __stdcall End() final;
+ protected:
+  HRESULT DoBegin(std::map<std::string, std::string> &tags,
+                  IMGDFPerformanceCounterScope **scope) final;
 
  private:
-  LARGE_INTEGER _start;
   LARGE_INTEGER _frequency;
+};
+
+class GPUPerformanceCounter;
+
+class GPUPerformanceCounterScope
+    : public ComBase<IMGDFPerformanceCounterScope> {
+ public:
+  GPUPerformanceCounterScope(ComObject<ID3D11DeviceContext> &context,
+                             ComObject<ID3D11Query> &endQuery)
+      : _context(context), _endQuery(endQuery) {}
+  virtual ~GPUPerformanceCounterScope();
+
+ private:
+  ComObject<ID3D11DeviceContext> _context;
+  ComObject<ID3D11Query> _endQuery;
 };
 
 class GPUPerformanceCounter : public CounterBase {
  public:
   virtual ~GPUPerformanceCounter();
-  GPUPerformanceCounter(const char *name, UINT32 maxSamples, Timer &timer);
+  GPUPerformanceCounter(IMGDFMetric *metric, Timer &timer);
 
-  void __stdcall Begin() final;
-  void __stdcall End() final;
-
-  void ForceEnd();
   void Init(const ComObject<ID3D11Device> &device,
-            const ComObject<ID3D11DeviceContext> &context, UINT bufferSize);
+            const ComObject<ID3D11DeviceContext> &context);
   void Reset();
   void DataReady(ID3D11Query *disjoint, UINT64 frequency);
   void DataDisjoint(ID3D11Query *disjoint);
   void SetDisjointQuery(ID3D11Query *disjoint);
 
+ protected:
+  HRESULT DoBegin(std::map<std::string, std::string> &tags,
+                  IMGDFPerformanceCounterScope **scope) final;
+
  private:
-  std::unordered_map<ID3D11Query *,
-                     std::pair<ComObject<ID3D11Query>, ComObject<ID3D11Query>>>
-      _pendingQueries;
+  struct ScopeMapping {
+    ComObject<ID3D11Query> Begin;
+    ComObject<ID3D11Query> End;
+    std::map<std::string, std::string> Tags;
+  };
+
+  std::unordered_map<ID3D11Query *, std::vector<ScopeMapping>> _pendingQueries;
   std::stack<ComObject<ID3D11Query>> _beginQueries;
   std::stack<ComObject<ID3D11Query>> _endQueries;
   ID3D11Query *_currentDisjoint;
+  ComObject<ID3D11Device> _device;
   ComObject<ID3D11DeviceContext> _context;
-  bool _hasRun;
 };
 
 /**
@@ -97,15 +127,16 @@ class Timer : public ComBase<IMGDFTimer> {
   double __stdcall ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
                                               LARGE_INTEGER oldTime) final;
 
-  HRESULT CreateCPUCounter(const char *name, IMGDFPerformanceCounter **counter);
-  HRESULT CreateGPUCounter(const char *name, IMGDFPerformanceCounter **counter);
+  HRESULT CreateCPUCounter(IMGDFMetric *metric,
+                           IMGDFPerformanceCounter **counter);
+  HRESULT CreateGPUCounter(IMGDFMetric *metric,
+                           IMGDFPerformanceCounter **counter);
 
   void BeforeDeviceReset();
   void InitFromDevice(const ComObject<ID3D11Device> &device, UINT32 bufferSize);
 
   void Begin();
   void End();
-  void GetCounterInformation(TextStream &outputStream) const;
 
   template <typename T>
   void RemoveCounter(T *counter) {

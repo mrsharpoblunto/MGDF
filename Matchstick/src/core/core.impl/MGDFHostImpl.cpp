@@ -11,6 +11,7 @@
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 #include "MGDFCurrentDirectoryHelper.hpp"
+#include "MGDFMetrics.hpp"
 #include "MGDFParameterConstants.hpp"
 
 #if defined(_DEBUG)
@@ -468,14 +469,41 @@ void Host::ClearWorkingDirectory() {
   }
 }
 
-HRESULT Host::CreateCPUCounter(const char *name,
+HRESULT Host::CreateCPUCounter(IMGDFMetric *metric,
                                IMGDFPerformanceCounter **counter) {
-  return _timer->CreateCPUCounter(name, counter);
+  return _timer->CreateCPUCounter(metric, counter);
 }
 
-HRESULT Host::CreateGPUCounter(const char *name,
+HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
                                IMGDFPerformanceCounter **counter) {
-  return _timer->CreateGPUCounter(name, counter);
+  return _timer->CreateGPUCounter(metric, counter);
+}
+
+HRESULT Host::CreateCounterMetric(const small *name, const small *description,
+                                  IMGDFMetric **metric) {
+  if (!name || !description) return E_FAIL;
+  return CreateMetric<CounterMetric>(name, metric, [=]() {
+    return std::make_shared<CounterMetric>(name, description);
+  });
+}
+
+HRESULT Host::CreateGaugeMetric(const small *name, const small *description,
+                                IMGDFMetric **metric) {
+  if (!name || !description) return E_FAIL;
+  return CreateMetric<GaugeMetric>(name, metric, [=]() {
+    return std::make_shared<GaugeMetric>(name, description);
+  });
+}
+
+HRESULT Host::CreateHistogramMetric(const small *name, const small *description,
+                                    const double *buckets,
+                                    const UINT64 bucketCount,
+                                    IMGDFMetric **metric) {
+  if (!name || !description || (!buckets && bucketCount)) return E_FAIL;
+  return CreateMetric<HistogramMetric>(name, metric, [=]() {
+    return std::make_shared<HistogramMetric>(name, description, buckets,
+                                             bucketCount);
+  });
 }
 
 }  // namespace core

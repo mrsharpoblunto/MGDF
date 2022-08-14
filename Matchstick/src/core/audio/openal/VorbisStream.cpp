@@ -463,7 +463,7 @@ int VorbisStream::ov_seek_func(void *datasource, ogg_int64_t offset,
 }
 
 int VorbisStream::ov_close_func(void *datasource) {
-  (void)datasource;
+  std::ignore = datasource;
   return 0;
 }
 

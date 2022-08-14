@@ -38,7 +38,8 @@ void HttpServer::HandleRequest(struct mg_connection* c, int ev, void* ev_data,
   std::ignore = ev;
   if (ev == MG_EV_HTTP_MSG || ev == MG_EV_HTTP_CHUNK) {
     HttpServer* server = static_cast<HttpServer*>(fn_data);
-    server->OnRequest(c, ev, ev_data);
+    struct mg_http_message* hm = (struct mg_http_message*)ev_data;
+    server->OnRequest(c, hm);
   }
 }
 
