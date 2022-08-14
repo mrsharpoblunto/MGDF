@@ -3,6 +3,7 @@
 #include <MGDF/MGDF.h>
 
 #include <MGDF/ComObject.hpp>
+#include <chrono>
 #include <map>
 #include <mutex>
 #include <sstream>
@@ -44,7 +45,7 @@ class MetricImpl : public MetricBase {
     bool first = true;
     for (auto &it : tagMap) {
       if (!first) {
-        tagKey << ",";
+        tagKey << ", ";
       } else {
         first = false;
       }
@@ -61,7 +62,10 @@ class MetricImpl : public MetricBase {
                                             MetricStorage{.Timestamp = 0}))
                     .first;
       }
-      found->second.Timestamp = std::time(0);
+      found->second.Timestamp =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::system_clock::now().time_since_epoch())
+              .count();
       DoRecord(value, found->second);
       _hasRecorded = true;
     }
@@ -70,9 +74,9 @@ class MetricImpl : public MetricBase {
   void Dump(std::ostringstream &output) final {
     std::lock_guard lock(_mutex);
     if (_hasRecorded) {
-      output << "# HELP " << _description << std::endl;
+      output << "# HELP " << _description << "\n";
       DoDump(output, _name, _metric);
-      output << std::endl;
+      output << "\n";
     }
   }
 

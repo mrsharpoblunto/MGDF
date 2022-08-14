@@ -16,11 +16,12 @@ const char* S_EMPTY_KEY = "{}";
 void CounterMetric::DoDump(
     std::ostringstream& output, std::string& name,
     std::unordered_map<std::string, MetricStorage>& storage) {
-  output << "# TYPE " << name << " counter" << std::endl;
+  output << "# TYPE " << name << " counter"
+         << "\n";
   for (auto& it : storage) {
     const char* key = it.first == "{}" ? "" : it.first.c_str();
     output << name << key << " " << it.second.Metric << " "
-           << it.second.Timestamp << std::endl;
+           << it.second.Timestamp << "\n";
   }
 }
 
@@ -31,11 +32,12 @@ void CounterMetric::DoRecord(double value, MetricStorage& storage) {
 void GaugeMetric::DoDump(
     std::ostringstream& output, std::string& name,
     std::unordered_map<std::string, MetricStorage>& storage) {
-  output << "# TYPE " << name << " gauge" << std::endl;
+  output << "# TYPE " << name << " gauge"
+         << "\n";
   for (auto& it : storage) {
     const char* key = it.first == "{}" ? "" : it.first.c_str();
     output << name << key << " " << it.second.Metric << " "
-           << it.second.Timestamp << std::endl;
+           << it.second.Timestamp << "\n";
   }
 }
 
@@ -70,22 +72,23 @@ void HistogramMetric::DoRecord(double value, MetricStorage& storage) {
 void HistogramMetric::DoDump(
     std::ostringstream& output, std::string& name,
     std::unordered_map<std::string, MetricStorage>& storage) {
-  output << "# TYPE " << name << " histogram" << std::endl;
+  output << "# TYPE " << name << " histogram"
+         << "\n";
   for (auto& it : storage) {
     const bool emptyKey = it.first == "{}";
-    const char* key = emptyKey ? "" : it.first.c_str();
     size_t i = 0;
     for (auto& b : it.second.Metric.Buckets) {
       const auto last = i == it.second.Metric.Buckets.size() - 1;
       output << name << "_bucket{le=\""
              << (last ? "+Inf" : std::to_string(b.first)) << "\""
-             << (!emptyKey ? "," : "") << &(key[1]) << " " << b.second
-             << std::endl;
+             << (!emptyKey ? ", " : "}")
+             << (!emptyKey ? (it.first.c_str() + 1) : "") << " " << b.second
+             << "\n";
       ++i;
     }
-    output << name << "_sum" << key << " " << it.second.Metric.Sum << std::endl;
-    output << name << "_count" << key << " " << it.second.Metric.Count
-           << std::endl;
+    const char* key = emptyKey ? "" : it.first.c_str();
+    output << name << "_sum" << key << " " << it.second.Metric.Sum << "\n";
+    output << name << "_count" << key << " " << it.second.Metric.Count << "\n";
   }
 }
 }  // namespace core
