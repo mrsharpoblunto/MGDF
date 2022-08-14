@@ -404,8 +404,14 @@ typedef enum MGDFLogLevel {
   \param tagValues the values for any tags in this recording of the metric, pass NULL if no tags are to be included
   \param tagCount the number of tags in the tags array, pass 0 if no tags are to be included
 */
-  void Record([in] double value, [in] const small **tags,
-              [in] const small **tagValues, [in] const UINT64 tagCount);
+  void RecordTagged([in] double value, [in] const small **tags,
+                    [in] const small **tagValues, [in] const UINT64 tagCount);
+
+  /**
+  records the latest value of the metric
+  \param value the latest value of the metric
+*/
+  void Record([in] double value);
 };
 
 /**
@@ -443,8 +449,17 @@ typedef enum MGDFLogLevel {
   \return S_OK if the the performance counter scope was created, otherwise will return an error code
    */
   HRESULT
-  Begin([in] const small **tags, [in] const small **tagValues,
-        [in] UINT64 tagCount, [out] IMGDFPerformanceCounterScope **scope);
+  BeginTagged([in] const small **tags, [in] const small **tagValues,
+              [in] UINT64 tagCount, [out] IMGDFPerformanceCounterScope **scope);
+
+  /**
+   Begin timing by creating a performance counter scope. The timing is recorded
+ at the point the scope is released
+  \param scope points to the performance counter scope created
+  \return S_OK if the the performance counter scope was created, otherwise will return an error code
+   */
+  HRESULT
+  Begin([out] IMGDFPerformanceCounterScope * *scope);
 
   /**
   Get the average value recorded by this timer

@@ -83,7 +83,7 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
 
   {
     ComObject<IMGDFPerformanceCounterScope> counterScope;
-    _testModuleCounter->Begin(nullptr, nullptr, 0, counterScope.Assign());
+    _testModuleCounter->Begin(counterScope.Assign());
     auto next = std::unique_ptr<TestModule>(
         _testModule->Update(host, _stateBuffer.Pending()));
 
@@ -112,8 +112,7 @@ BOOL Module::RTDraw(IMGDFRenderHost* host, double alpha) {
   std::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
     ComObject<IMGDFPerformanceCounterScope> counter;
-    if (_textManagerCounter)
-      _textManagerCounter->Begin(nullptr, nullptr, 0, counter.Assign());
+    if (_textManagerCounter) _textManagerCounter->Begin(counter.Assign());
     _textManager->SetState(state);
     _textManager->DrawText();
   }

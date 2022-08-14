@@ -32,8 +32,13 @@ class MetricImpl : public MetricBase {
 
   virtual ~MetricImpl() {}
 
-  void __stdcall Record(double value, const small **tags,
-                        const small **tagValues, const UINT64 tagCount) final {
+  void __stdcall Record(double value) final {
+    RecordTagged(value, nullptr, nullptr, 0);
+  }
+
+  void __stdcall RecordTagged(double value, const small **tags,
+                              const small **tagValues,
+                              const UINT64 tagCount) final {
     std::map<std::string_view, std::string_view> tagMap;
     for (UINT64 i = 0; i < tagCount; ++i) {
       tagMap.emplace(std::make_pair(std::string_view(tags[i]),

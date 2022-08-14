@@ -28,9 +28,12 @@ class CounterBase : public ComBase<IMGDFPerformanceCounter> {
   CounterBase(IMGDFMetric *metric, Timer &timer);
 
   void __stdcall GetMetric(IMGDFMetric **metric) final;
-  HRESULT __stdcall Begin(const small **tags, const small **tagValues,
-                          UINT64 tagCount,
-                          IMGDFPerformanceCounterScope **scope) final;
+  HRESULT __stdcall Begin(IMGDFPerformanceCounterScope **scope) final {
+    return BeginTagged(nullptr, nullptr, 0, scope);
+  }
+  HRESULT __stdcall BeginTagged(const small **tags, const small **tagValues,
+                                UINT64 tagCount,
+                                IMGDFPerformanceCounterScope **scope) final;
 
   double __stdcall GetAverageValue() final;
 
