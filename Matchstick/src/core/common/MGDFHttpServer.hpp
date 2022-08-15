@@ -6,7 +6,7 @@
 #include "mongoose.h"
 
 namespace MGDF {
-namespace common {
+namespace core {
 
 class HttpServer {
  public:
@@ -27,7 +27,5 @@ class HttpServer {
   std::thread _pollThread;
 };
 
-class HttpClient {};
-
-}  // namespace common
+}  // namespace core
 }  // namespace MGDF

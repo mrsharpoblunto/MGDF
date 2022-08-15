@@ -267,10 +267,14 @@ HRESULT Timer::Init() {
 }
 
 Timer::~Timer(void) {
-  LOG("CPUTimer still has " << _cpuCounters.size() << " live references",
-      MGDF_LOG_ERROR);
-  LOG("GPUTimer still has " << _gpuCounters.size() << " live references",
-      MGDF_LOG_ERROR);
+  if (_cpuCounters.size()) {
+    LOG("CPUTimer still has " << _cpuCounters.size() << " live references",
+        MGDF_LOG_ERROR);
+  }
+  if (_gpuCounters.size()) {
+    LOG("GPUTimer still has " << _gpuCounters.size() << " live references",
+        MGDF_LOG_ERROR);
+  }
 
   ResetGPUTimers();
 }

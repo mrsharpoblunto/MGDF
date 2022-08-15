@@ -2,10 +2,14 @@
 
 #include "MGDFLoggerImpl.hpp"
 
+#include <json/json.h>
+
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 
+#include "MGDFHttpClient.hpp"
 #include "MGDFResources.hpp"
 
 #if defined(_DEBUG)
@@ -13,16 +17,27 @@
 #pragma warning(disable : 4291)
 #endif
 
+using namespace std::chrono_literals;
+
 namespace MGDF {
 namespace core {
 
-#define LOG_BUFFER_SIZE 10
+// wait for either this many log entries, or the timeout to
+// periodically flush logs
+#define LOG_BUFFER_SIZE 100
+#define LOG_FLUSH_TIMEOUT 5s
+
+size_t GetTimeStamp() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
 
 void MGDFLog(std::function<void(std::ostringstream &)> msg, MGDFLogLevel level,
              const char *file, int line) {
   if (level <= Logger::Instance().GetLoggingLevel()) {
     std::ostringstream ss;
-    ss << file << "(" << line << "): ";
+    ss << file << "(" << line << ")";
     std::ostringstream ms;
     msg(ms);
     Logger::Instance().Log(ss.str().c_str(), ms.str().c_str(), level);
@@ -34,14 +49,18 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
   _ASSERTE(message);
 
   if (level <= _level.load()) {
-    std::ostringstream stream;
-    stream << sender << " " << message << "\n";
 #if defined(_DEBUG)
+    std::ostringstream stream;
+    stream << sender << ": " << message << "\n";
     OutputDebugString(stream.str().c_str());
 #endif
     {
       std::unique_lock<std::mutex> lock(_mutex);
-      _events.push_back(stream.str());
+      const auto timestamp = GetTimeStamp();
+      _events.push_back(LogEntry{.Level = level,
+                                 .Timestamp = timestamp,
+                                 .Sender = sender,
+                                 .Message = message});
       if (_events.size() >= LOG_BUFFER_SIZE) {
         // add a batch of events to flush & notify the flush thread
         _flushEvents.assign(_events.begin(), _events.end());
@@ -71,17 +90,72 @@ Logger::Logger() {
   _flushThread = std::thread([this]() {
     std::unique_lock<std::mutex> lock(_mutex);
     while (_runLogger) {
-      _cv.wait(lock, [this] { return !_runLogger || _flushEvents.size() > 0; });
-      std::vector<std::string> tmp(_flushEvents);
+      _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
+                   [this] { return !_runLogger || _flushEvents.size() > 0; });
+      std::vector<LogEntry> tmp(std::move(_flushEvents));
       _flushEvents.clear();
       lock.unlock();
 
-      std::ofstream outFile;
-      outFile.open(_filename.c_str(), std::ios::app);
-      for (const std::string &evt : tmp) {
-        outFile << evt;
+      if (tmp.size()) {
+        if (_remoteEndpoint.size()) {
+          Json::Value root;
+          Json::Value &streams = root["streams"] =
+              Json::Value(Json::arrayValue);
+          Json::Value &stream = streams.append(Json::Value(Json::objectValue));
+          Json::Value &streamLabel = stream["stream"] =
+              Json::Value(Json::objectValue);
+          streamLabel["label"] = "MGDF";
+          Json::Value &values = stream["values"] =
+              Json::Value(Json::arrayValue);
+
+          for (const auto &evt : tmp) {
+            std::string levelKey;
+            switch (evt.Level) {
+              case MGDF_LOG_ERROR:
+                levelKey = "error";
+                break;
+              case MGDF_LOG_LOW:
+                levelKey = "info";
+                break;
+              case MGDF_LOG_MEDIUM:
+                levelKey = "notice";
+                break;
+              case MGDF_LOG_HIGH:
+                levelKey = "debug";
+                break;
+            }
+            auto &value = values.append(Json::Value(Json::arrayValue));
+            std::ostringstream t;
+            t << evt.Timestamp * 1000000;
+            value.append(t.str());
+            std::ostringstream m;
+            m << "[" << levelKey << "] sender=" << evt.Sender << " "
+              << evt.Message;
+            value.append(m.str());
+          }
+
+          HttpClient client;
+          const auto response = client.PostJson(_remoteEndpoint, root);
+          if (response != 200) {
+            std::ostringstream message;
+            message << "Unable to send logs to remote endpoint. status="
+                    << response << ", error=" << client.GetLastError();
+            std::ostringstream sender;
+            sender << __FILE__ << "(" << __LINE__ << ")";
+            tmp.push_back(LogEntry{.Level = MGDF_LOG_ERROR,
+                                   .Timestamp = GetTimeStamp(),
+                                   .Sender = sender.str(),
+                                   .Message = message.str()});
+          }
+        }
+
+        std::ofstream outFile;
+        outFile.open(_filename.c_str(), std::ios::app);
+        for (const auto &evt : tmp) {
+          outFile << evt.Sender << ": " << evt.Message << std::endl;
+        }
+        outFile.close();
       }
-      outFile.close();
 
       lock.lock();
     }
@@ -110,6 +184,10 @@ void Logger::SetOutputFile(const std::wstring &filename) {
 }
 
 void Logger::SetLoggingLevel(MGDFLogLevel level) { _level.store(level); }
+
+void Logger::SetRemoteEndpoint(const std::string &endpoint) {
+  _remoteEndpoint = endpoint + "/loki/api/v1/push";
+}
 
 MGDFLogLevel Logger::GetLoggingLevel() const { return _level; }
 

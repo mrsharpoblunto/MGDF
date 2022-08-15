@@ -29,6 +29,7 @@ class Logger {
     return log;
   }
 
+  void SetRemoteEndpoint(const std::string &endpoint);
   void SetLoggingLevel(MGDFLogLevel level);
   MGDFLogLevel GetLoggingLevel() const;
   void Log(const char *sender, const char *message, MGDFLogLevel level);
@@ -41,14 +42,22 @@ class Logger {
 
   void SetOutputFile(const std::wstring &);
 
+  struct LogEntry {
+    MGDFLogLevel Level;
+    size_t Timestamp;
+    std::string Sender;
+    std::string Message;
+  };
+
   std::mutex _mutex;
   std::condition_variable _cv;
-  std::vector<std::string> _events;
-  std::vector<std::string> _flushEvents;
+  std::vector<LogEntry> _events;
+  std::vector<LogEntry> _flushEvents;
   std::thread _flushThread;
   bool _runLogger;
   std::wstring _filename;
   std::atomic<MGDFLogLevel> _level;
+  std::string _remoteEndpoint;
 };
 
 }  // namespace core

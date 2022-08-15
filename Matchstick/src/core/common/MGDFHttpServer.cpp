@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
-#include "MGDFHttp.hpp"
+#include "MGDFHttpServer.hpp"
 
 namespace MGDF {
-namespace common {
+namespace core {
 
 HttpServer::HttpServer() : _conn(nullptr), _running(false) {}
 
@@ -43,5 +43,5 @@ void HttpServer::HandleRequest(struct mg_connection* c, int ev, void* ev_data,
   }
 }
 
-}  // namespace common
+}  // namespace core
 }  // namespace MGDF

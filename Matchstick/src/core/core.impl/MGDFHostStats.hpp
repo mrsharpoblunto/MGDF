@@ -5,13 +5,13 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "../common/MGDFHttp.hpp"
+#include "../common/MGDFHttpServer.hpp"
 #include "MGDFMetrics.hpp"
 
 namespace MGDF {
 namespace core {
 
-class HostStatsServer : public common::HttpServer {
+class HostStatsServer : public HttpServer {
  public:
   virtual ~HostStatsServer() {}
   HostStatsServer() : _updateResponse(false) {}

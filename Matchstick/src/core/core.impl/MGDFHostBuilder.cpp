@@ -180,6 +180,12 @@ void HostBuilder::InitLogger() {
       Logger::Instance().SetLoggingLevel(MGDF_LOG_HIGH);
     }
   }
+  if (ParameterManager::Instance().HasParameter(
+          ParameterConstants::LOG_ENDPOINT)) {
+    Logger::Instance().SetRemoteEndpoint(
+        ParameterManager::Instance().GetParameter(
+            ParameterConstants::LOG_ENDPOINT));
+  }
 }
 
 void HostBuilder::InitResources(std::string gameUid) {
