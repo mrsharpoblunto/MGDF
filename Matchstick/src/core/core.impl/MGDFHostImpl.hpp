@@ -145,7 +145,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
     if (found == _metrics.end()) {
       found = _metrics.insert(std::make_pair(name, metricFactory())).first;
     }
-    ComObject<IMGDFMetric> com(found->second, true);
+    auto com = MakeComFromPtr<IMGDFMetric>(found->second);
     com.AddRawRef(metric);
     return S_OK;
   }

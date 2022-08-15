@@ -15,7 +15,17 @@ namespace core {
 void HostStatsServer::OnRequest(struct mg_connection* c,
                                 struct mg_http_message* m) {
   if (mg_http_match_uri(m, "/metrics")) {
-    std::lock_guard l(_responseMutex);
+    {
+      std::lock_guard lock(_metricsMutex);
+      if (_updateResponse) {
+        std::ostringstream oss;
+        for (auto& it : _metrics) {
+          it->Dump(oss);
+        }
+        _response = oss.str();
+        _updateResponse = false;
+      }
+    }
     mg_http_reply(c, 200, "Content-Type: text/plain; version=0.0.4\r\n",
                   _response.c_str());
   } else {
@@ -23,9 +33,19 @@ void HostStatsServer::OnRequest(struct mg_connection* c,
   }
 }
 
-void HostStatsServer::UpdateResponse(const std::string& response) {
-  std::lock_guard lock(_responseMutex);
-  _response = response;
+void HostStatsServer::UpdateResponse(
+    std::unordered_map<std::string, MetricBase*>& metrics) {
+  std::lock_guard lock(_metricsMutex);
+  _updateResponse = true;
+  // metrics only ever get added, not removed
+  // so a size comparison is enough to know if there have
+  // been any changes
+  if (_metrics.size() != metrics.size()) {
+    _metrics.clear();
+    for (auto& it : metrics) {
+      _metrics.push_back(MakeComFromPtr<MetricBase>(it.second));
+    }
+  }
 }
 
 HostStats::HostStats(UINT32 maxSamples)
@@ -48,10 +68,7 @@ void HostStats::UpdateMetrics(
     std::unordered_map<std::string, MetricBase*>& metrics) {
   std::ostringstream oss;
   if (_server.Listening()) {
-    for (auto& it : metrics) {
-      it.second->Dump(oss);
-    }
-    _server.UpdateResponse(oss.str());
+    _server.UpdateResponse(metrics);
   }
 }
 

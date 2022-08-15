@@ -14,12 +14,15 @@ namespace core {
 class HostStatsServer : public common::HttpServer {
  public:
   virtual ~HostStatsServer() {}
+  HostStatsServer() : _updateResponse(false) {}
   void OnRequest(struct mg_connection *c, struct mg_http_message *m) final;
-  void UpdateResponse(const std::string &response);
+  void UpdateResponse(std::unordered_map<std::string, MetricBase *> &metrics);
 
  private:
   std::string _response;
-  std::mutex _responseMutex;
+  bool _updateResponse;
+  std::vector<ComObject<MetricBase>> _metrics;
+  std::mutex _metricsMutex;
 };
 
 struct Timings {
