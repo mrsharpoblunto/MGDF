@@ -129,8 +129,8 @@ Logger::Logger() {
             t << evt.Timestamp * 1000000;
             value.append(t.str());
             std::ostringstream m;
-            m << "[" << levelKey << "] sender=" << evt.Sender << " "
-              << evt.Message;
+            m << "lvl=" << levelKey << " sender=" << evt.Sender << " "
+              << "message=\"" << evt.Message << "\"";
             value.append(m.str());
           }
 
