@@ -43,7 +43,8 @@ void HttpClient::HandleResponse(struct mg_connection* c, int ev, void* ev_data,
     struct mg_str host = mg_url_host(client->_url.c_str());
 
     if (mg_url_is_ssl(client->_url.c_str())) {
-      mg_error(c, "TLS not supported");
+      struct mg_tls_opts opts = {.ca = nullptr, .srvname = host};
+      mg_tls_init(c, &opts);
     }
 
     std::ostringstream oss;

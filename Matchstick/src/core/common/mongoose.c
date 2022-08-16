@@ -21,6 +21,7 @@
 
 #pragma warning(disable : 4267)
 #pragma warning(disable : 4244)
+#pragma warning(disable : 4057)
 
 #ifdef MG_ENABLE_LINES
 #line 1 "src/base64.c"
