@@ -88,6 +88,7 @@ Logger::Logger() {
 
   _runLogger = true;
   _flushThread = std::thread([this]() {
+    HttpClient client;
     std::unique_lock<std::mutex> lock(_mutex);
     while (_runLogger) {
       _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
@@ -134,7 +135,6 @@ Logger::Logger() {
             value.append(m.str());
           }
 
-          HttpClient client;
           const auto response = client.PostJson(_remoteEndpoint, root);
           if (response != 200) {
             std::ostringstream message;
