@@ -389,6 +389,12 @@ typedef enum MGDFLogLevel {
            MGDFLogLevel level);
 };
 
+typedef struct MGDFTags {
+  const small **Names;
+  const small **Values;
+  UINT64 Count;
+} MGDFTags;
+
 /**
  Allows recording of a metric value over time. These can then be exposed via the
  Prometheus metrics server endpoint when enabled
@@ -401,17 +407,8 @@ typedef enum MGDFLogLevel {
   records the latest value of the metric
   \param value the latest value of the metric
   \param tags any tags to identify with this recording of the metric, pass NULL if no tags are to be included
-  \param tagValues the values for any tags in this recording of the metric, pass NULL if no tags are to be included
-  \param tagCount the number of tags in the tags array, pass 0 if no tags are to be included
 */
-  void RecordTagged([in] double value, [in] const small **tags,
-                    [in] const small **tagValues, [in] const UINT64 tagCount);
-
-  /**
-  records the latest value of the metric
-  \param value the latest value of the metric
-*/
-  void Record([in] double value);
+  void Record([in] double value, [in] const MGDFTags *tags);
 };
 
 /**
@@ -443,23 +440,11 @@ typedef enum MGDFLogLevel {
    Begin timing by creating a performance counter scope. The timing is recorded
  at the point the scope is released
   \param tags any tags to identify with this counter, pass NULL if no tags are to be included
-  \param tagValues the values for any tags in this recording of the metric, pass NULL if no tags are to be included
-  \param tagCount the number of tags in the tags array, pass 0 if no tags are to be included
   \param scope points to the performance counter scope created
   \return S_OK if the the performance counter scope was created, otherwise will return an error code
    */
   HRESULT
-  BeginTagged([in] const small **tags, [in] const small **tagValues,
-              [in] UINT64 tagCount, [out] IMGDFPerformanceCounterScope **scope);
-
-  /**
-   Begin timing by creating a performance counter scope. The timing is recorded
- at the point the scope is released
-  \param scope points to the performance counter scope created
-  \return S_OK if the the performance counter scope was created, otherwise will return an error code
-   */
-  HRESULT
-  Begin([out] IMGDFPerformanceCounterScope * *scope);
+  Begin([in] const MGDFTags *tags, [out] IMGDFPerformanceCounterScope **scope);
 
   /**
   Get the average value recorded by this timer
@@ -1535,22 +1520,28 @@ A vorbis sound stream
 };
 
 /**
- Provides an interface for recording statistics during a game session.
- If the game has a statistics service configured, the stats log will be uploaded
- by the GamesManager at the end of a play session.
+ Provides an interface for pushing statistics to a remote endpoint during a game
+ session.
  */
 [
   uuid("F809B9CB-AE6B-43EE-8ACC-40BCB11014E1"), object,
   local
 ] interface IMGDFStatisticsManager : IUnknown {
   /**
-   Logs a statistic as a key/value pair
+   Pushes a statistic to the remote statistics service (if one is specified)
    \param name the name of the statistic tracker key
    \param value the value of the statistic
-   \return S_OK if the statistic could be saved, otherwise E_FAIL. Note names or values
-   more than 255 characters in length are invalid and will fail
+   \param tags any tags to pass with the statistic (null if none are to be included)
    */
-  HRESULT SaveStatistic([in] const small *name, [in] const small *value);
+  void PushString([in] const small *name, [in] const small *value,
+                  [in] const MGDFTags *tags);
+
+  /**
+   Pushes a metrics current value to the remote statistics service (if one is
+   specified)
+   \param metric the metric to push, this will be passed to the statistics service as a name/value pair
+   */
+  void PushMetric([in] IMGDFMetric * metric);
 };
 
 /**

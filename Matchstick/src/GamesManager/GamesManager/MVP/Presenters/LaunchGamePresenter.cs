@@ -144,7 +144,13 @@ namespace MGDF.GamesManager.MVP.Presenters
 
     public void Launch()
     {
-      ProcessManager.Current.StartProcess(Resources.MGDFExecutable, Resources.CoreBootArguments(), GameExited, Game.Current);
+
+      string args = Resources.CoreBootArguments();
+      if (StatisticsSession.GetStatisticsPermission(Game.Current, GetStatisticsPermission))
+      {
+        args += " " + Resources.StatisticsServiceArguments(Game.Current.StatisticsService);
+      }
+      ProcessManager.Current.StartProcess(Resources.MGDFExecutable, args, GameExited, Game.Current);
       View.Invoke(() => View.Hide());
     }
 
@@ -160,45 +166,6 @@ namespace MGDF.GamesManager.MVP.Presenters
                                                                                     "An unhandled exception or fatal MGDF error has occurred");
           presenter.ShowView(View);
         });
-      }
-      else if (StatisticsSession.CanSendStatistics(Game.Current))
-      {
-        IFile statisticsFile = FileSystem.Current.GetFile(Resources.UserStatistics());
-        if (statisticsFile.Exists)
-        {
-          try
-          {
-            if (StatisticsSession.GetStatisticsPermission(Game.Current, GetStatisticsPermission))
-            {
-              Logger.Current.Write(LogInfoLevel.Info, "Sending statistics...");
-              StatisticsSession session = new StatisticsSession(Game.Current.Uid, Game.Current.StatisticsService, statisticsFile.FullName);
-              if (session.Bundles.Count > 0)
-              {
-                StatisticsServiceClient client = new StatisticsServiceClient(session);
-
-                List<String> errors = new List<string>();
-                client.SendStatistics(errors);
-                foreach (var error in errors)
-                {
-                  Logger.Current.Write(LogInfoLevel.Error, error);
-                }
-              }
-              Logger.Current.Write(LogInfoLevel.Info, "Statistics sent.");
-            }
-          }
-          catch (Exception ex)
-          {
-            Logger.Current.Write(ex, "Unable to send statistics");
-          }
-          finally
-          {
-            statisticsFile.DeleteWithTimeout();
-          }
-        }
-      }
-      else if (!string.IsNullOrEmpty(Game.Current.StatisticsService))
-      {
-        Logger.Current.Write(LogInfoLevel.Warning, "Cannot send statistics due to missing privacy policy url");
       }
 
       View.Invoke(() =>

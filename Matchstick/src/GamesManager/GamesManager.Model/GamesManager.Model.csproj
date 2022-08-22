@@ -135,10 +135,6 @@
       <Project>{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}</Project>
       <Name>GamesManager.Common</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GamesManager.StatisticsService.Contracts\GamesManager.StatisticsService.Contracts.csproj">
-      <Project>{54EABEB3-4FF1-43DD-AEC2-5CBD566E3942}</Project>
-      <Name>GamesManager.StatisticsService.Contracts</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="IWshRuntimeLibrary">

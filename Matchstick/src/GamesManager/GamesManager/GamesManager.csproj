@@ -216,10 +216,6 @@
       <Project>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</Project>
       <Name>GamesManager.Model</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GamesManager.StatisticsService.Contracts\GamesManager.StatisticsService.Contracts.csproj">
-      <Project>{54EABEB3-4FF1-43DD-AEC2-5CBD566E3942}</Project>
-      <Name>GamesManager.StatisticsService.Contracts</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="Images\ajax-loader.gif" />

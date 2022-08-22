@@ -45,13 +45,14 @@ double CounterBase::GetAverageValue() {
 
 void CounterBase::GetMetric(IMGDFMetric **metric) { _metric.AddRawRef(metric); }
 
-HRESULT CounterBase::BeginTagged(const small **tags, const small **tagValues,
-                                 UINT64 tagCount,
-                                 IMGDFPerformanceCounterScope **scope) {
+HRESULT CounterBase::Begin(const MGDFTags *tags,
+                           IMGDFPerformanceCounterScope **scope) {
   std::map<std::string, std::string> tagMap;
-  for (UINT64 i = 0; i < tagCount; ++i) {
-    tagMap.emplace(
-        std::make_pair(std::string(tags[i]), std::string(tagValues[i])));
+  if (tags) {
+    for (UINT64 i = 0; i < tags->Count; ++i) {
+      tagMap.emplace(std::make_pair(std::string(tags->Names[i]),
+                                    std::string(tags->Values[i])));
+    }
   }
   return DoBegin(tagMap, scope);
 }
@@ -79,8 +80,10 @@ CPUPerformanceCounterScope::~CPUPerformanceCounterScope() {
   }
   const auto value = (double)diff / _counter->_frequency.QuadPart;
   _counter->AddSample(value);
-  _counter->_metric->RecordTagged(value, tagNames.data(), tagValues.data(),
-                                  tagNames.size());
+  const MGDFTags tags{.Names = tagNames.data(),
+                      .Values = tagValues.data(),
+                      .Count = tagNames.size()};
+  _counter->_metric->Record(value, &tags);
 }
 
 CPUPerformanceCounter::~CPUPerformanceCounter() { _timer.RemoveCounter(this); }
@@ -225,8 +228,10 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
           tagValues.emplace_back(t.second.c_str());
         }
         AddSample(value);
-        _metric->RecordTagged(value, tagNames.data(), tagValues.data(),
-                              jt.Tags.size());
+        MGDFTags tags{.Names = tagNames.data(),
+                      .Values = tagValues.data(),
+                      .Count = tagNames.size()};
+        _metric->Record(value, &tags);
       }
     }
 

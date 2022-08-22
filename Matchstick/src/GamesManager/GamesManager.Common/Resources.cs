@@ -28,7 +28,6 @@ namespace MGDF.GamesManager.Common
     public const string UpdateConfig = @"update.json";
     public const string GameConfig = @"game.json";
     public const string PreferencesConfig = @"preferences.json";
-    public const string Statistics = @"statistics.txt";
     public const string GameIcon = "gameicon.png";
     public const string GameSystemIcon = "gamesystemicon.ico";
     public const string LastUpdate = ".lastupdate";
@@ -86,6 +85,11 @@ namespace MGDF.GamesManager.Common
     public static string CoreBootArguments()
     {
       return "-hideerrors" + (!string.IsNullOrEmpty(_gameDir) ? (" -gamediroverride \"" + _gameDir + "\"") : string.Empty) + (_userDirOverridden ? " -userdiroverride" : string.Empty);
+    }
+
+    public static string StatisticsServiceArguments(string endpoint)
+    {
+      return "-statisticsendpoint " + endpoint;
     }
 
     public static string GamesManagerBootArguments(string gameUpdate, string gameUpdateHash, string frameworkUpdate, string frameworkUpdateHash)
@@ -171,11 +175,6 @@ namespace MGDF.GamesManager.Common
     public static string UserGameLastUpdateFile()
     {
       return FileSystem.Combine(GameUserDir, LastUpdate);
-    }
-
-    public static string UserStatistics()
-    {
-      return FileSystem.Combine(GameUserDir, Statistics);
     }
 
     public static void UninitUserDirectory()

@@ -66,6 +66,12 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _backBuffer(nullptr) {
   _shutdownQueued.store(false);
   _ASSERTE(game);
+
+  if (ParameterManager::Instance().HasParameter(
+          ParameterConstants::STATISTICS_ENDPOINT)) {
+    _stats->SetRemoteEndpoint(ParameterManager::Instance().GetParameter(
+        ParameterConstants::STATISTICS_ENDPOINT));
+  }
 }
 
 ULONG Host::AddRef() { return ++_references; };

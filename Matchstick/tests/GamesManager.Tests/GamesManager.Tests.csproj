@@ -84,9 +84,7 @@
     <Compile Include="FrameworkUpdateTests.cs" />
     <Compile Include="GameInstallerTests.cs" />
     <Compile Include="GamesUpdaterTests.cs" />
-    <Compile Include="MockStatisticsService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StatisticsTests.cs" />
     <Compile Include="StorageEntityTests.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -97,10 +95,6 @@
     <ProjectReference Include="..\..\src\GamesManager\GamesManager.Model\GamesManager.Model.csproj">
       <Project>{A5292682-B9B4-45D4-A867-0DDCD09A97F1}</Project>
       <Name>GamesManager.Model</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\GamesManager\GamesManager.StatisticsService.Contracts\GamesManager.StatisticsService.Contracts.csproj">
-      <Project>{54EABEB3-4FF1-43DD-AEC2-5CBD566E3942}</Project>
-      <Name>GamesManager.StatisticsService.Contracts</Name>
     </ProjectReference>
     <ProjectReference Include="..\GamesManager.Tests.Common\GamesManager.Tests.Common.csproj">
       <Project>{73C28FE8-F8A1-440A-8160-57DA7E318CD3}</Project>

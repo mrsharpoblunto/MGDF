@@ -2,9 +2,14 @@
 
 #include "MGDFStatisticsManagerImpl.hpp"
 
+#include <json/json.h>
+#include <objbase.h>
+
+#include <chrono>
 #include <fstream>
 #include <iostream>
 
+#include "../common/MGDFHttpClient.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFResources.hpp"
 
@@ -13,56 +18,126 @@
 #pragma warning(disable : 4291)
 #endif
 
+using namespace std::chrono_literals;
+
 namespace MGDF {
 namespace core {
 
 #define SEND_THRESHOLD 25
+#define STAT_FLUSH_TIMEOUT 5s
 
-StatisticsManager::StatisticsManager() : _startTime(time(NULL)) {
-  _statisticsFile = Resources::Instance().GameUserStatisticsFile();
+StatisticsManager::StatisticsManager()
+    : _sessionStart(std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now().time_since_epoch())
+                        .count()),
+      _enabled(false) {}
 
-  std::ofstream file(_statisticsFile.c_str(),
-                     std::ios_base::out | std::ios_base::trunc);
-  file.close();
-  LOG("StatisticsManager enabled", MGDF_LOG_LOW);
+void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
+  _remoteEndpoint = endpoint;
+  if (_enabled) return;
+
+  GUID guid;
+  if (CoCreateGuid(&guid) == S_OK) {
+    wchar_t buffer[40] = {0};
+    const auto length = StringFromGUID2(guid, buffer, 40);
+    if (length != 0) {
+      LOG("StatisticsManager enabled", MGDF_LOG_LOW);
+      _sessionId = Resources::ToString(buffer).substr(1, length - 3);
+      _enabled = true;
+    }
+  }
+
+  if (!_enabled) {
+    LOG("StatisticsManager could create session ID, will be disabled",
+        MGDF_LOG_ERROR);
+  } else {
+    _run = true;
+    _flushThread = std::thread([this]() {
+      HttpClient client;
+      std::unique_lock<std::mutex> lock(_mutex);
+      while (_run) {
+        _cv.wait_for(lock, STAT_FLUSH_TIMEOUT,
+                     [this] { return !_run || _events.size() > 0; });
+        std::vector<PushStatistic> tmp(std::move(_events));
+        _events.clear();
+        lock.unlock();
+
+        if (tmp.size()) {
+          Json::Value root;
+          root["sessionId"] = _sessionId;
+          Json::Value& streams = root["statistics"] =
+              Json::Value(Json::arrayValue);
+          for (const auto& s : tmp) {
+            Json::Value& statistic =
+                streams.append(Json::Value(Json::objectValue));
+            statistic["name"] = s.Name;
+            statistic["value"] = s.Value;
+            statistic["timestamp"] = static_cast<double>(s.Timestamp);
+            Json::Value& tags = statistic["tags"] =
+                Json::Value(Json::objectValue);
+            for (const auto& t : s.Tags) {
+              tags[t.first] = t.second;
+            }
+          }
+
+          const auto response = client.PostJson(_remoteEndpoint, root);
+          if (response != 200) {
+            LOG("Unable to send statistic to remote endpoint "
+                    << _remoteEndpoint << ". status=" << response
+                    << ", error=" << client.GetLastError(),
+                MGDF_LOG_ERROR);
+          }
+        }
+
+        lock.lock();
+      }
+    });
+  }
 }
 
 StatisticsManager::~StatisticsManager() {
-  if (_saveBuffer.size() > 0) {
-    LOG("Saving remaining statistics...", MGDF_LOG_LOW);
-    SaveAll();
+  // force whatever is in the events buffer to be flushed & stop
+  // the flush thread running after its finished this last flush
+  _run = false;
+  _cv.notify_one();
+  _flushThread.join();
+}
+
+void StatisticsManager::PushString(const char* name, const char* value,
+                                   const MGDFTags* tags) {
+  if (!_enabled) return;
+  std::unique_lock lock(_mutex);
+  PushCommon(_events.emplace_back(PushStatistic{.Name = name, .Value = value}),
+             tags);
+  if (_events.size() >= SEND_THRESHOLD) {
+    lock.unlock();
+    _cv.notify_one();
   }
 }
 
-HRESULT StatisticsManager::SaveStatistic(const char* name, const char* value) {
-  if (!name || strchr(name, ' ') != NULL || strlen(name) > 255)
-    return E_INVALIDARG;
-  if (!value || strlen(value) > 255) return E_INVALIDARG;
-
-  _saveBuffer.push_back(std::tuple<time_t, std::string, std::string>(
-      time(NULL) - _startTime, name, value));
-
-  if (_saveBuffer.size() >= SEND_THRESHOLD) {
-    SaveAll();
+void StatisticsManager::PushMetric(IMGDFMetric* metric) {
+  if (!_enabled) return;
+  std::unique_lock lock(_mutex);
+  auto& stat = PushCommon(_events.emplace_back(), nullptr);
+  static_cast<MetricBase*>(metric)->DumpPush(stat);
+  if (_events.size() >= SEND_THRESHOLD) {
+    lock.unlock();
+    _cv.notify_one();
   }
-  return S_OK;
 }
 
-void StatisticsManager::SaveAll() {
-  std::ofstream file(_statisticsFile.c_str(),
-                     std::ios_base::out | std::ios_base::app);
-  if (!file.bad() && file.is_open()) {
-    for (auto& pair : _saveBuffer) {
-      file << std::get<0>(pair) << ":" << std::get<1>(pair) << " "
-           << std::get<2>(pair) << "\r\n";
+PushStatistic& StatisticsManager::PushCommon(PushStatistic& stat,
+                                             const MGDFTags* tags) {
+  stat.Timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       std::chrono::system_clock::now().time_since_epoch())
+                       .count() -
+                   _sessionStart;
+  if (tags) {
+    for (size_t i = 0; i < tags->Count; ++i) {
+      stat.Tags.insert(std::make_pair(tags->Names[i], tags->Values[i]));
     }
-    file.close();
-
-  } else {
-    LOG("Error saving statistics to " << Resources::ToString(_statisticsFile),
-        MGDF_LOG_ERROR);
   }
-  _saveBuffer.clear();
+  return stat;
 }
 
 }  // namespace core

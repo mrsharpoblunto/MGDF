@@ -13,10 +13,18 @@
 namespace MGDF {
 namespace core {
 
+struct PushStatistic {
+  size_t Timestamp;
+  std::string Name;
+  std::string Value;
+  std::map<std::string, std::string> Tags;
+};
+
 class MetricBase : public ComBase<IMGDFMetric> {
  public:
   virtual ~MetricBase() {}
-  virtual void Dump(std::ostringstream &output) = 0;
+  virtual void DumpPrometheus(std::ostringstream &output) const = 0;
+  virtual void DumpPush(PushStatistic &stat) const = 0;
 };
 
 template <typename T>
@@ -32,31 +40,30 @@ class MetricImpl : public MetricBase {
 
   virtual ~MetricImpl() {}
 
-  void __stdcall Record(double value) final {
-    RecordTagged(value, nullptr, nullptr, 0);
-  }
-
-  void __stdcall RecordTagged(double value, const small **tags,
-                              const small **tagValues,
-                              const UINT64 tagCount) final {
-    std::map<std::string_view, std::string_view> tagMap;
-    for (UINT64 i = 0; i < tagCount; ++i) {
-      tagMap.emplace(std::make_pair(std::string_view(tags[i]),
-                                    std::string_view(tagValues[i])));
-    }
-
+  void __stdcall Record(double value, const MGDFTags *tags) final {
     std::ostringstream tagKey;
-    tagKey << "{";
-    bool first = true;
-    for (auto &it : tagMap) {
-      if (!first) {
-        tagKey << ", ";
-      } else {
-        first = false;
+
+    if (tags) {
+      std::map<std::string_view, std::string_view> tagMap;
+      for (UINT64 i = 0; i < tags->Count; ++i) {
+        tagMap.emplace(std::make_pair(std::string_view(tags->Names[i]),
+                                      std::string_view(tags->Values[i])));
       }
-      tagKey << it.first << "=\"" << it.second << "\"";
+
+      tagKey << "{";
+      bool first = true;
+      for (auto &it : tagMap) {
+        if (!first) {
+          tagKey << ",";
+        } else {
+          first = false;
+        }
+        tagKey << it.first << "=\"" << it.second << "\"";
+      }
+      tagKey << "}";
+    } else {
+      tagKey << "{}";
     }
-    tagKey << "}";
 
     {
       std::lock_guard lock(_mutex);
@@ -76,27 +83,63 @@ class MetricImpl : public MetricBase {
     }
   }
 
-  void Dump(std::ostringstream &output) final {
+  void DumpPrometheus(std::ostringstream &output) const final {
     std::lock_guard lock(_mutex);
     if (_hasRecorded) {
       output << "# HELP " << _description << "\n";
-      DoDump(output, _name, _metric);
+      DoDumpPrometheus(output, _name, _metric);
       output << "\n";
     }
   }
 
+  virtual void DumpPush(PushStatistic &stat) const final {
+    stat.Name = _name;
+    std::ostringstream output;
+
+    for (const auto &it : _metric) {
+      // parse out the tag keys for this metric
+      // into different tag sets
+      std::string_view tags(it.first);
+      size_t index = 1;
+      while (tags[index] != '}') {
+        size_t nameStart = index;
+        while (tags[index++] != '=') {
+        }
+        size_t nameEnd = index - 1;
+        ++index;
+        size_t valueStart = index;
+        while (tags[index++] != '\"') {
+        }
+        size_t valueEnd = index - 1;
+
+        stat.Tags.insert(
+            std::make_pair(tags.substr(nameStart, nameEnd - nameStart),
+                           tags.substr(valueStart, valueEnd - valueStart)));
+
+        if (tags[index] == ',') {
+          ++index;
+        }
+      }
+
+      DoDumpPushValue(output, it.second);
+    }
+    stat.Value = output.str();
+  }
+
  protected:
   virtual void DoRecord(double value, MetricStorage &storage) = 0;
-  virtual void DoDump(
-      std::ostringstream &output, std::string &name,
-      std::unordered_map<std::string, MetricStorage> &storage) = 0;
+  virtual void DoDumpPrometheus(
+      std::ostringstream &output, const std::string &name,
+      const std::unordered_map<std::string, MetricStorage> &storage) const = 0;
+  virtual void DoDumpPushValue(std::ostringstream &output,
+                               const MetricStorage &storage) const = 0;
 
  private:
   bool _hasRecorded;
   std::string _description;
   std::string _name;
   std::unordered_map<std::string, MetricStorage> _metric;
-  std::mutex _mutex;
+  mutable std::mutex _mutex;
 };
 
 class CounterMetric : public MetricImpl<double> {
@@ -107,8 +150,11 @@ class CounterMetric : public MetricImpl<double> {
 
  protected:
   void DoRecord(double value, MetricStorage &storage) final;
-  void DoDump(std::ostringstream &output, std::string &name,
-              std::unordered_map<std::string, MetricStorage> &storage) final;
+  void DoDumpPrometheus(std::ostringstream &output, const std::string &name,
+                        const std::unordered_map<std::string, MetricStorage>
+                            &storage) const final;
+  virtual void DoDumpPushValue(std::ostringstream &output,
+                               const MetricStorage &storage) const final;
 };
 
 class GaugeMetric : public MetricImpl<double> {
@@ -119,8 +165,11 @@ class GaugeMetric : public MetricImpl<double> {
 
  protected:
   void DoRecord(double value, MetricStorage &storage) final;
-  void DoDump(std::ostringstream &output, std::string &name,
-              std::unordered_map<std::string, MetricStorage> &storage) final;
+  void DoDumpPrometheus(std::ostringstream &output, const std::string &name,
+                        const std::unordered_map<std::string, MetricStorage>
+                            &storage) const final;
+  virtual void DoDumpPushValue(std::ostringstream &output,
+                               const MetricStorage &storage) const final;
 };
 
 struct HistogramStorage {
@@ -138,8 +187,11 @@ class HistogramMetric : public MetricImpl<HistogramStorage> {
 
  protected:
   void DoRecord(double value, MetricStorage &storage) final;
-  void DoDump(std::ostringstream &output, std::string &name,
-              std::unordered_map<std::string, MetricStorage> &storage) final;
+  void DoDumpPrometheus(std::ostringstream &output, const std::string &name,
+                        const std::unordered_map<std::string, MetricStorage>
+                            &storage) const final;
+  virtual void DoDumpPushValue(std::ostringstream &output,
+                               const MetricStorage &storage) const final;
 
  private:
   std::vector<std::pair<double, UINT64>> _buckets;

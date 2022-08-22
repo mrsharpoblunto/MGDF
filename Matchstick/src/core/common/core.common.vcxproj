@@ -84,7 +84,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/mbedTLS.lib;crypt32.lib</AdditionalDependencies>
+      <AdditionalDependencies>crypt32.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/mbedTLS.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -106,7 +106,7 @@
       </DataExecutionPrevention>
     </Link>
     <Lib>
-      <AdditionalDependencies>../../../../vendor/lib/$(Platform)/$(Configuration)/mbedTLS.lib;crypt32.lib</AdditionalDependencies>
+      <AdditionalDependencies>crypt32.lib;../../../../vendor/lib/$(Platform)/$(Configuration)/mbedTLS.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>

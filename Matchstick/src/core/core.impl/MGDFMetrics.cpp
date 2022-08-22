@@ -13,32 +13,42 @@ namespace core {
 
 const char* S_EMPTY_KEY = "{}";
 
-void CounterMetric::DoDump(
-    std::ostringstream& output, std::string& name,
-    std::unordered_map<std::string, MetricStorage>& storage) {
+void CounterMetric::DoDumpPrometheus(
+    std::ostringstream& output, const std::string& name,
+    const std::unordered_map<std::string, MetricStorage>& storage) const {
   output << "# TYPE " << name << " counter"
          << "\n";
-  for (auto& it : storage) {
+  for (const auto& it : storage) {
     const char* key = it.first == "{}" ? "" : it.first.c_str();
     output << name << key << " " << it.second.Metric << " "
            << it.second.Timestamp << "\n";
   }
+}
+
+void CounterMetric::DoDumpPushValue(std::ostringstream& output,
+                                    const MetricStorage& storage) const {
+  output << storage.Metric;
 }
 
 void CounterMetric::DoRecord(double value, MetricStorage& storage) {
   storage.Metric += value;
 }
 
-void GaugeMetric::DoDump(
-    std::ostringstream& output, std::string& name,
-    std::unordered_map<std::string, MetricStorage>& storage) {
+void GaugeMetric::DoDumpPrometheus(
+    std::ostringstream& output, const std::string& name,
+    const std::unordered_map<std::string, MetricStorage>& storage) const {
   output << "# TYPE " << name << " gauge"
          << "\n";
-  for (auto& it : storage) {
+  for (const auto& it : storage) {
     const char* key = it.first == "{}" ? "" : it.first.c_str();
     output << name << key << " " << it.second.Metric << " "
            << it.second.Timestamp << "\n";
   }
+}
+
+void GaugeMetric::DoDumpPushValue(std::ostringstream& output,
+                                  const MetricStorage& storage) const {
+  output << storage.Metric;
 }
 
 void GaugeMetric::DoRecord(double value, MetricStorage& storage) {
@@ -69,12 +79,17 @@ void HistogramMetric::DoRecord(double value, MetricStorage& storage) {
   storage.Metric.Sum += value;
 }
 
-void HistogramMetric::DoDump(
-    std::ostringstream& output, std::string& name,
-    std::unordered_map<std::string, MetricStorage>& storage) {
+void HistogramMetric::DoDumpPushValue(std::ostringstream& output,
+                                      const MetricStorage& storage) const {
+  output << (storage.Metric.Sum / storage.Metric.Count);
+}
+
+void HistogramMetric::DoDumpPrometheus(
+    std::ostringstream& output, const std::string& name,
+    const std::unordered_map<std::string, MetricStorage>& storage) const {
   output << "# TYPE " << name << " histogram"
          << "\n";
-  for (auto& it : storage) {
+  for (const auto& it : storage) {
     const bool emptyKey = it.first == "{}";
     size_t i = 0;
     for (auto& b : it.second.Metric.Buckets) {

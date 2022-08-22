@@ -52,7 +52,6 @@ class Logger {
   std::mutex _mutex;
   std::condition_variable _cv;
   std::vector<LogEntry> _events;
-  std::vector<LogEntry> _flushEvents;
   std::thread _flushThread;
   bool _runLogger;
   std::wstring _filename;

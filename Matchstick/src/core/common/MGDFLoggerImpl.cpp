@@ -62,9 +62,6 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
                                  .Sender = sender,
                                  .Message = message});
       if (_events.size() >= LOG_BUFFER_SIZE) {
-        // add a batch of events to flush & notify the flush thread
-        _flushEvents.assign(_events.begin(), _events.end());
-        _events.clear();
         lock.unlock();
         _cv.notify_one();
       }
@@ -72,15 +69,7 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
   }
 }
 
-void Logger::Flush() {
-  {
-    // force whatever is in the events buffer to be flushed
-    std::lock_guard<std::mutex> lock(_mutex);
-    _flushEvents.assign(_events.begin(), _events.end());
-    _events.clear();
-  }
-  _cv.notify_one();
-}
+void Logger::Flush() { _cv.notify_one(); }
 
 Logger::Logger() {
   SetLoggingLevel(MGDF_LOG_MEDIUM);
@@ -92,9 +81,9 @@ Logger::Logger() {
     std::unique_lock<std::mutex> lock(_mutex);
     while (_runLogger) {
       _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
-                   [this] { return !_runLogger || _flushEvents.size() > 0; });
-      std::vector<LogEntry> tmp(std::move(_flushEvents));
-      _flushEvents.clear();
+                   [this] { return !_runLogger || _events.size() > 0; });
+      std::vector<LogEntry> tmp(std::move(_events));
+      _events.clear();
       lock.unlock();
 
       if (tmp.size()) {
@@ -138,8 +127,9 @@ Logger::Logger() {
           const auto response = client.PostJson(_remoteEndpoint, root);
           if (response != 200) {
             std::ostringstream message;
-            message << "Unable to send logs to remote endpoint. status="
-                    << response << ", error=" << client.GetLastError();
+            message << "Unable to send logs to remote endpoint "
+                    << _remoteEndpoint << ". status=" << response
+                    << ", error=" << client.GetLastError();
             std::ostringstream sender;
             sender << __FILE__ << "(" << __LINE__ << ")";
             tmp.push_back(LogEntry{.Level = MGDF_LOG_ERROR,
@@ -196,8 +186,6 @@ Logger::~Logger(void) {
     // force whatever is in the events buffer to be flushed & stop
     // the flush thread running after its finished this last flush
     std::unique_lock<std::mutex> lock(_mutex);
-    _flushEvents.assign(_events.begin(), _events.end());
-    _events.clear();
     _runLogger = false;
   }
   _cv.notify_one();

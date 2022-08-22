@@ -20,7 +20,7 @@ void HostStatsServer::OnRequest(struct mg_connection* c,
       if (_updateResponse) {
         std::ostringstream oss;
         for (auto& it : _metrics) {
-          it->Dump(oss);
+          it->DumpPrometheus(oss);
         }
         _response = oss.str();
         _updateResponse = false;

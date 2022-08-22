@@ -1,10 +1,13 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <time.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
+#include <map>
 #include <vector>
+
+#include "MGDFMetrics.hpp"
 
 namespace MGDF {
 namespace core {
@@ -13,13 +16,24 @@ class StatisticsManager : public ComBase<IMGDFStatisticsManager> {
  public:
   StatisticsManager();
   virtual ~StatisticsManager();
-  HRESULT __stdcall SaveStatistic(const char* name, const char* value) final;
+  void __stdcall PushString(const char *name, const char *value,
+                            const MGDFTags *tags) final;
+  void __stdcall PushMetric(IMGDFMetric *metric) final;
+
+  void SetRemoteEndpoint(const std::string &endpoint);
 
  private:
-  std::vector<std::tuple<time_t, std::string, std::string> > _saveBuffer;
-  std::wstring _statisticsFile;
-  void SaveAll();
-  time_t _startTime;
+  PushStatistic &PushCommon(PushStatistic &stat, const MGDFTags *tags);
+
+  std::mutex _mutex;
+  std::condition_variable _cv;
+  std::vector<PushStatistic> _events;
+  std::thread _flushThread;
+  bool _run;
+  bool _enabled;
+  std::string _sessionId;
+  std::string _remoteEndpoint;
+  uint64_t _sessionStart;
 };
 
 }  // namespace core
