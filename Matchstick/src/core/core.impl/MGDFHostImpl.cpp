@@ -56,7 +56,7 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _input(components.Input),
       _sound(components.Sound),
       _vfs(components.VFS),
-      _stats(MakeCom<StatisticsManager>()),
+      _stats(MakeCom<StatisticsManager>(game->GetUid())),
       _renderSettings(MakeCom<RenderSettingsManager>()),
       _saves(MakeCom<SaveManager>(game, components.Storage)),
       _references(1UL),

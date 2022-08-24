@@ -14,7 +14,7 @@ namespace core {
 
 class StatisticsManager : public ComBase<IMGDFStatisticsManager> {
  public:
-  StatisticsManager();
+  StatisticsManager(const std::string &gameUid);
   virtual ~StatisticsManager();
   void __stdcall PushString(const char *name, const char *value,
                             const MGDFTags *tags) final;
@@ -31,6 +31,7 @@ class StatisticsManager : public ComBase<IMGDFStatisticsManager> {
   std::thread _flushThread;
   bool _run;
   bool _enabled;
+  std::string _gameUid;
   std::string _sessionId;
   std::string _remoteEndpoint;
   uint64_t _sessionStart;

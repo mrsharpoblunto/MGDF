@@ -26,8 +26,8 @@ namespace core {
 #define SEND_THRESHOLD 25
 #define STAT_FLUSH_TIMEOUT 5s
 
-StatisticsManager::StatisticsManager()
-    : _sessionStart(std::chrono::duration_cast<std::chrono::milliseconds>(
+StatisticsManager::StatisticsManager(const std::string &gameUid)
+    : _gameUid(gameUid), _sessionStart(std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::system_clock::now().time_since_epoch())
                         .count()),
       _enabled(false) {}
@@ -64,6 +64,7 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
 
         if (tmp.size()) {
           Json::Value root;
+          root["gameUid"] = _gameUid;
           root["sessionId"] = _sessionId;
           Json::Value& streams = root["statistics"] =
               Json::Value(Json::arrayValue);
