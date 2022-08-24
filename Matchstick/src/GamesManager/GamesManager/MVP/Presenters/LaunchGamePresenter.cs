@@ -148,7 +148,7 @@ namespace MGDF.GamesManager.MVP.Presenters
       string args = Resources.CoreBootArguments();
       if (StatisticsSession.GetStatisticsPermission(Game.Current, GetStatisticsPermission))
       {
-        args += " " + Resources.StatisticsServiceArguments(Game.Current.StatisticsService);
+        args += " " + Resources.StatisticsServiceArguments();
       }
       ProcessManager.Current.StartProcess(Resources.MGDFExecutable, args, GameExited, Game.Current);
       View.Invoke(() => View.Hide());

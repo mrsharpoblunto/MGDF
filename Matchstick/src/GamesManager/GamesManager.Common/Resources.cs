@@ -87,9 +87,9 @@ namespace MGDF.GamesManager.Common
       return "-hideerrors" + (!string.IsNullOrEmpty(_gameDir) ? (" -gamediroverride \"" + _gameDir + "\"") : string.Empty) + (_userDirOverridden ? " -userdiroverride" : string.Empty);
     }
 
-    public static string StatisticsServiceArguments(string endpoint)
+    public static string StatisticsServiceArguments()
     {
-      return "-statisticsendpoint " + endpoint;
+      return " -statisticsenabled";
     }
 
     public static string GamesManagerBootArguments(string gameUpdate, string gameUpdateHash, string frameworkUpdate, string frameworkUpdateHash)

@@ -9,6 +9,8 @@
 #include <sstream>
 #include <string_view>
 
+#include "MGDFResources.hpp"
+
 #pragma warning(disable : 4706)
 
 namespace MGDF {
@@ -180,17 +182,22 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
 
     const bool isPost = client->_request != nullptr;
     const char *method = isPost ? "POST" : "GET";
-    std::string body;
+    std::vector<char> body;
     if (isPost) {
       std::ostringstream oss;
       oss << *client->_request;
-      body = oss.str();
+      if (!Resources::CompressString(oss.str(), body)) {
+        mg_error(c, "Failed to compress request body");
+        return;
+      }
     }
 
     mg_printf(c,
               "%s %s HTTP/1.0\r\n"
               "Host: %.*s\r\n"
               "Content-Type: application/json\r\n"
+              "Content-Encoding: gzip\r\n"
+              "Accept-Encoding: gzip\r\n"
               "Accept: application/json\r\n"
               "Content-Length: %d\r\n"
               "\r\n",
@@ -215,10 +222,28 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
       }
       Json::Reader reader;
 
-      if (!reader.parse(hm->body.ptr, hm->body.ptr + hm->body.len,
-                        *client->_response)) {
-        mg_error(c, "Response is not valid Json");
-        return;
+      const auto contentEncodingHeader =
+          mg_http_get_header(hm, "Content-Encoding");
+      if (contentEncodingHeader) {
+        const std::string_view contentEncoding(contentEncodingHeader->ptr,
+                                               contentEncodingHeader->len);
+        if (contentEncoding == "gzip") {
+          std::string inflated;
+          Resources::DecompressString(hm->body.ptr, hm->body.len, inflated);
+          if (!reader.parse(inflated, *client->_response)) {
+            mg_error(c, "Response is not valid Json");
+            return;
+          }
+        } else {
+          mg_error(c, "Unsupported Content-Encoding");
+          return;
+        }
+      } else {
+        if (!reader.parse(hm->body.ptr, hm->body.ptr + hm->body.len,
+                          *client->_response)) {
+          mg_error(c, "Response is not valid Json");
+          return;
+        }
       }
     }
     c->is_closing = 1;         // Tell mongoose to close this connection

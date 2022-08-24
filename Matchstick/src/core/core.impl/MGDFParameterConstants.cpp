@@ -17,7 +17,9 @@ const char *ParameterConstants::GAME_DIR_OVERRIDE = "gamediroverride";
 
 const char *ParameterConstants::METRICS_PORT = "metricsport";
 const char *ParameterConstants::LOG_ENDPOINT = "logendpoint";
-const char *ParameterConstants::STATISTICS_ENDPOINT = "statisticsendpoint";
+const char *ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE =
+    "statisticsendpointoverride";
+const char *ParameterConstants::STATISTICS_ENABLED = "statisticsenabled";
 
 const char *ParameterConstants::VALUE_LOG_LEVEL_LOW = "log_low";
 const char *ParameterConstants::VALUE_LOG_LEVEL_MEDIUM = "log_medium";

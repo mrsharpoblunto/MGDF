@@ -8,9 +8,6 @@ using System.ServiceModel.Web;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Model.Entities;
-using MGDF.GamesManager.StatisticsService.Contracts;
-using MGDF.GamesManager.StatisticsService.Contracts.Entities;
-using MGDF.GamesManager.StatisticsService.Contracts.Messages;
 
 namespace MGDF.GamesManager.Model
 {

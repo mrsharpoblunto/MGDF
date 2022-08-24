@@ -29,8 +29,8 @@ HRESULT GameBuilder::LoadGame(
 
   MGDFVersion version;
   handler->GetVersion(version);
-  game = MakeCom<Game>(handler->GetGameUid(), handler->GetGameName(), version,
-                       storage);
+  game = MakeCom<Game>(handler->GetGameUid(), handler->GetGameName(),
+                       handler->GetStatisticsService(), version, storage);
 
   // load the defaults from the core settings (REQUIRED)
   auto result =

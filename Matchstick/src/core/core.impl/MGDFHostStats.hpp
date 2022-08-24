@@ -19,7 +19,8 @@ class HostStatsServer : public HttpServer {
   void UpdateResponse(std::unordered_map<std::string, MetricBase *> &metrics);
 
  private:
-  std::string _response;
+  std::vector<char> _compressedResponse;
+  std::string _rawResponse;
   bool _updateResponse;
   std::vector<ComObject<MetricBase>> _metrics;
   std::mutex _metricsMutex;

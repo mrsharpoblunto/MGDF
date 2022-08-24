@@ -4,12 +4,15 @@
 
 #include <shlobj.h>
 #include <shlwapi.h>
+#include <zlib.h>
 
 #include <MGDF/ComObject.hpp>
 #include <filesystem>
 #include <sstream>
 
 #include "MGDFVersionInfo.hpp"
+
+#define BUFFER_SIZE 4096
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -20,6 +23,65 @@ using namespace std::filesystem;
 
 namespace MGDF {
 namespace core {
+
+bool Resources::CompressString(const std::string &str, std::vector<char> &out) {
+  z_stream zs;
+  memset(&zs, 0, sizeof(zs));
+
+  if (deflateInit2(&zs, Z_DEFAULT_COMPRESSION, Z_DEFLATED, MAX_WBITS | 16, 8,
+                   Z_DEFAULT_STRATEGY)) {
+    return false;
+  }
+
+  zs.next_in = (Byte *)str.data();
+  zs.avail_in = static_cast<uInt>(str.size());
+
+  int ret = 0;
+  out.reserve(max(str.size(), BUFFER_SIZE));
+  out.clear();
+  do {
+    out.resize(out.size() + BUFFER_SIZE);
+    zs.next_out =
+        reinterpret_cast<Bytef *>(out.data() + out.size() - BUFFER_SIZE);
+    zs.avail_out = BUFFER_SIZE;
+
+    ret = deflate(&zs, Z_FINISH);
+    out.resize(zs.total_out);
+  } while (ret == Z_OK);
+
+  deflateEnd(&zs);
+
+  return ret == Z_STREAM_END;
+}
+
+bool Resources::DecompressString(const char *str, const size_t strLen,
+                                 std::string &out) {
+  z_stream zs;
+  memset(&zs, 0, sizeof(zs));
+
+  if (inflateInit2(&zs, MAX_WBITS | 16) != Z_OK) {
+    return false;
+  }
+
+  zs.next_in = (Bytef *)str;
+  zs.avail_in = static_cast<uInt>(strLen);
+
+  int ret = 0;
+  do {
+    out.resize(out.size() + BUFFER_SIZE);
+    zs.next_out =
+        reinterpret_cast<Bytef *>(out.data() + out.size() - BUFFER_SIZE);
+    zs.avail_out = BUFFER_SIZE;
+
+    ret = inflate(&zs, 0);
+
+    out.resize(zs.total_out);
+  } while (ret == Z_OK);
+
+  deflateEnd(&zs);
+
+  return ret == Z_STREAM_END;
+}
 
 Resources::Resources(HINSTANCE instance) {
   if (instance != nullptr) {

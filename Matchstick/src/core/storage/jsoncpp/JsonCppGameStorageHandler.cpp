@@ -20,6 +20,10 @@ std::string JsonCppGameStorageHandler::GetGameName() const { return _gameName; }
 
 std::string JsonCppGameStorageHandler::GetGameUid() const { return _gameUid; }
 
+std::string JsonCppGameStorageHandler::GetStatisticsService() const {
+  return _statisticsService;
+}
+
 void JsonCppGameStorageHandler::GetVersion(MGDFVersion &version) const {
   version = _version;
 }
@@ -44,6 +48,7 @@ HRESULT JsonCppGameStorageHandler::Load(const std::wstring &filename) {
   if (reader.parse(input, root)) {
     _gameName = GetJsonValue(root, "gameName");
     _gameUid = GetJsonValue(root, "gameUid");
+    _statisticsService = GetJsonValue(root, "statisticsService");
     _version = VersionHelper::Create(GetJsonValue(root, "version"));
     Json::Value preferences = root["preferences"];
     if (!preferences.isNull()) {

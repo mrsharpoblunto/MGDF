@@ -3,6 +3,7 @@
 #include "MGDFHostStats.hpp"
 
 #include "../common/MGDFParameterManager.hpp"
+#include "../common/MGDFResources.hpp"
 #include "MGDFParameterConstants.hpp"
 
 #if defined(_DEBUG)
@@ -22,12 +23,36 @@ void HostStatsServer::OnRequest(struct mg_connection* c,
         for (auto& it : _metrics) {
           it->DumpPrometheus(oss);
         }
-        _response = oss.str();
+        _rawResponse = oss.str();
+        Resources::CompressString(oss.str(), _compressedResponse);
         _updateResponse = false;
       }
     }
-    mg_http_reply(c, 200, "Content-Type: text/plain; version=0.0.4\r\n",
-                  _response.c_str());
+    const auto acceptEncodingHeader = mg_http_get_header(m, "Accept-Encoding");
+    std::string encoding("identity");
+    if (acceptEncodingHeader) {
+      const std::string_view acceptEncoding(acceptEncodingHeader->ptr,
+                                            acceptEncodingHeader->len);
+      if (acceptEncoding.find("gzip") != std::string_view::npos) {
+        encoding = "gzip";
+      }
+    }
+
+    mg_printf(
+        c,
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain; version=0.0.4\r\n"
+        "Content-Encoding: %s\r\n"
+        "Content-Length: %d\r\n"
+        "\r\n",
+        encoding.c_str(),
+        encoding == "gzip" ? _compressedResponse.size() : _rawResponse.size());
+
+    if (encoding == "gzip") {
+      mg_send(c, _compressedResponse.data(), _compressedResponse.size());
+    } else {
+      mg_send(c, _rawResponse.data(), _rawResponse.size());
+    }
   } else {
     mg_http_reply(c, 404, "", "Not Found");
   }

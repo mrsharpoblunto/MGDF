@@ -92,25 +92,25 @@ class MetricImpl : public MetricBase {
     }
   }
 
-  virtual void DumpPush(PushStatistic &stat) const final {
+  void DumpPush(PushStatistic &stat) const final {
     stat.Name = _name;
     std::ostringstream output;
 
     for (const auto &it : _metric) {
       // parse out the tag keys for this metric
       // into different tag sets
-      std::string_view tags(it.first);
+      const std::string_view tags(it.first);
       size_t index = 1;
       while (tags[index] != '}') {
-        size_t nameStart = index;
+        const size_t nameStart = index;
         while (tags[index++] != '=') {
         }
-        size_t nameEnd = index - 1;
+        const size_t nameEnd = index - 1;
         ++index;
-        size_t valueStart = index;
+        const size_t valueStart = index;
         while (tags[index++] != '\"') {
         }
-        size_t valueEnd = index - 1;
+        const size_t valueEnd = index - 1;
 
         stat.Tags.insert(
             std::make_pair(tags.substr(nameStart, nameEnd - nameStart),

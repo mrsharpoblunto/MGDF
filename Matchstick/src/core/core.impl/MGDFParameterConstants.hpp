@@ -12,7 +12,8 @@ class ParameterConstants {
   static const char *GAME_DIR_OVERRIDE;
   static const char *METRICS_PORT;
   static const char *LOG_ENDPOINT;
-  static const char *STATISTICS_ENDPOINT;
+  static const char *STATISTICS_ENDPOINT_OVERRIDE;
+  static const char *STATISTICS_ENABLED;
 
   static const char *VALUE_LOG_LEVEL_LOW;
   static const char *VALUE_LOG_LEVEL_MEDIUM;

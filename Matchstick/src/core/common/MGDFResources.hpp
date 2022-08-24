@@ -1,10 +1,11 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <windows.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
 #include <string>
+#include <vector>
 
 namespace MGDF {
 namespace core {
@@ -52,6 +53,9 @@ class Resources {
   static std::wstring ToWString(const char *str);
   static std::string ToString(const std::wstring &str);
   static std::string ToString(const wchar_t *str);
+  static bool CompressString(const std::string &str, std::vector<char> &out);
+  static bool DecompressString(const char *str, const size_t strLen,
+                               std::string &out);
 
  private:
   Resources(HINSTANCE instance);

@@ -1,6 +1,7 @@
 #pragma once
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 #include <map>
 #include <unordered_map>
 
@@ -17,13 +18,13 @@ this class is the concrete implementation of the configuration interface
 */
 class Game : public ComBase<IMGDFGame> {
  public:
-  Game(const std::string &uid, const std::string &name, const MGDFVersion &version,
+  Game(const std::string &uid, const std::string &name,
+       const std::string &statisticsService, const MGDFVersion &version,
        std::shared_ptr<storage::IStorageFactoryComponent> &storageFactory);
   virtual ~Game(void) {}
 
-  const char * __stdcall GetUid() final { return _uid.c_str(); }
-
-  const char * __stdcall GetName() final { return _name.c_str(); }
+  const char *__stdcall GetUid() final { return _uid.c_str(); }
+  const char *__stdcall GetName() final { return _name.c_str(); }
 
   void __stdcall GetVersion(MGDFVersion *version) final {
     if (version == nullptr) {
@@ -33,7 +34,8 @@ class Game : public ComBase<IMGDFGame> {
   }
 
   BOOL __stdcall HasPreference(const char *name) final;
-  HRESULT __stdcall GetPreference(const char *name, char *value, UINT64 *length) final;
+  HRESULT __stdcall GetPreference(const char *name, char *value,
+                                  UINT64 *length) final;
   void __stdcall SetPreference(const char *name, const char *value) final;
   void __stdcall SetPreferences(IMGDFPreferenceSet *preferences) final;
   void __stdcall SavePreferences() final;
@@ -42,11 +44,15 @@ class Game : public ComBase<IMGDFGame> {
   void SavePreferences(const std::wstring &filename);
   HRESULT LoadPreferences(const std::wstring &filename);
   void LoadPreferences(const std::map<std::string, std::string> &preferences);
+  const char *GetStatististicsService() const {
+    return _statisticsService.c_str();
+  }
 
  private:
   std::shared_ptr<storage::IStorageFactoryComponent> _storageFactory;
   std::string _uid, _name;
   std::wstring _preferencesFile;
+  std::string _statisticsService;
   MGDFVersion _version;
   std::map<std::string, std::string> _preferences;
 };

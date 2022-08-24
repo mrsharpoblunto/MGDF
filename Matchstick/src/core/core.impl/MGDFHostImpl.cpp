@@ -68,9 +68,12 @@ Host::Host(ComObject<Game> game, HostComponents &components)
   _ASSERTE(game);
 
   if (ParameterManager::Instance().HasParameter(
-          ParameterConstants::STATISTICS_ENDPOINT)) {
+          ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE)) {
     _stats->SetRemoteEndpoint(ParameterManager::Instance().GetParameter(
-        ParameterConstants::STATISTICS_ENDPOINT));
+        ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE));
+  } else if (ParameterManager::Instance().HasParameter(
+                 ParameterConstants::STATISTICS_ENABLED)) {
+    _stats->SetRemoteEndpoint(_game->GetStatististicsService());
   }
 }
 
