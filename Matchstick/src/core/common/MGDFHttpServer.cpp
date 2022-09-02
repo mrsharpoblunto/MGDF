@@ -8,8 +8,10 @@ namespace core {
 HttpServer::HttpServer() : _conn(nullptr), _running(false) {}
 
 HttpServer::~HttpServer() {
-  _running = false;
-  _pollThread.join();
+  if (_running) {
+    _running = false;
+    _pollThread.join();
+  }
 }
 
 void HttpServer::Listen(const std::string& port) {
