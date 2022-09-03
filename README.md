@@ -48,9 +48,12 @@ core.exe can be invoked either via the GamesManager or directly via the command 
 For ease of debugging command line parameters can also be placed in a params.txt file in the application directory (the contents of this file will have preference over anything specified on the command line)
 
 ### Arguments
-* -logLevel:<level> (OPTIONAL) allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
-* -userdiroverride (OPTIONAL) if specified, the directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
-* -gamediroverride:<directory> (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
+* -loglevel <level>: (OPTIONAL) The logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
+* -userdiroverride (OPTIONAL) The directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
+* -gamediroverride <directory>: (OPTIONAL) The directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
+* -metricsport <port_number>: (OPTIONAL) A port to expose internal metrics via a prometheus compatible endpoint at http://localhost:<port_number>/metrics
+* -logendpoint <url>: (OPTIONAL) A Loki logging endpoint to push internal logs to
+* -statisticsendpointoverride <url>: (OPTIONAL) A statistics endpoint to push statistics to (overrides any statistics service specified in the games manifest)
 
 Running GamesManager.exe from command line
 ------------------------------------------
@@ -60,9 +63,9 @@ Running GamesManager.exe from command line
 
 * -deregister: Removes anything added via the register argument
  
-* -gamediroverride:<directory> (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
+* -gamediroverride <directory>: (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
 
-* -noupdatecheck (OPTIONAL) disables checks for updates.
+* -noupdatecheck: (OPTIONAL) disables checks for updates.
 
 Building a release package
 --------------------------

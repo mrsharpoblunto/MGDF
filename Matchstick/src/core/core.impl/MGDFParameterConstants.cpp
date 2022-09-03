@@ -10,7 +10,7 @@
 namespace MGDF {
 namespace core {
 
-const char *ParameterConstants::LOG_LEVEL = "logLevel";
+const char *ParameterConstants::LOG_LEVEL = "loglevel";
 
 const char *ParameterConstants::USER_DIR_OVERRIDE = "userdiroverride";
 const char *ParameterConstants::GAME_DIR_OVERRIDE = "gamediroverride";
