@@ -156,10 +156,8 @@ class Timer : public ComBase<IMGDFTimer> {
   HRESULT Init();
   void ResetGPUTimers();
 
-  template <typename T>
-  void RemoveInternal(T *counter) {
-    static_assert(false, "Not allowed");
-  }
+  void RemoveInternal(GPUPerformanceCounter *counter);
+  void RemoveInternal(CPUPerformanceCounter *counter);
 
   ComObject<ID3D11Device> _device;
   ComObject<ID3D11DeviceContext> _context;
@@ -178,10 +176,5 @@ class Timer : public ComBase<IMGDFTimer> {
   std::set<GPUPerformanceCounter *> _gpuCounters;
 };  // namespace core
 
-template <>
-void Timer::RemoveInternal(GPUPerformanceCounter *counter);
-
-template <>
-void Timer::RemoveInternal(CPUPerformanceCounter *counter);
 }  // namespace core
 }  // namespace MGDF

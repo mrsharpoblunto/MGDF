@@ -197,6 +197,8 @@ void D3DAppFramework::InitD3D() {
 
   ComObject<IDXGIAdapter1> adapter;
   ComObject<IDXGIAdapter1> bestAdapter;
+  SIZE_T bestAdapterMemory = 0;
+
   char videoCardDescription[128];
   SecureZeroMemory(videoCardDescription, sizeof(videoCardDescription));
   DXGI_ADAPTER_DESC1 adapterDesc = {};
@@ -209,40 +211,51 @@ void D3DAppFramework::InitD3D() {
        _factory->EnumAdapters1(i, adapter.Assign()) != DXGI_ERROR_NOT_FOUND;
        i++) {
     adapter->GetDesc1(&adapterDesc);
+
+    if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+      LOG("Skipping software adapter", MGDF_LOG_LOW);
+      continue;
+    }
+
     size_t length = wcslen(adapterDesc.Description);
     const INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
                                    adapterDesc.Description, length);
     _ASSERTE(!error);
+
     std::string message(videoCardDescription, videoCardDescription + length);
     message.insert(0, "Attempting to create device for adapter ");
     LOG(message, MGDF_LOG_LOW);
 
-    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-    ComObject<ID3D11Device> device;
-    ComObject<ID3D11DeviceContext> context;
+    if (!bestAdapter || adapterDesc.DedicatedVideoMemory > bestAdapterMemory) {
+      D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
+      ComObject<ID3D11Device> device;
+      ComObject<ID3D11DeviceContext> context;
 
-    if (SUCCEEDED(D3D11CreateDevice(
-            adapter,
-            D3D_DRIVER_TYPE_UNKNOWN,  // as we're specifying an adapter to use,
-                                      // we must specify that the driver type is
-                                      // unknown!!!
-            0,                        // no software device
-            createDeviceFlags, _levels.data(),
-            static_cast<UINT>(_levels.size()),  // default feature level array
-            D3D11_SDK_VERSION, device.Assign(), &featureLevel,
-            context.Assign())) &&
-        featureLevel != 0) {
-      // this is the first acceptable adapter, or the best one so far
-      if (!_d3dDevice || featureLevel > _d3dDevice->GetFeatureLevel()) {
-        // store the new best adapter
-        bestAdapter = adapter;
-        _d3dDevice = device;
-        _immediateContext = context;
-        LOG("Adapter is the best found so far", MGDF_LOG_LOW);
-      }
-      // this adapter is no better than what we already have, so ignore it
-      else {
-        LOG("A better adapter has already been found - Ignoring", MGDF_LOG_LOW);
+      if (SUCCEEDED(D3D11CreateDevice(
+              adapter,
+              D3D_DRIVER_TYPE_UNKNOWN,  // as we're specifying an adapter to
+                                        // use, we must specify that the driver
+                                        // type is unknown!!!
+              0,                        // no software device
+              createDeviceFlags, _levels.data(),
+              static_cast<UINT>(_levels.size()),  // default feature level array
+              D3D11_SDK_VERSION, device.Assign(), &featureLevel,
+              context.Assign())) &&
+          featureLevel != 0) {
+        // this is the first acceptable adapter, or the best one so far
+        if (!_d3dDevice || featureLevel >= _d3dDevice->GetFeatureLevel()) {
+          // store the new best adapter
+          bestAdapter = adapter;
+          bestAdapterMemory = adapterDesc.DedicatedVideoMemory;
+          _d3dDevice = device;
+          _immediateContext = context;
+          LOG("Adapter is the best found so far", MGDF_LOG_LOW);
+        }
+        // this adapter is no better than what we already have, so ignore it
+        else {
+          LOG("A better adapter has already been found - Ignoring",
+              MGDF_LOG_LOW);
+        }
       }
     }
   }
@@ -368,8 +381,7 @@ void D3DAppFramework::CreateSwapChain() {
     FATALERROR(this, "Failed to create swap chain");
   }
 
-  if ((_swapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) ==
-      DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) {
+  if (_swapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) {
     _frameWaitableObject =
         _swapChain.As<IDXGISwapChain2>()->GetFrameLatencyWaitableObject();
   } else {

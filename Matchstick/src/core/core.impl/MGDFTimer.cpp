@@ -375,12 +375,10 @@ HRESULT Timer::CreateGPUCounter(IMGDFMetric *metric,
   return S_OK;
 }
 
-template <>
 void Timer::RemoveInternal(CPUPerformanceCounter *counter) {
   _cpuCounters.erase(counter);
 }
 
-template <>
 void Timer::RemoveInternal(GPUPerformanceCounter *counter) {
   _gpuCounters.erase(counter);
 }
