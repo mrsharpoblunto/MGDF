@@ -153,8 +153,8 @@ class CounterMetric : public MetricImpl<double> {
   void DoDumpPrometheus(std::ostringstream &output, const std::string &name,
                         const std::unordered_map<std::string, MetricStorage>
                             &storage) const final;
-  virtual void DoDumpPushValue(std::ostringstream &output,
-                               const MetricStorage &storage) const final;
+  void DoDumpPushValue(std::ostringstream &output,
+                       const MetricStorage &storage) const final;
 };
 
 class GaugeMetric : public MetricImpl<double> {
@@ -168,8 +168,8 @@ class GaugeMetric : public MetricImpl<double> {
   void DoDumpPrometheus(std::ostringstream &output, const std::string &name,
                         const std::unordered_map<std::string, MetricStorage>
                             &storage) const final;
-  virtual void DoDumpPushValue(std::ostringstream &output,
-                               const MetricStorage &storage) const final;
+  void DoDumpPushValue(std::ostringstream &output,
+                       const MetricStorage &storage) const final;
 };
 
 struct HistogramStorage {
@@ -190,8 +190,8 @@ class HistogramMetric : public MetricImpl<HistogramStorage> {
   void DoDumpPrometheus(std::ostringstream &output, const std::string &name,
                         const std::unordered_map<std::string, MetricStorage>
                             &storage) const final;
-  virtual void DoDumpPushValue(std::ostringstream &output,
-                               const MetricStorage &storage) const final;
+  void DoDumpPushValue(std::ostringstream &output,
+                       const MetricStorage &storage) const final;
 
  private:
   std::vector<std::pair<double, UINT64>> _buckets;

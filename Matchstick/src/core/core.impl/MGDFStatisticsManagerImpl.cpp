@@ -26,11 +26,13 @@ namespace core {
 #define SEND_THRESHOLD 25
 #define STAT_FLUSH_TIMEOUT 5s
 
-StatisticsManager::StatisticsManager(const std::string &gameUid)
-    : _gameUid(gameUid), _sessionStart(std::chrono::duration_cast<std::chrono::milliseconds>(
+StatisticsManager::StatisticsManager(const std::string& gameUid)
+    : _gameUid(gameUid),
+      _sessionStart(std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::system_clock::now().time_since_epoch())
                         .count()),
-      _enabled(false) {}
+      _enabled(false),
+      _run(true) {}
 
 void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
   _remoteEndpoint = endpoint;

@@ -202,7 +202,6 @@ void D3DAppFramework::InitD3D() {
   char videoCardDescription[128];
   SecureZeroMemory(videoCardDescription, sizeof(videoCardDescription));
   DXGI_ADAPTER_DESC1 adapterDesc = {};
-  size_t stringLength = 0;
 
   // step through the adapters and ensure we use the best one to create our
   // device
@@ -218,9 +217,12 @@ void D3DAppFramework::InitD3D() {
     }
 
     size_t length = wcslen(adapterDesc.Description);
+#if defined(_DEBUG) || defined(DEBUG)
+    size_t stringLength = 0;
     const INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
                                    adapterDesc.Description, length);
     _ASSERTE(!error);
+#endif
 
     std::string message(videoCardDescription, videoCardDescription + length);
     message.insert(0, "Attempting to create device for adapter ");

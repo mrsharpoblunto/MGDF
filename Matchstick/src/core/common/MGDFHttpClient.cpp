@@ -167,7 +167,7 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     }
   } else if (ev == MG_EV_CONNECT) {
     // Connected to server. Extract host name from URL
-    struct mg_str host = mg_url_host(client->_url.c_str());
+    const struct mg_str host = mg_url_host(client->_url.c_str());
 
     if (mg_url_is_ssl(client->_url.c_str())) {
       // make sure the mbedtls in memory filesystem has the certs we need
