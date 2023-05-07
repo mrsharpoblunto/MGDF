@@ -490,8 +490,9 @@ HRESULT Host::CreateCPUCounter(IMGDFMetric *metric,
 }
 
 HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
+                               ID3D11DeviceContext *context,
                                IMGDFPerformanceCounter **counter) {
-  return _timer->CreateGPUCounter(metric, counter);
+  return _timer->CreateGPUCounter(metric, context, counter);
 }
 
 HRESULT Host::CreateCounterMetric(const small *name, const small *description,

@@ -109,7 +109,8 @@ GPUPerformanceCounter::~GPUPerformanceCounter() {
 GPUPerformanceCounter::GPUPerformanceCounter(IMGDFMetric *metric, Timer &timer)
     : CounterBase(metric, timer),
       _currentDisjoint(nullptr),
-      _context(nullptr) {}
+      _context(nullptr),
+      _contextType(std::make_pair(false, D3D11_DEVICE_CONTEXT_IMMEDIATE)) {}
 
 void GPUPerformanceCounter::SetDisjointQuery(ID3D11Query *disjoint) {
   _currentDisjoint = disjoint;
@@ -117,9 +118,7 @@ void GPUPerformanceCounter::SetDisjointQuery(ID3D11Query *disjoint) {
 
 HRESULT GPUPerformanceCounter::DoBegin(std::map<std::string, std::string> &tags,
                                        IMGDFPerformanceCounterScope **scope) {
-  _ASSERTE(_context);
-
-  if (_currentDisjoint) {
+  if (_context && _currentDisjoint) {
     if (_beginQueries.empty()) {
       D3D11_QUERY_DESC desc;
       desc.Query = D3D11_QUERY_TIMESTAMP;
@@ -160,19 +159,32 @@ HRESULT GPUPerformanceCounter::DoBegin(std::map<std::string, std::string> &tags,
 }
 
 GPUPerformanceCounterScope::~GPUPerformanceCounterScope() {
-  _ASSERTE(_context);
-  _ASSERTE(_endQuery);
-  _context->End(_endQuery);
+  if (_context) {
+    _ASSERTE(_endQuery);
+    _context->End(_endQuery);
+  }
 }
 
-void GPUPerformanceCounter::Init(
-    const ComObject<ID3D11Device> &device,
-    const ComObject<ID3D11DeviceContext> &context) {
+void GPUPerformanceCounter::Init(const ComObject<ID3D11Device> &device,
+                                 ID3D11DeviceContext *context) {
   _ASSERTE(device);
   _ASSERTE(context);
 
   _device = device;
-  _context = context;
+  if (!_contextType.first) {
+    _contextType = std::make_pair(true, context->GetType());
+  }
+  // if a device gets removed we'll try to recreate GPU timers using the
+  // immediate context - this will fail for timers created from now invalid
+  // deferred contexts
+  if (context->GetType() == _contextType.second) {
+    _context = ComObject<ID3D11DeviceContext>(context, true);
+  } else {
+    LOG("Unable to Initialize GPU Timer for a deferred context after device "
+        "reset - Ignoring timer",
+        MGDF_LOG_ERROR);
+    _context.Clear();
+  }
 }
 
 void GPUPerformanceCounter::Reset() {
@@ -205,7 +217,6 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
 
   for (auto &jt : it->second) {
     UINT64 timeStampBegin = 0;
-    _ASSERTE(_context);
     if (!_context || _context->GetData(jt.Begin, &timeStampBegin,
                                        sizeof(UINT64), 0) != S_OK) {
       LOG("Failed to get Begin Data for GPU Timer - Ignoring sample",
@@ -361,12 +372,13 @@ HRESULT Timer::CreateCPUCounter(IMGDFMetric *metric,
 }
 
 HRESULT Timer::CreateGPUCounter(IMGDFMetric *metric,
+                                ID3D11DeviceContext *context,
                                 IMGDFPerformanceCounter **counter) {
   if (!_gpuTimersSupported || !metric) return E_FAIL;
   auto c = MakeCom<GPUPerformanceCounter>(metric, *this);
 
   if (_device) {
-    c->Init(_device, _context);
+    c->Init(_device, context);
   }
 
   std::lock_guard<std::mutex> lock(_mutex);

@@ -102,8 +102,10 @@ StatisticsManager::~StatisticsManager() {
   // force whatever is in the events buffer to be flushed & stop
   // the flush thread running after its finished this last flush
   _run = false;
-  _cv.notify_one();
-  _flushThread.join();
+  if (_flushThread.joinable()) {
+    _cv.notify_one();
+    _flushThread.join();
+  }
 }
 
 void StatisticsManager::PushString(const char* name, const char* value,

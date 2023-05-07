@@ -121,6 +121,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   HRESULT __stdcall CreateCPUCounter(IMGDFMetric *metric,
                                      IMGDFPerformanceCounter **counter) final;
   HRESULT __stdcall CreateGPUCounter(IMGDFMetric *metric,
+                                     ID3D11DeviceContext *context,
                                      IMGDFPerformanceCounter **counter) final;
 
   HRESULT __stdcall CreateCounterMetric(const small *name,

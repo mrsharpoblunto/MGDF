@@ -100,10 +100,14 @@ void Module::STShutDown(IMGDFSimHost* host) { host->ShutDown(); }
 
 BOOL Module::RTBeforeFirstDraw(IMGDFRenderHost* host) {
   _textManager = std::make_unique<TextManager>(host);
+  ComObject<ID3D11Device> device;
+  host->GetD3DDevice(device.Assign());
+  ComObject<ID3D11DeviceContext> context;
+  device->GetImmediateContext(context.Assign());
   ComObject<IMGDFMetric> gauge;
   host->CreateGaugeMetric("text_rendering", "Text rendering time",
                           gauge.Assign());
-  host->CreateGPUCounter(gauge, _textManagerCounter.Assign());
+  host->CreateGPUCounter(gauge, context, _textManagerCounter.Assign());
   return true;
 }
 

@@ -1707,11 +1707,13 @@ this interface are safe to be used from any thread
    create a performance counter for profiling GPU time taken in DirectX API
    calls. When no longer used it should be Released
    \param metric the metric the counter should update
+   \param context the device context this counter measures
    \param counter points to the created counter
    \return E_FAIL if GPU counters are unsupported (using D3D_FEATURE_LEVEL_9_3 or less)
    otherwise returns S_OK
    */
   HRESULT CreateGPUCounter([in] IMGDFMetric * metric,
+                           [in] ID3D11DeviceContext * context,
                            [out] IMGDFPerformanceCounter * *counter);
 };
 
