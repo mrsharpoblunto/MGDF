@@ -109,8 +109,7 @@ GPUPerformanceCounter::~GPUPerformanceCounter() {
 GPUPerformanceCounter::GPUPerformanceCounter(IMGDFMetric *metric, Timer &timer)
     : CounterBase(metric, timer),
       _currentDisjoint(nullptr),
-      _context(nullptr),
-      _contextType(std::make_pair(false, D3D11_DEVICE_CONTEXT_IMMEDIATE)) {}
+      _context(nullptr) {}
 
 void GPUPerformanceCounter::SetDisjointQuery(ID3D11Query *disjoint) {
   _currentDisjoint = disjoint;
@@ -165,25 +164,20 @@ GPUPerformanceCounterScope::~GPUPerformanceCounterScope() {
   }
 }
 
-void GPUPerformanceCounter::Init(const ComObject<ID3D11Device> &device,
-                                 ID3D11DeviceContext *context) {
+HRESULT GPUPerformanceCounter::Init(const ComObject<ID3D11Device> &device,
+                                    ID3D11DeviceContext *context) {
   _ASSERTE(device);
   _ASSERTE(context);
 
   _device = device;
-  if (!_contextType.first) {
-    _contextType = std::make_pair(true, context->GetType());
-  }
-  // if a device gets removed we'll try to recreate GPU timers using the
-  // immediate context - this will fail for timers created from now invalid
-  // deferred contexts
-  if (context->GetType() == _contextType.second) {
-    _context = ComObject<ID3D11DeviceContext>(context, true);
-  } else {
-    LOG("Unable to Initialize GPU Timer for a deferred context after device "
-        "reset - Ignoring timer",
+  if (context->GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE) {
+    LOG("Unable to Initialize GPU Timer using a deferred context",
         MGDF_LOG_ERROR);
     _context.Clear();
+    return E_FAIL;
+  } else {
+    _context = ComObject<ID3D11DeviceContext>(context, true);
+    return S_OK;
   }
 }
 
@@ -377,8 +371,8 @@ HRESULT Timer::CreateGPUCounter(IMGDFMetric *metric,
   if (!_gpuTimersSupported || !metric) return E_FAIL;
   auto c = MakeCom<GPUPerformanceCounter>(metric, *this);
 
-  if (_device) {
-    c->Init(_device, context);
+  if (!_device || c->Init(_device, context) == E_FAIL) {
+    return E_FAIL;
   }
 
   std::lock_guard<std::mutex> lock(_mutex);

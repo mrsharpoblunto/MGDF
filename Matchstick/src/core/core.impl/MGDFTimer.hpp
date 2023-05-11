@@ -94,8 +94,8 @@ class GPUPerformanceCounter : public CounterBase {
   virtual ~GPUPerformanceCounter();
   GPUPerformanceCounter(IMGDFMetric *metric, Timer &timer);
 
-  void Init(const ComObject<ID3D11Device> &device,
-            ID3D11DeviceContext *context);
+  HRESULT Init(const ComObject<ID3D11Device> &device,
+               ID3D11DeviceContext *context);
   void Reset();
   void DataReady(ID3D11Query *disjoint, UINT64 frequency);
   void DataDisjoint(ID3D11Query *disjoint);
@@ -118,7 +118,6 @@ class GPUPerformanceCounter : public CounterBase {
   ID3D11Query *_currentDisjoint;
   ComObject<ID3D11Device> _device;
   ComObject<ID3D11DeviceContext> _context;
-  std::pair<bool, D3D11_DEVICE_CONTEXT_TYPE> _contextType;
 };
 
 /**
