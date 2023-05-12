@@ -43,9 +43,11 @@ D3DAPP_WNDPROC(MGDFAppWndProc, _application)
 INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
                      _In_opt_ HINSTANCE const hPreviousInstance,
                      _In_ LPSTR const lpCmdLine, _In_ INT32 const nCmdShow) {
-  (void)nCmdShow;
-  (void)lpCmdLine;
-  (void)hPreviousInstance;
+  std::ignore = nCmdShow;
+  std::ignore = lpCmdLine;
+  std::ignore = hPreviousInstance;
+  const HRESULT comHr = CoInitialize(NULL);
+
   // Catch memory leaks
 #if defined(_DEBUG)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -89,6 +91,10 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
   delete _application;
 
   timeEndPeriod(1);
+
+  if (SUCCEEDED(comHr)) {
+    CoUninitialize();
+  }
 
   LOG("shut down successfully", MGDF_LOG_LOW);
   return 0;

@@ -321,9 +321,13 @@ void D3DAppFramework::UninitD3D() {
     _immediateContext->Flush();
   }
 
-  if (_swapChain) {
-    // d3d has to be in windowed mode to cleanup correctly
-    _swapChain->SetFullscreenState(false, nullptr);
+  if (_swapChain && _currentFullScreen.ExclusiveMode) {
+    BOOL fullscreen = false;
+    if (FAILED(_swapChain->GetFullscreenState(&fullscreen, nullptr)) &&
+        fullscreen) {
+      // d3d has to be in windowed mode to cleanup correctly
+      _swapChain->SetFullscreenState(false, nullptr);
+    }
   }
 
   _backBuffer.Clear();
@@ -540,20 +544,18 @@ INT32 D3DAppFramework::Run() {
         const MGDFFullScreenDesc newFullScreen =
             OnResetSwapChain(_swapDesc, _fullscreenSwapDesc, windowSize);
 
-        if (_currentFullScreen.ExclusiveMode) {
+        if (_swapChain && _currentFullScreen.ExclusiveMode) {
           // clean up the old swap chain, then recreate it with the new
           // settings
           BOOL fullscreen = false;
-          if (_swapChain) {
-            if (FAILED(_swapChain->GetFullscreenState(&fullscreen,
-                                                      target.Assign()))) {
-              FATALERROR(this, "GetFullscreenState failed");
-            }
-            if (fullscreen) {
-              // d3d has to be in windowed mode to cleanup correctly
-              if (FAILED(_swapChain->SetFullscreenState(false, nullptr))) {
-                FATALERROR(this, "SetFullscreenState failed");
-              }
+          if (FAILED(_swapChain->GetFullscreenState(&fullscreen,
+                                                    target.Assign()))) {
+            FATALERROR(this, "GetFullscreenState failed");
+          }
+          if (fullscreen) {
+            // d3d has to be in windowed mode to cleanup correctly
+            if (FAILED(_swapChain->SetFullscreenState(false, nullptr))) {
+              FATALERROR(this, "SetFullscreenState failed");
             }
           }
         }

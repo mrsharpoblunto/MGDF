@@ -344,8 +344,10 @@ void RenderSettingsManager::OnResetSwapChain(
   desc.BufferCount = 2;
   desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-  desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH |
-               DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+  desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+  if (!_fullScreen.ExclusiveMode) {
+    desc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+  }
   desc.Format = BACKBUFFER_FORMAT;
   desc.SampleDesc.Count = _backBufferMultiSampleLevel;
   desc.SampleDesc.Quality =
