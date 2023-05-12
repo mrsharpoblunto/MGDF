@@ -15,12 +15,12 @@ Task("BuildX64")
 	.IsDependentOn("VersionInfo")
 	.IsDependentOn("SolutionInfo")
 	.Does(() => {
-		MSBuild("../Matchstick.sln", new MSBuildSettings{
+		MSBuild("../Matchstick.sln", (new MSBuildSettings{
 			Verbosity = Verbosity.Minimal,
 			ToolVersion = MSBuildToolVersion.VS2022,
 			Configuration = buildConfiguration,
 			PlatformTarget = PlatformTarget.x64
-		});
+		}).WithTarget("Clean").WithTarget("Build"));
 	});
 
 Task("SolutionInfo").Does(() => {

@@ -10,7 +10,7 @@
 namespace MGDF {
 namespace core {
 
-constexpr char _mgdfVersion[] = "0.16.0";
+constexpr char _mgdfVersion[] = "0.16.1";
 
 const char *MGDFVersionInfo::MGDF_VERSION() { return _mgdfVersion; }
 

@@ -8,6 +8,7 @@ using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.Common.Extensions;
 using File = MGDF.GamesManager.Common.Framework.File;
 using InstalledProgramsHelper = MGDF.GamesManager.Model.Helpers.InstalledProgramsHelper;
+using System.Drawing.IconLib.Exceptions;
 
 namespace MGDF.GamesManager.Model
 {
@@ -50,7 +51,14 @@ namespace MGDF.GamesManager.Model
         //make sure to create the games icon file if it hasn't been created already.
         if (FileSystem.Current.FileExists(FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon)))
         {
-          IconManager.Current.CreateIcon(_game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
+          try
+          {
+            IconManager.Current.CreateIcon(_game.Name, FileSystem.Combine(Resources.GameBaseDir, Resources.GameIcon), FileSystem.Combine(Resources.GameBaseDir, Resources.GameSystemIcon));
+          }
+          catch (ImageAlreadyExistsException)
+          {
+            // if the icon already exists this is fine
+          }
         }
       }
     }
