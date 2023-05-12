@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29519.181
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Content", "Content", "{7DB53567-CA6D-4F58-A2AB-337764CAFF55}"
 EndProject
@@ -159,8 +159,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CD098AAC-1CA0-4A18-9CDE-FBF5116BAA97}"
 	ProjectSection(SolutionItems) = preProject
 		build\build.cake = build\build.cake
-		build\build.ps1 = build\build.ps1
-		build\tools\packages.config = build\tools\packages.config
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DocGen", "DocGen", "{F7F8841C-8BE3-4E4F-86C9-4850BCA326DE}"
