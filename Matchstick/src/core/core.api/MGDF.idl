@@ -389,6 +389,9 @@ typedef enum MGDFLogLevel {
            MGDFLogLevel level);
 };
 
+/**
+Allows a metric to be tagged with a collection of name/value pairs
+*/
 typedef struct MGDFTags {
   const small **Names;
   const small **Values;

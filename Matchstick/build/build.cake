@@ -1,9 +1,10 @@
 using System.Text.RegularExpressions;
-#addin nuget:?package=Cake.FileHelpers&version=3.3.0
-#addin nuget:?package=Cake.Json&version=5.1.1
-#addin nuget:?package=Cake.AWS.S3&version=0.6.9
-#addin nuget:?package=Cake.Git&version=0.22.0
+#addin nuget:?package=Cake.FileHelpers&version=6.1.3
+#addin nuget:?package=Cake.Json&version=7.0.1
+#addin nuget:?package=Cake.AWS.S3&version=1.0.0&loaddependencies=true
+#addin nuget:?package=Cake.Git&version=3.0.0
 #addin nuget:?package=Newtonsoft.Json&version=9.0.1
+#tool nuget:?package=NUnit.ConsoleRunner&version=3.16.3
 
 var target = Argument("target", "Default");
 var buildConfiguration = Argument("configuration", "Release");
@@ -16,7 +17,7 @@ Task("BuildX64")
 	.Does(() => {
 		MSBuild("../Matchstick.sln", new MSBuildSettings{
 			Verbosity = Verbosity.Minimal,
-			ToolVersion = MSBuildToolVersion.VS2019,
+			ToolVersion = MSBuildToolVersion.VS2022,
 			Configuration = buildConfiguration,
 			PlatformTarget = PlatformTarget.x64
 		});
@@ -63,7 +64,8 @@ Task("Documentation")
 Task("TestGamesManager")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
-	NUnit3($@"../tests/GamesManager.Tests/bin/{buildConfiguration}/GamesManager.Tests.dll", new NUnit3Settings() {
+	NUnit($@"../tests/GamesManager.Tests/bin/{buildConfiguration}/GamesManager.Tests.dll", new NUnitSettings() {
+		ToolPath = "./tools/NUnit.ConsoleRunner.3.16.3/tools/nunit3-console.exe",
 		StopOnError = true,
 		NoResults = true
 	});
@@ -88,10 +90,12 @@ Task("Clean").Does(() => {
 		});
 	}
 	CreateDirectory("../dist");
-	DeleteDirectory($@"../bin/x64/{buildConfiguration}", new DeleteDirectorySettings() {
-		Force = true,
-		Recursive = true,
-	});
+	if (DirectoryExists("../bin/x64/{buildConfiguration}")) {
+    DeleteDirectory($@"../bin/x64/{buildConfiguration}", new DeleteDirectorySettings() {
+      Force = true,
+      Recursive = true,
+    });
+	}
 });
 
 Task("Dist")
