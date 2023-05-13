@@ -123,9 +123,11 @@ HRESULT GPUPerformanceCounter::DoBegin(std::map<std::string, std::string> &tags,
       desc.Query = D3D11_QUERY_TIMESTAMP;
       desc.MiscFlags = 0;
 
-      if (FAILED(
-              _device->CreateQuery(&desc, _beginQueries.emplace().Assign())) ||
-          FAILED(_device->CreateQuery(&desc, _endQueries.emplace().Assign()))) {
+      if (!(SUCCEEDED(_device->CreateQuery(&desc,
+                                           _beginQueries.emplace().Assign())) &&
+            SUCCEEDED(
+                _device->CreateQuery(&desc, _endQueries.emplace().Assign())))) {
+        Reset();
         LOG("Failed to create GPU timing queries", MGDF_LOG_ERROR);
         return E_FAIL;
       }

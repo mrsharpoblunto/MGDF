@@ -633,7 +633,7 @@ INT32 D3DAppFramework::Run() {
               WaitForSingleObjectEx(_frameWaitableObject, 1000, true);
           if (wait == WAIT_ABANDONED || wait == WAIT_TIMEOUT ||
               wait == WAIT_FAILED) {
-            FATALERROR(this, "Failed to wait on FrameWaitableObject");
+            LOG("Failed to wait on FrameWaitableObject", MGDF_LOG_ERROR);
           }
         }
 
