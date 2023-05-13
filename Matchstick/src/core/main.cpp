@@ -31,11 +31,28 @@ using namespace MGDF::core;
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
+class MemoryLeakChecker {
+ public:
+  MemoryLeakChecker() {
+    // Catch memory leaks
+#if defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+#endif
+  }
+  virtual ~MemoryLeakChecker() {
+    // Catch memory leaks
+#if defined(_DEBUG)
+    _CrtDumpMemoryLeaks();
+#endif
+  }
+};
+
+static MemoryLeakChecker _memoryLeakChecker;
 HANDLE _dumpEvent = nullptr;
 HANDLE _dumpThread = nullptr;
 bool _hasDumped = false;
-
-_MINIDUMP_EXCEPTION_INFORMATION *_dumpInfo = nullptr;
+std::unique_ptr<_MINIDUMP_EXCEPTION_INFORMATION> _dumpInfo;
 MGDFApp *_application = nullptr;
 
 D3DAPP_WNDPROC(MGDFAppWndProc, _application)
@@ -46,14 +63,8 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
   std::ignore = nCmdShow;
   std::ignore = lpCmdLine;
   std::ignore = hPreviousInstance;
-  const HRESULT comHr = CoInitialize(NULL);
 
-  // Catch memory leaks
-#if defined(_DEBUG)
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-  _CrtDumpMemoryLeaks();
-#endif
+  const HRESULT comHr = CoInitialize(NULL);
 
   timeBeginPeriod(1);  // set a higher resolution for timing calls
 
@@ -96,7 +107,15 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
     CoUninitialize();
   }
 
+  if (_dumpEvent) {
+    CloseHandle(_dumpEvent);
+  }
+  if (_dumpThread) {
+    CloseHandle(_dumpThread);
+  }
+
   LOG("shut down successfully", MGDF_LOG_LOW);
+
   return 0;
 }
 
@@ -111,8 +130,7 @@ UnhandledExceptionCallBack(struct _EXCEPTION_POINTERS *pExceptionInfo) {
         MGDF_LOG_ERROR);
     LOG("Generating Minidump file minidump.dmp...", MGDF_LOG_ERROR);
 
-    _dumpInfo = (_MINIDUMP_EXCEPTION_INFORMATION *)malloc(
-        sizeof(_MINIDUMP_EXCEPTION_INFORMATION));
+    _dumpInfo = std::make_unique<_MINIDUMP_EXCEPTION_INFORMATION>();
     _dumpInfo->ThreadId = GetCurrentThreadId();
     _dumpInfo->ExceptionPointers = pExceptionInfo;
     _dumpInfo->ClientPointers = 0;
@@ -135,7 +153,7 @@ UnhandledExceptionCallBack(struct _EXCEPTION_POINTERS *pExceptionInfo) {
 handle fatal errors explicitly invoked from the MGDF
 */
 void FatalErrorCallBack(const std::string &sender, const std::string &message) {
-  (void)sender;
+  std::ignore = sender;
   WriteMinidump();
 
   if (!ParameterManager::Instance().HasParameter("hideerrors")) {
@@ -174,9 +192,10 @@ DWORD WINAPI CrashDumpThread(LPVOID data) {
           GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS,
           FILE_ATTRIBUTE_NORMAL, NULL);
 
-      if (hFile != INVALID_HANDLE_VALUE) {
-        const BOOL ok = pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
-                              MiniDumpNormal, _dumpInfo, nullptr, nullptr);
+      if (hFile != INVALID_HANDLE_VALUE && _dumpInfo) {
+        const BOOL ok =
+            pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile,
+                  MiniDumpNormal, _dumpInfo.get(), nullptr, nullptr);
         if (!ok) {
           LOG("Failed to save dump file", MGDF_LOG_ERROR);
         }
@@ -187,7 +206,7 @@ DWORD WINAPI CrashDumpThread(LPVOID data) {
     }
   }
   Logger::Instance().Flush();
-  if (_dumpInfo != nullptr) free(_dumpInfo);
+  _dumpInfo.reset();
 
   return 0;
 }

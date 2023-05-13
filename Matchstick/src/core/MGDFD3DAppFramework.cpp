@@ -171,9 +171,12 @@ void D3DAppFramework::InitRawInput() {
 
 void D3DAppFramework::InitD3D() {
   LOG("Initializing Direct3D...", MGDF_LOG_LOW);
-  UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #if defined(DEBUG) || defined(_DEBUG)
-  createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+  constexpr const UINT32 createDeviceFlags =
+      D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
+#else
+  constexpr const UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
 #endif
 
   ComObject<IDXGIFactory> f;
