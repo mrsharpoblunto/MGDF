@@ -31,6 +31,8 @@ VorbisStream::VorbisStream(IMGDFReadOnlyFile *source,
                            OpenALSoundManagerComponentImpl *manager)
     : _soundManager(manager),
       _volume(1.0),
+      _source(0),
+      _vorbisInfo(nullptr),
       _dataSource(ComObject(source, true)),
       _initLevel(0),
       _name(ComString<&IMGDFReadOnlyFile::GetLogicalName>(source)),
@@ -458,8 +460,9 @@ int VorbisStream::ov_seek_func(void *datasource, ogg_int64_t offset,
         return 0;
       }
       break;
+    default:
+      return -1;
   }
-  return -1;
 }
 
 int VorbisStream::ov_close_func(void *datasource) {

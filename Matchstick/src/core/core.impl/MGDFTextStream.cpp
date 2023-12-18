@@ -96,8 +96,8 @@ HRESULT TextStream::GenerateLayout(const ComObject<ID2D1DeviceContext> &context,
   }
 
   for (const auto &style : _appliedStyles) {
-    DWRITE_TEXT_RANGE range = {style.first.first,
-                               style.first.second - style.first.first};
+    const DWRITE_TEXT_RANGE range = {style.first.first,
+                                     style.first.second - style.first.first};
     if (style.second._size) {
       textLayout->SetFontSize(*style.second._size, range);
     }

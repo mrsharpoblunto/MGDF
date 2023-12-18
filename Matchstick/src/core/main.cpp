@@ -29,26 +29,20 @@ using namespace MGDF::core;
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
-#endif
 
+// track memory leaks
 class MemoryLeakChecker {
  public:
   MemoryLeakChecker() {
-    // Catch memory leaks
-#if defined(_DEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-#endif
   }
-  virtual ~MemoryLeakChecker() {
-    // Catch memory leaks
-#if defined(_DEBUG)
-    _CrtDumpMemoryLeaks();
-#endif
-  }
+  virtual ~MemoryLeakChecker() { _CrtDumpMemoryLeaks(); }
 };
 
 static MemoryLeakChecker _memoryLeakChecker;
+#endif
+
 HANDLE _dumpEvent = nullptr;
 HANDLE _dumpThread = nullptr;
 bool _hasDumped = false;

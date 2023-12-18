@@ -124,7 +124,10 @@ void StatisticsManager::PushMetric(IMGDFMetric* metric) {
   if (!_enabled) return;
   std::unique_lock lock(_mutex);
   auto& stat = PushCommon(_events.emplace_back(), nullptr);
-  static_cast<MetricBase*>(metric)->DumpPush(stat);
+  const auto base = dynamic_cast<MetricBase*>(metric);
+  if (base) {
+    base->DumpPush(stat);
+  }
   if (_events.size() >= SEND_THRESHOLD) {
     lock.unlock();
     _cv.notify_one();

@@ -76,8 +76,9 @@ std::string Win32Exception::TranslateError(unsigned code) {
              "one instruction has been executed.";
     case EXCEPTION_STACK_OVERFLOW:
       return "The thread used up its stack.";
+    default:
+      return "Unknown exception";
   }
-  return "Unknown exception";
 }
 
 }  // namespace core

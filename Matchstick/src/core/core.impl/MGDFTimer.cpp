@@ -235,9 +235,9 @@ void GPUPerformanceCounter::DataReady(ID3D11Query *disjoint, UINT64 frequency) {
           tagValues.emplace_back(t.second.c_str());
         }
         AddSample(value);
-        MGDFTags tags{.Names = tagNames.data(),
-                      .Values = tagValues.data(),
-                      .Count = tagNames.size()};
+        const MGDFTags tags{.Names = tagNames.data(),
+                            .Values = tagValues.data(),
+                            .Count = tagNames.size()};
         _metric->Record(value, &tags);
       }
     }

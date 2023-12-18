@@ -43,7 +43,7 @@ int MemFS::st(const char *path, size_t *size, time_t *mtime) {
 void *MemFS::op(const char *path, int flags) {
   std::ignore = flags;
   std::lock_guard lock(_mutex);
-  auto found = _content.find(path);
+  const auto found = _content.find(path);
   if (found == _content.end()) {
     return nullptr;
   } else {
@@ -113,10 +113,10 @@ int HttpClient::RequestJson(const std::string &url, const Json::Value *request,
 }
 
 void HttpClient::LoadCerts() {
-  CERT_ENHKEY_USAGE enhkeyUsage{.cUsageIdentifier = 0,
-                                .rgpszUsageIdentifier = NULL};
-  CERT_USAGE_MATCH certUsage{.dwType = USAGE_MATCH_TYPE_AND,
-                             .Usage = enhkeyUsage};
+  const CERT_ENHKEY_USAGE enhkeyUsage{.cUsageIdentifier = 0,
+                                      .rgpszUsageIdentifier = NULL};
+  const CERT_USAGE_MATCH certUsage{.dwType = USAGE_MATCH_TYPE_AND,
+                                   .Usage = enhkeyUsage};
   CERT_CHAIN_PARA chainParams{.cbSize = sizeof(CERT_CHAIN_PARA),
                               .RequestedUsage = certUsage};
 
@@ -176,7 +176,7 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
       }
       mg_fs fs;
       MemFS::InitMGFS(fs);
-      mg_tls_opts opts = {.ca = "ca.pem", .srvname = host, .fs = &fs};
+      const mg_tls_opts opts = {.ca = "ca.pem", .srvname = host, .fs = &fs};
       mg_tls_init(c, &opts);
     }
 

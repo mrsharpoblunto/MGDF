@@ -638,8 +638,7 @@ INT32 D3DAppFramework::Run() {
         }
 
         const float black[4] = {0.0f, 0.0f, 0.0f, 1.0f};  // RGBA
-        _immediateContext->ClearRenderTargetView(
-            _renderTargetView, reinterpret_cast<const float *>(&black));
+        _immediateContext->ClearRenderTargetView(_renderTargetView, &black[0]);
         _immediateContext->ClearDepthStencilView(
             _depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f,
             0);

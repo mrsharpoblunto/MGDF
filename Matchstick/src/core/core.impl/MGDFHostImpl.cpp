@@ -117,7 +117,7 @@ HRESULT Host::Init() {
   LOG("Registering custom archive VFS handlers...", MGDF_LOG_LOW);
   UINT64 length = 0;
   result = _moduleFactory->GetCustomArchiveHandlers(
-      nullptr, &length, reinterpret_cast<IMGDFLogger *>(this));
+      nullptr, &length, static_cast<IMGDFSimHost *>(this));
   if (FAILED(result)) {
     LOG("Failed to register custom archive VFS handlers", MGDF_LOG_ERROR);
     return result;
@@ -125,7 +125,7 @@ HRESULT Host::Init() {
   if (length > 0) {
     ComArray<IMGDFArchiveHandler> handlers(length);
     result = _moduleFactory->GetCustomArchiveHandlers(
-        handlers.Data(), &length, reinterpret_cast<IMGDFLogger *>(this));
+        handlers.Data(), &length, static_cast<IMGDFSimHost *>(this));
     if (FAILED(result)) {
       LOG("Failed to register custom archive VFS handlers", MGDF_LOG_ERROR);
       return result;
