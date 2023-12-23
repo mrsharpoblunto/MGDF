@@ -98,8 +98,41 @@ Task("Clean").Does(() => {
 	}
 });
 
+Task("Sign")
+	.IsDependentOn("BuildX64")
+	.Does(() => {
+    var files = GetFiles($@"../bin/x64/{buildConfiguration}/*.exe");
+    files.Add(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.exe"));
+    files.Add(GetFiles($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/*.exe"));
+		var signSecret = Argument<string>("signsecret");
+    Sign(files, new SignToolSignSettings {
+			TimeStampUri = new Uri("http://timestamp.digicert.com"),
+			DigestAlgorithm = SignToolDigestAlgorithm.Sha256,
+			CertPath = "../straylight.cer",
+			ArgumentCustomization = args => {
+				args.Clear();
+				args.Append("sign")
+        .Append("/fd")
+        .Append("sha256")
+        .Append("/tr")
+        .Append("http://timestamp.digicert.com")
+				.Append("/f")
+				.AppendQuoted("../straylight.cer")
+        .Append("/csp")
+				.AppendQuoted("eToken Base Cryptographic Provider")
+				.Append("/k")
+				.AppendQuoted(signSecret);
+				foreach (var file in files) {
+					args.AppendQuoted(file.FullPath);
+				}
+				return args;
+       }
+    });
+});
+
 Task("Dist")
 	.IsDependentOn("Clean")
+	.IsDependentOn("Sign")	
 	.IsDependentOn("BuildX64")
 	.IsDependentOn("TestGamesManager")
 	.IsDependentOn("TestCoreX64")
@@ -116,6 +149,7 @@ Task("Dist")
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));
+
 		Zip("../dist/tmp/x64", $@"../dist/SDK/MGDF_{buildNumber}_x64.zip");
 		CopyFile($@"../dist/SDK/MGDF_{buildNumber}_x64.zip", $@"../dist/MGDF_{buildNumber}_x64.zip");
 		DeleteDirectory("../dist/tmp", new DeleteDirectorySettings() { 
