@@ -2,7 +2,7 @@
 
 #include <d3d11.h>
 #include <d3d11_1.h>
-#include <dxgi1_5.h>
+#include <dxgi1_6.h>
 
 #include <MGDF/ComObject.hpp>
 #include <atomic>
@@ -44,7 +44,10 @@ class D3DAppFramework {
   virtual void OnDraw() = 0;
 
   virtual void OnUpdateSim() = 0;
-
+  virtual void OnDisplayChange(
+      const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
+      ULONG currentSDRWhiteLevel,
+      const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) = 0;
   virtual void OnExternalClose() = 0;
   virtual void OnMouseInput(INT32 x, INT32 y) = 0;
   virtual void OnRawInput(RAWINPUT *input) = 0;
@@ -71,6 +74,7 @@ class D3DAppFramework {
   void ClearBackBuffer();
   void ResizeBackBuffer();
   bool AllowTearing();
+  void CheckForDisplayChanges();
 
   // Application, Windows, and Direct3D data members.
   ComObject<ID3D11Device> _d3dDevice;
@@ -80,7 +84,9 @@ class D3DAppFramework {
   ComObject<ID2D1Factory1> _d2dFactory;
 
   ComObject<IDXGISwapChain1> _swapChain;
-  ComObject<IDXGIFactory2> _factory;
+  UINT _factoryFlags;
+  ComObject<IDXGIFactory6> _factory;
+  UINT _adapterIndex;
 
   ComObject<ID3D11RenderTargetView> _renderTargetView;
   ComObject<ID3D11DepthStencilView> _depthStencilView;

@@ -18,12 +18,28 @@
 namespace MGDF {
 namespace core {
 
+// Compute the overlay area of two rectangles, A and B.
+// (ax1, ay1) = left-top coordinates of A; (ax2, ay2) = right-bottom coordinates
+// of A (bx1, by1) = left-top coordinates of B; (bx2, by2) = right-bottom
+// coordinates of B
+constexpr int ComputeIntersectionArea(int ax1, int ay1, int ax2, int ay2,
+                                      int bx1, int by1, int bx2, int by2) {
+  return max(0, min(ax2, bx2) - max(ax1, bx1)) *
+         max(0, min(ay2, by2) - max(ay1, by1));
+}
+
 #define WINDOW_CLASS_NAME "MGDFD3DAppFrameworkWindowClass"
 
 D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
     : _applicationInstance(hInstance),
       _window(nullptr),
       _maximized(false),
+#if defined(DEBUG) || defined(_DEBUG)
+      _factoryFlags(DXGI_CREATE_FACTORY_DEBUG),
+#else
+      _factoryFlags(0U),
+#endif
+      _adapterIndex(0U),
       _resizing(false),
       _awaitingResize(false),
       _renderThread(nullptr),
@@ -57,17 +73,18 @@ void D3DAppFramework::InitWindow(const std::string &caption,
   // if the window has not already been created
   if (!_window) {
     LOG("Initializing window...", MGDF_LOG_LOW);
-    WNDCLASS wc;
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = windowProcedure;
-    wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
-    wc.hInstance = _applicationInstance;
-    wc.hIcon = LoadIcon(0, IDI_APPLICATION);
-    wc.hCursor = LoadCursor(0, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-    wc.lpszMenuName = 0;
-    wc.lpszClassName = WINDOW_CLASS_NAME;
+    const WNDCLASS wc{
+        .style = CS_HREDRAW | CS_VREDRAW,
+        .lpfnWndProc = windowProcedure,
+        .cbClsExtra = 0,
+        .cbWndExtra = 0,
+        .hInstance = _applicationInstance,
+        .hIcon = LoadIcon(0, IDI_APPLICATION),
+        .hCursor = LoadCursor(0, IDC_ARROW),
+        .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
+        .lpszMenuName = 0,
+        .lpszClassName = WINDOW_CLASS_NAME,
+    };
 
     if (!RegisterClass(&wc)) {
       FATALERROR(this, "RegisterClass FAILED");
@@ -110,9 +127,7 @@ void D3DAppFramework::InitWindow(const std::string &caption,
     }
 
     if (x || y) {
-      POINT pt;
-      pt.x = x;
-      pt.y = y;
+      const POINT pt{.x = x, .y = y};
       HMONITOR monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
 
       MONITORINFO monitorInfo;
@@ -150,18 +165,20 @@ void D3DAppFramework::InitWindow(const std::string &caption,
 
 void D3DAppFramework::InitRawInput() {
   LOG("Initializing Raw Input...", MGDF_LOG_LOW);
-  RAWINPUTDEVICE Rid[2];
-
-  Rid[0].usUsagePage = 0x01;  // desktop input
-  Rid[0].usUsage = 0x02;      // mouse
-  Rid[0].dwFlags = 0;
-  Rid[0].hwndTarget = _window;
-
-  Rid[1].usUsagePage = 0x01;         // desktop input
-  Rid[1].usUsage = 0x06;             // keyboard
-  Rid[1].dwFlags = RIDEV_NOHOTKEYS;  // disable windows key and other windows
-                                     // hotkeys while the game has focus
-  Rid[1].hwndTarget = _window;
+  const RAWINPUTDEVICE Rid[2] = {
+      {
+          .usUsagePage = 0x01,  // desktop input
+          .usUsage = 0x02,      // mouse
+          .dwFlags = 0,
+          .hwndTarget = _window,
+      },
+      {
+          .usUsagePage = 0x01,         // desktop input
+          .usUsage = 0x06,             // keyboard
+          .dwFlags = RIDEV_NOHOTKEYS,  // disable windows key and other windows
+                                       // hotkeys while the game has focus
+          .hwndTarget = _window,
+      }};
 
   if (!RegisterRawInputDevices(Rid, 2, sizeof(Rid[0]))) {
     FATALERROR(this,
@@ -179,24 +196,18 @@ void D3DAppFramework::InitD3D() {
 
 #endif
 
-  ComObject<IDXGIFactory> f;
   if (FAILED(
-          CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)f.Assign()))) {
-    FATALERROR(this, "Failed to create IDXGIFactory1.");
-  }
-  if (FAILED(f->QueryInterface<IDXGIFactory2>(_factory.Assign()))) {
-    FATALERROR(this, "Failed to Query Interface for IDXGIFactory2.");
+          CreateDXGIFactory2(_factoryFlags, IID_PPV_ARGS(_factory.Assign())))) {
+    FATALERROR(this, "Failed to create IDXGIFactory6.");
   }
 
-  ComObject<IDXGIFactory5> f5;
-  if (SUCCEEDED(_factory->QueryInterface<IDXGIFactory5>(f5.Assign()))) {
-    BOOL allowTearing = FALSE;
-    if (FAILED(f5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-                                       &allowTearing, sizeof(allowTearing)))) {
-      allowTearing = FALSE;
-    }
-    _allowTearing = allowTearing == TRUE;
+  BOOL allowTearing = FALSE;
+  if (FAILED(_factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+                                           &allowTearing,
+                                           sizeof(allowTearing)))) {
+    allowTearing = FALSE;
   }
+  _allowTearing = allowTearing == TRUE;
 
   ComObject<IDXGIAdapter1> adapter;
   ComObject<IDXGIAdapter1> bestAdapter;
@@ -252,6 +263,7 @@ void D3DAppFramework::InitD3D() {
           // store the new best adapter
           bestAdapter = adapter;
           bestAdapterMemory = adapterDesc.DedicatedVideoMemory;
+          _adapterIndex = i;
           _d3dDevice = device;
           _immediateContext = context;
           LOG("Adapter is the best found so far", MGDF_LOG_LOW);
@@ -274,12 +286,13 @@ void D3DAppFramework::InitD3D() {
         MGDF_LOG_LOW);
   }
 
-  D2D1_FACTORY_OPTIONS options;
+  const D2D1_FACTORY_OPTIONS options {
 #if defined(DEBUG) || defined(_DEBUG)
-  options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+    .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION
 #else
-  options.debugLevel = D2D1_DEBUG_LEVEL_NONE;
+    .debugLevel = D2D1_DEBUG_LEVEL_NONE
 #endif
+  };
 
   if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, options,
                                _d2dFactory.Assign()))) {
@@ -296,6 +309,7 @@ void D3DAppFramework::InitD3D() {
   }
 
   OnInitDevices(_window, _d3dDevice, _d2dDevice, bestAdapter);
+  CheckForDisplayChanges();
 
   RECT windowSize;
   if (!GetClientRect(_window, &windowSize)) {
@@ -448,18 +462,22 @@ void D3DAppFramework::ResizeBackBuffer() {
   }
 
   // Create the depth/stencil buffer and view.
-  D3D11_TEXTURE2D_DESC depthStencilDesc;
-  depthStencilDesc.Width = _swapDesc.Width;
-  depthStencilDesc.Height = _swapDesc.Height;
-  depthStencilDesc.MipLevels = 1;
-  depthStencilDesc.ArraySize = 1;
-  depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-  depthStencilDesc.SampleDesc.Count = _swapDesc.SampleDesc.Count;
-  depthStencilDesc.SampleDesc.Quality = _swapDesc.SampleDesc.Quality;
-  depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
-  depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-  depthStencilDesc.CPUAccessFlags = 0;
-  depthStencilDesc.MiscFlags = 0;
+  const D3D11_TEXTURE2D_DESC depthStencilDesc{
+      .Width = _swapDesc.Width,
+      .Height = _swapDesc.Height,
+      .MipLevels = 1,
+      .ArraySize = 1,
+      .Format = DXGI_FORMAT_D24_UNORM_S8_UINT,
+      .SampleDesc =
+          {
+              .Count = _swapDesc.SampleDesc.Count,
+              .Quality = _swapDesc.SampleDesc.Quality,
+          },
+      .Usage = D3D11_USAGE_DEFAULT,
+      .BindFlags = D3D11_BIND_DEPTH_STENCIL,
+      .CPUAccessFlags = 0,
+      .MiscFlags = 0,
+  };
 
   if (FAILED(_d3dDevice->CreateTexture2D(&depthStencilDesc, 0,
                                          _depthStencilBuffer.Assign()))) {
@@ -477,13 +495,14 @@ void D3DAppFramework::ResizeBackBuffer() {
                                         _depthStencilView);
 
   // Set the viewport transform.
-  D3D11_VIEWPORT viewPort;
-  viewPort.TopLeftX = 0;
-  viewPort.TopLeftY = 0;
-  viewPort.Width = static_cast<float>(_swapDesc.Width);
-  viewPort.Height = static_cast<float>(_swapDesc.Height);
-  viewPort.MinDepth = 0.0f;
-  viewPort.MaxDepth = 1.0f;
+  const D3D11_VIEWPORT viewPort{
+      .TopLeftX = 0,
+      .TopLeftY = 0,
+      .Width = static_cast<float>(_swapDesc.Width),
+      .Height = static_cast<float>(_swapDesc.Height),
+      .MinDepth = 0.0f,
+      .MaxDepth = 1.0f,
+  };
 
   _immediateContext->RSSetViewports(1, &viewPort);
 
@@ -516,8 +535,11 @@ INT32 D3DAppFramework::Run() {
     OnBeforeFirstDraw();
 
     while (_runRenderThread.test_and_set()) {
+      if (!_factory->IsCurrent()) {
+        LOG("DXGI factory is no longer current, rechecking...", MGDF_LOG_LOW);
+        CheckForDisplayChanges();
+      }
       bool exp = true;
-      ComObject<IDXGIOutput> target;
       const bool awaitingReset = _awaitingD3DReset.load();
 
       if (awaitingReset) {
@@ -551,8 +573,7 @@ INT32 D3DAppFramework::Run() {
           // clean up the old swap chain, then recreate it with the new
           // settings
           BOOL fullscreen = false;
-          if (FAILED(_swapChain->GetFullscreenState(&fullscreen,
-                                                    target.Assign()))) {
+          if (FAILED(_swapChain->GetFullscreenState(&fullscreen, nullptr))) {
             FATALERROR(this, "GetFullscreenState failed");
           }
           if (fullscreen) {
@@ -612,16 +633,28 @@ INT32 D3DAppFramework::Run() {
         // or if this backbuffer change was for a toggle from windowed to
         // fullscreen
         if (newFullScreen.FullScreen && newFullScreen.ExclusiveMode) {
-          if (FAILED(_swapChain->SetFullscreenState(true, target))) {
-            FATALERROR(this, "SetFullscreenState failed");
+          // exclusive fullscreen is only supported on the primary output
+          // so we need to fetch that before restoring the fullscreen state
+          ComObject<IDXGIAdapter1> adapter;
+          if (FAILED(
+                  _factory->EnumAdapters1(_adapterIndex, adapter.Assign()))) {
+            FATALERROR(this, "Failed to get adapter " << _adapterIndex
+                                                      << " from factory");
           }
-          target.Clear();
+          ComObject<IDXGIOutput> primary;
+          if (FAILED(adapter->EnumOutputs(0, primary.Assign()))) {
+            FATALERROR(this, "Failed to get primary output");
+          }
+          if (FAILED(_swapChain->SetFullscreenState(true, primary))) {
+            FATALERROR(this, "SetFullscreenState failed on primary output");
+          }
         }
         ResizeBackBuffer();
       }
       // a window event may also have triggered a resize event.
       else if (_resize.compare_exchange_strong(exp, false)) {
         LOG("Resizing...", MGDF_LOG_MEDIUM);
+        CheckForDisplayChanges();
         OnBeforeBackBufferChange();
         OnResize(_swapDesc.Width, _swapDesc.Height);
         ResizeBackBuffer();
@@ -669,8 +702,9 @@ INT32 D3DAppFramework::Run() {
     LOG("Stopping render thread...", MGDF_LOG_LOW);
   });
 
-  MSG msg;
-  msg.message = WM_NULL;
+  MSG msg{
+      .message = WM_NULL,
+  };
   LOG("Starting input loop...", MGDF_LOG_LOW);
 
   while (GetMessage(&msg, _window, 0, 0) > 0) {
@@ -692,6 +726,188 @@ void D3DAppFramework::CloseWindow() {
   LOG("Sending WM_CLOSE message...", MGDF_LOG_HIGH);
   _internalShutDown = true;
   PostMessage(_window, WM_CLOSE, 0, 0);
+}
+
+void D3DAppFramework::CheckForDisplayChanges() {
+  if (!_factory) {
+    return;
+  }
+
+  if (!_factory->IsCurrent()) {
+    LOG("DXGI factory is no longer current, recreating...", MGDF_LOG_LOW);
+    if (FAILED(CreateDXGIFactory2(_factoryFlags,
+                                  IID_PPV_ARGS(_factory.Assign())))) {
+      FATALERROR(this, "Failed to create IDXGIFactory6.");
+    }
+  }
+
+  ComObject<IDXGIAdapter1> adapter;
+  if (FAILED(_factory->EnumAdapters1(_adapterIndex, adapter.Assign()))) {
+    FATALERROR(this,
+               "Failed to get adapter " << _adapterIndex << " from factory");
+  }
+
+  UINT i = 0;
+  ComObject<IDXGIOutput> currentOutput;
+  ComObject<IDXGIOutput6> bestOutput;
+  ComObject<IDXGIOutput6> primaryOutput;
+  float bestIntersectArea = -1;
+
+  // the best matching output is the one with the largest intersection area
+  // with the app window
+  LOG("Checking outputs to find best match for current window...",
+      MGDF_LOG_HIGH);
+  while (adapter->EnumOutputs(i, currentOutput.Assign()) !=
+         DXGI_ERROR_NOT_FOUND) {
+    // Get the rectangle bounds of current output
+    DXGI_OUTPUT_DESC desc;
+    if (FAILED(currentOutput->GetDesc(&desc))) {
+      FATALERROR(this, "Failed to get description from output " << i);
+    }
+    const RECT r = desc.DesktopCoordinates;
+    const int bx1 = r.left;
+    const int by1 = r.top;
+    const int bx2 = r.right;
+    const int by2 = r.bottom;
+
+    const int intersectArea = ComputeIntersectionArea(
+        _windowRect.left, _windowRect.top, _windowRect.right,
+        _windowRect.bottom, bx1, by1, bx2, by2);
+    if (intersectArea > bestIntersectArea) {
+      LOG("Found matching output (["
+              << bx1 << "," << by1 << "]->[" << bx2 << "," << by2
+              << "]) for current window ([" << _windowRect.left << ","
+              << _windowRect.top << "]->[" << _windowRect.right << ","
+              << _windowRect.bottom << "])...",
+          MGDF_LOG_HIGH);
+      bestOutput = currentOutput.As<IDXGIOutput6>();
+      bestIntersectArea = static_cast<float>(intersectArea);
+    }
+
+    if (i == 0) {
+      primaryOutput = currentOutput.As<IDXGIOutput6>();
+    }
+
+    ++i;
+  }
+
+  if (!bestOutput || !primaryOutput) {
+    FATALERROR(this, "No outputs found");
+  }
+
+  DXGI_OUTPUT_DESC1 primaryDesc;
+  if (FAILED(primaryOutput->GetDesc1(&primaryDesc))) {
+    FATALERROR(
+        this,
+        "Failed to get description from primary output overlapping window");
+  }
+
+  UINT32 maxSDRAdaptorModes = 0U;
+  primaryOutput->GetDisplayModeList1(DXGI_FORMAT_R8G8B8A8_UNORM, 0,
+                                     &maxSDRAdaptorModes, nullptr);
+
+  UINT32 maxHDRAdaptorModes = 0U;
+  if (primaryDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020) {
+    LOG("Primary output supports HDR, getting SDR & HDR compatible modes",
+        MGDF_LOG_LOW);
+    primaryOutput->GetDisplayModeList1(DXGI_FORMAT_R16G16B16A16_FLOAT, 0,
+                                       &maxHDRAdaptorModes, nullptr);
+  } else {
+    LOG("Primary output is SDR only, getting SDR compatible modes only",
+        MGDF_LOG_LOW);
+  }
+
+  std::vector<DXGI_MODE_DESC1> primaryModes(
+      static_cast<size_t>(maxSDRAdaptorModes) +
+      static_cast<size_t>(maxHDRAdaptorModes));
+
+  // get all valid modes for the outputs supported
+  if (FAILED(primaryOutput->GetDisplayModeList1(DXGI_FORMAT_R8G8B8A8_UNORM, 0,
+                                                &maxSDRAdaptorModes,
+                                                primaryModes.data())) ||
+      (maxHDRAdaptorModes > 0U &&
+       FAILED(primaryOutput->GetDisplayModeList1(
+           DXGI_FORMAT_R16G16B16A16_FLOAT, 0, &maxHDRAdaptorModes,
+           primaryModes.data() + maxSDRAdaptorModes)))) {
+    FATALERROR(this, "Failed to get mode lists from adapter");
+  }
+
+  primaryModes.erase(
+      std::remove_if(
+          primaryModes.begin(), primaryModes.end(),
+          [](const DXGI_MODE_DESC1 &mode) {
+            return mode.Scaling != DXGI_MODE_SCALING_UNSPECIFIED ||
+                   mode.Stereo ||  // Stereo adapters not currently supported
+                   mode.Width < Resources::MIN_SCREEN_X ||
+                   mode.Height < Resources::MIN_SCREEN_Y;
+          }),
+      primaryModes.end());
+
+  DXGI_OUTPUT_DESC1 currentDesc;
+  if (FAILED(bestOutput->GetDesc1(&currentDesc))) {
+    FATALERROR(this,
+               "Failed to get description from output overlapping window");
+  }
+
+  MONITORINFOEXW monitorInfo{};
+  monitorInfo.cbSize = sizeof(MONITORINFOEXW);
+  GetMonitorInfoW(currentDesc.Monitor, &monitorInfo);
+
+  ULONG currentSDRWhiteLevel = 1000U;
+
+  // get additional info from the monitor that DXGI doesn't provide
+  // such as the SDR reference white level and DPI
+  for (LONG result = ERROR_INSUFFICIENT_BUFFER;
+       result == ERROR_INSUFFICIENT_BUFFER;) {
+    uint32_t pathElements, modeElements;
+    if (::GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &pathElements,
+                                      &modeElements) != ERROR_SUCCESS) {
+      break;
+    }
+    std::vector<DISPLAYCONFIG_PATH_INFO> pathInfos(pathElements);
+    std::vector<DISPLAYCONFIG_MODE_INFO> modeInfos(modeElements);
+    result = ::QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &pathElements,
+                                  pathInfos.data(), &modeElements,
+                                  modeInfos.data(), nullptr);
+    if (result == ERROR_SUCCESS) {
+      pathInfos.resize(pathElements);
+
+      for (auto &path : pathInfos) {
+        DISPLAYCONFIG_SOURCE_DEVICE_NAME deviceName = {};
+        deviceName.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+        deviceName.header.size = sizeof(deviceName);
+        deviceName.header.adapterId = path.sourceInfo.adapterId;
+        deviceName.header.id = path.sourceInfo.id;
+        // check if this path matches the output we are interested in
+        if ((DisplayConfigGetDeviceInfo(&deviceName.header) == ERROR_SUCCESS) &&
+            (wcscmp(monitorInfo.szDevice, deviceName.viewGdiDeviceName) == 0)) {
+          // query the reference SDR white level
+          DISPLAYCONFIG_SDR_WHITE_LEVEL whiteLevel = {};
+          whiteLevel.header.type =
+              DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL;
+          whiteLevel.header.size = sizeof(whiteLevel);
+          whiteLevel.header.adapterId = path.targetInfo.adapterId;
+          whiteLevel.header.id = path.targetInfo.id;
+          if (DisplayConfigGetDeviceInfo(&whiteLevel.header) == ERROR_SUCCESS) {
+            currentSDRWhiteLevel = whiteLevel.SDRWhiteLevel;
+          }
+        }
+      }
+    }
+  }
+
+  const UINT currentDPI = GetDpiForWindow(_window);
+
+  LOG("Current display changed (HDR: "
+          << (currentDesc.ColorSpace ==
+                      DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+                  ? "true"
+                  : "false")
+          << ", DPI: " << currentDPI
+          << ", SDRWhiteLevel: " << currentSDRWhiteLevel << ")",
+      MGDF_LOG_LOW);
+
+  OnDisplayChange(currentDesc, currentDPI, currentSDRWhiteLevel, primaryModes);
 }
 
 LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
@@ -731,6 +947,20 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       return DefWindowProc(hwnd, msg, wParam, lParam);
     }
 
+    case WM_DISPLAYCHANGE:
+      CheckForDisplayChanges();
+      return 0;
+
+    case WM_DPICHANGED: {
+      // unlike a Windows GUI app we don't want to resize the window if the DPI
+      // changes as we want to respect the resolution selected by the user for
+      // performance reasons but we do want to notify the module of the change
+      // so it can adjust its rendering of text and other elements that are DPI
+      // sensitive
+      CheckForDisplayChanges();
+      return 0;
+    }
+
     // WM_SIZE is sent when the user resizes the window.
     case WM_SIZE:
       _swapDesc.Width = LOWORD(lParam);
@@ -768,6 +998,9 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       _resizing = false;
       if (_currentSize.x != static_cast<LONG>(_swapDesc.Width) ||
           _currentSize.y != static_cast<LONG>(_swapDesc.Height)) {
+        if (!GetWindowRect(_window, &_windowRect)) {
+          FATALERROR(this, "GetWindowRect failed");
+        }
         _resize.store(true);
       }
       return 0;
@@ -776,13 +1009,17 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // resolution
     case WM_GETMINMAXINFO: {
       PMINMAXINFO info = (PMINMAXINFO)lParam;
-      info->ptMinTrackSize.x = _windowRect.right - _windowRect.left;
-      info->ptMinTrackSize.y = _windowRect.bottom - _windowRect.top;
+      info->ptMinTrackSize.x = Resources::MIN_SCREEN_X;
+      info->ptMinTrackSize.y = Resources::MIN_SCREEN_Y;
       return 0;
     }
 
     case WM_MOVE: {
       if (!_currentFullScreen.FullScreen) {
+        if (!GetWindowRect(_window, &_windowRect)) {
+          FATALERROR(this, "GetWindowRect failed");
+        }
+        CheckForDisplayChanges();
         OnMoveWindow((int)(short)LOWORD(lParam) - _clientOffset.x,
                      (int)(short)HIWORD(lParam) - _clientOffset.y);
       }

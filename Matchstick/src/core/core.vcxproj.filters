@@ -24,4 +24,7 @@
     <ClCompile Include="MGDFFrameLimiter.cpp" />
     <ClCompile Include="StdAfx.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="DeclareDPIAware.manifest" />
+  </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@ namespace MGDF {
 namespace core {
 
 struct PushStatistic {
-  size_t Timestamp;
+  size_t Timestamp = 0U;
   std::string Name;
   std::string Value;
   std::map<std::string, std::string> Tags;

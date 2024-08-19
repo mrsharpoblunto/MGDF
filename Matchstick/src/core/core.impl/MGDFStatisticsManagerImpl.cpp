@@ -44,7 +44,8 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
     const auto length = StringFromGUID2(guid, buffer, 40);
     if (length != 0) {
       LOG("StatisticsManager enabled", MGDF_LOG_LOW);
-      _sessionId = Resources::ToString(buffer).substr(1, length - 3);
+      _sessionId = Resources::ToString(buffer).substr(
+          1, static_cast<size_t>(length) - 3);
       _enabled = true;
     }
   }

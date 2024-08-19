@@ -248,29 +248,30 @@ void MGDFApp::DrawSystemOverlay() {
   _context->BeginDraw();
 
   constexpr float margin = 5.0f;
-  D2D1_ROUNDED_RECT rect;
-  rect.radiusX = margin;
-  rect.radiusY = margin;
-  rect.rect.top = margin;
-  rect.rect.left = margin;
-  rect.rect.bottom = (margin * 3) + _textMetrics.height;
-  rect.rect.right = (margin * 3) + _textMetrics.width;
+  const D2D1_ROUNDED_RECT rect{
+      .rect = {.left = margin,
+               .top = margin,
+               .right = (margin * 3) + _textMetrics.width,
+               .bottom = (margin * 3) + _textMetrics.height},
+      .radiusX = margin,
+      .radiusY = margin,
+  };
   _ASSERTE(_blackBrush);
   _context->FillRoundedRectangle(&rect, _blackBrush);
   _ASSERTE(_whiteBrush);
   _context->DrawRoundedRectangle(&rect, _whiteBrush);
 
-  D2D_POINT_2F origin;
-  origin.x = (2 * margin);
-  origin.y = (2 * margin);
+  const D2D_POINT_2F origin{
+      .x = 2 * margin,
+      .y = 2 * margin,
+  };
   _context->DrawTextLayout(origin, _textLayout, _whiteBrush);
 
   _context->EndDraw();
 }
 
 void MGDFApp::InitBrushes() {
-  D2D1_COLOR_F color;
-  color.a = color.r = color.g = color.b = 1.0f;
+  D2D1_COLOR_F color{.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
   if (FAILED(_context->CreateSolidColorBrush(color, _whiteBrush.Assign()))) {
     FATALERROR(_host, "Unable to create white color brush");
   }
@@ -355,6 +356,20 @@ void MGDFApp::FatalError(const char *sender, const char *message) {
   _ASSERTE(sender);
   _ASSERTE(message);
   _host->FatalError(sender, message);
+}
+
+void MGDFApp::OnDisplayChange(
+    const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
+    ULONG currentSDRWhiteLevel,
+    const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) {
+  // TODO handle HDR if
+  // (currentOutputDesc.ColorSpace ==
+  // DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+
+  std::ignore = currentOutputDesc;
+  std::ignore = currentDPI;
+  std::ignore = currentSDRWhiteLevel;
+  std::ignore = primaryOutputModes;
 }
 
 }  // namespace core

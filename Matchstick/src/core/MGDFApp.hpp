@@ -41,6 +41,10 @@ class MGDFApp : public D3DAppFramework {
 
   void OnUpdateSim() final;
 
+  void OnDisplayChange(
+      const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
+      ULONG currentSDRWhiteLevel,
+      const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) final;
   void OnBeforeHandleMessage() final;
   LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                           LPARAM lParam) final;

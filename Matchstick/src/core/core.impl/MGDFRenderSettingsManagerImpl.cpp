@@ -28,6 +28,10 @@ RenderSettingsManager::RenderSettingsManager()
       _vsync(true),
       _screenX(0),
       _screenY(0),
+      _fullScreen(MGDFFullScreenDesc{
+          .FullScreen = false,
+          .ExclusiveMode = false,
+      }),
       _maxFrameLatency(1),
       _window(NULL) {
   ZeroMemory(&_currentAdaptorMode, sizeof(MGDFAdaptorMode));
@@ -47,6 +51,9 @@ void RenderSettingsManager::InitFromDevice(
   if (FAILED(adapter->EnumOutputs(0, temp.Assign()))) {
     return;
   }
+
+  // TODO this should depend on which output the window is on
+  // and should be passed in when this changes
   ComObject<IDXGIOutput1> output;
   if (FAILED(temp->QueryInterface<IDXGIOutput1>(output.Assign()))) {
     return;
@@ -348,6 +355,7 @@ void RenderSettingsManager::OnResetSwapChain(
   if (!_fullScreen.ExclusiveMode) {
     desc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
   }
+  // TODO if HDR is supported and enabled, then set backbuffer format to 16bit
   desc.Format = BACKBUFFER_FORMAT;
   desc.SampleDesc.Count = _backBufferMultiSampleLevel;
   desc.SampleDesc.Quality =
@@ -436,7 +444,7 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
     // default found above if none are found.
     SetCurrentAdaptorModeToNative(nullptr);
 
-    LOG("No screen resolution preferences found, using "
+    LOG("No fullscreen resolution preferences found, using "
             << SCREEN_RES(_currentAdaptorMode),
         MGDF_LOG_LOW);
     game->SetPreference(PreferenceConstants::SCREEN_X,
@@ -445,7 +453,7 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
                         ToString(_currentAdaptorMode.Height).c_str());
     savePreferences = true;
   } else {
-    LOG("Loaded screen resolution preference for "
+    LOG("Loaded fullscreen resolution preference for "
             << SCREEN_RES(_currentAdaptorMode),
         MGDF_LOG_LOW);
   }

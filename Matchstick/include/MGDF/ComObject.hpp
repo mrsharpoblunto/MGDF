@@ -87,6 +87,7 @@ class ComObject {
   }
 
   ComObject &operator=(ComObject &&object) {
+    Clear();
     _data = object;
     object._data = nullptr;
     return *this;
@@ -257,7 +258,7 @@ class ComBase : public T {
 };
 
 template <typename T, typename... Args>
-ComObject<T> MakeCom(Args &&... args) {
+ComObject<T> MakeCom(Args &&...args) {
   return ComObject<T>(new T(std::forward<Args>(args)...));
 }
 
