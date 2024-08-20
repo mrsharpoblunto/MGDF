@@ -38,6 +38,7 @@ class MGDFApp : public D3DAppFramework {
   void OnDeviceReset() final;
   void OnBeforeFirstDraw() final;
   void OnDraw() final;
+  bool OnHideCursor() final;
 
   void OnUpdateSim() final;
 
@@ -45,7 +46,6 @@ class MGDFApp : public D3DAppFramework {
       const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
       ULONG currentSDRWhiteLevel,
       const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) final;
-  void OnBeforeHandleMessage() final;
   LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                           LPARAM lParam) final;
   void OnExternalClose() final;

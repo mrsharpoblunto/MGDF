@@ -1,7 +1,8 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 
 namespace MGDF {
 namespace core {
@@ -17,8 +18,7 @@ class IInputManagerComponent : public ComBase<IMGDFInputManager> {
   ClearInput() = 0;  // clear any pending input state (like key presses)
   virtual void ProcessSim() = 0;  // do any reading/processing of input required
                                   // before the current sim frame
-  virtual void
-  ProcessInput() = 0;  // do any processing required on the main input thread
+  virtual bool GetShowCursor() = 0;
 };
 
 }  // namespace input

@@ -13,6 +13,18 @@
 namespace MGDF {
 namespace core {
 
+enum DisplayChangeType {
+  DC_WINDOW_MOVE,
+  DC_WINDOW_RESIZE,
+  DC_WINDOW_MAXIMIZE,
+  DC_DISPLAY_CHANGE,
+};
+
+struct DisplayChange {
+  DisplayChangeType Type;
+  POINT Point;
+};
+
 class D3DAppFramework {
  public:
   D3DAppFramework(HINSTANCE hInstance);
@@ -51,10 +63,10 @@ class D3DAppFramework {
   virtual void OnExternalClose() = 0;
   virtual void OnMouseInput(INT32 x, INT32 y) = 0;
   virtual void OnRawInput(RAWINPUT *input) = 0;
-  virtual void OnBeforeHandleMessage() = 0;
   virtual LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                                   LPARAM lParam) = 0;
   virtual void OnMoveWindow(INT32 x, INT32 y) = 0;
+  virtual bool OnHideCursor() = 0;
 
   virtual UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                                UINT64 *featureLevelsSize) = 0;
@@ -65,6 +77,7 @@ class D3DAppFramework {
   void QueueResetDevice();
 
  private:
+  ComObject<IDXGIFactory6> CreateDXGIFactory();
   void InitD3D();
   void PrepareToReinitD3D();
   void ReinitD3D();
@@ -84,9 +97,7 @@ class D3DAppFramework {
   ComObject<ID2D1Factory1> _d2dFactory;
 
   ComObject<IDXGISwapChain1> _swapChain;
-  UINT _factoryFlags;
   ComObject<IDXGIFactory6> _factory;
-  UINT _adapterIndex;
 
   ComObject<ID3D11RenderTargetView> _renderTargetView;
   ComObject<ID3D11DepthStencilView> _depthStencilView;
@@ -99,20 +110,20 @@ class D3DAppFramework {
 
   HINSTANCE _applicationInstance;
   HWND _window;
-  RECT _windowRect;
-  POINT _currentSize;
   DWORD _windowStyle;
   POINT _clientOffset;
   HANDLE _frameWaitableObject;
 
-  std::atomic_bool _resize, _minimized, _awaitingD3DReset;
+  RECT _windowRect;
+  std::mutex _displayChangeMutex;
+  std::list<DisplayChange> _pendingDisplayChanges;
+  std::atomic_bool _minimized, _awaitingD3DReset;
   std::atomic_flag _runRenderThread;
 
   std::unique_ptr<std::thread> _renderThread;
 
   bool _maximized;
-  bool _resizing;
-  bool _awaitingResize;
+  std::unique_ptr<POINT> _resizing;
   bool _internalShutDown;
   bool _allowTearing;
   MGDFFullScreenDesc _currentFullScreen;

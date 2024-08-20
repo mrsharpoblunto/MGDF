@@ -327,8 +327,12 @@ void MGDFApp::OnMoveWindow(INT32 x, INT32 y) {
   _game->SetPreference(PreferenceConstants::WINDOW_POSITIONY, ys.str().c_str());
 }
 
-void MGDFApp::OnBeforeHandleMessage() {
-  _host->GetInputManagerImpl()->ProcessInput();
+bool MGDFApp::OnHideCursor() {
+  if (!_host->GetInputManagerImpl()->GetShowCursor()) {
+    SetCursor(NULL);
+    return true;
+  }
+  return false;
 }
 
 LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,

@@ -20,8 +20,7 @@ bool CreateXInputManagerComponent(ComObject<IInputManagerComponent> &comp) {
 }
 
 XInputManagerComponent::XInputManagerComponent()
-    : _pendingShowCursor(false),
-      _showCursor(false),
+    : _showCursor(true),
       _pendingMouseX(0),
       _pendingMouseY(0),
       _pendingMouseDX(0L),
@@ -158,16 +157,6 @@ void XInputManagerComponent::HandleInput(RAWINPUT *input) {
   }
 }
 
-void XInputManagerComponent::ProcessInput() {
-  if (_pendingShowCursor) {
-    std::lock_guard<std::mutex> lock(_inputMutex);
-    if (_pendingShowCursor) {
-      _pendingShowCursor = false;
-      ::ShowCursor(_showCursor);
-    }
-  }
-}
-
 void XInputManagerComponent::ProcessSim() {
   // handleinput occurs on a different thread to processinput so
   // we need to sync any access to the pending input state
@@ -189,21 +178,26 @@ void XInputManagerComponent::ProcessSim() {
 
     // mouse button states
     if (_pendingMouseButtonDown[MGDF_MOUSE_LEFT]) {
-      _mouseButtonDown[MGDF_MOUSE_LEFT] = _pendingMouseButtonDown[MGDF_MOUSE_LEFT] == 1;
+      _mouseButtonDown[MGDF_MOUSE_LEFT] =
+          _pendingMouseButtonDown[MGDF_MOUSE_LEFT] == 1;
     }
     if (_pendingMouseButtonDown[MGDF_MOUSE_MIDDLE]) {
       _mouseButtonDown[MGDF_MOUSE_MIDDLE] =
           _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] == 1;
     }
     if (_pendingMouseButtonDown[MGDF_MOUSE_RIGHT]) {
-      _mouseButtonDown[MGDF_MOUSE_RIGHT] = _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] == 1;
+      _mouseButtonDown[MGDF_MOUSE_RIGHT] =
+          _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] == 1;
     }
     ZeroMemory(_pendingMouseButtonDown, sizeof(_pendingMouseButtonDown));
 
     // mouse clicks
-    _mouseButtonClick[MGDF_MOUSE_LEFT] = _pendingMouseButtonClick[MGDF_MOUSE_LEFT];
-    _mouseButtonClick[MGDF_MOUSE_MIDDLE] = _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE];
-    _mouseButtonClick[MGDF_MOUSE_RIGHT] = _pendingMouseButtonClick[MGDF_MOUSE_RIGHT];
+    _mouseButtonClick[MGDF_MOUSE_LEFT] =
+        _pendingMouseButtonClick[MGDF_MOUSE_LEFT];
+    _mouseButtonClick[MGDF_MOUSE_MIDDLE] =
+        _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE];
+    _mouseButtonClick[MGDF_MOUSE_RIGHT] =
+        _pendingMouseButtonClick[MGDF_MOUSE_RIGHT];
     _pendingMouseButtonClick[MGDF_MOUSE_LEFT] = false;
     _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE] = false;
     _pendingMouseButtonClick[MGDF_MOUSE_RIGHT] = false;
@@ -247,23 +241,15 @@ void XInputManagerComponent::ProcessSim() {
   }
 }
 
-void XInputManagerComponent::ShowCursor(BOOL show) {
-  std::lock_guard<std::mutex> lock(_inputMutex);
-  _pendingShowCursor = true;
-  _showCursor = show;
-}
+bool XInputManagerComponent::GetShowCursor() { return _showCursor.load(); }
 
-BOOL XInputManagerComponent::IsKeyDown(UINT16 key) {
-  return _keyDown[key];
-}
+void XInputManagerComponent::ShowCursor(BOOL show) { _showCursor.store(show); }
 
-BOOL XInputManagerComponent::IsKeyUp(UINT16 key) {
-  return !_keyDown[key];
-}
+BOOL XInputManagerComponent::IsKeyDown(UINT16 key) { return _keyDown[key]; }
 
-BOOL XInputManagerComponent::IsKeyPress(UINT16 key) {
-  return _keyPress[key];
-}
+BOOL XInputManagerComponent::IsKeyUp(UINT16 key) { return !_keyDown[key]; }
+
+BOOL XInputManagerComponent::IsKeyPress(UINT16 key) { return _keyPress[key]; }
 
 INT32 XInputManagerComponent::GetMouseX(void) { return _mouseX; }
 
@@ -287,9 +273,7 @@ BOOL XInputManagerComponent::IsButtonClicked(MGDFMouse mouseButton) {
   return _mouseButtonClick[mouseButton];
 }
 
-UINT64 XInputManagerComponent::GetGamepadCount() {
-  return _gamepads.size();
-}
+UINT64 XInputManagerComponent::GetGamepadCount() { return _gamepads.size(); }
 
 void XInputManagerComponent::GetGamepads(IMGDFGamepad **gamepads) {
   IMGDFGamepad **gamepadPtr = gamepads;

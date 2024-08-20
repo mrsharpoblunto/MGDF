@@ -1,6 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
+
 #include <mutex>
 #include <set>
 #include <thread>
@@ -27,7 +28,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   void HandleInput(INT32 mouseX, INT32 mouseY) final;
   void ClearInput() final;
   void ProcessSim() final;
-  void ProcessInput() final;
+  bool GetShowCursor() final;
 
   void __stdcall ShowCursor(BOOL show) final;
   BOOL __stdcall IsKeyDown(UINT16 key) final;
@@ -46,7 +47,6 @@ class XInputManagerComponent : public IInputManagerComponent {
 
  private:
   std::mutex _simMutex;
-  std::mutex _inputMutex;
 
   // pending keyboard state (input thread)
   UINT8 _pendingKeyDown[256];
@@ -55,8 +55,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   UINT8 _pendingKeyPressEvents[256];
   UINT8 _pendingKeyPressEventsLength;
 
-  bool _pendingShowCursor;
-  bool _showCursor;
+  std::atomic_bool _showCursor;
 
   // current keyboard state (sim thread)
   bool _keyDown[256];
