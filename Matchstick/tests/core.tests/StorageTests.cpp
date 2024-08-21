@@ -3,7 +3,6 @@
 #include <filesystem>
 
 #include "../../src/core/common/MGDFResources.hpp"
-#include "../../src/core/common/MGDFStringImpl.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
 #include "../../src/core/storage/MGDFStorageFactoryComponentImpl.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"

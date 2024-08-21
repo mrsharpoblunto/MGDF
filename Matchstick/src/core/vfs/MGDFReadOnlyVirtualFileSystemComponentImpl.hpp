@@ -4,8 +4,6 @@
 
 #include <MGDF/ComObject.hpp>
 #include <filesystem>
-#include <map>
-#include <mutex>
 #include <vector>
 
 #include "MGDFLogicalPathResolver.h"

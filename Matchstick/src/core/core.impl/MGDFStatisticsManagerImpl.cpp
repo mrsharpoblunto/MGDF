@@ -2,9 +2,6 @@
 
 #include "MGDFStatisticsManagerImpl.hpp"
 
-#include <json/json.h>
-#include <objbase.h>
-
 #include <chrono>
 #include <fstream>
 #include <iostream>

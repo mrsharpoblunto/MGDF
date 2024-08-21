@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
 #include "../../src/core/common/MGDFResources.hpp"
-#include "../../src/core/common/MGDFStringImpl.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
 #include "../../src/core/vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 #include "VFSCommon.hpp"

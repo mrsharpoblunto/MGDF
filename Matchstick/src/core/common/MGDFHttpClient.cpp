@@ -5,7 +5,6 @@
 #include <Windows.h>
 #include <wincrypt.h>
 
-#include <algorithm>
 #include <sstream>
 #include <string_view>
 
@@ -141,8 +140,9 @@ void HttpClient::LoadCerts() {
         CryptBinaryToStringA(cert->pbCertEncoded, cert->cbCertEncoded,
                              CRYPT_STRING_BASE64HEADER, nullptr, &size);
         std::string buffer;
-        buffer.resize(size - 1);  // size includes null-terminator which is
-                                  // added to the string implicitly
+        buffer.resize(static_cast<size_t>(size) -
+                      1);  // size includes null-terminator which is
+                           // added to the string implicitly
         CryptBinaryToStringA(cert->pbCertEncoded, cert->cbCertEncoded,
                              CRYPT_STRING_BASE64HEADER, buffer.data(), &size);
         oss << buffer;

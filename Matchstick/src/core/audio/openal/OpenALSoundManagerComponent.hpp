@@ -3,12 +3,10 @@
 #include <DirectXMath.h>
 #include <MGDF/MGDF.h>
 #include <al.h>
-#include <alc.h>
 
 #include <set>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundSystem.hpp"

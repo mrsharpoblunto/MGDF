@@ -2,7 +2,6 @@
 
 #include "MGDFFrameLimiter.hpp"
 
-#include <math.h>
 #include <windows.h>
 
 #include "common/MGDFLoggerImpl.hpp"

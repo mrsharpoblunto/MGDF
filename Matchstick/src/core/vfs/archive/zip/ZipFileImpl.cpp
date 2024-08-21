@@ -2,8 +2,6 @@
 
 #include "ZipFileImpl.hpp"
 
-#include <algorithm>
-
 #include "../../../common/MGDFLoggerImpl.hpp"
 #include "../../../common/MGDFResources.hpp"
 #include "../../../common/MGDFStringImpl.hpp"

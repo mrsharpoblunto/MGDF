@@ -1,7 +1,5 @@
 #pragma once
 
-#include <MGDF/MGDF.h>
-
 #include "../MGDFPreferenceConfigStorageHandler.hpp"
 
 namespace MGDF {

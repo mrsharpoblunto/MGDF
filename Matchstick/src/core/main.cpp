@@ -5,7 +5,7 @@
 #include <Dbghelp.h>
 #pragma warning(pop)
 
-#include <mmsystem.h>
+#include <timeapi.h>
 
 #include "MGDFApp.hpp"
 #include "common/MGDFLoggerImpl.hpp"

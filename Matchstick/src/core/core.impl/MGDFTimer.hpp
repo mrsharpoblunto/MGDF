@@ -5,15 +5,12 @@
 
 #include <MGDF/ComObject.hpp>
 #include <deque>
-#include <list>
 #include <map>
 #include <mutex>
 #include <set>
 #include <stack>
 #include <unordered_map>
 #include <vector>
-
-#include "MGDFTextStream.hpp"
 
 namespace MGDF {
 namespace core {

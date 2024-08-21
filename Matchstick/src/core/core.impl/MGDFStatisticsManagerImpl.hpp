@@ -1,10 +1,8 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
-#include <time.h>
 
 #include <MGDF/ComObject.hpp>
-#include <map>
 #include <vector>
 
 #include "MGDFMetrics.hpp"

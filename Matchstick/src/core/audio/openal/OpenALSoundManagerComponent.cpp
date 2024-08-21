@@ -4,12 +4,9 @@
 
 #include <AL/alut.h>
 #include <al.h>
-#include <alc.h>
 #include <limits.h>
-#include <math.h>
 
 #include <algorithm>
-#include <sstream>
 
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFPreferenceConstants.hpp"

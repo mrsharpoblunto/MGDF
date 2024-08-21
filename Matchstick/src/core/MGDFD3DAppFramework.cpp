@@ -2,8 +2,6 @@
 
 #include "MGDFD3DAppFramework.hpp"
 
-#include <math.h>
-#include <mmsystem.h>
 #include <string.h>
 
 #include "common/MGDFLoggerImpl.hpp"

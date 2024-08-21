@@ -3,14 +3,12 @@
 #include "MGDFHostImpl.hpp"
 
 #include <filesystem>
-#include <iomanip>
 
 #include "../common/MGDFPreferenceConstants.hpp"
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
-#include "MGDFCurrentDirectoryHelper.hpp"
 #include "MGDFMetrics.hpp"
 #include "MGDFParameterConstants.hpp"
 

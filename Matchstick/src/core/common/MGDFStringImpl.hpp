@@ -1,9 +1,5 @@
 #pragma once
 
-#include <MGDF/MGDF.h>
-
-#include <MGDF/ComObject.hpp>
-#include <functional>
 #include <string>
 
 namespace MGDF {

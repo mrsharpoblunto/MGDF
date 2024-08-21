@@ -2,12 +2,9 @@
 
 #include "MGDFLoggerImpl.hpp"
 
-#include <json/json.h>
-
 #include <chrono>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 
 #include "MGDFHttpClient.hpp"
 #include "MGDFResources.hpp"

@@ -2,8 +2,6 @@
 
 #include <fstream>
 #include <functional>
-#include <iostream>
-#include <mutex>
 
 #include "MGDF/ComObject.hpp"
 #include "MGDF/MGDF.h"
@@ -28,7 +26,7 @@ class DefaultFileReader : public ComBase<IMGDFFileReader> {
  private:
   INT64 _fileSize;
   std::shared_ptr<std::ifstream> _stream;
-  std::function < void()> _cleanup;
+  std::function<void()> _cleanup;
 };
 
 }  // namespace vfs

@@ -1,10 +1,8 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
-#include <unzip.h>
 
 #include <MGDF/ComObject.hpp>
-#include <map>
 #include <string>
 #include <vector>
 

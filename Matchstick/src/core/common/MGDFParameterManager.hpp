@@ -1,7 +1,5 @@
 #pragma once
 
-#include <MGDF/MGDF.h>
-#include <exception>
 #include <map>
 #include <string>
 
@@ -25,7 +23,7 @@ class ParameterManager {
    NOTE: leading and trailing whitespace are stripped from values
   */
   virtual HRESULT ParseParameters(const std::string &,
-                                    std::map<std::string, std::string> &);
+                                  std::map<std::string, std::string> &);
 
   virtual bool HasParameter(const char *param) const;
   virtual const char *GetParameter(const char *param) const;

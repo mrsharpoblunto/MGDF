@@ -4,7 +4,6 @@
 
 #include <filesystem>
 
-#include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
 #include "MGDFGameImpl.hpp"
 

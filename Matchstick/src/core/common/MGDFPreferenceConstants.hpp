@@ -2,10 +2,8 @@
 
 #include <MGDF/MGDF.h>
 
-#include <MGDF/ComObject.hpp>
 #include <sstream>
-
-#include "MGDFResources.hpp"
+#include <string>
 
 namespace MGDF {
 namespace core {

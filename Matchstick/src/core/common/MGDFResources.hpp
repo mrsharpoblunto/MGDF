@@ -1,9 +1,7 @@
 #pragma once
 
-#include <MGDF/MGDF.h>
 #include <windows.h>
 
-#include <MGDF/ComObject.hpp>
 #include <string>
 #include <vector>
 

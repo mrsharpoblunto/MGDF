@@ -6,7 +6,6 @@
 
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFStringImpl.hpp"
-#include "OpenALSoundSystem.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -41,6 +40,7 @@ VorbisStream::VorbisStream(IMGDFReadOnlyFile *source,
       _frequency(0),
       _bufferSize(0),
       _format(0),
+      _vorbisFile(),
       _channels(0) {
   _ASSERTE(manager);
   _ASSERTE(source);

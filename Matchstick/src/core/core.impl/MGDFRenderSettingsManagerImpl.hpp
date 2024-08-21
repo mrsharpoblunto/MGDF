@@ -10,8 +10,6 @@
 #include <mutex>
 #include <vector>
 
-#include "MGDFGameImpl.hpp"
-
 namespace MGDF {
 namespace core {
 

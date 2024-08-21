@@ -2,13 +2,9 @@
 
 #include "MGDFTimer.hpp"
 
-#include <math.h>
-#include <mmsystem.h>
-
 #include <map>
 
 #include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFStringImpl.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)

@@ -1,8 +1,6 @@
 #include "stdafx.h"
 
 #include <TestReporterStdout.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include <map>
 #include <string>

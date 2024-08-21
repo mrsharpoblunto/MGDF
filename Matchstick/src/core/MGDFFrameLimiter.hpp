@@ -1,7 +1,6 @@
 #pragma once
 
-#include <mutex>
-
+#include <memory>
 namespace MGDF {
 namespace core {
 

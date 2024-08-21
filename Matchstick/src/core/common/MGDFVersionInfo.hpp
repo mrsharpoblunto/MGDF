@@ -1,8 +1,5 @@
 #pragma once
 
-#include <MGDF/MGDF.h>
-#include <string>
-
 namespace MGDF {
 namespace core {
 

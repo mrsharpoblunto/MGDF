@@ -2,7 +2,6 @@
 
 #include <MGDF/MGDF.h>
 
-#include <exception>
 #include <map>
 #include <string>
 

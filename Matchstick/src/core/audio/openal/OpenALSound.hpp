@@ -1,15 +1,10 @@
 #pragma once
 
-#include <AL/alut.h>
+#include <MGDF/MGDF.h>
 #include <al.h>
-#include <alc.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
-#include <vector>
 
-#include "../../common/MGDFStringImpl.hpp"
-#include "../MGDFSoundManagerComponent.hpp"
 #include "OpenALSoundManagerComponent.hpp"
 
 namespace MGDF {
@@ -22,14 +17,14 @@ class OpenALSound : public ComBase<IMGDFSound> {
   virtual ~OpenALSound();
   OpenALSound(OpenALSoundManagerComponentImpl *manager, INT32 priority);
   static HRESULT TryCreate(IMGDFReadOnlyFile *source,
-                             OpenALSoundManagerComponentImpl *manager,
-                             INT32 priority, ComObject<OpenALSound> &sound);
+                           OpenALSoundManagerComponentImpl *manager,
+                           INT32 priority, ComObject<OpenALSound> &sound);
 
   HRESULT __stdcall GetName(wchar_t *name, UINT64 *length) final;
-  MGDFSoundPosition * __stdcall GetPosition(MGDFSoundPosition *position) final;
-  MGDFSoundPosition * __stdcall GetVelocity(MGDFSoundPosition *velocity) final;
-  MGDFSoundPosition * __stdcall SetPosition(MGDFSoundPosition *position) final;
-  MGDFSoundPosition * __stdcall SetVelocity(MGDFSoundPosition *velocity) final;
+  MGDFSoundPosition *__stdcall GetPosition(MGDFSoundPosition *position) final;
+  MGDFSoundPosition *__stdcall GetVelocity(MGDFSoundPosition *velocity) final;
+  MGDFSoundPosition *__stdcall SetPosition(MGDFSoundPosition *position) final;
+  MGDFSoundPosition *__stdcall SetVelocity(MGDFSoundPosition *velocity) final;
   float __stdcall GetInnerRange() final;
   void __stdcall SetInnerRange(float innerRange) final;
   float __stdcall GetOuterRange() final;

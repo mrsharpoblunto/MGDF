@@ -2,15 +2,8 @@
 
 #include "MGDFReadOnlyFileBaseImpl.hpp"
 
-#include <sys/stat.h>
-
-#include <algorithm>
-#include <filesystem>
-#include <sstream>
 #include <vector>
 
-#include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFResources.hpp"
 #include "../common/MGDFStringImpl.hpp"
 
 #if defined(_DEBUG)

@@ -5,9 +5,6 @@
 
 #include <MGDF/ComObject.hpp>
 
-#include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFResources.hpp"
-#include "MGDFDefaultFileReader.hpp"
 #include "MGDFDefaultWriteableFileImpl.hpp"
 
 #if defined(_DEBUG)

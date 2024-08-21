@@ -1,12 +1,9 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
-#include <exception>
+
 #include <string>
 #include <unordered_map>
-#include <vector>
-
-#include "../common/MGDFVersionHelper.hpp"
 
 namespace MGDF {
 namespace core {

@@ -2,11 +2,14 @@
 
 #include <MGDF/MGDF.h>
 
+#include <MGDF/ComObject.hpp>
+
 namespace MGDF {
 namespace core {
 
 typedef HRESULT (*GetCustomArchiveHandlersPtr)(IMGDFArchiveHandler **list,
-                                               UINT64 *length, IMGDFLogger *logger);
+                                               UINT64 *length,
+                                               IMGDFLogger *logger);
 typedef HRESULT (*GetModulePtr)(IMGDFModule **);
 typedef UINT64 (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *, UINT64 *);
 

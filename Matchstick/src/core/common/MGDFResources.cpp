@@ -3,12 +3,9 @@
 #include "MGDFResources.hpp"
 
 #include <shlobj.h>
-#include <shlwapi.h>
 #include <zlib.h>
 
-#include <MGDF/ComObject.hpp>
 #include <filesystem>
-#include <sstream>
 
 #include "MGDFVersionInfo.hpp"
 
