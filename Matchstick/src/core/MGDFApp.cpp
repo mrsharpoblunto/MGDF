@@ -18,15 +18,16 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     : D3DAppFramework(hInstance),
       _stats(TIMER_SAMPLES),
       _host(host),
-      _initialized(false),
       _settings(host->GetRenderSettingsImpl()),
-      _renderFrameLimiter(nullptr) {
+      _stInitialized(false),
+      _rtFrameLimiter(nullptr),
+      _stFrameLimiter(nullptr) {
   _ASSERTE(host);
 
-  SecureZeroMemory(&_activeRenderEnd, sizeof(LARGE_INTEGER));
-  SecureZeroMemory(&_renderStart, sizeof(LARGE_INTEGER));
-  SecureZeroMemory(&_simulationEnd, sizeof(LARGE_INTEGER));
-  SecureZeroMemory(&_textMetrics, sizeof(DWRITE_TEXT_METRICS));
+  ::SecureZeroMemory(&_rtActiveEnd, sizeof(LARGE_INTEGER));
+  ::SecureZeroMemory(&_rtStart, sizeof(LARGE_INTEGER));
+  ::SecureZeroMemory(&_rtTextMetrics, sizeof(DWRITE_TEXT_METRICS));
+  ::SecureZeroMemory(&_stEnd, sizeof(LARGE_INTEGER));
 
   host->GetGame(_game.Assign());
   host->GetTimer(_timer.Assign());
@@ -44,13 +45,13 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     FATALERROR(_host, PreferenceConstants::SIM_FPS << " is not an integer");
   }
 
-  if (FAILED(FrameLimiter::TryCreate(simulationFps, _simFrameLimiter))) {
+  if (FAILED(FrameLimiter::TryCreate(simulationFps, _stFrameLimiter))) {
     FATALERROR(_host, "Unable to create sim frame limiter");
   }
 
   if (GetPreference(_game, PreferenceConstants::RENDER_FPS, pref)) {
     if (FAILED(FrameLimiter::TryCreate(FromString<UINT32>(pref),
-                                       _renderFrameLimiter))) {
+                                       _rtFrameLimiter))) {
       FATALERROR(_host, "Unable to create render frame limiter");
     }
   }
@@ -65,7 +66,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
   });
   _host->SetDeviceResetHandler([this]() { QueueResetDevice(); });
 
-  InitDirectWrite();
+  RTInitDirectWrite();
 }
 
 MGDFApp::~MGDFApp() {}
@@ -75,27 +76,49 @@ UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
   return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
 }
 
-void MGDFApp::OnInitDevices(HWND window,
-                            const ComObject<ID3D11Device> &d3dDevice,
-                            const ComObject<ID2D1Device> &d2dDevice,
-                            const ComObject<IDXGIAdapter1> &adapter) {
+void MGDFApp::RTOnInitDevices(HWND window,
+                              const ComObject<ID3D11Device> &d3dDevice,
+                              const ComObject<ID2D1Device> &d2dDevice,
+                              const ComObject<IDXGIAdapter1> &adapter) {
   _ASSERTE(d3dDevice);
   _ASSERTE(d2dDevice);
   _ASSERTE(adapter);
 
   if (FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-                                            _context.Assign()))) {
+                                            _rtContext.Assign()))) {
     FATALERROR(this, "Unable to create ID2D1DeviceContext");
   }
 
   _host->RTSetDevices(window, d3dDevice, d2dDevice, adapter);
 }
 
-bool MGDFApp::IsBackBufferChangePending() {
+bool MGDFApp::RTIsBackBufferChangePending() {
   return _settings->IsBackBufferChangePending();
 }
 
-bool MGDFApp::VSyncEnabled() const { return _settings->GetVSync(); }
+bool MGDFApp::RTVSyncEnabled() const { return _settings->GetVSync(); }
+
+MGDFFullScreenDesc MGDFApp::RTOnResetSwapChain(
+    DXGI_SWAP_CHAIN_DESC1 &swapDesc,
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT &windowSize) {
+  _settings->OnResetSwapChain(swapDesc, fullscreenDesc, windowSize);
+  MGDFFullScreenDesc desc;
+  _settings->GetFullscreen(&desc);
+  return desc;
+}
+
+void MGDFApp::RTOnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) {
+  MGDFFullScreenDesc desc;
+  _settings->GetFullscreen(&desc);
+  if (!desc.ExclusiveMode) {
+    swapchain.As<IDXGISwapChain2>()->SetMaximumFrameLatency(
+        _settings->GetMaxFrameLatency());
+  }
+}
+
+void MGDFApp::RTOnResize(UINT32 width, UINT32 height) {
+  _settings->OnResize(width, height);
+}
 
 bool MGDFApp::OnInitWindow(RECT &window) {
   std::string pref;
@@ -118,179 +141,174 @@ bool MGDFApp::OnInitWindow(RECT &window) {
          FromString<int>(pref) == 1;
 }
 
-MGDFFullScreenDesc MGDFApp::OnResetSwapChain(
-    DXGI_SWAP_CHAIN_DESC1 &swapDesc,
-    DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT &windowSize) {
-  _settings->OnResetSwapChain(swapDesc, fullscreenDesc, windowSize);
-  MGDFFullScreenDesc desc;
-  _settings->GetFullscreen(&desc);
-  return desc;
+void MGDFApp::RTOnBeforeDeviceReset() {
+  RTOnBeforeBackBufferChange();
+  _rtContext.Clear();
+  _rtBlackBrush.Clear();
+  _rtWhiteBrush.Clear();
+  _rtTextLayout.Clear();
+  _rtTextStream.reset();
+  _rtTextFormat.Clear();
+  _rtDWriteFactory.Clear();
+  _host->RTBeforeDeviceReset();
 }
 
-void MGDFApp::OnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) {
-  MGDFFullScreenDesc desc;
-  _settings->GetFullscreen(&desc);
-  if (!desc.ExclusiveMode) {
-    swapchain.As<IDXGISwapChain2>()->SetMaximumFrameLatency(
-        _settings->GetMaxFrameLatency());
-  }
+void MGDFApp::RTOnDeviceReset() {
+  RTInitDirectWrite();
+  _host->RTDeviceReset();
 }
 
-void MGDFApp::OnResize(UINT32 width, UINT32 height) {
-  _settings->OnResize(width, height);
-}
-
-void MGDFApp::InitDirectWrite() {
-  if (FAILED(DWriteCreateFactory(
+void MGDFApp::RTInitDirectWrite() {
+  if (FAILED(::DWriteCreateFactory(
           DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory1),
-          reinterpret_cast<IUnknown **>(_dWriteFactory.Assign())))) {
+          reinterpret_cast<IUnknown **>(_rtDWriteFactory.Assign())))) {
     FATALERROR(_host, "Unable to create IDWriteFactory");
   }
 
   ComObject<IDWriteFontCollection> fontCollection;
   if (FAILED(
-          _dWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
+          _rtDWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
     FATALERROR(_host, "Unable to get  font collection");
   }
 
-  if (FAILED(_dWriteFactory->CreateTextFormat(
+  if (FAILED(_rtDWriteFactory->CreateTextFormat(
           L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
           DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14, L"",
-          _textFormat.Assign()))) {
+          _rtTextFormat.Assign()))) {
     FATALERROR(_host, "Unable to create text format");
   }
 
-  _textStream = std::make_unique<TextStream>(_dWriteFactory);
+  _rtTextStream = std::make_unique<TextStream>(_rtDWriteFactory);
 }
 
-void MGDFApp::OnBeforeDeviceReset() {
-  OnBeforeBackBufferChange();
-  _context.Clear();
-  _blackBrush.Clear();
-  _whiteBrush.Clear();
-  _textLayout.Clear();
-  _textStream.reset();
-  _textFormat.Clear();
-  _dWriteFactory.Clear();
-  _host->RTBeforeDeviceReset();
-}
-
-void MGDFApp::OnDeviceReset() {
-  InitDirectWrite();
-  _host->RTDeviceReset();
-}
-
-void MGDFApp::OnBeforeBackBufferChange() {
-  _context->SetTarget(nullptr);
+void MGDFApp::RTOnBeforeBackBufferChange() {
+  _rtContext->SetTarget(nullptr);
   _host->RTBeforeBackBufferChange();
 }
 
-void MGDFApp::OnBackBufferChange(
+void MGDFApp::RTOnBackBufferChange(
     const ComObject<ID3D11Texture2D> &backBuffer,
     const ComObject<ID3D11Texture2D> &depthStencilBuffer) {
   _ASSERTE(backBuffer);
   _ASSERTE(depthStencilBuffer);
 
   _host->RTBackBufferChange(backBuffer, depthStencilBuffer);
-  _host->SetBackBufferRenderTarget(_context);
+  _host->SetBackBufferRenderTarget(_rtContext);
 }
 
-void MGDFApp::OnBeforeFirstDraw() {
-  _renderStart = _activeRenderEnd = _timer->GetCurrentTimeTicks();
+void MGDFApp::RTOnBeforeFirstDraw() {
+  _rtStart = _rtActiveEnd = _timer->GetCurrentTimeTicks();
 
   // wait for one sim frame to finish before
   // we start drawing
   while (_awaitFrame.test_and_set()) {
-    Sleep(1);
+    ::Sleep(1);
   }
   _host->RTBeforeFirstDraw();
 }
 
-void MGDFApp::OnDraw() {
+void MGDFApp::RTOnDraw() {
   bool didLimit = false;
-  const LARGE_INTEGER currentTime =
-      _renderFrameLimiter ? _renderFrameLimiter->LimitFps(didLimit)
-                          : _timer->GetCurrentTimeTicks();
+  const LARGE_INTEGER currentTime = _rtFrameLimiter
+                                        ? _rtFrameLimiter->LimitFps(didLimit)
+                                        : _timer->GetCurrentTimeTicks();
 
   const double elapsedTime =
-      _timer->ConvertDifferenceToSeconds(currentTime, _renderStart);
-  _stats.AppendRenderTimes(elapsedTime, _timer->ConvertDifferenceToSeconds(
-                                            _activeRenderEnd, _renderStart));
-  _renderStart = currentTime;
+      _timer->ConvertDifferenceToSeconds(currentTime, _rtStart);
+  _stats.AppendRenderTimes(
+      elapsedTime, _timer->ConvertDifferenceToSeconds(_rtActiveEnd, _rtStart));
+  _rtStart = currentTime;
 
   _host->RTDraw(elapsedTime);
 
   if (_host->GetDebugImpl()->IsShown()) {
-    DrawSystemOverlay();
+    RTDrawSystemOverlay();
   }
-  _activeRenderEnd = _timer->GetCurrentTimeTicks();
+  _rtActiveEnd = _timer->GetCurrentTimeTicks();
 }
 
-void MGDFApp::DrawSystemOverlay() {
-  if (!_whiteBrush || !_blackBrush) {
-    InitBrushes();
+void MGDFApp::RTDrawSystemOverlay() {
+  if (!_rtWhiteBrush || !_rtBlackBrush) {
+    RTInitBrushes();
   }
 
-  _textStream->ClearText();
-  _host->GetDebugImpl()->DumpInfo(_stats, *_textStream);
+  _rtTextStream->ClearText();
+  _host->GetDebugImpl()->DumpInfo(_stats, *_rtTextStream);
 
-  if (FAILED(_textStream->GenerateLayout(
-          _context, _textFormat, static_cast<float>(_settings->GetScreenX()),
-          static_cast<float>(_settings->GetScreenY()), _textLayout))) {
+  if (FAILED(_rtTextStream->GenerateLayout(
+          _rtContext, _rtTextFormat,
+          static_cast<float>(_settings->GetScreenX()),
+          static_cast<float>(_settings->GetScreenY()), _rtTextLayout))) {
     FATALERROR(_host, "Unable to create text layout");
   }
 
-  SecureZeroMemory(&_textMetrics, sizeof(_textMetrics));
-  if (FAILED(_textLayout->GetMetrics(&_textMetrics))) {
+  ::SecureZeroMemory(&_rtTextMetrics, sizeof(_rtTextMetrics));
+  if (FAILED(_rtTextLayout->GetMetrics(&_rtTextMetrics))) {
     FATALERROR(_host, "Unable to get text overhang metrics");
   }
 
-  _context->BeginDraw();
+  _rtContext->BeginDraw();
 
   constexpr float margin = 5.0f;
   const D2D1_ROUNDED_RECT rect{
       .rect = {.left = margin,
                .top = margin,
-               .right = (margin * 3) + _textMetrics.width,
-               .bottom = (margin * 3) + _textMetrics.height},
+               .right = (margin * 3) + _rtTextMetrics.width,
+               .bottom = (margin * 3) + _rtTextMetrics.height},
       .radiusX = margin,
       .radiusY = margin,
   };
-  _ASSERTE(_blackBrush);
-  _context->FillRoundedRectangle(&rect, _blackBrush);
-  _ASSERTE(_whiteBrush);
-  _context->DrawRoundedRectangle(&rect, _whiteBrush);
+  _ASSERTE(_rtBlackBrush);
+  _rtContext->FillRoundedRectangle(&rect, _rtBlackBrush);
+  _ASSERTE(_rtWhiteBrush);
+  _rtContext->DrawRoundedRectangle(&rect, _rtWhiteBrush);
 
   const D2D_POINT_2F origin{
       .x = 2 * margin,
       .y = 2 * margin,
   };
-  _context->DrawTextLayout(origin, _textLayout, _whiteBrush);
+  _rtContext->DrawTextLayout(origin, _rtTextLayout, _rtWhiteBrush);
 
-  _context->EndDraw();
+  _rtContext->EndDraw();
 }
 
-void MGDFApp::InitBrushes() {
+void MGDFApp::RTInitBrushes() {
   D2D1_COLOR_F color{.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
-  if (FAILED(_context->CreateSolidColorBrush(color, _whiteBrush.Assign()))) {
+  if (FAILED(
+          _rtContext->CreateSolidColorBrush(color, _rtWhiteBrush.Assign()))) {
     FATALERROR(_host, "Unable to create white color brush");
   }
 
   color.r = color.g = color.b = 0.05f;
   color.a = 0.85f;
-  if (FAILED(_context->CreateSolidColorBrush(color, _blackBrush.Assign()))) {
+  if (FAILED(
+          _rtContext->CreateSolidColorBrush(color, _rtBlackBrush.Assign()))) {
     FATALERROR(_host, "Unable to create black color brush");
   }
 }
 
-void MGDFApp::OnUpdateSim() {
-  if (!_initialized) {
-    _simulationEnd = _timer->GetCurrentTimeTicks();
+void MGDFApp::RTOnDisplayChange(
+    const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
+    ULONG currentSDRWhiteLevel,
+    const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) {
+  // TODO handle HDR if
+  // (currentOutputDesc.ColorSpace ==
+  // DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+
+  std::ignore = currentOutputDesc;
+  std::ignore = currentDPI;
+  std::ignore = currentSDRWhiteLevel;
+  std::ignore = primaryOutputModes;
+}
+
+void MGDFApp::STOnUpdateSim() {
+  if (!_stInitialized) {
+    _stEnd = _timer->GetCurrentTimeTicks();
     LOG("Creating Module...", MGDF_LOG_LOW);
     _host->STCreateModule();
-    _initialized = true;
+    _stInitialized = true;
   }
-  const LARGE_INTEGER simulationEnd = _simulationEnd;
+  const LARGE_INTEGER simulationEnd = _stEnd;
 
   // execute one frame of game logic as per the current module
   _host->STUpdate(_stats.ExpectedSimTime(), _stats);
@@ -302,9 +320,9 @@ void MGDFApp::OnUpdateSim() {
 
   // wait until the next frame to begin if we have any spare time left over
   bool didLimit;
-  _simulationEnd = _simFrameLimiter->LimitFps(didLimit);
+  _stEnd = _stFrameLimiter->LimitFps(didLimit);
   _stats.AppendSimTime(
-      _timer->ConvertDifferenceToSeconds(_simulationEnd, simulationEnd));
+      _timer->ConvertDifferenceToSeconds(_stEnd, simulationEnd));
 }
 
 void MGDFApp::OnRawInput(RAWINPUT *input) {
@@ -329,7 +347,7 @@ void MGDFApp::OnMoveWindow(INT32 x, INT32 y) {
 
 bool MGDFApp::OnHideCursor() {
   if (!_host->GetInputManagerImpl()->GetShowCursor()) {
-    SetCursor(NULL);
+    ::SetCursor(NULL);
     return true;
   }
   return false;
@@ -352,7 +370,7 @@ LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
       }
       [[fallthrough]];
     default:
-      return DefWindowProc(hwnd, msg, wParam, lParam);
+      return ::DefWindowProc(hwnd, msg, wParam, lParam);
   }
 }
 
@@ -360,20 +378,6 @@ void MGDFApp::FatalError(const char *sender, const char *message) {
   _ASSERTE(sender);
   _ASSERTE(message);
   _host->FatalError(sender, message);
-}
-
-void MGDFApp::OnDisplayChange(
-    const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
-    ULONG currentSDRWhiteLevel,
-    const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) {
-  // TODO handle HDR if
-  // (currentOutputDesc.ColorSpace ==
-  // DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
-
-  std::ignore = currentOutputDesc;
-  std::ignore = currentDPI;
-  std::ignore = currentSDRWhiteLevel;
-  std::ignore = primaryOutputModes;
 }
 
 }  // namespace core

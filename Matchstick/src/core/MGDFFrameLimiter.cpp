@@ -25,19 +25,19 @@ HRESULT FrameLimiter::TryCreate(UINT32 maxFps,
 }
 
 FrameLimiter::FrameLimiter(UINT32 maxFps) : _maxFps(maxFps) {
-  SecureZeroMemory(&_frameTime, sizeof(LARGE_INTEGER));
-  SecureZeroMemory(&_freq, sizeof(LARGE_INTEGER));
-  SecureZeroMemory(&_previousFrameEnd, sizeof(LARGE_INTEGER));
+  ::SecureZeroMemory(&_frameTime, sizeof(LARGE_INTEGER));
+  ::SecureZeroMemory(&_freq, sizeof(LARGE_INTEGER));
+  ::SecureZeroMemory(&_previousFrameEnd, sizeof(LARGE_INTEGER));
 }
 
 HRESULT FrameLimiter::Init() {
   // exit if the  does not support a high performance timer
-  if (!QueryPerformanceFrequency(&_freq)) {
+  if (!::QueryPerformanceFrequency(&_freq)) {
     LOG("High performance timer unsupported", MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
-  QueryPerformanceCounter(&_previousFrameEnd);
+  ::QueryPerformanceCounter(&_previousFrameEnd);
   _frameTime = (LONGLONG)_freq.QuadPart /
                _maxFps;  // set the frame diff in ticks for fps times per second
   return S_OK;
@@ -52,14 +52,14 @@ http://www.geisswerks.com/ryan/FAQS/timing.html
 */
 LARGE_INTEGER FrameLimiter::LimitFps(bool &limitApplied) {
   LARGE_INTEGER currentTime;
-  QueryPerformanceCounter(&currentTime);
+  ::QueryPerformanceCounter(&currentTime);
   bool first = true;
   limitApplied = true;
 
   if (_previousFrameEnd.QuadPart != 0) {
     bool done = false;
     do {
-      QueryPerformanceCounter(&currentTime);
+      ::QueryPerformanceCounter(&currentTime);
 
       const INT64 timePassed =
           currentTime.QuadPart - _previousFrameEnd.QuadPart;
@@ -83,10 +83,10 @@ LARGE_INTEGER FrameLimiter::LimitFps(bool &limitApplied) {
         //   but don't really save cpu or battery, but do pass a tiny
         //   amount of time.
         if (timeLeft > (int)_freq.QuadPart * 2 / 1000)
-          Sleep(1);
+          ::Sleep(1);
         else
           for (INT32 i = 0; i < 10; i++)
-            Sleep(0);  // causes thread to give up its timeslice
+            ::Sleep(0);  // causes thread to give up its timeslice
       }
     } while (!done);
   }

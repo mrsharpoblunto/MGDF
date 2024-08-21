@@ -17,35 +17,35 @@ class MGDFApp : public D3DAppFramework {
   virtual ~MGDFApp();
 
  protected:
-  UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                       UINT64 *featureLevelsSize) final;
-  bool OnInitWindow(RECT &windowSize) final;
-  void OnInitDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
-                     const ComObject<ID2D1Device> &d2dDevice,
-                     const ComObject<IDXGIAdapter1> &adapter) final;
-  MGDFFullScreenDesc OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
-                                      DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
-                                      const RECT &windowSize) final;
-  void OnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) final;
-  void OnResize(UINT32 width, UINT32 height) final;
-  bool IsBackBufferChangePending() final;
-  bool VSyncEnabled() const final;
-  void OnBeforeBackBufferChange() final;
-  void OnBackBufferChange(
+  void RTOnInitDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
+                       const ComObject<ID2D1Device> &d2dDevice,
+                       const ComObject<IDXGIAdapter1> &adapter) final;
+  MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
+                                        DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
+                                        const RECT &windowSize) final;
+  void RTOnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) final;
+  void RTOnResize(UINT32 width, UINT32 height) final;
+  bool RTIsBackBufferChangePending() final;
+  bool RTVSyncEnabled() const final;
+  void RTOnBeforeBackBufferChange() final;
+  void RTOnBackBufferChange(
       const ComObject<ID3D11Texture2D> &backBuffer,
       const ComObject<ID3D11Texture2D> &depthStencilBuffer) final;
-  void OnBeforeDeviceReset() final;
-  void OnDeviceReset() final;
-  void OnBeforeFirstDraw() final;
-  void OnDraw() final;
-  bool OnHideCursor() final;
-
-  void OnUpdateSim() final;
-
-  void OnDisplayChange(
+  void RTOnBeforeDeviceReset() final;
+  void RTOnDeviceReset() final;
+  void RTOnBeforeFirstDraw() final;
+  void RTOnDisplayChange(
       const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
       ULONG currentSDRWhiteLevel,
       const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) final;
+  void RTOnDraw() final;
+
+  void STOnUpdateSim() final;
+
+  UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
+                                       UINT64 *featureLevelsSize) final;
+  bool OnInitWindow(RECT &windowSize) final;
+  bool OnHideCursor() final;
   LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                           LPARAM lParam) final;
   void OnExternalClose() final;
@@ -56,34 +56,32 @@ class MGDFApp : public D3DAppFramework {
   void FatalError(const char *sender, const char *message) final;
 
  private:
-  void DrawSystemOverlay();
-  void InitBrushes();
-  void InitDirectWrite();
+  void RTDrawSystemOverlay();
+  void RTInitBrushes();
+  void RTInitDirectWrite();
 
-  bool _initialized;
+  bool _stInitialized;
+  std::unique_ptr<FrameLimiter> _stFrameLimiter;
+  LARGE_INTEGER _stEnd;
+
+  std::unique_ptr<FrameLimiter> _rtFrameLimiter;
+  LARGE_INTEGER _rtStart;
+  LARGE_INTEGER _rtActiveEnd;
+  ComObject<ID2D1DeviceContext> _rtContext;
+  ComObject<ID2D1SolidColorBrush> _rtWhiteBrush;
+  ComObject<ID2D1SolidColorBrush> _rtBlackBrush;
+  ComObject<IDWriteFactory1> _rtDWriteFactory;
+  ComObject<IDWriteTextFormat> _rtTextFormat;
+  std::unique_ptr<TextStream> _rtTextStream;
+  ComObject<IDWriteTextLayout> _rtTextLayout;
+  DWRITE_TEXT_METRICS _rtTextMetrics;
 
   Host *_host;
-  std::unique_ptr<FrameLimiter> _simFrameLimiter;
-  std::unique_ptr<FrameLimiter> _renderFrameLimiter;
   ComObject<IMGDFGame> _game;
   ComObject<IMGDFTimer> _timer;
   ComObject<RenderSettingsManager> _settings;
-
   HostStats _stats;
-  LARGE_INTEGER _renderStart;
-  LARGE_INTEGER _activeRenderEnd;
-  LARGE_INTEGER _simulationEnd;
-
   std::atomic_flag _awaitFrame;
-
-  ComObject<ID2D1DeviceContext> _context;
-  ComObject<ID2D1SolidColorBrush> _whiteBrush;
-  ComObject<ID2D1SolidColorBrush> _blackBrush;
-  ComObject<IDWriteFactory1> _dWriteFactory;
-  ComObject<IDWriteTextFormat> _textFormat;
-  std::unique_ptr<TextStream> _textStream;
-  ComObject<IDWriteTextLayout> _textLayout;
-  DWRITE_TEXT_METRICS _textMetrics;
 };
 
 }  // namespace core
