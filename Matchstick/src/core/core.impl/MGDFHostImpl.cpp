@@ -292,16 +292,11 @@ void Host::RTDeviceReset() {
   }
 }
 
-void Host::RTSetDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
-                        const ComObject<ID2D1Device> &d2dDevice,
-                        const ComObject<IDXGIAdapter1> &adapter) {
+void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice,
+                        const ComObject<ID2D1Device> &d2dDevice) {
   LOG("Initializing render settings and GPU timers...", MGDF_LOG_LOW);
-  _renderSettings->InitFromDevice(window, d3dDevice, adapter);
+  _renderSettings->InitFromDevice(d3dDevice);
   _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
-
-  if (_renderSettings->GetAdaptorModeCount() == 0) {
-    FATALERROR(this, "No compatible adaptor modes found");
-  }
 
   if (!_d3dDevice) {
     LOG("Loading Render settings...", MGDF_LOG_LOW);
@@ -377,10 +372,13 @@ void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
 BOOL Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
   if (!context) return false;
 
+  D3D11_TEXTURE2D_DESC desc;
+  _backBuffer->GetDesc(&desc);
+
   LOG("Setting D2D device context render target to backbuffer...",
       MGDF_LOG_HIGH);
   D2D1_PIXEL_FORMAT pixelFormat;
-  pixelFormat.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  pixelFormat.format = desc.Format;
   pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
 
   D2D1_BITMAP_PROPERTIES1 bitmapProperties;

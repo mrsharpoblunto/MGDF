@@ -27,6 +27,7 @@ class PreferenceConstants {
   static const char *WINDOW_SIZEY;
   static const char *WINDOW_POSITIONX;
   static const char *WINDOW_POSITIONY;
+  static const char *HDR_ENABLED;
 };
 
 template <typename T>

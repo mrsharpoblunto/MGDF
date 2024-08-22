@@ -8,77 +8,108 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 namespace MGDF {
 namespace core {
 
+class RenderSettingsManager;
+
+class PendingRenderSettingsChange
+    : public ComBase<IMGDFPendingRenderSettingsChange> {
+ public:
+  PendingRenderSettingsChange(RenderSettingsManager &manager)
+      : _cancelled(false), _manager(manager) {}
+  virtual ~PendingRenderSettingsChange();
+
+  void __stdcall SetMaxFrameLatency(UINT32 frames) final;
+  void __stdcall SetVSync(BOOL vsync) final;
+  void __stdcall SetFullscreen(const MGDFFullScreenDesc *fullscreen) final;
+  BOOL __stdcall SetBackBufferMultiSampleLevel(UINT32 multisampleLevel) final;
+  BOOL __stdcall SetCurrentMultiSampleLevel(UINT32 multisampleLevel) final;
+  BOOL __stdcall SetCurrentDisplayMode(const MGDFDisplayMode *mode) final;
+  void __stdcall SetWindowSize(UINT32 width, UINT32 height) final;
+  void __stdcall SetHDREnabled(BOOL enabled) final;
+  void __stdcall Cancel() final;
+
+ private:
+  bool _cancelled;
+  std::optional<UINT32> _newMaxFrameLatency;
+  std::optional<BOOL> _newVsync;
+  std::optional<UINT32> _newBackBufferMultiSampleLevel;
+  std::optional<UINT32> _newCurrentMultiSampleLevel;
+  std::optional<MGDFFullScreenDesc> _newFullscreen;
+  std::optional<BOOL> _newHDREnabled;
+  std::optional<MGDFDisplayMode> _newDisplayMode;
+  std::optional<std::pair<UINT32, UINT32>> _newSize;
+  RenderSettingsManager &_manager;
+};
+
 // this class is accessed by the sim and render threads, so setting values and
 // doing device resets must be synced up with a mutex
 class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
  public:
+  friend class PendingRenderSettingsChange;
   RenderSettingsManager();
   virtual ~RenderSettingsManager();
 
   UINT32 __stdcall GetMaxFrameLatency() final;
-  void __stdcall SetMaxFrameLatency(UINT32 frames) final;
-
   BOOL __stdcall GetVSync() final;
-  void __stdcall SetVSync(BOOL vsync) final;
-
   void __stdcall GetFullscreen(MGDFFullScreenDesc *desc) final;
-  void __stdcall SetFullscreen(const MGDFFullScreenDesc *desc) final;
-
   UINT64 __stdcall GetMultiSampleLevelCount() final;
   BOOL __stdcall GetMultiSampleLevel(UINT64 index, UINT32 *level) final;
-
-  BOOL __stdcall SetBackBufferMultiSampleLevel(UINT32 multisampleLevel) final;
   UINT32 __stdcall GetBackBufferMultiSampleLevel() final;
-  BOOL __stdcall SetCurrentMultiSampleLevel(UINT32 multisampleLevel) final;
   UINT32 __stdcall GetCurrentMultiSampleLevel(UINT32 *quality) final;
-
-  UINT64 __stdcall GetAdaptorModeCount() final;
-  BOOL __stdcall GetAdaptorMode(UINT64 index, MGDFAdaptorMode *mode) final;
-  BOOL __stdcall GetAdaptorModeFromDimensions(UINT32 width, UINT32 height,
-                                              MGDFAdaptorMode *mode) final;
-  MGDFAdaptorMode *__stdcall GetCurrentAdaptorMode(MGDFAdaptorMode *mode) final;
-  BOOL __stdcall SetCurrentAdaptorMode(const MGDFAdaptorMode *mode) final;
-  BOOL __stdcall SetCurrentAdaptorModeToNative(MGDFAdaptorMode *mode) final;
-  void __stdcall SetWindowSize(UINT32 width, UINT32 height) final;
-
+  UINT64 __stdcall GetDisplayModeCount() final;
+  BOOL __stdcall GetDisplayMode(UINT64 index, MGDFDisplayMode *mode) final;
+  void __stdcall GetDisplayModes(MGDFDisplayMode **modes) final;
+  BOOL __stdcall GetDisplayModeFromDimensions(UINT32 width, UINT32 height,
+                                              MGDFDisplayMode *mode) final;
+  BOOL __stdcall GetNativeDisplayMode(MGDFDisplayMode *mode) final;
+  MGDFDisplayMode *__stdcall GetCurrentDisplayMode(MGDFDisplayMode *mode) final;
+  BOOL __stdcall GetCurrentOutputHDRSupported() final;
+  ULONG __stdcall GetCurrentOutputSDRWhiteLevel() final;
+  UINT __stdcall GetCurrentOutputDPI() final;
+  BOOL __stdcall GetHDREnabled() final;
+  void __stdcall CreatePendingSettingsChange(
+      IMGDFPendingRenderSettingsChange **) final;
   UINT32 __stdcall GetScreenX() final;
   UINT32 __stdcall GetScreenY() final;
-  void __stdcall ApplySettings() final;
-
   void __stdcall GetPreferences(IMGDFPreferenceSet **preferences) final;
 
   void LoadPreferences(const ComObject<IMGDFGame> &game);
-
-  void InitFromDevice(HWND window, const ComObject<ID3D11Device> &d3dDevice,
-                      const ComObject<IDXGIAdapter1> &adapter);
+  void InitFromDevice(const ComObject<ID3D11Device> &d3dDevice);
   bool IsBackBufferChangePending();
   void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &desc,
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
                         const RECT &windowSize);
   void OnResize(UINT32 width, UINT32 height);
+  void SetOutputProperties(bool supportsHDR, UINT currentDPI,
+                           ULONG currentSDRWhiteLevel,
+                           const std::vector<MGDFDisplayMode> &modes);
 
  private:
   void Cleanup();
+  MGDFDisplayMode GetBestAlternativeDisplayMode();
 
   std::atomic_bool _changePending;
 
-  std::vector<MGDFAdaptorMode> _adaptorModes;
-  MGDFAdaptorMode _currentAdaptorMode;
+  std::vector<MGDFDisplayMode> _displayModes;
+  MGDFDisplayMode _currentDisplayMode;
 
   std::vector<UINT32> _multiSampleLevels;
   std::map<UINT32, UINT32> _multiSampleQuality;
   UINT32 _currentMultiSampleLevel;
   UINT32 _backBufferMultiSampleLevel;
+  DXGI_FORMAT _backBufferFormat;
 
   UINT32 _screenX, _screenY;
   UINT32 _maxFrameLatency;
-  HWND _window;
 
+  UINT _currentDPI;
+  LONG _currentSDRWhiteLevel;
+  bool _hdrEnabled;
   bool _vsync;
   MGDFFullScreenDesc _fullScreen;
 

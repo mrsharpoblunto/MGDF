@@ -4,6 +4,8 @@
 
 #include <string.h>
 
+#include <optional>
+
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"
 #include "windowsx.h"
@@ -293,8 +295,8 @@ void D3DAppFramework::RTInitD3D(const HWND window) {
     FATALERROR(this, "Unable to create ID2D1Device");
   }
 
-  RTOnInitDevices(window, _rtD3dDevice, _rtD2dDevice, bestAdapter);
   RTCheckForDisplayChanges(window);
+  RTOnInitDevices(_rtD3dDevice, _rtD2dDevice);
 
   RECT windowSize;
   if (!::GetClientRect(window, &windowSize)) {
@@ -506,23 +508,22 @@ void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
       pathInfos.resize(pathElements);
 
       for (auto &path : pathInfos) {
-        DISPLAYCONFIG_SOURCE_DEVICE_NAME deviceName = {};
-        deviceName.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
-        deviceName.header.size = sizeof(deviceName);
-        deviceName.header.adapterId = path.sourceInfo.adapterId;
-        deviceName.header.id = path.sourceInfo.id;
+        DISPLAYCONFIG_SOURCE_DEVICE_NAME deviceName = {
+            .header = {.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
+                       .size = sizeof(DISPLAYCONFIG_SOURCE_DEVICE_NAME),
+                       .adapterId = path.sourceInfo.adapterId,
+                       .id = path.sourceInfo.id}};
         // check if this path matches the output we are interested in
         if ((::DisplayConfigGetDeviceInfo(&deviceName.header) ==
              ERROR_SUCCESS) &&
             (::wcscmp(monitorInfo.szDevice, deviceName.viewGdiDeviceName) ==
              0)) {
           // query the reference SDR white level
-          DISPLAYCONFIG_SDR_WHITE_LEVEL whiteLevel = {};
-          whiteLevel.header.type =
-              DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL;
-          whiteLevel.header.size = sizeof(whiteLevel);
-          whiteLevel.header.adapterId = path.targetInfo.adapterId;
-          whiteLevel.header.id = path.targetInfo.id;
+          DISPLAYCONFIG_SDR_WHITE_LEVEL whiteLevel = {
+              .header = {.type = DISPLAYCONFIG_DEVICE_INFO_GET_SDR_WHITE_LEVEL,
+                         .size = sizeof(DISPLAYCONFIG_SDR_WHITE_LEVEL),
+                         .adapterId = path.targetInfo.adapterId,
+                         .id = path.targetInfo.id}};
           if (::DisplayConfigGetDeviceInfo(&whiteLevel.header) ==
               ERROR_SUCCESS) {
             currentSDRWhiteLevel = whiteLevel.SDRWhiteLevel;
@@ -706,11 +707,10 @@ void D3DAppFramework::PushRTMessage(
 }
 
 bool D3DAppFramework::PopRTMessage(
-    std::unique_ptr<DisplayChangeMessage> &message) {
+    std::optional<DisplayChangeMessage> &message) {
   std::lock_guard<std::mutex> lock(_displayChangeMutex);
   if (!_pendingDisplayChanges.empty()) {
-    message =
-        std::make_unique<DisplayChangeMessage>(_pendingDisplayChanges.front());
+    message = _pendingDisplayChanges.front();
     _pendingDisplayChanges.pop_front();
     return true;
   }
@@ -776,7 +776,7 @@ INT32 D3DAppFramework::Run() {
             }
 
             // get the most recent display change message (if any)
-            std::unique_ptr<DisplayChangeMessage> displayChange;
+            std::optional<DisplayChangeMessage> displayChange;
             if (PopRTMessage(displayChange) || !dxgiFactoryIsCurrent) {
               RTCheckForDisplayChanges(window);
             }
@@ -785,7 +785,7 @@ INT32 D3DAppFramework::Run() {
             // in a fullscreen presentation, record the window
             // size so that restore to/from fullscreen works and
             // the window size is recorded for next startup
-            if (displayChange.get() &&
+            if (displayChange &&
                 (displayChange->Type == DC_WINDOW_MOVE ||
                  displayChange->Type == DC_WINDOW_RESIZE) &&
                 !_rtCurrentFullScreen.FullScreen) {

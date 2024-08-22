@@ -62,9 +62,8 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void STDisposeModule();
 
   void RTBeforeFirstDraw();
-  void RTSetDevices(HWND window, const ComObject<ID3D11Device> &device,
-                    const ComObject<ID2D1Device> &d2dDevice,
-                    const ComObject<IDXGIAdapter1> &adapter);
+  void RTSetDevices(const ComObject<ID3D11Device> &device,
+                    const ComObject<ID2D1Device> &d2dDevice);
   void RTDraw(double alpha);
   void RTBeforeBackBufferChange();
   void RTBackBufferChange(const ComObject<ID3D11Texture2D> &backBuffer,

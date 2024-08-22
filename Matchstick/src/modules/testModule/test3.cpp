@@ -163,8 +163,10 @@ void Test3::Setup(IMGDFSimHost *host) {
             MGDFFullScreenDesc desc;
             settings->GetFullscreen(&desc);
             desc.FullScreen = !desc.FullScreen;
-            settings->SetFullscreen(&desc);
-            settings->ApplySettings();
+
+            ComObject<IMGDFPendingRenderSettingsChange> change;
+            settings->CreatePendingSettingsChange(change.Assign());
+            change->SetFullscreen(&desc);
           }
           return TestStep::CONT;
         }

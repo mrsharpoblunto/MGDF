@@ -2,12 +2,15 @@
   "host.simFps": "60",
   "host.vsync": "1",
   "host.maxFrameLatency": "1",
+  "host.interpolateFrames": "0",
   "host.fullScreen": "0",
+  "host.fullScreenExclusive": "0",
   "host.multiSampleLevel": "1",
   "host.RTMultiSampleLevel": "1",
   "host.musicVolume": "1.0",
   "host.soundVolume": "1.0",
   "host.windowResize": "1",
   "host.windowSizeX": "1024",
-  "host.windowSizeY": "768"
+  "host.windowSizeY": "768",
+  "host.hdrEnabled": "1"
 }

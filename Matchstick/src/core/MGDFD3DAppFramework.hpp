@@ -8,6 +8,7 @@
 #include <functional>
 #include <list>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -40,10 +41,8 @@ class D3DAppFramework {
   virtual void RTOnBeforeFirstDraw() = 0;
   virtual void RTOnBeforeDeviceReset() = 0;
   virtual void RTOnDeviceReset() = 0;
-  virtual void RTOnInitDevices(HWND window,
-                               const ComObject<ID3D11Device> &d3dDevice,
-                               const ComObject<ID2D1Device> &d2dDevice,
-                               const ComObject<IDXGIAdapter1> &adapter) = 0;
+  virtual void RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice,
+                               const ComObject<ID2D1Device> &d2dDevice) = 0;
   virtual void RTOnBeforeBackBufferChange() = 0;
   virtual void RTOnBackBufferChange(
       const ComObject<ID3D11Texture2D> &backBuffer,
@@ -94,7 +93,7 @@ class D3DAppFramework {
   void PushRTMessage(
       DisplayChangeType type,
       std::function<void(DisplayChangeMessage &)> genMessage = nullptr);
-  bool PopRTMessage(std::unique_ptr<DisplayChangeMessage> &message);
+  bool PopRTMessage(std::optional<DisplayChangeMessage> &message);
 
   // Render thread variables
   ComObject<ID3D11Device> _rtD3dDevice;

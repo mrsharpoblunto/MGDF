@@ -486,14 +486,16 @@ typedef struct MGDFTags {
 };
 
 /**
-The display settings for a particular adaptor mode
+The display settings for a particular display mode
 */
-typedef struct MGDFAdaptorMode {
+typedef struct MGDFDisplayMode {
   UINT32 Width;
   UINT32 Height;
   UINT32 RefreshRateNumerator;
   UINT32 RefreshRateDenominator;
-} MGDFAdaptorMode;
+  BOOL SupportsHDR;
+  BOOL IsNativeSize;
+} MGDFDisplayMode;
 
 /**
 The current fullscreen options
@@ -502,6 +504,78 @@ typedef struct MGDFFullScreenDesc {
   BOOL FullScreen;
   BOOL ExclusiveMode;
 } MGDFFullScreenDesc;
+
+/**
+Provides an interface for changing various rendering settings. Once released
+the settings will be applied to the render system on the next frame
+*/
+[
+  uuid("067B5F9F-AB09-45C8-8B0F-56C3ECB5E0A0"), object,
+  local
+] interface IMGDFPendingRenderSettingsChange : IUnknown {
+  /**
+  gets the number of frames that the swap chain is allowed to queue for
+  rendering.
+  \param frames the maximum number of frames that can be queued (1+)
+  */
+  void SetMaxFrameLatency(UINT32 frames);
+
+  /**
+  sets the current vsync setting
+  \param vsync true if vsync is to be enabled
+  */
+  void SetVSync(BOOL vsync);
+
+  /**
+  sets the current fullscreen setting
+  \param fullscreen a description of the desired fullscreen settings
+  */
+  void SetFullscreen(const MGDFFullScreenDesc *fullscreen);
+
+  /**
+  set the display devices current multisample level
+  \param multisampleLevel the desired multisample level for the backbuffer
+  \return returns false if the desired multisample level cannot be set.
+  */
+  BOOL SetBackBufferMultiSampleLevel(UINT32 multisampleLevel);
+
+  /**
+  set the desired multisample level for off screen render targets. This setting
+  is not used directly by the framework but any client code should query this
+  property when creating render targets that may require multisampling (see also
+  \param multisampleLevel the desired multisample level for off screen render targets
+  \return returns false if the desired multisample level cannot be set.
+  */
+  BOOL SetCurrentMultiSampleLevel(UINT32 multisampleLevel);
+
+  /**
+  sets the current display mode of the primary display output when running in
+  exclusive fullscreen mode
+  \param mode the display mode to use
+  \return true if the display mode is supported and can be applied, false otherwise
+  */
+  BOOL SetCurrentDisplayMode([in] const MGDFDisplayMode *mode);
+
+  /**
+  sets the size of the window when running in windowed mode. While running in
+  fullscreen, this function has no effect.
+  \param width the width of the window
+  \param height the height of the window
+  */
+  void SetWindowSize(UINT32 width, UINT32 height);
+
+  /**
+  sets whether HDR should be enabled when its supported by the current display
+  output
+  \param enabled whether HDR should be enabled
+  */
+  void SetHDREnabled(BOOL enabled);
+
+  /**
+  Cancels any pending changes
+  */
+  void Cancel();
+};
 
 /**
 Provides an interface for getting and setting the hosts various display settings
@@ -518,23 +592,10 @@ Provides an interface for getting and setting the hosts various display settings
   UINT32 GetMaxFrameLatency();
 
   /**
-  gets the number of frames that the swap chain is allowed to queue for
-  rendering.
-  \param frames the maximum number of frames that can be queued (1+)
-  */
-  void SetMaxFrameLatency(UINT32 frames);
-
-  /**
   gets the current vsync setting
   \return true if vsync is enabled
   */
   BOOL GetVSync();
-
-  /**
-  sets the current vsync setting
-  \param vsync true if vsync is to be enabled
-  */
-  void SetVSync(BOOL vsync);
 
   /**
   gets the current fullscreen setting
@@ -543,19 +604,13 @@ Provides an interface for getting and setting the hosts various display settings
   void GetFullscreen([ in, out ] MGDFFullScreenDesc * fullscreen);
 
   /**
-  sets the current fullscreen setting
-  \param fullscreen a description of the desired fullscreen settings
-  */
-  void SetFullscreen(const MGDFFullScreenDesc *fullscreen);
-
-  /**
   get the number of supported multisample levels
   \return the number of supported multisample levels
   */
   UINT64 GetMultiSampleLevelCount();
 
   /**
-  get the available multisample level supported by the display adaptor at the
+  get the available multisample level supported by the display device at the
   given index ( 0 to GetMultiSampleLevelCount() - 1 )
   \param index the multisample index
   \param level returns the multisample level at the given index
@@ -565,28 +620,10 @@ Provides an interface for getting and setting the hosts various display settings
   BOOL GetMultiSampleLevel(UINT64 index, [out] UINT32 * level);
 
   /**
-  set the display adaptors current multisample level, this changed setting is
-  not applied until ApplySettings is called.
-  \param multisampleLevel the desired multisample level for the backbuffer
-  \return returns false if the desired multisample level cannot be set.
-  */
-  BOOL SetBackBufferMultiSampleLevel(UINT32 multisampleLevel);
-
-  /**
-  get the current multisample level in use by the adaptor
-  \return the current multisample level in use by the adaptor
+  get the current multisample level in use by the device
+  \return the current multisample level in use by the device
   */
   UINT32 GetBackBufferMultiSampleLevel();
-
-  /**
-  set the desired multisample level for off screen render targets. This setting
-  is not used directly by the framework but any client code should query this
-  property when creating render targets that may require multisampling (see also
-  GetCurrentMultiSampleLevel() )
-  \param multisampleLevel the desired multisample level for off screen render targets
-  \return returns false if the desired multisample level cannot be set.
-  */
-  BOOL SetCurrentMultiSampleLevel(UINT32 multisampleLevel);
 
   /**
   get the current desired multisample level for off screen render targets
@@ -597,80 +634,102 @@ Provides an interface for getting and setting the hosts various display settings
   UINT32 GetCurrentMultiSampleLevel([out] UINT32 * quality);
 
   /**
-  get the number of supported adaptor modes
-  \return the number of supported adaptor modes
+  get the number of supported display modes
+  \return the number of supported display modes
   */
-  UINT64 GetAdaptorModeCount();
+  UINT64 GetDisplayModeCount();
 
   /**
-  get a supported adaptor mode at the given index (0 to GetAdaptorModeCount - 1)
-  \param index the adaptor mode index
-  \param mode will be set to the the adaptor mode at the given index
-  \return true if an adaptor mode exists at a particular index
+  get a supported display mode for the primary output at the given index (0 to
+  GetDisplayModeCount - 1)
+  \param index the display mode index
+  \param mode will be set to the the display mode at the given index
+  \return true if a display mode exists at a particular index
   */
-  BOOL GetAdaptorMode(UINT64 index, [ in, out ] MGDFAdaptorMode * mode);
+  BOOL GetDisplayMode(UINT64 index, [ in, out ] MGDFDisplayMode * mode);
 
   /**
-  get the adaptor mode (if any) matching the requested width and height, if no
-  matching adaptor is found, false is returned
-  \param width the desired width of the adaptor mode
-  \param height the desired height of the adaptor mode
-  \param mode will be set to the matching adaptor mode found (if any)
-  \return true if a supported adaptor mode exists for the given width and height
+  get all the supported display modes for the primary output
+  \param modes an array big enough to hold GetDisplayModeCount() modes
   */
-  BOOL GetAdaptorModeFromDimensions(UINT32 width, UINT32 height,
-                                    [ in, out ] MGDFAdaptorMode * mode);
+  void GetDisplayModes([out] MGDFDisplayMode * *modes);
 
   /**
-  get the current adaptor mode being used when running in fullscreen mode
-  \param mode will be set to the current adaptor mode being used.
-  \return the current adaptor mode being used (a pointer to mode)
+  get the display mode (if any) matching the requested width and height, if no
+  matching display mode is found, false is returned. If HDR is enabled, and supported
+  an HDR display mode will be preferentially chosen
+  \param width the desired width of the display mode
+  \param height the desired height of the display mode
+  \param mode will be set to the matching display mode found (if any)
+  \return true if a supported display mode exists for the given width and height
   */
-  MGDFAdaptorMode *GetCurrentAdaptorMode([ in, out ] MGDFAdaptorMode * mode);
+  BOOL GetDisplayModeFromDimensions(UINT32 width, UINT32 height,
+                                    [ in, out ] MGDFDisplayMode * mode);
 
   /**
-  sets the current display adaptor mode when running in fullscreen mode, this
-  changed setting is not applied until ApplyChanges is called.
-  \param mode the adaptor mode to use
-  \return true if the adaptor mode is supported and can be applied, false otherwise
+  get the display mode matching the native width and height, of the primary
+  output. If HDR is enabled, and supported an HDR display mode will be
+  preferentially chosen
+  \param mode will be set to the current display mode found
+  \return true if a supported display mode exists for the native output width & height
   */
-  BOOL SetCurrentAdaptorMode([in] const MGDFAdaptorMode *mode);
+  BOOL GetNativeDisplayMode([ in, out ] MGDFDisplayMode * mode);
 
   /**
-  sets the current display adaptor mode when running in fullscreen mode to the
-  screens native fullscreen resolution.
-  \param mode the adaptor that was chosen
-  \return true if the adaptor mode could be changed, false otherwise
+  get the current display mode for the primary output being used when running in
+  exclusive fullscreen mode
+  \param mode will be set to the current display mode being used.
+  \return the current display mode being used (a pointer to mode)
   */
-  BOOL SetCurrentAdaptorModeToNative([ in, out ] MGDFAdaptorMode * mode);
+  MGDFDisplayMode *GetCurrentDisplayMode([ in, out ] MGDFDisplayMode * mode);
 
   /**
-  sets the size of the window when running in windowed mode. While running in
-  fullscreen, this function has no effect.
-  \param width the width of the window
-  \param height the height of the window
-  */
-  void SetWindowSize(UINT32 width, UINT32 height);
-
-  /**
-  get the current screen width, based on the current adaptor mode in fullscreen,
-  or on the window dimensions otherwise
+  get the current screen width, based on the current display mode in exclusive
+  fullscreen, or on the window dimensions otherwise
   \return the current screen width
   */
   UINT32 GetScreenX();
 
   /**
-  get the current screen height, based on the current adaptor mode in
-  fullscreen, or on the window dimensions otherwise
+  get the current screen height, based on the current display mode in
+  exclusive fullscreen, or on the window dimensions otherwise
   \return thr current screen height
   */
   UINT32 GetScreenY();
 
   /**
-  Queues the swap chain to be reset on the beginning of the next frame. This
-  applies any render settings
+  get whether HDR should be enabled when its supported by the current display
+  output
+  \return is hdr enabled
   */
-  void ApplySettings();
+  BOOL GetHDREnabled();
+
+  /**
+  get whether HDR is supported by the current display output. This can change
+  from frame to frame, so shouldn't be cached.
+  \return is hdr supported by the current display output
+  */
+  BOOL GetCurrentOutputHDRSupported();
+
+  /**
+  get the current SDR white level for the current display output. This can
+  change from frame to frame, so shouldn't be cached.
+  \return the SDR white level. To get value in nits use the following conversion (SDRWhiteLevel / 1000 ) * 80
+  */
+  ULONG GetCurrentOutputSDRWhiteLevel();
+
+  /**
+  get the DPI of the current display output. This can change from frame to
+  frame, from frame to frame, so shouldn't be cached.
+  \return the DPI of the current display output
+  */
+  UINT GetCurrentOutputDPI();
+
+  /**
+  Create a pending changeset to the render settings
+  */
+  void CreatePendingSettingsChange([out] IMGDFPendingRenderSettingsChange *
+                                   *changeset);
 
   /**
   Gets the current persistable render settings.

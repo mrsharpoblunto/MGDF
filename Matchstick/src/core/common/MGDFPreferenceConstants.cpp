@@ -29,6 +29,7 @@ const char *PreferenceConstants::WINDOW_SIZEX = "host.windowSizeX";
 const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
 const char *PreferenceConstants::WINDOW_POSITIONX = "host.windowPositionX";
 const char *PreferenceConstants::WINDOW_POSITIONY = "host.windowPositionY";
+const char *PreferenceConstants::HDR_ENABLED = "host.hdrEnabled";
 
 constexpr char S_1[] = "1";
 

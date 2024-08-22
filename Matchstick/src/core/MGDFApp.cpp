@@ -4,7 +4,6 @@
 
 #include "common/MGDFPreferenceConstants.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
-#include "core.impl/MGDFParameterConstants.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -76,20 +75,17 @@ UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
   return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
 }
 
-void MGDFApp::RTOnInitDevices(HWND window,
-                              const ComObject<ID3D11Device> &d3dDevice,
-                              const ComObject<ID2D1Device> &d2dDevice,
-                              const ComObject<IDXGIAdapter1> &adapter) {
+void MGDFApp::RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice,
+                              const ComObject<ID2D1Device> &d2dDevice) {
   _ASSERTE(d3dDevice);
   _ASSERTE(d2dDevice);
-  _ASSERTE(adapter);
 
   if (FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
                                             _rtContext.Assign()))) {
     FATALERROR(this, "Unable to create ID2D1DeviceContext");
   }
 
-  _host->RTSetDevices(window, d3dDevice, d2dDevice, adapter);
+  _host->RTSetDevices(d3dDevice, d2dDevice);
 }
 
 bool MGDFApp::RTIsBackBufferChangePending() {
@@ -291,14 +287,48 @@ void MGDFApp::RTOnDisplayChange(
     const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
     ULONG currentSDRWhiteLevel,
     const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) {
-  // TODO handle HDR if
-  // (currentOutputDesc.ColorSpace ==
-  // DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+  const bool supportsHDR = currentOutputDesc.ColorSpace ==
+                           DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+  const UINT32 nativeWidth = static_cast<UINT32>(GetSystemMetrics(SM_CXSCREEN));
+  const UINT32 nativeHeight =
+      static_cast<UINT32>(GetSystemMetrics(SM_CYSCREEN));
 
-  std::ignore = currentOutputDesc;
-  std::ignore = currentDPI;
-  std::ignore = currentSDRWhiteLevel;
-  std::ignore = primaryOutputModes;
+  const std::vector<MGDFDisplayMode> modes;
+  std::map<std::tuple<UINT32, UINT32, UINT, UINT>, MGDFDisplayMode> uniqueModes;
+
+  for (const auto &mode : primaryOutputModes) {
+    const auto key =
+        std::make_tuple(mode.Width, mode.Height, mode.RefreshRate.Numerator,
+                        mode.RefreshRate.Denominator);
+
+    const bool isHDR = mode.Format == DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+    const auto &found = uniqueModes.find(key);
+    if (found == uniqueModes.end()) {
+      uniqueModes.insert(std::make_pair(
+          key, MGDFDisplayMode{
+                   .Width = mode.Width,
+                   .Height = mode.Height,
+                   .RefreshRateNumerator = mode.RefreshRate.Numerator,
+                   .RefreshRateDenominator = mode.RefreshRate.Denominator,
+                   .SupportsHDR = isHDR,
+                   .IsNativeSize = mode.Width == nativeWidth &&
+                                   mode.Height == nativeHeight}));
+    } else if (isHDR) {
+      found->second.SupportsHDR = true;
+    }
+  }
+  std::vector<MGDFDisplayMode> result;
+  result.reserve(uniqueModes.size());
+  for (const auto &pair : uniqueModes) {
+    result.push_back(pair.second);
+  }
+  if (result.size() == 0) {
+    FATALERROR(this, "No display modes found");
+  }
+
+  _host->GetRenderSettingsImpl()->SetOutputProperties(
+      supportsHDR, currentDPI, currentSDRWhiteLevel, result);
 }
 
 void MGDFApp::STOnUpdateSim() {

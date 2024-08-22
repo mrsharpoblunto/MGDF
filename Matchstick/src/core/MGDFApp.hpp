@@ -17,9 +17,8 @@ class MGDFApp : public D3DAppFramework {
   virtual ~MGDFApp();
 
  protected:
-  void RTOnInitDevices(HWND window, const ComObject<ID3D11Device> &d3dDevice,
-                       const ComObject<ID2D1Device> &d2dDevice,
-                       const ComObject<IDXGIAdapter1> &adapter) final;
+  void RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice,
+                       const ComObject<ID2D1Device> &d2dDevice) final;
   MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                         const RECT &windowSize) final;
