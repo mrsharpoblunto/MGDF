@@ -332,7 +332,6 @@ void MGDFApp::RTOnDisplayChange(
       .MaxLuminance = currentOutputDesc.MaxLuminance,
       .MinLuminance = currentOutputDesc.MinLuminance,
       .SDRWhiteLevel = hdrSupported ? currentSDRWhiteLevel : 1000,
-
   };
 
   _host->GetRenderSettingsImpl()->SetOutputProperties(info, currentDPI, modes);

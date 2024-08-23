@@ -190,7 +190,7 @@ BOOL RenderSettingsManager::GetCurrentOutputHDRDisplayInfo(
     MGDFHDRDisplayInfo *info) {
   std::lock_guard<std::mutex> lock(_mutex);
   *info = _currentDisplayInfo;
-  return _currentDisplayInfo.Supported;
+  return _hdrEnabled && _currentDisplayInfo.Supported;
 }
 
 BOOL RenderSettingsManager::GetHDREnabled() {
@@ -208,6 +208,9 @@ void RenderSettingsManager::SetOutputProperties(
     const std::vector<MGDFDisplayMode> &modes) {
   std::lock_guard<std::mutex> lock(_mutex);
 
+  if (_currentDisplayInfo.SDRWhiteLevel != info.SDRWhiteLevel) {
+    _changePending.store(true);
+  }
   _currentDisplayInfo = info;
 
   // update the fullscreen adaptor modes and current adaptor
@@ -219,6 +222,10 @@ void RenderSettingsManager::SetOutputProperties(
         mode.RefreshRateNumerator == _currentDisplayMode.RefreshRateNumerator &&
         mode.RefreshRateDenominator ==
             _currentDisplayMode.RefreshRateDenominator) {
+      if (_fullScreen.ExclusiveMode && _fullScreen.FullScreen &&
+          mode.SupportsHDR != _currentDisplayMode.SupportsHDR) {
+        _changePending.store(true);
+      }
       _currentDisplayMode = mode;
       break;
     }
@@ -238,6 +245,9 @@ void RenderSettingsManager::SetOutputProperties(
     }
   }
 
+  if (_currentDPI != currentDPI) {
+    _changePending.store(true);
+  }
   _currentDPI = currentDPI;
 }
 
