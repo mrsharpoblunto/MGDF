@@ -133,17 +133,26 @@ RenderSettingsManager::RenderSettingsManager()
       _backBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM),
       _hdrEnabled(false),
       _currentDPI(96),
-      _currentSDRWhiteLevel(1000),
       _vsync(true),
       _screenX(0),
       _screenY(0),
+      _currentDisplayMode(MGDFDisplayMode{
+          .Width = 0,
+          .Height = 0,
+          .RefreshRateNumerator = 0,
+          .RefreshRateDenominator = 0,
+          .SupportsHDR = false,
+          .IsNativeSize = false,
+      }),
+      _currentDisplayInfo(MGDFHDRDisplayInfo{
+          .Supported = false,
+          .SDRWhiteLevel = 1000,
+      }),
       _fullScreen(MGDFFullScreenDesc{
           .FullScreen = false,
           .ExclusiveMode = false,
       }),
-      _maxFrameLatency(1) {
-  ZeroMemory(&_currentDisplayMode, sizeof(MGDFDisplayMode));
-}
+      _maxFrameLatency(1) {}
 
 void RenderSettingsManager::InitFromDevice(
     const ComObject<ID3D11Device> &d3dDevice) {
@@ -177,22 +186,29 @@ void RenderSettingsManager::CreatePendingSettingsChange(
   p.AddRawRef(change);
 }
 
-BOOL RenderSettingsManager::GetCurrentOutputHDRSupported() {
-  return _backBufferFormat == DXGI_FORMAT_R16G16B16A16_FLOAT;
+BOOL RenderSettingsManager::GetCurrentOutputHDRDisplayInfo(
+    MGDFHDRDisplayInfo *info) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  *info = _currentDisplayInfo;
+  return _currentDisplayInfo.Supported;
 }
 
-ULONG RenderSettingsManager::GetCurrentOutputSDRWhiteLevel() {
-  return _currentSDRWhiteLevel;
+BOOL RenderSettingsManager::GetHDREnabled() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _hdrEnabled;
 }
 
-BOOL RenderSettingsManager::GetHDREnabled() { return _hdrEnabled; }
-
-UINT RenderSettingsManager::GetCurrentOutputDPI() { return _currentDPI; }
+UINT RenderSettingsManager::GetCurrentOutputDPI() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _currentDPI;
+}
 
 void RenderSettingsManager::SetOutputProperties(
-    bool supportsHDR, UINT currentDPI, ULONG currentSDRWhiteLevel,
+    const MGDFHDRDisplayInfo &info, UINT currentDPI,
     const std::vector<MGDFDisplayMode> &modes) {
   std::lock_guard<std::mutex> lock(_mutex);
+
+  _currentDisplayInfo = info;
 
   // update the fullscreen adaptor modes and current adaptor
   _displayModes.clear();
@@ -211,11 +227,11 @@ void RenderSettingsManager::SetOutputProperties(
   // in fullscreen exclusive mode, the HDR format is set by the display mode
   // so we don't need to change it here
   if (!_fullScreen.ExclusiveMode && !_fullScreen.FullScreen) {
-    if (supportsHDR && _backBufferFormat != DXGI_FORMAT_R16G16B16A16_FLOAT &&
-        _hdrEnabled) {
+    if (_currentDisplayMode.SupportsHDR &&
+        _backBufferFormat != DXGI_FORMAT_R16G16B16A16_FLOAT && _hdrEnabled) {
       _backBufferFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
       _changePending.store(true);
-    } else if (!supportsHDR &&
+    } else if (!_currentDisplayMode.SupportsHDR &&
                _backBufferFormat != DXGI_FORMAT_R8G8B8A8_UNORM) {
       _backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
       _changePending.store(true);
@@ -223,7 +239,6 @@ void RenderSettingsManager::SetOutputProperties(
   }
 
   _currentDPI = currentDPI;
-  _currentSDRWhiteLevel = currentSDRWhiteLevel;
 }
 
 UINT64 RenderSettingsManager::GetMultiSampleLevelCount() {

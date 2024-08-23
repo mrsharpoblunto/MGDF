@@ -578,6 +578,17 @@ the settings will be applied to the render system on the next frame
 };
 
 /**
+The current outputs HDR display information
+*/
+typedef struct MGDFHDRDisplayInfo {
+  BOOL Supported;
+  FLOAT MaxFullFrameLuminance;
+  FLOAT MaxLuminance;
+  FLOAT MinLuminance;
+  ULONG SDRWhiteLevel;
+} MGDFHDRDisplayInfo;
+
+/**
 Provides an interface for getting and setting the hosts various display settings
 */
 [
@@ -707,16 +718,10 @@ Provides an interface for getting and setting the hosts various display settings
   /**
   get whether HDR is supported by the current display output. This can change
   from frame to frame, so shouldn't be cached.
+  \param info a pointer to the HDR display info structure to be filled in
   \return is hdr supported by the current display output
   */
-  BOOL GetCurrentOutputHDRSupported();
-
-  /**
-  get the current SDR white level for the current display output. This can
-  change from frame to frame, so shouldn't be cached.
-  \return the SDR white level. To get value in nits use the following conversion (SDRWhiteLevel / 1000 ) * 80
-  */
-  ULONG GetCurrentOutputSDRWhiteLevel();
+  BOOL GetCurrentOutputHDRDisplayInfo([ in, out ] MGDFHDRDisplayInfo * info);
 
   /**
   get the DPI of the current display output. This can change from frame to
@@ -727,6 +732,7 @@ Provides an interface for getting and setting the hosts various display settings
 
   /**
   Create a pending changeset to the render settings
+  \param changeset a pointer to the pending changeset created
   */
   void CreatePendingSettingsChange([out] IMGDFPendingRenderSettingsChange *
                                    *changeset);

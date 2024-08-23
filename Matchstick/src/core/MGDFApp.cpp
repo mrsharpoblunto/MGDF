@@ -287,13 +287,10 @@ void MGDFApp::RTOnDisplayChange(
     const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
     ULONG currentSDRWhiteLevel,
     const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) {
-  const bool supportsHDR = currentOutputDesc.ColorSpace ==
-                           DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
   const UINT32 nativeWidth = static_cast<UINT32>(GetSystemMetrics(SM_CXSCREEN));
   const UINT32 nativeHeight =
       static_cast<UINT32>(GetSystemMetrics(SM_CYSCREEN));
 
-  const std::vector<MGDFDisplayMode> modes;
   std::map<std::tuple<UINT32, UINT32, UINT, UINT>, MGDFDisplayMode> uniqueModes;
 
   for (const auto &mode : primaryOutputModes) {
@@ -318,17 +315,27 @@ void MGDFApp::RTOnDisplayChange(
       found->second.SupportsHDR = true;
     }
   }
-  std::vector<MGDFDisplayMode> result;
-  result.reserve(uniqueModes.size());
+  std::vector<MGDFDisplayMode> modes;
+  modes.reserve(uniqueModes.size());
   for (const auto &pair : uniqueModes) {
-    result.push_back(pair.second);
+    modes.push_back(pair.second);
   }
-  if (result.size() == 0) {
+  if (modes.size() == 0) {
     FATALERROR(this, "No display modes found");
   }
 
-  _host->GetRenderSettingsImpl()->SetOutputProperties(
-      supportsHDR, currentDPI, currentSDRWhiteLevel, result);
+  const bool hdrSupported = currentOutputDesc.ColorSpace ==
+                            DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+  const MGDFHDRDisplayInfo info{
+      .Supported = hdrSupported,
+      .MaxFullFrameLuminance = currentOutputDesc.MaxFullFrameLuminance,
+      .MaxLuminance = currentOutputDesc.MaxLuminance,
+      .MinLuminance = currentOutputDesc.MinLuminance,
+      .SDRWhiteLevel = hdrSupported ? currentSDRWhiteLevel : 1000,
+
+  };
+
+  _host->GetRenderSettingsImpl()->SetOutputProperties(info, currentDPI, modes);
 }
 
 void MGDFApp::STOnUpdateSim() {

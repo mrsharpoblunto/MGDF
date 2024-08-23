@@ -68,8 +68,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
                                               MGDFDisplayMode *mode) final;
   BOOL __stdcall GetNativeDisplayMode(MGDFDisplayMode *mode) final;
   MGDFDisplayMode *__stdcall GetCurrentDisplayMode(MGDFDisplayMode *mode) final;
-  BOOL __stdcall GetCurrentOutputHDRSupported() final;
-  ULONG __stdcall GetCurrentOutputSDRWhiteLevel() final;
+  BOOL __stdcall GetCurrentOutputHDRDisplayInfo(MGDFHDRDisplayInfo *info) final;
   UINT __stdcall GetCurrentOutputDPI() final;
   BOOL __stdcall GetHDREnabled() final;
   void __stdcall CreatePendingSettingsChange(
@@ -85,8 +84,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
                         const RECT &windowSize);
   void OnResize(UINT32 width, UINT32 height);
-  void SetOutputProperties(bool supportsHDR, UINT currentDPI,
-                           ULONG currentSDRWhiteLevel,
+  void SetOutputProperties(const MGDFHDRDisplayInfo &info, UINT currentDPI,
                            const std::vector<MGDFDisplayMode> &modes);
 
  private:
@@ -108,7 +106,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 _maxFrameLatency;
 
   UINT _currentDPI;
-  LONG _currentSDRWhiteLevel;
+  MGDFHDRDisplayInfo _currentDisplayInfo;
   bool _hdrEnabled;
   bool _vsync;
   MGDFFullScreenDesc _fullScreen;
