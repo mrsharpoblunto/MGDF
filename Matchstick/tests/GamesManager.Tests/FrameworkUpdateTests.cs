@@ -34,11 +34,15 @@ namespace MGDF.GamesManager.Tests
       var frameworkMd5 = GenerateMd5Hash(newFrameworkData);
 
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/1/MGDF.zip", newFrameworkData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{""framework"":{
-""version"":""1.1.2.4"",
-""url"":""http://www.matchstickframework.org/downloads/1/MGDF.zip"",
-""md5"":""" + frameworkMd5 + @"""
-}}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Framework = new UpdateDownload
+        {
+          Version = "1.1.2.4",
+          Url = "http://www.matchstickframework.org/downloads/1/MGDF.zip",
+          Md5 = frameworkMd5
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       AvailableUpdates update = UpdateChecker.CheckForUpdate(game);
@@ -46,7 +50,7 @@ namespace MGDF.GamesManager.Tests
       Assert.IsNotNull(update);
       Assert.IsNotNull(update.Framework);
       Assert.AreEqual("http://www.matchstickframework.org/downloads/1/MGDF.zip", update.Framework.Url);
-      Assert.AreEqual(frameworkMd5, update.Framework.MD5);
+      Assert.AreEqual(frameworkMd5, update.Framework.Md5);
       Assert.AreEqual("1.1.2.4", update.Framework.Version);
 
       Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
@@ -90,11 +94,15 @@ namespace MGDF.GamesManager.Tests
       var frameworkMd5 = GenerateMd5Hash(newFrameworkData);
 
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.matchstickframework.org/downloads/1/MGDF.zip", newFrameworkData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{""framework"":{
-""version"":""1.0.0.0"",
-""url"":""http://www.matchstickframework.org/downloads/1/MGDF.zip"",
-""md5"":""" + frameworkMd5 + @"""
-}}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", new GameUpdate
+      {
+        Framework = new UpdateDownload
+        {
+          Version = "1.0.0.0",
+          Url = "http://www.matchstickframework.org/downloads/1/MGDF.zip",
+          Md5 = frameworkMd5
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       AvailableUpdates update = UpdateChecker.CheckForUpdate(game);

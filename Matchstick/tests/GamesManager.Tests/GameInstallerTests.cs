@@ -45,7 +45,8 @@ namespace MGDF.GamesManager.Tests
       Assert.AreEqual("Lua Console", install.Game.Name);
       Assert.AreEqual("We wont use ur informationz", install.Game.StatisticsPrivacyPolicy);
       Assert.AreEqual("http://statistics.junkship.org/statisticsservice.asmx", install.Game.StatisticsService);
-      Assert.AreEqual("support@junkship.org", install.Game.SupportEmail);
+      Assert.AreEqual("GitHub", install.Game.SupportType);
+      Assert.AreEqual("https://github.com/foo/bar", install.Game.SupportUrl);
       Assert.AreEqual("Console", install.Game.Uid);
       Assert.AreEqual(new Version(0, 1), install.Game.Version);
 

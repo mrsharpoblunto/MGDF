@@ -89,6 +89,7 @@
     <Reference Include="System.ServiceModel.Web">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
@@ -204,6 +205,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\vendor\ICSharpCode.SharpZLib\ICSharpCode.SharpZLib.csproj">
+      <Project>{0e7413ff-eb9e-4714-acf2-be3a6a7b2ffd}</Project>
+      <Name>ICSharpCode.SharpZLib</Name>
+    </ProjectReference>
     <ProjectReference Include="..\GamesManager.Common\GamesManager.Common.csproj">
       <Project>{6557CA9C-2D94-4722-8CE3-ED4A3EDB0940}</Project>
       <Name>GamesManager.Common</Name>

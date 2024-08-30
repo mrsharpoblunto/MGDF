@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Web;
 using System.Windows.Forms;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
@@ -14,7 +15,7 @@ using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
-  class SubmitErrorPresenter : PresenterBase<ISubmitErrorEmailView>
+  class SubmitErrorPresenter : PresenterBase<ISubmitErrorView>
   {
     private readonly string _detail;
 
@@ -22,21 +23,23 @@ namespace MGDF.GamesManager.MVP.Presenters
     {
       _detail = detail;
       View.Message = message;
-      View.SupportEmail = Resources.SupportEmail;
+      View.SupportType = SupportMethod.GitHub;
+      View.SupportUrl = Resources.SupportUrl;
       View.CopyLogOutput += View_CopyLogOutput;
-      View.EmailLogOutput += View_EmailLogOutput;
+      View.SendLogOutput += View_SendLogOutput;
     }
 
-    void View_EmailLogOutput(object sender, EventArgs e)
+    void View_SendLogOutput(object sender, EventArgs e)
     {
+
       try
       {
-        Process.Start("mailto:" + Resources.SupportEmail + "?subject=GamesManager Error Report");
+        Process.Start($"{View.SupportUrl}/issues/new?title={HttpUtility.UrlEncode("Game Manager Error Report")}&body={HttpUtility.UrlEncode(_detail)}");
       }
       catch (Exception ex)
       {
-        Message.Show("No email client installed");
-        if (Logger.Current != null) Logger.Current.Write(ex, "No program configured to open mailto: links");
+        Message.Show("No browser installed");
+        Logger.Current.Write(ex, "No program configured to open https: links");
       }
     }
 

@@ -11,6 +11,13 @@ using Newtonsoft.Json.Linq;
 
 namespace MGDF.GamesManager.Model.Entities
 {
+  public class SupportMethod
+  {
+    public const string Email = "Email";
+    public const string S3 = "S3";
+    public const string GitHub = "GitHub";
+  }
+
   public class Game : JsonEntity
   {
     private byte[] _gameIconData;
@@ -66,10 +73,8 @@ namespace MGDF.GamesManager.Model.Entities
     public string DeveloperName { get; private set; }
 
     public string Homepage { get; private set; }
-    public string SupportEmail { get; private set; }
-    public string SupportS3Bucket { get; private set; }
-    public string SupportS3BucketAccessKey { get; private set; }
-    public string SupportS3BucketSecretKey { get; private set; }
+    public string SupportType { get; private set; }
+    public string SupportUrl { get; private set; }
 
     public string UpdateService { get; private set; }
     public string StatisticsService { get; private set; }
@@ -105,10 +110,19 @@ namespace MGDF.GamesManager.Model.Entities
       UpdateService = json.ReadOptionalValue<string>("updateService");
       StatisticsService = json.ReadOptionalValue<string>("statisticsService");
       StatisticsPrivacyPolicy = json.ReadOptionalValue<string>("statisticsPrivacyPolicy");
-      SupportEmail = json.ReadOptionalValue<string>("supportEmail");
-      SupportS3Bucket = json.ReadOptionalValue<string>("supportS3Bucket");
-      SupportS3BucketAccessKey = json.ReadOptionalValue<string>("supportS3BucketAccessKey");
-      SupportS3BucketSecretKey = json.ReadOptionalValue<string>("supportS3BucketSecretKey");
+
+      var supportEmail = json.ReadOptionalValue<string>("supportEmail");
+      if (!string.IsNullOrEmpty(supportEmail))
+      {
+        // legacy game manifest formats used to only support email support
+        SupportType = SupportMethod.Email;
+        SupportUrl = supportEmail;
+      }
+      else
+      {
+        SupportType = json.ReadOptionalValue<string>("supportType");
+        SupportUrl = json.ReadOptionalValue<string>("supportUrl");
+      }
 
       Preferences = new Dictionary<string, string>();
       if (json.ReadToken("preferences") != null)

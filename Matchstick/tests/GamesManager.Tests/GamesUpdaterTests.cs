@@ -42,13 +42,15 @@ namespace MGDF.GamesManager.Tests
       var gameMd5 = GenerateMd5Hash(newGameData);
 
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""latest"":{
-""version"":""1.1.2.4"",
-""url"":""http://www.junkship.net/downloads/console.zip"",
-""md5"":""" + gameMd5 + @"""
-}
-}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Latest = new UpdateDownload
+        {
+          Version = "1.1.2.4",
+          Url = "http://www.junkship.net/downloads/console.zip",
+          Md5 = gameMd5
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       var update = UpdateChecker.CheckForUpdate(game);
@@ -56,7 +58,7 @@ namespace MGDF.GamesManager.Tests
       Assert.IsNotNull(update);
       Assert.IsNotNull(update.Game);
       Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
-      Assert.AreEqual(gameMd5, update.Game.MD5);
+      Assert.AreEqual(gameMd5, update.Game.Md5);
       Assert.AreEqual("1.1.2.4", update.Game.Version);
 
       Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
@@ -91,13 +93,15 @@ namespace MGDF.GamesManager.Tests
 
       ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""latest"":{
-""version"":""1.1.2.4"",
-""url"":""http://www.junkship.net/downloads/console.zip"",
-""md5"":""" + gameMd5 + @"""
-}
-}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Latest = new UpdateDownload
+        {
+          Version = "1.1.2.4",
+          Url = "http://www.junkship.net/downloads/console.zip",
+          Md5 = gameMd5
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       var update = UpdateChecker.CheckForUpdate(game);
@@ -105,7 +109,7 @@ namespace MGDF.GamesManager.Tests
       Assert.IsNotNull(update);
       Assert.IsNotNull(update.Game);
       Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
-      Assert.AreEqual(gameMd5, update.Game.MD5);
+      Assert.AreEqual(gameMd5, update.Game.Md5);
       Assert.AreEqual("1.1.2.4", update.Game.Version);
 
       Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
@@ -136,13 +140,15 @@ namespace MGDF.GamesManager.Tests
 
       ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""latest"":{
-""version"":""1.1.2.4"",
-""url"":""http://www.junkship.net/downloads/console.zip"",
-""md5"":""" + gameMd5 + @"""
-}
-}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Latest = new UpdateDownload
+        {
+          Version = "1.1.2.4",
+          Url = "http://www.junkship.net/downloads/console.zip",
+          Md5 = gameMd5
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       var update = UpdateChecker.CheckForUpdate(game);
@@ -150,7 +156,7 @@ namespace MGDF.GamesManager.Tests
       Assert.IsNotNull(update);
       Assert.IsNotNull(update.Game);
       Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
-      Assert.AreEqual(gameMd5, update.Game.MD5);
+      Assert.AreEqual(gameMd5, update.Game.Md5);
       Assert.AreEqual("1.1.2.4", update.Game.Version);
 
       Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
@@ -195,13 +201,15 @@ namespace MGDF.GamesManager.Tests
 
       ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""latest"":{
-""version"":""1.1.2.4"",
-""url"":""http://www.junkship.net/downloads/console.zip"",
-""md5"":""" + gameMd5 + @"""
-}
-}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Latest = new UpdateDownload
+        {
+          Version = "1.1.2.4",
+          Url = "http://www.junkship.net/downloads/console.zip",
+          Md5 = gameMd5
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       var update = UpdateChecker.CheckForUpdate(game);
@@ -209,7 +217,7 @@ namespace MGDF.GamesManager.Tests
       Assert.IsNotNull(update);
       Assert.IsNotNull(update.Game);
       Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
-      Assert.AreEqual(gameMd5, update.Game.MD5);
+      Assert.AreEqual(gameMd5, update.Game.Md5);
       Assert.AreEqual("1.1.2.4", update.Game.Version);
 
       Assert.IsFalse(FileSystem.Current.GetFile("c:\\temp.zip").Exists);
@@ -242,25 +250,27 @@ namespace MGDF.GamesManager.Tests
       var newGameData = GenerateDataBlock(65536);
       var gameMd5 = GenerateMd5Hash(newGameData);
 
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""latest"":{
-""version"":""1.1.2.4"",
-""url"":""http://www.junkship.net/downloads/console.zip"",
-""md5"":""" + gameMd5 + @"""
-},
-""updateOlderVersions"":[
-    {
-        ""url"":""http://www.junkship.net/downloads/console-update.zip"",
-        ""md5"":""" + gameMd5 + @""",
-        ""fromVersion"":""0.1""
-    },
-    {
-        ""url"":""http://www.junkship.net/downloads/console-update1.zip"",
-        ""md5"":""" + gameMd5 + @""",
-        ""fromVersion"":""0.1.1.1""
-    }
-]
-}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Latest = new UpdateDownload
+        {
+          Version = "1.1.2.4",
+          Url = "http://www.junkship.net/downloads/console.zip",
+          Md5 = gameMd5
+        },
+        UpdateOlderVersions = new[] {
+          new PartialUpdateDownload {
+            Url = "http://www.junkship.net/downloads/console-update.zip",
+            Md5 = gameMd5,
+            FromVersion = "0.1"
+          },
+          new PartialUpdateDownload {
+            Url = "http://www.junkship.net/downloads/console-update1.zip",
+            Md5 = gameMd5,
+            FromVersion = "0.1.1.1"
+          }
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       var update = UpdateChecker.CheckForUpdate(game);
@@ -268,7 +278,7 @@ namespace MGDF.GamesManager.Tests
       Assert.IsNotNull(update);
       Assert.IsNotNull(update.Game);
       Assert.AreEqual("http://www.junkship.net/downloads/console-update.zip", update.Game.Url);
-      Assert.AreEqual(gameMd5, update.Game.MD5);
+      Assert.AreEqual(gameMd5, update.Game.Md5);
       Assert.AreEqual("1.1.2.4", update.Game.Version);
     }
 
@@ -282,20 +292,22 @@ namespace MGDF.GamesManager.Tests
       var newGameData = GenerateDataBlock(65536);
       var gameMd5 = GenerateMd5Hash(newGameData);
 
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx/downloads/1/Console/latest.json", @"{ 
-""latest"":{
-""version"":""0.1"",
-""url"":""http://www.junkship.net/downloads/console.zip"",
-""md5"":""" + gameMd5 + @"""
-},
-""updateOlderVersions"":[
-    {
-        ""url"":""http://www.junkship.net/downloads/console-update.zip"",
-        ""md5"":""" + gameMd5 + @""",
-        ""fromVersion"":""0.1""
-    },
-]
-}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Latest = new UpdateDownload
+        {
+          Version = "0.1",
+          Url = "http://www.junkship.net/downloads/console.zip",
+          Md5 = gameMd5
+        },
+        UpdateOlderVersions = new[] {
+          new PartialUpdateDownload {
+            Url = "http://www.junkship.net/downloads/console-update.zip",
+            Md5 = gameMd5,
+            FromVersion = "0.1"
+          }
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       var update = UpdateChecker.CheckForUpdate(game);
@@ -314,20 +326,22 @@ namespace MGDF.GamesManager.Tests
       var newGameData = GenerateDataBlock(65536);
       var gameMd5 = GenerateMd5Hash(newGameData);
 
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://games.junkship.org/gamesource.asmx", @"{ 
-""latest"":{
-""version"":""1.1.2.4"",
-""url"":""http://www.junkship.net/downloads/console.zip"",
-""md5"":""" + gameMd5 + @"""
-},
-""updateOlderVersions"":[
-    {
-        ""url"":""http://www.junkship.net/downloads/console-update1.zip"",
-        ""md5"":""" + gameMd5 + @""",
-        ""fromVersion"":""0.1.1.1""
-    }
-]
-}");
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      {
+        Latest = new UpdateDownload
+        {
+          Version = "1.1.2.4",
+          Url = "http://www.junkship.net/downloads/console.zip",
+          Md5 = gameMd5
+        },
+        UpdateOlderVersions = new[] {
+          new PartialUpdateDownload {
+            Url = "http://www.junkship.net/downloads/console-update1.zip",
+            Md5 = gameMd5,
+            FromVersion = "0.1.1.1"
+          }
+        }
+      });
 
       Game game = new Game("c:\\program files\\MGDF\\game\\game.json");
       var update = UpdateChecker.CheckForUpdate(game);
@@ -335,7 +349,7 @@ namespace MGDF.GamesManager.Tests
       Assert.IsNotNull(update);
       Assert.IsNotNull(update.Game);
       Assert.AreEqual("http://www.junkship.net/downloads/console.zip", update.Game.Url);
-      Assert.AreEqual(gameMd5, update.Game.MD5);
+      Assert.AreEqual(gameMd5, update.Game.Md5);
       Assert.AreEqual("1.1.2.4", update.Game.Version);
     }
 

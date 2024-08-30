@@ -22,7 +22,7 @@ namespace MGDF.GamesManager.Common
     }
 
     public const int InterfaceVersion = 1;
-    public const string SupportEmail = "support@matchstickframework.org";
+    public const string SupportUrl = "https://github.com/mrsharpoblunto/MGDF";
 
     public const string DependencyConfig = @"dependencies.json";
     public const string UpdateConfig = @"update.json";

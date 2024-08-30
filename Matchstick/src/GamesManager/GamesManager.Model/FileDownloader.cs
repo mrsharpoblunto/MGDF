@@ -37,9 +37,7 @@ namespace MGDF.GamesManager.Model
       LongRunningTaskResult result = LongRunningTaskResult.Completed;
       try
       {
-        ServicePointManager.ServerCertificateValidationCallback += OnCheckRemoteCallback;
-
-        using (Stream responseSteam = HttpRequestManager.Current.GetResponseStream(_sourceUrl, 0, _getCredentials, out long total))
+        using (Stream responseSteam = HttpRequestManager.Current.Download(_sourceUrl, 0, _getCredentials, out long total))
         {
           uint uTotal = total > uint.MaxValue ? uint.MaxValue : (uint)total;
           Total = uTotal;
@@ -95,11 +93,6 @@ namespace MGDF.GamesManager.Model
     public void Cancel()
     {
       _cancelPending = true;
-    }
-
-    private static bool OnCheckRemoteCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-    {
-      return sslPolicyErrors == SslPolicyErrors.None;
     }
   }
 }

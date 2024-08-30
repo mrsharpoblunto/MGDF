@@ -7,30 +7,45 @@ using System.Linq;
 using System.Management;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Web;
 using System.Windows.Forms;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
+using ICSharpCode.SharpZipLib.Zip;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Framework;
 using MGDF.GamesManager.Controls;
+using MGDF.GamesManager.Model;
 using MGDF.GamesManager.Model.Entities;
 using MGDF.GamesManager.MVP.Views;
+using File = System.IO.File;
+using ThreadState = System.Threading.ThreadState;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
+
   class SubmitCoreErrorPresenter
   {
     public static IPresenter Create(Game game, string message, string detail)
     {
-      if (!string.IsNullOrEmpty(game.SupportS3Bucket) &&
-        !string.IsNullOrEmpty(game.SupportS3BucketAccessKey) &&
-        !string.IsNullOrEmpty(game.SupportS3BucketSecretKey))
+      if (
+        string.IsNullOrEmpty(game.SupportType) ||
+        string.IsNullOrEmpty(game.SupportUrl))
       {
-        return new SubmitCoreErrorS3Presenter(game, detail);
+        return null;
       }
-      else
+
+      switch (game.SupportType)
       {
-        return new SubmitCoreErrorEmailPresenter(game, message, detail);
+        case SupportMethod.S3:
+          return new SubmitCoreErrorS3Presenter(game, detail);
+        case SupportMethod.GitHub:
+          return new SubmitCoreErrorEmailPresenter(game, message, detail);
+        case SupportMethod.Email:
+          return new SubmitCoreErrorEmailPresenter(game, message, detail);
+        default:
+          return null;
       }
     }
 
@@ -107,8 +122,23 @@ namespace MGDF.GamesManager.MVP.Presenters
     }
   }
 
+  public class CrashReportUploadRequest
+  {
+    public string Detail;
+    public string GameUid;
+    public string GameVersion;
+    public string FrameworkVersion;
+  }
+
+  public class S3PresignedLinkResponse
+  {
+    public bool Success;
+    public string UploadUrl;
+  }
+
   class SubmitCoreErrorS3Presenter : PresenterBase<ISubmitErrorS3View>
   {
+    private Thread _workerThread;
     private readonly string _detail;
     private readonly Game _game;
 
@@ -117,48 +147,112 @@ namespace MGDF.GamesManager.MVP.Presenters
       _game = game;
       _detail = detail;
       View.SendLogOutput += View_SendLogOutput;
+      View.Closed += View_Closed;
     }
 
-    private async void View_SendLogOutput(object sender, EventArgs e)
+    private void View_Closed(object sender, EventArgs e)
+    {
+      if (_workerThread != null && _workerThread.ThreadState == ThreadState.Running) _workerThread.Abort();
+    }
+
+    private void View_SendLogOutput(object sender, EventArgs e)
     {
       View.Sending = true;
+      _workerThread = new Thread(DoWork);
+      _workerThread.Start();
+    }
+
+    private void DoWork()
+    {
+      var reportFile = Path.GetTempFileName();
       try
       {
-        var logId = DateTime.UtcNow.ToString("dd MMMM yyyy hh:mm:ss", CultureInfo.InvariantCulture);
-
-        var file = Path.Combine(Resources.GameUserDir, "minidump.dmp");
-        if (FileSystem.Current.FileExists(file))
+        var dumpFile = Path.Combine(Resources.GameUserDir, "minidump.dmp");
+        // create the error report zip file
+        using (FileStream output = File.Create(reportFile))
         {
-          var transfer = new TransferUtility(_game.SupportS3BucketAccessKey, _game.SupportS3BucketSecretKey, Amazon.RegionEndpoint.USEast1);
-          var uploadRequest = new TransferUtilityUploadRequest
+          using (ZipOutputStream zipStream = new ZipOutputStream(output))
           {
-            FilePath = file,
-            BucketName = _game.SupportS3Bucket,
-            Key = logId + "/minidump.dmp"
-          };
-          await transfer.UploadAsync(uploadRequest);
+            zipStream.SetLevel(9);
+            if (FileSystem.Current.FileExists(dumpFile))
+            {
+              var fi = new FileInfo(dumpFile);
+              var dumpEntry = new ZipEntry(fi.Name)
+              {
+                DateTime = fi.LastWriteTime,
+                Size = fi.Length
+              };
+              zipStream.PutNextEntry(dumpEntry);
+
+              using (FileStream fs = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
+              {
+                int sourceBytes;
+                byte[] buffer = new byte[81920];
+                do
+                {
+                  sourceBytes = fs.Read(buffer, 0, buffer.Length);
+                  zipStream.Write(buffer, 0, sourceBytes);
+                } while (sourceBytes > 0);
+              }
+            }
+
+            var logEntry = new ZipEntry("log.txt")
+            {
+              DateTime = DateTime.Now
+            };
+            zipStream.PutNextEntry(logEntry);
+            byte[] data = Encoding.UTF8.GetBytes(SubmitCoreErrorPresenter.GetLogContent(_game, _detail));
+            zipStream.Write(data, 0, data.Length);
+          }
         }
 
-        var client = new Amazon.S3.AmazonS3Client(_game.SupportS3BucketAccessKey, _game.SupportS3BucketSecretKey, Amazon.RegionEndpoint.USEast1);
-        var putRequest = new PutObjectRequest
+        // get a presigned url to upload the error report
+        var uploadUrlResponse = HttpRequestManager.Current.PostJson<S3PresignedLinkResponse, CrashReportUploadRequest>(_game.SupportUrl, new CrashReportUploadRequest
         {
-          ContentBody = SubmitCoreErrorPresenter.GetLogContent(_game, _detail),
-          BucketName = _game.SupportS3Bucket,
-          Key = logId + "/log.txt"
-        };
-        await client.PutObjectAsync(putRequest);
+          Detail = _detail,
+          GameUid = _game.Uid,
+          GameVersion = _game.Version.ToString(),
+          FrameworkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString(),
+        });
+
+        // upload the error report
+        if (uploadUrlResponse.Success)
+        {
+          using (FileStream uploadStream = File.OpenRead(reportFile))
+          {
+            HttpRequestManager.Current.Upload(uploadUrlResponse.UploadUrl, uploadStream, "application/zip");
+          }
+        }
+        else
+        {
+          throw new Exception("Failed to generate a presigned url for the error report upload");
+
+        }
       }
       catch (Exception ex)
       {
         Message.Show("Failed to send error report");
         Logger.Current.Write(ex, "Failed to send error report");
       }
-      View.Sending = false;
-      CloseView();
+      finally
+      {
+        try
+        {
+          FileSystem.Current.GetFile(reportFile).Delete();
+        }
+        catch { }
+        _workerThread = null;
+      }
+
+      View.Invoke(() =>
+      {
+        View.Sending = false;
+        CloseView();
+      });
     }
   }
 
-  class SubmitCoreErrorEmailPresenter : PresenterBase<ISubmitErrorEmailView>
+  class SubmitCoreErrorEmailPresenter : PresenterBase<ISubmitErrorView>
   {
     private readonly string _detail;
     private readonly Game _game;
@@ -168,21 +262,37 @@ namespace MGDF.GamesManager.MVP.Presenters
       _game = game;
       _detail = detail;
       View.Message = message;
-      View.SupportEmail = string.IsNullOrEmpty(game.SupportEmail) ? Resources.SupportEmail : game.SupportEmail;
+      View.SupportType = game.SupportType;
+      View.SupportUrl = game.SupportUrl;
       View.CopyLogOutput += View_CopyLogOutput;
-      View.EmailLogOutput += View_EmailLogOutput;
+      View.SendLogOutput += View_SendLogOutput;
     }
 
-    void View_EmailLogOutput(object sender, EventArgs e)
+    void View_SendLogOutput(object sender, EventArgs e)
     {
-      try
+      if (View.SupportType == SupportMethod.Email)
       {
-        Process.Start("mailto:" + (string.IsNullOrEmpty(_game.SupportEmail) ? Resources.SupportEmail : _game.SupportEmail) + "?subject=Core Error Report (" + _game.Uid + ")");
+        try
+        {
+          Process.Start($"mailto:{View.SupportUrl}?subject=Error Report ({_game.Uid})");
+        }
+        catch (Exception ex)
+        {
+          Message.Show("No email client installed");
+          Logger.Current.Write(ex, "No program configured to open mailto: links");
+        }
       }
-      catch (Exception ex)
+      else if (View.SupportType == SupportMethod.GitHub)
       {
-        Message.Show("No email client installed");
-        Logger.Current.Write(ex, "No program configured to open mailto: links");
+        try
+        {
+          Process.Start($"{View.SupportUrl}/issues/new?title={HttpUtility.UrlEncode($"Error Report ({_game.Uid})")}&body={HttpUtility.UrlEncode(_detail)}");
+        }
+        catch (Exception ex)
+        {
+          Message.Show("No browser installed");
+          Logger.Current.Write(ex, "No program configured to open https: links");
+        }
       }
     }
 

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using MGDF.GamesManager.Common;
 using MGDF.GamesManager.Common.Extensions;
 using MGDF.GamesManager.Common.Framework;
@@ -23,14 +24,14 @@ namespace MGDF.GamesManager.Model
   public class UpdateDownload
   {
     public string Url;
-    public string MD5;
+    public string Md5;
     public string Version;
   }
 
   public class PartialUpdateDownload
   {
     public string Url;
-    public string MD5;
+    public string Md5;
     public string FromVersion;
   }
 
@@ -52,18 +53,7 @@ namespace MGDF.GamesManager.Model
       {
         try
         {
-          using (var responseStream = HttpRequestManager.Current.GetResponseStream(game.UpdateService))
-          {
-            using (var reader = new StreamReader(responseStream))
-            {
-              var jsonSerializerSettings = new JsonSerializerSettings
-              {
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
-              };
-
-              availableUpdates = JsonConvert.DeserializeObject<GameUpdate>(reader.ReadToEnd());
-            }
-          }
+          availableUpdates = HttpRequestManager.Current.GetJson<GameUpdate>(game.UpdateService);
 
           var currentVersion = FileSystem.Current.GetFile(Resources.GamesManagerExecutable).AssemblyVersion;
 
@@ -87,7 +77,7 @@ namespace MGDF.GamesManager.Model
                   {
                     Url = olderVersion.Url,
                     Version = availableUpdates.Latest.Version,
-                    MD5 = olderVersion.MD5
+                    Md5 = olderVersion.Md5
                   };
                 }
               }

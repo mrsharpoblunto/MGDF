@@ -6,6 +6,8 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using MGDF.GamesManager.Common;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace MGDF.GamesManager.Common.Framework
 {
@@ -17,8 +19,12 @@ namespace MGDF.GamesManager.Common.Framework
 
   public interface IHttpRequestManager
   {
-    Stream GetResponseStream(string uri);
-    Stream GetResponseStream(string uri, long progress, Func<GetCredentialsEventArgs, bool> getCredentials, out long contentLength);
+    TResponse GetJson<TResponse>(string uri);
+    TResponse PostJson<TResponse, URequest>(string uri, URequest request);
+
+    Stream Download(string uri, long progress, Func<GetCredentialsEventArgs, bool> getCredentials, out long contentLength);
+
+    void Upload(string uri, Stream requestStream, string contentType);
   }
 
   public class HttpRequestManager : IHttpRequestManager
@@ -35,13 +41,54 @@ namespace MGDF.GamesManager.Common.Framework
       }
     }
 
-
-    public Stream GetResponseStream(string uri)
+    public TResponse GetJson<TResponse>(string uri)
     {
-      return GetResponseStream(uri, 0, null, out _);
+      var request = (HttpWebRequest)WebRequest.Create(uri);
+      request.Method = "GET";
+      request.AllowAutoRedirect = false;
+
+      var response = (HttpWebResponse)request.GetResponse();
+      using (var responseStream = response.GetResponseStream())
+      {
+        using (var reader = new StreamReader(responseStream))
+        {
+
+          return JsonConvert.DeserializeObject<TResponse>(reader.ReadToEnd(), new JsonSerializerSettings
+          {
+            ContractResolver = new CamelCasePropertyNamesContractResolver()
+          });
+        }
+      }
     }
 
-    public Stream GetResponseStream(string uri, long progress, Func<GetCredentialsEventArgs, bool> getCredentials, out long contentLength)
+    public TResponse PostJson<TResponse, URequest>(string uri, URequest requestBody)
+    {
+      var request = (HttpWebRequest)WebRequest.Create(uri);
+      request.Method = "POST";
+      request.ContentType = "application/json";
+      request.AllowAutoRedirect = false;
+
+      var requestBodyContent = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(requestBody));
+      using (var requestContentStream = request.GetRequestStream())
+      {
+        requestContentStream.Write(requestBodyContent, 0, requestBodyContent.Length);
+      }
+
+      var response = (HttpWebResponse)request.GetResponse();
+      using (var responseStream = response.GetResponseStream())
+      {
+        using (var reader = new StreamReader(responseStream))
+        {
+
+          return JsonConvert.DeserializeObject<TResponse>(reader.ReadToEnd(), new JsonSerializerSettings
+          {
+            ContractResolver = new CamelCasePropertyNamesContractResolver()
+          });
+        }
+      }
+    }
+
+    public Stream Download(string uri, long progress, Func<GetCredentialsEventArgs, bool> getCredentials, out long contentLength)
     {
       var credentials = new GetCredentialsEventArgs();
       bool requiresAuthentication = false;
@@ -51,6 +98,7 @@ namespace MGDF.GamesManager.Common.Framework
       do
       {
         var request = (HttpWebRequest)WebRequest.Create(uri);
+        request.Method = "GET";
         request.AllowAutoRedirect = false;
 
         if (requiresAuthentication)
@@ -115,6 +163,19 @@ namespace MGDF.GamesManager.Common.Framework
       string key = "Range";
       string val = string.Format("bytes={0}-", progress);
       method.Invoke(request.Headers, new object[] { key, val });
+    }
+
+    public void Upload(string uri, Stream requestStream, string contentType)
+    {
+      var request = (HttpWebRequest)WebRequest.Create(uri);
+      request.Method = "POST";
+      request.ContentType = contentType;
+
+      using (var requestContentStream = request.GetRequestStream())
+      {
+        requestStream.CopyTo(requestContentStream);
+      }
+      request.GetResponse();
     }
   }
 }

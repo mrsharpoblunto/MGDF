@@ -8,7 +8,8 @@
   "updateService": "http://games.junkship.org/gamesource.asmx",
   "statisticsService": "http://statistics.junkship.org/statisticsservice.asmx",
   "statisticsPrivacyPolicy": "We wont use ur informationz",
-  "supportEmail": "support@junkship.org",
+  "supportType": "GitHub",
+  "supportUrl": "https://github.com/foo/bar",
   "preferences": {
     "key": "value",
     "key2": "value2"

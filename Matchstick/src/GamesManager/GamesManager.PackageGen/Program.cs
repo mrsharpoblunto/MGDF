@@ -185,7 +185,7 @@ namespace MGDF.GamesManager.PackageGen
         using (var compressor = new ZipOutputStream(outputStream))
         {
           compressor.SetLevel(9);
-          var data = new byte[4194304];
+          var data = new byte[81920];
           int milestone = fileSystemEntries.Count / 10;
           int i = 0;
 

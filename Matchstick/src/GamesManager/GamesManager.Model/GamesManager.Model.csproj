@@ -118,7 +118,7 @@
     <Compile Include="ProcessManager.cs" />
     <Compile Include="ShortcutManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StatisticsServiceClient.cs" />
+    <Compile Include="StatisticsSession.cs" />
     <Compile Include="UACControl.cs" />
     <Compile Include="UpdateChecker.cs" />
   </ItemGroup>

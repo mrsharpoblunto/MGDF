@@ -99,9 +99,9 @@ namespace MGDF.GamesManager.MVP.Presenters
 
             UACControl.RestartElevated(Resources.GamesManagerBootArguments(
                 availableUpdates.Game != null ? availableUpdates.Game.Url : string.Empty,
-                availableUpdates.Game != null ? availableUpdates.Game.MD5 : string.Empty,
+                availableUpdates.Game != null ? availableUpdates.Game.Md5 : string.Empty,
                 availableUpdates.Framework != null ? availableUpdates.Framework.Url : string.Empty,
-                availableUpdates.Framework != null ? availableUpdates.Framework.MD5 : string.Empty));
+                availableUpdates.Framework != null ? availableUpdates.Framework.Md5 : string.Empty));
             return;
           }
 
@@ -164,7 +164,7 @@ namespace MGDF.GamesManager.MVP.Presenters
         {
           var presenter = SubmitCoreErrorPresenter.Create(game, game.Name + " has ended unexpectedly",
                                                                                     "An unhandled exception or fatal MGDF error has occurred");
-          presenter.ShowView(View);
+          presenter?.ShowView(View);
         });
       }
 
