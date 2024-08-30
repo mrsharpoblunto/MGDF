@@ -42,7 +42,7 @@ namespace MGDF.GamesManager.Tests
       var gameMd5 = GenerateMd5Hash(newGameData);
 
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx?gameUid=Console", new GameUpdate
       {
         Latest = new UpdateDownload
         {
@@ -93,7 +93,7 @@ namespace MGDF.GamesManager.Tests
 
       ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx?gameUid=Console", new GameUpdate
       {
         Latest = new UpdateDownload
         {
@@ -140,7 +140,7 @@ namespace MGDF.GamesManager.Tests
 
       ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx?gameUid=Console", new GameUpdate
       {
         Latest = new UpdateDownload
         {
@@ -201,7 +201,7 @@ namespace MGDF.GamesManager.Tests
 
       ((MockHttpRequestManager)HttpRequestManager.Current).SetCredentials("http://www.junkship.net/downloads/console.zip", "user", "password1");
       ((MockHttpRequestManager)HttpRequestManager.Current).ExpectResponse("http://www.junkship.net/downloads/console.zip", newGameData);
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx?gameUid=Console", new GameUpdate
       {
         Latest = new UpdateDownload
         {
@@ -250,7 +250,7 @@ namespace MGDF.GamesManager.Tests
       var newGameData = GenerateDataBlock(65536);
       var gameMd5 = GenerateMd5Hash(newGameData);
 
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx?gameUid=Console", new GameUpdate
       {
         Latest = new UpdateDownload
         {
@@ -326,7 +326,7 @@ namespace MGDF.GamesManager.Tests
       var newGameData = GenerateDataBlock(65536);
       var gameMd5 = GenerateMd5Hash(newGameData);
 
-      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx", new GameUpdate
+      ((MockHttpRequestManager)HttpRequestManager.Current).ExpectJsonResponse("http://games.junkship.org/gamesource.asmx?gameUid=Console", new GameUpdate
       {
         Latest = new UpdateDownload
         {

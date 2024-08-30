@@ -53,7 +53,7 @@ namespace MGDF.GamesManager.Model
       {
         try
         {
-          availableUpdates = HttpRequestManager.Current.GetJson<GameUpdate>(game.UpdateService);
+          availableUpdates = HttpRequestManager.Current.GetJson<GameUpdate>($"{game.UpdateService}?gameUid={game.Uid}");
 
           var currentVersion = FileSystem.Current.GetFile(Resources.GamesManagerExecutable).AssemblyVersion;
 
