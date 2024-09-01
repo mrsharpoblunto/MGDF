@@ -22,7 +22,7 @@ class Resources {
   std::wstring RootDir();
 
   void CreateRequiredDirectories();
-  void SetUserBaseDir(bool useRootDir, const std::string &gameUid);
+  void SetUserBaseDir(const std::string &gameUid, bool useRootDir);
   void SetGameBaseDir(const std::wstring &gameDir);
 
   std::wstring GameBaseDir();

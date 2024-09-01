@@ -88,18 +88,8 @@ Resources::Resources(HINSTANCE instance) {
   }
 }
 
-void Resources::SetUserBaseDir(bool useRootDir, const std::string &gameUid) {
-  if (useRootDir) {
-    if (!_gameBaseDir.empty()) {
-      std::filesystem::path gamesDirPath(_gameBaseDir);
-      _userBaseDir = gamesDirPath.parent_path().parent_path().wstring() +
-                     L"/user/" + ToWString(gameUid) +
-                     (!gameUid.empty() ? L"/" : L"");
-    } else {
-      _userBaseDir = _applicationDirectory + L"user/" + ToWString(gameUid) +
-                     (!gameUid.empty() ? L"/" : L"");
-    }
-  } else {
+void Resources::SetUserBaseDir(const std::string &gameUid, bool useRootDir) {
+  if (!useRootDir) {
     wchar_t strPath[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr,
                                    SHGFP_TYPE_CURRENT, strPath))) {
@@ -107,11 +97,17 @@ void Resources::SetUserBaseDir(bool useRootDir, const std::string &gameUid) {
       ss << strPath << L"/MGDF/" << MGDFVersionInfo::MGDF_INTERFACE_VERSION
          << L"/" << ToWString(gameUid) << (!gameUid.empty() ? L"/" : L"");
       _userBaseDir = ss.str();
-    } else {
-      _userBaseDir =
-          (!_gameBaseDir.empty() ? _gameBaseDir : _applicationDirectory) +
-          L"user/" + ToWString(gameUid) + (!gameUid.empty() ? L"/" : L"");
+      return;
     }
+  }
+
+  if (!_gameBaseDir.empty()) {
+    std::filesystem::path gamesDirPath(_gameBaseDir);
+    _userBaseDir =
+        gamesDirPath.parent_path().parent_path().wstring() + L"/user/";
+  } else {
+    _userBaseDir = _applicationDirectory + L"user/" + ToWString(gameUid) +
+                   (!gameUid.empty() ? L"/" : L"");
   }
 }
 

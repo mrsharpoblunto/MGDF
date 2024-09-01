@@ -45,7 +45,6 @@ namespace MGDF.GamesManager.Common.Framework
     {
       var request = (HttpWebRequest)WebRequest.Create(uri);
       request.Method = "GET";
-      request.AllowAutoRedirect = false;
 
       var response = (HttpWebResponse)request.GetResponse();
       using (var responseStream = response.GetResponseStream())
@@ -66,9 +65,13 @@ namespace MGDF.GamesManager.Common.Framework
       var request = (HttpWebRequest)WebRequest.Create(uri);
       request.Method = "POST";
       request.ContentType = "application/json";
-      request.AllowAutoRedirect = false;
 
-      var requestBodyContent = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(requestBody));
+      var serializerSettings = new JsonSerializerSettings
+      {
+        ContractResolver = new CamelCasePropertyNamesContractResolver()
+      };
+
+      var requestBodyContent = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(requestBody, serializerSettings));
       using (var requestContentStream = request.GetRequestStream())
       {
         requestContentStream.Write(requestBodyContent, 0, requestBodyContent.Length);
@@ -80,10 +83,7 @@ namespace MGDF.GamesManager.Common.Framework
         using (var reader = new StreamReader(responseStream))
         {
 
-          return JsonConvert.DeserializeObject<TResponse>(reader.ReadToEnd(), new JsonSerializerSettings
-          {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-          });
+          return JsonConvert.DeserializeObject<TResponse>(reader.ReadToEnd(), serializerSettings);
         }
       }
     }
@@ -168,7 +168,7 @@ namespace MGDF.GamesManager.Common.Framework
     public void Upload(string uri, Stream requestStream, string contentType)
     {
       var request = (HttpWebRequest)WebRequest.Create(uri);
-      request.Method = "POST";
+      request.Method = "PUT";
       request.ContentType = contentType;
 
       using (var requestContentStream = request.GetRequestStream())

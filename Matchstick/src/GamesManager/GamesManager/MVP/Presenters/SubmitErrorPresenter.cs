@@ -34,7 +34,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
       try
       {
-        Process.Start($"{View.SupportUrl}/issues/new?title={HttpUtility.UrlEncode("Game Manager Error Report")}&body={HttpUtility.UrlEncode(_detail)}");
+        Process.Start($"{View.SupportUrl}/issues/new?title={HttpUtility.UrlEncode("Game Manager Error Report")}&body={HttpUtility.UrlEncode("IMPORTANT: In order to help us find out the source of this problem, please paste in the details from the error report along with a description of what happened, or the steps to reproduce the problem.")}");
       }
       catch (Exception ex)
       {
@@ -47,8 +47,6 @@ namespace MGDF.GamesManager.MVP.Presenters
     {
       StringBuilder sb = new StringBuilder();
 
-      sb.AppendLine("IMPORTANT: In order to help us find out the source of this problem, please let us know what you were doing before the crash, or inform us of the steps to reproduce the problem.");
-      sb.AppendLine();
       sb.AppendLine("System Information");
       sb.AppendLine("==================");
 

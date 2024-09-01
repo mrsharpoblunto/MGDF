@@ -204,7 +204,7 @@ void HostBuilder::InitResources(std::string gameUid) {
   const bool userDirOverride = ParameterManager::Instance().HasParameter(
       ParameterConstants::USER_DIR_OVERRIDE);
 
-  Resources::Instance().SetUserBaseDir(userDirOverride, gameUid);
+  Resources::Instance().SetUserBaseDir(gameUid, userDirOverride);
   if (!gameUid.empty()) {
     Resources::Instance().CreateRequiredDirectories();
   }

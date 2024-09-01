@@ -36,31 +36,22 @@ namespace MGDF.GamesManager.MVP.Presenters
         return null;
       }
 
-      switch (game.SupportType)
+      if (game.SupportType.Equals(SupportMethod.S3, StringComparison.InvariantCultureIgnoreCase))
       {
-        case SupportMethod.S3:
-          return new SubmitCoreErrorS3Presenter(game, detail);
-        case SupportMethod.GitHub:
-          return new SubmitCoreErrorEmailPresenter(game, message, detail);
-        case SupportMethod.Email:
-          return new SubmitCoreErrorEmailPresenter(game, message, detail);
-        default:
-          return null;
+        return new SubmitCoreErrorS3Presenter(game, detail);
       }
+      else if (
+game.SupportType.Equals(SupportMethod.GitHub, StringComparison.InvariantCultureIgnoreCase) ||
+game.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIgnoreCase))
+      {
+        return new SubmitCoreErrorEmailPresenter(game, message, detail);
+      }
+      return null;
     }
 
     public static string GetLogContent(Game game, string detail)
     {
       StringBuilder sb = new StringBuilder();
-
-      sb.AppendLine("IMPORTANT: In order to help us find out the source of this problem, please attach the following file to this email before sending.");
-      sb.AppendLine();
-      sb.AppendLine(Resources.GameUserDir + "\\minidump.dmp");
-      sb.AppendLine();
-      sb.AppendLine("This file contains important debugging information to allow us to better understand what caused the problem you experienced");
-      sb.AppendLine();
-      sb.AppendLine();
-      sb.AppendLine();
 
       sb.AppendLine("System Information");
       sb.AppendLine("==================");
@@ -270,11 +261,11 @@ namespace MGDF.GamesManager.MVP.Presenters
 
     void View_SendLogOutput(object sender, EventArgs e)
     {
-      if (View.SupportType == SupportMethod.Email)
+      if (View.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIgnoreCase))
       {
         try
         {
-          Process.Start($"mailto:{View.SupportUrl}?subject=Error Report ({_game.Uid})");
+          Process.Start($"mailto:{View.SupportUrl}?subject={HttpUtility.UrlEncode($"Error Report ({_game.Uid})")}&body={HttpUtility.UrlEncode("IMPORTANT: In order to help us find out the source of this problem, please paste in the details from the error report along with a description of what happened, or the steps to reproduce the problem.")}");
         }
         catch (Exception ex)
         {
@@ -282,11 +273,11 @@ namespace MGDF.GamesManager.MVP.Presenters
           Logger.Current.Write(ex, "No program configured to open mailto: links");
         }
       }
-      else if (View.SupportType == SupportMethod.GitHub)
+      else if (View.SupportType.Equals(SupportMethod.GitHub, StringComparison.InvariantCultureIgnoreCase))
       {
         try
         {
-          Process.Start($"{View.SupportUrl}/issues/new?title={HttpUtility.UrlEncode($"Error Report ({_game.Uid})")}&body={HttpUtility.UrlEncode(_detail)}");
+          Process.Start($"{View.SupportUrl}/issues/new?title={HttpUtility.UrlEncode($"Error Report ({_game.Uid})")}&body={HttpUtility.UrlEncode("IMPORTANT: In order to help us find out the source of this problem, please paste in the details from the error report along with a description of what happened, or the steps to reproduce the problem.")}");
         }
         catch (Exception ex)
         {
@@ -298,8 +289,19 @@ namespace MGDF.GamesManager.MVP.Presenters
 
     void View_CopyLogOutput(object sender, EventArgs e)
     {
+      var sb = new StringBuilder();
+      sb.AppendLine("IMPORTANT: In order to help us find out the source of this problem, please also attach the following file to this report.");
+      sb.AppendLine();
+      sb.AppendLine(Resources.GameUserDir + "\\minidump.dmp");
+      sb.AppendLine();
+      sb.AppendLine("This file contains important debugging information to allow us to better understand what caused the problem you experienced");
+      sb.AppendLine();
+      sb.AppendLine();
+      sb.AppendLine();
+      sb.Append(SubmitCoreErrorPresenter.GetLogContent(_game, _detail));
+
       var runner = new CrossThreadRunner();
-      runner.RunInSTA(() => Clipboard.SetText(SubmitCoreErrorPresenter.GetLogContent(_game, _detail)));
+      runner.RunInSTA(() => Clipboard.SetText(sb.ToString()));
     }
   }
 }

@@ -20,7 +20,7 @@ SUITE(StorageTests) {
       HINSTANCE inst;
       inst = (HINSTANCE)GetModuleHandleW(L"core.tests.exe");
       Resources::Instance(inst);
-      Resources::Instance().SetUserBaseDir(true, "junkship");
+      Resources::Instance().SetUserBaseDir("junkship", true);
 
       CreateReadOnlyVirtualFileSystemComponentImpl(_vfs);
       _vfs->Mount((Resources::Instance().RootDir() + L"../../../tests/content")

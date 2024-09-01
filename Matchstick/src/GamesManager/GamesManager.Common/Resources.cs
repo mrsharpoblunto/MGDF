@@ -190,18 +190,26 @@ namespace MGDF.GamesManager.Common
 
     public static void InitUserDirectory(string gameUid, bool useApplicationRoot)
     {
-      if (useApplicationRoot) _gameUserDir = EnvironmentSettings.Current.AppDirectory;
+      if (!useApplicationRoot)
+      {
+        _gameUserDir = Path.Combine(EnvironmentSettings.Current.UserDirectory, gameUid);
+      }
+      else if (!string.IsNullOrEmpty(_gameDir))
+      {
+        _gameUserDir = Path.Combine(Path.GetDirectoryName(_gameDir), "user");
+      }
+      else
+      {
+        _gameUserDir = Path.Combine(EnvironmentSettings.Current.AppDirectory, "user");
+        var userGamesBaseDir = FileSystem.Current.GetDirectory(_gameUserDir);
+        if (!userGamesBaseDir.Exists)
+        {
+          userGamesBaseDir.Create();
+        }
+        _gameUserDir = Path.Combine(_gameUserDir, gameUid);
+      }
       _userDirOverridden = useApplicationRoot;
 
-
-      _gameUserDir = !string.IsNullOrEmpty(_gameUserDir) ? (_gameUserDir + "\\user") : EnvironmentSettings.Current.UserDirectory;
-      var userGamesBaseDir = FileSystem.Current.GetDirectory(_gameUserDir);
-      if (!userGamesBaseDir.Exists)
-      {
-        userGamesBaseDir.Create();
-      }
-
-      _gameUserDir = Path.Combine(_gameUserDir, gameUid);
       var userGamesDir = FileSystem.Current.GetDirectory(_gameUserDir);
       if (!userGamesDir.Exists)
       {

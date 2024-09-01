@@ -14,7 +14,7 @@ SUITE(WriteableVFSTests) {
       HINSTANCE inst;
       inst = (HINSTANCE)GetModuleHandleW(L"core.tests.exe");
       Resources::Instance(inst);
-      Resources::Instance().SetUserBaseDir(true, "junkship");
+      Resources::Instance().SetUserBaseDir("junkship", true);
 
       _vfs = MakeCom<WriteableVirtualFileSystem>(
           (Resources::Instance().RootDir() + L"../../../tests/content")
@@ -113,9 +113,9 @@ SUITE(WriteableVFSTests) {
     }
 
     // see if the file has as many lines as we expect
-    CHECK_EQUAL(16, list.size());
+    CHECK_EQUAL(17, list.size());
     // check to see the first and last lines are as expected
     CHECK_EQUAL("{", list[0]);
-    CHECK_EQUAL("}", list[15]);
+    CHECK_EQUAL("}", list[16]);
   }
 }

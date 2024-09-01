@@ -10,7 +10,7 @@ SUITE(ResourcesTests) {
       HINSTANCE inst;
       inst = (HINSTANCE)GetModuleHandleW(L"core.tests.exe");
       Resources::Instance(inst);
-      Resources::Instance().SetUserBaseDir(true, "junkship");
+      Resources::Instance().SetUserBaseDir("junkship", true);
     }
     virtual ~ResourcesTestFixture() {}
   };
