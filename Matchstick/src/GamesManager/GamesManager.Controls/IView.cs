@@ -1,16 +1,28 @@
 using System;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 
 namespace MGDF.GamesManager.Controls
 {
   public delegate void InvokeDelegate();
 
+  [StructLayout(LayoutKind.Sequential)]
+  public struct COPYDATASTRUCT
+  {
+    public IntPtr dwData;
+    public int cbData;
+    public IntPtr lpData;
+  }
+
   public interface IView
   {
     event EventHandler Shown;
     event CancelEventHandler Closing;
     event EventHandler Closed;
+    event EventHandler<COPYDATASTRUCT> OnWindowCopyData;
+
+    long WindowHandle { get; }
 
     bool Enabled { get; set; }
     void ShowView(IView parentView);

@@ -92,6 +92,11 @@ namespace MGDF.GamesManager.Common
       return " -statisticsenabled";
     }
 
+    public static string LauncherArguments(long windowHandle)
+    {
+      return " -launcherhandle " + windowHandle;
+    }
+
     public static string GamesManagerBootArguments(string gameUpdate, string gameUpdateHash, string frameworkUpdate, string frameworkUpdateHash)
     {
       return (!string.IsNullOrEmpty(gameUpdate) ? (" -updategame \"" + gameUpdate + "\" -gameupdatehash \"" + gameUpdateHash + "\"") : string.Empty) +

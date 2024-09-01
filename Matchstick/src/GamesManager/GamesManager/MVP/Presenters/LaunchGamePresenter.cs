@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -18,15 +20,50 @@ using MGDF.GamesManager.MVP.Views;
 
 namespace MGDF.GamesManager.MVP.Presenters
 {
+
   public class LaunchGamePresenter : PresenterBase<IProgressView>
   {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DumpData
+    {
+      public uint processId;
+      public uint threadId;
+      public IntPtr exceptionPointers;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct MINIDUMP_EXCEPTION_INFORMATION
+    {
+      public uint ThreadId;
+      public IntPtr ExceptionPointers;
+      public int ClientPointers;
+    }
+
+    [DllImport("dbghelp.dll")]
+    static extern bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, IntPtr hFile,
+        uint DumpType, ref MINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+        IntPtr UserStreamParam, IntPtr CallbackParam);
+
+    [DllImport("kernel32.dll")]
+    static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static extern bool CloseHandle(IntPtr hObject);
+
+    private uint MiniDumpNormal = 0x00000000;
+    private uint PROCESS_ALL_ACCESS = 0x001F0FFF;
+
     private readonly bool _checkForUpdates;
     private Thread _workerThread;
+    private string _minidump;
 
     public LaunchGamePresenter(bool checkForUpdates)
     {
       View.Shown += View_Shown;
       View.Closing += View_Closing;
+      View.OnWindowCopyData += View_OnWindowCopyData;
+
       _checkForUpdates = checkForUpdates;
 
       try
@@ -56,9 +93,59 @@ namespace MGDF.GamesManager.MVP.Presenters
       View.HideProgress();
     }
 
+    private void View_OnWindowCopyData(object sender, COPYDATASTRUCT e)
+    {
+      DumpData dump = (DumpData)Marshal.PtrToStructure(e.lpData, typeof(DumpData));
+      WriteMiniDump(dump);
+    }
+
+    private void WriteMiniDump(DumpData dump)
+    {
+      IntPtr process = OpenProcess(PROCESS_ALL_ACCESS, false, dump.processId);
+      if (process == IntPtr.Zero)
+      {
+        Logger.Current.Write(LogInfoLevel.Error, "Failed to open process for minidump. Error code: " + Marshal.GetLastWin32Error());
+        return;
+      }
+
+      try
+      {
+        string dumpPath = Path.Combine(Resources.GameUserDir, "minidump.dmp");
+        using (FileStream fs = new FileStream(dumpPath, FileMode.Create))
+        {
+          MINIDUMP_EXCEPTION_INFORMATION mei = new MINIDUMP_EXCEPTION_INFORMATION
+          {
+            ThreadId = dump.threadId,
+            ExceptionPointers = dump.exceptionPointers,
+            ClientPointers = 1 // dumping another process
+          };
+
+          bool result = MiniDumpWriteDump(process, dump.processId, fs.SafeFileHandle.DangerousGetHandle(),
+              MiniDumpNormal, ref mei, IntPtr.Zero, IntPtr.Zero);
+
+          if (!result)
+          {
+            Logger.Current.Write(LogInfoLevel.Error, "Failed to create minidump. Error code: " + Marshal.GetLastWin32Error());
+          }
+          else
+          {
+            _minidump = dumpPath;
+          }
+        }
+      }
+      catch (Exception ex)
+      {
+        Logger.Current.Write(LogInfoLevel.Error, "Failed to create minidump. Exception: " + ex.Message);
+      }
+      finally
+      {
+        CloseHandle(process);
+      }
+    }
+
     void View_Closing(object sender, EventArgs e)
     {
-      if (_workerThread != null && _workerThread.ThreadState == ThreadState.Running) _workerThread.Abort();
+      if (_workerThread != null && _workerThread.ThreadState == System.Threading.ThreadState.Running) _workerThread.Abort();
     }
 
     void View_Shown(object sender, EventArgs e)
@@ -148,8 +235,9 @@ namespace MGDF.GamesManager.MVP.Presenters
       string args = Resources.CoreBootArguments();
       if (StatisticsSession.GetStatisticsPermission(Game.Current, GetStatisticsPermission))
       {
-        args += " " + Resources.StatisticsServiceArguments();
+        args += Resources.StatisticsServiceArguments();
       }
+      View.Invoke(() => args += Resources.LauncherArguments(View.WindowHandle));
       ProcessManager.Current.StartProcess(Resources.MGDFExecutable, args, GameExited, Game.Current);
       View.Invoke(() => View.Hide());
     }
@@ -162,7 +250,7 @@ namespace MGDF.GamesManager.MVP.Presenters
       {
         View.Invoke(() =>
         {
-          var presenter = SubmitCoreErrorPresenter.Create(game, game.Name + " has ended unexpectedly",
+          var presenter = SubmitCoreErrorPresenter.Create(game, _minidump, game.Name + " has ended unexpectedly",
                                                                                     "An unhandled exception or fatal MGDF error has occurred");
           presenter?.ShowView(View);
         });

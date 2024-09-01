@@ -19,11 +19,19 @@ namespace MGDF.GamesManager.Controls
 
     public event EventHandler Closed;
 
+    public event EventHandler<COPYDATASTRUCT> OnWindowCopyData
+    {
+      add { throw new NotSupportedException(); }
+      remove { }
+    }
+
     public bool Enabled
     {
       get { return true; }
       set { }
     }
+
+    public long WindowHandle => 0;
 
     public void ShowView(IView parentView)
     {

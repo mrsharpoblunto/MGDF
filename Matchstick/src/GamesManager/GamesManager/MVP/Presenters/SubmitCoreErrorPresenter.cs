@@ -27,7 +27,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
   class SubmitCoreErrorPresenter
   {
-    public static IPresenter Create(Game game, string message, string detail)
+    public static IPresenter Create(Game game, string minidump, string message, string detail)
     {
       if (
         string.IsNullOrEmpty(game.SupportType) ||
@@ -38,13 +38,13 @@ namespace MGDF.GamesManager.MVP.Presenters
 
       if (game.SupportType.Equals(SupportMethod.S3, StringComparison.InvariantCultureIgnoreCase))
       {
-        return new SubmitCoreErrorS3Presenter(game, detail);
+        return new SubmitCoreErrorS3Presenter(game, minidump, detail);
       }
       else if (
 game.SupportType.Equals(SupportMethod.GitHub, StringComparison.InvariantCultureIgnoreCase) ||
 game.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIgnoreCase))
       {
-        return new SubmitCoreErrorEmailPresenter(game, message, detail);
+        return new SubmitCoreErrorEmailPresenter(game, minidump, message, detail);
       }
       return null;
     }
@@ -132,10 +132,12 @@ game.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIg
     private Thread _workerThread;
     private readonly string _detail;
     private readonly Game _game;
+    private string _minidump;
 
-    public SubmitCoreErrorS3Presenter(Game game, string detail)
+    public SubmitCoreErrorS3Presenter(Game game, string minidump, string detail)
     {
       _game = game;
+      _minidump = minidump;
       _detail = detail;
       View.SendLogOutput += View_SendLogOutput;
       View.Closed += View_Closed;
@@ -158,16 +160,15 @@ game.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIg
       var reportFile = Path.GetTempFileName();
       try
       {
-        var dumpFile = Path.Combine(Resources.GameUserDir, "minidump.dmp");
         // create the error report zip file
         using (FileStream output = File.Create(reportFile))
         {
           using (ZipOutputStream zipStream = new ZipOutputStream(output))
           {
             zipStream.SetLevel(9);
-            if (FileSystem.Current.FileExists(dumpFile))
+            if (!string.IsNullOrEmpty(_minidump) && FileSystem.Current.FileExists(_minidump))
             {
-              var fi = new FileInfo(dumpFile);
+              var fi = new FileInfo(_minidump);
               var dumpEntry = new ZipEntry(fi.Name)
               {
                 DateTime = fi.LastWriteTime,
@@ -175,7 +176,7 @@ game.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIg
               };
               zipStream.PutNextEntry(dumpEntry);
 
-              using (FileStream fs = new FileStream(dumpFile, FileMode.Open, FileAccess.Read))
+              using (FileStream fs = new FileStream(_minidump, FileMode.Open, FileAccess.Read))
               {
                 int sourceBytes;
                 byte[] buffer = new byte[81920];
@@ -247,10 +248,12 @@ game.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIg
   {
     private readonly string _detail;
     private readonly Game _game;
+    private string _minidump;
 
-    public SubmitCoreErrorEmailPresenter(Game game, string message, string detail)
+    public SubmitCoreErrorEmailPresenter(Game game, string minidump, string message, string detail)
     {
       _game = game;
+      _minidump = minidump;
       _detail = detail;
       View.Message = message;
       View.SupportType = game.SupportType;
@@ -290,14 +293,17 @@ game.SupportType.Equals(SupportMethod.Email, StringComparison.InvariantCultureIg
     void View_CopyLogOutput(object sender, EventArgs e)
     {
       var sb = new StringBuilder();
-      sb.AppendLine("IMPORTANT: In order to help us find out the source of this problem, please also attach the following file to this report.");
-      sb.AppendLine();
-      sb.AppendLine(Resources.GameUserDir + "\\minidump.dmp");
-      sb.AppendLine();
-      sb.AppendLine("This file contains important debugging information to allow us to better understand what caused the problem you experienced");
-      sb.AppendLine();
-      sb.AppendLine();
-      sb.AppendLine();
+      if (!string.IsNullOrEmpty(_minidump) && FileSystem.Current.FileExists(_minidump))
+      {
+        sb.AppendLine("IMPORTANT: In order to help us find out the source of this problem, please also attach the following file to this report.");
+        sb.AppendLine();
+        sb.AppendLine(_minidump);
+        sb.AppendLine();
+        sb.AppendLine("This file contains important debugging information to allow us to better understand what caused the problem you experienced");
+        sb.AppendLine();
+        sb.AppendLine();
+        sb.AppendLine();
+      }
       sb.Append(SubmitCoreErrorPresenter.GetLogContent(_game, _detail));
 
       var runner = new CrossThreadRunner();
