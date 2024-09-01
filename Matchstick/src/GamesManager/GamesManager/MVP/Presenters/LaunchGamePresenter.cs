@@ -52,7 +52,8 @@ namespace MGDF.GamesManager.MVP.Presenters
     static extern bool CloseHandle(IntPtr hObject);
 
     private uint MiniDumpNormal = 0x00000000;
-    private uint PROCESS_ALL_ACCESS = 0x001F0FFF;
+    const uint PROCESS_VM_READ = 0x0010;
+    const uint PROCESS_QUERY_INFORMATION = 0x0400;
 
     private readonly bool _checkForUpdates;
     private Thread _workerThread;
@@ -101,7 +102,7 @@ namespace MGDF.GamesManager.MVP.Presenters
 
     private void WriteMiniDump(DumpData dump)
     {
-      IntPtr process = OpenProcess(PROCESS_ALL_ACCESS, false, dump.processId);
+      IntPtr process = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, dump.processId);
       if (process == IntPtr.Zero)
       {
         Logger.Current.Write(LogInfoLevel.Error, "Failed to open process for minidump. Error code: " + Marshal.GetLastWin32Error());

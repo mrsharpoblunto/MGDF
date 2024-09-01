@@ -123,7 +123,27 @@ void HostBuilder::DisposeHost(ComObject<Host> &host) {
 void HostBuilder::InitParameterManager() {
   std::string paramString;
 
-  // use the supplied params.txt in the application path (if provided)
+  // parse the command line
+  std::string cmdLine = GetCommandLine();
+  auto cmdLineIter = cmdLine.begin();
+
+  // Skip past program name (first token in command line).
+  if (*cmdLineIter == '"') {  // Check for and handle quoted program name
+    cmdLineIter++;
+
+    // Skip over until another double-quote or a nullptr
+    while (cmdLineIter != cmdLine.end() && *cmdLineIter != '"') ++cmdLineIter;
+
+    // Skip over double-quote
+    if (*cmdLineIter == '"') ++cmdLineIter;
+  } else {
+    // First token wasn't a quote
+    while (*cmdLineIter > ' ') ++cmdLineIter;
+  }
+  paramString = std::string(cmdLineIter, cmdLine.end());
+  ParameterManager::Instance().AddParameterString(paramString.c_str());
+
+  // then override with the supplied params.txt in the application path (if provided)
   // providing a params.txt can be useful for debugging purposes.
   path paramsTxt(Resources::Instance().ParamsFile());
   if (exists(paramsTxt)) {
@@ -134,31 +154,8 @@ void HostBuilder::InitParameterManager() {
     if (paramString.starts_with("//")) {
       paramString.clear();
     }
+    ParameterManager::Instance().AddParameterString(paramString.c_str());
   }
-
-  // otherwise parse the command line
-  if (paramString.empty()) {
-    std::string cmdLine = GetCommandLine();
-    auto cmdLineIter = cmdLine.begin();
-
-    // Skip past program name (first token in command line).
-    if (*cmdLineIter == '"') {  // Check for and handle quoted program name
-      cmdLineIter++;
-
-      // Skip over until another double-quote or a nullptr
-      while (cmdLineIter != cmdLine.end() && *cmdLineIter != '"') ++cmdLineIter;
-
-      // Skip over double-quote
-      if (*cmdLineIter == '"') ++cmdLineIter;
-    } else {
-      // First token wasn't a quote
-      while (*cmdLineIter > ' ') ++cmdLineIter;
-    }
-    paramString = std::string(cmdLineIter, cmdLine.end());
-  }
-
-  // add the parameters to the parameter manager
-  ParameterManager::Instance().AddParameterString(paramString.c_str());
 }
 
 void HostBuilder::InitLogger() {
