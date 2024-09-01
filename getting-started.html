@@ -398,8 +398,7 @@ Function CheckAndInstallDotNet
 FunctionEnd
 </pre>
     <h2 id="updating">Updating</h2>
-    <p>The MGDF GamesManager can check for available updates to either the game or framework upon launching the game (this update check will occur at most once per day). To enable this feature, you need to add an <strong>updateservice</strong> property to your game.json file, the value for this property should be
-       a url pointing to a <a href="{{ site.baseurl }}/api#updatemanifest">game update manifest</a> file. This update manifest is a small JSON file which lists the latest version of your game, and the MGDF framework version your games supports. An example update manifest is shown below.</p>
+    <p>The MGDF GamesManager can check for available updates to either the game or framework upon launching the game (this update check will occur at most once per day). To enable this feature, you need to add an <strong>updateservice</strong> property to your game.json file, listing a url pointing to a <a href="{{ site.baseurl }}/api#updatemanifest">game update manifest</a> file. The JSON format for the manifest url is shown below, listing the latest version of your game, and the MGDF framework version your games supports.</p>
 {% highlight json %}
 {
   "framework": {
