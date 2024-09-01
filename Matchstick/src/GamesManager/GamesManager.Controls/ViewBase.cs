@@ -47,6 +47,7 @@ namespace MGDF.GamesManager.Controls
       {
         COPYDATASTRUCT cds = (COPYDATASTRUCT)m.GetLParam(typeof(COPYDATASTRUCT));
         OnWindowCopyData(this, cds);
+        m.Result = (IntPtr)1;
       }
       base.WndProc(ref m);
     }

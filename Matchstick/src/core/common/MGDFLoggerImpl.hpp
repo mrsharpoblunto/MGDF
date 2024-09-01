@@ -36,6 +36,7 @@ class Logger {
 
   void MoveOutputFile();
   void Flush();
+  void FlushSync();
 
  private:
   Logger();

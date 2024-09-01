@@ -15,7 +15,6 @@
 
 void FatalErrorCallBack(const std::string &sender, const std::string &message);
 void WriteMinidump(PEXCEPTION_POINTERS exceptionInfo);
-DWORD WINAPI CrashDumpThread(LPVOID data);
 
 LONG WINAPI
 UnhandledExceptionCallBack(struct _EXCEPTION_POINTERS *pExceptionInfo);
@@ -24,6 +23,7 @@ typedef BOOL(WINAPI *MINIDUMPWRITEDUMP)(
     CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
     CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
     CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
+
 using namespace MGDF;
 using namespace MGDF::core;
 
@@ -83,6 +83,8 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
       return -1;
     }
 
+    // record the launcher window handle so we can request a minidump from the
+    // launcher process if we encounter an error later
     if (ParameterManager::Instance().HasParameter("launcherhandle")) {
       const std::string launcherHandle =
           ParameterManager::Instance().GetParameter("launcherhandle");
@@ -158,19 +160,16 @@ void FatalErrorCallBack(const std::string &sender, const std::string &message) {
 void WriteMinidump(PEXCEPTION_POINTERS exceptionInfo) {
   if (!_hasDumped) {
     _hasDumped = true;
+    Logger::Instance().FlushSync();
     if (_launcherWindow) {
-      LOG("Requesting GamesManager generate Minidump file...", MGDF_LOG_ERROR);
       DumpData data = {::GetCurrentProcessId(), ::GetCurrentThreadId(),
                        exceptionInfo};
       COPYDATASTRUCT cds;
       cds.dwData = 1;
       cds.cbData = sizeof(DumpData);
       cds.lpData = &data;
-      if (::SendMessageA(_launcherWindow, WM_COPYDATA, (WPARAM) nullptr,
-                         (LPARAM)&cds)) {
-        LOG("Minidump complete", MGDF_LOG_ERROR);
-      }
+      ::SendMessageA(_launcherWindow, WM_COPYDATA, (WPARAM) nullptr,
+                     (LPARAM)&cds);
     }
-    Logger::Instance().Flush();
   }
 }

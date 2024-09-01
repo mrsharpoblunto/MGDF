@@ -68,6 +68,17 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
 
 void Logger::Flush() { _cv.notify_one(); }
 
+void Logger::FlushSync() {
+  std::unique_lock<std::mutex> lock(_mutex);
+  std::ofstream outFile;
+  outFile.open(_filename.c_str(), std::ios::app);
+  for (const auto &evt : _events) {
+    outFile << evt.Sender << ": " << evt.Message << std::endl;
+  }
+  _events.clear();
+  outFile.close();
+}
+
 Logger::Logger() {
   SetLoggingLevel(MGDF_LOG_MEDIUM);
   SetOutputFile(Resources::Instance().LogFile());
@@ -84,6 +95,12 @@ Logger::Logger() {
       lock.unlock();
 
       if (tmp.size()) {
+        std::ofstream outFile;
+        outFile.open(_filename.c_str(), std::ios::app);
+        for (const auto &evt : tmp) {
+          outFile << evt.Sender << ": " << evt.Message << std::endl;
+        }
+
         if (_remoteEndpoint.size()) {
           Json::Value root;
           Json::Value &streams = root["streams"] =
@@ -129,18 +146,10 @@ Logger::Logger() {
                     << ", error=" << client.GetLastError();
             std::ostringstream sender;
             sender << __FILE__ << "(" << __LINE__ << ")";
-            tmp.push_back(LogEntry{.Level = MGDF_LOG_ERROR,
-                                   .Timestamp = GetTimeStamp(),
-                                   .Sender = sender.str(),
-                                   .Message = message.str()});
+            outFile << sender.str() << ": " << message.str() << std::endl;
           }
         }
 
-        std::ofstream outFile;
-        outFile.open(_filename.c_str(), std::ios::app);
-        for (const auto &evt : tmp) {
-          outFile << evt.Sender << ": " << evt.Message << std::endl;
-        }
         outFile.close();
       }
 
