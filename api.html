@@ -180,16 +180,16 @@ Installer package created
         <h4>Request fields</h4>
         <dl class="dl-horizontal">
             <dt>gameUid</dt>
-            <dd>A string value of up to 255 characters in length.</dd>
+            <dd>A string value.</dd>
             <dt>sessionId</dt>
-            <dd>A string value of up to 255 characters in length. All statistic key/values should be associated with this session id.</dd>
+            <dd>A string value. All statistic key/values should be associated with this session id.</dd>
             <dt>statistics</dt>
             <dd>
                 An array of statistic objects containing the fields below.
                 <ul>
                     <li><em>timestamp</em> An unsigned integer value marking the time the statistic was recorded. The time interval is measured in seconds since the beginning of the current session.</li>
-                    <li><em>name</em> A string value of up to 255 characters in length.</li>
-                    <li><em>value</em> A string value of up to 255 characters in length.</li>
+                    <li><em>name</em> A string value.</li>
+                    <li><em>value</em> A string value.</li>
                 </ul>
             </dd>
         </dl>
@@ -221,7 +221,7 @@ Content-Length: 29
         </pre>
 
         <h2 id="crashreports">Crash reporting service</h2>
-        <p>The MGDF s3 crash reporting service works in two steps, first by calling the supportUrl endpoing with crash metadata (see below). The service should then respond with a <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html">presigned S3 URL</a> that the framework will then issue HTTP Put a crash report zip file into. In order to use this feature you must have supportType set to S3 in your game.json file, and implement a compatible web service that implements the methods shown below.</p>
+        <p>The MGDF S3 crash reporting service works in two steps, first by calling the supportUrl endpoing with crash metadata (see below). The service should then respond with a <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html">presigned S3 URL</a> that the framework will then issue an HTTP Put for to upload a crash report zip file into. In order to use this feature you must have an AWS account with an S3 bucket set up &amp; have supportType set to "S3" in your game.json file. You will also need to implement a compatible web service that implements the contract shown below.</p>
        
         <h4>Request fields</h4>
         <dl class="dl-horizontal">

@@ -277,11 +277,11 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
     <h1 id="distributing" class="page-header">Distributing a game</h1>
     <h2 id="installing">Installing</h2>
     <p>In order to distribute your game to users it is recommended to bundle your game into an installer, rather than just provide a .zip archive containing a framework redistributable combined with your game module and content files.</p>
-    <p>The main advantages to bundling everything in an installer is that the GamesManager depends on the .NET framework 4.5 runtime, which is not guaranteed to be present on all users systems. Because of this an installer may be necessary to install the framework prior to running the GamesManager</p>
+    <p>The main advantages to bundling everything in an installer is that the GamesManager depends on the .NET framework 4.8 runtime, which is not guaranteed to be present on all users systems. Because of this an installer may be necessary to install the framework prior to running the GamesManager</p>
     <p>The general procedure for integrating an MGDF game with an installer is as follows</p>
     <ol>
         <li>The installer should extract all files in the standard <a href="#folderstructure">MGDF folder structure</a> to somewhere on disk</li>
-        <li>The installer should then check for the presence of the .NET framework 4.5, and if not installed should install or prompt the user to install it</li>
+        <li>The installer should then check for the presence of the .NET framework 4.8, and if not installed should install or prompt the user to install it</li>
         <li>
             <p>The installer should then invoke the following command</p>
             <pre>GamesManager.exe -register</pre>
