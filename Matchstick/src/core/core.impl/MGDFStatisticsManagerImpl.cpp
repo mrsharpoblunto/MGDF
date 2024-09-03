@@ -54,6 +54,7 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
     _run = true;
     _flushThread = std::thread([this]() {
       HttpClient client;
+      std::deque<std::shared_ptr<HttpRequest>> pendingRequests;
       std::unique_lock<std::mutex> lock(_mutex);
       while (_run) {
         _cv.wait_for(lock, STAT_FLUSH_TIMEOUT,
@@ -61,6 +62,28 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
         std::vector<PushStatistic> tmp(std::move(_events));
         _events.clear();
         lock.unlock();
+
+        // record the result of any failed statistics posts
+        while (pendingRequests.size()) {
+          auto& p = pendingRequests.front();
+          std::string error;
+          std::shared_ptr<HttpResponse> response;
+          if (p->GetLastError(error)) {
+            LOG("Unable to send statistic to remote endpoint "
+                    << _remoteEndpoint << ". error=" << error,
+                MGDF_LOG_ERROR);
+            pendingRequests.pop_front();
+          } else if (p->GetResponse(response) && response->Code != 200) {
+            LOG("Unable to send statistic to remote endpoint "
+                    << _remoteEndpoint << ". status=" << response,
+                MGDF_LOG_ERROR);
+            pendingRequests.pop_front();
+          } else if (p->GetState() == HttpRequestState::Cancelled) {
+            pendingRequests.pop_front();
+          } else {
+            break;
+          }
+        }
 
         if (tmp.size()) {
           Json::Value root;
@@ -81,13 +104,14 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
             }
           }
 
-          const auto response = client.PostJson(_remoteEndpoint, root);
-          if (response != 200) {
-            LOG("Unable to send statistic to remote endpoint "
-                    << _remoteEndpoint << ". status=" << response
-                    << ", error=" << client.GetLastError(),
-                MGDF_LOG_ERROR);
-          }
+          auto request = client.GetRequest(_remoteEndpoint);
+          std::ostringstream requestBody;
+          requestBody << root;
+          request->SetMethod("POST")
+              ->SetHeader("Content-Type", "application/json")
+              ->SetBody(requestBody.str().c_str(), requestBody.str().size())
+              ->Send();
+          pendingRequests.push_back(request);
         }
 
         lock.lock();

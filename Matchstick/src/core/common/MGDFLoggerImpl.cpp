@@ -3,6 +3,7 @@
 #include "MGDFLoggerImpl.hpp"
 
 #include <chrono>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 
@@ -87,6 +88,7 @@ Logger::Logger() {
   _flushThread = std::thread([this]() {
     HttpClient client;
     std::unique_lock<std::mutex> lock(_mutex);
+    std::deque<std::shared_ptr<HttpRequest>> pendingRequests;
     while (_runLogger) {
       _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
                    [this] { return !_runLogger || _events.size() > 0; });
@@ -99,6 +101,35 @@ Logger::Logger() {
         outFile.open(_filename.c_str(), std::ios::app);
         for (const auto &evt : tmp) {
           outFile << evt.Sender << ": " << evt.Message << std::endl;
+        }
+
+        // record the result of any failed http log posts
+        while (pendingRequests.size()) {
+          auto &p = pendingRequests.front();
+          std::string error;
+          std::shared_ptr<HttpResponse> response;
+          if (p->GetLastError(error)) {
+            std::ostringstream message;
+            message << "Unable to send logs to remote endpoint "
+                    << _remoteEndpoint << " error=" << error;
+            std::ostringstream sender;
+            sender << __FILE__ << "(" << __LINE__ << ")";
+            outFile << sender.str() << ": " << message.str() << std::endl;
+            pendingRequests.pop_front();
+          } else if (p->GetResponse(response) &&
+                     !(response->Code == 200 || response->Code == 204)) {
+            std::ostringstream message;
+            message << "Unable to send logs to remote endpoint "
+                    << _remoteEndpoint << ". status=" << response->Code;
+            std::ostringstream sender;
+            sender << __FILE__ << "(" << __LINE__ << ")";
+            outFile << sender.str() << ": " << message.str() << std::endl;
+            pendingRequests.pop_front();
+          } else if (p->GetState() == HttpRequestState::Cancelled) {
+            pendingRequests.pop_front();
+          } else {
+            break;
+          }
         }
 
         if (_remoteEndpoint.size()) {
@@ -138,16 +169,15 @@ Logger::Logger() {
             value.append(m.str());
           }
 
-          const auto response = client.PostJson(_remoteEndpoint, root);
-          if (response != 200) {
-            std::ostringstream message;
-            message << "Unable to send logs to remote endpoint "
-                    << _remoteEndpoint << ". status=" << response
-                    << ", error=" << client.GetLastError();
-            std::ostringstream sender;
-            sender << __FILE__ << "(" << __LINE__ << ")";
-            outFile << sender.str() << ": " << message.str() << std::endl;
-          }
+          auto request = client.GetRequest(_remoteEndpoint);
+          std::ostringstream requestBody;
+          requestBody << root;
+          request->SetMethod("POST")
+              ->SetHeader("Content-Type", "application/json")
+              ->SetBody(requestBody.str().c_str(), requestBody.str().size(),
+                        true)
+              ->Send();
+          pendingRequests.push_back(request);
         }
 
         outFile.close();
