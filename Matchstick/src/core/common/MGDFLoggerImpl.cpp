@@ -107,7 +107,6 @@ Logger::Logger() {
         // record the result of any failed http log posts
         while (pendingRequests.size()) {
           auto &p = pendingRequests.front();
-          std::string error;
           std::shared_ptr<HttpResponse> response;
           if (p->GetResponse(response) &&
               !(response->Code == 200 || response->Code == 204)) {
@@ -118,8 +117,6 @@ Logger::Logger() {
             std::ostringstream sender;
             sender << __FILE__ << "(" << __LINE__ << ")";
             outFile << sender.str() << ": " << message.str() << std::endl;
-            pendingRequests.pop_front();
-          } else if (p->GetState() == HttpRequestState::Cancelled) {
             pendingRequests.pop_front();
           } else {
             break;

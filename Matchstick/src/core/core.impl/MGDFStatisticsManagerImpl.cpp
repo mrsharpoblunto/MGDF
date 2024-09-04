@@ -69,15 +69,12 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
         // record the result of any failed statistics posts
         while (pendingRequests.size()) {
           auto& p = pendingRequests.front();
-          std::string error;
           std::shared_ptr<HttpResponse> response;
           if (p->GetResponse(response) && response->Code != 200) {
             LOG("Unable to send statistic to remote endpoint "
                     << _remoteEndpoint << ". status=" << response->Code
                     << ", error=" << response->Error,
                 MGDF_LOG_ERROR);
-            pendingRequests.pop_front();
-          } else if (p->GetState() == HttpRequestState::Cancelled) {
             pendingRequests.pop_front();
           } else {
             break;
