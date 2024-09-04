@@ -4,10 +4,13 @@
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "MGDFHttpClient.hpp"
 
 namespace MGDF {
 namespace core {
@@ -29,7 +32,8 @@ class Logger {
     return log;
   }
 
-  void SetRemoteEndpoint(const std::string &endpoint);
+  void SetRemoteEndpoint(const std::string &endpoint,
+                         const std::shared_ptr<HttpClient> &client);
   void SetLoggingLevel(MGDFLogLevel level);
   MGDFLogLevel GetLoggingLevel() const;
   void Log(const char *sender, const char *message, MGDFLogLevel level);
@@ -57,6 +61,7 @@ class Logger {
   bool _runLogger;
   std::wstring _filename;
   std::atomic<MGDFLogLevel> _level;
+  std::shared_ptr<HttpClient> _client;
   std::string _remoteEndpoint;
 };
 

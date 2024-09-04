@@ -81,13 +81,6 @@ HttpRequest *HttpRequest::SetMethod(const std::string &method) {
   return this;
 }
 
-void HttpRequest::Send() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (_state == HttpRequestState::Preparing) {
-    _state = HttpRequestState::Pending;
-  }
-}
-
 bool HttpRequest::GetHeader(const std::string &header,
                             std::string &value) const {
   std::lock_guard<std::mutex> lock(_mutex);
@@ -99,18 +92,21 @@ bool HttpRequest::GetHeader(const std::string &header,
   return false;
 }
 
-bool HttpRequest::GetLastError(std::string &error) const {
+void HttpRequest::Cancel() {
   std::lock_guard<std::mutex> lock(_mutex);
-  if (_state == HttpRequestState::Error) {
-    error = _error;
-    return true;
+  if (_state != HttpRequestState::Error &&
+      _state != HttpRequestState::Complete) {
+    _state = HttpRequestState::Cancelled;
+    _response = std::make_shared<HttpResponse>();
+    _response->Code = -1;
+    _response->Error = "Cancelled";
   }
-  return false;
 }
 
 bool HttpRequest::GetResponse(std::shared_ptr<HttpResponse> &response) const {
   std::lock_guard<std::mutex> lock(_mutex);
-  if (_state == HttpRequestState::Complete) {
+  if (_state == HttpRequestState::Complete ||
+      _state == HttpRequestState::Error) {
     response = _response;
     return true;
   }
@@ -133,13 +129,15 @@ HttpClientOptions HttpClient::DEFAULT_OPTIONS{
     .KeepAlive = 10000,
 };
 
-std::shared_ptr<HttpRequest> HttpClient::GetRequest(const std::string &url) {
-  auto request = std::shared_ptr<HttpRequest>(new HttpRequest(url));
+void HttpClient::SendRequest(std::shared_ptr<HttpRequest> request) {
   {
-    std::lock_guard<std::mutex> lock(_mutex);
-    _pendingRequests.push_back(request);
+    std::lock_guard<std::mutex> rLock(request->_mutex);
+    if (request->_state == HttpRequestState::Preparing) {
+      request->_state = HttpRequestState::Pending;
+      std::lock_guard<std::mutex> lock(_mutex);
+      _pendingRequests.push_back(request);
+    }
   }
-  return request;
 }
 
 char tolowerChar(char c) {
@@ -155,11 +153,9 @@ HttpClient::HttpClient(HttpClientOptions &options)
     mg_mgr mgr;
     mg_mgr_init(&mgr);
     std::vector<std::shared_ptr<HttpRequest>> pending;
-    std::vector<std::shared_ptr<HttpRequest>> notReady;
     while (_running) {
       std::unique_lock<std::mutex> lock(_mutex);
       pending.clear();
-      notReady.clear();
       pending.assign(_pendingRequests.begin(), _pendingRequests.end());
       _pendingRequests.clear();
       lock.unlock();
@@ -168,17 +164,13 @@ HttpClient::HttpClient(HttpClientOptions &options)
       for (const auto &p : pending) {
         std::lock_guard<std::mutex> pLock(p->_mutex);
 
-        if (p->_state == HttpRequestState::Preparing) {
-          notReady.push_back(p);
-          continue;
-        }
-
         std::string url = p->_url;
         std::transform(url.begin(), url.end(), url.begin(), tolowerChar);
 
         if (!url.starts_with(S_HTTP) && !url.starts_with(S_HTTPS)) {
           p->_state = HttpRequestState::Error;
-          p->_error = "Invalid URL protocol";
+          p->_response = std::make_shared<HttpResponse>();
+          p->_response->Error = "Invalid URL protocol";
           continue;
         }
 
@@ -219,14 +211,6 @@ HttpClient::HttpClient(HttpClientOptions &options)
         origin->second.PendingRequests.push_back(p);
       }
 
-      // copy back in requests to the pending list that we haven't got ready to
-      // send yet
-      if (notReady.size()) {
-        lock.lock();
-        _pendingRequests.assign(notReady.begin(), notReady.end());
-        lock.unlock();
-      }
-
       mg_mgr_poll(&mgr, 50);
 
       // any pending requests that have not been assigned to a connection
@@ -252,15 +236,22 @@ HttpClient::HttpClient(HttpClientOptions &options)
     mg_mgr_free(&mgr);
 
     // clean up any pending requests or requests in progress
-    for (auto &origin : _origins) {
-      for (auto p : origin.second.PendingRequests) {
+    for (const auto &origin : _origins) {
+      for (const auto p : origin.second.PendingRequests) {
         std::lock_guard<std::mutex> lock(p->_mutex);
         p->_state = HttpRequestState::Cancelled;
+        p->_response = std::make_shared<HttpResponse>();
+        p->_response->Code = -1;
+        p->_response->Error = "Cancelled";
       }
       for (auto &c : origin.second.Connections) {
         if (c.second.Request) {
-          std::lock_guard<std::mutex> lock(c.second.Request->_mutex);
-          c.second.Request->_state = HttpRequestState::Cancelled;
+          const auto &p = c.second.Request;
+          std::lock_guard<std::mutex> lock(p->_mutex);
+          p->_state = HttpRequestState::Cancelled;
+          p->_response = std::make_shared<HttpResponse>();
+          p->_response->Code = -1;
+          p->_response->Error = "Cancelled";
         }
       }
     }
@@ -347,7 +338,9 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     if (conn->Request) {
       std::lock_guard<std::mutex> lock(conn->Request->_mutex);
       conn->Request->_state = HttpRequestState::Error;
-      conn->Request->_error = std::string(static_cast<char *>(ev_data));
+      conn->Request->_response = std::make_shared<HttpResponse>();
+      conn->Request->_response->Error =
+          std::string(static_cast<char *>(ev_data));
     }
   } else if (ev == MG_EV_CLOSE) {
     conn->Origin->IdleConnections.erase(c);
@@ -357,8 +350,12 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
 
 bool HttpClient::MakeRequestWithConnection(HttpConnection *conn) {
   std::lock_guard<std::mutex> lock(conn->Request->_mutex);
-  conn->Request->_state = HttpRequestState::Requesting;
   auto request = conn->Request;
+
+  if (request->_state == HttpRequestState::Cancelled) {
+    return false;
+  }
+  conn->Request->_state = HttpRequestState::Requesting;
 
   std::vector<char> compressedBody;
   const char *bodyData = request->_body.data();
@@ -369,7 +366,8 @@ bool HttpClient::MakeRequestWithConnection(HttpConnection *conn) {
     if (found != request->_headers.end() && found->second == S_GZIP) {
       if (!Resources::CompressString(request->_body, compressedBody)) {
         request->_state = HttpRequestState::Error;
-        request->_error = "Unable to compress request body";
+        request->_response = std::make_shared<HttpResponse>();
+        request->_response->Error = "Unable to compress request body";
         return false;
       }
       bodyData = compressedBody.data();
@@ -446,11 +444,14 @@ void HttpClient::GetResponseFromConnection(HttpConnection *conn,
       Resources::DecompressString(hm->body.ptr, hm->body.len, response->Body);
     } else {
       request->_state = HttpRequestState::Error;
-      request->_error = "Unsupported Content-Encoding";
+      request->_response = std::make_shared<HttpResponse>();
+      request->_response->Error = "Unsupported Content-Encoding";
       return;
     }
   } else {
-    response->Body.assign(hm->body.ptr, hm->body.len);
+    response->Body.resize(hm->body.len);
+    memcpy_s(response->Body.data(), response->Body.size(), hm->body.ptr,
+             hm->body.len);
   }
 
   request->_response = response;

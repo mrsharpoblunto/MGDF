@@ -64,8 +64,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../include;../../../../vendor/minizip/src;../../../../vendor/OpenAL;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../include;../../../../vendor/mbedtls-3.2.1/include;../../../../vendor/minizip/src;../../../../vendor/OpenAL;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -86,8 +86,8 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../../../include;../../../../vendor/minizip/src;../../../../vendor/OpenAL;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../include;../../../../vendor/mbedtls-3.2.1/include;../../../../vendor/minizip/src;../../../../vendor/OpenAL;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -106,6 +106,7 @@
     <ClCompile Include="MGDFDebugImpl.cpp" />
     <ClCompile Include="MGDFGameBuilder.cpp" />
     <ClCompile Include="MGDFGameImpl.cpp" />
+    <ClCompile Include="MGDFHttpRequestImpl.cpp" />
     <ClCompile Include="MGDFMetrics.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp" />
     <ClCompile Include="MGDFModuleFactory.cpp" />
@@ -127,6 +128,7 @@
     <ClInclude Include="MGDFDebugImpl.hpp" />
     <ClInclude Include="MGDFGameBuilder.hpp" />
     <ClInclude Include="MGDFGameImpl.hpp" />
+    <ClInclude Include="MGDFHttpRequestImpl.hpp" />
     <ClInclude Include="MGDFMetrics.hpp" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp" />
     <ClInclude Include="MGDFModuleFactory.hpp" />

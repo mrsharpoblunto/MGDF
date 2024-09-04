@@ -54,6 +54,8 @@ class Resources {
   static bool CompressString(const std::string &str, std::vector<char> &out);
   static bool DecompressString(const char *str, const size_t strLen,
                                std::string &out);
+  static bool DecompressString(const char *str, const size_t strLen,
+                               std::vector<char> &out);
 
  private:
   Resources(HINSTANCE instance);

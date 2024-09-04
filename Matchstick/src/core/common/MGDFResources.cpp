@@ -21,6 +21,33 @@ using namespace std::filesystem;
 namespace MGDF {
 namespace core {
 
+template <typename T>
+bool DecompressStringImpl(const char *str, const size_t strLen, T &out) {
+  z_stream zs;
+  memset(&zs, 0, sizeof(zs));
+
+  if (inflateInit2(&zs, MAX_WBITS | 16) != Z_OK) {
+    return false;
+  }
+
+  zs.next_in = (Bytef *)str;
+  zs.avail_in = static_cast<uInt>(strLen);
+
+  int ret = 0;
+  do {
+    out.resize(out.size() + BUFFER_SIZE);
+    zs.next_out =
+        reinterpret_cast<Bytef *>(out.data() + out.size() - BUFFER_SIZE);
+    zs.avail_out = BUFFER_SIZE;
+
+    ret = inflate(&zs, 0);
+    out.resize(zs.total_out);
+  } while (ret == Z_OK);
+
+  inflateEnd(&zs);
+  return ret == Z_STREAM_END;
+}
+
 bool Resources::CompressString(const std::string &str, std::vector<char> &out) {
   z_stream zs;
   memset(&zs, 0, sizeof(zs));
@@ -47,37 +74,17 @@ bool Resources::CompressString(const std::string &str, std::vector<char> &out) {
   } while (ret == Z_OK);
 
   deflateEnd(&zs);
-
   return ret == Z_STREAM_END;
 }
 
 bool Resources::DecompressString(const char *str, const size_t strLen,
                                  std::string &out) {
-  z_stream zs;
-  memset(&zs, 0, sizeof(zs));
+  return DecompressStringImpl<std::string>(str, strLen, out);
+}
 
-  if (inflateInit2(&zs, MAX_WBITS | 16) != Z_OK) {
-    return false;
-  }
-
-  zs.next_in = (Bytef *)str;
-  zs.avail_in = static_cast<uInt>(strLen);
-
-  int ret = 0;
-  do {
-    out.resize(out.size() + BUFFER_SIZE);
-    zs.next_out =
-        reinterpret_cast<Bytef *>(out.data() + out.size() - BUFFER_SIZE);
-    zs.avail_out = BUFFER_SIZE;
-
-    ret = inflate(&zs, 0);
-
-    out.resize(zs.total_out);
-  } while (ret == Z_OK);
-
-  deflateEnd(&zs);
-
-  return ret == Z_STREAM_END;
+bool Resources::DecompressString(const char *str, const size_t strLen,
+                                 std::vector<char> &out) {
+  return DecompressStringImpl<std::vector<char>>(str, strLen, out);
 }
 
 Resources::Resources(HINSTANCE instance) {

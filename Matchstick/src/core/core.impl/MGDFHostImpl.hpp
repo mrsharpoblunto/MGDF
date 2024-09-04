@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include "../audio/MGDFSoundManagerComponentImpl.hpp"
+#include "../common/MGDFHttpClient.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
 #include "../input/MGDFInputManagerComponentImpl.hpp"
@@ -28,6 +29,7 @@ namespace core {
 
 struct HostComponents {
   std::shared_ptr<storage::IStorageFactoryComponent> Storage;
+  std::shared_ptr<HttpClient> HttpClient;
   ComObject<input::IInputManagerComponent> Input;
   ComObject<audio::ISoundManagerComponent> Sound;
   ComObject<vfs::IReadOnlyVirtualFileSystemComponent> VFS;
@@ -134,6 +136,8 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                                           const double *buckets,
                                           const UINT64 bucketCount,
                                           IMGDFMetric **metric) final;
+  HRESULT __stdcall CreateHttpRequest(const small *url,
+                                      IMGDFHttpRequest **request) final;
 
  private:
   HRESULT Init();
@@ -166,6 +170,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<Timer> _timer;
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
+  std::shared_ptr<HttpClient> _httpClient;
 
   ComObject<ID3D11Device> _d3dDevice;
   ComObject<ID2D1Device> _d2dDevice;

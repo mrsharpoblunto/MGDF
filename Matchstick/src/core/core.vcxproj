@@ -90,8 +90,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL;../../../vendor/Mongoose</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../vendor/mbedtls-3.2.1/include;../../include;../../../vendor/OpenAL</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -148,8 +148,8 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
 </Command>
     </PreBuildEvent>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../../vendor/OpenAL;../../../vendor/Mongoose</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../vendor/mbedtls-3.2.1/include;../../include;../../../vendor/OpenAL</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -186,6 +186,7 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
     <ClInclude Include="MGDFApp.hpp" />
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
+    <ClInclude Include="MGDFStdAfxBase.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>

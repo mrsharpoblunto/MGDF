@@ -2,6 +2,8 @@
 
 #include "MGDFLoggerImpl.hpp"
 
+#include <json/json.h>
+
 #include <chrono>
 #include <deque>
 #include <filesystem>
@@ -86,7 +88,6 @@ Logger::Logger() {
 
   _runLogger = true;
   _flushThread = std::thread([this]() {
-    HttpClient client;
     std::unique_lock<std::mutex> lock(_mutex);
     std::deque<std::shared_ptr<HttpRequest>> pendingRequests;
     while (_runLogger) {
@@ -108,19 +109,12 @@ Logger::Logger() {
           auto &p = pendingRequests.front();
           std::string error;
           std::shared_ptr<HttpResponse> response;
-          if (p->GetLastError(error)) {
+          if (p->GetResponse(response) &&
+              !(response->Code == 200 || response->Code == 204)) {
             std::ostringstream message;
             message << "Unable to send logs to remote endpoint "
-                    << _remoteEndpoint << " error=" << error;
-            std::ostringstream sender;
-            sender << __FILE__ << "(" << __LINE__ << ")";
-            outFile << sender.str() << ": " << message.str() << std::endl;
-            pendingRequests.pop_front();
-          } else if (p->GetResponse(response) &&
-                     !(response->Code == 200 || response->Code == 204)) {
-            std::ostringstream message;
-            message << "Unable to send logs to remote endpoint "
-                    << _remoteEndpoint << ". status=" << response->Code;
+                    << _remoteEndpoint << ". status=" << response->Code
+                    << ", error=" << response->Error;
             std::ostringstream sender;
             sender << __FILE__ << "(" << __LINE__ << ")";
             outFile << sender.str() << ": " << message.str() << std::endl;
@@ -169,14 +163,14 @@ Logger::Logger() {
             value.append(m.str());
           }
 
-          auto request = client.GetRequest(_remoteEndpoint);
+          auto request = std::make_shared<HttpRequest>(_remoteEndpoint);
           std::ostringstream requestBody;
           requestBody << root;
           request->SetMethod("POST")
               ->SetHeader("Content-Type", "application/json")
               ->SetBody(requestBody.str().c_str(), requestBody.str().size(),
-                        true)
-              ->Send();
+                        true);
+          _client->SendRequest(request);
           pendingRequests.push_back(request);
         }
 
@@ -211,8 +205,10 @@ void Logger::SetOutputFile(const std::wstring &filename) {
 
 void Logger::SetLoggingLevel(MGDFLogLevel level) { _level.store(level); }
 
-void Logger::SetRemoteEndpoint(const std::string &endpoint) {
-  _remoteEndpoint = endpoint + "/loki/api/v1/push";
+void Logger::SetRemoteEndpoint(const std::string &endpoint,
+                               const std::shared_ptr<HttpClient> &client) {
+  _client = client;
+  _remoteEndpoint = endpoint;
 }
 
 MGDFLogLevel Logger::GetLoggingLevel() const { return _level; }

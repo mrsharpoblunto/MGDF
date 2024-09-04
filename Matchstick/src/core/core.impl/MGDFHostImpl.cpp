@@ -9,6 +9,7 @@
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
+#include "MGDFHttpRequestImpl.hpp"
 #include "MGDFMetrics.hpp"
 #include "MGDFParameterConstants.hpp"
 
@@ -54,7 +55,8 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _input(components.Input),
       _sound(components.Sound),
       _vfs(components.VFS),
-      _stats(MakeCom<StatisticsManager>(game->GetUid())),
+      _httpClient(components.HttpClient),
+      _stats(MakeCom<StatisticsManager>(game->GetUid(), components.HttpClient)),
       _renderSettings(MakeCom<RenderSettingsManager>()),
       _saves(MakeCom<SaveManager>(game, components.Storage)),
       _references(1UL),
@@ -513,6 +515,14 @@ HRESULT Host::CreateHistogramMetric(const small *name, const small *description,
   return CreateMetric<HistogramMetric>(name, metric, [=]() {
     return new HistogramMetric(name, description, buckets, bucketCount);
   });
+}
+
+HRESULT Host::CreateHttpRequest(const small *url, IMGDFHttpRequest **request) {
+  if (!url) return E_FAIL;
+  auto com =
+      MakeComFromPtr<IMGDFHttpRequest>(new HttpRequestImpl(url, _httpClient));
+  com.AddRawRef(request);
+  return S_OK;
 }
 
 }  // namespace core

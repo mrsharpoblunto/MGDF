@@ -16,6 +16,7 @@
     <ClInclude Include="..\..\include\MGDF\MGDF.h">
       <Filter>interfaces</Filter>
     </ClInclude>
+    <ClInclude Include="MGDFStdAfxBase.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

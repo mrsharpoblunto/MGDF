@@ -1,7 +1,5 @@
 #pragma once
 
-#include <json/json.h>
-
 #include <deque>
 #include <functional>
 #include <memory>
@@ -27,7 +25,8 @@ class HttpClient;
 
 struct HttpResponse {
   int Code = 0;
-  std::string Body;
+  std::vector<char> Body;
+  std::string Error;
   std::unordered_map<std::string, std::string> Headers;
 };
 
@@ -36,25 +35,23 @@ class HttpRequest {
 
  public:
   virtual ~HttpRequest();
+  HttpRequest(const std::string &url);
 
   HttpRequest *SetMethod(const std::string &method);
   HttpRequest *SetHeader(const std::string &header, const std::string &value);
   HttpRequest *SetBody(const char *body, size_t bodyLength,
                        bool compress = false);
-  void Send();
   bool GetHeader(const std::string &header, std::string &value) const;
   bool GetResponse(std::shared_ptr<HttpResponse> &response) const;
-  bool GetLastError(std::string &error) const;
   HttpRequestState GetState() const;
 
- private:
-  HttpRequest(const std::string &url);
+  void Cancel();
 
+ private:
   mutable std::mutex _mutex;
   std::string _url;
   std::string _method;
   std::string _body;
-  std::string _error;
   HttpRequestState _state;
   std::unordered_map<std::string, std::string> _headers;
   std::shared_ptr<HttpResponse> _response;
@@ -95,7 +92,7 @@ class HttpClient {
   HttpClient(HttpClientOptions &options = DEFAULT_OPTIONS);
   virtual ~HttpClient();
 
-  std::shared_ptr<HttpRequest> GetRequest(const std::string &url);
+  void SendRequest(std::shared_ptr<HttpRequest> request);
 
  private:
   static void HandleResponse(struct mg_connection *c, int ev, void *ev_data,

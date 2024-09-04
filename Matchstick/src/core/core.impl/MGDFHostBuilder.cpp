@@ -29,7 +29,10 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   // init global common components
   InitParameterManager();
   InitResources();
-  InitLogger();
+
+  components.HttpClient = std::make_shared<HttpClient>();
+
+  InitLogger(components.HttpClient);
 
   if (!storage::CreateStorageFactoryComponentImpl(components.Storage)) {
     LOG("FATAL ERROR: Unable to register StorageFactory", MGDF_LOG_ERROR);
@@ -158,7 +161,7 @@ void HostBuilder::InitParameterManager() {
   }
 }
 
-void HostBuilder::InitLogger() {
+void HostBuilder::InitLogger(const std::shared_ptr<HttpClient> &client) {
   if (ParameterManager::Instance().HasParameter(
           ParameterConstants::LOG_LEVEL)) {
     const char *level = ParameterManager::Instance().GetParameter(
@@ -181,7 +184,8 @@ void HostBuilder::InitLogger() {
           ParameterConstants::LOG_ENDPOINT)) {
     Logger::Instance().SetRemoteEndpoint(
         ParameterManager::Instance().GetParameter(
-            ParameterConstants::LOG_ENDPOINT));
+            ParameterConstants::LOG_ENDPOINT),
+        client);
   }
 }
 

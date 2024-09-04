@@ -16,7 +16,7 @@ class HostBuilder {
                                            HostComponents &);
   static void InitParameterManager();
   static void InitResources(std::string gameUid = "");
-  static void InitLogger();
+  static void InitLogger(const std::shared_ptr<HttpClient> &client);
   static std::string GetApplicationDirectory(HINSTANCE instance);
 };
 
