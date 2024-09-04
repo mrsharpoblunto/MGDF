@@ -7,6 +7,7 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <set>
 
 #include "../common/MGDFHttpClient.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
@@ -57,7 +58,7 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
   } else {
     _run = true;
     _flushThread = std::thread([this]() {
-      std::deque<std::shared_ptr<HttpRequest>> pendingRequests;
+      std::set<HttpRequest*> pendingRequests;
       std::unique_lock<std::mutex> lock(_mutex);
       while (_run) {
         _cv.wait_for(lock, STAT_FLUSH_TIMEOUT,
@@ -65,21 +66,6 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
         std::vector<PushStatistic> tmp(std::move(_events));
         _events.clear();
         lock.unlock();
-
-        // record the result of any failed statistics posts
-        while (pendingRequests.size()) {
-          auto& p = pendingRequests.front();
-          std::shared_ptr<HttpResponse> response;
-          if (p->GetResponse(response) && response->Code != 200) {
-            LOG("Unable to send statistic to remote endpoint "
-                    << _remoteEndpoint << ". status=" << response->Code
-                    << ", error=" << response->Error,
-                MGDF_LOG_ERROR);
-            pendingRequests.pop_front();
-          } else {
-            break;
-          }
-        }
 
         if (tmp.size()) {
           Json::Value root;
@@ -106,12 +92,24 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
           request->SetMethod("POST")
               ->SetHeader("Content-Type", "application/json")
               ->SetBody(requestBody.str().c_str(), requestBody.str().size(),
-                        true);
+                        true)
+              ->OnResponse([this, &pendingRequests](const auto& request,
+                                                    const auto& response) {
+                if (response->Code != 200) {
+                  LOG("Unable to send statistic to remote endpoint "
+                          << _remoteEndpoint << ". status=" << response->Code
+                          << ", error=" << response->Error,
+                      MGDF_LOG_ERROR);
+                }
+                pendingRequests.erase(request);
+              });
           _client->SendRequest(request);
-          pendingRequests.push_back(request);
         }
 
         lock.lock();
+      }
+      while (pendingRequests.size()) {
+        (*pendingRequests.begin())->Cancel();
       }
     });
   }

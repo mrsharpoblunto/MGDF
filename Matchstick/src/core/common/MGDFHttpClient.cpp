@@ -93,7 +93,7 @@ bool HttpRequest::GetHeader(const std::string &header,
 }
 
 void HttpRequest::Cancel() {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::unique_lock<std::mutex> lock(_mutex);
   if (_state != HttpRequestState::Error &&
       _state != HttpRequestState::Complete &&
       _state != HttpRequestState::Cancelled) {
@@ -101,7 +101,23 @@ void HttpRequest::Cancel() {
     _response = std::make_shared<HttpResponse>();
     _response->Code = -1;
     _response->Error = "Cancelled";
+    auto responseEvents = _responseEvents;
+    auto response = _response;
+    _responseEvents.clear();
+    lock.unlock();
+    for (auto &r : responseEvents) {
+      r(this, response);
+    }
   }
+}
+
+HttpRequest *HttpRequest::OnResponse(
+    std::function<void(HttpRequest *request,
+                       const std::shared_ptr<HttpResponse> &response)>
+        event) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  _responseEvents.push_back(event);
+  return this;
 }
 
 bool HttpRequest::GetResponse(std::shared_ptr<HttpResponse> &response) const {
@@ -146,6 +162,17 @@ char tolowerChar(char c) {
   return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 }
 
+void HttpClient::FireResponseEvent(const std::shared_ptr<HttpRequest> &request,
+                                   std::unique_lock<std::mutex> &lock) {
+  auto responseEvents = request->_responseEvents;
+  auto response = request->_response;
+  request->_responseEvents.clear();
+  lock.unlock();
+  for (auto &r : responseEvents) {
+    r(request.get(), response);
+  }
+}
+
 HttpClient::HttpClient(HttpClientOptions &options)
     : _running(true), _options(options) {
   MemFS::InitMGFS(_fs);
@@ -164,7 +191,7 @@ HttpClient::HttpClient(HttpClientOptions &options)
 
       // assign all valid pending requests to an origin
       for (const auto &p : pending) {
-        std::lock_guard<std::mutex> pLock(p->_mutex);
+        std::unique_lock<std::mutex> pLock(p->_mutex);
 
         std::string url = p->_url;
         std::transform(url.begin(), url.end(), url.begin(), tolowerChar);
@@ -173,6 +200,7 @@ HttpClient::HttpClient(HttpClientOptions &options)
           p->_state = HttpRequestState::Error;
           p->_response = std::make_shared<HttpResponse>();
           p->_response->Error = "Invalid URL protocol";
+          FireResponseEvent(p, pLock);
           continue;
         }
 
@@ -242,20 +270,22 @@ HttpClient::HttpClient(HttpClientOptions &options)
     // clean up any pending requests or requests in progress
     for (const auto &origin : _origins) {
       for (const auto p : origin.second.PendingRequests) {
-        std::lock_guard<std::mutex> lock(p->_mutex);
+        std::unique_lock<std::mutex> lock(p->_mutex);
         p->_state = HttpRequestState::Cancelled;
         p->_response = std::make_shared<HttpResponse>();
         p->_response->Code = -1;
         p->_response->Error = "Cancelled";
+        FireResponseEvent(p, lock);
       }
       for (auto &c : origin.second.Connections) {
         if (c.second.Request) {
           const auto &p = c.second.Request;
-          std::lock_guard<std::mutex> lock(p->_mutex);
+          std::unique_lock<std::mutex> lock(p->_mutex);
           p->_state = HttpRequestState::Cancelled;
           p->_response = std::make_shared<HttpResponse>();
           p->_response->Code = -1;
           p->_response->Error = "Cancelled";
+          FireResponseEvent(p, lock);
         }
       }
     }
@@ -340,11 +370,12 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     }
   } else if (ev == MG_EV_ERROR) {
     if (conn->Request) {
-      std::lock_guard<std::mutex> lock(conn->Request->_mutex);
+      std::unique_lock<std::mutex> lock(conn->Request->_mutex);
       conn->Request->_state = HttpRequestState::Error;
       conn->Request->_response = std::make_shared<HttpResponse>();
       conn->Request->_response->Error =
           std::string(static_cast<char *>(ev_data));
+      FireResponseEvent(conn->Request, lock);
     }
   } else if (ev == MG_EV_CLOSE) {
     conn->Origin->IdleConnections.erase(c);

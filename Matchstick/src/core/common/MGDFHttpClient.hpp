@@ -41,6 +41,10 @@ class HttpRequest {
   HttpRequest *SetHeader(const std::string &header, const std::string &value);
   HttpRequest *SetBody(const char *body, size_t bodyLength,
                        bool compress = false);
+  HttpRequest *OnResponse(
+      std::function<void(HttpRequest *request,
+                         const std::shared_ptr<HttpResponse> &response)>
+          event);
   bool GetHeader(const std::string &header, std::string &value) const;
   bool GetResponse(std::shared_ptr<HttpResponse> &response) const;
   HttpRequestState GetState() const;
@@ -53,6 +57,9 @@ class HttpRequest {
   std::string _method;
   std::string _body;
   HttpRequestState _state;
+  std::vector<std::function<void(HttpRequest *request,
+                                 const std::shared_ptr<HttpResponse>)>>
+      _responseEvents;
   std::unordered_map<std::string, std::string> _headers;
   std::shared_ptr<HttpResponse> _response;
 };
@@ -102,6 +109,8 @@ class HttpClient {
                                         mg_http_message *hm);
   static void ParseKeepAliveHeader(const mg_str *header, int &timeout,
                                    int &max);
+  static void FireResponseEvent(const std::shared_ptr<HttpRequest> &request,
+                                std::unique_lock<std::mutex> &lock);
   static void LoadCerts(
       std::function<void(const std::string &, const std::string &)> insert);
 

@@ -1651,6 +1651,21 @@ An interface for an HTTP Response. The memory returned by all methods are owned 
   const small *GetBody();
 };
 
+interface IMGDFHttpRequest;
+
+[
+  uuid("037BBA90-175F-4C30-AA66-221BC2278846"), object,
+  local
+] interface IMGDFHttpResponder : IUnknown {
+  /**
+  Called when the request has completed
+  \param request the request that was sent
+  \param response the response to the request
+  */
+  void OnResponse([in] IMGDFHttpRequest * request, [in] IMGDFHttpResponse *
+                                                       response);
+};
+
 /**
 An interface for sending an HTTP request
 */
@@ -1677,6 +1692,12 @@ An interface for sending an HTTP request
   \param bodyLength the length of the body
   */
   IMGDFHttpRequest *SetBody([in] const small *body, [in] UINT64 bodyLength);
+
+  /**
+  Set an event responder for this request
+  \responder the responder to be called when the request completes
+  */
+  IMGDFHttpRequest *OnResponse([in] IMGDFHttpResponder * responder);
 
   /**
   Cancels a pending request. Causes any calls to GetResponse to return true with a response with a code of -1, and a 'Cancelled' error message

@@ -35,7 +35,15 @@ const small *HttpResponseImpl::GetBody(void) { return _response->Body.data(); }
 
 HttpRequestImpl::HttpRequestImpl(const std::string &url,
                                  std::shared_ptr<HttpClient> &client)
-    : _request(std::make_shared<HttpRequest>(url)), _client(client) {}
+    : _request(std::make_shared<HttpRequest>(url)), _client(client) {
+  _request->OnResponse([this](auto request, const auto &response) {
+    std::ignore = request;
+    auto wrapper = MakeCom<HttpResponseImpl>(response);
+    for (auto &responder : _responders) {
+      responder->OnResponse(this, wrapper);
+    }
+  });
+}
 
 IMGDFHttpRequest *HttpRequestImpl::SetHeader(const small *name,
                                              const small *value) {
@@ -62,10 +70,15 @@ IMGDFHttpRequest *HttpRequestImpl::Send() {
 
 void HttpRequestImpl::Cancel() { _request->Cancel(); }
 
+IMGDFHttpRequest *HttpRequestImpl::OnResponse(IMGDFHttpResponder *responder) {
+  _responders.push_back(MakeComFromPtr<IMGDFHttpResponder>(responder));
+  return this;
+}
+
 BOOL HttpRequestImpl::GetResponse(IMGDFHttpResponse **response) {
   std::shared_ptr<HttpResponse> r;
   if (_request->GetResponse(r)) {
-    auto wrapper = MakeComFromPtr<IMGDFHttpResponse>(new HttpResponseImpl(r));
+    auto wrapper = MakeCom<HttpResponseImpl>(r);
     wrapper.AddRawRef(response);
     return TRUE;
   }

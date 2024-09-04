@@ -519,8 +519,7 @@ HRESULT Host::CreateHistogramMetric(const small *name, const small *description,
 
 HRESULT Host::CreateHttpRequest(const small *url, IMGDFHttpRequest **request) {
   if (!url) return E_FAIL;
-  auto com =
-      MakeComFromPtr<IMGDFHttpRequest>(new HttpRequestImpl(url, _httpClient));
+  auto com = MakeCom<HttpRequestImpl>(url, _httpClient);
   com.AddRawRef(request);
   return S_OK;
 }

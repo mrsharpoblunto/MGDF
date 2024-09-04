@@ -36,11 +36,13 @@ class HttpRequestImpl : public ComBase<IMGDFHttpRequest> {
                                       UINT64 bodyLength) final;
   IMGDFHttpRequest *__stdcall Send() final;
   void __stdcall Cancel() final;
+  IMGDFHttpRequest *OnResponse(IMGDFHttpResponder *responder) final;
   BOOL __stdcall GetResponse(IMGDFHttpResponse **response) final;
 
  private:
   std::shared_ptr<HttpClient> _client;
   std::shared_ptr<HttpRequest> _request;
+  std::vector<ComObject<IMGDFHttpResponder>> _responders;
 };
 
 }  // namespace core
