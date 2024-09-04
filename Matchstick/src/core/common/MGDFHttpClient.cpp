@@ -95,7 +95,8 @@ bool HttpRequest::GetHeader(const std::string &header,
 void HttpRequest::Cancel() {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_state != HttpRequestState::Error &&
-      _state != HttpRequestState::Complete) {
+      _state != HttpRequestState::Complete &&
+      _state != HttpRequestState::Cancelled) {
     _state = HttpRequestState::Cancelled;
     _response = std::make_shared<HttpResponse>();
     _response->Code = -1;
@@ -106,7 +107,8 @@ void HttpRequest::Cancel() {
 bool HttpRequest::GetResponse(std::shared_ptr<HttpResponse> &response) const {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_state == HttpRequestState::Complete ||
-      _state == HttpRequestState::Error) {
+      _state == HttpRequestState::Error ||
+      _state == HttpRequestState::Cancelled) {
     response = _response;
     return true;
   }
@@ -214,7 +216,9 @@ HttpClient::HttpClient(HttpClientOptions &options)
       mg_mgr_poll(&mgr, 50);
 
       // any pending requests that have not been assigned to a connection
-      // will require a new connection to be created
+      // will require a new connection to be created. If we've maxxed out the
+      // allowable connections to this domain, then the requests will stay
+      // pending until some requests complete
       for (auto &origin : _origins) {
         auto connections = origin.second.Connections.size();
         while (origin.second.PendingRequests.size() &&
