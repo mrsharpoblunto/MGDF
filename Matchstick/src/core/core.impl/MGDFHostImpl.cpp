@@ -524,5 +524,11 @@ HRESULT Host::CreateHttpRequest(const small *url, IMGDFHttpRequest **request) {
   return S_OK;
 }
 
+HRESULT __stdcall Host::CreateHttpRequestGroup(IMGDFHttpRequestGroup **group) {
+  auto com = MakeCom<HttpRequestGroupImpl>();
+  com.AddRawRef(group);
+  return S_OK;
+}
+
 }  // namespace core
 }  // namespace MGDF

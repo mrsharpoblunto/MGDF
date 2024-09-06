@@ -34,16 +34,11 @@ UINT64 HttpResponseImpl::GetBodyLength(void) { return _response->Body.size(); }
 const small *HttpResponseImpl::GetBody(void) { return _response->Body.data(); }
 
 HttpRequestImpl::HttpRequestImpl(const std::string &url,
-                                 std::shared_ptr<HttpClient> &client)
-    : _request(std::make_shared<HttpRequest>(url)), _client(client) {
-  _request->OnResponse([this](auto request, const auto &response) {
-    std::ignore = request;
-    auto wrapper = MakeCom<HttpResponseImpl>(response);
-    for (auto &responder : _responders) {
-      responder->OnResponse(this, wrapper);
-    }
-  });
-}
+                                 const std::shared_ptr<HttpClient> &client)
+    : _request(std::make_shared<HttpRequest>(url)), _client(client) {}
+
+HttpRequestImpl::HttpRequestImpl(const std::shared_ptr<HttpRequest> &request)
+    : _request(request) {}
 
 IMGDFHttpRequest *HttpRequestImpl::SetHeader(const small *name,
                                              const small *value) {
@@ -62,18 +57,14 @@ IMGDFHttpRequest *HttpRequestImpl::SetBody(const small *body,
   return this;
 }
 
-IMGDFHttpRequest *HttpRequestImpl::Send() {
-  _client->SendRequest(_request);
+void *HttpRequestImpl::Send(IMGDFHttpRequestGroup *group) {
+  _client->SendRequest(_request,
+                       dynamic_cast<HttpRequestGroupImpl *>(group)->Group);
   _client.reset();
-  return this;
+  return _request.get();
 }
 
 void HttpRequestImpl::Cancel() { _request->Cancel(); }
-
-IMGDFHttpRequest *HttpRequestImpl::OnResponse(IMGDFHttpResponder *responder) {
-  _responders.push_back(MakeComFromPtr<IMGDFHttpResponder>(responder));
-  return this;
-}
 
 BOOL HttpRequestImpl::GetResponse(IMGDFHttpResponse **response) {
   std::shared_ptr<HttpResponse> r;
@@ -83,6 +74,17 @@ BOOL HttpRequestImpl::GetResponse(IMGDFHttpResponse **response) {
     return TRUE;
   }
   return FALSE;
+}
+
+void *HttpRequestGroupImpl::GetResponse(IMGDFHttpResponse **responseOut) {
+  std::shared_ptr<HttpResponse> response;
+  auto request = Group->GetResponse(response);
+  if (request) {
+    auto responseWrapper = MakeCom<HttpResponseImpl>(response);
+    responseWrapper.AddRawRef(responseOut);
+    return request.get();
+  }
+  return nullptr;
 }
 
 }  // namespace core

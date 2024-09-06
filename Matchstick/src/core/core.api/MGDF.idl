@@ -1656,14 +1656,13 @@ interface IMGDFHttpRequest;
 [
   uuid("037BBA90-175F-4C30-AA66-221BC2278846"), object,
   local
-] interface IMGDFHttpResponder : IUnknown {
+] interface IMGDFHttpRequestGroup : IUnknown {
   /**
-  Called when the request has completed
-  \param request the request that was sent
+  Call this repeatedly to check if any requests in a group have completed
   \param response the response to the request
+  \return the handle of any completed http request, nullptr otherwise
   */
-  void OnResponse([in] IMGDFHttpRequest * request, [in] IMGDFHttpResponse *
-                                                       response);
+  void *GetResponse([ in, out ] IMGDFHttpResponse * *response);
 };
 
 /**
@@ -1694,12 +1693,6 @@ An interface for sending an HTTP request
   IMGDFHttpRequest *SetBody([in] const small *body, [in] UINT64 bodyLength);
 
   /**
-  Set an event responder for this request
-  \responder the responder to be called when the request completes
-  */
-  IMGDFHttpRequest *OnResponse([in] IMGDFHttpResponder * responder);
-
-  /**
   Cancels a pending request. Causes any calls to GetResponse to return true with a response with a code of -1, and a 'Cancelled' error message
   */
   void Cancel();
@@ -1707,8 +1700,11 @@ An interface for sending an HTTP request
   /**
   Initiates the request. The request is not actually sent until this method is
   called
+  \param group an optional group to send the request in
+  \return a unique pointer to the request in the group if the request was sent in a group, otherwise nullptr. This can be
+  used to identify the request in the group when calling GetResponse later
   */
-  IMGDFHttpRequest *Send();
+  void *Send([in] IMGDFHttpRequestGroup * group);
 
   /**
   Check if the request has received a response and if so get the response
@@ -1786,9 +1782,19 @@ this interface are safe to be used from any thread
   method is called on the request object
   \param url the url to send the request to
   \param request the created request object
+  \return S_OK if the request could be created, otherwise an error code is returned
   */
   HRESULT
   CreateHttpRequest([in] const small *url, [out] IMGDFHttpRequest **request);
+
+  /**
+  create an http request group. These are used to group related requests and
+  responses
+  \param group the created request group object
+  \return S_OK if the request group could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateHttpRequestGroup([out] IMGDFHttpRequestGroup * *group);
 
   /**
    create a performance counter for profiling CPU time taken. When no longer

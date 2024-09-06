@@ -138,6 +138,8 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                                           IMGDFMetric **metric) final;
   HRESULT __stdcall CreateHttpRequest(const small *url,
                                       IMGDFHttpRequest **request) final;
+  HRESULT __stdcall CreateHttpRequestGroup(
+      IMGDFHttpRequestGroup **request) final;
 
  private:
   HRESULT Init();

@@ -58,14 +58,25 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
   } else {
     _run = true;
     _flushThread = std::thread([this]() {
-      std::set<HttpRequest*> pendingRequests;
+      auto pendingRequests = std::make_shared<HttpRequestGroup>();
       std::unique_lock<std::mutex> lock(_mutex);
       while (_run) {
-        _cv.wait_for(lock, STAT_FLUSH_TIMEOUT,
-                     [this] { return !_run || _events.size() > 0; });
+        _cv.wait_for(lock, STAT_FLUSH_TIMEOUT, [this, &pendingRequests] {
+          return !_run || _events.size() > 0 || pendingRequests->Size() > 0;
+        });
         std::vector<PushStatistic> tmp(std::move(_events));
         _events.clear();
         lock.unlock();
+
+        std::shared_ptr<HttpResponse> response;
+        while (pendingRequests->GetResponse(response)) {
+          if (response->Code != 200) {
+            LOG("Unable to send statistic to remote endpoint "
+                    << _remoteEndpoint << ". status=" << response->Code
+                    << ", error=" << response->Error,
+                MGDF_LOG_ERROR);
+          }
+        }
 
         if (tmp.size()) {
           Json::Value root;
@@ -92,24 +103,11 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
           request->SetMethod("POST")
               ->SetHeader("Content-Type", "application/json")
               ->SetBody(requestBody.str().c_str(), requestBody.str().size(),
-                        true)
-              ->OnResponse([this, &pendingRequests](const auto& request,
-                                                    const auto& response) {
-                if (response->Code != 200) {
-                  LOG("Unable to send statistic to remote endpoint "
-                          << _remoteEndpoint << ". status=" << response->Code
-                          << ", error=" << response->Error,
-                      MGDF_LOG_ERROR);
-                }
-                pendingRequests.erase(request);
-              });
-          _client->SendRequest(request);
+                        true);
+          _client->SendRequest(request, pendingRequests);
         }
 
         lock.lock();
-      }
-      while (pendingRequests.size()) {
-        (*pendingRequests.begin())->Cancel();
       }
     });
   }

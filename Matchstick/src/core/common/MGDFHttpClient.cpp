@@ -43,6 +43,18 @@ static const std::string S_CA_PEM("ca.pem");
 
 #define mg_stdstr(str) mg_str_n(str.c_str(), str.size())
 
+std::shared_ptr<HttpRequest> HttpRequestGroup::GetResponse(
+    std::shared_ptr<HttpResponse> &response) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (_requests.size()) {
+    auto request = _requests.front();
+    response = request->_response;
+    _requests.pop_front();
+    return request;
+  }
+  return std::shared_ptr<HttpRequest>();
+}
+
 HttpRequest::HttpRequest(const std::string &url)
     : _url(url), _method(S_GET), _state(HttpRequestState::Preparing) {
   static std::ostringstream ua;
@@ -101,23 +113,7 @@ void HttpRequest::Cancel() {
     _response = std::make_shared<HttpResponse>();
     _response->Code = -1;
     _response->Error = "Cancelled";
-    auto responseEvents = _responseEvents;
-    auto response = _response;
-    _responseEvents.clear();
-    lock.unlock();
-    for (auto &r : responseEvents) {
-      r(this, response);
-    }
   }
-}
-
-HttpRequest *HttpRequest::OnResponse(
-    std::function<void(HttpRequest *request,
-                       const std::shared_ptr<HttpResponse> &response)>
-        event) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  _responseEvents.push_back(event);
-  return this;
 }
 
 bool HttpRequest::GetResponse(std::shared_ptr<HttpResponse> &response) const {
@@ -147,30 +143,20 @@ HttpClientOptions HttpClient::DEFAULT_OPTIONS{
     .KeepAlive = 10000,
 };
 
-void HttpClient::SendRequest(std::shared_ptr<HttpRequest> request) {
+void HttpClient::SendRequest(std::shared_ptr<HttpRequest> request,
+                             std::shared_ptr<HttpRequestGroup> group) {
   {
     std::lock_guard<std::mutex> rLock(request->_mutex);
     if (request->_state == HttpRequestState::Preparing) {
       request->_state = HttpRequestState::Pending;
       std::lock_guard<std::mutex> lock(_mutex);
-      _pendingRequests.push_back(request);
+      _pendingRequests.push_back(std::make_pair(request, group));
     }
   }
 }
 
 char tolowerChar(char c) {
   return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-}
-
-void HttpClient::FireResponseEvent(const std::shared_ptr<HttpRequest> &request,
-                                   std::unique_lock<std::mutex> &lock) {
-  auto responseEvents = request->_responseEvents;
-  auto response = request->_response;
-  request->_responseEvents.clear();
-  lock.unlock();
-  for (auto &r : responseEvents) {
-    r(request.get(), response);
-  }
 }
 
 HttpClient::HttpClient(HttpClientOptions &options)
@@ -181,7 +167,9 @@ HttpClient::HttpClient(HttpClientOptions &options)
   _pollThread = std::thread([this]() {
     mg_mgr mgr;
     mg_mgr_init(&mgr);
-    std::vector<std::shared_ptr<HttpRequest>> pending;
+    std::vector<std::pair<std::shared_ptr<HttpRequest>,
+                          std::shared_ptr<HttpRequestGroup>>>
+        pending;
     while (_running) {
       std::unique_lock<std::mutex> lock(_mutex);
       pending.clear();
@@ -190,7 +178,8 @@ HttpClient::HttpClient(HttpClientOptions &options)
       lock.unlock();
 
       // assign all valid pending requests to an origin
-      for (const auto &p : pending) {
+      for (const auto &pp : pending) {
+        const auto &p = pp.first;
         std::unique_lock<std::mutex> pLock(p->_mutex);
 
         std::string url = p->_url;
@@ -200,7 +189,10 @@ HttpClient::HttpClient(HttpClientOptions &options)
           p->_state = HttpRequestState::Error;
           p->_response = std::make_shared<HttpResponse>();
           p->_response->Error = "Invalid URL protocol";
-          FireResponseEvent(p, pLock);
+          if (pp.second) {
+            std::lock_guard<std::mutex> gLock(pp.second->_mutex);
+            pp.second->_requests.push_back(p);
+          }
           continue;
         }
 
@@ -238,10 +230,10 @@ HttpClient::HttpClient(HttpClientOptions &options)
         }
 
         p->_url = canonicalURL.str();
-        origin->second.PendingRequests.push_back(p);
+        origin->second.PendingRequests.push_back(pp);
       }
 
-      mg_mgr_poll(&mgr, 50);
+      mg_mgr_poll(&mgr, 64);
 
       // any pending requests that have not been assigned to a connection
       // will require a new connection to be created. If we've maxxed out the
@@ -254,14 +246,15 @@ HttpClient::HttpClient(HttpClientOptions &options)
           auto p = origin.second.PendingRequests.front();
           origin.second.PendingRequests.pop_front();
           HttpConnection *newConnection = new HttpConnection{
-              .Request = p,
+              .Request = p.first,
+              .Group = p.second,
               .KeepAliveDuration = _options.KeepAlive,
               .ConnectTimeoutDuration = _options.ConnectionTimeout,
               .Origin = &origin.second,
           };
           ++connections;
-          mg_http_connect(&mgr, p->_url.c_str(), &HttpClient::HandleResponse,
-                          newConnection);
+          mg_http_connect(&mgr, p.first->_url.c_str(),
+                          &HttpClient::HandleResponse, newConnection);
         }
       }
     }
@@ -269,13 +262,17 @@ HttpClient::HttpClient(HttpClientOptions &options)
 
     // clean up any pending requests or requests in progress
     for (const auto &origin : _origins) {
-      for (const auto p : origin.second.PendingRequests) {
+      for (const auto pp : origin.second.PendingRequests) {
+        const auto &p = pp.first;
         std::unique_lock<std::mutex> lock(p->_mutex);
         p->_state = HttpRequestState::Cancelled;
         p->_response = std::make_shared<HttpResponse>();
         p->_response->Code = -1;
         p->_response->Error = "Cancelled";
-        FireResponseEvent(p, lock);
+        if (pp.second) {
+          std::lock_guard<std::mutex> gLock(pp.second->_mutex);
+          pp.second->_requests.push_back(p);
+        }
       }
       for (auto &c : origin.second.Connections) {
         if (c.second.Request) {
@@ -285,7 +282,11 @@ HttpClient::HttpClient(HttpClientOptions &options)
           p->_response = std::make_shared<HttpResponse>();
           p->_response->Code = -1;
           p->_response->Error = "Cancelled";
-          FireResponseEvent(p, lock);
+          if (c.second.Group) {
+            const auto &g = c.second.Group;
+            std::lock_guard<std::mutex> gLock(g->_mutex);
+            g->_requests.push_back(p);
+          }
         }
       }
     }
@@ -305,8 +306,7 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     // now that we've added this to the mapped list of connections, we need
     // to free the memory from the HttpConnection's dynamic allocation above
     delete conn;
-  }
-  if (ev == MG_EV_POLL) {
+  } else if (ev == MG_EV_POLL) {
     if (c->is_closing || c->is_draining) {
       return;
     }
@@ -332,9 +332,11 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
         auto request = conn->Origin->PendingRequests.front();
         conn->Origin->PendingRequests.pop_front();
         conn->Origin->IdleConnections.erase(c);
-        conn->Request = request;
+        conn->Request = request.first;
+        conn->Group = request.second;
         if (!MakeRequestWithConnection(conn)) {
           conn->Request.reset();
+          conn->Group.reset();
           conn->Origin->IdleConnections.insert(std::make_pair(c, conn));
         }
       }
@@ -350,6 +352,7 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     }
     if (!MakeRequestWithConnection(conn)) {
       conn->Request.reset();
+      conn->Group.reset();
       if (conn->KeepAliveDuration > 0) {
         // if keep alives are enabled, keep the connection around for re-use
         conn->Origin->IdleConnections.insert(std::make_pair(c, conn));
@@ -362,6 +365,7 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     struct mg_http_message *hm = (struct mg_http_message *)ev_data;
     GetResponseFromConnection(conn, hm);
     conn->Request.reset();
+    conn->Group.reset();
     if (conn->KeepAliveDuration > 0) {
       // if keep alives are enabled, keep the connection around for re-use
       conn->Origin->IdleConnections.insert(std::make_pair(c, conn));
@@ -375,7 +379,12 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
       conn->Request->_response = std::make_shared<HttpResponse>();
       conn->Request->_response->Error =
           std::string(static_cast<char *>(ev_data));
-      FireResponseEvent(conn->Request, lock);
+      if (conn->Group) {
+        std::lock_guard<std::mutex> gLock(conn->Group->_mutex);
+        conn->Group->_requests.push_back(conn->Request);
+      }
+      conn->Request.reset();
+      conn->Group.reset();
     }
   } else if (ev == MG_EV_CLOSE) {
     conn->Origin->IdleConnections.erase(c);
@@ -403,6 +412,10 @@ bool HttpClient::MakeRequestWithConnection(HttpConnection *conn) {
         request->_state = HttpRequestState::Error;
         request->_response = std::make_shared<HttpResponse>();
         request->_response->Error = "Unable to compress request body";
+        if (conn->Group) {
+          std::lock_guard<std::mutex> gLock(conn->Group->_mutex);
+          conn->Group->_requests.push_back(request);
+        }
         return false;
       }
       bodyData = compressedBody.data();
@@ -491,6 +504,10 @@ void HttpClient::GetResponseFromConnection(HttpConnection *conn,
 
   request->_response = response;
   request->_state = HttpRequestState::Complete;
+  if (conn->Group) {
+    std::lock_guard<std::mutex> gLock(conn->Group->_mutex);
+    conn->Group->_requests.push_back(request);
+  }
 }
 
 void HttpClient::ParseKeepAliveHeader(const mg_str *header, int &timeout,

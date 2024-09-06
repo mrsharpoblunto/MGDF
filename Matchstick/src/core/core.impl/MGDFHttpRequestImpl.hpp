@@ -9,6 +9,18 @@
 namespace MGDF {
 namespace core {
 
+class HttpRequestImpl;
+
+class HttpRequestGroupImpl : public ComBase<IMGDFHttpRequestGroup> {
+ public:
+  HttpRequestGroupImpl() : Group(std::make_shared<HttpRequestGroup>()) {}
+  virtual ~HttpRequestGroupImpl() {}
+
+  void *__stdcall GetResponse(IMGDFHttpResponse **response) final;
+
+  const std::shared_ptr<HttpRequestGroup> Group;
+};
+
 class HttpResponseImpl : public ComBase<IMGDFHttpResponse> {
  public:
   HttpResponseImpl(const std::shared_ptr<HttpResponse> &response);
@@ -26,7 +38,9 @@ class HttpResponseImpl : public ComBase<IMGDFHttpResponse> {
 
 class HttpRequestImpl : public ComBase<IMGDFHttpRequest> {
  public:
-  HttpRequestImpl(const std::string &url, std::shared_ptr<HttpClient> &client);
+  HttpRequestImpl(const std::string &url,
+                  const std::shared_ptr<HttpClient> &client);
+  HttpRequestImpl(const std::shared_ptr<HttpRequest> &request);
   virtual ~HttpRequestImpl(void) {}
 
   IMGDFHttpRequest *__stdcall SetHeader(const small *name,
@@ -34,15 +48,13 @@ class HttpRequestImpl : public ComBase<IMGDFHttpRequest> {
   IMGDFHttpRequest *__stdcall SetMethod(const small *method) final;
   IMGDFHttpRequest *__stdcall SetBody(const small *body,
                                       UINT64 bodyLength) final;
-  IMGDFHttpRequest *__stdcall Send() final;
+  void *__stdcall Send(IMGDFHttpRequestGroup *group) final;
   void __stdcall Cancel() final;
-  IMGDFHttpRequest *OnResponse(IMGDFHttpResponder *responder) final;
   BOOL __stdcall GetResponse(IMGDFHttpResponse **response) final;
 
  private:
   std::shared_ptr<HttpClient> _client;
   std::shared_ptr<HttpRequest> _request;
-  std::vector<ComObject<IMGDFHttpResponder>> _responders;
 };
 
 }  // namespace core

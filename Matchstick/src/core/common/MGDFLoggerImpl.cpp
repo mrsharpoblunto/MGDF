@@ -89,38 +89,35 @@ Logger::Logger() {
   _runLogger = true;
   _flushThread = std::thread([this]() {
     std::unique_lock<std::mutex> lock(_mutex);
-    std::deque<std::shared_ptr<HttpRequest>> pendingRequests;
+    auto pendingRequests = std::make_shared<HttpRequestGroup>();
     while (_runLogger) {
-      _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
-                   [this] { return !_runLogger || _events.size() > 0; });
+      _cv.wait_for(lock, LOG_FLUSH_TIMEOUT, [this, &pendingRequests] {
+        return !_runLogger || _events.size() > 0 || pendingRequests->Size() > 0;
+      });
       std::vector<LogEntry> tmp(std::move(_events));
       _events.clear();
       lock.unlock();
+
+      // record the result of any failed http log posts
+      std::shared_ptr<HttpResponse> response;
+      while (pendingRequests->GetResponse(response)) {
+        if (response->Code != 200 && response->Code != 204) {
+#if defined(_DEBUG)
+          std::ostringstream stream;
+          stream << __FILE__ << "(" << __LINE__ << "): ";
+          stream << "Unable to send logs to remote endpoint " << _remoteEndpoint
+                 << ". status=" << response->Code
+                 << ", error=" << response->Error << "\n";
+          OutputDebugString(stream.str().c_str());
+#endif
+        }
+      }
 
       if (tmp.size()) {
         std::ofstream outFile;
         outFile.open(_filename.c_str(), std::ios::app);
         for (const auto &evt : tmp) {
           outFile << evt.Sender << ": " << evt.Message << std::endl;
-        }
-
-        // record the result of any failed http log posts
-        while (pendingRequests.size()) {
-          auto &p = pendingRequests.front();
-          std::shared_ptr<HttpResponse> response;
-          if (p->GetResponse(response) &&
-              !(response->Code == 200 || response->Code == 204)) {
-            std::ostringstream message;
-            message << "Unable to send logs to remote endpoint "
-                    << _remoteEndpoint << ". status=" << response->Code
-                    << ", error=" << response->Error;
-            std::ostringstream sender;
-            sender << __FILE__ << "(" << __LINE__ << ")";
-            outFile << sender.str() << ": " << message.str() << std::endl;
-            pendingRequests.pop_front();
-          } else {
-            break;
-          }
         }
 
         if (_remoteEndpoint.size()) {
@@ -167,8 +164,7 @@ Logger::Logger() {
               ->SetHeader("Content-Type", "application/json")
               ->SetBody(requestBody.str().c_str(), requestBody.str().size(),
                         true);
-          _client->SendRequest(request);
-          pendingRequests.push_back(request);
+          _client->SendRequest(request, pendingRequests);
         }
 
         outFile.close();
