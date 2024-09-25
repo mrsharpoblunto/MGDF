@@ -48,7 +48,7 @@ class MGDFApp : public D3DAppFramework {
   LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                           LPARAM lParam) final;
   void OnExternalClose() final;
-  void OnRawInput(RAWINPUT *input) final;
+  void OnRawInput(std::function<RAWINPUT *()> input) final;
   void OnMouseInput(INT32 x, INT32 y) final;
   void OnMoveWindow(INT32 x, INT32 y) final;
 

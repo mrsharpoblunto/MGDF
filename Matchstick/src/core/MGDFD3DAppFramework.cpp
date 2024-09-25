@@ -2,9 +2,9 @@
 
 #include "MGDFD3DAppFramework.hpp"
 
-#include <string.h>
-
+#include <algorithm>
 #include <optional>
+#include <string>
 
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"
@@ -14,6 +14,8 @@
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)
 #endif
+
+typedef uint64_t QWORD;
 
 namespace MGDF {
 namespace core {
@@ -27,6 +29,9 @@ constexpr int ComputeIntersectionArea(int ax1, int ay1, int ax2, int ay2,
   return max(0, min(ax2, bx2) - max(ax1, bx1)) *
          max(0, min(ay2, by2) - max(ay1, by1));
 }
+
+constexpr UINT MAX_RAWINPUT_BUFFER_SIZE = 1024 * 1024;
+constexpr UINT RAWINPUT_QUEUE_SIZE = 1024;
 
 #define WINDOW_CLASS_NAME "MGDFD3DAppFrameworkWindowClass"
 
@@ -953,19 +958,75 @@ INT32 D3DAppFramework::Run() {
   };
   LOG("Starting input loop...", MGDF_LOG_LOW);
 
-  while (::GetMessage(&msg, _window, 0, 0) > 0) {
-    // deal with any windows messages on the main thread, this allows us
-    // to ensure that any user input is handled with as little latency as
-    // possible independent of the update rate for the sim and render threads.
-    ::TranslateMessage(&msg);
-    ::DispatchMessage(&msg);
+  // deal with any windows messages on the main thread, this allows us
+  // to ensure that any user input is handled with as little latency as
+  // possible independent of the update rate for the sim and render threads.
+  bool runMainThread = true;
+  while (runMainThread) {
+    sleep(1);
+    ProcessRawInput();
+    const bool hasFocus = GetForegroundWindow() == _window;
+    while (
+        !hasFocus
+            // process all messages to ensure waking up reliably
+            ? ::PeekMessage(&msg, _window, 0, 0, PM_REMOVE)
+            // only process non WM_INPUT messages as WM_INPUT is handled above
+            // by GetRawInputBuffer
+            : (::PeekMessage(&msg, _window, 0, WM_INPUT - 1, PM_REMOVE) != 0 ||
+               ::PeekMessage(&msg, _window, WM_INPUT + 1, (UINT)-1,
+                             PM_REMOVE) != 0)) {
+      if (msg.message == WM_QUIT) {
+        runMainThread = false;
+        break;
+      }
+      ::TranslateMessage(&msg);
+      ::DispatchMessage(&msg);
+    }
   }
+
   LOG("Stopping input loop...", MGDF_LOG_LOW);
 
   runSimThread.clear();
   simThread.join();
 
   return (int)msg.wParam;
+}
+
+void D3DAppFramework::ProcessRawInput() {
+  UINT minRawInputBufferSize = 0U;
+  if (GetRawInputBuffer(NULL, &minRawInputBufferSize, sizeof(RAWINPUTHEADER)) !=
+      0) {
+    FATALERROR(this,
+               "GetRawInputBuffer failed. Error code: " << GetLastError());
+  }
+  const UINT rawInputBufferSize = std::min<UINT>(
+      minRawInputBufferSize * RAWINPUT_QUEUE_SIZE, MAX_RAWINPUT_BUFFER_SIZE);
+  if (_rawInputBuffer.size() < rawInputBufferSize) {
+    _rawInputBuffer.resize(rawInputBufferSize);
+  }
+
+  UINT numEvents = 0U;
+  do {
+    UINT currentRawInputBufferSize = static_cast<UINT>(_rawInputBuffer.size());
+    numEvents =
+        GetRawInputBuffer((RAWINPUT *)_rawInputBuffer.data(),
+                          &currentRawInputBufferSize, sizeof(RAWINPUTHEADER));
+    if (numEvents == -1) {
+      FATALERROR(this,
+                 "GetRawInputBuffer failed. Error code: " << GetLastError());
+    }
+
+    RAWINPUT *currentRawInput = (RAWINPUT *)_rawInputBuffer.data();
+    UINT i = 0;
+    OnRawInput([&i, &currentRawInput, numEvents]() -> RAWINPUT * {
+      if (i++ >= numEvents) {
+        return nullptr;
+      }
+      RAWINPUT *current = currentRawInput;
+      currentRawInput = NEXTRAWINPUTBLOCK(currentRawInput);
+      return current;
+    });
+  } while (numEvents > 0);
 }
 
 LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
@@ -979,36 +1040,12 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       return 0;
     }
 
-    // Handle player keyboard input
-    case WM_INPUT: {
-      UINT32 dwSize = 0U;
-      ::GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize,
-                        sizeof(RAWINPUTHEADER));
-      std::vector<BYTE> lpb(dwSize);
-      if (lpb.size()) {
-        const UINT32 readSize =
-            ::GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb.data(), &dwSize,
-                              sizeof(RAWINPUTHEADER));
-
-        if (readSize != dwSize) {
-          FATALERROR(this, "GetRawInputData returned incorrect size");
-        } else {
-          RAWINPUT *rawInput = (RAWINPUT *)lpb.data();
-          OnRawInput(rawInput);
-        }
-      }
-      // Even if you handle the event, you have to call DefWindowProx after a
-      // WM_Input message so the  can perform cleanup
-      // http://msdn.microsoft.com/en-us/library/windows/desktop/ms645590%28v=vs.85%29.aspx
-      return ::DefWindowProc(hwnd, msg, wParam, lParam);
-    }
-
     case WM_DPICHANGED:
-      // unlike a Windows GUI app we don't want to resize the window if the DPI
-      // changes as we want to respect the resolution selected by the user for
-      // performance reasons but we do want to notify the module of the change
-      // so it can adjust its rendering of text and other elements that are DPI
-      // sensitive
+      // unlike a Windows GUI app we don't want to resize the window if the
+      // DPI changes as we want to respect the resolution selected by the user
+      // for performance reasons but we do want to notify the module of the
+      // change so it can adjust its rendering of text and other elements that
+      // are DPI sensitive
     case WM_DISPLAYCHANGE: {
       PushRTMessage(DC_DISPLAY_CHANGE);
       return 0;
@@ -1104,6 +1141,9 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
 
     // WM_DESTROY is sent when the window is being destroyed.
     case WM_DESTROY:
+      // NULL out window so that the message loop can find the WM_QUIT message
+      // as it won't be associated with a window
+      _window = NULL;
       ::PostQuitMessage(0);
       return 0;
 

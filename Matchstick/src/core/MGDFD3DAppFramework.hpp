@@ -65,7 +65,7 @@ class D3DAppFramework {
   virtual bool OnInitWindow(RECT &windowSize) = 0;
   virtual void OnExternalClose() = 0;
   virtual void OnMouseInput(INT32 x, INT32 y) = 0;
-  virtual void OnRawInput(RAWINPUT *input) = 0;
+  virtual void OnRawInput(std::function<RAWINPUT *()> getInput) = 0;
   virtual LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                                   LPARAM lParam) = 0;
   virtual void OnMoveWindow(INT32 x, INT32 y) = 0;
@@ -90,6 +90,7 @@ class D3DAppFramework {
   void RTCheckForDisplayChanges(const HWND window);
 
   void InitRawInput();
+  void ProcessRawInput();
   void PushRTMessage(
       DisplayChangeType type,
       std::function<void(DisplayChangeMessage &)> genMessage = nullptr);
@@ -128,6 +129,7 @@ class D3DAppFramework {
   POINT _clientOffset;
   std::unique_ptr<POINT> _resizing;
   bool _internalShutDown;
+  std::vector<BYTE> _rawInputBuffer;
 };
 
 // defines a function which calls into an instance of a d3dApp subclass to

@@ -361,9 +361,8 @@ void MGDFApp::STOnUpdateSim() {
       _timer->ConvertDifferenceToSeconds(_stEnd, simulationEnd));
 }
 
-void MGDFApp::OnRawInput(RAWINPUT *input) {
-  _ASSERTE(input);
-  _host->GetInputManagerImpl()->HandleInput(input);
+void MGDFApp::OnRawInput(std::function<RAWINPUT *()> getInput) {
+  _host->GetInputManagerImpl()->HandleInput(getInput);
 }
 
 void MGDFApp::OnMouseInput(INT32 x, INT32 y) {

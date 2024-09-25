@@ -86,71 +86,74 @@ void XInputManagerComponent::HandleInput(INT32 mouseX, INT32 mouseY) {
   _pendingMouseY = mouseY;
 }
 
-void XInputManagerComponent::HandleInput(RAWINPUT *input) {
-  _ASSERTE(input);
+void XInputManagerComponent::HandleInput(std::function<RAWINPUT *()> getInput) {
+  std::lock_guard<std::mutex> lock(_simMutex);
 
-  if (input->header.dwType == RIM_TYPEKEYBOARD) {
-    std::lock_guard<std::mutex> lock(_simMutex);
+  while (true) {
+    RAWINPUT *input = getInput();
+    if (!input) {
+      break;
+    }
+    if (input->header.dwType == RIM_TYPEKEYBOARD) {
+      // we only know how to deal with keys
+      if (input->data.keyboard.VKey > UINT8_MAX) return;
 
-    // we only know how to deal with keys
-    if (input->data.keyboard.VKey > UINT8_MAX) return;
+      UINT8 key = static_cast<UINT8>(input->data.keyboard.VKey);
+      if ((input->data.keyboard.Flags & RI_KEY_MAKE) == RI_KEY_MAKE &&
+          _pendingKeyDown[key] != 1) {
+        _pendingKeyDown[key] = 1;
+        _pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
+        _pendingKeyDownEventsLength++;
+      }
+      if ((input->data.keyboard.Flags & RI_KEY_BREAK) == RI_KEY_BREAK &&
+          _pendingKeyDown[key] != 2) {
+        _pendingKeyDown[key] = 2;
+        _pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
+        _pendingKeyDownEventsLength++;
 
-    UINT8 key = static_cast<UINT8>(input->data.keyboard.VKey);
-    if ((input->data.keyboard.Flags & RI_KEY_MAKE) == RI_KEY_MAKE &&
-        _pendingKeyDown[key] != 1) {
-      _pendingKeyDown[key] = 1;
-      _pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
-      _pendingKeyDownEventsLength++;
-    }
-    if ((input->data.keyboard.Flags & RI_KEY_BREAK) == RI_KEY_BREAK &&
-        _pendingKeyDown[key] != 2) {
-      _pendingKeyDown[key] = 2;
-      _pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
-      _pendingKeyDownEventsLength++;
+        _pendingKeyPressEvents[_pendingKeyPressEventsLength] = key;
+        _pendingKeyPressEventsLength++;
+      }
+    } else if (input->header.dwType == RIM_TYPEMOUSE) {
+      if ((input->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) ==
+          MOUSE_MOVE_RELATIVE) {
+        _pendingMouseDX += input->data.mouse.lLastX;
+        _pendingMouseDY += input->data.mouse.lLastY;
+      }
 
-      _pendingKeyPressEvents[_pendingKeyPressEventsLength] = key;
-      _pendingKeyPressEventsLength++;
-    }
-  } else if (input->header.dwType == RIM_TYPEMOUSE) {
-    std::lock_guard<std::mutex> lock(_simMutex);
-
-    if ((input->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) ==
-        MOUSE_MOVE_RELATIVE) {
-      _pendingMouseDX += input->data.mouse.lLastX;
-      _pendingMouseDY += input->data.mouse.lLastY;
-    }
-
-    // mouse scrollwheel
-    if ((input->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) == RI_MOUSE_WHEEL) {
-      _pendingMouseDZ += static_cast<INT16>(input->data.mouse.usButtonData);
-    }
-    // mouse button states
-    if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) ==
-        RI_MOUSE_LEFT_BUTTON_DOWN) {
-      _pendingMouseButtonDown[MGDF_MOUSE_LEFT] = 1;
-    }
-    if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) ==
-        RI_MOUSE_LEFT_BUTTON_UP) {
-      _pendingMouseButtonDown[MGDF_MOUSE_LEFT] = 2;
-      _pendingMouseButtonClick[MGDF_MOUSE_LEFT] = true;
-    }
-    if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) ==
-        RI_MOUSE_MIDDLE_BUTTON_DOWN) {
-      _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] = 1;
-    }
-    if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) ==
-        RI_MOUSE_MIDDLE_BUTTON_UP) {
-      _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] = 2;
-      _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE] = true;
-    }
-    if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) ==
-        RI_MOUSE_RIGHT_BUTTON_DOWN) {
-      _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] = 1;
-    }
-    if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) ==
-        RI_MOUSE_RIGHT_BUTTON_UP) {
-      _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] = 2;
-      _pendingMouseButtonClick[MGDF_MOUSE_RIGHT] = true;
+      // mouse scrollwheel
+      if ((input->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) ==
+          RI_MOUSE_WHEEL) {
+        _pendingMouseDZ += static_cast<INT16>(input->data.mouse.usButtonData);
+      }
+      // mouse button states
+      if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) ==
+          RI_MOUSE_LEFT_BUTTON_DOWN) {
+        _pendingMouseButtonDown[MGDF_MOUSE_LEFT] = 1;
+      }
+      if ((input->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) ==
+          RI_MOUSE_LEFT_BUTTON_UP) {
+        _pendingMouseButtonDown[MGDF_MOUSE_LEFT] = 2;
+        _pendingMouseButtonClick[MGDF_MOUSE_LEFT] = true;
+      }
+      if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) ==
+          RI_MOUSE_MIDDLE_BUTTON_DOWN) {
+        _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] = 1;
+      }
+      if ((input->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) ==
+          RI_MOUSE_MIDDLE_BUTTON_UP) {
+        _pendingMouseButtonDown[MGDF_MOUSE_MIDDLE] = 2;
+        _pendingMouseButtonClick[MGDF_MOUSE_MIDDLE] = true;
+      }
+      if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) ==
+          RI_MOUSE_RIGHT_BUTTON_DOWN) {
+        _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] = 1;
+      }
+      if ((input->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) ==
+          RI_MOUSE_RIGHT_BUTTON_UP) {
+        _pendingMouseButtonDown[MGDF_MOUSE_RIGHT] = 2;
+        _pendingMouseButtonClick[MGDF_MOUSE_RIGHT] = true;
+      }
     }
   }
 }

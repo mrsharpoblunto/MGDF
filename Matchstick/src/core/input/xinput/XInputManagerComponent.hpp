@@ -24,7 +24,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   XInputManagerComponent();
   virtual ~XInputManagerComponent(void);
 
-  void HandleInput(RAWINPUT *input) final;
+  void HandleInput(std::function<RAWINPUT *()> getInput) final;
   void HandleInput(INT32 mouseX, INT32 mouseY) final;
   void ClearInput() final;
   void ProcessSim() final;

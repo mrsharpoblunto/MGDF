@@ -3,6 +3,7 @@
 #include <MGDF/MGDF.h>
 
 #include <MGDF/ComObject.hpp>
+#include <functional>
 
 namespace MGDF {
 namespace core {
@@ -13,7 +14,8 @@ class IInputManagerComponent : public ComBase<IMGDFInputManager> {
   virtual ~IInputManagerComponent() {}
   virtual void HandleInput(INT32 mouseX,
                            INT32 mouseY) = 0;  // deal with a mouse move event
-  virtual void HandleInput(RAWINPUT *input) = 0;  // deal with a raw input event
+  virtual void HandleInput(
+      std::function<RAWINPUT *()> getInput) = 0;  // deal with a raw input event
   virtual void
   ClearInput() = 0;  // clear any pending input state (like key presses)
   virtual void ProcessSim() = 0;  // do any reading/processing of input required
