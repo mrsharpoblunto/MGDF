@@ -1715,6 +1715,63 @@ An interface for sending an HTTP request
 };
 
 /**
+The state of a websocket connection
+*/
+typedef enum MGDFWebSocketConnectionState {
+  MGDF_WEBSOCKET_OPEN,
+  MGDF_WEBSOCKET_CLOSED,
+} MGDFWebSocketConnectionState;
+
+/**
+The combined status of a websocket connection including its current state and
+any recent errors
+*/
+typedef struct MGDFWebSocketConnectionStatus {
+  MGDFWebSocketConnectionState State;
+  char *LastError;
+  UINT64 LastErrorLength;
+} MGDFWebSocketConnectionStatus;
+
+/**
+An interface for sending and recieving websocket messages
+*/
+[
+  uuid("E469935B-A32C-404D-BEDC-F180B94B7324"), object,
+  local
+] interface IMGDFWebSocket : IUnknown {
+  /**
+  Sends a message to the websocket server
+  \param data the data to send
+  \param len the length of the data to send
+  \param binary true if the data is binary, false if it is a string
+  */
+  void Send([in] void *data, UINT64 len, BOOL binary);
+
+  /**
+  Determines if there is a message available to be recieved
+  \param len the length of the message to be recieved
+  \return true if a message is available to be recieved
+  */
+  BOOL CanRecieve([ in, out ] UINT64 * len);
+
+  /**
+  Recieves a message from the websocket server
+  \param message the message to recieve
+  \param len the length of the buffer to recieve the message
+  \return S_OK if there was a message to receive and the buffer was large enough to store it, otherwise an error code is returned
+  */
+  HRESULT Receive([ in, out ] void *message, [in] UINT64 len);
+
+  /**
+  Gets the current status of the connection
+  \param status the current status of the connection. The LastError field should point to a buffer of at least LastErrorLength bytes
+  \return S_OK if the LastError buffer was large enough to store the error message, otherwise an error code is returned
+  */
+  HRESULT GetConnectionStatus([ in, out ] MGDFWebSocketConnectionStatus *
+                              status);
+};
+
+/**
 Provides an entrypoint for a module to interact with the MGDF host. Methods in
 this interface are safe to be used from any thread
 */
@@ -1778,8 +1835,8 @@ this interface are safe to be used from any thread
   void GetDebug([out] IMGDFDebug * *debug);
 
   /**
-  create a pending http request. The request isn't actually sent until the Send
-  method is called on the request object
+  create a pending http request. The request isn't actually sent until the
+  Send method is called on the request object
   \param url the url to send the request to
   \param request the created request object
   \return S_OK if the request could be created, otherwise an error code is returned
@@ -1795,6 +1852,15 @@ this interface are safe to be used from any thread
   */
   HRESULT
   CreateHttpRequestGroup([out] IMGDFHttpRequestGroup * *group);
+
+  /**
+  create a websocket connection
+  \param url the url to connect to
+  \param socket the created websocket object
+  \return S_OK if the websocket could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateWebSocket([in] const small *url, [out] IMGDFWebSocket **socket);
 
   /**
    create a performance counter for profiling CPU time taken. When no longer
@@ -1843,9 +1909,9 @@ this interface are safe to be used from any thread
       [out] IMGDFMetric **metric);
 
   /**
-  After a module receives an RTOnBeforeDeviceReset callback, calling this tells
-  the host that all references to the previous D3D device have been cleaned up
-  and that the device can be safely reset
+  After a module receives an RTOnBeforeDeviceReset callback, calling this
+  tells the host that all references to the previous D3D device have been
+  cleaned up and that the device can be safely reset
   */
   void QueueDeviceReset();
 };
@@ -1860,8 +1926,8 @@ this interface are safe to be used from any thread
   local
 ] interface IMGDFRenderHost : IMGDFCommonHost {
   /**
-  set the current back buffer as the render target for the specified d2d device
-  context
+  set the current back buffer as the render target for the specified d2d
+  device context
   \param context the d2d device context to set the render target for
   \return true if the back buffer can be set as the render target for the device
   context
@@ -1954,8 +2020,8 @@ this interface are safe to be used from any thread
   HRESULT GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
 
   /**
-  Begins the process of saving the gamestate data. Once finished saving all data
-  to the VFS
+  Begins the process of saving the gamestate data. Once finished saving all
+  data to the VFS
   instance returned. Modules should release the VFS to commit the save
   \param pending A VFS mounted in a temporary save directory, once released any data in this
   directory will be copied into the permanent game state data directory
@@ -2066,8 +2132,8 @@ are safe to be used ONLY from the sim thread.
   BOOL STNew(IMGDFSimHost * host);
 
   /**
-   Called once per simulation timestep by the host once the game is running and
-   represents the main sim loop
+   Called once per simulation timestep by the host once the game is running
+   and represents the main sim loop
    \param host the simulation thread host
    \param elapsedTime the simulation timestep
    \return false if the module experiences a fatal error updating the scene
@@ -2078,9 +2144,9 @@ are safe to be used ONLY from the sim thread.
    Called by the host to tell the module to cleanup and shutdown as soon as
    possible. This is invoked when external events such as clicking the windows
    close button try to close the application. After being invoked it is the
-   modules responsibility to call the ->Shutdown() function as soon as possible
-   in order to actually terminate the application. This function may be called
-   multiple times.
+   modules responsibility to call the ->Shutdown() function as soon as
+   possible in order to actually terminate the application. This function may
+   be called multiple times.
    \param host the simulation thread host
    */
   void STShutDown(IMGDFSimHost * host);
@@ -2093,8 +2159,8 @@ are safe to be used ONLY from the sim thread.
   BOOL RTBeforeFirstDraw(IMGDFRenderHost * host);
 
   /**
-   Called by the host once per render frame. The module should do any rendering
-   required for the current frame in here
+   Called by the host once per render frame. The module should do any
+   rendering required for the current frame in here
    \param host the render thread host
    \param alpha how far between the current and next simulation frame (0-1)
    \return false if the module experiences a fatal error drawing the scene
@@ -2103,8 +2169,9 @@ are safe to be used ONLY from the sim thread.
 
   /**
   Called by the host if the swap chain options need to be changed, or the
-  display window needs to be resized. The module should clear out all references
-  to the previous back buffer so a new resized backbuffer can be set
+  display window needs to be resized. The module should clear out all
+  references to the previous back buffer so a new resized backbuffer can be
+  set
   \param host the render thread host
   \return false if the module experiences a fatal error
   */
@@ -2121,8 +2188,8 @@ are safe to be used ONLY from the sim thread.
 
   /**
   Called by the host if the dxgi device needs to be removed. The module should
-  clean out all device dependent resources and references to the old d3d device,
-  which will now be invalid.
+  clean out all device dependent resources and references to the old d3d
+  device, which will now be invalid.
   \param host the render thread host
   \return false if the module experiences a fatal error
   */

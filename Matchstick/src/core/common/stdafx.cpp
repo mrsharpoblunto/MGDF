@@ -6,3 +6,6 @@
 
 // TODO: reference any additional headers you need in STDAFX.H
 // and not in this file
+char tolowerChar(char c) {
+  return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+}

@@ -6,3 +6,7 @@
 #pragma warning(disable : 4996)
 #include <xutility>
 #pragma warning(pop)
+
+#include <cctype>
+
+char tolowerChar(char c);

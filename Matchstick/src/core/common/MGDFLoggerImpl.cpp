@@ -22,6 +22,17 @@ using namespace std::chrono_literals;
 namespace MGDF {
 namespace core {
 
+void MongooseLog(unsigned char ch) {
+  static char buffer[256];
+  static size_t len;
+  buffer[len++] = ch;
+  if (ch == '\n' || len >= sizeof(buffer)) {
+    buffer[len - 1] = '\0';  // Null-terminate the string
+    Logger::Instance().Log("Mongoose", buffer, MGDF_LOG_HIGH);
+    len = 0;
+  }
+}
+
 // wait for either this many log entries, or the timeout to
 // periodically flush logs
 #define LOG_BUFFER_SIZE 100
@@ -85,6 +96,7 @@ void Logger::FlushSync() {
 Logger::Logger() {
   SetLoggingLevel(MGDF_LOG_MEDIUM);
   SetOutputFile(Resources::Instance().LogFile());
+  mg_log_set_fn(MongooseLog);
 
   _runLogger = true;
   _flushThread = std::thread([this]() {

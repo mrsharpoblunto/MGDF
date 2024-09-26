@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 
-#include "MGDFHttpRequestImpl.hpp"
+#include "MGDFNetworkImpl.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -9,6 +9,47 @@
 
 namespace MGDF {
 namespace core {
+
+WebSocketImpl::WebSocketImpl(const std::string &url)
+    : _socket(new WebSocketClient(url)) {}
+
+void WebSocketImpl::Send(void *data, UINT64 len, BOOL binary) {
+  _socket->Send(data, len, binary);
+}
+
+BOOL WebSocketImpl::CanRecieve(UINT64 *len) {
+  if (!_buffer.size()) {
+    _socket->Receive(_buffer);
+  }
+  *len = _buffer.size();
+  return _buffer.size() > 0;
+}
+
+HRESULT WebSocketImpl::Receive(void *message, UINT64 len) {
+  if (!_buffer.size()) {
+    _socket->Receive(_buffer);
+  }
+
+  if (len >= _buffer.size()) {
+    memcpy_s(message, _buffer.size(), _buffer.data(), _buffer.size());
+    _buffer.clear();
+    return S_OK;
+  }
+  return E_FAIL;
+}
+
+HRESULT WebSocketImpl::GetConnectionStatus(
+    MGDFWebSocketConnectionStatus *status) {
+  std::string lastError;
+  auto state = _socket->GetConnectionState(lastError);
+  if (status->LastErrorLength >= lastError.size()) {
+    status->State = state;
+    memcpy_s(status->LastError, lastError.size(), lastError.c_str(),
+             lastError.size());
+    return S_OK;
+  }
+  return E_FAIL;
+}
 
 HttpResponseImpl::HttpResponseImpl(
     const std::shared_ptr<HttpResponse> &response)

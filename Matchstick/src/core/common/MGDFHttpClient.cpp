@@ -2,13 +2,12 @@
 
 #include "MGDFHttpClient.hpp"
 
-#include <Windows.h>
-#include <wincrypt.h>
-
 #include <algorithm>
 #include <sstream>
 #include <string_view>
 
+#include "MGDFCertificates.hpp"
+#include "MGDFMongooseMemFS.hpp"
 #include "MGDFResources.hpp"
 #include "MGDFVersionInfo.hpp"
 
@@ -39,7 +38,6 @@ static const std::string S_APPLICATION_JSON("application/json");
 static const std::string S_CLOSE("close");
 static const std::string S_TIMEOUT("timeout");
 static const std::string S_MAX("max");
-static const std::string S_CA_PEM("ca.pem");
 
 #define mg_stdstr(str) mg_str_n(str.c_str(), str.size())
 
@@ -155,14 +153,10 @@ void HttpClient::SendRequest(std::shared_ptr<HttpRequest> request,
   }
 }
 
-char tolowerChar(char c) {
-  return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-}
-
 HttpClient::HttpClient(HttpClientOptions &options)
     : _running(true), _options(options) {
   MemFS::InitMGFS(_fs);
-  MemFS::Ensure(S_CA_PEM, &HttpClient::LoadCerts);
+  MemFS::Ensure(CertificateManager::S_CA_PEM, &CertificateManager::LoadCerts);
 
   _pollThread = std::thread([this]() {
     mg_mgr mgr;
@@ -343,9 +337,7 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     }
   } else if (ev == MG_EV_CONNECT) {
     if (conn->Origin->UsesTLS) {
-      const auto host = mg_url_host(conn->Request->_url.c_str());
-
-      const mg_tls_opts opts = {.ca = S_CA_PEM.c_str(),
+      const mg_tls_opts opts = {.ca = CertificateManager::S_CA_PEM.c_str(),
                                 .srvname = mg_stdstr(conn->Origin->Host),
                                 .fs = conn->Origin->MemFS};
       mg_tls_init(c, &opts);
@@ -552,109 +544,6 @@ void HttpClient::ParseKeepAliveHeader(const mg_str *header, int &timeout,
     while (start < end && *start != ',') ++start;
     if (start < end && *start == ',') ++start;
   }
-}
-
-void HttpClient::LoadCerts(
-    std::function<void(const std::string &, const std::string &)> insert) {
-  const CERT_ENHKEY_USAGE enhkeyUsage{.cUsageIdentifier = 0,
-                                      .rgpszUsageIdentifier = NULL};
-  const CERT_USAGE_MATCH certUsage{.dwType = USAGE_MATCH_TYPE_AND,
-                                   .Usage = enhkeyUsage};
-  CERT_CHAIN_PARA chainParams{.cbSize = sizeof(CERT_CHAIN_PARA),
-                              .RequestedUsage = certUsage};
-
-  HCERTSTORE store = CertOpenSystemStoreA(NULL, "ROOT");
-  if (!store) {
-    return;
-  }
-
-  PCCERT_CONTEXT cert = nullptr;
-  DWORD size = 0;
-  std::ostringstream oss;
-  // iterate through all certificates in the trusted root
-  while (cert = CertEnumCertificatesInStore(store, cert)) {
-    PCCERT_CHAIN_CONTEXT chain;
-    if (CertGetCertificateChain(NULL, cert, NULL, NULL, &chainParams, 0, NULL,
-                                &chain)) {
-      const DWORD errorStatus = chain->TrustStatus.dwErrorStatus;
-      CertFreeCertificateChain(chain);
-      if (!errorStatus) {
-        // if the cert has a valid chain, then add it to our PEM to pass
-        // into mbedtls
-        CryptBinaryToStringA(cert->pbCertEncoded, cert->cbCertEncoded,
-                             CRYPT_STRING_BASE64HEADER, nullptr, &size);
-        std::string buffer;
-        buffer.resize(static_cast<size_t>(size) -
-                      1);  // size includes null-terminator which is
-                           // added to the string implicitly
-        CryptBinaryToStringA(cert->pbCertEncoded, cert->cbCertEncoded,
-                             CRYPT_STRING_BASE64HEADER, buffer.data(), &size);
-        oss << buffer;
-      }
-    }
-  }
-  CertCloseStore(store, 0);
-  // store it in our in memory filesystem cache
-  insert(S_CA_PEM, oss.str());
-}
-
-std::unordered_map<std::string, std::string> MemFS::_content;
-std::mutex MemFS::_mutex;
-
-void MemFS::Ensure(
-    const std::string &file,
-    std::function<
-        void(std::function<void(const std::string &, const std::string &)>)>
-        changes) {
-  std::lock_guard lock(_mutex);
-  if (!_content.contains(file)) {
-    changes([](const std::string &file, const std::string &content) {
-      _content.insert(std::make_pair(file, content));
-    });
-  }
-}
-
-int MemFS::st(const char *path, size_t *size, time_t *mtime) {
-  std::ignore = mtime;
-  std::lock_guard lock(_mutex);
-  *size = _content.at(path).size();
-  return 0;
-}
-
-void *MemFS::op(const char *path, int flags) {
-  std::ignore = flags;
-  std::lock_guard lock(_mutex);
-  const auto found = _content.find(path);
-  if (found == _content.end()) {
-    return nullptr;
-  } else {
-    return new FD{.Content = found->second, .Offset = 0U};
-  }
-}
-
-void MemFS::cl(void *fd) { delete static_cast<FD *>(fd); }
-
-size_t MemFS::rd(void *fd, void *buf, size_t len) {
-  FD *context = static_cast<FD *>(fd);
-  if (context->Offset + len <= context->Content.size()) {
-    memcpy(buf, context->Content.data() + context->Offset, len);
-    context->Offset += len;
-    return len;
-  } else {
-    const size_t read = context->Content.size() - len;
-    if (read != 0) {
-      memcpy(buf, context->Content.data() + context->Offset, read);
-      context->Offset += len;
-    }
-    return read;
-  }
-}
-
-void MemFS::InitMGFS(mg_fs &fs) {
-  fs.st = &MemFS::st;
-  fs.op = &MemFS::op;
-  fs.rd = &MemFS::rd;
-  fs.cl = &MemFS::cl;
 }
 
 }  // namespace core

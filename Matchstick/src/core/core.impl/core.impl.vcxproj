@@ -106,7 +106,7 @@
     <ClCompile Include="MGDFDebugImpl.cpp" />
     <ClCompile Include="MGDFGameBuilder.cpp" />
     <ClCompile Include="MGDFGameImpl.cpp" />
-    <ClCompile Include="MGDFHttpRequestImpl.cpp" />
+    <ClCompile Include="MGDFNetworkImpl.cpp" />
     <ClCompile Include="MGDFMetrics.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp" />
     <ClCompile Include="MGDFModuleFactory.cpp" />
@@ -128,7 +128,7 @@
     <ClInclude Include="MGDFDebugImpl.hpp" />
     <ClInclude Include="MGDFGameBuilder.hpp" />
     <ClInclude Include="MGDFGameImpl.hpp" />
-    <ClInclude Include="MGDFHttpRequestImpl.hpp" />
+    <ClInclude Include="MGDFNetworkImpl.hpp" />
     <ClInclude Include="MGDFMetrics.hpp" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp" />
     <ClInclude Include="MGDFModuleFactory.hpp" />

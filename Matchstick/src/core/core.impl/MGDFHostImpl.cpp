@@ -9,8 +9,8 @@
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
-#include "MGDFHttpRequestImpl.hpp"
 #include "MGDFMetrics.hpp"
+#include "MGDFNetworkImpl.hpp"
 #include "MGDFParameterConstants.hpp"
 
 #if defined(_DEBUG)
@@ -527,6 +527,13 @@ HRESULT Host::CreateHttpRequest(const small *url, IMGDFHttpRequest **request) {
 HRESULT __stdcall Host::CreateHttpRequestGroup(IMGDFHttpRequestGroup **group) {
   auto com = MakeCom<HttpRequestGroupImpl>();
   com.AddRawRef(group);
+  return S_OK;
+}
+
+HRESULT __stdcall Host::CreateWebSocket(const small *url,
+                                        IMGDFWebSocket **socket) {
+  auto com = MakeCom<WebSocketImpl>(url);
+  com.AddRawRef(socket);
   return S_OK;
 }
 

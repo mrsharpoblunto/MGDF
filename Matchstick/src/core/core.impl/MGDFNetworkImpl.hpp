@@ -5,9 +5,27 @@
 #include <MGDF/ComObject.hpp>
 
 #include "../common/MGDFHttpClient.hpp"
+#include "../common/MGDFLoggerImpl.hpp"
+#include "../common/MGDFWebSocket.hpp"
 
 namespace MGDF {
 namespace core {
+
+class WebSocketImpl : public ComBase<IMGDFWebSocket> {
+ public:
+  WebSocketImpl(const std::string &url);
+  virtual ~WebSocketImpl(void) {}
+
+  void __stdcall Send(void *data, UINT64 len, BOOL binary) final;
+  BOOL __stdcall CanRecieve(UINT64 *len) final;
+  HRESULT __stdcall Receive(void *message, UINT64 len) final;
+  HRESULT __stdcall GetConnectionStatus(
+      MGDFWebSocketConnectionStatus *status) final;
+
+ private:
+  std::shared_ptr<WebSocketClient> _socket;
+  std::vector<char> _buffer;
+};
 
 class HttpRequestImpl;
 
