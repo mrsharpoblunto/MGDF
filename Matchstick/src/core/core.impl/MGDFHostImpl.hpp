@@ -142,6 +142,8 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
       IMGDFHttpRequestGroup **request) final;
   HRESULT __stdcall CreateWebSocket(const small *url,
                                     IMGDFWebSocket **socket) final;
+  HRESULT __stdcall CreateWebSocketServer(unsigned int port,
+                                          IMGDFWebSocketServer **server) final;
 
  private:
   HRESULT Init();

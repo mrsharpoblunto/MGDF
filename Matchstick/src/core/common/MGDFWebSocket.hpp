@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "mongoose.h"
@@ -17,16 +18,33 @@ struct WebSocketMessage {
   bool Binary;
 };
 
-class WebSocketClient {
+class WebSocketConnection {
  public:
-  WebSocketClient(const std::string &url);
-  virtual ~WebSocketClient();
+  WebSocketConnection(unsigned int id);
+  virtual ~WebSocketConnection();
 
   void Send(const std::vector<char> &data, bool binary = false);
   void Send(void *data, size_t dataLength, bool binary = false);
   bool Receive(std::vector<char> &message);
 
   MGDFWebSocketConnectionState GetConnectionState(std::string &lastError);
+  unsigned int GetId() const { return _id; }
+
+  void Poll(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
+
+ protected:
+  unsigned int _id;
+  std::deque<std::vector<char>> _in;
+  std::vector<WebSocketMessage> _out;
+  std::string _lastError;
+  MGDFWebSocketConnectionState _state;
+  std::mutex _mutex;
+};
+
+class WebSocketClient : public WebSocketConnection {
+ public:
+  WebSocketClient(const std::string &url);
+  virtual ~WebSocketClient();
 
  private:
   static void HandleRequest(struct mg_connection *c, int ev, void *ev_data,
@@ -36,16 +54,11 @@ class WebSocketClient {
   struct mg_mgr _mgr;
   struct mg_connection *_conn;
 
+  uint64_t _disconnected;
   bool _usesTLS;
   std::string _url;
   bool _running;
-  uint64_t _disconnected;
   std::thread _pollThread;
-  std::deque<std::vector<char>> _in;
-  std::vector<WebSocketMessage> _out;
-  std::string _lastError;
-  MGDFWebSocketConnectionState _state;
-  std::mutex _mutex;
 };
 
 class WebSocketServer {
@@ -55,8 +68,8 @@ class WebSocketServer {
 
   void Listen(const std::string &port);
   bool Listening() const { return _conn != nullptr; }
-  void Send(const std::vector<char> &data, bool binary = false);
-  virtual void OnRequest(struct mg_connection *c, struct mg_ws_message *m) = 0;
+  virtual void OnConnected(
+      std::shared_ptr<WebSocketConnection> &connection) = 0;
 
  private:
   static void HandleRequest(struct mg_connection *c, int ev, void *ev_data,
@@ -66,6 +79,9 @@ class WebSocketServer {
   bool _running;
   std::thread _pollThread;
   std::mutex _mutex;
+
+  std::unordered_map<unsigned int, std::shared_ptr<WebSocketConnection>>
+      _connections;
 };
 
 }  // namespace core

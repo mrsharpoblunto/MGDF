@@ -1755,7 +1755,7 @@ An interface for sending and recieving websocket messages
   BOOL CanRecieve([ in, out ] UINT64 * len);
 
   /**
-  Recieves a message from the websocket server
+  Recieves a message from the other end of the websocket connection
   \param message the message to recieve
   \param len the length of the buffer to recieve the message
   \return S_OK if there was a message to receive and the buffer was large enough to store it, otherwise an error code is returned
@@ -1769,6 +1769,27 @@ An interface for sending and recieving websocket messages
   */
   HRESULT GetConnectionStatus([ in, out ] MGDFWebSocketConnectionStatus *
                               status);
+};
+
+/**
+An interface for creating and managing a websocket server
+*/
+[
+  uuid("5472F609-D70E-449D-9560-6463F28B99FB"), , object,
+  local
+] interface IMGDFWebSocketServer : IUnknown {
+  /**
+  Get whether any new incoming connections were made. This should be called repeatedly until it returns false to process all incoming connections. Once a client has been created you can use the CanRecieve method to check there is a message available to be recieved from the remote client. You should also check the connection status of the connection to ensure it is still open and free it when its no longer connected.
+  \param connection the connection to the client
+  \return true if a new incoming connection was made
+  */
+  BOOL ClientConnected([out] IMGDFWebSocket * *connection);
+
+  /**
+  Whether the server is listening for incoming connections
+  \return true if the server is listening for incoming connections
+  */
+  BOOL Listening();
 };
 
 /**
@@ -1861,6 +1882,15 @@ this interface are safe to be used from any thread
   */
   HRESULT
   CreateWebSocket([in] const small *url, [out] IMGDFWebSocket **socket);
+
+  /**
+  create a websocket connection
+  \param port for the server to listen on
+  \param socket the created websocket server object
+  \return S_OK if the webserver could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateWebSocketServer(unsigned int port, [out] IMGDFWebSocketServer **server);
 
   /**
    create a performance counter for profiling CPU time taken. When no longer

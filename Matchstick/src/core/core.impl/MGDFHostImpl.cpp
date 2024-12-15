@@ -532,8 +532,16 @@ HRESULT __stdcall Host::CreateHttpRequestGroup(IMGDFHttpRequestGroup **group) {
 
 HRESULT __stdcall Host::CreateWebSocket(const small *url,
                                         IMGDFWebSocket **socket) {
-  auto com = MakeCom<WebSocketImpl>(url);
+  auto com = MakeCom<WebSocketImpl<WebSocketClient>>(
+      std::make_shared<WebSocketClient>(url));
   com.AddRawRef(socket);
+  return S_OK;
+}
+
+HRESULT __stdcall Host::CreateWebSocketServer(unsigned int port,
+                                              IMGDFWebSocketServer **server) {
+  auto com = MakeCom<WebSocketServerImpl>(port);
+  com.AddRawRef(server);
   return S_OK;
 }
 

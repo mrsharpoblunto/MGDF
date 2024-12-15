@@ -3,27 +3,60 @@
 #include <MGDF/MGDF.h>
 
 #include <MGDF/ComObject.hpp>
+#include <deque>
 
 #include "../common/MGDFHttpClient.hpp"
-#include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFWebSocket.hpp"
 
 namespace MGDF {
 namespace core {
 
+template <typename TSocket>
 class WebSocketImpl : public ComBase<IMGDFWebSocket> {
  public:
-  WebSocketImpl(const std::string &url);
+  WebSocketImpl(std::shared_ptr<TSocket> socket) : _socket(socket) {}
   virtual ~WebSocketImpl(void) {}
 
-  void __stdcall Send(void *data, UINT64 len, BOOL binary) final;
-  BOOL __stdcall CanRecieve(UINT64 *len) final;
-  HRESULT __stdcall Receive(void *message, UINT64 len) final;
+  void __stdcall Send(void *data, UINT64 len, BOOL binary) final {
+    _socket->Send(data, len, binary);
+  }
+
+  BOOL __stdcall CanRecieve(UINT64 *len) final {
+    if (!_buffer.size()) {
+      _socket->Receive(_buffer);
+    }
+    *len = _buffer.size();
+    return _buffer.size() > 0;
+  }
+
+  HRESULT __stdcall Receive(void *message, UINT64 len) final {
+    if (!_buffer.size()) {
+      _socket->Receive(_buffer);
+    }
+
+    if (len >= _buffer.size()) {
+      memcpy_s(message, _buffer.size(), _buffer.data(), _buffer.size());
+      _buffer.clear();
+      return S_OK;
+    }
+    return E_FAIL;
+  }
+
   HRESULT __stdcall GetConnectionStatus(
-      MGDFWebSocketConnectionStatus *status) final;
+      MGDFWebSocketConnectionStatus *status) final {
+    std::string lastError;
+    auto state = _socket->GetConnectionState(lastError);
+    if (status->LastErrorLength >= lastError.size()) {
+      status->State = state;
+      memcpy_s(status->LastError, lastError.size(), lastError.c_str(),
+               lastError.size());
+      return S_OK;
+    }
+    return E_FAIL;
+  }
 
  private:
-  std::shared_ptr<WebSocketClient> _socket;
+  std::shared_ptr<TSocket> _socket;
   std::vector<char> _buffer;
 };
 
@@ -73,6 +106,20 @@ class HttpRequestImpl : public ComBase<IMGDFHttpRequest> {
  private:
   std::shared_ptr<HttpClient> _client;
   std::shared_ptr<HttpRequest> _request;
+};
+
+class WebSocketServerImpl : public WebSocketServer,
+                            public ComBase<IMGDFWebSocketServer> {
+ public:
+  WebSocketServerImpl(uint32_t port);
+  virtual ~WebSocketServerImpl(void) {}
+  BOOL __stdcall ClientConnected(IMGDFWebSocket **connection) final;
+  BOOL __stdcall Listening() final { return WebSocketServer::Listening(); }
+  void OnConnected(std::shared_ptr<WebSocketConnection> &connection) final;
+
+ private:
+  std::mutex _mutex;
+  std::deque<std::shared_ptr<WebSocketConnection>> _newConnections;
 };
 
 }  // namespace core
