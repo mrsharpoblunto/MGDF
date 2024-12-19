@@ -20,21 +20,21 @@ struct WebSocketMessage {
 
 class WebSocketConnection {
  public:
-  WebSocketConnection(unsigned int id);
+  WebSocketConnection(mg_connection *c, MGDFWebSocketConnectionState state);
   virtual ~WebSocketConnection();
 
   void Send(const std::vector<char> &data, bool binary = false);
   void Send(void *data, size_t dataLength, bool binary = false);
-  bool Receive(std::vector<char> &message);
+  bool Receive(std::vector<char> &message, bool &binary);
 
   MGDFWebSocketConnectionState GetConnectionState(std::string &lastError);
-  unsigned int GetId() const { return _id; }
+  unsigned int GetId() const { return _conn ? _conn->id : 0; }
 
-  void Poll(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
+  void Poll(int ev, void *ev_data, void *fn_data);
 
  protected:
-  unsigned int _id;
-  std::deque<std::vector<char>> _in;
+  struct mg_connection *_conn;
+  std::deque<std::pair<std::vector<char>, bool>> _in;
   std::vector<WebSocketMessage> _out;
   std::string _lastError;
   MGDFWebSocketConnectionState _state;

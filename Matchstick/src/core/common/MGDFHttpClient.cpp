@@ -165,11 +165,12 @@ HttpClient::HttpClient(HttpClientOptions &options)
                           std::shared_ptr<HttpRequestGroup>>>
         pending;
     while (_running) {
-      std::unique_lock<std::mutex> lock(_mutex);
-      pending.clear();
-      pending.assign(_pendingRequests.begin(), _pendingRequests.end());
-      _pendingRequests.clear();
-      lock.unlock();
+      {
+        std::lock_guard<std::mutex> lock(_mutex);
+        pending.clear();
+        pending.assign(_pendingRequests.begin(), _pendingRequests.end());
+        _pendingRequests.clear();
+      }
 
       // assign all valid pending requests to an origin
       for (const auto &pp : pending) {

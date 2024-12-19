@@ -23,18 +23,19 @@ class WebSocketImpl : public ComBase<IMGDFWebSocket> {
 
   BOOL __stdcall CanRecieve(UINT64 *len) final {
     if (!_buffer.size()) {
-      _socket->Receive(_buffer);
+      _socket->Receive(_buffer, _binary);
     }
     *len = _buffer.size();
     return _buffer.size() > 0;
   }
 
-  HRESULT __stdcall Receive(void *message, UINT64 len) final {
+  HRESULT __stdcall Receive(void *message, UINT64 len, BOOL *binary) final {
     if (!_buffer.size()) {
-      _socket->Receive(_buffer);
+      _socket->Receive(_buffer, _binary);
     }
 
     if (len >= _buffer.size()) {
+      *binary = _binary;
       memcpy_s(message, _buffer.size(), _buffer.data(), _buffer.size());
       _buffer.clear();
       return S_OK;
@@ -58,6 +59,7 @@ class WebSocketImpl : public ComBase<IMGDFWebSocket> {
  private:
   std::shared_ptr<TSocket> _socket;
   std::vector<char> _buffer;
+  bool _binary;
 };
 
 class HttpRequestImpl;

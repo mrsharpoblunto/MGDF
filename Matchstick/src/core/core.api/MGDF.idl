@@ -1758,9 +1758,11 @@ An interface for sending and recieving websocket messages
   Recieves a message from the other end of the websocket connection
   \param message the message to recieve
   \param len the length of the buffer to recieve the message
+  \binary true if the message is binary, false if it is a string
   \return S_OK if there was a message to receive and the buffer was large enough to store it, otherwise an error code is returned
   */
-  HRESULT Receive([ in, out ] void *message, [in] UINT64 len);
+  HRESULT Receive([ in, out ] void *message, [in] UINT64 len,
+                  [ in, out ] BOOL *binary);
 
   /**
   Gets the current status of the connection

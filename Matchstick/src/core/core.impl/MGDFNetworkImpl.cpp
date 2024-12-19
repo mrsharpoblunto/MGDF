@@ -88,7 +88,7 @@ void *HttpRequestGroupImpl::GetResponse(IMGDFHttpResponse **responseOut) {
 }
 
 WebSocketServerImpl::WebSocketServerImpl(uint32_t port) {
-  Listen("0.0.0.0:" + std::to_string(port));
+  Listen(std::to_string(port));
 }
 
 void WebSocketServerImpl::OnConnected(
