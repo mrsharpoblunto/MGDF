@@ -21,36 +21,45 @@ namespace MGDF {
 namespace core {
 
 NetworkEventLoop::NetworkEventLoop() : _running(true) {
-  MemFS::InitMGFS(_fs);
-  MemFS::Ensure(CertificateManager::S_CA_PEM, &CertificateManager::LoadCerts);
   _thread = std::thread([this]() {
-    mg_mgr_init(&_mgr);
     while (_running) {
-      mg_mgr_poll(&_mgr, 1000);
       {
         std::lock_guard<std::mutex> lock(_mutex);
-        for (auto l : _listeners) {
-          l->OnPoll(_mgr, _fs);
+        for (auto &l : _listeners) {
+          mg_mgr_poll(&l.second.Mgr, 0);
+          l.first->OnPoll(l.second.Mgr, l.second.Fs);
         }
       }
+      std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
-    mg_mgr_free(&_mgr);
   });
 }
 
 NetworkEventLoop::~NetworkEventLoop() {
   _running = false;
   _thread.join();
+  _ASSERTE(_listeners.size() == 0);
+  for (auto &l : _listeners) {
+    mg_mgr_free(&l.second.Mgr);
+  }
 }
 
 void NetworkEventLoop::Add(INetworkEventListener *l) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _listeners.insert(l);
+  const auto &listener =
+      _listeners.emplace(std::make_pair(l, EventLoopMember()));
+  MemFS::InitMGFS(listener.first->second.Fs);
+  MemFS::Ensure(CertificateManager::S_CA_PEM, &CertificateManager::LoadCerts);
+  mg_mgr_init(&listener.first->second.Mgr);
 }
 
 void NetworkEventLoop::Remove(INetworkEventListener *l) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _listeners.erase(l);
+  const auto &listener = _listeners.find(l);
+  if (listener != _listeners.end()) {
+    mg_mgr_free(&listener->second.Mgr);
+    _listeners.erase(listener);
+  }
 }
 
 void SendHttpRequest(struct mg_connection *c, const std::string &host,

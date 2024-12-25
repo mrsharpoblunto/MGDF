@@ -17,12 +17,9 @@ class WebSocketServerConnection : public WebSocketConnectionBase {
   friend class HttpServer;
 
  public:
-  WebSocketServerConnection(mg_connection *c, HttpServer *server);
-  virtual ~WebSocketServerConnection();
-
- private:
-  HttpServer *_server;
-  std::shared_ptr<std::mutex> _serverMutex;
+  WebSocketServerConnection(mg_connection *c)
+      : WebSocketConnectionBase(c, MGDF_WEBSOCKET_OPEN) {}
+  virtual ~WebSocketServerConnection() {}
 };
 
 class HttpServerRequest {
@@ -30,7 +27,7 @@ class HttpServerRequest {
 
  public:
   HttpServerRequest(mg_connection *c, struct mg_http_message *m,
-                    HttpServer *server);
+                    std::shared_ptr<HttpServer> server);
   virtual ~HttpServerRequest();
 
   bool GetRequestHeader(const std::string &name, std::string &value) const;
@@ -52,11 +49,11 @@ class HttpServerRequest {
   std::string _url;
   HttpMessageBase _response;
   mg_connection *_conn;
-  HttpServer *_server;
-  std::shared_ptr<std::mutex> _serverMutex;
+  std::shared_ptr<HttpServer> _server;
 };
 
-class HttpServer : public INetworkEventListener {
+class HttpServer : public std::enable_shared_from_this<HttpServer>,
+                   public INetworkEventListener {
   friend class HttpServerRequest;
   friend class WebSocketServerConnection;
 
@@ -78,12 +75,9 @@ class HttpServer : public INetworkEventListener {
                             void *fn_data);
   struct mg_connection *_conn;
   std::string _socketPath;
-
   std::shared_ptr<NetworkEventLoop> _eventLoop;
-  std::string _pendingListen;
-  std::shared_ptr<std::mutex> _mutex;
-  std::unordered_map<HttpServerRequest *, std::weak_ptr<HttpServerRequest>>
-      _pendingResponses;
+  std::string _listen;
+  std::mutex _mutex;
   std::unordered_map<mg_connection *, std::weak_ptr<WebSocketServerConnection>>
       _sockets;
   std::vector<std::pair<mg_connection *, HttpMessageBase>> _responses;

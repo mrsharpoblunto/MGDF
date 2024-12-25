@@ -30,15 +30,17 @@ class NetworkEventLoop {
   NetworkEventLoop();
   virtual ~NetworkEventLoop();
 
-  void Add(INetworkEventListener *pollable);
-  void Remove(INetworkEventListener *pollable);
+  void Add(INetworkEventListener *listener);
+  void Remove(INetworkEventListener *listener);
 
  private:
+  struct EventLoopMember {
+    mg_mgr Mgr;
+    mg_fs Fs;
+  };
   std::mutex _mutex;
   std::thread _thread;
-  std::unordered_set<INetworkEventListener *> _listeners;
-  mg_mgr _mgr;
-  mg_fs _fs;
+  std::unordered_map<INetworkEventListener *, EventLoopMember> _listeners;
   bool _running;
 };
 

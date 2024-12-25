@@ -110,13 +110,13 @@ WebSocketClientConnection::WebSocketClientConnection(
       _url(url),
       _disconnected(0),
       _usesTLS(false) {
-  _eventLoop->Add(this);
   if (url.size() >= 6) {
     std::string lowerUrl = url.substr(0, 6);
     std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(),
                    tolowerChar);
     _usesTLS = lowerUrl == "wss://";
   }
+  _eventLoop->Add(this);
 }
 
 void WebSocketClientConnection::OnPoll(mg_mgr& mgr, mg_fs& fs) {

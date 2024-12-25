@@ -16,31 +16,13 @@ static const std::string S_IDENTITY("");
 namespace MGDF {
 namespace core {
 
-WebSocketServerConnection::WebSocketServerConnection(mg_connection *c,
-                                                     HttpServer *server)
-    : WebSocketConnectionBase(c, MGDF_WEBSOCKET_OPEN),
-      _server(server),
-      _serverMutex(server->_mutex) {}
-
-WebSocketServerConnection::~WebSocketServerConnection() {
-  std::lock_guard<std::mutex> lock(*_serverMutex);
-  if (_server) {
-    auto found = _server->_sockets.find(_conn);
-    if (found != _server->_sockets.end()) {
-      _server->_sockets.emplace(_conn,
-                                std::weak_ptr<WebSocketServerConnection>());
-    }
-  }
-}
-
 HttpServerRequest::HttpServerRequest(mg_connection *c,
                                      struct mg_http_message *m,
-                                     HttpServer *server)
+                                     std::shared_ptr<HttpServer> server)
     : _conn(c),
       _request(CreateHttpMessage<HttpMessageBase>(m)),
       _server(server),
-      _url(m->uri.ptr, m->uri.len),
-      _serverMutex(server->_mutex) {
+      _url(m->uri.ptr, m->uri.len) {
   std::string encoding(S_IDENTITY);
   std::string acceptEncoding;
   if (GetRequestHeader(S_ACCEPT_ENCODING, acceptEncoding) &&
@@ -106,71 +88,42 @@ HttpServerRequest *HttpServerRequest::SetResponseBody(const char *body,
 }
 
 void HttpServerRequest::SendResponse() {
-  _conn = nullptr;
-  _request.reset();
-  std::lock_guard<std::mutex> lock(*_serverMutex);
-  if (_server) {
-    _server->_pendingResponses.erase(this);
+  std::lock_guard<std::mutex> lock(_server->_mutex);
+  if (_conn) {
     _server->_responses.emplace_back(_conn, std::move(_response));
-    _server = nullptr;
+    _conn = nullptr;
   }
 }
 
 HttpServerRequest::~HttpServerRequest() {
-  std::lock_guard<std::mutex> lock(*_serverMutex);
-  if (_server) {
+  std::lock_guard<std::mutex> lock(_server->_mutex);
+  if (_conn) {
     _response.Code = 500;
     _response.Headers.clear();
     _response.Body.clear();
-    _server->_pendingResponses.erase(this);
     _server->_responses.emplace_back(_conn, std::move(_response));
   }
 }
 
 HttpServer::HttpServer(std::shared_ptr<NetworkEventLoop> &eventLoop)
-    : _eventLoop(eventLoop),
-      _conn(nullptr),
-      _mutex(std::make_shared<std::mutex>()) {
-  _eventLoop->Add(this);
-}
+    : _eventLoop(eventLoop), _conn(nullptr) {}
 
-HttpServer::~HttpServer() {
-  _eventLoop->Remove(this);
-
-  std::unique_lock<std::mutex> lock(*_mutex);
-  auto pendingResponses = std::move(_pendingResponses);
-  auto sockets = std::move(_sockets);
-  lock.unlock();
-  for (auto p : pendingResponses) {
-    auto r = p.second.lock();
-    if (r) {
-      r->_server = nullptr;
-    }
-  }
-  for (auto socket : sockets) {
-    auto s = socket.second.lock();
-    if (s) {
-      s->_server = nullptr;
-    }
-  }
-}
+HttpServer::~HttpServer() { _eventLoop->Remove(this); }
 
 void HttpServer::Listen(const std::string &port,
                         const std::string &socketPath) {
-  std::lock_guard<std::mutex> lock(*_mutex);
-  if (_conn) {
+  if (!_listen.empty()) {
     return;
   }
-  _pendingListen = "0.0.0.0:" + port;
+  _listen = "0.0.0.0:" + port;
   _socketPath = socketPath;
+  _eventLoop->Add(this);
 }
 
 void HttpServer::OnPoll(mg_mgr &mgr, mg_fs &) {
-  std::lock_guard<std::mutex> lock(*_mutex);
-  if (!_conn && !_pendingListen.empty()) {
-    _conn = mg_http_listen(&mgr, _pendingListen.c_str(),
-                           &HttpServer::HandleRequest, this);
-    _pendingListen.clear();
+  if (!_conn && !_listen.empty()) {
+    _conn =
+        mg_http_listen(&mgr, _listen.c_str(), &HttpServer::HandleRequest, this);
   }
 }
 
@@ -182,7 +135,21 @@ void HttpServer::HandleRequest(mg_connection *c, int ev, void *ev_data,
   HttpServer *server = static_cast<HttpServer *>(fn_data);
   switch (ev) {
     case MG_EV_POLL: {
-      std::unique_lock<std::mutex> lock(*server->_mutex);
+      std::unique_lock<std::mutex> lock(server->_mutex);
+
+      // if this is a socket, poll for updates or clean it up
+      auto socket = server->_sockets.find(c);
+      if (socket != server->_sockets.end()) {
+        auto s = socket->second.lock();
+        if (s) {
+          lock.unlock();
+          s->Poll(ev, ev_data, fn_data);
+          lock.lock();
+        } else {
+          server->_sockets.erase(c);
+          c->is_closing = 1;
+        }
+      }
 
       // if there are http responses to send, send them
       if (server->_responses.size()) {
@@ -191,22 +158,6 @@ void HttpServer::HandleRequest(mg_connection *c, int ev, void *ev_data,
         lock.unlock();
         for (auto &response : responses) {
           SendHttpResponse(response.first, response.second);
-        }
-        lock.lock();
-      }
-
-      // if this is a socket, poll for updates or clean it up
-      auto socket = server->_sockets.find(c);
-      if (socket != server->_sockets.end()) {
-        lock.unlock();
-        auto s = socket->second.lock();
-        if (s) {
-          s->Poll(ev, ev_data, fn_data);
-        } else {
-          c->is_closing = 1;
-          lock.lock();
-          server->_sockets.erase(c);
-          lock.unlock();
         }
       }
     } break;
@@ -219,22 +170,13 @@ void HttpServer::HandleRequest(mg_connection *c, int ev, void *ev_data,
               NULL)) {
         mg_ws_upgrade(c, hm, NULL);
       } else {
-        std::unique_lock<std::mutex> lock(*server->_mutex);
-        auto response = std::make_shared<HttpServerRequest>(c, hm, server);
-        server->_pendingResponses.insert(
-            std::make_pair<HttpServerRequest *,
-                           std::weak_ptr<HttpServerRequest>>(
-                response.get(), std::weak_ptr<HttpServerRequest>(response)));
-        lock.unlock();
+        auto response = std::make_shared<HttpServerRequest>(
+            c, hm, server->shared_from_this());
         server->OnRequest(response);
       }
     } break;
     case MG_EV_WS_MSG: {
-      std::unique_lock<std::mutex> lock(*server->_mutex);
-      auto socket = std::make_shared<WebSocketServerConnection>(c, server);
-      server->_sockets.insert(
-          std::make_pair(c, std::weak_ptr<WebSocketServerConnection>(socket)));
-      lock.unlock();
+      auto socket = std::make_shared<WebSocketServerConnection>(c);
       server->OnSocketRequest(socket);
     } break;
     case MG_EV_ERROR: {
