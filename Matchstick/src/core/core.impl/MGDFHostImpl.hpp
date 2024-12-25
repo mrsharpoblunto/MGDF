@@ -17,7 +17,7 @@
 #include "../vfs/MGDFWriteableVirtualFileSystem.hpp"
 #include "MGDFDebugImpl.hpp"
 #include "MGDFGameImpl.hpp"
-#include "MGDFHostStats.hpp"
+#include "MGDFHostMetrics.hpp"
 #include "MGDFModuleFactory.hpp"
 #include "MGDFRenderSettingsManagerImpl.hpp"
 #include "MGDFSaveManagerImpl.hpp"
@@ -29,7 +29,7 @@ namespace core {
 
 struct HostComponents {
   std::shared_ptr<storage::IStorageFactoryComponent> Storage;
-  std::shared_ptr<HttpClient> HttpClient;
+  std::shared_ptr<NetworkEventLoop> NetworkEventLoop;
   ComObject<input::IInputManagerComponent> Input;
   ComObject<audio::ISoundManagerComponent> Sound;
   ComObject<vfs::IReadOnlyVirtualFileSystemComponent> VFS;
@@ -60,7 +60,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void SetFatalErrorHandler(const FatalErrorFunction handler);
 
   void STCreateModule();
-  void STUpdate(double simulationTime, HostStats &stats);
+  void STUpdate(double simulationTime, HostMetrics &stats);
   void STDisposeModule();
 
   void RTBeforeFirstDraw();
@@ -137,13 +137,13 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                                           const UINT64 bucketCount,
                                           IMGDFMetric **metric) final;
   HRESULT __stdcall CreateHttpRequest(const small *url,
-                                      IMGDFHttpRequest **request) final;
+                                      IMGDFHttpClientRequest **request) final;
   HRESULT __stdcall CreateHttpRequestGroup(
-      IMGDFHttpRequestGroup **request) final;
+      IMGDFHttpClientRequestGroup **request) final;
   HRESULT __stdcall CreateWebSocket(const small *url,
                                     IMGDFWebSocket **socket) final;
-  HRESULT __stdcall CreateWebSocketServer(unsigned int port,
-                                          IMGDFWebSocketServer **server) final;
+  HRESULT __stdcall CreateWebServer(unsigned int port, const small *socketPath,
+                                    IMGDFWebServer **server) final;
 
  private:
   HRESULT Init();
@@ -176,6 +176,8 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<Timer> _timer;
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
+
+  std::shared_ptr<NetworkEventLoop> _eventLoop;
   std::shared_ptr<HttpClient> _httpClient;
 
   ComObject<ID3D11Device> _d3dDevice;
@@ -190,6 +192,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   mutable std::atomic<bool> _showDebug;
 
   std::mutex _metricMutex;
+  HostMetricsServer _metricsServer;
   std::unordered_map<std::string, MetricBase *> _metrics;
 
   // event callbacks

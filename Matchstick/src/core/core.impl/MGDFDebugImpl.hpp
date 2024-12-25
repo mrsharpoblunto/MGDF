@@ -1,13 +1,14 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 #include <atomic>
 #include <map>
 #include <sstream>
 #include <string>
 
-#include "MGDFHostStats.hpp"
+#include "MGDFHostMetrics.hpp"
 #include "MGDFTextStream.hpp"
 #include "MGDFTimer.hpp"
 
@@ -16,14 +17,15 @@ namespace core {
 
 class Debug : public ComBase<IMGDFDebug> {
  public:
-  virtual ~Debug(){};
+  virtual ~Debug() {};
   Debug(Timer *timer);
-  void __stdcall Set(const char *section, const char *key, const char *value) final;
+  void __stdcall Set(const char *section, const char *key,
+                     const char *value) final;
   void __stdcall Clear(const char *section, const char *key) final;
   BOOL __stdcall IsShown() final;
   void __stdcall ToggleShown() final;
 
-  void DumpInfo(const HostStats &stats, TextStream &ss) const;
+  void DumpInfo(const HostMetrics &stats, TextStream &ss) const;
 
  private:
   std::map<std::string, std::map<std::string, std::string>> _data;

@@ -30,9 +30,9 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   InitParameterManager();
   InitResources();
 
-  components.HttpClient = std::make_shared<HttpClient>();
+  components.NetworkEventLoop = std::make_shared<NetworkEventLoop>();
 
-  InitLogger(components.HttpClient);
+  InitLogger(components.NetworkEventLoop);
 
   if (!storage::CreateStorageFactoryComponentImpl(components.Storage)) {
     LOG("FATAL ERROR: Unable to register StorageFactory", MGDF_LOG_ERROR);
@@ -116,13 +116,6 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   return S_OK;
 }
 
-void HostBuilder::DisposeHost(ComObject<Host> &host) {
-  if (host) {
-    host->STDisposeModule();
-    host.Clear();
-  }
-}
-
 void HostBuilder::InitParameterManager() {
   std::string paramString;
 
@@ -161,7 +154,8 @@ void HostBuilder::InitParameterManager() {
   }
 }
 
-void HostBuilder::InitLogger(const std::shared_ptr<HttpClient> &client) {
+void HostBuilder::InitLogger(
+    const std::shared_ptr<NetworkEventLoop> &eventLoop) {
   if (ParameterManager::Instance().HasParameter(
           ParameterConstants::LOG_LEVEL)) {
     const char *level = ParameterManager::Instance().GetParameter(
@@ -183,9 +177,8 @@ void HostBuilder::InitLogger(const std::shared_ptr<HttpClient> &client) {
   if (ParameterManager::Instance().HasParameter(
           ParameterConstants::LOG_ENDPOINT)) {
     Logger::Instance().SetRemoteEndpoint(
-        ParameterManager::Instance().GetParameter(
-            ParameterConstants::LOG_ENDPOINT),
-        client);
+        eventLoop, ParameterManager::Instance().GetParameter(
+                       ParameterConstants::LOG_ENDPOINT));
   }
 }
 

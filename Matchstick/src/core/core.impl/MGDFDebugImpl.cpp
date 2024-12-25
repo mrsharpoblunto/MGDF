@@ -61,7 +61,7 @@ void Debug::ToggleShown() {
   }
 }
 
-void Debug::DumpInfo(const HostStats& stats, TextStream& ss) const {
+void Debug::DumpInfo(const HostMetrics& stats, TextStream& ss) const {
   std::wstring mgdfVersion(
       Resources::ToWString(MGDFVersionInfo::MGDF_VERSION()));
 

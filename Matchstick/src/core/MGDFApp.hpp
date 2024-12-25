@@ -5,7 +5,7 @@
 #include "MGDFD3DAppFramework.hpp"
 #include "MGDFFrameLimiter.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
-#include "core.impl/MGDFHostStats.hpp"
+#include "core.impl/MGDFHostMetrics.hpp"
 #include "core.impl/MGDFTextStream.hpp"
 
 namespace MGDF {
@@ -13,7 +13,7 @@ namespace core {
 
 class MGDFApp : public D3DAppFramework {
  public:
-  MGDFApp(Host *host, HINSTANCE hInstance);
+  MGDFApp(ComObject<Host> &host, HINSTANCE hInstance);
   virtual ~MGDFApp();
 
  protected:
@@ -75,11 +75,11 @@ class MGDFApp : public D3DAppFramework {
   ComObject<IDWriteTextLayout> _rtTextLayout;
   DWRITE_TEXT_METRICS _rtTextMetrics;
 
-  Host *_host;
+  ComObject<Host> _host;
   ComObject<IMGDFGame> _game;
   ComObject<IMGDFTimer> _timer;
   ComObject<RenderSettingsManager> _settings;
-  HostStats _stats;
+  HostMetrics _metrics;
   std::atomic_flag _awaitFrame;
 };
 

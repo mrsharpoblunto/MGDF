@@ -113,6 +113,7 @@
     <ClInclude Include="MGDFCertificates.hpp" />
     <ClInclude Include="MGDFComponents.hpp" />
     <ClInclude Include="MGDFHttpClient.hpp" />
+    <ClInclude Include="MGDFHttpCommon.hpp" />
     <ClInclude Include="MGDFHttpServer.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFMongooseMemFS.hpp" />
@@ -131,6 +132,7 @@
   <ItemGroup>
     <ClCompile Include="MGDFCertificates.cpp" />
     <ClCompile Include="MGDFHttpClient.cpp" />
+    <ClCompile Include="MGDFHttpCommon.cpp" />
     <ClCompile Include="MGDFHttpServer.cpp" />
     <ClCompile Include="MGDFLoggerImpl.cpp" />
     <ClCompile Include="MGDFMongooseMemFS.cpp" />

@@ -101,7 +101,7 @@ Logger::Logger() {
   _runLogger = true;
   _flushThread = std::thread([this]() {
     std::unique_lock<std::mutex> lock(_mutex);
-    auto pendingRequests = std::make_shared<HttpRequestGroup>();
+    auto pendingRequests = std::make_shared<HttpClientRequestGroup>();
     while (_runLogger) {
       _cv.wait_for(lock, LOG_FLUSH_TIMEOUT, [this, &pendingRequests] {
         return !_runLogger || _events.size() > 0 || pendingRequests->Size() > 0;
@@ -111,7 +111,7 @@ Logger::Logger() {
       lock.unlock();
 
       // record the result of any failed http log posts
-      std::shared_ptr<HttpResponse> response;
+      std::shared_ptr<HttpClientResponse> response;
       while (pendingRequests->GetResponse(response)) {
         if (response->Code != 200 && response->Code != 204) {
 #if defined(_DEBUG)
@@ -169,7 +169,7 @@ Logger::Logger() {
             value.append(m.str());
           }
 
-          auto request = std::make_shared<HttpRequest>(_remoteEndpoint);
+          auto request = std::make_shared<HttpClientRequest>(_remoteEndpoint);
           std::ostringstream requestBody;
           requestBody << root;
           request->SetMethod("POST")
@@ -210,9 +210,10 @@ void Logger::SetOutputFile(const std::wstring &filename) {
 
 void Logger::SetLoggingLevel(MGDFLogLevel level) { _level.store(level); }
 
-void Logger::SetRemoteEndpoint(const std::string &endpoint,
-                               const std::shared_ptr<HttpClient> &client) {
-  _client = client;
+void Logger::SetRemoteEndpoint(
+    const std::shared_ptr<NetworkEventLoop> &eventLoop,
+    const std::string &endpoint) {
+  _client = std::make_shared<HttpClient>(eventLoop);
   _remoteEndpoint = endpoint;
 }
 

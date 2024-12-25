@@ -33,6 +33,28 @@ constexpr int ComputeIntersectionArea(int ax1, int ay1, int ax2, int ay2,
 constexpr UINT MAX_RAWINPUT_BUFFER_SIZE = 1024 * 1024;
 constexpr UINT RAWINPUT_QUEUE_SIZE = 1024;
 
+static std::unordered_map<HWND, D3DAppFramework *> windowMappings;
+
+static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam,
+                                         LPARAM lParam) {
+  if (msg == WM_NCCREATE) {
+    CREATESTRUCT *create = reinterpret_cast<CREATESTRUCT *>(lParam);
+    windowMappings.insert(std::make_pair(
+        hwnd, static_cast<D3DAppFramework *>(create->lpCreateParams)));
+  }
+
+  auto it = windowMappings.find(hwnd);
+  if (it != windowMappings.end()) {
+    return it->second->MsgProc(hwnd, msg, wParam, lParam);
+  }
+
+  if (msg == WM_NCDESTROY) {
+    windowMappings.erase(hwnd);
+  }
+
+  return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
 #define WINDOW_CLASS_NAME "MGDFD3DAppFrameworkWindowClass"
 
 D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
@@ -62,14 +84,13 @@ D3DAppFramework::~D3DAppFramework() {
   RTUninitD3D();
 }
 
-void D3DAppFramework::InitWindow(const std::string &caption,
-                                 WNDPROC windowProcedure) {
+void D3DAppFramework::InitWindow(const std::string &caption) {
   // if the window has not already been created
   if (!_window) {
     LOG("Initializing window...", MGDF_LOG_LOW);
     const WNDCLASS wc{
         .style = CS_HREDRAW | CS_VREDRAW,
-        .lpfnWndProc = windowProcedure,
+        .lpfnWndProc = StaticWindowProc,
         .cbClsExtra = 0,
         .cbWndExtra = 0,
         .hInstance = _applicationInstance,
@@ -114,7 +135,7 @@ void D3DAppFramework::InitWindow(const std::string &caption,
 
     _window = ::CreateWindow(WINDOW_CLASS_NAME, caption.c_str(), _windowStyle,
                              CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0,
-                             _applicationInstance, 0);
+                             _applicationInstance, this);
 
     if (!_window) {
       FATALERROR(this, "CreateWindow FAILED");
@@ -278,11 +299,11 @@ void D3DAppFramework::RTInitD3D(const HWND window) {
         MGDF_LOG_LOW);
   }
 
-  const D2D1_FACTORY_OPTIONS options {
+  const D2D1_FACTORY_OPTIONS options{
 #if defined(DEBUG) || defined(_DEBUG)
-    .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION
+      .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION
 #else
-    .debugLevel = D2D1_DEBUG_LEVEL_NONE
+      .debugLevel = D2D1_DEBUG_LEVEL_NONE
 #endif
   };
 

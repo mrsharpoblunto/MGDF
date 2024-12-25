@@ -26,10 +26,11 @@ namespace core {
 #define SEND_THRESHOLD 25
 #define STAT_FLUSH_TIMEOUT 5s
 
-StatisticsManager::StatisticsManager(const std::string& gameUid,
-                                     const std::shared_ptr<HttpClient>& client)
+StatisticsManager::StatisticsManager(
+    const std::shared_ptr<NetworkEventLoop>& eventLoop,
+    const std::string& gameUid)
     : _gameUid(gameUid),
-      _client(client),
+      _client(std::make_shared<HttpClient>(eventLoop)),
       _sessionStart(std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::system_clock::now().time_since_epoch())
                         .count()),
@@ -58,7 +59,7 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
   } else {
     _run = true;
     _flushThread = std::thread([this]() {
-      auto pendingRequests = std::make_shared<HttpRequestGroup>();
+      auto pendingRequests = std::make_shared<HttpClientRequestGroup>();
       std::unique_lock<std::mutex> lock(_mutex);
       while (_run) {
         _cv.wait_for(lock, STAT_FLUSH_TIMEOUT, [this, &pendingRequests] {
@@ -68,7 +69,7 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
         _events.clear();
         lock.unlock();
 
-        std::shared_ptr<HttpResponse> response;
+        std::shared_ptr<HttpClientResponse> response;
         while (pendingRequests->GetResponse(response)) {
           if (response->Code != 200) {
             LOG("Unable to send statistic to remote endpoint "
@@ -97,7 +98,7 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
             }
           }
 
-          auto request = std::make_shared<HttpRequest>(_remoteEndpoint);
+          auto request = std::make_shared<HttpClientRequest>(_remoteEndpoint);
           std::ostringstream requestBody;
           requestBody << root;
           request->SetMethod("POST")

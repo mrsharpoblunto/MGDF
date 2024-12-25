@@ -51,9 +51,6 @@ struct DumpData {
 
 HWND _launcherWindow = nullptr;
 bool _hasDumped = false;
-MGDFApp *_application = nullptr;
-
-D3DAPP_WNDPROC(MGDFAppWndProc, _application)
 
 INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
                      _In_opt_ HINSTANCE const hPreviousInstance,
@@ -93,16 +90,12 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
 
     // create the application instance and initialise the window
     host->SetFatalErrorHandler(FatalErrorCallBack);
-    _application = new MGDFApp(host, hInstance);
-    _application->InitWindow("MGDF", MGDFAppWndProc);
-    _application->Run();
+    MGDFApp app(host, hInstance);
+    app.InitWindow("MGDF");
+    app.Run();
 
-    // dispose of the  and related components
-    HostBuilder::DisposeHost(host);
+    LOG("shutting down...", MGDF_LOG_LOW);
   }
-
-  LOG("shutting down...", MGDF_LOG_LOW);
-  delete _application;
 
   ::timeEndPeriod(1);
 

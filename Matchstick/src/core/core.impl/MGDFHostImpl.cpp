@@ -20,6 +20,8 @@
 
 using namespace std::filesystem;
 
+static const std::string S_EMPTY("");
+
 namespace MGDF {
 namespace core {
 
@@ -55,8 +57,11 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _input(components.Input),
       _sound(components.Sound),
       _vfs(components.VFS),
-      _httpClient(components.HttpClient),
-      _stats(MakeCom<StatisticsManager>(game->GetUid(), components.HttpClient)),
+      _httpClient(std::make_shared<HttpClient>(components.NetworkEventLoop)),
+      _eventLoop(components.NetworkEventLoop),
+      _stats(MakeCom<StatisticsManager>(components.NetworkEventLoop,
+                                        game->GetUid())),
+      _metricsServer(components.NetworkEventLoop),
       _renderSettings(MakeCom<RenderSettingsManager>()),
       _saves(MakeCom<SaveManager>(game, components.Storage)),
       _references(1UL),
@@ -67,13 +72,19 @@ Host::Host(ComObject<Game> game, HostComponents &components)
   _shutdownQueued.store(false);
   _ASSERTE(game);
 
-  if (ParameterManager::Instance().HasParameter(
-          ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE)) {
-    _stats->SetRemoteEndpoint(ParameterManager::Instance().GetParameter(
-        ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE));
+  auto statsEndpointOverride = ParameterManager::Instance().GetParameter(
+      ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE);
+  if (statsEndpointOverride) {
+    _stats->SetRemoteEndpoint(statsEndpointOverride);
   } else if (ParameterManager::Instance().HasParameter(
                  ParameterConstants::STATISTICS_ENABLED)) {
     _stats->SetRemoteEndpoint(_game->GetStatististicsService());
+  }
+
+  auto metricsPort = ParameterManager::Instance().GetParameter(
+      ParameterConstants::METRICS_PORT);
+  if (metricsPort) {
+    _metricsServer.Listen(metricsPort);
   }
 }
 
@@ -176,6 +187,7 @@ Host::~Host(void) {
   for (auto &it : _metrics) {
     it.second->Release();
   }
+  STDisposeModule();
   LOG("Uninitialised host successfully", MGDF_LOG_LOW);
 }
 
@@ -224,7 +236,7 @@ void Host::STCreateModule() {
   }
 }
 
-void Host::STUpdate(double simulationTime, HostStats &stats) {
+void Host::STUpdate(double simulationTime, HostMetrics &stats) {
   bool exp = true;
   if (_module && _shutdownQueued.compare_exchange_strong(exp, false)) {
     LOG("Calling module STShutDown...", MGDF_LOG_MEDIUM);
@@ -251,7 +263,7 @@ void Host::STUpdate(double simulationTime, HostStats &stats) {
   }
 
   std::lock_guard lock(_metricMutex);
-  stats.UpdateMetrics(_metrics);
+  _metricsServer.UpdateResponse(_metrics);
 }
 
 void Host::STDisposeModule() {
@@ -517,30 +529,34 @@ HRESULT Host::CreateHistogramMetric(const small *name, const small *description,
   });
 }
 
-HRESULT Host::CreateHttpRequest(const small *url, IMGDFHttpRequest **request) {
+HRESULT Host::CreateHttpRequest(const small *url,
+                                IMGDFHttpClientRequest **request) {
   if (!url) return E_FAIL;
-  auto com = MakeCom<HttpRequestImpl>(url, _httpClient);
+  auto com = MakeCom<HttpClientRequestImpl>(url, _httpClient);
   com.AddRawRef(request);
   return S_OK;
 }
 
-HRESULT __stdcall Host::CreateHttpRequestGroup(IMGDFHttpRequestGroup **group) {
-  auto com = MakeCom<HttpRequestGroupImpl>();
+HRESULT __stdcall Host::CreateHttpRequestGroup(
+    IMGDFHttpClientRequestGroup **group) {
+  auto com = MakeCom<HttpClientRequestGroupImpl>();
   com.AddRawRef(group);
   return S_OK;
 }
 
 HRESULT __stdcall Host::CreateWebSocket(const small *url,
                                         IMGDFWebSocket **socket) {
-  auto com = MakeCom<WebSocketImpl<WebSocketClient>>(
-      std::make_shared<WebSocketClient>(url));
+  auto com = MakeCom<WebSocketImpl<WebSocketClientConnection>>(
+      std::make_shared<WebSocketClientConnection>(_eventLoop, url));
   com.AddRawRef(socket);
   return S_OK;
 }
 
-HRESULT __stdcall Host::CreateWebSocketServer(unsigned int port,
-                                              IMGDFWebSocketServer **server) {
-  auto com = MakeCom<WebSocketServerImpl>(port);
+HRESULT __stdcall Host::CreateWebServer(unsigned int port,
+                                        const small *socketPath,
+                                        IMGDFWebServer **server) {
+  auto com = MakeCom<WebServerImpl>(_eventLoop, port,
+                                    socketPath ? socketPath : S_EMPTY);
   com.AddRawRef(server);
   return S_OK;
 }

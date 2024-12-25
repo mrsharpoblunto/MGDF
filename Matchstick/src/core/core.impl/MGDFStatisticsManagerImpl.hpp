@@ -13,8 +13,8 @@ namespace core {
 
 class StatisticsManager : public ComBase<IMGDFStatisticsManager> {
  public:
-  StatisticsManager(const std::string &gameUid,
-                    const std::shared_ptr<HttpClient> &client);
+  StatisticsManager(const std::shared_ptr<NetworkEventLoop> &eventLoop,
+                    const std::string &gameUid);
   virtual ~StatisticsManager();
   void __stdcall PushString(const char *name, const char *value,
                             const MGDFTags *tags) final;

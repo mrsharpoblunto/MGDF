@@ -10,13 +10,13 @@
 namespace MGDF {
 namespace core {
 
-HttpResponseImpl::HttpResponseImpl(
-    const std::shared_ptr<HttpResponse> &response)
+HttpClientResponseImpl::HttpClientResponseImpl(
+    const std::shared_ptr<HttpClientResponse> &response)
     : _response(response) {}
 
-INT32 HttpResponseImpl::GetCode() { return _response->Code; }
+INT32 HttpClientResponseImpl::GetResponseCode() { return _response->Code; }
 
-const small *HttpResponseImpl::GetHeader(const small *name) {
+const small *HttpClientResponseImpl::GetResponseHeader(const small *name) {
   auto found = _response->Headers.find(name);
   if (found != _response->Headers.end()) {
     return found->second.c_str();
@@ -25,88 +25,155 @@ const small *HttpResponseImpl::GetHeader(const small *name) {
   }
 }
 
-const small *HttpResponseImpl::GetError(void) {
+const small *HttpClientResponseImpl::GetResponseError(void) {
   return _response->Error.size() ? _response->Error.c_str() : nullptr;
 }
 
-UINT64 HttpResponseImpl::GetBodyLength(void) { return _response->Body.size(); }
+UINT64 HttpClientResponseImpl::GetResponseBodyLength(void) {
+  return _response->Body.size();
+}
 
-const small *HttpResponseImpl::GetBody(void) { return _response->Body.data(); }
+const small *HttpClientResponseImpl::GetResponseBody(void) {
+  return _response->Body.data();
+}
 
-HttpRequestImpl::HttpRequestImpl(const std::string &url,
-                                 const std::shared_ptr<HttpClient> &client)
-    : _request(std::make_shared<HttpRequest>(url)), _client(client) {}
+HttpClientRequestImpl::HttpClientRequestImpl(
+    const std::string &url, const std::shared_ptr<HttpClient> &client)
+    : _request(std::make_shared<HttpClientRequest>(url)), _client(client) {}
 
-HttpRequestImpl::HttpRequestImpl(const std::shared_ptr<HttpRequest> &request)
+HttpClientRequestImpl::HttpClientRequestImpl(
+    const std::shared_ptr<HttpClientRequest> &request)
     : _request(request) {}
 
-IMGDFHttpRequest *HttpRequestImpl::SetHeader(const small *name,
-                                             const small *value) {
+IMGDFHttpClientRequest *HttpClientRequestImpl::SetRequestHeader(
+    const small *name, const small *value) {
   _request->SetHeader(name, value);
   return this;
 }
 
-IMGDFHttpRequest *HttpRequestImpl::SetMethod(const small *method) {
+IMGDFHttpClientRequest *HttpClientRequestImpl::SetRequestMethod(
+    const small *method) {
   _request->SetMethod(method);
   return this;
 }
 
-IMGDFHttpRequest *HttpRequestImpl::SetBody(const small *body,
-                                           UINT64 bodyLength) {
+IMGDFHttpClientRequest *HttpClientRequestImpl::SetRequestBody(
+    const small *body, UINT64 bodyLength) {
   _request->SetBody(body, bodyLength);
   return this;
 }
 
-void *HttpRequestImpl::Send(IMGDFHttpRequestGroup *group) {
-  _client->SendRequest(_request,
-                       dynamic_cast<HttpRequestGroupImpl *>(group)->Group);
+void *HttpClientRequestImpl::SendRequest(IMGDFHttpClientRequestGroup *group) {
+  _client->SendRequest(
+      _request, dynamic_cast<HttpClientRequestGroupImpl *>(group)->Group);
   _client.reset();
   return _request.get();
 }
 
-void HttpRequestImpl::Cancel() { _request->Cancel(); }
+void HttpClientRequestImpl::CancelRequest() { _request->Cancel(); }
 
-BOOL HttpRequestImpl::GetResponse(IMGDFHttpResponse **response) {
-  std::shared_ptr<HttpResponse> r;
+BOOL HttpClientRequestImpl::GetResponse(IMGDFHttpClientResponse **response) {
+  std::shared_ptr<HttpClientResponse> r;
   if (_request->GetResponse(r)) {
-    auto wrapper = MakeCom<HttpResponseImpl>(r);
+    auto wrapper = MakeCom<HttpClientResponseImpl>(r);
     wrapper.AddRawRef(response);
     return TRUE;
   }
   return FALSE;
 }
 
-void *HttpRequestGroupImpl::GetResponse(IMGDFHttpResponse **responseOut) {
-  std::shared_ptr<HttpResponse> response;
+void *HttpClientRequestGroupImpl::GetResponse(
+    IMGDFHttpClientResponse **responseOut) {
+  std::shared_ptr<HttpClientResponse> response;
   auto request = Group->GetResponse(response);
   if (request) {
-    auto responseWrapper = MakeCom<HttpResponseImpl>(response);
+    auto responseWrapper = MakeCom<HttpClientResponseImpl>(response);
     responseWrapper.AddRawRef(responseOut);
     return request.get();
   }
   return nullptr;
 }
 
-WebSocketServerImpl::WebSocketServerImpl(uint32_t port) {
-  Listen(std::to_string(port));
+HttpServerRequestImpl::HttpServerRequestImpl(
+    const std::shared_ptr<HttpServerRequest> &request)
+    : _request(request) {}
+
+const small *__stdcall HttpServerRequestImpl::GetRequestHeader(
+    const small *name) {
+  if (_request->HasRequestHeader(name)) {
+    return _request->GetRequestHeader(name).c_str();
+  } else {
+    return nullptr;
+  }
+}
+const small *__stdcall HttpServerRequestImpl::GetRequestMethod() {
+  return _request->GetRequestMethod().c_str();
+}
+const small *HttpServerRequestImpl::GetRequestBody() {
+  return _request->GetRequestBody().c_str();
+}
+UINT64 HttpServerRequestImpl::GetRequestBodyLength() {
+  return _request->GetRequestBody().size();
 }
 
-void WebSocketServerImpl::OnConnected(
-    std::shared_ptr<WebSocketConnection> &connection) {
+IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseCode(INT32 code) {
+  _request->SetResponseCode(code);
+  return this;
+}
+
+IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseHeader(
+    const small *name, const small *value) {
+  _request->SetResponseHeader(name, value);
+  return this;
+}
+
+IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseMethod(
+    const small *method) {
+  _request->SetResponseMethod(method);
+  return this;
+}
+
+IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseBody(
+    const small *body, UINT64 bodyLength) {
+  _request->SetResponseBody(body, bodyLength);
+  return this;
+}
+
+void HttpServerRequestImpl::SendResponse() { _request->SendResponse(); }
+
+WebServerImpl::WebServerImpl(std::shared_ptr<NetworkEventLoop> &eventLoop,
+                             uint32_t port, const std::string &socketPath)
+    : HttpServer(eventLoop) {
+  Listen(std::to_string(port), socketPath);
+}
+
+void WebServerImpl::OnRequest(std::shared_ptr<HttpServerRequest> &request) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _newConnections.push_back(connection);
+  _requests.push_back(MakeCom<HttpServerRequestImpl>(request));
+}
+void WebServerImpl::OnSocketRequest(
+    std::shared_ptr<WebSocketServerConnection> &socket) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  _sockets.push_back(MakeCom<WebSocketImpl<WebSocketServerConnection>>(socket));
 }
 
-BOOL WebSocketServerImpl::ClientConnected(IMGDFWebSocket **connection) {
+BOOL WebServerImpl::RequestRecieved(MGDFWebServerRequest *request) {
+  memset(request, 0, sizeof(MGDFWebServerRequest));
   std::unique_lock<std::mutex> lock(_mutex);
-  if (!_newConnections.size()) return FALSE;
-  auto c = _newConnections.front();
-  _newConnections.pop_front();
-  lock.unlock();
-
-  auto com = MakeCom<WebSocketImpl<WebSocketConnection>>(c);
-  com.AddRawRef(connection);
-  return TRUE;
+  if (_sockets.size()) {
+    auto c = _sockets.front();
+    _sockets.pop_front();
+    lock.unlock();
+    c.AddRawRef(&request->WebSocket);
+    return TRUE;
+  } else if (_requests.size()) {
+    auto r = _requests.front();
+    _requests.pop_front();
+    lock.unlock();
+    r.AddRawRef(&request->HttpRequest);
+    return TRUE;
+  }
+  return FALSE;
 }
 
 }  // namespace core

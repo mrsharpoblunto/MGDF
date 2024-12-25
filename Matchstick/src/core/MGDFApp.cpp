@@ -13,9 +13,9 @@
 namespace MGDF {
 namespace core {
 
-MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
+MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
     : D3DAppFramework(hInstance),
-      _stats(TIMER_SAMPLES),
+      _metrics(TIMER_SAMPLES),
       _host(host),
       _settings(host->GetRenderSettingsImpl()),
       _stInitialized(false),
@@ -55,7 +55,7 @@ MGDFApp::MGDFApp(Host *host, HINSTANCE hInstance)
     }
   }
 
-  _stats.SetExpectedSimTime(1 / (double)simulationFps);
+  _metrics.SetExpectedSimTime(1 / (double)simulationFps);
 
   _ASSERTE(host);
   _host = host;
@@ -211,7 +211,7 @@ void MGDFApp::RTOnDraw() {
 
   const double elapsedTime =
       _timer->ConvertDifferenceToSeconds(currentTime, _rtStart);
-  _stats.AppendRenderTimes(
+  _metrics.AppendRenderTimes(
       elapsedTime, _timer->ConvertDifferenceToSeconds(_rtActiveEnd, _rtStart));
   _rtStart = currentTime;
 
@@ -229,7 +229,7 @@ void MGDFApp::RTDrawSystemOverlay() {
   }
 
   _rtTextStream->ClearText();
-  _host->GetDebugImpl()->DumpInfo(_stats, *_rtTextStream);
+  _host->GetDebugImpl()->DumpInfo(_metrics, *_rtTextStream);
 
   if (FAILED(_rtTextStream->GenerateLayout(
           _rtContext, _rtTextFormat,
@@ -347,17 +347,17 @@ void MGDFApp::STOnUpdateSim() {
   const LARGE_INTEGER simulationEnd = _stEnd;
 
   // execute one frame of game logic as per the current module
-  _host->STUpdate(_stats.ExpectedSimTime(), _stats);
+  _host->STUpdate(_metrics.ExpectedSimTime(), _metrics);
   _awaitFrame.clear();
 
   const LARGE_INTEGER activeSimulationEnd = _timer->GetCurrentTimeTicks();
-  _stats.AppendActiveSimTime(
+  _metrics.AppendActiveSimTime(
       _timer->ConvertDifferenceToSeconds(activeSimulationEnd, simulationEnd));
 
   // wait until the next frame to begin if we have any spare time left over
   bool didLimit;
   _stEnd = _stFrameLimiter->LimitFps(didLimit);
-  _stats.AppendSimTime(
+  _metrics.AppendSimTime(
       _timer->ConvertDifferenceToSeconds(_stEnd, simulationEnd));
 }
 

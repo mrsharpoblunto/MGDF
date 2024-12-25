@@ -1618,51 +1618,53 @@ An interface for an HTTP Response. The memory returned by all methods are owned 
 [
   uuid("21EE3B91-5358-435F-B9C7-9299283973B5"), object,
   local
-] interface IMGDFHttpResponse : IUnknown {
+] interface IMGDFHttpClientResponse : IUnknown {
   /**
   Get the value of the HTTP response code
-  \return the value of the HTTP response code, if 0 indicates an error making the request, -1 indicates the request was cancelled, any other value represents the status code returned from the server
+  \return 0 indicates an error making the request
+          -1 indicates the request was cancelled
+          any other value represents the HTTP status code returned from the server
   */
-  INT32 GetCode();
+  INT32 GetResponseCode();
 
   /**
   Get the value of a header in the response
   \name the name of the header
   \return the value of the header in the response or NULL if the header wasn't found
   */
-  const small *GetHeader([in] const small *name);
+  const small *GetResponseHeader([in] const small *name);
 
   /**
   If the request failed, get the error message
   \return the error message or NULL if the request succeeded
   */
-  const small *GetError();
+  const small *GetResponseError();
 
   /**
   Get the length of the body of the response
   \return the length of the body of the response
   */
-  UINT64 GetBodyLength();
+  UINT64 GetResponseBodyLength();
 
   /**
   Get the body of the response
   \return the body of the response. NOTE: this is not necessarily a valid C string and may not be null terminated. Use GetBodyLength to determine the length of the body.
   */
-  const small *GetBody();
+  const small *GetResponseBody();
 };
 
-interface IMGDFHttpRequest;
+interface IMGDFHttpClientRequest;
 
 [
   uuid("037BBA90-175F-4C30-AA66-221BC2278846"), object,
   local
-] interface IMGDFHttpRequestGroup : IUnknown {
+] interface IMGDFHttpClientRequestGroup : IUnknown {
   /**
   Call this repeatedly to check if any requests in a group have completed
   \param response the response to the request
   \return the handle of any completed http request, nullptr otherwise
   */
-  void *GetResponse([ in, out ] IMGDFHttpResponse * *response);
+  void *GetResponse([ in, out ] IMGDFHttpClientResponse * *response);
 };
 
 /**
@@ -1671,31 +1673,33 @@ An interface for sending an HTTP request
 [
   uuid("CB5F9022-ED30-401B-82E2-042567CC0683"), object,
   local
-] interface IMGDFHttpRequest : IUnknown {
+] interface IMGDFHttpClientRequest : IUnknown {
   /**
   Set the value of an HTTP header on the request
   \param name the name of the header
   \param value the value of the header
   */
-  IMGDFHttpRequest *SetHeader([in] const small *name, [in] const small *value);
+  IMGDFHttpClientRequest *
+  SetRequestHeader([in] const small *name, [in] const small *value);
 
   /**
     Set the HTTP method to use for the request
     \param method the HTTP method to use for the request, one of the standard HTTP verbs (GET, POST, PUT, DELETE, etc)
   */
-  IMGDFHttpRequest *SetMethod([in] const small *method);
+  IMGDFHttpClientRequest *SetRequestMethod([in] const small *method);
 
   /**
   Set the body of the request. This method copies the body data into the request
   \param body the body of the request
   \param bodyLength the length of the body
   */
-  IMGDFHttpRequest *SetBody([in] const small *body, [in] UINT64 bodyLength);
+  IMGDFHttpClientRequest *
+  SetRequestBody([in] const small *body, [in] UINT64 bodyLength);
 
   /**
   Cancels a pending request. Causes any calls to GetResponse to return true with a response with a code of -1, and a 'Cancelled' error message
   */
-  void Cancel();
+  void CancelRequest();
 
   /**
   Initiates the request. The request is not actually sent until this method is
@@ -1704,14 +1708,86 @@ An interface for sending an HTTP request
   \return a unique pointer to the request in the group if the request was sent in a group, otherwise nullptr. This can be
   used to identify the request in the group when calling GetResponse later
   */
-  void *Send([in] IMGDFHttpRequestGroup * group);
+  void *SendRequest([in] IMGDFHttpClientRequestGroup * group);
 
   /**
   Check if the request has received a response and if so get the response
   \param response the response to the request
   \return true if the request has received a response, been cancelled, or failed with an error. If the request is still pending, false is returned
   */
-  BOOL GetResponse([out] IMGDFHttpResponse * *response);
+  BOOL GetResponse([out] IMGDFHttpClientResponse * *response);
+};
+
+/**
+* An interface for querying the contents of an incoming http request to a server
+and responding to that request.
+* The memory returned by all methods are owned by the request and are only valid for the lifetime of the request. If you want to persist these values you should create copies of them.
+*/
+[
+  uuid("BD238D94-28D6-4D10-AAB9-0C4070EA87BC"), object,
+  local
+] interface IMGDFHttpServerRequest : IUnknown {
+  /**
+  Gets the value of a header in the request
+  \param name the name of the header
+  \return the value of the header in the request or NULL if the header wasn't found
+  */
+  const small *GetRequestHeader([in] const small *name);
+
+  /**
+  Gets the HTTP method used in the request
+  \return the HTTP method used in the request
+  */
+  const small *GetRequestMethod();
+
+  /**
+  Gets the body of the request
+  \return the body of the request. NOTE: this is not necessarily a valid C string and may not be null terminated
+  */
+  const small *GetRequestBody();
+
+  /**
+  Gets the length of the body of the request
+  \return the length of the body of the request
+  */
+  UINT64 GetRequestBodyLength();
+
+  /**
+  Sets a header in the response
+  \param name the name of the header to set
+  \param value the value to set for the header
+  \return this request object for chaining
+  */
+  IMGDFHttpServerRequest *
+  SetResponseHeader([in] const small *name, [in] const small *value);
+
+  /**
+  Sets the HTTP method to use for the response
+  \param method the HTTP method to use for the response
+  \return this request object for chaining
+  */
+  IMGDFHttpServerRequest *SetResponseMethod([in] const small *method);
+
+  /**
+  Sets the body of the response
+  \param body the body content to set
+  \param bodyLength the length of the body content
+  \return this request object for chaining
+  */
+  IMGDFHttpServerRequest *
+  SetResponseBody([in] const small *body, [in] UINT64 bodyLength);
+
+  /**
+  Sets the HTTP status code for the response
+  \param code the HTTP status code to set
+  \return this request object for chaining
+  */
+  IMGDFHttpServerRequest *SetResponseCode(INT32 code);
+
+  /**
+  Sends the response back to the client
+  */
+  void SendResponse();
 };
 
 /**
@@ -1774,18 +1850,27 @@ An interface for sending and recieving websocket messages
 };
 
 /**
+Represents a request made to a webserver. Either a websocket connection or a
+standard HTTP request.
+*/
+typedef struct MGDFWebServerRequest {
+  IMGDFWebSocket *WebSocket;
+  IMGDFHttpServerRequest *HttpRequest;
+} MGDFWebServerRequest;
+
+/**
 An interface for creating and managing a websocket server
 */
 [
   uuid("5472F609-D70E-449D-9560-6463F28B99FB"), , object,
   local
-] interface IMGDFWebSocketServer : IUnknown {
+] interface IMGDFWebServer : IUnknown {
   /**
-  Get whether any new incoming connections were made. This should be called repeatedly until it returns false to process all incoming connections. Once a client has been created you can use the CanRecieve method to check there is a message available to be recieved from the remote client. You should also check the connection status of the connection to ensure it is still open and free it when its no longer connected.
-  \param connection the connection to the client
+  Get whether any new incoming requests were made. This should be called repeatedly until it returns false to process all incoming requests.
+  \param request. The type of incoming request, this is a union of either a websocket connection or a standard HTTP request.
   \return true if a new incoming connection was made
   */
-  BOOL ClientConnected([out] IMGDFWebSocket * *connection);
+  BOOL RequestRecieved([out] MGDFWebServerRequest * request);
 
   /**
   Whether the server is listening for incoming connections
@@ -1865,7 +1950,8 @@ this interface are safe to be used from any thread
   \return S_OK if the request could be created, otherwise an error code is returned
   */
   HRESULT
-  CreateHttpRequest([in] const small *url, [out] IMGDFHttpRequest **request);
+  CreateHttpRequest([in] const small *url, [out] IMGDFHttpClientRequest *
+                                               *request);
 
   /**
   create an http request group. These are used to group related requests and
@@ -1874,7 +1960,7 @@ this interface are safe to be used from any thread
   \return S_OK if the request group could be created, otherwise an error code is returned
   */
   HRESULT
-  CreateHttpRequestGroup([out] IMGDFHttpRequestGroup * *group);
+  CreateHttpRequestGroup([out] IMGDFHttpClientRequestGroup * *group);
 
   /**
   create a websocket connection
@@ -1888,11 +1974,13 @@ this interface are safe to be used from any thread
   /**
   create a websocket connection
   \param port for the server to listen on
+  \param websocketPath Any requests matching this path glob will be upgraded to a websocket connection. If null, all requests will be treated as regular HTTP requests
   \param socket the created websocket server object
   \return S_OK if the webserver could be created, otherwise an error code is returned
   */
   HRESULT
-  CreateWebSocketServer(unsigned int port, [out] IMGDFWebSocketServer **server);
+  CreateWebServer(unsigned int port,
+                  const small *websocketPath, [out] IMGDFWebServer **server);
 
   /**
    create a performance counter for profiling CPU time taken. When no longer

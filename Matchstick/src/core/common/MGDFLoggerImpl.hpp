@@ -32,8 +32,8 @@ class Logger {
     return log;
   }
 
-  void SetRemoteEndpoint(const std::string &endpoint,
-                         const std::shared_ptr<HttpClient> &client);
+  void SetRemoteEndpoint(const std::shared_ptr<NetworkEventLoop> &eventLoop,
+                         const std::string &endpoint);
   void SetLoggingLevel(MGDFLogLevel level);
   MGDFLogLevel GetLoggingLevel() const;
   void Log(const char *sender, const char *message, MGDFLogLevel level);

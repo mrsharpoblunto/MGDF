@@ -8,7 +8,6 @@ namespace core {
 class HostBuilder {
  public:
   static HRESULT TryCreateHost(ComObject<Host> &host);
-  static void DisposeHost(ComObject<Host> &host);
 
  private:
   static bool RegisterBaseComponents(HostComponents &);
@@ -16,8 +15,7 @@ class HostBuilder {
                                            HostComponents &);
   static void InitParameterManager();
   static void InitResources(std::string gameUid = "");
-  static void InitLogger(const std::shared_ptr<HttpClient> &client);
-  static std::string GetApplicationDirectory(HINSTANCE instance);
+  static void InitLogger(const std::shared_ptr<NetworkEventLoop> &eventLoop);
 };
 
 }  // namespace core

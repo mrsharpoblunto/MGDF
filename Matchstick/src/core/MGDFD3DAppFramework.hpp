@@ -33,7 +33,7 @@ class D3DAppFramework {
   D3DAppFramework(HINSTANCE hInstance);
   virtual ~D3DAppFramework();
 
-  void InitWindow(const std::string &caption, WNDPROC windowProcedure);
+  void InitWindow(const std::string &caption);
   LRESULT MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam, LPARAM lParam);
   INT32 Run();
 
@@ -131,18 +131,6 @@ class D3DAppFramework {
   bool _internalShutDown;
   std::vector<BYTE> _rawInputBuffer;
 };
-
-// defines a function which calls into an instance of a d3dApp subclass to
-// access the wndproc
-#define D3DAPP_WNDPROC(wndProcName, className)                         \
-  LRESULT CALLBACK wndProcName##(HWND hwnd, UINT32 msg, WPARAM wParam, \
-                                 LPARAM lParam) {                      \
-    if (##className## != nullptr) {                                    \
-      return className##->MsgProc(hwnd, msg, wParam, lParam);          \
-    } else {                                                           \
-      return ::DefWindowProc(hwnd, msg, wParam, lParam);               \
-    }                                                                  \
-  }
 
 }  // namespace core
 }  // namespace MGDF

@@ -4,9 +4,9 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include <unordered_map>
 #include <vector>
 
+#include "MGDFHttpCommon.hpp"
 #include "mongoose.h"
 
 namespace MGDF {
@@ -18,10 +18,10 @@ struct WebSocketMessage {
   bool Binary;
 };
 
-class WebSocketConnection {
+class WebSocketConnectionBase {
  public:
-  WebSocketConnection(mg_connection *c, MGDFWebSocketConnectionState state);
-  virtual ~WebSocketConnection();
+  WebSocketConnectionBase(mg_connection *c, MGDFWebSocketConnectionState state);
+  virtual ~WebSocketConnectionBase();
 
   void Send(const std::vector<char> &data, bool binary = false);
   void Send(void *data, size_t dataLength, bool binary = false);
@@ -30,9 +30,9 @@ class WebSocketConnection {
   MGDFWebSocketConnectionState GetConnectionState(std::string &lastError);
   unsigned int GetId() const { return _conn ? _conn->id : 0; }
 
+ protected:
   void Poll(int ev, void *ev_data, void *fn_data);
 
- protected:
   struct mg_connection *_conn;
   std::deque<std::pair<std::vector<char>, bool>> _in;
   std::vector<WebSocketMessage> _out;
@@ -41,47 +41,26 @@ class WebSocketConnection {
   std::mutex _mutex;
 };
 
-class WebSocketClient : public WebSocketConnection {
+class WebSocketClientConnection : public INetworkEventListener,
+                                  public WebSocketConnectionBase {
  public:
-  WebSocketClient(const std::string &url);
-  virtual ~WebSocketClient();
+  WebSocketClientConnection(std::shared_ptr<NetworkEventLoop> &eventLoop,
+                            const std::string &url);
+  virtual ~WebSocketClientConnection();
+
+  void OnPoll(mg_mgr &mgr, mg_fs &fs) final;
 
  private:
   static void HandleRequest(struct mg_connection *c, int ev, void *ev_data,
                             void *fn_data);
 
-  struct mg_fs _fs;
-  struct mg_mgr _mgr;
+  struct mg_fs *_fs;
   struct mg_connection *_conn;
 
   uint64_t _disconnected;
   bool _usesTLS;
   std::string _url;
-  bool _running;
-  std::thread _pollThread;
-};
-
-class WebSocketServer {
- public:
-  WebSocketServer();
-  virtual ~WebSocketServer();
-
-  void Listen(const std::string &port);
-  bool Listening() const { return _conn != nullptr; }
-  virtual void OnConnected(
-      std::shared_ptr<WebSocketConnection> &connection) = 0;
-
- private:
-  static void HandleRequest(struct mg_connection *c, int ev, void *ev_data,
-                            void *fn_data);
-  struct mg_mgr _mgr;
-  struct mg_connection *_conn;
-  bool _running;
-  std::thread _pollThread;
-  std::mutex _mutex;
-
-  std::unordered_map<unsigned int, std::shared_ptr<WebSocketConnection>>
-      _connections;
+  std::shared_ptr<NetworkEventLoop> _eventLoop;
 };
 
 }  // namespace core

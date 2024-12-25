@@ -4,11 +4,8 @@
 
 #include <algorithm>
 #include <sstream>
-#include <string_view>
 
 #include "MGDFCertificates.hpp"
-#include "MGDFMongooseMemFS.hpp"
-#include "MGDFResources.hpp"
 #include "MGDFVersionInfo.hpp"
 
 #pragma warning(disable : 4706)
@@ -21,9 +18,6 @@
 namespace MGDF {
 namespace core {
 
-static const std::string S_CONTENT_ENCODING("Content-Encoding");
-static const std::string S_ACCEPT_ENCODING("Accept-Encoding");
-static const std::string S_CONTENT_LENGTH("Content-Length");
 static const std::string S_CONTENT_TYPE("Content-Type");
 static const std::string S_USER_AGENT("User-Agent");
 static const std::string S_CONNECTION("Connection");
@@ -31,7 +25,6 @@ static const std::string S_KEEP_ALIVE("Keep-Alive");
 static const std::string S_ACCEPT("Accept");
 
 static const std::string S_GET("GET");
-static const std::string S_GZIP("gzip");
 static const std::string S_HTTP("http://");
 static const std::string S_HTTPS("https://");
 static const std::string S_APPLICATION_JSON("application/json");
@@ -39,10 +32,8 @@ static const std::string S_CLOSE("close");
 static const std::string S_TIMEOUT("timeout");
 static const std::string S_MAX("max");
 
-#define mg_stdstr(str) mg_str_n(str.c_str(), str.size())
-
-std::shared_ptr<HttpRequest> HttpRequestGroup::GetResponse(
-    std::shared_ptr<HttpResponse> &response) {
+std::shared_ptr<HttpClientRequest> HttpClientRequestGroup::GetResponse(
+    std::shared_ptr<HttpClientResponse> &response) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_requests.size()) {
     auto request = _requests.front();
@@ -50,71 +41,74 @@ std::shared_ptr<HttpRequest> HttpRequestGroup::GetResponse(
     _requests.pop_front();
     return request;
   }
-  return std::shared_ptr<HttpRequest>();
+  return std::shared_ptr<HttpClientRequest>();
 }
 
-HttpRequest::HttpRequest(const std::string &url)
-    : _url(url), _method(S_GET), _state(HttpRequestState::Preparing) {
+HttpClientRequest::HttpClientRequest(const std::string &url)
+    : _url(url), _state(HttpRequestState::Preparing) {
   static std::ostringstream ua;
   ua << "MGDF/" << MGDFVersionInfo::MGDF_INTERFACE_VERSION
      << " (Windows) Framework/" << MGDFVersionInfo::MGDF_VERSION();
   static std::string uaStr = ua.str();
 
-  _headers.insert(std::make_pair(S_CONTENT_TYPE, S_APPLICATION_JSON));
-  _headers.insert(std::make_pair(S_ACCEPT_ENCODING, S_GZIP));
-  _headers.insert(std::make_pair(S_USER_AGENT, uaStr.c_str()));
-  _headers.insert(std::make_pair(S_ACCEPT, S_APPLICATION_JSON));
+  _request.Method = S_GET;
+  _request.Headers.insert(std::make_pair(S_CONTENT_TYPE, S_APPLICATION_JSON));
+  _request.Headers.insert(std::make_pair(S_ACCEPT_ENCODING, S_GZIP));
+  _request.Headers.insert(std::make_pair(S_USER_AGENT, uaStr.c_str()));
+  _request.Headers.insert(std::make_pair(S_ACCEPT, S_APPLICATION_JSON));
 }
 
-HttpRequest::~HttpRequest() {}
+HttpClientRequest::~HttpClientRequest() {}
 
-HttpRequest *HttpRequest::SetBody(const char *body, size_t bodyLength,
-                                  bool compress) {
+HttpClientRequest *HttpClientRequest::SetBody(const char *body,
+                                              size_t bodyLength,
+                                              bool compress) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _body.assign(body, bodyLength);
+  _request.Body.assign(body, bodyLength);
   if (compress) {
-    _headers.insert(std::make_pair(S_CONTENT_ENCODING, S_GZIP));
+    _request.Headers.insert(std::make_pair(S_CONTENT_ENCODING, S_GZIP));
   }
   return this;
 }
 
-HttpRequest *HttpRequest::SetHeader(const std::string &header,
-                                    const std::string &value) {
+HttpClientRequest *HttpClientRequest::SetHeader(const std::string &header,
+                                                const std::string &value) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _headers.insert(std::make_pair(header, value));
+  _request.Headers.insert(std::make_pair(header, value));
   return this;
 }
 
-HttpRequest *HttpRequest::SetMethod(const std::string &method) {
+HttpClientRequest *HttpClientRequest::SetMethod(const std::string &method) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _method = method;
+  _request.Method = method;
   return this;
 }
 
-bool HttpRequest::GetHeader(const std::string &header,
-                            std::string &value) const {
+bool HttpClientRequest::GetHeader(const std::string &header,
+                                  std::string &value) const {
   std::lock_guard<std::mutex> lock(_mutex);
-  const auto found = _headers.find(header);
-  if (found != _headers.end()) {
+  const auto found = _request.Headers.find(header);
+  if (found != _request.Headers.end()) {
     value = found->second;
     return true;
   }
   return false;
 }
 
-void HttpRequest::Cancel() {
+void HttpClientRequest::Cancel() {
   std::unique_lock<std::mutex> lock(_mutex);
   if (_state != HttpRequestState::Error &&
       _state != HttpRequestState::Complete &&
       _state != HttpRequestState::Cancelled) {
     _state = HttpRequestState::Cancelled;
-    _response = std::make_shared<HttpResponse>();
+    _response = std::make_shared<HttpClientResponse>();
     _response->Code = -1;
     _response->Error = "Cancelled";
   }
 }
 
-bool HttpRequest::GetResponse(std::shared_ptr<HttpResponse> &response) const {
+bool HttpClientRequest::GetResponse(
+    std::shared_ptr<HttpClientResponse> &response) const {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_state == HttpRequestState::Complete ||
       _state == HttpRequestState::Error ||
@@ -125,14 +119,9 @@ bool HttpRequest::GetResponse(std::shared_ptr<HttpResponse> &response) const {
   return false;
 }
 
-HttpRequestState HttpRequest::GetState() const {
+HttpRequestState HttpClientRequest::GetState() const {
   std::lock_guard<std::mutex> lock(_mutex);
   return _state;
-}
-
-HttpClient::~HttpClient() {
-  _running = false;
-  _pollThread.join();
 }
 
 HttpClientOptions HttpClient::DEFAULT_OPTIONS{
@@ -141,8 +130,49 @@ HttpClientOptions HttpClient::DEFAULT_OPTIONS{
     .KeepAlive = 10000,
 };
 
-void HttpClient::SendRequest(std::shared_ptr<HttpRequest> request,
-                             std::shared_ptr<HttpRequestGroup> group) {
+HttpClient::HttpClient(std::shared_ptr<NetworkEventLoop> eventLoop,
+                       HttpClientOptions &options)
+    : _options(options), _eventLoop(eventLoop) {
+  _eventLoop->Add(this);
+}
+
+HttpClient::~HttpClient() {
+  _eventLoop->Remove(this);
+
+  // clean up any pending requests or requests in progress
+  for (const auto &origin : _origins) {
+    for (const auto pp : origin.second.PendingRequests) {
+      const auto &p = pp.first;
+      std::unique_lock<std::mutex> lock(p->_mutex);
+      p->_state = HttpRequestState::Cancelled;
+      p->_response = std::make_shared<HttpClientResponse>();
+      p->_response->Code = -1;
+      p->_response->Error = "Cancelled";
+      if (pp.second) {
+        std::lock_guard<std::mutex> gLock(pp.second->_mutex);
+        pp.second->_requests.push_back(p);
+      }
+    }
+    for (auto &c : origin.second.Connections) {
+      if (c.second.Request) {
+        const auto &p = c.second.Request;
+        std::unique_lock<std::mutex> lock(p->_mutex);
+        p->_state = HttpRequestState::Cancelled;
+        p->_response = std::make_shared<HttpClientResponse>();
+        p->_response->Code = -1;
+        p->_response->Error = "Cancelled";
+        if (c.second.Group) {
+          const auto &g = c.second.Group;
+          std::lock_guard<std::mutex> gLock(g->_mutex);
+          g->_requests.push_back(p);
+        }
+      }
+    }
+  }
+}
+
+void HttpClient::SendRequest(std::shared_ptr<HttpClientRequest> request,
+                             std::shared_ptr<HttpClientRequestGroup> group) {
   {
     std::lock_guard<std::mutex> rLock(request->_mutex);
     if (request->_state == HttpRequestState::Preparing) {
@@ -153,139 +183,95 @@ void HttpClient::SendRequest(std::shared_ptr<HttpRequest> request,
   }
 }
 
-HttpClient::HttpClient(HttpClientOptions &options)
-    : _running(true), _options(options) {
-  MemFS::InitMGFS(_fs);
-  MemFS::Ensure(CertificateManager::S_CA_PEM, &CertificateManager::LoadCerts);
-
-  _pollThread = std::thread([this]() {
-    mg_mgr mgr;
-    mg_mgr_init(&mgr);
-    std::vector<std::pair<std::shared_ptr<HttpRequest>,
-                          std::shared_ptr<HttpRequestGroup>>>
-        pending;
-    while (_running) {
-      {
-        std::lock_guard<std::mutex> lock(_mutex);
-        pending.clear();
-        pending.assign(_pendingRequests.begin(), _pendingRequests.end());
-        _pendingRequests.clear();
-      }
-
-      // assign all valid pending requests to an origin
-      for (const auto &pp : pending) {
-        const auto &p = pp.first;
-        std::unique_lock<std::mutex> pLock(p->_mutex);
-
-        std::string url = p->_url;
-        std::transform(url.begin(), url.end(), url.begin(), tolowerChar);
-
-        if (!url.starts_with(S_HTTP) && !url.starts_with(S_HTTPS)) {
-          p->_state = HttpRequestState::Error;
-          p->_response = std::make_shared<HttpResponse>();
-          p->_response->Error = "Invalid URL protocol";
-          if (pp.second) {
-            std::lock_guard<std::mutex> gLock(pp.second->_mutex);
-            pp.second->_requests.push_back(p);
-          }
-          continue;
-        }
-
-        const struct mg_str host = mg_url_host(url.c_str());
-        const unsigned short port = mg_url_port(url.c_str());
-        const bool usesTLS = mg_url_is_ssl(url.c_str());
-        // uri might be case sensitive or have unicode characters, so use the
-        // original url
-        const char *uri = mg_url_uri(p->_url.c_str());
-
-        // to tell origins http/https origins using default ports
-        // apart we need to include the port in all cases
-        std::ostringstream canonicalHost;
-        std::ostringstream canonicalHostAndPort;
-        canonicalHost << std::string(host.ptr, host.len);
-        canonicalHostAndPort << std::string(host.ptr, host.len) << ":" << port;
-        if ((usesTLS && port != 443) || !(usesTLS && port != 80)) {
-          canonicalHost << ":" << port;
-        }
-
-        std::ostringstream canonicalURL;
-        canonicalURL << (usesTLS ? S_HTTPS : S_HTTP) << canonicalHost.str()
-                     << (uri[0] == '\\' ? "/" : uri);
-
-        auto origin = _origins.find(canonicalHostAndPort.str());
-        if (origin == _origins.end()) {
-          origin = _origins
-                       .emplace(canonicalHostAndPort.str(),
-                                HttpOrigin{.UsesTLS = usesTLS,
-                                           .ConnectionLimit =
-                                               _options.OriginConnectionLimit,
-                                           .Host = canonicalHost.str(),
-                                           .MemFS = &_fs})
-                       .first;
-        }
-
-        p->_url = canonicalURL.str();
-        origin->second.PendingRequests.push_back(pp);
-      }
-
-      mg_mgr_poll(&mgr, 64);
-
-      // any pending requests that have not been assigned to a connection
-      // will require a new connection to be created. If we've maxxed out the
-      // allowable connections to this domain, then the requests will stay
-      // pending until some requests complete
-      for (auto &origin : _origins) {
-        auto connections = origin.second.Connections.size();
-        while (origin.second.PendingRequests.size() &&
-               connections < origin.second.ConnectionLimit) {
-          auto p = origin.second.PendingRequests.front();
-          origin.second.PendingRequests.pop_front();
-          HttpConnection *newConnection = new HttpConnection{
-              .Request = p.first,
-              .Group = p.second,
-              .KeepAliveDuration = _options.KeepAlive,
-              .ConnectTimeoutDuration = _options.ConnectionTimeout,
-              .Origin = &origin.second,
-          };
-          ++connections;
-          mg_http_connect(&mgr, p.first->_url.c_str(),
-                          &HttpClient::HandleResponse, newConnection);
-        }
-      }
+void HttpClient::OnPoll(mg_mgr &mgr, mg_fs &fs) {
+  // any pending requests that have not been assigned to a connection
+  // will require a new connection to be created. If we've maxxed out the
+  // allowable connections to this domain, then the requests will stay
+  // pending until some requests complete
+  for (auto &origin : _origins) {
+    auto connections = origin.second.Connections.size();
+    while (origin.second.PendingRequests.size() &&
+           connections < origin.second.ConnectionLimit) {
+      auto p = origin.second.PendingRequests.front();
+      origin.second.PendingRequests.pop_front();
+      HttpConnection *newConnection = new HttpConnection{
+          .Request = p.first,
+          .Group = p.second,
+          .KeepAliveDuration = _options.KeepAlive,
+          .ConnectTimeoutDuration = _options.ConnectionTimeout,
+          .Origin = &origin.second,
+      };
+      ++connections;
+      mg_http_connect(&mgr, p.first->_url.c_str(), &HttpClient::HandleResponse,
+                      newConnection);
     }
-    mg_mgr_free(&mgr);
+  }
 
-    // clean up any pending requests or requests in progress
-    for (const auto &origin : _origins) {
-      for (const auto pp : origin.second.PendingRequests) {
-        const auto &p = pp.first;
-        std::unique_lock<std::mutex> lock(p->_mutex);
-        p->_state = HttpRequestState::Cancelled;
-        p->_response = std::make_shared<HttpResponse>();
-        p->_response->Code = -1;
-        p->_response->Error = "Cancelled";
-        if (pp.second) {
-          std::lock_guard<std::mutex> gLock(pp.second->_mutex);
-          pp.second->_requests.push_back(p);
-        }
+  std::vector<std::pair<std::shared_ptr<HttpClientRequest>,
+                        std::shared_ptr<HttpClientRequestGroup>>>
+      pending;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    pending.clear();
+    pending.assign(_pendingRequests.begin(), _pendingRequests.end());
+    _pendingRequests.clear();
+  }
+
+  // assign all valid pending requests to an origin
+  for (const auto &pp : pending) {
+    const auto &p = pp.first;
+    std::unique_lock<std::mutex> pLock(p->_mutex);
+
+    std::string url = p->_url;
+    std::transform(url.begin(), url.end(), url.begin(), tolowerChar);
+
+    if (!url.starts_with(S_HTTP) && !url.starts_with(S_HTTPS)) {
+      p->_state = HttpRequestState::Error;
+      p->_response = std::make_shared<HttpClientResponse>();
+      p->_response->Error = "Invalid URL protocol";
+      if (pp.second) {
+        std::lock_guard<std::mutex> gLock(pp.second->_mutex);
+        pp.second->_requests.push_back(p);
       }
-      for (auto &c : origin.second.Connections) {
-        if (c.second.Request) {
-          const auto &p = c.second.Request;
-          std::unique_lock<std::mutex> lock(p->_mutex);
-          p->_state = HttpRequestState::Cancelled;
-          p->_response = std::make_shared<HttpResponse>();
-          p->_response->Code = -1;
-          p->_response->Error = "Cancelled";
-          if (c.second.Group) {
-            const auto &g = c.second.Group;
-            std::lock_guard<std::mutex> gLock(g->_mutex);
-            g->_requests.push_back(p);
-          }
-        }
-      }
+      continue;
     }
-  });
+
+    const struct mg_str host = mg_url_host(url.c_str());
+    const unsigned short port = mg_url_port(url.c_str());
+    const bool usesTLS = mg_url_is_ssl(url.c_str());
+    // uri might be case sensitive or have unicode characters, so use the
+    // original url
+    const char *uri = mg_url_uri(p->_url.c_str());
+
+    // to tell origins http/https origins using default ports
+    // apart we need to include the port in all cases
+    std::ostringstream canonicalHost;
+    std::ostringstream canonicalHostAndPort;
+    canonicalHost << std::string(host.ptr, host.len);
+    canonicalHostAndPort << std::string(host.ptr, host.len) << ":" << port;
+    if ((usesTLS && port != 443) || !(usesTLS && port != 80)) {
+      canonicalHost << ":" << port;
+    }
+
+    std::ostringstream canonicalURL;
+    canonicalURL << (usesTLS ? S_HTTPS : S_HTTP) << canonicalHost.str()
+                 << (uri[0] == '\\' ? "/" : uri);
+
+    auto origin = _origins.find(canonicalHostAndPort.str());
+    if (origin == _origins.end()) {
+      origin = _origins
+                   .emplace(canonicalHostAndPort.str(),
+                            HttpOrigin{.UsesTLS = usesTLS,
+                                       .ConnectionLimit =
+                                           _options.OriginConnectionLimit,
+                                       .Host = canonicalHost.str(),
+                                       .MemFS = &fs})
+                   .first;
+    }
+
+    p->_url = canonicalURL.str();
+    origin->second.PendingRequests.push_back(pp);
+  }
 }
 
 void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
@@ -369,7 +355,7 @@ void HttpClient::HandleResponse(struct mg_connection *c, int ev, void *ev_data,
     if (conn->Request) {
       std::unique_lock<std::mutex> lock(conn->Request->_mutex);
       conn->Request->_state = HttpRequestState::Error;
-      conn->Request->_response = std::make_shared<HttpResponse>();
+      conn->Request->_response = std::make_shared<HttpClientResponse>();
       conn->Request->_response->Error =
           std::string(static_cast<char *>(ev_data));
       if (conn->Group) {
@@ -392,50 +378,21 @@ bool HttpClient::MakeRequestWithConnection(HttpConnection *conn) {
   if (request->_state == HttpRequestState::Cancelled) {
     return false;
   }
-  conn->Request->_state = HttpRequestState::Requesting;
+  request->_state = HttpRequestState::Requesting;
+  SendHttpRequest(conn->Connection, conn->Origin->Host, request->_url,
+                  request->_request);
 
-  std::vector<char> compressedBody;
-  const char *bodyData = request->_body.data();
-  size_t bodyLength = request->_body.size();
-
-  if (!request->_body.empty()) {
-    auto found = request->_headers.find(S_CONTENT_ENCODING);
-    if (found != request->_headers.end() && found->second == S_GZIP) {
-      if (!Resources::CompressString(request->_body, compressedBody)) {
-        request->_state = HttpRequestState::Error;
-        request->_response = std::make_shared<HttpResponse>();
-        request->_response->Error = "Unable to compress request body";
-        if (conn->Group) {
-          std::lock_guard<std::mutex> gLock(conn->Group->_mutex);
-          conn->Group->_requests.push_back(request);
-        }
-        return false;
-      }
-      bodyData = compressedBody.data();
-      bodyLength = compressedBody.size();
+  if (request->_request.Error.size()) {
+    request->_state = HttpRequestState::Error;
+    if (conn->Group) {
+      std::lock_guard<std::mutex> gLock(conn->Group->_mutex);
+      conn->Group->_requests.push_back(request);
     }
+    return false;
+  } else {
+    conn->KeepAlive = mg_millis() + conn->KeepAliveDuration;
+    return true;
   }
-
-  std::ostringstream headers;
-  for (const auto &h : request->_headers) {
-    if (h.first == S_ACCEPT_ENCODING || h.first == S_CONTENT_LENGTH) {
-      continue;
-    }
-    headers << h.first << ": " << h.second << "\r\n";
-  }
-
-  mg_printf(conn->Connection,
-            "%s %s HTTP/1.1\r\n"
-            "Host: %s\r\n"
-            "%s"
-            "Accept-Encoding: gzip\r\n"
-            "Content-Length: %d\r\n"
-            "\r\n",
-            request->_method.c_str(), mg_url_uri(request->_url.c_str()),
-            conn->Origin->Host.c_str(), headers.str().c_str(), bodyLength);
-  mg_send(conn->Connection, bodyData, bodyLength);
-  conn->KeepAlive = mg_millis() + conn->KeepAliveDuration;
-  return true;
 }
 
 void HttpClient::GetResponseFromConnection(HttpConnection *conn,
@@ -444,17 +401,6 @@ void HttpClient::GetResponseFromConnection(HttpConnection *conn,
   const auto request = conn->Request;
   if (request->_state == HttpRequestState::Cancelled) {
     return;
-  }
-
-  std::shared_ptr<HttpResponse> response = std::make_shared<HttpResponse>();
-
-  // copy in response code and headers
-  response->Code = mg_http_status(hm);
-  constexpr const size_t max = sizeof(hm->headers) / sizeof(hm->headers[0]);
-  for (size_t i = 0; i < max && hm->headers[i].name.len > 0; i++) {
-    struct mg_str *k = &hm->headers[i].name, *v = &hm->headers[i].value;
-    response->Headers.insert(std::make_pair(std::string(k->ptr, k->len),
-                                            std::string(v->ptr, v->len)));
   }
 
   const auto connectionHeader = mg_http_get_header(hm, S_CONNECTION.c_str());
@@ -478,25 +424,10 @@ void HttpClient::GetResponseFromConnection(HttpConnection *conn,
   }
   conn->KeepAlive = mg_millis() + conn->KeepAliveDuration;
 
-  const auto contentEncodingHeader =
-      mg_http_get_header(hm, S_CONTENT_ENCODING.c_str());
-  if (contentEncodingHeader) {
-    if (mg_strcmp(*contentEncodingHeader, mg_stdstr(S_GZIP)) == 0) {
-      Resources::DecompressString(hm->body.ptr, hm->body.len, response->Body);
-    } else {
-      request->_state = HttpRequestState::Error;
-      request->_response = std::make_shared<HttpResponse>();
-      request->_response->Error = "Unsupported Content-Encoding";
-      return;
-    }
-  } else {
-    response->Body.resize(hm->body.len);
-    memcpy_s(response->Body.data(), response->Body.size(), hm->body.ptr,
-             hm->body.len);
-  }
-
-  request->_response = response;
-  request->_state = HttpRequestState::Complete;
+  request->_response = CreateHttpMessage<HttpClientResponse>(hm);
+  request->_state = request->_response->Error.size()
+                        ? HttpRequestState::Error
+                        : HttpRequestState::Complete;
   if (conn->Group) {
     std::lock_guard<std::mutex> gLock(conn->Group->_mutex);
     conn->Group->_requests.push_back(request);
