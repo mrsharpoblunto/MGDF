@@ -64,7 +64,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../vendor/mbedtls-3.2.1/include;../../../../vendor/minizip/src;../../../../vendor/zlib/src;../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../vendor/minizip/src;../../../../vendor/zlib/src;../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -91,7 +91,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../../vendor/mbedtls-3.2.1/include;../../../../vendor/minizip/src;../../../../vendor/zlib/src;../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../vendor/minizip/src;../../../../vendor/zlib/src;../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -122,7 +122,8 @@
     <ClCompile Include="MGDFDefaultReadOnlyFolderImpl.cpp" />
     <ClCompile Include="MGDFDefaultWriteableFileImpl.cpp" />
     <ClCompile Include="MGDFReadOnlyFileBaseImpl.cpp" />
-    <ClCompile Include="MGDFReadOnlyVirtualFileSystemComponentImpl.cpp" />
+    <ClCompile Include="MGDFVirtualFileSystemComponent.cpp" />
+    <ClCompile Include="MGDFReadOnlyVirtualFileSystemComponent.cpp" />
     <ClCompile Include="MGDFWriteableVirtualFileSystem.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -139,7 +140,8 @@
     <ClInclude Include="MGDFDefaultReadOnlyFolderImpl.hpp" />
     <ClInclude Include="MGDFDefaultWriteableFileImpl.hpp" />
     <ClInclude Include="MGDFReadOnlyFileBaseImpl.hpp" />
-    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponentImpl.hpp" />
+    <ClInclude Include="MGDFVirtualFileSystemComponent.hpp" />
+    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponent.hpp" />
     <ClInclude Include="MGDFLogicalPathResolver.h" />
     <ClInclude Include="MGDFWriteableVirtualFileSystem.hpp" />
     <ClInclude Include="stdafx.h" />

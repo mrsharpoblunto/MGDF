@@ -7,19 +7,11 @@
 #include <vector>
 
 #include "MGDFLogicalPathResolver.h"
+#include "MGDFVirtualFileSystemComponent.hpp"
 
 namespace MGDF {
 namespace core {
 namespace vfs {
-
-class IReadOnlyVirtualFileSystemComponent
-    : public ComBase<IMGDFReadOnlyVirtualFileSystem> {
- public:
-  virtual ~IReadOnlyVirtualFileSystemComponent() {}
-  virtual bool Mount(const wchar_t *physicalDirectory) = 0;
-  virtual void RegisterArchiveHandler(
-      ComObject<IMGDFArchiveHandler> handler) = 0;
-};
 
 class DefaultFolderImpl;
 struct WCharCmp;
@@ -28,7 +20,7 @@ class ReadOnlyVirtualFileSystemComponent
     : public IReadOnlyVirtualFileSystemComponent {
  public:
   ReadOnlyVirtualFileSystemComponent();
-  virtual ~ReadOnlyVirtualFileSystemComponent(){};
+  virtual ~ReadOnlyVirtualFileSystemComponent() {};
 
   BOOL __stdcall GetFile(const wchar_t *logicalPath,
                          IMGDFReadOnlyFile **file) final;
@@ -50,9 +42,6 @@ class ReadOnlyVirtualFileSystemComponent
                          ComObject<IMGDFArchiveHandler> &handler);
   LogicalPathResolver<IMGDFReadOnlyFile> _resolver;
 };
-
-bool CreateReadOnlyVirtualFileSystemComponentImpl(
-    ComObject<IReadOnlyVirtualFileSystemComponent> &vfs);
 
 }  // namespace vfs
 }  // namespace core

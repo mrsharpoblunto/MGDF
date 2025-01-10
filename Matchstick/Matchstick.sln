@@ -177,6 +177,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.api", "src\core\core.a
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mbedTLS", "..\vendor\mbedtls-3.2.1\visualc\VS2010\mbedTLS.vcxproj", "{46CF2D25-6A36-4189-B59C-E4815388E554}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network", "src\core\network\core.network.vcxproj", "{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network.mongoose", "src\core\network\mongoose\core.network.mongoose.vcxproj", "{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -413,6 +417,22 @@ Global
 		{46CF2D25-6A36-4189-B59C-E4815388E554}.Release|Any CPU.ActiveCfg = Release|x64
 		{46CF2D25-6A36-4189-B59C-E4815388E554}.Release|x64.ActiveCfg = Release|x64
 		{46CF2D25-6A36-4189-B59C-E4815388E554}.Release|x64.Build.0 = Release|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Debug|Any CPU.Build.0 = Debug|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Debug|x64.ActiveCfg = Debug|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Debug|x64.Build.0 = Debug|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Release|Any CPU.ActiveCfg = Release|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Release|Any CPU.Build.0 = Release|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Release|x64.ActiveCfg = Release|x64
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}.Release|x64.Build.0 = Release|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Debug|Any CPU.Build.0 = Debug|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Debug|x64.ActiveCfg = Debug|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Debug|x64.Build.0 = Debug|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Release|Any CPU.ActiveCfg = Release|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Release|Any CPU.Build.0 = Release|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Release|x64.ActiveCfg = Release|x64
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -459,6 +479,8 @@ Global
 		{811FDD54-AE80-4ED5-867F-E3313E07DEDD} = {F7F8841C-8BE3-4E4F-86C9-4850BCA326DE}
 		{531A9FF9-F1EC-41D8-8C34-531E640139BA} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{46CF2D25-6A36-4189-B59C-E4815388E554} = {28C3B38B-2DE5-4423-A225-2E18B2C2F820}
+		{A42BA857-FDAB-47BF-A5B9-EC9AD0263034} = {5656FE26-2995-4842-B088-D8E29338C13E}
+		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701} = {5656FE26-2995-4842-B088-D8E29338C13E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {118DD43D-76DF-4453-9FDE-07A00E57E34C}

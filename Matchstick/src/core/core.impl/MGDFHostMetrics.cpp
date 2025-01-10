@@ -9,7 +9,20 @@
 namespace MGDF {
 namespace core {
 
-void HostMetricsServer::OnRequest(std::shared_ptr<HttpServerRequest>& request) {
+HostMetricsServer::HostMetricsServer(
+    std::shared_ptr<network::INetworkManagerComponent>& network)
+    : _network(network), _updateResponse(false) {}
+
+void HostMetricsServer::Listen(UINT32 port) {
+  if (!_server) {
+    _server = _network->CreateHttpServer(port, "");
+    _server->OnHttpRequest(
+        std::bind(&HostMetricsServer::OnRequest, this, std::placeholders::_1));
+  }
+}
+
+void HostMetricsServer::OnRequest(
+    std::shared_ptr<network::IHttpServerRequest> request) {
   if (request->GetRequestUrl() == "/metrics") {
     {
       std::lock_guard lock(_metricsMutex);
@@ -33,7 +46,7 @@ void HostMetricsServer::OnRequest(std::shared_ptr<HttpServerRequest>& request) {
 
 void HostMetricsServer::UpdateResponse(
     std::unordered_map<std::string, MetricBase*>& metrics) {
-  if (!Listening()) {
+  if (!_server) {
     return;
   }
   std::lock_guard lock(_metricsMutex);

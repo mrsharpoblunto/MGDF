@@ -2,6 +2,8 @@
 
 #include "MGDFDefaultReadOnlyFolderImpl.hpp"
 
+#include "MGDFReadOnlyVirtualFileSystemComponent.hpp"
+
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)

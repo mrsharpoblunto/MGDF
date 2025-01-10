@@ -984,7 +984,7 @@ INT32 D3DAppFramework::Run() {
   // possible independent of the update rate for the sim and render threads.
   bool runMainThread = true;
   while (runMainThread) {
-    sleep(1);
+    Sleep(1);
     ProcessRawInput();
     const bool hasFocus = GetForegroundWindow() == _window;
     while (

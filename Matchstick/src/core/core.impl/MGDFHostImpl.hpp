@@ -7,14 +7,13 @@
 #include <mutex>
 #include <sstream>
 
-#include "../audio/MGDFSoundManagerComponentImpl.hpp"
-#include "../common/MGDFHttpClient.hpp"
+#include "../audio/MGDFSoundManagerComponent.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
-#include "../input/MGDFInputManagerComponentImpl.hpp"
-#include "../storage/MGDFStorageFactoryComponentImpl.hpp"
-#include "../vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
-#include "../vfs/MGDFWriteableVirtualFileSystem.hpp"
+#include "../input/MGDFInputManagerComponent.hpp"
+#include "../network/MGDFNetworkManagerComponent.hpp"
+#include "../storage/MGDFStorageFactoryComponent.hpp"
+#include "../vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
 #include "MGDFDebugImpl.hpp"
 #include "MGDFGameImpl.hpp"
 #include "MGDFHostMetrics.hpp"
@@ -29,7 +28,7 @@ namespace core {
 
 struct HostComponents {
   std::shared_ptr<storage::IStorageFactoryComponent> Storage;
-  std::shared_ptr<NetworkEventLoop> NetworkEventLoop;
+  std::shared_ptr<network::INetworkManagerComponent> Network;
   ComObject<input::IInputManagerComponent> Input;
   ComObject<audio::ISoundManagerComponent> Sound;
   ComObject<vfs::IReadOnlyVirtualFileSystemComponent> VFS;
@@ -166,19 +165,17 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   std::unique_ptr<ModuleFactory> _moduleFactory;
 
   std::shared_ptr<storage::IStorageFactoryComponent> _storage;
+  std::shared_ptr<network::INetworkManagerComponent> _network;
   ComObject<SaveManager> _saves;
   ComObject<input::IInputManagerComponent> _input;
   ComObject<audio::ISoundManagerComponent> _sound;
   ComObject<vfs::IReadOnlyVirtualFileSystemComponent> _vfs;
-  ComObject<vfs::WriteableVirtualFileSystem> _workingVfs;
+  ComObject<IMGDFWriteableVirtualFileSystem> _workingVfs;
   ComObject<Debug> _debugOverlay;
   ComObject<Game> _game;
   ComObject<Timer> _timer;
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
-
-  std::shared_ptr<NetworkEventLoop> _eventLoop;
-  std::shared_ptr<HttpClient> _httpClient;
 
   ComObject<ID3D11Device> _d3dDevice;
   ComObject<ID2D1Device> _d2dDevice;

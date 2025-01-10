@@ -1,11 +1,12 @@
 #include "stdafx.h"
 
-#include "MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
+#include "MGDFReadOnlyVirtualFileSystemComponent.hpp"
 
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFResources.hpp"
 #include "MGDFDefaultReadOnlyFileImpl.hpp"
 #include "MGDFDefaultReadOnlyFolderImpl.hpp"
+#include "MGDFWriteableVirtualFileSystem.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -17,13 +18,6 @@ namespace core {
 namespace vfs {
 
 using namespace std::filesystem;
-
-bool CreateReadOnlyVirtualFileSystemComponentImpl(
-    ComObject<IReadOnlyVirtualFileSystemComponent> &comp) {
-  comp = ComObject<IReadOnlyVirtualFileSystemComponent>(
-      new ReadOnlyVirtualFileSystemComponent());
-  return true;
-}
 
 ReadOnlyVirtualFileSystemComponent::ReadOnlyVirtualFileSystemComponent() {}
 

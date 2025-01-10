@@ -9,9 +9,9 @@
 #include <iostream>
 #include <set>
 
-#include "../common/MGDFHttpClient.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFResources.hpp"
+#include "../network/MGDFNetworkManagerComponent.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -27,10 +27,10 @@ namespace core {
 #define STAT_FLUSH_TIMEOUT 5s
 
 StatisticsManager::StatisticsManager(
-    const std::shared_ptr<NetworkEventLoop>& eventLoop,
+    const std::shared_ptr<network::INetworkManagerComponent>& network,
     const std::string& gameUid)
     : _gameUid(gameUid),
-      _client(std::make_shared<HttpClient>(eventLoop)),
+      _network(network),
       _sessionStart(std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::system_clock::now().time_since_epoch())
                         .count()),
@@ -59,25 +59,13 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
   } else {
     _run = true;
     _flushThread = std::thread([this]() {
-      auto pendingRequests = std::make_shared<HttpClientRequestGroup>();
       std::unique_lock<std::mutex> lock(_mutex);
       while (_run) {
-        _cv.wait_for(lock, STAT_FLUSH_TIMEOUT, [this, &pendingRequests] {
-          return !_run || _events.size() > 0 || pendingRequests->Size() > 0;
-        });
+        _cv.wait_for(lock, STAT_FLUSH_TIMEOUT,
+                     [this] { return !_run || _events.size() > 0; });
         std::vector<PushStatistic> tmp(std::move(_events));
         _events.clear();
         lock.unlock();
-
-        std::shared_ptr<HttpClientResponse> response;
-        while (pendingRequests->GetResponse(response)) {
-          if (response->Code != 200) {
-            LOG("Unable to send statistic to remote endpoint "
-                    << _remoteEndpoint << ". status=" << response->Code
-                    << ", error=" << response->Error,
-                MGDF_LOG_ERROR);
-          }
-        }
 
         if (tmp.size()) {
           Json::Value root;
@@ -98,14 +86,23 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
             }
           }
 
-          auto request = std::make_shared<HttpClientRequest>(_remoteEndpoint);
           std::ostringstream requestBody;
           requestBody << root;
-          request->SetMethod("POST")
-              ->SetHeader("Content-Type", "application/json")
-              ->SetBody(requestBody.str().c_str(), requestBody.str().size(),
-                        true);
-          _client->SendRequest(request, pendingRequests);
+
+          auto endpoint(_remoteEndpoint);
+          _network->CreateHttpRequest(_remoteEndpoint)
+              ->SetRequestMethod("POST")
+              ->SetRequestHeader("Content-Type", "application/json")
+              ->SetRequestBody(requestBody.str().c_str(),
+                               requestBody.str().size(), true)
+              ->SendRequest([endpoint](auto response) {
+                if (response->Code != 200) {
+                  LOG("Unable to send statistic to remote endpoint "
+                          << endpoint << ". status=" << response->Code
+                          << ", error=" << response->Error,
+                      MGDF_LOG_ERROR);
+                }
+              });
         }
 
         lock.lock();

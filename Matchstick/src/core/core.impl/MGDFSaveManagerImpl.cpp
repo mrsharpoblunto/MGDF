@@ -49,7 +49,9 @@ HRESULT PendingSave::Init() {
   LOG("Mounting pending save directory \'" << Resources::ToString(_saveData)
                                            << "\' into VFS",
       MGDF_LOG_LOW);
-  _vfs = MakeCom<vfs::WriteableVirtualFileSystem>(_saveData);
+  if (!vfs::CreateWriteableVirtualFileSystemComponent(_saveData, _vfs)) {
+    return E_FAIL;
+  }
   return S_OK;
 }
 
@@ -108,17 +110,24 @@ PendingSave::~PendingSave() {
 
 GameState::GameState(
     const std::string& saveName, const std::string& gameUid, SaveManager* saves,
+    const ComObject<vfs::IReadOnlyVirtualFileSystemComponent>& vfs,
     const std::shared_ptr<storage::IStorageFactoryComponent>& factory)
-    : _saveName(saveName), _gameUid(gameUid), _saves(saves), _factory(factory) {
+    : _saveName(saveName),
+      _gameUid(gameUid),
+      _saves(saves),
+      _vfs(vfs),
+      _factory(factory) {
   ZeroMemory(&_gameVersion, sizeof(MGDFVersion));
 }
 
 GameState::GameState(
     const std::string& gameUid, MGDFVersion& version, SaveManager* saves,
+    const ComObject<vfs::IReadOnlyVirtualFileSystemComponent>& vfs,
     const std::shared_ptr<storage::IStorageFactoryComponent>& factory)
     : _gameUid(gameUid),
       _gameVersion(version),
       _saves(saves),
+      _vfs(vfs),
       _factory(factory) {}
 
 void GameState::SetSave(const std::string& saveName) {
@@ -191,7 +200,7 @@ HRESULT GameState::GetVFS(IMGDFReadOnlyVirtualFileSystem** vfs) {
   auto saveDir = Resources::Instance().SaveDataDir(_saveName);
 
   ComObject<vfs::IReadOnlyVirtualFileSystemComponent> vfsImpl;
-  if (!vfs::CreateReadOnlyVirtualFileSystemComponentImpl(vfsImpl) ||
+  if (!vfs::CreateReadOnlyVirtualFileSystemComponent(vfsImpl) ||
       !vfsImpl->Mount(saveDir.c_str())) {
     return E_FAIL;
   }
@@ -201,8 +210,9 @@ HRESULT GameState::GetVFS(IMGDFReadOnlyVirtualFileSystem** vfs) {
 
 SaveManager::SaveManager(
     const ComObject<Game>& game,
+    ComObject<vfs::IReadOnlyVirtualFileSystemComponent> vfs,
     std::shared_ptr<storage::IStorageFactoryComponent> storageFactory)
-    : _storageFactory(storageFactory) {
+    : _vfs(vfs), _storageFactory(storageFactory) {
   path savePath(Resources::Instance().SaveBaseDir());
   _gameUid = game->GetUid();
   game->GetVersion(&_gameVersion);
@@ -223,7 +233,7 @@ HRESULT SaveManager::GetSave(UINT64 index, IMGDFGameState** s) {
   }
   auto saveName = _saves.at(index);
   ComObject<GameState> save =
-      MakeCom<GameState>(saveName, _gameUid, this, _storageFactory);
+      MakeCom<GameState>(saveName, _gameUid, this, _storageFactory, _vfs);
 
   if (FAILED(save->Load())) {
     return E_FAIL;
@@ -252,7 +262,7 @@ HRESULT SaveManager::DeleteSave(IMGDFGameState* s) {
 
 void SaveManager::CreateGameState(IMGDFGameState** save) {
   auto state =
-      MakeCom<GameState>(_gameUid, _gameVersion, this, _storageFactory);
+      MakeCom<GameState>(_gameUid, _gameVersion, this, _storageFactory, _vfs);
   state.AddRawRef(save);
 }
 

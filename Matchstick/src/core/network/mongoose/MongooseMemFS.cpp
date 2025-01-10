@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "MGDFMongooseMemFS.hpp"
+#include "MongooseMemFS.hpp"
 
 #pragma warning(disable : 4706)
 

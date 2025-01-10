@@ -1,11 +1,8 @@
 #include "stdafx.h"
 
-#include "MGDFHttpCommon.hpp"
+#include "MongooseHttpCommon.hpp"
 
 #include <sstream>
-
-#include "MGDFCertificates.hpp"
-#include "MGDFMongooseMemFS.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -19,70 +16,58 @@ static const std::string S_GZIP("gzip");
 
 namespace MGDF {
 namespace core {
+namespace network {
+namespace mongoose {
 
-NetworkEventLoop::NetworkEventLoop() : _running(true) {
-  _thread = std::thread([this]() {
-    while (_running) {
-      {
-        std::lock_guard<std::mutex> lock(_mutex);
-        for (auto &l : _listeners) {
-          mg_mgr_poll(&l.second.Mgr, 0);
-          l.first->OnPoll(l.second.Mgr, l.second.Fs);
-        }
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(16));
+void CreateHttpMessage(mg_http_message *hm, HttpMessage &response) {
+  response.Code = mg_http_status(hm);
+  response.Method = std::string(hm->method.ptr, hm->method.len);
+  constexpr const size_t max = sizeof(hm->headers) / sizeof(hm->headers[0]);
+  for (size_t i = 0; i < max && hm->headers[i].name.len > 0; i++) {
+    mg_str *k = &hm->headers[i].name, *v = &hm->headers[i].value;
+    response.Headers.insert(std::make_pair(std::string(k->ptr, k->len),
+                                           std::string(v->ptr, v->len)));
+  }
+
+  const auto contentEncodingHeader =
+      mg_http_get_header(hm, S_CONTENT_ENCODING.c_str());
+  if (contentEncodingHeader) {
+    if (mg_strcmp(*contentEncodingHeader, mg_stdstr(S_GZIP)) == 0) {
+      Resources::DecompressString(hm->body.ptr, hm->body.len, response.Body);
+    } else {
+      response.Error = "Unsupported Content-Encoding";
+      response.Body.clear();
     }
-  });
-}
-
-NetworkEventLoop::~NetworkEventLoop() {
-  _running = false;
-  _thread.join();
-  _ASSERTE(_listeners.size() == 0);
-  for (auto &l : _listeners) {
-    mg_mgr_free(&l.second.Mgr);
+  } else {
+    response.Body.resize(hm->body.len);
+    memcpy_s(response.Body.data(), response.Body.size(), hm->body.ptr,
+             hm->body.len);
   }
 }
 
-void NetworkEventLoop::Add(INetworkEventListener *l) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  const auto &listener =
-      _listeners.emplace(std::make_pair(l, EventLoopMember()));
-  MemFS::InitMGFS(listener.first->second.Fs);
-  MemFS::Ensure(CertificateManager::S_CA_PEM, &CertificateManager::LoadCerts);
-  mg_mgr_init(&listener.first->second.Mgr);
-}
-
-void NetworkEventLoop::Remove(INetworkEventListener *l) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  const auto &listener = _listeners.find(l);
-  if (listener != _listeners.end()) {
-    mg_mgr_free(&listener->second.Mgr);
-    _listeners.erase(listener);
-  }
-}
-
-void SendHttpRequest(struct mg_connection *c, const std::string &host,
-                     const std::string &url, HttpMessageBase &m) {
+void SendHttpRequest(mg_connection *c, const std::string &host,
+                     const HttpMessage &m) {
   std::vector<char> compressedBody;
   const char *bodyData = m.Body.data();
   size_t bodyLength = m.Body.size();
+  bool removeContentEncoding = false;
 
   if (!m.Body.empty()) {
     auto found = m.Headers.find(S_CONTENT_ENCODING);
     if (found != m.Headers.end() && found->second == S_GZIP) {
-      if (!Resources::CompressString(m.Body, compressedBody)) {
-        m.Error = "Unable to compress request body";
-        m.Body.clear();
+      if (Resources::CompressString(m.Body, compressedBody)) {
+        bodyData = compressedBody.data();
+        bodyLength = compressedBody.size();
+      } else {
+        removeContentEncoding = true;
       }
-      bodyData = compressedBody.data();
-      bodyLength = compressedBody.size();
     }
   }
 
   std::ostringstream headers;
   for (const auto &h : m.Headers) {
-    if (h.first == S_ACCEPT_ENCODING || h.first == S_CONTENT_LENGTH) {
+    if (h.first == S_ACCEPT_ENCODING || h.first == S_CONTENT_LENGTH ||
+        (removeContentEncoding && h.first == S_CONTENT_ENCODING)) {
       continue;
     }
     headers << h.first << ": " << h.second << "\r\n";
@@ -95,12 +80,12 @@ void SendHttpRequest(struct mg_connection *c, const std::string &host,
             "Accept-Encoding: gzip\r\n"
             "Content-Length: %d\r\n"
             "\r\n",
-            m.Method.c_str(), mg_url_uri(url.c_str()), host.c_str(),
+            m.Method.c_str(), mg_url_uri(m.Url.c_str()), host.c_str(),
             headers.str().c_str(), bodyLength);
   mg_send(c, bodyData, bodyLength);
 }
 
-void SendHttpResponse(struct mg_connection *c, const HttpMessageBase &m) {
+void SendHttpResponse(mg_connection *c, const HttpMessage &m) {
   std::vector<char> compressedBody;
   const char *bodyData = m.Body.data();
   size_t bodyLength = m.Body.size();
@@ -134,5 +119,7 @@ void SendHttpResponse(struct mg_connection *c, const HttpMessageBase &m) {
   mg_send(c, bodyData, bodyLength);
 }
 
+}  // namespace mongoose
+}  // namespace network
 }  // namespace core
 }  // namespace MGDF

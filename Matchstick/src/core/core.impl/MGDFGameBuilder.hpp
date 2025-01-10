@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../storage/MGDFStorageFactoryComponentImpl.hpp"
+#include "../storage/MGDFStorageFactoryComponent.hpp"
 #include "MGDFGameImpl.hpp"
 
 namespace MGDF {

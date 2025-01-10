@@ -7,8 +7,7 @@
 #include <vector>
 
 #include "../storage/MGDFStorageFactoryComponent.hpp"
-#include "../vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
-#include "../vfs/MGDFWriteableVirtualFileSystem.hpp"
+#include "../vfs/MGDFVirtualFileSystemComponent.hpp"
 #include "MGDFGameImpl.hpp"
 
 namespace MGDF {
@@ -31,7 +30,7 @@ class PendingSave : public ComBase<IMGDFWriteableVirtualFileSystem> {
                                    UINT64 *length) final;
 
  private:
-  ComObject<vfs::WriteableVirtualFileSystem> _vfs;
+  ComObject<IMGDFWriteableVirtualFileSystem> _vfs;
   std::wstring _saveData;
   ComObject<GameState> _gameState;
   std::string _pendingName;
@@ -43,9 +42,11 @@ class GameState : public ComBase<IMGDFGameState> {
  public:
   GameState(const std::string &saveName, const std::string &gameUid,
             SaveManager *saveManager,
+            const ComObject<vfs::IReadOnlyVirtualFileSystemComponent> &vfs,
             const std::shared_ptr<storage::IStorageFactoryComponent> &factory);
   GameState(const std::string &gameUid, MGDFVersion &version,
             SaveManager *saveManager,
+            const ComObject<vfs::IReadOnlyVirtualFileSystemComponent> &vfs,
             const std::shared_ptr<storage::IStorageFactoryComponent> &factory);
   virtual ~GameState() {}
   HRESULT __stdcall GetMetadata(const char *key, char *value,
@@ -68,6 +69,7 @@ class GameState : public ComBase<IMGDFGameState> {
   std::string _gameUid;
   MGDFVersion _gameVersion;
   std::string _saveName;
+  ComObject<vfs::IReadOnlyVirtualFileSystemComponent> _vfs;
   std::shared_ptr<storage::IStorageFactoryComponent> _factory;
 };
 
@@ -75,6 +77,7 @@ class SaveManager : public ComBase<IMGDFSaveManager> {
  public:
   SaveManager(
       const ComObject<Game> &game,
+      ComObject<vfs::IReadOnlyVirtualFileSystemComponent> vfs,
       std::shared_ptr<storage::IStorageFactoryComponent> storageFactory);
   ~SaveManager() {}
   UINT64 __stdcall GetSaveCount() final { return _saves.size(); }
@@ -86,6 +89,7 @@ class SaveManager : public ComBase<IMGDFSaveManager> {
 
  private:
   std::shared_ptr<storage::IStorageFactoryComponent> _storageFactory;
+  ComObject<vfs::IReadOnlyVirtualFileSystemComponent> _vfs;
   std::string _gameUid;
   MGDFVersion _gameVersion;
   std::vector<std::string> _saves;

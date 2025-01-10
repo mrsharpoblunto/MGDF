@@ -3,7 +3,6 @@
 #include <filesystem>
 
 #include "MGDFDefaultReadOnlyFileImpl.hpp"
-#include "MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
 
 namespace MGDF {
 namespace core {

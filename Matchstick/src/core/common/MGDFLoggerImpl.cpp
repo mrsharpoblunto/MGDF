@@ -9,7 +9,6 @@
 #include <filesystem>
 #include <fstream>
 
-#include "MGDFHttpClient.hpp"
 #include "MGDFResources.hpp"
 
 #if defined(_DEBUG)
@@ -21,17 +20,6 @@ using namespace std::chrono_literals;
 
 namespace MGDF {
 namespace core {
-
-void MongooseLog(unsigned char ch) {
-  static char buffer[256];
-  static size_t len;
-  buffer[len++] = ch;
-  if (ch == '\n' || len >= sizeof(buffer)) {
-    buffer[len - 1] = '\0';  // Null-terminate the string
-    Logger::Instance().Log("Mongoose", buffer, MGDF_LOG_HIGH);
-    len = 0;
-  }
-}
 
 // wait for either this many log entries, or the timeout to
 // periodically flush logs
@@ -96,34 +84,16 @@ void Logger::FlushSync() {
 Logger::Logger() {
   SetLoggingLevel(MGDF_LOG_MEDIUM);
   SetOutputFile(Resources::Instance().LogFile());
-  mg_log_set_fn(MongooseLog);
 
   _runLogger = true;
   _flushThread = std::thread([this]() {
     std::unique_lock<std::mutex> lock(_mutex);
-    auto pendingRequests = std::make_shared<HttpClientRequestGroup>();
     while (_runLogger) {
-      _cv.wait_for(lock, LOG_FLUSH_TIMEOUT, [this, &pendingRequests] {
-        return !_runLogger || _events.size() > 0 || pendingRequests->Size() > 0;
-      });
+      _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
+                   [this] { return !_runLogger || _events.size() > 0; });
       std::vector<LogEntry> tmp(std::move(_events));
       _events.clear();
       lock.unlock();
-
-      // record the result of any failed http log posts
-      std::shared_ptr<HttpClientResponse> response;
-      while (pendingRequests->GetResponse(response)) {
-        if (response->Code != 200 && response->Code != 204) {
-#if defined(_DEBUG)
-          std::ostringstream stream;
-          stream << __FILE__ << "(" << __LINE__ << "): ";
-          stream << "Unable to send logs to remote endpoint " << _remoteEndpoint
-                 << ". status=" << response->Code
-                 << ", error=" << response->Error << "\n";
-          OutputDebugString(stream.str().c_str());
-#endif
-        }
-      }
 
       if (tmp.size()) {
         std::ofstream outFile;
@@ -169,20 +139,11 @@ Logger::Logger() {
             value.append(m.str());
           }
 
-          auto request = std::make_shared<HttpClientRequest>(_remoteEndpoint);
           std::ostringstream requestBody;
           requestBody << root;
-          request->SetMethod("POST")
-              ->SetHeader("Content-Type", "application/json")
-              ->SetBody(requestBody.str().c_str(), requestBody.str().size(),
-                        true);
-          _client->SendRequest(request, pendingRequests);
+          _remoteSender(requestBody.str(), "application/json");
         }
-
-        outFile.close();
       }
-
-      lock.lock();
     }
   });
 }
@@ -211,10 +172,12 @@ void Logger::SetOutputFile(const std::wstring &filename) {
 void Logger::SetLoggingLevel(MGDFLogLevel level) { _level.store(level); }
 
 void Logger::SetRemoteEndpoint(
-    const std::shared_ptr<NetworkEventLoop> &eventLoop,
-    const std::string &endpoint) {
-  _client = std::make_shared<HttpClient>(eventLoop);
+    const std::string &endpoint,
+    std::function<void(const std::string &content,
+                       const std::string &contentType)>
+        remoteSender) {
   _remoteEndpoint = endpoint;
+  _remoteSender = remoteSender;
 }
 
 MGDFLogLevel Logger::GetLoggingLevel() const { return _level; }

@@ -15,7 +15,8 @@ class HostBuilder {
                                            HostComponents &);
   static void InitParameterManager();
   static void InitResources(std::string gameUid = "");
-  static void InitLogger(const std::shared_ptr<NetworkEventLoop> &eventLoop);
+  static void InitLogger(
+      const std::shared_ptr<network::INetworkManagerComponent> &network);
 };
 
 }  // namespace core

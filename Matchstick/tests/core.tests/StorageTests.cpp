@@ -4,8 +4,8 @@
 
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
-#include "../../src/core/storage/MGDFStorageFactoryComponentImpl.hpp"
-#include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
+#include "../../src/core/storage/jsoncpp/MGDFStorageFactoryComponent.hpp"
+#include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
 
 using namespace MGDF;
 using namespace MGDF::core;
@@ -22,10 +22,10 @@ SUITE(StorageTests) {
       Resources::Instance(inst);
       Resources::Instance().SetUserBaseDir("junkship", true);
 
-      CreateReadOnlyVirtualFileSystemComponentImpl(_vfs);
+      CreateReadOnlyVirtualFileSystemComponent(_vfs);
       _vfs->Mount((Resources::Instance().RootDir() + L"../../../tests/content")
                       .c_str());
-      CreateStorageFactoryComponentImpl(_storage);
+      jsoncppImpl::CreateStorageFactoryComponent(_storage);
     }
     virtual ~StorageTestFixture() {}
 

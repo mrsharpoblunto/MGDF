@@ -5,9 +5,7 @@
 #include <MGDF/ComObject.hpp>
 #include <deque>
 
-#include "../common/MGDFHttpClient.hpp"
-#include "../common/MGDFHttpServer.hpp"
-#include "../common/MGDFWebSocket.hpp"
+#include "../network/MGDFNetworkManagerComponent.hpp"
 
 namespace MGDF {
 namespace core {
@@ -78,7 +76,8 @@ class HttpClientRequestGroupImpl : public ComBase<IMGDFHttpClientRequestGroup> {
 
 class HttpClientResponseImpl : public ComBase<IMGDFHttpClientResponse> {
  public:
-  HttpClientResponseImpl(const std::shared_ptr<HttpClientResponse> &response);
+  HttpClientResponseImpl(
+      const std::shared_ptr<network::HttpResponse> &response);
   virtual ~HttpClientResponseImpl(void) {}
 
   INT32 __stdcall GetResponseCode(void) final;
@@ -88,7 +87,7 @@ class HttpClientResponseImpl : public ComBase<IMGDFHttpClientResponse> {
   const small *__stdcall GetResponseBody(void) final;
 
  private:
-  std::shared_ptr<HttpClientResponse> _response;
+  std::shared_ptr<network::HttpResponse> _response;
 };
 
 class HttpClientRequestImpl : public ComBase<IMGDFHttpClientRequest> {

@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "MGDFCertificates.hpp"
+#include "CertificateManager.hpp"
 
 #include <Windows.h>
 #include <wincrypt.h>

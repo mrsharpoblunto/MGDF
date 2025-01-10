@@ -7,11 +7,13 @@
 #include <filesystem>
 #include <fstream>
 
+#include "../audio/openal/OpenALSoundManagerComponent.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
-#include "../common/MGDFStringImpl.hpp"
-#include "../common/MGDFVersionInfo.hpp"
+#include "../input/xinput/XInputManagerComponent.hpp"
+#include "../network/mongoose/MongooseNetworkManagerComponent.hpp"
+#include "../storage/jsoncpp/JsonCppStorageFactoryComponent.hpp"
 #include "MGDFGameBuilder.hpp"
 #include "MGDFParameterConstants.hpp"
 
@@ -30,11 +32,19 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   InitParameterManager();
   InitResources();
 
-  components.NetworkEventLoop = std::make_shared<NetworkEventLoop>();
+  network::NetworkManagerOptions options{.HttpClientOriginConnectionLimit = 4U,
+                                         .HttpClientConnectionTimeout = 10000,
+                                         .HttpClientKeepAlive = 10000};
+  if (!network::mongoose::CreateNetworkManagerComponent(components.Network,
+                                                        options)) {
+    LOG("FATAL ERROR: Unable to register NetworkManager", MGDF_LOG_ERROR);
+    return false;
+  }
 
-  InitLogger(components.NetworkEventLoop);
+  InitLogger(components.Network);
 
-  if (!storage::CreateStorageFactoryComponentImpl(components.Storage)) {
+  if (!storage::jsoncppImpl::CreateStorageFactoryComponent(
+          components.Storage)) {
     LOG("FATAL ERROR: Unable to register StorageFactory", MGDF_LOG_ERROR);
     return false;
   }
@@ -44,17 +54,17 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
 
 bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
                                                HostComponents &components) {
-  if (!input::CreateInputManagerComponentImpl(components.Input)) {
+  if (!input::xinput::CreateInputManagerComponent(components.Input)) {
     LOG("FATAL ERROR: Unable to register InputManager", MGDF_LOG_ERROR);
     return false;
   }
 
-  if (!vfs::CreateReadOnlyVirtualFileSystemComponentImpl(components.VFS)) {
+  if (!vfs::CreateReadOnlyVirtualFileSystemComponent(components.VFS)) {
     LOG("FATAL ERROR: Unable to register VirtualFileSystem", MGDF_LOG_ERROR);
     return false;
   }
 
-  if (!audio::CreateSoundManagerComponentImpl(
+  if (!audio::openal_audio::CreateSoundManagerComponent(
           components.VFS.As<IMGDFReadOnlyVirtualFileSystem>(),
           components.Sound)) {
     // its a problem, but we can still probably run if the soundmanager failed
@@ -155,7 +165,7 @@ void HostBuilder::InitParameterManager() {
 }
 
 void HostBuilder::InitLogger(
-    const std::shared_ptr<NetworkEventLoop> &eventLoop) {
+    const std::shared_ptr<network::INetworkManagerComponent> &network) {
   if (ParameterManager::Instance().HasParameter(
           ParameterConstants::LOG_LEVEL)) {
     const char *level = ParameterManager::Instance().GetParameter(
@@ -176,9 +186,28 @@ void HostBuilder::InitLogger(
   }
   if (ParameterManager::Instance().HasParameter(
           ParameterConstants::LOG_ENDPOINT)) {
+    const std::string endpoint(ParameterManager::Instance().GetParameter(
+        ParameterConstants::LOG_ENDPOINT));
     Logger::Instance().SetRemoteEndpoint(
-        eventLoop, ParameterManager::Instance().GetParameter(
-                       ParameterConstants::LOG_ENDPOINT));
+        endpoint, [network, endpoint](const std::string &content,
+                                      const std::string &contentType) {
+          network->CreateHttpRequest(endpoint)
+              ->SetRequestMethod("POST")
+              ->SetRequestHeader("Content-Type", contentType)
+              ->SetRequestBody(content.c_str(), content.size(), true)
+              ->SendRequest([endpoint](auto response) {
+                if (response->Code != 200 && response->Code != 204) {
+#if defined(_DEBUG)
+                  std::ostringstream stream;
+                  stream << __FILE__ << "(" << __LINE__ << "): ";
+                  stream << "Unable to send logs to remote endpoint "
+                         << endpoint << ". status=" << response->Code
+                         << ", error=" << response->Error << "\n";
+                  OutputDebugString(stream.str().c_str());
+#endif
+                }
+              });
+        });
   }
 }
 

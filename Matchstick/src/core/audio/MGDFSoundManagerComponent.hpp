@@ -1,7 +1,8 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 
 namespace MGDF {
 namespace core {

@@ -29,7 +29,7 @@ This is written in c# (.NET 4.6) and is a WCF web service that allows games to s
 Building Source
 ---------------
 
-* Using Microsoft Visual Studio 2019 build Matchstick/Matchstick.sln in x64 debug/release configurations
+* Using Microsoft Visual Studio 2022 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick/Matchstick.sln in x64 debug/release configurations
 
 Running unit tests
 ------------------
@@ -38,9 +38,7 @@ All managed code projects use nunit 3,	all unmanaged code tests are contained wi
 To make running the unmanaged unit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
 
     Title: Core tests
-    Command: <MGDF bin dir>\core.tests.exe
-    Initial Directory: $(TargetDir)
-    Also tick use output window
+    Command: <MGDF bin dir>\core.tests.exe Initial Directory: $(TargetDir) Also tick use output window
 
 Running core.exe from command line
 ----------------------------------

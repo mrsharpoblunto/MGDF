@@ -5,25 +5,28 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "../common/MGDFHttpServer.hpp"
+#include "../network/MGDFNetworkManagerComponent.hpp"
 #include "MGDFMetrics.hpp"
 
 namespace MGDF {
 namespace core {
 
-class HostMetricsServer : public HttpServer {
+class HostMetricsServer {
  public:
   virtual ~HostMetricsServer() {}
-  HostMetricsServer(std::shared_ptr<NetworkEventLoop> &eventLoop)
-      : HttpServer(eventLoop), _updateResponse(false) {}
+  HostMetricsServer(
+      std::shared_ptr<network::INetworkManagerComponent> &network);
 
-  void OnRequest(std::shared_ptr<HttpServerRequest> &request) final;
-  void OnSocketRequest(std::shared_ptr<WebSocketServerConnection> &) final {}
   void UpdateResponse(std::unordered_map<std::string, MetricBase *> &metrics);
+  void Listen(UINT32 port);
 
  private:
+  void OnRequest(std::shared_ptr<network::IHttpServerRequest> request);
+
   std::string _rawResponse;
   bool _updateResponse;
+  std::shared_ptr<network::INetworkManagerComponent> _network;
+  std::shared_ptr<network::IHttpServer> _server;
   std::vector<ComObject<MetricBase>> _metrics;
   std::mutex _metricsMutex;
 };

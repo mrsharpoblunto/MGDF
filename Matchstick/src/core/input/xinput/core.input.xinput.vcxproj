@@ -118,7 +118,8 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="XInputManagerComponent.cpp">
+    <ClCompile Include="XInputManagerComponent.cpp" />
+    <ClCompile Include="XInputManagerComponentImpl.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="StdAfx.cpp">
@@ -130,6 +131,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="XInputManagerComponent.hpp" />
+    <ClInclude Include="XInputManagerComponentImpl.hpp" />
     <ClInclude Include="StdAfx.h" />
     <ClInclude Include="XInputGamepad.hpp" />
   </ItemGroup>

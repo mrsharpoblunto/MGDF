@@ -35,7 +35,7 @@
     <ClCompile Include="MGDFWriteableVirtualFileSystem.cpp">
       <Filter>writeable</Filter>
     </ClCompile>
-    <ClCompile Include="MGDFReadOnlyVirtualFileSystemComponentImpl.cpp">
+    <ClCompile Include="MGDFReadOnlyVirtualFileSystemComponent.cpp">
       <Filter>readonly</Filter>
     </ClCompile>
     <ClCompile Include="MGDFDefaultReadOnlyFileImpl.cpp">
@@ -44,6 +44,7 @@
     <ClCompile Include="archive\zip\ZipFolderImpl.cpp">
       <Filter>archive\zip</Filter>
     </ClCompile>
+    <ClCompile Include="MGDFVirtualFileSystemComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="archive\zip\ZipArchiveHandlerImpl.hpp">
@@ -72,12 +73,13 @@
     <ClInclude Include="MGDFWriteableVirtualFileSystem.hpp">
       <Filter>writeable</Filter>
     </ClInclude>
-    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponentImpl.hpp">
+    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponent.hpp">
       <Filter>readonly</Filter>
     </ClInclude>
     <ClInclude Include="MGDFDefaultReadOnlyFileImpl.hpp">
       <Filter>readonly</Filter>
     </ClInclude>
     <ClInclude Include="MGDFLogicalPathResolver.h" />
+    <ClInclude Include="MGDFVirtualFileSystemComponent.hpp" />
   </ItemGroup>
 </Project>

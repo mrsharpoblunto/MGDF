@@ -57,13 +57,11 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _input(components.Input),
       _sound(components.Sound),
       _vfs(components.VFS),
-      _httpClient(std::make_shared<HttpClient>(components.NetworkEventLoop)),
-      _eventLoop(components.NetworkEventLoop),
-      _stats(MakeCom<StatisticsManager>(components.NetworkEventLoop,
-                                        game->GetUid())),
-      _metricsServer(components.NetworkEventLoop),
+      _network(components.Network),
+      _stats(MakeCom<StatisticsManager>(components.Network, game->GetUid())),
+      _metricsServer(components.Network),
       _renderSettings(MakeCom<RenderSettingsManager>()),
-      _saves(MakeCom<SaveManager>(game, components.Storage)),
+      _saves(MakeCom<SaveManager>(game, components.VFS, components.Storage)),
       _references(1UL),
       _d3dDevice(nullptr),
       _d2dDevice(nullptr),
@@ -83,8 +81,11 @@ Host::Host(ComObject<Game> game, HostComponents &components)
 
   auto metricsPort = ParameterManager::Instance().GetParameter(
       ParameterConstants::METRICS_PORT);
-  if (metricsPort) {
-    _metricsServer.Listen(metricsPort);
+  if (metricsPort && atoi(metricsPort)) {
+    auto parsedPort = atoi(metricsPort);
+    if (parsedPort) {
+      _metricsServer.Listen(parsedPort);
+    }
   }
 }
 
@@ -162,7 +163,10 @@ HRESULT Host::Init() {
   LOG("Mounting working directory \'" << Resources::ToString(working)
                                       << "\' into VFS",
       MGDF_LOG_LOW);
-  _workingVfs = MakeCom<vfs::WriteableVirtualFileSystem>(working.c_str());
+  if (!vfs::CreateWriteableVirtualFileSystemComponent(working, _workingVfs)) {
+    LOG("Failed to mount working directory into VFS...", MGDF_LOG_ERROR);
+    return E_FAIL;
+  }
 
   // set the initial sound volumes
   if (_sound) {

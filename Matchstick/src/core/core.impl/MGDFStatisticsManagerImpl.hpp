@@ -5,7 +5,7 @@
 #include <MGDF/ComObject.hpp>
 #include <vector>
 
-#include "../common/MGDFHttpClient.hpp"
+#include "../network/MGDFNetworkManagerComponent.hpp"
 #include "MGDFMetrics.hpp"
 
 namespace MGDF {
@@ -13,8 +13,9 @@ namespace core {
 
 class StatisticsManager : public ComBase<IMGDFStatisticsManager> {
  public:
-  StatisticsManager(const std::shared_ptr<NetworkEventLoop> &eventLoop,
-                    const std::string &gameUid);
+  StatisticsManager(
+      const std::shared_ptr<network::INetworkManagerComponent> &network,
+      const std::string &gameUid);
   virtual ~StatisticsManager();
   void __stdcall PushString(const char *name, const char *value,
                             const MGDFTags *tags) final;
@@ -25,7 +26,7 @@ class StatisticsManager : public ComBase<IMGDFStatisticsManager> {
  private:
   PushStatistic &PushCommon(PushStatistic &stat, const MGDFTags *tags);
 
-  std::shared_ptr<HttpClient> _client;
+  std::shared_ptr<network::INetworkManagerComponent> _network;
   std::mutex _mutex;
   std::condition_variable _cv;
   std::vector<PushStatistic> _events;

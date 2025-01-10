@@ -14,14 +14,13 @@ namespace openal_audio {
 class OpenALSoundSystem {
  public:
   virtual ~OpenALSoundSystem(void);
+  OpenALSoundSystem(void);
+  virtual HRESULT Init();
 
   HRESULT AcquireSource(ALuint *source);
   void ReleaseSource(ALuint source);
 
  protected:
-  OpenALSoundSystem(void);
-  virtual HRESULT Init();
-
   size_t GetFreeSources() const { return _freeSources.size(); }
 
  private:

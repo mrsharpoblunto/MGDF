@@ -5,7 +5,7 @@
 
 #include <MGDF/ComObject.hpp>
 
-#include "OpenALSoundManagerComponent.hpp"
+#include "OpenALSoundManagerComponentImpl.hpp"
 
 namespace MGDF {
 namespace core {

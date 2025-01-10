@@ -64,7 +64,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../include;../../../../vendor/mbedtls-3.2.1/include;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../include;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -89,7 +89,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../include;../../../../vendor/mbedtls-3.2.1/include;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../include;../../../../vendor/zlib/src;../../../../vendor/jsoncpp-0.5.0/include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -110,13 +110,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="MGDFCertificates.hpp" />
-    <ClInclude Include="MGDFComponents.hpp" />
-    <ClInclude Include="MGDFHttpClient.hpp" />
-    <ClInclude Include="MGDFHttpCommon.hpp" />
-    <ClInclude Include="MGDFHttpServer.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
-    <ClInclude Include="MGDFMongooseMemFS.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />
     <ClInclude Include="MGDFPreferenceConstants.hpp" />
     <ClInclude Include="MGDFPreferenceSet.hpp" />
@@ -124,29 +118,17 @@
     <ClInclude Include="MGDFStringImpl.hpp" />
     <ClInclude Include="MGDFVersionHelper.hpp" />
     <ClInclude Include="MGDFVersionInfo.hpp" />
-    <ClInclude Include="MGDFWebSocket.hpp" />
-    <ClInclude Include="mongoose.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="win32Exception.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MGDFCertificates.cpp" />
-    <ClCompile Include="MGDFHttpClient.cpp" />
-    <ClCompile Include="MGDFHttpCommon.cpp" />
-    <ClCompile Include="MGDFHttpServer.cpp" />
     <ClCompile Include="MGDFLoggerImpl.cpp" />
-    <ClCompile Include="MGDFMongooseMemFS.cpp" />
     <ClCompile Include="MGDFParameterManager.cpp" />
     <ClCompile Include="MGDFPreferenceConstants.cpp" />
     <ClCompile Include="MGDFResources.cpp" />
     <ClCompile Include="MGDFStringImpl.cpp" />
     <ClCompile Include="MGDFVersionHelper.cpp" />
     <ClCompile Include="MGDFVersionInfo.cpp" />
-    <ClCompile Include="MGDFWebSocket.cpp" />
-    <ClCompile Include="mongoose.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
