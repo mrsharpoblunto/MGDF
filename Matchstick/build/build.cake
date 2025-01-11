@@ -112,6 +112,8 @@ Task("Sign")
 			ArgumentCustomization = args => {
 				args.Clear();
 				args.Append("sign")
+				.Append("/td")
+        .Append("sha256")
         .Append("/fd")
         .Append("sha256")
         .Append("/tr")
@@ -120,7 +122,7 @@ Task("Sign")
 				.AppendQuoted("../straylight.cer")
         .Append("/csp")
 				.AppendQuoted("eToken Base Cryptographic Provider")
-				.Append("/k")
+				.Append("/kc")
 				.AppendQuoted(signSecret);
 				foreach (var file in files) {
 					args.AppendQuoted(file.FullPath);
