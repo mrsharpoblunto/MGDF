@@ -8,8 +8,6 @@
 #include <sstream>
 
 #include "../audio/MGDFSoundManagerComponent.hpp"
-#include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFParameterManager.hpp"
 #include "../input/MGDFInputManagerComponent.hpp"
 #include "../network/MGDFNetworkManagerComponent.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"

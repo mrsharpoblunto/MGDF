@@ -657,15 +657,19 @@ MongooseNetworkManagerComponent::SendRequest(
   auto o = _origins.find(canonicalHostAndPort.str());
   if (o == _origins.end()) {
     o = _origins
-            .emplace(canonicalHostAndPortStr, std::make_shared<HttpOrigin>())
+            .emplace(
+                canonicalHostAndPortStr,
+                std::shared_ptr<HttpOrigin>(new HttpOrigin{
+                    .TLSInit =
+                        [this, usesTLS, canonicalHostStr](auto conn) {
+                          if (usesTLS) {
+                            TLSInit(conn, canonicalHostStr);
+                          }
+                        },
+                    .ConnectionLimit = _options.HttpClientOriginConnectionLimit,
+                    .Host = canonicalHostStr,
+                }))
             .first;
-    o->second->TLSInit = [this, usesTLS, canonicalHostStr](auto conn) {
-      if (usesTLS) {
-        TLSInit(conn, canonicalHostStr);
-      }
-    };
-    o->second->ConnectionLimit = _options.HttpClientOriginConnectionLimit;
-    o->second->Host = canonicalHostStr;
   }
   lock.unlock();
 

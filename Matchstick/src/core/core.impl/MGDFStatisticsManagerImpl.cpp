@@ -5,9 +5,7 @@
 #include <json/json.h>
 
 #include <chrono>
-#include <fstream>
-#include <iostream>
-#include <set>
+#include <sstream>
 
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFResources.hpp"

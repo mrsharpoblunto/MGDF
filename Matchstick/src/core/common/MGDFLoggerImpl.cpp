@@ -5,7 +5,6 @@
 #include <json/json.h>
 
 #include <chrono>
-#include <deque>
 #include <filesystem>
 #include <fstream>
 
@@ -72,12 +71,15 @@ void Logger::Flush() { _cv.notify_one(); }
 
 void Logger::FlushSync() {
   std::unique_lock<std::mutex> lock(_mutex);
+  std::vector<LogEntry> events(std::move(_events));
+  _events.clear();
+  lock.unlock();
+
   std::ofstream outFile;
   outFile.open(_filename.c_str(), std::ios::app);
-  for (const auto &evt : _events) {
+  for (const auto &evt : events) {
     outFile << evt.Sender << ": " << evt.Message << std::endl;
   }
-  _events.clear();
   outFile.close();
 }
 
@@ -87,18 +89,18 @@ Logger::Logger() {
 
   _runLogger = true;
   _flushThread = std::thread([this]() {
-    std::unique_lock<std::mutex> lock(_mutex);
     while (_runLogger) {
+      std::unique_lock<std::mutex> lock(_mutex);
       _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
                    [this] { return !_runLogger || _events.size() > 0; });
-      std::vector<LogEntry> tmp(std::move(_events));
+      std::vector<LogEntry> events(std::move(_events));
       _events.clear();
       lock.unlock();
 
-      if (tmp.size()) {
+      if (events.size()) {
         std::ofstream outFile;
         outFile.open(_filename.c_str(), std::ios::app);
-        for (const auto &evt : tmp) {
+        for (const auto &evt : events) {
           outFile << evt.Sender << ": " << evt.Message << std::endl;
         }
 
@@ -113,7 +115,7 @@ Logger::Logger() {
           Json::Value &values = stream["values"] =
               Json::Value(Json::arrayValue);
 
-          for (const auto &evt : tmp) {
+          for (const auto &evt : events) {
             std::string levelKey;
             switch (evt.Level) {
               case MGDF_LOG_ERROR:

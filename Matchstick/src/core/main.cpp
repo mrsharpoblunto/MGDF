@@ -9,6 +9,7 @@
 
 #include "MGDFApp.hpp"
 #include "common/MGDFLoggerImpl.hpp"
+#include "common/MGDFParameterManager.hpp"
 #include "common/MGDFResources.hpp"
 #include "common/win32Exception.hpp"
 #include "core.impl/MGDFHostBuilder.hpp"
@@ -16,8 +17,7 @@
 void FatalErrorCallBack(const std::string &sender, const std::string &message);
 void WriteMinidump(PEXCEPTION_POINTERS exceptionInfo);
 
-LONG WINAPI
-UnhandledExceptionCallBack(struct _EXCEPTION_POINTERS *pExceptionInfo);
+LONG WINAPI UnhandledExceptionCallBack(PEXCEPTION_POINTERS pExceptionInfo);
 typedef BOOL(WINAPI *MINIDUMPWRITEDUMP)(
     HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
     CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,

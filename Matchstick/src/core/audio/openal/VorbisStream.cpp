@@ -2,8 +2,6 @@
 
 #include "VorbisStream.hpp"
 
-#include <limits.h>
-
 #include "../../common/MGDFLoggerImpl.hpp"
 #include "../../common/MGDFStringImpl.hpp"
 
@@ -312,11 +310,12 @@ UINT32 VorbisStream::GetPosition() {
   float currentOffset;
   alGetSourcef(_source, AL_SEC_OFFSET, &currentOffset);
   const double actualOffset = bufferOffset + currentOffset;
-  return (UINT32)actualOffset * 1000;
+  return static_cast<UINT32>((actualOffset < 0 ? 0 : actualOffset) * 1000);
 }
 
 UINT32 VorbisStream::GetLength() {
-  return (UINT32)(ov_time_total(&_vorbisFile, -1) * 1000);
+  const auto total = ov_time_total(&_vorbisFile, -1);
+  return static_cast<UINT32>((total < 0 ? 0 : total) * 1000);
 }
 
 void VorbisStream::Update() {

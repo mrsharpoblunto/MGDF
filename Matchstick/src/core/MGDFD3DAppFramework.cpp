@@ -2,7 +2,6 @@
 
 #include "MGDFD3DAppFramework.hpp"
 
-#include <algorithm>
 #include <optional>
 #include <string>
 

@@ -4,6 +4,8 @@
 
 #include <filesystem>
 
+#include "../common/MGDFLoggerImpl.hpp"
+#include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFPreferenceConstants.hpp"
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFVersionHelper.hpp"

@@ -5,7 +5,6 @@
 
 #include <AL/alut.h>
 #include <al.h>
-#include <limits.h>
 
 #include <algorithm>
 
