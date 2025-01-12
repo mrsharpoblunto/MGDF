@@ -89,7 +89,7 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
           std::ostringstream requestBody;
           requestBody << root;
 
-          auto endpoint(_remoteEndpoint);
+          const auto endpoint(_remoteEndpoint);
           _network->CreateHttpRequest(_remoteEndpoint)
               ->SetRequestMethod("POST")
               ->SetRequestHeader("Content-Type", "application/json")

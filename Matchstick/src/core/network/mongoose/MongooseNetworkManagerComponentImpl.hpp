@@ -62,7 +62,7 @@ struct HttpConnection {
 
 struct HttpOrigin {
   std::function<void(mg_connection *)> TLSInit;
-  size_t ConnectionLimit;
+  size_t ConnectionLimit = 0;
   std::string Host;
   std::mutex Mutex;
   std::unordered_map<mg_connection *, std::shared_ptr<HttpConnection>>
@@ -235,7 +235,7 @@ class MongooseNetworkManagerComponent
     : public std::enable_shared_from_this<MongooseNetworkManagerComponent>,
       public INetworkManagerComponent {
  public:
-  MongooseNetworkManagerComponent(NetworkManagerOptions &options);
+  MongooseNetworkManagerComponent(const NetworkManagerOptions &options);
   virtual ~MongooseNetworkManagerComponent();
   std::unique_ptr<IHttpClientRequest> CreateHttpRequest(
       const std::string &url) final;

@@ -1,13 +1,12 @@
 #pragma once
 
-#include <MGDF/MGDF.h>
-
 #include <functional>
 #include <span>
 #include <vector>
 
 namespace MGDF {
 namespace core {
+namespace network {
 
 struct WebSocketMessage {
   WebSocketMessage(size_t size, bool binary) : Data(size), Binary(binary) {}
@@ -28,5 +27,6 @@ class IWebSocket {
       std::string &lastError) const = 0;
 };
 
+}  // namespace network
 }  // namespace core
 }  // namespace MGDF

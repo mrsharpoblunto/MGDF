@@ -10,8 +10,52 @@
 namespace MGDF {
 namespace core {
 
+WebSocketImpl::WebSocketImpl(std::shared_ptr<network::IWebSocket> socket)
+    : _socket(socket), _binary(false) {
+  _socket->OnReceive([this](std::span<const char> &message, bool binary) {
+    // TODO need to have a buffer of buffers...
+    std::lock_guard<std::mutex> lock(_mutex);
+    _binary = binary;
+    _buffer.resize(message.size());
+    memcpy_s(_buffer.data(), _buffer.size(), message.data(), message.size());
+  });
+}
+
+void WebSocketImpl::Send(void *data, UINT64 len, BOOL binary) {
+  _socket->Send(data, len, binary);
+}
+
+BOOL WebSocketImpl::CanRecieve(UINT64 *len) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  *len = _buffer.size();
+  return _buffer.size() > 0;
+}
+
+HRESULT WebSocketImpl::Receive(void *message, UINT64 len, BOOL *binary) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (len >= _buffer.size()) {
+    *binary = _binary;
+    memcpy_s(message, _buffer.size(), _buffer.data(), _buffer.size());
+    _buffer.clear();
+    return S_OK;
+  }
+  return E_FAIL;
+}
+
+HRESULT WebSocketImpl::GetConnectionStatus(
+    MGDFWebSocketConnectionStatus *status) {
+  std::string lastError;
+  const auto state = _socket->GetConnectionState(lastError);
+  if (status->LastErrorLength >= lastError.size()) {
+    status->State = state;
+    memcpy_s(status->LastError, lastError.size(), lastError.c_str(),
+             lastError.size());
+    return S_OK;
+  }
+  return E_FAIL;
+}
 HttpClientResponseImpl::HttpClientResponseImpl(
-    const std::shared_ptr<HttpClientResponse> &response)
+    const std::shared_ptr<network::HttpMessage> &response)
     : _response(response) {}
 
 INT32 HttpClientResponseImpl::GetResponseCode() { return _response->Code; }
@@ -37,44 +81,74 @@ const small *HttpClientResponseImpl::GetResponseBody(void) {
   return _response->Body.data();
 }
 
-HttpClientRequestImpl::HttpClientRequestImpl(
-    const std::string &url, const std::shared_ptr<HttpClient> &client)
-    : _request(std::make_shared<HttpClientRequest>(url)), _client(client) {}
+void HttpClientRequestGroupImpl::OnRequest(
+    void *key, std::shared_ptr<network::HttpMessage> &message) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  _responses.insert(std::make_pair(key, message));
+}
+
+void *HttpClientRequestGroupImpl::GetResponse(
+    IMGDFHttpClientResponse **responseOut) {
+  std::unique_lock<std::mutex> lock(_mutex);
+  if (!_responses.size()) {
+    return nullptr;
+  }
+  auto r = _responses.begin();
+  _responses.erase(r);
+  lock.unlock();
+
+  auto responseWrapper = MakeCom<HttpClientResponseImpl>(r->second);
+  responseWrapper.AddRawRef(responseOut);
+  return r->first;
+}
 
 HttpClientRequestImpl::HttpClientRequestImpl(
-    const std::shared_ptr<HttpClientRequest> &request)
-    : _request(request) {}
+    std::unique_ptr<network::IHttpClientRequest> &request)
+    : _request(std::move(request)) {}
 
 IMGDFHttpClientRequest *HttpClientRequestImpl::SetRequestHeader(
     const small *name, const small *value) {
-  _request->SetHeader(name, value);
+  _request->SetRequestHeader(name, value);
   return this;
 }
 
 IMGDFHttpClientRequest *HttpClientRequestImpl::SetRequestMethod(
     const small *method) {
-  _request->SetMethod(method);
+  _request->SetRequestMethod(method);
   return this;
 }
 
 IMGDFHttpClientRequest *HttpClientRequestImpl::SetRequestBody(
     const small *body, UINT64 bodyLength) {
-  _request->SetBody(body, bodyLength);
+  _request->SetRequestBody(body, bodyLength, false);
   return this;
 }
 
 void *HttpClientRequestImpl::SendRequest(IMGDFHttpClientRequestGroup *group) {
-  _client->SendRequest(
-      _request, dynamic_cast<HttpClientRequestGroupImpl *>(group)->Group);
-  _client.reset();
-  return _request.get();
+  if (group) {
+    _group = MGDF::ComObject<IMGDFHttpClientRequestGroup>(group, true);
+  }
+
+  _pending = _request->SendRequest(
+      [this](std::shared_ptr<network::HttpMessage> &response) {
+        if (_group && _pending) {
+          auto group = dynamic_cast<HttpClientRequestGroupImpl *>(_group.Get());
+          _ASSERTE(group);
+          group->OnRequest(_pending.get(), response);
+        }
+      });
+  return _pending.get();
 }
 
-void HttpClientRequestImpl::CancelRequest() { _request->Cancel(); }
+void HttpClientRequestImpl::CancelRequest() {
+  if (_pending) {
+    _pending->CancelRequest();
+  }
+}
 
 BOOL HttpClientRequestImpl::GetResponse(IMGDFHttpClientResponse **response) {
-  std::shared_ptr<HttpClientResponse> r;
-  if (_request->GetResponse(r)) {
+  std::shared_ptr<network::HttpMessage> r;
+  if (_pending && _pending->GetResponse(r)) {
     auto wrapper = MakeCom<HttpClientResponseImpl>(r);
     wrapper.AddRawRef(response);
     return TRUE;
@@ -82,20 +156,8 @@ BOOL HttpClientRequestImpl::GetResponse(IMGDFHttpClientResponse **response) {
   return FALSE;
 }
 
-void *HttpClientRequestGroupImpl::GetResponse(
-    IMGDFHttpClientResponse **responseOut) {
-  std::shared_ptr<HttpClientResponse> response;
-  auto request = Group->GetResponse(response);
-  if (request) {
-    auto responseWrapper = MakeCom<HttpClientResponseImpl>(response);
-    responseWrapper.AddRawRef(responseOut);
-    return request.get();
-  }
-  return nullptr;
-}
-
 HttpServerRequestImpl::HttpServerRequestImpl(
-    const std::shared_ptr<HttpServerRequest> &request)
+    const std::shared_ptr<network::IHttpServerRequest> &request)
     : _request(request) {}
 
 const small *__stdcall HttpServerRequestImpl::GetRequestHeader(
@@ -127,12 +189,6 @@ IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseHeader(
   return this;
 }
 
-IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseMethod(
-    const small *method) {
-  _request->SetResponseMethod(method);
-  return this;
-}
-
 IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseBody(
     const small *body, UINT64 bodyLength) {
   _request->SetResponseBody(body, bodyLength);
@@ -141,39 +197,36 @@ IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseBody(
 
 void HttpServerRequestImpl::SendResponse() { _request->SendResponse(); }
 
-WebServerImpl::WebServerImpl(std::shared_ptr<NetworkEventLoop> &eventLoop,
-                             uint32_t port, const std::string &socketPath)
-    : HttpServer(eventLoop) {
-  Listen(std::to_string(port), socketPath);
-}
-
-void WebServerImpl::OnRequest(std::shared_ptr<HttpServerRequest> &request) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  _requests.push_back(MakeCom<HttpServerRequestImpl>(request));
-}
-void WebServerImpl::OnSocketRequest(
-    std::shared_ptr<WebSocketServerConnection> &socket) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  _sockets.push_back(MakeCom<WebSocketImpl<WebSocketServerConnection>>(socket));
+WebServerImpl::WebServerImpl(std::shared_ptr<network::IHttpServer> server)
+    : _server(server) {
+  server->OnHttpRequest(
+      [this](std::shared_ptr<network::IHttpServerRequest> request) {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _requests.push_back(MGDFWebServerRequest{
+            .WebSocket = nullptr,
+            .HttpRequest = MakeCom<HttpServerRequestImpl>(request),
+        });
+      });
+  server->OnWebSocketRequest(
+      [this](std::shared_ptr<network::IWebSocket> socket) {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _requests.push_back(MGDFWebServerRequest{
+            .WebSocket = MakeCom<WebSocketImpl>(socket),
+            .HttpRequest = nullptr,
+        });
+      });
 }
 
 BOOL WebServerImpl::RequestRecieved(MGDFWebServerRequest *request) {
-  memset(request, 0, sizeof(MGDFWebServerRequest));
   std::unique_lock<std::mutex> lock(_mutex);
-  if (_sockets.size()) {
-    auto c = _sockets.front();
-    _sockets.pop_front();
-    lock.unlock();
-    c.AddRawRef(&request->WebSocket);
-    return TRUE;
-  } else if (_requests.size()) {
-    auto r = _requests.front();
-    _requests.pop_front();
-    lock.unlock();
-    r.AddRawRef(&request->HttpRequest);
-    return TRUE;
+  if (!_requests.size()) {
+    return FALSE;
   }
-  return FALSE;
+  auto &r = _requests.front();
+  _requests.pop_front();
+  request->HttpRequest = r.HttpRequest;
+  request->WebSocket = r.WebSocket;
+  return true;
 }
 
 }  // namespace core

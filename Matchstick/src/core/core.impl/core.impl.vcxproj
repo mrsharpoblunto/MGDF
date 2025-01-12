@@ -151,9 +151,15 @@
     <ProjectReference Include="..\input\xinput\core.input.xinput.vcxproj">
       <Project>{e2d534de-f3e6-44a3-b7d9-eead49c56a2c}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\network\mongoose\core.network.mongoose.vcxproj">
+      <Project>{fcce76a9-9ea8-4e54-8212-480a5ca9d701}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\storage\jsoncpp\core.storage.jsoncpp.vcxproj">
       <Project>{cd45229c-c675-473f-8aa1-2f8a782d754b}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\vfs\core.vfs.vcxproj">
+      <Project>{60a53eec-b17e-4bb8-9626-064ada85cfc7}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

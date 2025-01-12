@@ -82,7 +82,7 @@ Host::Host(ComObject<Game> game, HostComponents &components)
   auto metricsPort = ParameterManager::Instance().GetParameter(
       ParameterConstants::METRICS_PORT);
   if (metricsPort && atoi(metricsPort)) {
-    auto parsedPort = atoi(metricsPort);
+    const auto parsedPort = atoi(metricsPort);
     if (parsedPort) {
       _metricsServer.Listen(parsedPort);
     }
@@ -536,7 +536,8 @@ HRESULT Host::CreateHistogramMetric(const small *name, const small *description,
 HRESULT Host::CreateHttpRequest(const small *url,
                                 IMGDFHttpClientRequest **request) {
   if (!url) return E_FAIL;
-  auto com = MakeCom<HttpClientRequestImpl>(url, _httpClient);
+  auto r = _network->CreateHttpRequest(url);
+  auto com = MakeCom<HttpClientRequestImpl>(r);
   com.AddRawRef(request);
   return S_OK;
 }
@@ -550,8 +551,8 @@ HRESULT __stdcall Host::CreateHttpRequestGroup(
 
 HRESULT __stdcall Host::CreateWebSocket(const small *url,
                                         IMGDFWebSocket **socket) {
-  auto com = MakeCom<WebSocketImpl<WebSocketClientConnection>>(
-      std::make_shared<WebSocketClientConnection>(_eventLoop, url));
+  auto s = _network->CreateWebSocket(url);
+  auto com = MakeCom<WebSocketImpl>(s);
   com.AddRawRef(socket);
   return S_OK;
 }
@@ -559,8 +560,8 @@ HRESULT __stdcall Host::CreateWebSocket(const small *url,
 HRESULT __stdcall Host::CreateWebServer(unsigned int port,
                                         const small *socketPath,
                                         IMGDFWebServer **server) {
-  auto com = MakeCom<WebServerImpl>(_eventLoop, port,
-                                    socketPath ? socketPath : S_EMPTY);
+  auto s = _network->CreateHttpServer(port, socketPath ? socketPath : S_EMPTY);
+  auto com = MakeCom<WebServerImpl>(s);
   com.AddRawRef(server);
   return S_OK;
 }

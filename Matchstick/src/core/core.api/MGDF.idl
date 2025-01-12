@@ -1762,13 +1762,6 @@ and responding to that request.
   SetResponseHeader([in] const small *name, [in] const small *value);
 
   /**
-  Sets the HTTP method to use for the response
-  \param method the HTTP method to use for the response
-  \return this request object for chaining
-  */
-  IMGDFHttpServerRequest *SetResponseMethod([in] const small *method);
-
-  /**
   Sets the body of the response
   \param body the body content to set
   \param bodyLength the length of the body content

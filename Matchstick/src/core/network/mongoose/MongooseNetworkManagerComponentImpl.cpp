@@ -289,8 +289,9 @@ WebSocket::WebSocket(const std::string &url,
       _url(url),
       _manager(manager),
       _reconnectInterval(reconnectInterval),
+      _closing(false),
       _forceClose(false) {
-  auto host = mg_url_host(url.c_str());
+  const auto host = mg_url_host(url.c_str());
   _host = std::string(host.ptr, host.len);
   _usesTLS = mg_url_is_ssl(url.c_str());
 }
@@ -583,7 +584,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
         server->_webSockets.erase(found);
         if (auto socket = found->second.lock()) {
           lock.unlock();
-          std::string_view error(static_cast<char *>(ev_data));
+          const std::string_view error(static_cast<char *>(ev_data));
           socket->SetLastError(error);
         }
       }
@@ -598,8 +599,8 @@ void MongooseNetworkManagerComponent::ReconnectWebSocket(
 }
 
 MongooseNetworkManagerComponent::MongooseNetworkManagerComponent(
-    NetworkManagerOptions &options)
-    : _options(options) {
+    const NetworkManagerOptions &options)
+    : _running(true), _options(options) {
   _pollThread = std::thread([this]() {
     MemFS::InitMGFS(_fs);
     MemFS::Ensure(CertificateManager::S_CA_PEM, &CertificateManager::LoadCerts);

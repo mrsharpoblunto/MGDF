@@ -4,59 +4,28 @@
 
 #include <MGDF/ComObject.hpp>
 #include <deque>
+#include <mutex>
 
 #include "../network/MGDFNetworkManagerComponent.hpp"
 
 namespace MGDF {
 namespace core {
 
-template <typename TSocket>
 class WebSocketImpl : public ComBase<IMGDFWebSocket> {
  public:
-  WebSocketImpl(std::shared_ptr<TSocket> socket) : _socket(socket) {}
+  WebSocketImpl(std::shared_ptr<network::IWebSocket> socket);
   virtual ~WebSocketImpl(void) {}
 
-  void __stdcall Send(void *data, UINT64 len, BOOL binary) final {
-    _socket->Send(data, len, binary);
-  }
+  void __stdcall Send(void *data, UINT64 len, BOOL binary) final;
 
-  BOOL __stdcall CanRecieve(UINT64 *len) final {
-    if (!_buffer.size()) {
-      _socket->Receive(_buffer, _binary);
-    }
-    *len = _buffer.size();
-    return _buffer.size() > 0;
-  }
-
-  HRESULT __stdcall Receive(void *message, UINT64 len, BOOL *binary) final {
-    if (!_buffer.size()) {
-      _socket->Receive(_buffer, _binary);
-    }
-
-    if (len >= _buffer.size()) {
-      *binary = _binary;
-      memcpy_s(message, _buffer.size(), _buffer.data(), _buffer.size());
-      _buffer.clear();
-      return S_OK;
-    }
-    return E_FAIL;
-  }
-
+  BOOL __stdcall CanRecieve(UINT64 *len) final;
+  HRESULT __stdcall Receive(void *message, UINT64 len, BOOL *binary) final;
   HRESULT __stdcall GetConnectionStatus(
-      MGDFWebSocketConnectionStatus *status) final {
-    std::string lastError;
-    auto state = _socket->GetConnectionState(lastError);
-    if (status->LastErrorLength >= lastError.size()) {
-      status->State = state;
-      memcpy_s(status->LastError, lastError.size(), lastError.c_str(),
-               lastError.size());
-      return S_OK;
-    }
-    return E_FAIL;
-  }
+      MGDFWebSocketConnectionStatus *status) final;
 
  private:
-  std::shared_ptr<TSocket> _socket;
+  std::mutex _mutex;
+  std::shared_ptr<network::IWebSocket> _socket;
   std::vector<char> _buffer;
   bool _binary;
 };
@@ -65,19 +34,21 @@ class HttpRequestImpl;
 
 class HttpClientRequestGroupImpl : public ComBase<IMGDFHttpClientRequestGroup> {
  public:
-  HttpClientRequestGroupImpl()
-      : Group(std::make_shared<HttpClientRequestGroup>()) {}
+  HttpClientRequestGroupImpl() {}
   virtual ~HttpClientRequestGroupImpl() {}
 
   void *__stdcall GetResponse(IMGDFHttpClientResponse **response) final;
 
-  const std::shared_ptr<HttpClientRequestGroup> Group;
+  void OnRequest(void *key, std::shared_ptr<network::HttpMessage> &message);
+
+ private:
+  std::mutex _mutex;
+  std::unordered_map<void *, std::shared_ptr<network::HttpMessage>> _responses;
 };
 
 class HttpClientResponseImpl : public ComBase<IMGDFHttpClientResponse> {
  public:
-  HttpClientResponseImpl(
-      const std::shared_ptr<network::HttpResponse> &response);
+  HttpClientResponseImpl(const std::shared_ptr<network::HttpMessage> &response);
   virtual ~HttpClientResponseImpl(void) {}
 
   INT32 __stdcall GetResponseCode(void) final;
@@ -87,14 +58,12 @@ class HttpClientResponseImpl : public ComBase<IMGDFHttpClientResponse> {
   const small *__stdcall GetResponseBody(void) final;
 
  private:
-  std::shared_ptr<network::HttpResponse> _response;
+  std::shared_ptr<network::HttpMessage> _response;
 };
 
 class HttpClientRequestImpl : public ComBase<IMGDFHttpClientRequest> {
  public:
-  HttpClientRequestImpl(const std::string &url,
-                        const std::shared_ptr<HttpClient> &client);
-  HttpClientRequestImpl(const std::shared_ptr<HttpClientRequest> &request);
+  HttpClientRequestImpl(std::unique_ptr<network::IHttpClientRequest> &request);
   virtual ~HttpClientRequestImpl(void) {}
 
   IMGDFHttpClientRequest *__stdcall SetRequestHeader(const small *name,
@@ -107,13 +76,15 @@ class HttpClientRequestImpl : public ComBase<IMGDFHttpClientRequest> {
   BOOL __stdcall GetResponse(IMGDFHttpClientResponse **response) final;
 
  private:
-  std::shared_ptr<HttpClient> _client;
-  std::shared_ptr<HttpClientRequest> _request;
+  MGDF::ComObject<IMGDFHttpClientRequestGroup> _group;
+  std::unique_ptr<network::IHttpClientRequest> _request;
+  std::shared_ptr<network::IHttpClientPendingRequest> _pending;
 };
 
 class HttpServerRequestImpl : public ComBase<IMGDFHttpServerRequest> {
  public:
-  HttpServerRequestImpl(const std::shared_ptr<HttpServerRequest> &request);
+  HttpServerRequestImpl(
+      const std::shared_ptr<network::IHttpServerRequest> &request);
   virtual ~HttpServerRequestImpl(void) {}
 
   const small *__stdcall GetRequestHeader(const small *name) final;
@@ -124,32 +95,25 @@ class HttpServerRequestImpl : public ComBase<IMGDFHttpServerRequest> {
   IMGDFHttpServerRequest *__stdcall SetResponseCode(INT32 code) final;
   IMGDFHttpServerRequest *__stdcall SetResponseHeader(const small *name,
                                                       const small *value) final;
-  IMGDFHttpServerRequest *__stdcall SetResponseMethod(
-      const small *method) final;
   IMGDFHttpServerRequest *__stdcall SetResponseBody(const small *body,
                                                     UINT64 bodyLength) final;
   void __stdcall SendResponse() final;
 
  private:
-  std::shared_ptr<HttpServerRequest> _request;
+  std::shared_ptr<network::IHttpServerRequest> _request;
 };
 
-class WebServerImpl : public HttpServer, public ComBase<IMGDFWebServer> {
+class WebServerImpl : public ComBase<IMGDFWebServer> {
  public:
-  WebServerImpl(std::shared_ptr<NetworkEventLoop> &eventLoop, uint32_t port,
-                const std::string &socketPath);
+  WebServerImpl(std::shared_ptr<network::IHttpServer> sever);
   virtual ~WebServerImpl(void) {}
   BOOL __stdcall RequestRecieved(MGDFWebServerRequest *request) final;
-  BOOL __stdcall Listening() final { return HttpServer::Listening(); }
-
-  void OnRequest(std::shared_ptr<HttpServerRequest> &request) final;
-  void OnSocketRequest(
-      std::shared_ptr<WebSocketServerConnection> &socket) final;
+  BOOL __stdcall Listening() final { return true; }
 
  private:
   std::mutex _mutex;
-  std::deque<ComObject<WebSocketImpl<WebSocketServerConnection>>> _sockets;
-  std::deque<ComObject<HttpServerRequestImpl>> _requests;
+  std::deque<MGDFWebServerRequest> _requests;
+  std::shared_ptr<network::IHttpServer> _server;
 };
 
 }  // namespace core

@@ -233,7 +233,7 @@ HRESULT SaveManager::GetSave(UINT64 index, IMGDFGameState** s) {
   }
   auto saveName = _saves.at(index);
   ComObject<GameState> save =
-      MakeCom<GameState>(saveName, _gameUid, this, _storageFactory, _vfs);
+      MakeCom<GameState>(saveName, _gameUid, this, _vfs, _storageFactory);
 
   if (FAILED(save->Load())) {
     return E_FAIL;
@@ -262,7 +262,7 @@ HRESULT SaveManager::DeleteSave(IMGDFGameState* s) {
 
 void SaveManager::CreateGameState(IMGDFGameState** save) {
   auto state =
-      MakeCom<GameState>(_gameUid, _gameVersion, this, _storageFactory, _vfs);
+      MakeCom<GameState>(_gameUid, _gameVersion, this, _vfs, _storageFactory);
   state.AddRawRef(save);
 }
 

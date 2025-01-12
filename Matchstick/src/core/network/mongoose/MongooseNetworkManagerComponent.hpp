@@ -9,7 +9,7 @@ namespace mongoose {
 
 bool CreateNetworkManagerComponent(
     std::shared_ptr<INetworkManagerComponent> &network,
-    NetworkManagerOptions options);
+    const NetworkManagerOptions &options);
 
 }  // namespace mongoose
 }  // namespace network

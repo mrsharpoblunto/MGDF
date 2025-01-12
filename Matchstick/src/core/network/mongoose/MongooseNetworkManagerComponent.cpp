@@ -28,10 +28,10 @@ void MongooseLog(unsigned char ch) {
 }
 
 bool CreateNetworkManagerComponent(
-    std::shared_ptr<INetworkManagerComponent> &comp,
-    NetworkManagerOptions &options) {
+    std::shared_ptr<INetworkManagerComponent> &network,
+    const NetworkManagerOptions &options) {
   mg_log_set_fn(MongooseLog);
-  comp = std::make_shared<MongooseNetworkManagerComponent>(options);
+  network = std::make_shared<MongooseNetworkManagerComponent>(options);
   return true;
 }
 
