@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RuleSet Name="Copy of Copy of Microsoft All Rules" Description="This rule set contains all rules. Running this rule set may result in a large number of warnings being reported. Use this rule set to get a comprehensive picture of all issues in your code. This can help you decide which of the more focused rule sets are most appropriate to run for your projects." ToolsVersion="16.0">
+<RuleSet Name="Copy of Copy of Microsoft All Rules" Description="This rule set contains all rules. Running this rule set may result in a large number of warnings being reported. Use this rule set to get a comprehensive picture of all issues in your code. This can help you decide which of the more focused rule sets are most appropriate to run for your projects." ToolsVersion="17.0">
   <IncludeAll Action="Warning" />
   <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
     <Rule Id="C26100" Action="Warning" />
@@ -69,6 +69,7 @@
     <Rule Id="C26454" Action="Warning" />
     <Rule Id="C26455" Action="None" />
     <Rule Id="C26456" Action="Warning" />
+    <Rule Id="C26458" Action="None" />
     <Rule Id="C26459" Action="None" />
     <Rule Id="C26460" Action="Warning" />
     <Rule Id="C26461" Action="None" />
@@ -107,6 +108,7 @@
     <Rule Id="C26811" Action="Warning" />
     <Rule Id="C26812" Action="None" />
     <Rule Id="C26814" Action="Warning" />
+    <Rule Id="C26821" Action="None" />
     <Rule Id="C28020" Action="Warning" />
     <Rule Id="C28021" Action="Warning" />
     <Rule Id="C28022" Action="Warning" />

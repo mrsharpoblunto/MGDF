@@ -30,9 +30,9 @@ void CreateHttpMessage(mg_http_message *hm, HttpMessage &response) {
   }
 
   const auto contentEncodingHeader =
-      mg_http_get_header(hm, S_CONTENT_ENCODING.c_str());
-  if (contentEncodingHeader) {
-    if (mg_strcmp(*contentEncodingHeader, mg_stdstr(S_GZIP)) == 0) {
+      response.Headers.find(S_CONTENT_ENCODING.c_str());
+  if (contentEncodingHeader != response.Headers.end()) {
+    if (contentEncodingHeader->second == S_GZIP) {
       Resources::DecompressString(hm->body.ptr, hm->body.len, response.Body);
     } else {
       response.Error = "Unsupported Content-Encoding";

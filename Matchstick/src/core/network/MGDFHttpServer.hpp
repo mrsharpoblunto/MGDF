@@ -40,6 +40,8 @@ class IHttpServer {
           handler) = 0;
   virtual IHttpServer *OnWebSocketRequest(
       std::function<void(std::shared_ptr<IWebSocket> socket)> handler) = 0;
+
+  virtual bool Listening() const = 0;
 };
 
 }  // namespace network

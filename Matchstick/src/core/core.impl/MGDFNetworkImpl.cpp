@@ -11,13 +11,11 @@ namespace MGDF {
 namespace core {
 
 WebSocketImpl::WebSocketImpl(std::shared_ptr<network::IWebSocket> socket)
-    : _socket(socket), _binary(false) {
+    : _socket(socket) {
   _socket->OnReceive([this](std::span<const char> &message, bool binary) {
-    // TODO need to have a buffer of buffers...
     std::lock_guard<std::mutex> lock(_mutex);
-    _binary = binary;
-    _buffer.resize(message.size());
-    memcpy_s(_buffer.data(), _buffer.size(), message.data(), message.size());
+    _buffers.emplace_back(message.begin(), message.end());
+    _binaryFlags.push_back(binary);
   });
 }
 
@@ -27,16 +25,25 @@ void WebSocketImpl::Send(void *data, UINT64 len, BOOL binary) {
 
 BOOL WebSocketImpl::CanRecieve(UINT64 *len) {
   std::lock_guard<std::mutex> lock(_mutex);
-  *len = _buffer.size();
-  return _buffer.size() > 0;
+  if (_buffers.size() == 0) {
+    return false;
+  }
+  const auto front = _buffers.front();
+  *len = front.size();
+  return front.size() > 0;
 }
 
 HRESULT WebSocketImpl::Receive(void *message, UINT64 len, BOOL *binary) {
   std::lock_guard<std::mutex> lock(_mutex);
-  if (len >= _buffer.size()) {
-    *binary = _binary;
-    memcpy_s(message, _buffer.size(), _buffer.data(), _buffer.size());
-    _buffer.clear();
+  if (_buffers.size() == 0) {
+    return E_FAIL;
+  }
+  const auto front = _buffers.front();
+  if (len >= front.size()) {
+    *binary = _binaryFlags.front();
+    memcpy_s(message, front.size(), front.data(), front.size());
+    _buffers.pop_front();
+    _binaryFlags.pop_front();
     return S_OK;
   }
   return E_FAIL;
@@ -51,8 +58,10 @@ HRESULT WebSocketImpl::GetConnectionStatus(
     memcpy_s(status->LastError, lastError.size(), lastError.c_str(),
              lastError.size());
     return S_OK;
+  } else {
+    status->LastErrorLength = lastError.size();
+    return E_FAIL;
   }
-  return E_FAIL;
 }
 HttpClientResponseImpl::HttpClientResponseImpl(
     const std::shared_ptr<network::HttpMessage> &response)
@@ -60,31 +69,50 @@ HttpClientResponseImpl::HttpClientResponseImpl(
 
 INT32 HttpClientResponseImpl::GetResponseCode() { return _response->Code; }
 
-const small *HttpClientResponseImpl::GetResponseHeader(const small *name) {
+HRESULT HttpClientResponseImpl::GetResponseHeader(const small *name,
+                                                  small *value,
+                                                  UINT64 *length) {
   auto found = _response->Headers.find(name);
   if (found != _response->Headers.end()) {
-    return found->second.c_str();
+    if (*length >= found->second.size()) {
+      memcpy_s(value, found->second.size(), found->second.c_str(),
+               found->second.size());
+      return S_OK;
+    } else {
+      *length = found->second.size();
+      return E_FAIL;
+    }
   } else {
-    return nullptr;
+    return E_NOT_SET;
   }
 }
 
-const small *HttpClientResponseImpl::GetResponseError(void) {
-  return _response->Error.size() ? _response->Error.c_str() : nullptr;
+HRESULT HttpClientResponseImpl::GetResponseError(small *error, UINT64 *length) {
+  if (*length >= _response->Error.size()) {
+    memcpy_s(error, _response->Error.size(), _response->Error.c_str(),
+             _response->Error.size());
+    return S_OK;
+  } else {
+    *length = _response->Error.size();
+    return E_FAIL;
+  }
 }
 
-UINT64 HttpClientResponseImpl::GetResponseBodyLength(void) {
-  return _response->Body.size();
-}
-
-const small *HttpClientResponseImpl::GetResponseBody(void) {
-  return _response->Body.data();
+HRESULT HttpClientResponseImpl::GetResponseBody(small *body, UINT64 *length) {
+  if (*length >= _response->Body.size()) {
+    memcpy_s(body, _response->Body.size(), _response->Body.data(),
+             _response->Body.size());
+    return S_OK;
+  } else {
+    *length = _response->Body.size();
+    return E_FAIL;
+  }
 }
 
 void HttpClientRequestGroupImpl::OnRequest(
-    void *key, std::shared_ptr<network::HttpMessage> &message) {
+    void *key, ComObject<IMGDFHttpClientResponse> &response) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _responses.insert(std::make_pair(key, message));
+  _responses.insert(std::make_pair(key, response));
 }
 
 void *HttpClientRequestGroupImpl::GetResponse(
@@ -93,13 +121,14 @@ void *HttpClientRequestGroupImpl::GetResponse(
   if (!_responses.size()) {
     return nullptr;
   }
-  auto r = _responses.begin();
-  _responses.erase(r);
+  auto pair = _responses.begin();
+  auto r = pair->second;
+  r.AddRawRef(responseOut);
+  auto key = pair->first;
+  _responses.erase(pair);
   lock.unlock();
 
-  auto responseWrapper = MakeCom<HttpClientResponseImpl>(r->second);
-  responseWrapper.AddRawRef(responseOut);
-  return r->first;
+  return key;
 }
 
 HttpClientRequestImpl::HttpClientRequestImpl(
@@ -132,12 +161,18 @@ void *HttpClientRequestImpl::SendRequest(IMGDFHttpClientRequestGroup *group) {
   _pending = _request->SendRequest(
       [this](std::shared_ptr<network::HttpMessage> &response) {
         if (_group && _pending) {
+          std::unique_lock<std::mutex> lock(_mutex);
+          if (!_response) {
+            _response = MakeCom<HttpClientResponseImpl>(response);
+          }
+          lock.unlock();
+
           auto group = dynamic_cast<HttpClientRequestGroupImpl *>(_group.Get());
           _ASSERTE(group);
-          group->OnRequest(_pending.get(), response);
+          group->OnRequest(_pending.get(), _response);
         }
       });
-  return _pending.get();
+  return group ? _pending.get() : nullptr;
 }
 
 void HttpClientRequestImpl::CancelRequest() {
@@ -149,8 +184,11 @@ void HttpClientRequestImpl::CancelRequest() {
 BOOL HttpClientRequestImpl::GetResponse(IMGDFHttpClientResponse **response) {
   std::shared_ptr<network::HttpMessage> r;
   if (_pending && _pending->GetResponse(r)) {
-    auto wrapper = MakeCom<HttpClientResponseImpl>(r);
-    wrapper.AddRawRef(response);
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (!_response) {
+      _response = MakeCom<HttpClientResponseImpl>(r);
+    }
+    _response.AddRawRef(response);
     return TRUE;
   }
   return FALSE;
@@ -160,22 +198,42 @@ HttpServerRequestImpl::HttpServerRequestImpl(
     const std::shared_ptr<network::IHttpServerRequest> &request)
     : _request(request) {}
 
-const small *__stdcall HttpServerRequestImpl::GetRequestHeader(
-    const small *name) {
+HRESULT HttpServerRequestImpl::GetRequestHeader(const small *name, small *value,
+                                                UINT64 *length) {
   if (_request->HasRequestHeader(name)) {
-    return _request->GetRequestHeader(name).c_str();
+    auto &hdr = _request->GetRequestHeader(name);
+    if (*length >= hdr.size()) {
+      memcpy_s(value, hdr.size(), hdr.c_str(), hdr.size());
+      return S_OK;
+    } else {
+      *length = hdr.size();
+      return E_FAIL;
+    }
   } else {
-    return nullptr;
+    return E_NOT_SET;
   }
 }
-const small *__stdcall HttpServerRequestImpl::GetRequestMethod() {
-  return _request->GetRequestMethod().c_str();
+
+HRESULT HttpServerRequestImpl::GetRequestMethod(small *method, UINT64 *length) {
+  auto &m = _request->GetRequestMethod();
+  if (*length >= m.size()) {
+    memcpy_s(method, m.size(), m.c_str(), m.size());
+    return S_OK;
+  } else {
+    *length = m.size();
+    return E_FAIL;
+  }
 }
-const small *HttpServerRequestImpl::GetRequestBody() {
-  return _request->GetRequestBody().c_str();
-}
-UINT64 HttpServerRequestImpl::GetRequestBodyLength() {
-  return _request->GetRequestBody().size();
+
+HRESULT HttpServerRequestImpl::GetRequestBody(small *body, UINT64 *length) {
+  auto &b = _request->GetRequestBody();
+  if (*length >= b.size()) {
+    memcpy_s(body, b.size(), b.data(), b.size());
+    return S_OK;
+  } else {
+    *length = b.size();
+    return E_FAIL;
+  }
 }
 
 IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseCode(INT32 code) {
@@ -228,6 +286,8 @@ BOOL WebServerImpl::RequestRecieved(MGDFWebServerRequest *request) {
   request->WebSocket = r.WebSocket;
   return true;
 }
+
+BOOL WebServerImpl::Listening() { return _server->Listening(); }
 
 }  // namespace core
 }  // namespace MGDF

@@ -56,13 +56,14 @@ struct HttpConnection {
   size_t KeepAliveDuration;
   size_t ConnectTimeout;
   const size_t ConnectTimeoutDuration;
-  std::shared_ptr<HttpOrigin> Origin;
+  HttpOrigin *Origin;
   mg_connection *Connection;
 };
 
 struct HttpOrigin {
   std::function<void(mg_connection *)> TLSInit;
   size_t ConnectionLimit = 0;
+  size_t ConnectionCount = 0;
   std::string Host;
   std::mutex Mutex;
   std::unordered_map<mg_connection *, std::shared_ptr<HttpConnection>>
@@ -201,6 +202,7 @@ class HttpServer : public std::enable_shared_from_this<HttpServer>,
       final;
   IHttpServer *OnWebSocketRequest(
       std::function<void(std::shared_ptr<IWebSocket> socket)> handler) final;
+  bool Listening() const final { return _listening.load(); }
 
   void SendResponse(mg_connection *conn, HttpMessage &response);
   static void HandleEvents(mg_connection *c, int ev, void *ev_data,
@@ -212,8 +214,9 @@ class HttpServer : public std::enable_shared_from_this<HttpServer>,
  private:
   std::mutex _stateMutex;
   std::condition_variable _cv;
-  bool _closing;
   bool _closed;
+  std::atomic_bool _listening;
+  std::atomic_bool _closing;
   const std::string _webSocketPath;
   std::function<void(std::shared_ptr<IHttpServerRequest> request)>
       _requestHandler;

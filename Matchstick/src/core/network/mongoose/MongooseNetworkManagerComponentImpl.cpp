@@ -418,12 +418,13 @@ HttpServer::HttpServer(const std::string &webSocketPath,
                        std::shared_ptr<MongooseNetworkManagerComponent> manager)
     : _closing(false),
       _closed(false),
+      _listening(false),
       _manager(manager),
       _webSocketPath(webSocketPath) {}
 
 HttpServer::~HttpServer() {
+  _closing.store(true);
   std::unique_lock<std::mutex> lock(_stateMutex);
-  _closing = true;
   lock.unlock();
   _cv.wait(lock, [this]() { return _closed; });
 }
@@ -463,14 +464,16 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
   HttpServer *server = static_cast<HttpServer *>(fn_data);
   _ASSERTE(server);
   switch (ev) {
+    case MG_EV_OPEN: {
+      if (c->is_listening) {
+        server->_listening.store(true);
+      }
+    } break;
     case MG_EV_POLL: {
-      {
-        // check if the server needs to be closed
-        std::lock_guard<std::mutex> lock(server->_stateMutex);
-        if (server->_closing) {
-          c->is_closing = 1;
-          return;
-        }
+      // check if the server needs to be closed
+      if (server->_closing.load()) {
+        c->is_closing = 1;
+        return;
       }
 
       // send pending server http responses
@@ -568,6 +571,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
           }
         }
       } else {
+        server->_listening.store(false);
         std::unique_lock<std::mutex> lock(server->_stateMutex);
         server->_closed = true;
         // break any circular shared_ptr references that would hold the server
@@ -722,35 +726,33 @@ std::shared_ptr<IWebSocket> MongooseNetworkManagerComponent::CreateWebSocket(
 }
 
 void MongooseNetworkManagerComponent::Poll() {
+  std::deque<std::tuple<bool, std::string,
+                        void (*)(mg_connection *, int, void *, void *), void *>>
+      newConnections;
+
   {
-    // process pending client requests
-    std::unique_lock<std::mutex> lock(_originMutex);
+    std::lock_guard<std::mutex> lock(_originMutex);
     for (auto &origin : _origins) {
-      lock.unlock();
-      {
-        std::lock_guard<std::mutex> originLock(origin.second->Mutex);
-        auto connections = origin.second->Connections.size();
-        // any pending requests that have not been assigned to a connection
-        // will require a new connection to be created. If we've maxxed out the
-        // allowable connections to this domain, then the requests will stay
-        // pending until some requests complete
-        while (origin.second->PendingRequests.size() &&
-               connections < origin.second->ConnectionLimit) {
-          auto p = origin.second->PendingRequests.front();
-          origin.second->PendingRequests.pop_front();
-          HttpConnection *newConnection = new HttpConnection{
-              .Request = p,
-              .KeepAliveDuration = _options.HttpClientKeepAlive,
-              .ConnectTimeoutDuration = _options.HttpClientConnectionTimeout,
-              .Origin = origin.second,
-          };
-          ++connections;
-          mg_http_connect(&_mgr, p->GetUrl().c_str(),
-                          &MongooseNetworkManagerComponent::HandleEvents,
-                          newConnection);
-        }
+      std::lock_guard<std::mutex> originLock(origin.second->Mutex);
+      // any pending requests that have not been assigned to a connection
+      // will require a new connection to be created. If we've maxxed out the
+      // allowable connections to this domain, then the requests will stay
+      // pending until some requests complete
+      while (origin.second->PendingRequests.size() &&
+             origin.second->ConnectionCount < origin.second->ConnectionLimit) {
+        auto p = origin.second->PendingRequests.front();
+        origin.second->PendingRequests.pop_front();
+        ++origin.second->ConnectionCount;
+
+        newConnections.emplace_back(
+            false, p->GetUrl(), &MongooseNetworkManagerComponent::HandleEvents,
+            new HttpConnection{
+                .Request = p,
+                .KeepAliveDuration = _options.HttpClientKeepAlive,
+                .ConnectTimeoutDuration = _options.HttpClientConnectionTimeout,
+                .Origin = origin.second.get(),
+            });
       }
-      lock.lock();
     }
   }
 
@@ -762,8 +764,8 @@ void MongooseNetworkManagerComponent::Poll() {
       if (it->second >= mg_millis()) {
         auto socket = it->first.lock();
         if (socket) {
-          mg_http_connect(&_mgr, socket->GetUrl().c_str(),
-                          &WebSocket::HandleEvents, socket.get());
+          newConnections.emplace_back(false, socket->GetUrl(),
+                                      &WebSocket::HandleEvents, socket.get());
         }
         it = _pendingWebsockets.erase(it);
       } else {
@@ -778,10 +780,15 @@ void MongooseNetworkManagerComponent::Poll() {
     for (auto &server : _pendingServers) {
       std::ostringstream listen;
       listen << "0.0.0.0:" << server.second;
-      mg_http_listen(&_mgr, listen.str().c_str(), &HttpServer::HandleEvents,
-                     server.first.get());
+      newConnections.emplace_back(true, listen.str(), &HttpServer::HandleEvents,
+                                  server.first.get());
     }
     _pendingServers.clear();
+  }
+
+  for (auto &nc : newConnections) {
+    (std::get<0>(nc) ? mg_http_listen : mg_http_connect)(
+        &_mgr, std::get<1>(nc).c_str(), std::get<2>(nc), std::get<3>(nc));
   }
 }
 
@@ -870,9 +877,11 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
       conn->Request.reset();
     }
   } else if (ev == MG_EV_CLOSE) {
-    std::lock_guard<std::mutex> lock(conn->Origin->Mutex);
-    conn->Origin->IdleConnections.erase(c);
-    conn->Origin->Connections.erase(c);
+    auto origin = conn->Origin;
+    std::lock_guard<std::mutex> lock(origin->Mutex);
+    origin->IdleConnections.erase(c);
+    origin->Connections.erase(c);
+    origin->ConnectionCount--;
   }
 }
 

@@ -280,8 +280,15 @@ struct ComString<F> {
     size_t size = 0;
     (_owner->*F)(_arg, nullptr, &size);
     std::basic_string<Char> str(size, '\0');
-    (_owner->*F)(_arg, str.data(), &size);
-    return str;
+    if (size >= 0 && SUCCEEDED((_owner->*F)(_arg, str.data(), &size))) {
+      return str;
+    } else {
+      return std::basic_string<Char>();
+    }
+  }
+
+  bool operator==(const std::basic_string<Char> &str) const {
+    return this->operator std::basic_string<Char>() == str;
   }
 
   std::ostream &Stream(std::ostream &out) {
@@ -303,8 +310,15 @@ struct ComString<F> {
     size_t size = 0;
     (_owner->*F)(nullptr, &size);
     std::basic_string<Char> str(size, '\0');
-    (_owner->*F)(str.data(), &size);
-    return str;
+    if (size > 0 && SUCCEEDED((_owner->*F)(str.data(), &size))) {
+      return str;
+    } else {
+      return std::basic_string<Char>();
+    }
+  }
+
+  bool operator==(const std::basic_string<Char> &str) const {
+    return this->operator std::basic_string<Char>() == str;
   }
 
   std::ostream &Stream(std::ostream &out) const {
