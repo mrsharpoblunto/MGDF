@@ -198,14 +198,11 @@ void HttpClientPendingRequest::ReceiveResponse(HttpConnection &conn,
   }
   conn.KeepAlive = mg_millis() + conn.KeepAliveDuration;
 
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (_state == HttpRequestState::Cancelled) {
-    return;
-  }
-  _response = std::make_shared<HttpMessage>();
-  CreateHttpMessage(hm, *_response.get());
-  _state = _response->Error.size() ? HttpRequestState::Error
-                                   : HttpRequestState::Complete;
+  HttpMessage response;
+  CreateHttpMessage(hm, response);
+  SetResponse(response.Error.size() ? HttpRequestState::Error
+                                    : HttpRequestState::Complete,
+              response);
 }
 
 HttpClientRequest::HttpClientRequest(
@@ -836,10 +833,8 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
           // connection
           auto pending = origin->PendingRequests.front();
           origin->PendingRequests.pop_front();
-          origin->IdleConnections.erase(c);
           if (!pending->SendRequest(*conn)) {
             conn->Request.reset();
-            origin->IdleConnections.insert(std::make_pair(c, conn));
           }
         }
       }
@@ -848,11 +843,7 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
     conn->Origin->TLSInit(c);
     if (!conn->Request->SendRequest(*conn)) {
       conn->Request.reset();
-      if (conn->KeepAliveDuration > 0) {
-        // if keep alives are enabled, keep the connection around for re-use
-        std::lock_guard<std::mutex> lock(conn->Origin->Mutex);
-        conn->Origin->IdleConnections.insert(std::make_pair(c, conn));
-      } else {
+      if (conn->KeepAliveDuration == 0) {
         c->is_closing = 1;
       }
     }
@@ -861,11 +852,7 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
     struct mg_http_message *hm = (struct mg_http_message *)ev_data;
     conn->Request->ReceiveResponse(*conn, hm);
     conn->Request.reset();
-    if (conn->KeepAliveDuration > 0) {
-      // if keep alives are enabled, keep the connection around for re-use
-      std::lock_guard<std::mutex> lock(conn->Origin->Mutex);
-      conn->Origin->IdleConnections.insert(std::make_pair(c, conn));
-    } else {
+    if (conn->KeepAliveDuration == 0) {
       c->is_closing = 1;
     }
   } else if (ev == MG_EV_ERROR) {
@@ -879,7 +866,6 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
   } else if (ev == MG_EV_CLOSE) {
     auto origin = conn->Origin;
     std::lock_guard<std::mutex> lock(origin->Mutex);
-    origin->IdleConnections.erase(c);
     origin->Connections.erase(c);
     origin->ConnectionCount--;
   }

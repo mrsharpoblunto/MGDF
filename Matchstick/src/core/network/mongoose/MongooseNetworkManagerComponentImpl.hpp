@@ -67,8 +67,6 @@ struct HttpOrigin {
   std::string Host;
   std::mutex Mutex;
   std::unordered_map<mg_connection *, std::shared_ptr<HttpConnection>>
-      IdleConnections;
-  std::unordered_map<mg_connection *, std::shared_ptr<HttpConnection>>
       Connections;
   std::deque<std::shared_ptr<HttpClientPendingRequest>> PendingRequests;
 };
