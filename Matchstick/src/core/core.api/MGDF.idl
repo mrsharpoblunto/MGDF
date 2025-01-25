@@ -1804,7 +1804,7 @@ any recent errors
 */
 typedef struct MGDFWebSocketConnectionStatus {
   MGDFWebSocketConnectionState State;
-  char *LastError;
+  small *LastError;
   UINT64 LastErrorLength;
 } MGDFWebSocketConnectionStatus;
 

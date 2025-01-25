@@ -61,7 +61,9 @@ class ComObject {
 
   template <typename U>
   void AddRawRef(U **raw) {
-    _data->AddRef();
+    if (_data) {
+      _data->AddRef();
+    }
     *raw = _data;
   }
 

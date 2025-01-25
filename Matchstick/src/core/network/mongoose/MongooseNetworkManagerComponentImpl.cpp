@@ -253,14 +253,14 @@ std::shared_ptr<IHttpClientPendingRequest> HttpClientRequest::SendRequest(
 
 IWebSocket *WebSocketBase::Send(const std::vector<char> &data, bool binary) {
   std::lock_guard<std::mutex> lock(_mutex);
-  auto buffer = _out.emplace_back(data.size(), binary);
+  auto &buffer = _out.emplace_back(data.size(), binary);
   memcpy_s(buffer.Data.data(), buffer.Data.size(), data.data(), data.size());
   return this;
 }
 
 IWebSocket *WebSocketBase::Send(void *data, size_t dataLength, bool binary) {
   std::lock_guard<std::mutex> lock(_mutex);
-  auto buffer = _out.emplace_back(dataLength, binary);
+  auto &buffer = _out.emplace_back(dataLength, binary);
   memcpy_s(buffer.Data.data(), buffer.Data.size(), data, dataLength);
   return this;
 }
@@ -300,6 +300,10 @@ WebSocket::~WebSocket() {
   _cv.wait(lock, [this]() { return _state == MGDF_WEBSOCKET_CLOSED; });
 }
 
+void WebSocket::Connect(mg_mgr &mgr) {
+  mg_ws_connect(&mgr, _url.c_str(), &WebSocket::HandleEvents, this, nullptr);
+}
+
 void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
                              void *fn_data) {
   WebSocket *socket = static_cast<WebSocket *>(fn_data);
@@ -327,13 +331,13 @@ void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
         socket->_manager->TLSInit(conn, socket->_host);
       }
     } break;
-    case MG_EV_OPEN: {
+    case MG_EV_HTTP_MSG: {
+      mg_ws_upgrade(conn, (struct mg_http_message *)ev_data, NULL);
+    } break;
+    case MG_EV_WS_OPEN: {
       std::lock_guard<std::mutex> lock(socket->_mutex);
       socket->_state = MGDF_WEBSOCKET_OPEN;
       socket->_lastError.clear();
-    } break;
-    case MG_EV_HTTP_MSG: {
-      mg_ws_upgrade(conn, (struct mg_http_message *)ev_data, NULL);
     } break;
     case MG_EV_WS_MSG: {
       struct mg_ws_message *wm = (struct mg_ws_message *)ev_data;
@@ -414,7 +418,7 @@ void ServerWebSocket::ForceClose() {
 HttpServer::HttpServer(const std::string &webSocketPath,
                        std::shared_ptr<MongooseNetworkManagerComponent> manager)
     : _closing(false),
-      _closed(false),
+      _closed(true),
       _listening(false),
       _manager(manager),
       _webSocketPath(webSocketPath) {}
@@ -454,6 +458,13 @@ void HttpServer::QueueClose(mg_connection *connection) {
   std::lock_guard<std::mutex> lock(_webSocketMutex);
   _webSockets.erase(connection);
   _pendingWebSocketClosures.insert(connection);
+}
+
+void HttpServer::Listen(mg_mgr &mgr, uint32_t port) {
+  _closed = false;
+  std::ostringstream listen;
+  listen << "0.0.0.0:" << port;
+  mg_http_listen(&mgr, listen.str().c_str(), &HttpServer::HandleEvents, this);
 }
 
 void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
@@ -596,7 +607,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
 void MongooseNetworkManagerComponent::ReconnectWebSocket(
     std::weak_ptr<WebSocket> socket, size_t when) {
   std::lock_guard<std::mutex> lock(_webSocketMutex);
-  _pendingWebsockets.push_back(std::make_pair(socket, when));
+  _pendingWebSockets.push_back(std::make_pair(socket, when));
 }
 
 MongooseNetworkManagerComponent::MongooseNetworkManagerComponent(
@@ -718,15 +729,14 @@ std::shared_ptr<IHttpServer> MongooseNetworkManagerComponent::CreateHttpServer(
 
 std::shared_ptr<IWebSocket> MongooseNetworkManagerComponent::CreateWebSocket(
     const std::string &url) {
-  return std::make_shared<WebSocket>(url, shared_from_this(),
-                                     _options.WebSocketClientReconnectInterval);
+  auto newWebSocket = std::make_shared<WebSocket>(
+      url, shared_from_this(), _options.WebSocketClientReconnectInterval);
+  std::lock_guard<std::mutex> lock(_webSocketMutex);
+  _pendingWebSockets.push_back(std::make_pair(newWebSocket, mg_millis()));
+  return newWebSocket;
 }
 
 void MongooseNetworkManagerComponent::Poll() {
-  std::deque<std::tuple<bool, std::string,
-                        void (*)(mg_connection *, int, void *, void *), void *>>
-      newConnections;
-
   {
     std::lock_guard<std::mutex> lock(_originMutex);
     for (auto &origin : _origins) {
@@ -736,19 +746,23 @@ void MongooseNetworkManagerComponent::Poll() {
       // allowable connections to this domain, then the requests will stay
       // pending until some requests complete
       while (origin.second->PendingRequests.size() &&
-             origin.second->ConnectionCount < origin.second->ConnectionLimit) {
+             origin.second->Connections.size() <
+                 origin.second->ConnectionLimit) {
         auto p = origin.second->PendingRequests.front();
         origin.second->PendingRequests.pop_front();
-        ++origin.second->ConnectionCount;
 
-        newConnections.emplace_back(
-            false, p->GetUrl(), &MongooseNetworkManagerComponent::HandleEvents,
-            new HttpConnection{
-                .Request = p,
-                .KeepAliveDuration = _options.HttpClientKeepAlive,
-                .ConnectTimeoutDuration = _options.HttpClientConnectionTimeout,
-                .Origin = origin.second.get(),
-            });
+        auto connection = std::shared_ptr<HttpConnection>(new HttpConnection{
+            .Request = p,
+            .KeepAliveDuration = _options.HttpClientKeepAlive,
+            .ConnectTimeoutDuration = _options.HttpClientConnectionTimeout,
+            .Origin = origin.second.get(),
+        });
+
+        auto connectionId = mg_http_connect(
+            &_mgr, p->GetUrl().c_str(),
+            &MongooseNetworkManagerComponent::HandleEvents, connection.get());
+        origin.second->Connections.insert(
+            std::make_pair(connectionId, connection));
       }
     }
   }
@@ -756,15 +770,15 @@ void MongooseNetworkManagerComponent::Poll() {
   {
     // create any pending websocket client connections
     std::lock_guard<std::mutex> websocketLock(_webSocketMutex);
-    auto it = _pendingWebsockets.begin();
-    while (it != _pendingWebsockets.end()) {
-      if (it->second >= mg_millis()) {
+    const auto now = mg_millis();
+    auto it = _pendingWebSockets.begin();
+    while (it != _pendingWebSockets.end()) {
+      if (now >= it->second) {
         auto socket = it->first.lock();
         if (socket) {
-          newConnections.emplace_back(false, socket->GetUrl(),
-                                      &WebSocket::HandleEvents, socket.get());
+          socket->Connect(_mgr);
         }
-        it = _pendingWebsockets.erase(it);
+        it = _pendingWebSockets.erase(it);
       } else {
         ++it;
       }
@@ -774,18 +788,15 @@ void MongooseNetworkManagerComponent::Poll() {
   {
     // create any pending http servers to begin listening
     std::lock_guard<std::mutex> serverLock(_serverMutex);
-    for (auto &server : _pendingServers) {
-      std::ostringstream listen;
-      listen << "0.0.0.0:" << server.second;
-      newConnections.emplace_back(true, listen.str(), &HttpServer::HandleEvents,
-                                  server.first.get());
+    auto it = _pendingServers.begin();
+    while (it != _pendingServers.end()) {
+      auto server = it->first.lock();
+      if (server) {
+        server->Listen(_mgr, it->second);
+      }
+      it = _pendingServers.erase(it);
     }
     _pendingServers.clear();
-  }
-
-  for (auto &nc : newConnections) {
-    (std::get<0>(nc) ? mg_http_listen : mg_http_connect)(
-        &_mgr, std::get<1>(nc).c_str(), std::get<2>(nc), std::get<3>(nc));
   }
 }
 
@@ -806,11 +817,6 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
     conn->ConnectTimeout = mg_millis() + conn->ConnectTimeoutDuration;
     conn->KeepAlive = mg_millis() + conn->KeepAliveDuration;
     conn->Connection = c;
-    {
-      std::lock_guard<std::mutex> lock(conn->Origin->Mutex);
-      conn->Origin->Connections.insert(
-          std::make_pair(c, std::shared_ptr<HttpConnection>(conn)));
-    }
   } else if (ev == MG_EV_POLL) {
     if (conn->Request) {
       // if we have an active request associated with this connection
@@ -867,7 +873,6 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
     auto origin = conn->Origin;
     std::lock_guard<std::mutex> lock(origin->Mutex);
     origin->Connections.erase(c);
-    origin->ConnectionCount--;
   }
 }
 

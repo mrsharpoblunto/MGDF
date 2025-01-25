@@ -113,8 +113,12 @@ class WebServerImpl : public ComBase<IMGDFWebServer> {
   BOOL __stdcall Listening() final;
 
  private:
+  struct WebServerImplRequest {
+    ComObject<WebSocketImpl> WebSocket;
+    ComObject<HttpServerRequestImpl> HttpRequest;
+  };
   std::mutex _mutex;
-  std::deque<MGDFWebServerRequest> _requests;
+  std::deque<WebServerImplRequest> _requests;
   std::shared_ptr<network::IHttpServer> _server;
 };
 

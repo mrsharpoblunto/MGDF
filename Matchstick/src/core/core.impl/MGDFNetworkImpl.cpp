@@ -260,17 +260,17 @@ WebServerImpl::WebServerImpl(std::shared_ptr<network::IHttpServer> server)
   server->OnHttpRequest(
       [this](std::shared_ptr<network::IHttpServerRequest> request) {
         std::lock_guard<std::mutex> lock(_mutex);
-        _requests.push_back(MGDFWebServerRequest{
-            .WebSocket = nullptr,
+        _requests.push_back(WebServerImplRequest{
+            .WebSocket = ComObject<WebSocketImpl>(),
             .HttpRequest = MakeCom<HttpServerRequestImpl>(request),
         });
       });
   server->OnWebSocketRequest(
       [this](std::shared_ptr<network::IWebSocket> socket) {
         std::lock_guard<std::mutex> lock(_mutex);
-        _requests.push_back(MGDFWebServerRequest{
+        _requests.push_back(WebServerImplRequest{
             .WebSocket = MakeCom<WebSocketImpl>(socket),
-            .HttpRequest = nullptr,
+            .HttpRequest = ComObject<HttpServerRequestImpl>(),
         });
       });
 }
@@ -281,10 +281,10 @@ BOOL WebServerImpl::RequestRecieved(MGDFWebServerRequest *request) {
     return FALSE;
   }
   auto &r = _requests.front();
+  r.HttpRequest.AddRawRef(&request->HttpRequest);
+  r.WebSocket.AddRawRef(&request->WebSocket);
   _requests.pop_front();
-  request->HttpRequest = r.HttpRequest;
-  request->WebSocket = r.WebSocket;
-  return true;
+  return TRUE;
 }
 
 BOOL WebServerImpl::Listening() { return _server->Listening(); }

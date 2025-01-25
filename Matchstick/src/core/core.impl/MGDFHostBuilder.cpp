@@ -35,7 +35,8 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   const network::NetworkManagerOptions options{
       .HttpClientOriginConnectionLimit = 4U,
       .HttpClientConnectionTimeout = 10000,
-      .HttpClientKeepAlive = 10000};
+      .HttpClientKeepAlive = 10000,
+      .WebSocketClientReconnectInterval = 500};
   if (!network::mongoose::CreateNetworkManagerComponent(components.Network,
                                                         options)) {
     LOG("FATAL ERROR: Unable to register NetworkManager", MGDF_LOG_ERROR);

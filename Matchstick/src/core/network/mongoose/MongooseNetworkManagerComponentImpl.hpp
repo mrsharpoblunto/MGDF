@@ -63,7 +63,6 @@ struct HttpConnection {
 struct HttpOrigin {
   std::function<void(mg_connection *)> TLSInit;
   size_t ConnectionLimit = 0;
-  size_t ConnectionCount = 0;
   std::string Host;
   std::mutex Mutex;
   std::unordered_map<mg_connection *, std::shared_ptr<HttpConnection>>
@@ -154,11 +153,12 @@ class WebSocket : public std::enable_shared_from_this<WebSocket>,
             std::shared_ptr<MongooseNetworkManagerComponent> manager,
             size_t reconnectInterval);
 
-  const std::string &GetUrl() const { return _url; }
+  void Connect(mg_mgr &mgr);
+
+ private:
   static void HandleEvents(mg_connection *c, int ev, void *ev_data,
                            void *fn_data);
 
- private:
   bool _usesTLS;
   std::string _host;
   const size_t _reconnectInterval;
@@ -201,6 +201,8 @@ class HttpServer : public std::enable_shared_from_this<HttpServer>,
   IHttpServer *OnWebSocketRequest(
       std::function<void(std::shared_ptr<IWebSocket> socket)> handler) final;
   bool Listening() const final { return _listening.load(); }
+
+  void Listen(mg_mgr &mgr, uint32_t port);
 
   void SendResponse(mg_connection *conn, HttpMessage &response);
   static void HandleEvents(mg_connection *c, int ev, void *ev_data,
@@ -266,10 +268,10 @@ class MongooseNetworkManagerComponent
   std::unordered_map<std::string, std::shared_ptr<HttpOrigin>> _origins;
 
   std::mutex _webSocketMutex;
-  std::list<std::pair<std::weak_ptr<WebSocket>, size_t>> _pendingWebsockets;
+  std::list<std::pair<std::weak_ptr<WebSocket>, size_t>> _pendingWebSockets;
 
   std::mutex _serverMutex;
-  std::vector<std::pair<std::shared_ptr<HttpServer>, uint32_t>> _pendingServers;
+  std::vector<std::pair<std::weak_ptr<HttpServer>, uint32_t>> _pendingServers;
 };
 
 void ParseKeepAliveHeader(const mg_str *header, int &timeout, int &max);

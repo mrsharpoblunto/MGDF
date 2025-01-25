@@ -19,6 +19,43 @@ namespace core {
 namespace network {
 namespace mongoose {
 
+static const char *GetHttpStatusString(uint32_t statusCode) {
+  switch (statusCode) {
+    case 100:
+      return "Continue";
+    case 201:
+      return "Created";
+    case 202:
+      return "Accepted";
+    case 204:
+      return "No Content";
+    case 206:
+      return "Partial Content";
+    case 301:
+      return "Moved Permanently";
+    case 302:
+      return "Found";
+    case 304:
+      return "Not Modified";
+    case 400:
+      return "Bad Request";
+    case 401:
+      return "Unauthorized";
+    case 403:
+      return "Forbidden";
+    case 404:
+      return "Not Found";
+    case 418:
+      return "I'm a teapot";
+    case 500:
+      return "Internal Server Error";
+    case 501:
+      return "Not Implemented";
+    default:
+      return "OK";
+  }
+}
+
 void CreateHttpMessage(mg_http_message *hm, HttpMessage &response) {
   response.Code = mg_http_status(hm);
   response.Method = std::string(hm->method.ptr, hm->method.len);
@@ -89,22 +126,24 @@ void SendHttpResponse(mg_connection *c, const HttpMessage &m) {
   std::vector<char> compressedBody;
   const char *bodyData = m.Body.data();
   size_t bodyLength = m.Body.size();
+  bool stripContentEncoding = false;
 
   if (!m.Body.empty()) {
     auto found = m.Headers.find(S_CONTENT_ENCODING);
     if (found != m.Headers.end() && found->second == S_GZIP) {
-      if (!Resources::CompressString(m.Body, compressedBody)) {
-        mg_http_reply(c, 500, NULL, "\n");
-        return;
+      if (Resources::CompressString(m.Body, compressedBody)) {
+        bodyData = compressedBody.data();
+        bodyLength = compressedBody.size();
+      } else {
+        stripContentEncoding = true;
       }
-      bodyData = compressedBody.data();
-      bodyLength = compressedBody.size();
     }
   }
 
   std::ostringstream headers;
   for (const auto &h : m.Headers) {
-    if (h.first == S_ACCEPT_ENCODING || h.first == S_CONTENT_LENGTH) {
+    if (h.first == S_ACCEPT_ENCODING || h.first == S_CONTENT_LENGTH ||
+        (h.first == S_CONTENT_ENCODING && stripContentEncoding)) {
       continue;
     }
     headers << h.first << ": " << h.second << "\r\n";
@@ -115,7 +154,8 @@ void SendHttpResponse(mg_connection *c, const HttpMessage &m) {
             "%s"
             "Content-Length %d\r\n"
             "\r\n",
-            m.Code, headers.str().c_str(), bodyLength);
+            m.Code, GetHttpStatusString(m.Code), headers.str().c_str(),
+            bodyLength);
   mg_send(c, bodyData, bodyLength);
 }
 
