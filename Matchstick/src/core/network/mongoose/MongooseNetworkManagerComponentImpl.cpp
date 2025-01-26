@@ -120,9 +120,8 @@ void HttpServerRequest::SendResponse() {
 }
 
 void HttpClientPendingRequest::CancelRequest() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  _state = HttpRequestState::Cancelled;
-  _responseHandler = nullptr;
+  HttpMessage response = {.Code = -1, .Error = S_CANCELLED};
+  SetResponse(HttpRequestState::Cancelled, response);
 }
 
 HttpRequestState HttpClientPendingRequest::GetRequestState() const {
@@ -134,7 +133,8 @@ bool HttpClientPendingRequest::GetResponse(
     std::shared_ptr<HttpMessage> &response) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_state == HttpRequestState::Complete ||
-      _state == HttpRequestState::Error) {
+      _state == HttpRequestState::Error ||
+      _state == HttpRequestState::Cancelled) {
     response = _response;
     return true;
   }
@@ -154,8 +154,9 @@ void HttpClientPendingRequest::SetResponse(HttpRequestState state,
   // holding a reference to other objects, so we need to clear it
   _responseHandler = nullptr;
   lock.unlock();
-  if (handler && state == HttpRequestState::Complete ||
-      state == HttpRequestState::Error) {
+  if (handler && (state == HttpRequestState::Complete ||
+                  state == HttpRequestState::Error ||
+                  state == HttpRequestState::Cancelled)) {
     handler(_response);
   }
 }
@@ -183,6 +184,12 @@ bool HttpClientPendingRequest::SendRequest(HttpConnection &conn) {
 
 void HttpClientPendingRequest::ReceiveResponse(HttpConnection &conn,
                                                mg_http_message *hm) {
+  std::unique_lock<std::mutex> lock(_mutex);
+  if (_state == HttpRequestState::Cancelled) {
+    return;
+  }
+  lock.unlock();
+
   const auto connectionHeader = mg_http_get_header(hm, S_CONNECTION.c_str());
   if (connectionHeader &&
       mg_strcmp(*connectionHeader, mg_stdstr(S_CLOSE)) == 0) {
@@ -844,6 +851,10 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
           (c->is_connecting || c->is_resolving)) {
         // close the connection
         mg_error(c, "Connect timeout");
+      } else if (conn->Request->GetRequestState() ==
+                 HttpRequestState::Cancelled) {
+        // close the connection to ensure the request is not processed
+        c->is_closing = true;
       }
     } else {
       // this connection is idle
