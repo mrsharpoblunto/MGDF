@@ -1,9 +1,9 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <time.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
 #include <functional>
 
 #include "BufferedGameState.hpp"
@@ -16,19 +16,24 @@
 namespace MGDF {
 namespace Test {
 
+struct TestResults {
+  uint32_t Passed;
+  uint32_t Failed;
+};
+
 class TestModule {
  public:
   enum class TestStep { FAILED, PASSED, CONT, NEXT };
 
   TestModule() : _testIndex(0) {}
   virtual ~TestModule(void) {}
-  virtual TestModule *Update(IMGDFSimHost *host, TextManagerState *state);
+  bool Update(IMGDFSimHost *host, TextManagerState *state,
+              TestResults &results);
   TestModule &Step(std::function<TestStep(TextManagerState *)> step);
   TestModule &StepOnce(std::function<void(TextManagerState *)> step);
 
  protected:
   virtual void Setup(IMGDFSimHost *host) = 0;
-  virtual TestModule *NextTestModule() = 0;
 
  private:
   std::vector<std::function<TestStep(TextManagerState *)>> _steps;
@@ -52,7 +57,10 @@ class Module : public ComBase<IMGDFModule> {
   void __stdcall Panic() final;
 
  private:
-  std::unique_ptr<TestModule> _testModule;
+  TestResults _results;
+  bool _finalResult;
+  std::list<std::unique_ptr<TestModule>> _testModules;
+  std::list<std::unique_ptr<TestModule>>::iterator _currentModule;
   BufferedGameState<TextManagerState> _stateBuffer;
   std::unique_ptr<TextManager> _textManager;
   ComObject<IMGDFPerformanceCounter> _textManagerCounter;

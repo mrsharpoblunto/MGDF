@@ -1,10 +1,11 @@
 #include "StdAfx.h"
 
-#include <fstream>
+#include <sstream>
 
-#include "Test1.hpp"
-#include "Test2.hpp"
-#include "Test3.hpp"
+#include "InputTests.hpp"
+#include "LoadSaveTests.hpp"
+#include "NetworkTests.hpp"
+#include "SoundTests.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -13,7 +14,8 @@
 namespace MGDF {
 namespace Test {
 
-TestModule* TestModule::Update(IMGDFSimHost* host, TextManagerState* state) {
+bool TestModule::Update(IMGDFSimHost* host, TextManagerState* state,
+                        TestResults& results) {
   ComObject<IMGDFInputManager> input;
   host->GetInput(input.Assign());
   if (input->IsKeyPress(VK_ESCAPE)) {
@@ -27,19 +29,18 @@ TestModule* TestModule::Update(IMGDFSimHost* host, TextManagerState* state) {
     if (result == TestStep::PASSED) {
       state->SetStatus(TextColor::GREEN, "[Test Passed]");
       ++_testIndex;
-      return _testIndex == _steps.size() ? NextTestModule() : nullptr;
+      ++results.Passed;
+      return _testIndex == _steps.size();
     } else if (result == TestStep::FAILED) {
       state->SetStatus(TextColor::RED, "[Test Failed]");
-      auto next = NextTestModule();
-      if (!next) {
-        _testIndex = static_cast<int>(_steps.size());
-      }
-      return next;
+      _testIndex = static_cast<int>(_steps.size());
+      ++results.Failed;
+      return true;
     } else if (result == TestStep::NEXT) {
       ++_testIndex;
     }
   }
-  return nullptr;
+  return false;
 }
 
 TestModule& TestModule::Step(std::function<TestStep(TextManagerState*)> step) {
@@ -58,16 +59,21 @@ TestModule& TestModule::StepOnce(std::function<void(TextManagerState*)> step) {
 Module::~Module(void) {}
 
 Module::Module()
-    : _textManagerCounter(nullptr),
+    : _finalResult(false),
+      _results({0, 0}),
+      _textManagerCounter(nullptr),
       _testModuleCounter(nullptr),
-      _textManager(nullptr),
-      _testModule(nullptr) {
+      _textManager(nullptr) {
   _stateBuffer.Pending()->AddLine("MGDF functional test suite started");
 }
 
 BOOL Module::STNew(IMGDFSimHost* host) {
   std::ignore = host;
-  _testModule = std::make_unique<Test1>();
+  _testModules.push_back(std::make_unique<NetworkTests>());
+  _testModules.push_back(std::make_unique<InputTests>());
+  _testModules.push_back(std::make_unique<SoundTests>());
+  _testModules.push_back(std::make_unique<LoadSaveTests>());
+  _currentModule = _testModules.begin();
 
   return true;
 }
@@ -84,11 +90,22 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
   {
     ComObject<IMGDFPerformanceCounterScope> counterScope;
     _testModuleCounter->Begin(nullptr, counterScope.Assign());
-    auto next = std::unique_ptr<TestModule>(
-        _testModule->Update(host, _stateBuffer.Pending()));
+    if (_currentModule != _testModules.end()) {
+      const auto moduleComplete =
+          (*_currentModule)->Update(host, _stateBuffer.Pending(), _results);
 
-    if (next != nullptr) {
-      _testModule.swap(next);
+      if (moduleComplete) {
+        ++_currentModule;
+      }
+    } else if (!_finalResult) {
+      _finalResult = true;
+      std::ostringstream oss;
+      oss << _results.Passed << "/" << (_results.Passed + _results.Failed)
+          << " tests passed. Press the [ESC] key to exit (then make sure there "
+             "were no memory leaks)";
+      _stateBuffer.Pending()->AddLine("");
+      _stateBuffer.Pending()->AddLine(oss.str());
+      _stateBuffer.Pending()->AddLine("");
     }
   }
 

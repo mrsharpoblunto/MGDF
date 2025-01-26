@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="FakeArchiveHandler.cpp" />
+    <ClCompile Include="FakeFile.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Module.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="InputTests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="LoadSaveTests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="NetworkTests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FakeArchiveHandler.hpp" />
+    <ClInclude Include="FakeFile.hpp" />
+    <ClInclude Include="Module.hpp" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="InputTests.hpp">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTests.hpp">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="LoadSaveTests.hpp">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="NetworkTests.hpp">
+      <Filter>tests</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="tests">
+      <UniqueIdentifier>{10cd3ff4-2fd8-4efc-9bbb-bb500cbf24ae}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -113,18 +113,20 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="test1.cpp" />
-    <ClCompile Include="test2.cpp" />
-    <ClCompile Include="test3.cpp" />
+    <ClCompile Include="InputTests.cpp" />
+    <ClCompile Include="SoundTests.cpp" />
+    <ClCompile Include="LoadSaveTests.cpp" />
+    <ClCompile Include="NetworkTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FakeArchiveHandler.hpp" />
     <ClInclude Include="FakeFile.hpp" />
     <ClInclude Include="Module.hpp" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="test1.hpp" />
-    <ClInclude Include="test2.hpp" />
-    <ClInclude Include="test3.hpp" />
+    <ClInclude Include="InputTests.hpp" />
+    <ClInclude Include="SoundTests.hpp" />
+    <ClInclude Include="LoadSaveTests.hpp" />
+    <ClInclude Include="NetworkTests.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\testCommon\testCommon.vcxproj">
