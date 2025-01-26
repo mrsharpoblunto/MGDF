@@ -29,7 +29,7 @@ class HttpServerRequest
   bool HasRequestHeader(const std::string &name) const final;
   const std::string &GetRequestHeader(const std::string &name) const final;
   const std::string &GetRequestMethod() const final;
-  const std::string &GetRequestUrl() const final;
+  const std::string &GetRequestPath() const final;
   const std::string &GetRequestBody() const final;
 
   IHttpServerRequest *SetResponseCode(int code) final;

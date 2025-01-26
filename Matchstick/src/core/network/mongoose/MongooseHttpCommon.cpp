@@ -59,6 +59,11 @@ static const char *GetHttpStatusString(uint32_t statusCode) {
 void CreateHttpMessage(mg_http_message *hm, HttpMessage &response) {
   response.Code = mg_http_status(hm);
   response.Method = std::string(hm->method.ptr, hm->method.len);
+  response.Url = std::string(hm->uri.ptr, hm->uri.len);
+  if (hm->query.len) {
+    response.Url += "?";
+    response.Url += std::string(hm->query.ptr, hm->query.len);
+  }
   constexpr const size_t max = sizeof(hm->headers) / sizeof(hm->headers[0]);
   for (size_t i = 0; i < max && hm->headers[i].name.len > 0; i++) {
     mg_str *k = &hm->headers[i].name, *v = &hm->headers[i].value;

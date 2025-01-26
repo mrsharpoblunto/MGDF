@@ -23,7 +23,7 @@ void HostMetricsServer::Listen(UINT32 port) {
 
 void HostMetricsServer::OnRequest(
     std::shared_ptr<network::IHttpServerRequest> request) {
-  if (request->GetRequestUrl() == "/metrics") {
+  if (request->GetRequestPath() == "/metrics") {
     {
       std::lock_guard lock(_metricsMutex);
       if (_updateResponse) {

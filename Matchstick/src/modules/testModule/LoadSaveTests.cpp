@@ -3,7 +3,6 @@
 #include "LoadSaveTests.hpp"
 
 #include <MGDF/ComObject.hpp>
-#include <sstream>
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)

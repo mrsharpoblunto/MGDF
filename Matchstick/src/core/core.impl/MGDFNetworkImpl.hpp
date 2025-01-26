@@ -91,6 +91,7 @@ class HttpServerRequestImpl : public ComBase<IMGDFHttpServerRequest> {
 
   HRESULT __stdcall GetRequestHeader(const small *name, small *value,
                                      UINT64 *length) final;
+  HRESULT __stdcall GetRequestPath(small *path, UINT64 *length) final;
   HRESULT __stdcall GetRequestMethod(small *method, UINT64 *length) final;
   HRESULT __stdcall GetRequestBody(small *body, UINT64 *length) final;
 

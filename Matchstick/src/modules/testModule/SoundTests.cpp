@@ -20,7 +20,7 @@ void SoundTests::Setup(IMGDFSimHost *host) {
 
   Step([this](auto state) {
     state->AddLine("");
-    state->AddLine("SoundManager Tests");
+    state->AddLine("Sound Tests");
     state->AddLine("");
     state->AddLine("Checking SoundManager is initialized");
     return _soundManager ? TestStep::PASSED : TestStep::FAILED;

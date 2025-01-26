@@ -4,7 +4,6 @@
 
 #include <MGDF/ComObject.hpp>
 #include <atomic>
-#include <string>
 #include <vector>
 
 namespace MGDF {

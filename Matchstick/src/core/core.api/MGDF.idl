@@ -1751,6 +1751,14 @@ and responding to that request.
                            [ in, out ] UINT64 * length);
 
   /**
+  Gets the path of the request
+  \param method a buffer to store the path in
+\param length the length of the buffer provided to store the value above. Will be set to the length required
+  \return S_OK if the buffer was the correct length otherwise E_FAIL if the buffer size was insufficient
+  */
+  HRESULT GetRequestPath([ in, out ] small * path, [ in, out ] UINT64 * length);
+
+  /**
   Gets the body of the request. NOTE: this is not necessarily a valid C string
 and may not be null terminated
   \param body a buffer to store the request body in

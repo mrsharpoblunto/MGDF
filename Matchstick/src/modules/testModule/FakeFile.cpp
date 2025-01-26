@@ -3,9 +3,6 @@
 #include "FakeFile.hpp"
 
 #include <MGDF/ComObject.hpp>
-#include <algorithm>
-#include <sstream>
-#include <vector>
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)

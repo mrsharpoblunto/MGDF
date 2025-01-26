@@ -240,6 +240,17 @@ HRESULT HttpServerRequestImpl::GetRequestHeader(const small *name, small *value,
   }
 }
 
+HRESULT HttpServerRequestImpl::GetRequestPath(small *path, UINT64 *length) {
+  auto &m = _request->GetRequestPath();
+  if (*length >= m.size()) {
+    memcpy_s(path, m.size(), m.c_str(), m.size());
+    return S_OK;
+  } else {
+    *length = m.size();
+    return E_FAIL;
+  }
+}
+
 HRESULT HttpServerRequestImpl::GetRequestMethod(small *method, UINT64 *length) {
   auto &m = _request->GetRequestMethod();
   if (*length >= m.size()) {

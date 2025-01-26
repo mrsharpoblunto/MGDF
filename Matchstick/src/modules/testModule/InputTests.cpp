@@ -3,8 +3,6 @@
 #include "InputTests.hpp"
 
 #include <MGDF/ComObject.hpp>
-#include <array>
-#include <fstream>
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -24,6 +22,7 @@ void InputTests::Setup(IMGDFSimHost *host) {
   _gamepad = gamepads[0];
   host->GetTimer(_timer.Assign());
   StepOnce([](auto state) {
+    state->AddLine("");
     state->AddLine("InputManager Tests");
     state->AddLine("");
     state->AddLine("Press the [ENTER] key");

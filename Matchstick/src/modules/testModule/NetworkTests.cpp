@@ -19,7 +19,7 @@ NetworkTests::NetworkTests() : _requestGroupKey(nullptr) {}
 void NetworkTests::Setup(IMGDFSimHost *host) {
   StepOnce([this](auto state) {
     state->AddLine("");
-    state->AddLine("Web Client/Server Tests");
+    state->AddLine("Network Tests");
     state->AddLine("");
   })
       .StepOnce([host, this](auto state) {
@@ -215,7 +215,9 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
           auto key = std::to_string(i);
           _pendingRecieve.insert(key);
           ComObject<IMGDFHttpClientRequest> request;
-          host->CreateHttpRequest("http://localhost:3000/", request.Assign());
+          std::ostringstream url;
+          url << "http://localhost:3000/" << key << "?key=" << key;
+          host->CreateHttpRequest(url.str().c_str(), request.Assign());
           request->SetRequestMethod("POST")
               ->SetRequestBody(key.c_str(), key.size())
               ->SetRequestHeader("Content-Type", "text/plain")
@@ -243,6 +245,16 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
 
             const MGDF::ComString<&IMGDFHttpServerRequest::GetRequestBody> body(
                 httpRequest);
+            const MGDF::ComString<&IMGDFHttpServerRequest::GetRequestPath> path(
+                httpRequest);
+
+            std::ostringstream expectedPath;
+            expectedPath << "/" << body << "?key=" << body;
+
+            if (static_cast<std::string>(path) != expectedPath.str()) {
+              return TestStep::FAILED;
+            }
+
             auto found = _pendingRecieve.find(body);
             if (found != _pendingRecieve.end()) {
               _pendingRecieve.erase(found);

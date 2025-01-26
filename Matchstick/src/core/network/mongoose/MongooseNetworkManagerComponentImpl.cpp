@@ -87,7 +87,7 @@ const std::string &HttpServerRequest::GetRequestMethod() const {
   return _request.Method;
 }
 
-const std::string &HttpServerRequest::GetRequestUrl() const {
+const std::string &HttpServerRequest::GetRequestPath() const {
   return _request.Url;
 }
 
@@ -146,6 +146,8 @@ void HttpClientPendingRequest::SetResponse(HttpRequestState state,
   std::unique_lock<std::mutex> lock(_mutex);
   if (_state == HttpRequestState::Requesting) {
     _state = state;
+    response.Method = _request.Method;
+    response.Url = _request.Url;
     _response = std::make_shared<HttpMessage>(std::move(response));
   }
   state = _state;
