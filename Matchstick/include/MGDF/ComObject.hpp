@@ -276,61 +276,60 @@ template <typename Owner, typename Arg, typename Char,
           HRESULT (Owner::*F)(Arg, Char *, size_t *)>
 struct ComString<F> {
  public:
-  ComString(Owner *owner, Arg arg) : _owner(owner), _arg(arg) {}
-
-  operator std::basic_string<Char>() const {
+  ComString(Owner *owner, Arg arg) : _owner(owner), _arg(arg) {
     size_t size = 0;
     (_owner->*F)(_arg, nullptr, &size);
-    std::basic_string<Char> str(size, '\0');
-    if (size >= 0 && SUCCEEDED((_owner->*F)(_arg, str.data(), &size))) {
-      return str;
-    } else {
-      return std::basic_string<Char>();
+    if (size > 0) {
+      _str.resize(size);
+      (_owner->*F)(_arg, _str.data(), &size);
     }
   }
 
+  operator const std::basic_string<Char> &() const { return _str; }
+
+  const std::basic_string<Char> &str() const { return _str; }
+
   bool operator==(const std::basic_string<Char> &str) const {
-    return this->operator std::basic_string<Char>() == str;
+    return _str == str;
   }
 
   std::ostream &Stream(std::ostream &out) {
-    auto str = this->operator std::basic_string<Char>();
-    out << str;
+    out << _str;
     return out;
   }
 
  private:
   Owner *_owner;
   Arg _arg;
+  std::basic_string<Char> _str;
 };
 
 template <typename Owner, typename Char, HRESULT (Owner::*F)(Char *, size_t *)>
 struct ComString<F> {
  public:
-  ComString(Owner *owner) : _owner(owner) {}
-  operator std::basic_string<Char>() const {
+  ComString(Owner *owner) : _owner(owner) {
     size_t size = 0;
     (_owner->*F)(nullptr, &size);
-    std::basic_string<Char> str(size, '\0');
-    if (size > 0 && SUCCEEDED((_owner->*F)(str.data(), &size))) {
-      return str;
-    } else {
-      return std::basic_string<Char>();
-    }
+    _str.resize(size);
+    (_owner->*F)(_str.data(), &size);
   }
 
+  operator const std::basic_string<Char> &() const { return _str; }
+
+  const std::basic_string<Char> &str() const { return _str; }
+
   bool operator==(const std::basic_string<Char> &str) const {
-    return this->operator std::basic_string<Char>() == str;
+    return _str == str;
   }
 
   std::ostream &Stream(std::ostream &out) const {
-    auto str = this->operator std::basic_string<Char>();
-    out << str;
+    out << _str;
     return out;
   }
 
  private:
   Owner *_owner;
+  std::basic_string<Char> _str;
 };
 
 }  // namespace MGDF

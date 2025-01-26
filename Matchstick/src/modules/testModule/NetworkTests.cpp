@@ -95,8 +95,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         if (_request->GetResponse(_response.Assign())) {
           const MGDF::ComString<&IMGDFHttpClientResponse::GetResponseError>
               error(_response);
-          if (!static_cast<std::string>(error).size() ||
-              _response->GetResponseCode() != 0) {
+          if (!error.str().size() || _response->GetResponseCode() != 0) {
             return TestStep::FAILED;
           } else {
             return TestStep::PASSED;
@@ -119,8 +118,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         if (_request->GetResponse(_response.Assign())) {
           const MGDF::ComString<&IMGDFHttpClientResponse::GetResponseError>
               error(_response);
-          if (!static_cast<std::string>(error).size() ||
-              _response->GetResponseCode() != 0) {
+          if (!error.str().size() || _response->GetResponseCode() != 0) {
             return TestStep::FAILED;
           } else {
             return TestStep::PASSED;
@@ -251,7 +249,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
             std::ostringstream expectedPath;
             expectedPath << "/" << body << "?key=" << body;
 
-            if (static_cast<std::string>(path) != expectedPath.str()) {
+            if (path.str() != expectedPath.str()) {
               return TestStep::FAILED;
             }
 
