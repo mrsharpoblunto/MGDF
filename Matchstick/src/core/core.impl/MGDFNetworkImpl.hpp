@@ -64,7 +64,7 @@ class HttpClientResponseImpl : public ComBase<IMGDFHttpClientResponse> {
 class HttpClientRequestImpl : public ComBase<IMGDFHttpClientRequest> {
  public:
   HttpClientRequestImpl(std::unique_ptr<network::IHttpClientRequest> &request);
-  virtual ~HttpClientRequestImpl(void) {}
+  virtual ~HttpClientRequestImpl(void);
 
   IMGDFHttpClientRequest *__stdcall SetRequestHeader(const small *name,
                                                      const small *value) final;

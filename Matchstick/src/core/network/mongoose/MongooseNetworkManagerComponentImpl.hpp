@@ -129,8 +129,8 @@ class WebSocketBase : public IWebSocket {
  public:
   WebSocketBase(MGDFWebSocketConnectionState state) : _state(state) {}
   virtual ~WebSocketBase() {}
-  IWebSocket *Send(const std::vector<char> &data, bool binary) final;
-  IWebSocket *Send(void *data, size_t dataLength, bool binary) final;
+  IWebSocket *Send(const std::vector<char> &data, bool binary) override;
+  IWebSocket *Send(void *data, size_t dataLength, bool binary) override;
   IWebSocket *OnReceive(
       std::function<void(std::span<const char> &message, bool binary)> handler)
       final;
@@ -176,6 +176,9 @@ class ServerWebSocket : public std::enable_shared_from_this<ServerWebSocket>,
   virtual ~ServerWebSocket();
   ServerWebSocket(mg_connection *connection,
                   std::shared_ptr<HttpServer> server);
+
+  IWebSocket *Send(const std::vector<char> &data, bool binary) final;
+  IWebSocket *Send(void *data, size_t dataLength, bool binary) final;
 
   void ReceiveMessage(std::span<const char> &message, bool binary);
   void SendMessages();

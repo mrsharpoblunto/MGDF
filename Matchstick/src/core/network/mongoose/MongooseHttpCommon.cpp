@@ -157,6 +157,7 @@ void SendHttpResponse(mg_connection *c, const HttpMessage &m) {
             m.Code, GetHttpStatusString(m.Code), headers.str().c_str(),
             bodyLength);
   mg_send(c, bodyData, bodyLength);
+  c->is_resp = 0;
 }
 
 }  // namespace mongoose

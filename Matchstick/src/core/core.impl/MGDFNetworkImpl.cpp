@@ -154,24 +154,36 @@ IMGDFHttpClientRequest *HttpClientRequestImpl::SetRequestBody(
 }
 
 void *HttpClientRequestImpl::SendRequest(IMGDFHttpClientRequestGroup *group) {
-  if (group) {
-    _group = MGDF::ComObject<IMGDFHttpClientRequestGroup>(group, true);
-  }
+  if (!_pending) {
+    if (group) {
+      _group = MGDF::ComObject<IMGDFHttpClientRequestGroup>(group, true);
+    }
 
-  _pending = _request->SendRequest(
-      [this](std::shared_ptr<network::HttpMessage> &response) {
-        if (_group && _pending) {
-          std::unique_lock<std::mutex> lock(_mutex);
-          if (!_response) {
-            _response = MakeCom<HttpClientResponseImpl>(response);
+    // keep this alive until the pending request is complete
+    // once the pending response handler is called it will get
+    // released, which will clear out this reference kept alive
+    // in the handler closure
+    ComObject<HttpClientRequestImpl> self(this, true);
+
+    _pending = _request->SendRequest(
+        [self](std::shared_ptr<network::HttpMessage> &response) {
+          std::unique_lock<std::mutex> lock(self->_mutex);
+          if (self->_group) {
+            if (!self->_response) {
+              self->_response = MakeCom<HttpClientResponseImpl>(response);
+            }
+            _ASSERTE(self->_pending);
+            const auto key = self->_pending.get();
+            self->_pending.reset();
+            lock.unlock();
+
+            const auto group =
+                dynamic_cast<HttpClientRequestGroupImpl *>(self->_group.Get());
+            _ASSERTE(group);
+            group->OnRequest(key, self->_response);
           }
-          lock.unlock();
-
-          auto group = dynamic_cast<HttpClientRequestGroupImpl *>(_group.Get());
-          _ASSERTE(group);
-          group->OnRequest(_pending.get(), _response);
-        }
-      });
+        });
+  }
   return group ? _pending.get() : nullptr;
 }
 
@@ -181,14 +193,28 @@ void HttpClientRequestImpl::CancelRequest() {
   }
 }
 
+HttpClientRequestImpl::~HttpClientRequestImpl() {}
+
 BOOL HttpClientRequestImpl::GetResponse(IMGDFHttpClientResponse **response) {
-  std::shared_ptr<network::HttpMessage> r;
-  if (_pending && _pending->GetResponse(r)) {
-    std::lock_guard<std::mutex> lock(_mutex);
-    if (!_response) {
-      _response = MakeCom<HttpClientResponseImpl>(r);
+  std::unique_lock<std::mutex> lock(_mutex);
+  ComObject<IMGDFHttpClientResponse> r;
+  if (_response) {
+    r = _response;
+  } else {
+    std::shared_ptr<network::HttpMessage> newResponse;
+    if (_pending && _pending->GetResponse(newResponse)) {
+      if (!_group) {
+        _pending.reset();
+      }
+      if (!_response) {
+        _response = MakeCom<HttpClientResponseImpl>(newResponse);
+      }
+      r = _response;
     }
-    _response.AddRawRef(response);
+  }
+  lock.unlock();
+  if (r) {
+    r.AddRawRef(response);
     return TRUE;
   }
   return FALSE;
@@ -257,7 +283,7 @@ void HttpServerRequestImpl::SendResponse() { _request->SendResponse(); }
 
 WebServerImpl::WebServerImpl(std::shared_ptr<network::IHttpServer> server)
     : _server(server) {
-  server->OnHttpRequest(
+  _server->OnHttpRequest(
       [this](std::shared_ptr<network::IHttpServerRequest> request) {
         std::lock_guard<std::mutex> lock(_mutex);
         _requests.push_back(WebServerImplRequest{
@@ -265,7 +291,7 @@ WebServerImpl::WebServerImpl(std::shared_ptr<network::IHttpServer> server)
             .HttpRequest = MakeCom<HttpServerRequestImpl>(request),
         });
       });
-  server->OnWebSocketRequest(
+  _server->OnWebSocketRequest(
       [this](std::shared_ptr<network::IWebSocket> socket) {
         std::lock_guard<std::mutex> lock(_mutex);
         _requests.push_back(WebServerImplRequest{
@@ -276,7 +302,7 @@ WebServerImpl::WebServerImpl(std::shared_ptr<network::IHttpServer> server)
 }
 
 BOOL WebServerImpl::RequestRecieved(MGDFWebServerRequest *request) {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::lock_guard<std::mutex> lock(_mutex);
   if (!_requests.size()) {
     return FALSE;
   }

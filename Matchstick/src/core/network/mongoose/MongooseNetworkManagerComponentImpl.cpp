@@ -122,6 +122,7 @@ void HttpServerRequest::SendResponse() {
 void HttpClientPendingRequest::CancelRequest() {
   std::lock_guard<std::mutex> lock(_mutex);
   _state = HttpRequestState::Cancelled;
+  _responseHandler = nullptr;
 }
 
 HttpRequestState HttpClientPendingRequest::GetRequestState() const {
@@ -149,6 +150,9 @@ void HttpClientPendingRequest::SetResponse(HttpRequestState state,
   }
   state = _state;
   auto handler = _responseHandler;
+  // the response handler should only fire once and might be
+  // holding a reference to other objects, so we need to clear it
+  _responseHandler = nullptr;
   lock.unlock();
   if (handler && state == HttpRequestState::Complete ||
       state == HttpRequestState::Error) {
@@ -166,10 +170,12 @@ bool HttpClientPendingRequest::SendRequest(HttpConnection &conn) {
   SendHttpRequest(conn.Connection, conn.Origin->Host, _request);
 
   if (_request.Error.size()) {
+    conn.Request.reset();
     lock.lock();
     _state = HttpRequestState::Error;
     return false;
   } else {
+    conn.Request = shared_from_this();
     conn.KeepAlive = mg_millis() + conn.KeepAliveDuration;
     return true;
   }
@@ -313,17 +319,18 @@ void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
       if (socket->_closing) {
         conn->is_closing = 1;
         return;
-      }
-      if (!socket->_out.size()) {
-        return;
-      }
-      // send outgoing requests
-      std::vector<WebSocketMessage> out = std::move(socket->_out);
-      socket->_out.clear();
-      lock.unlock();
-      for (const auto &o : out) {
-        mg_ws_send(conn, o.Data.data(), o.Data.size(),
-                   o.Binary ? WEBSOCKET_OP_BINARY : WEBSOCKET_OP_TEXT);
+      } else if (conn->is_websocket) {
+        if (!socket->_out.size()) {
+          return;
+        }
+        // send outgoing requests
+        std::vector<WebSocketMessage> out = std::move(socket->_out);
+        socket->_out.clear();
+        lock.unlock();
+        for (const auto &o : out) {
+          mg_ws_send(conn, o.Data.data(), o.Data.size(),
+                     o.Binary ? WEBSOCKET_OP_BINARY : WEBSOCKET_OP_TEXT);
+        }
       }
     } break;
     case MG_EV_CONNECT: {
@@ -396,6 +403,18 @@ void ServerWebSocket::ReceiveMessage(std::span<const char> &message,
   }
 }
 
+IWebSocket *ServerWebSocket::Send(const std::vector<char> &data, bool binary) {
+  auto result = WebSocketBase::Send(data, binary);
+  _server->QueueMessage(shared_from_this());
+  return result;
+}
+
+IWebSocket *ServerWebSocket::Send(void *data, size_t dataLength, bool binary) {
+  auto result = WebSocketBase::Send(data, dataLength, binary);
+  _server->QueueMessage(shared_from_this());
+  return result;
+}
+
 void ServerWebSocket::SendMessages() {
   std::unique_lock<std::mutex> lock(_mutex);
   std::vector<WebSocketMessage> out = std::move(_out);
@@ -426,7 +445,6 @@ HttpServer::HttpServer(const std::string &webSocketPath,
 HttpServer::~HttpServer() {
   _closing.store(true);
   std::unique_lock<std::mutex> lock(_stateMutex);
-  lock.unlock();
   _cv.wait(lock, [this]() { return _closed; });
 }
 
@@ -493,21 +511,19 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
         SendHttpResponse(response.first, response.second);
       }
 
-      // send pending socket data
       std::unique_lock<std::mutex> socketLock(server->_webSocketMutex);
-      auto pendingMessages = std::move(server->_pendingWebSocketMessages);
-      server->_pendingWebSocketMessages.clear();
-      socketLock.unlock();
-      for (auto &socket : pendingMessages) {
-        socket->SendMessages();
-      }
-
       // close any pending sockets
-      socketLock.lock();
       for (auto connection : server->_pendingWebSocketClosures) {
         connection->is_closing = 1;
       }
       server->_pendingWebSocketClosures.clear();
+      auto pendingMessages = std::move(server->_pendingWebSocketMessages);
+      server->_pendingWebSocketMessages.clear();
+      socketLock.unlock();
+      // send pending socket data
+      for (auto &socket : pendingMessages) {
+        socket->SendMessages();
+      }
     } break;
     case MG_EV_HTTP_MSG: {
       mg_http_message *hm = (mg_http_message *)ev_data;
@@ -567,18 +583,19 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
       socket->ReceiveMessage(data, op == WEBSOCKET_OP_BINARY);
     } break;
     case MG_EV_CLOSE: {
-      if (!c->is_listening) {
+      if (c->is_websocket) {
         // close a connected socket
         std::unique_lock<std::mutex> lock(server->_webSocketMutex);
         auto found = server->_webSockets.find(c);
         if (found != server->_webSockets.end()) {
+          auto socket = found->second.lock();
           server->_webSockets.erase(found);
-          if (auto socket = found->second.lock()) {
-            lock.unlock();
+          lock.unlock();
+          if (socket) {
             socket->ForceClose();
           }
         }
-      } else {
+      } else if (c->is_listening) {
         server->_listening.store(false);
         std::unique_lock<std::mutex> lock(server->_stateMutex);
         server->_closed = true;
@@ -590,14 +607,16 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
       }
     } break;
     case MG_EV_ERROR: {
-      std::unique_lock<std::mutex> lock(server->_webSocketMutex);
-      auto found = server->_webSockets.find(c);
-      if (found != server->_webSockets.end()) {
-        server->_webSockets.erase(found);
-        if (auto socket = found->second.lock()) {
-          lock.unlock();
-          const std::string_view error(static_cast<char *>(ev_data));
-          socket->SetLastError(error);
+      if (c->is_websocket) {
+        std::unique_lock<std::mutex> lock(server->_webSocketMutex);
+        auto found = server->_webSockets.find(c);
+        if (found != server->_webSockets.end()) {
+          server->_webSockets.erase(found);
+          if (auto socket = found->second.lock()) {
+            lock.unlock();
+            const std::string_view error(static_cast<char *>(ev_data));
+            socket->SetLastError(error);
+          }
         }
       }
     } break;
@@ -839,27 +858,25 @@ void MongooseNetworkManagerComponent::HandleEvents(mg_connection *c, int ev,
           // connection
           auto pending = origin->PendingRequests.front();
           origin->PendingRequests.pop_front();
-          if (!pending->SendRequest(*conn)) {
-            conn->Request.reset();
-          }
+          pending->SendRequest(*conn);
         }
       }
     }
   } else if (ev == MG_EV_CONNECT) {
     conn->Origin->TLSInit(c);
     if (!conn->Request->SendRequest(*conn)) {
-      conn->Request.reset();
-      if (conn->KeepAliveDuration == 0) {
-        c->is_closing = 1;
+      if (conn->KeepAliveDuration > 0) {
+        // we're not making a request, but we'll try to re-use this connection
+        c->is_resp = 0;
       }
     }
   } else if (ev == MG_EV_HTTP_MSG) {
-    // Connected to server
     struct mg_http_message *hm = (struct mg_http_message *)ev_data;
     conn->Request->ReceiveResponse(*conn, hm);
     conn->Request.reset();
-    if (conn->KeepAliveDuration == 0) {
-      c->is_closing = 1;
+    if (conn->KeepAliveDuration > 0) {
+      // re-use this connection
+      c->is_resp = 0;
     }
   } else if (ev == MG_EV_ERROR) {
     if (conn->Request) {
