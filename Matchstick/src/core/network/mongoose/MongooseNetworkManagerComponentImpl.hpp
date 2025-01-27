@@ -228,6 +228,7 @@ class HttpServer : public std::enable_shared_from_this<HttpServer>,
 
   std::mutex _httpResponseMutex;
   std::unordered_map<mg_connection *, HttpMessage> _pendingServerResponses;
+  std::unordered_set<mg_connection *> _awaitingServerResponse;
 
   std::mutex _webSocketMutex;
   std::unordered_map<mg_connection *, std::weak_ptr<ServerWebSocket>>

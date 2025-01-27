@@ -4,6 +4,8 @@
 
 #include <sstream>
 
+#include "../../common/MGDFResources.hpp"
+
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)
@@ -56,7 +58,7 @@ static const char *GetHttpStatusString(uint32_t statusCode) {
   }
 }
 
-void CreateHttpMessage(mg_http_message *hm, HttpMessage &response) {
+void CreateHttpMessage(const mg_http_message *hm, HttpMessage &response) {
   response.Code = mg_http_status(hm);
   response.Method = std::string(hm->method.ptr, hm->method.len);
   response.Url = std::string(hm->uri.ptr, hm->uri.len);
@@ -66,7 +68,7 @@ void CreateHttpMessage(mg_http_message *hm, HttpMessage &response) {
   }
   constexpr const size_t max = sizeof(hm->headers) / sizeof(hm->headers[0]);
   for (size_t i = 0; i < max && hm->headers[i].name.len > 0; i++) {
-    mg_str *k = &hm->headers[i].name, *v = &hm->headers[i].value;
+    const mg_str *k = &hm->headers[i].name, *v = &hm->headers[i].value;
     response.Headers.insert(std::make_pair(std::string(k->ptr, k->len),
                                            std::string(v->ptr, v->len)));
   }
