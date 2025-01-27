@@ -159,7 +159,7 @@ void SendHttpResponse(mg_connection *c, const HttpMessage &m) {
   mg_printf(c,
             "HTTP/1.1 %d %s\r\n"
             "%s"
-            "Content-Length %d\r\n"
+            "Content-Length: %d\r\n"
             "\r\n",
             m.Code, GetHttpStatusString(m.Code), headers.str().c_str(),
             bodyLength);
