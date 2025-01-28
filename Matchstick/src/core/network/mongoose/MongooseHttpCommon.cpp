@@ -149,7 +149,7 @@ void SendHttpResponse(mg_connection *c, const HttpMessage &m) {
 
   std::ostringstream headers;
   for (const auto &h : m.Headers) {
-    if (h.first == S_ACCEPT_ENCODING || h.first == S_CONTENT_LENGTH ||
+    if (h.first == S_CONTENT_LENGTH ||
         (h.first == S_CONTENT_ENCODING && stripContentEncoding)) {
       continue;
     }

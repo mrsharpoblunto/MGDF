@@ -547,10 +547,9 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
     case MG_EV_HTTP_MSG: {
       mg_http_message *hm = (mg_http_message *)ev_data;
       if (!server->_webSocketPath.empty() &&
-          mg_match(hm->uri,
-                   mg_str_n(server->_webSocketPath.c_str(),
-                            server->_webSocketPath.size()),
-                   NULL)) {
+          hm->uri.len >= server->_webSocketPath.size() &&
+          strncmp(hm->uri.ptr, server->_webSocketPath.c_str(),
+                  server->_webSocketPath.size()) == 0) {
         mg_ws_upgrade(c, hm, NULL);
         c->label[0] = 'W';
       } else {
