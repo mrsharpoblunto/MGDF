@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 #include "../../src/core/common/MGDFResources.hpp"
-#include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponentImpl.hpp"
+#include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
 #include "../../src/core/vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 #include "VFSCommon.hpp"
 
@@ -17,7 +17,7 @@ SUITE(ReadOnlyVFSTests) {
       Resources::Instance(inst);
       Resources::Instance().SetUserBaseDir("junkship", true);
 
-      CreateReadOnlyVirtualFileSystemComponentImpl(_vfs);
+      CreateReadOnlyVirtualFileSystemComponent(_vfs);
       _vfs->RegisterArchiveHandler(zip::CreateZipArchiveHandlerImpl());
     }
 

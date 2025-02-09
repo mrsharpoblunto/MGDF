@@ -8,3 +8,4 @@ obj/
 *.suo
 *.sdf
 *.opensdf
+vcpkg_installed/*

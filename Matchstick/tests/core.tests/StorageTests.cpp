@@ -4,7 +4,7 @@
 
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
-#include "../../src/core/storage/jsoncpp/MGDFStorageFactoryComponent.hpp"
+#include "../../src/core/storage/jsoncpp/JsonCppStorageFactoryComponent.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
 
 using namespace MGDF;

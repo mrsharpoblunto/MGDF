@@ -39,7 +39,8 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
   _ASSERTE(name);
   _ASSERTE(physicalPath);
 
-  auto zip = unzOpen(physicalPath);
+  auto physicalFileUtf8 = Resources::ToString(physicalPath);
+  auto zip = unzOpen(physicalFileUtf8.c_str());
 
   if (zip) {
     ComObject<IMGDFReadOnlyFile> root(

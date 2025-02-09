@@ -61,10 +61,13 @@
     <IntDir>bin\$(Platform)\$(Configuration)\</IntDir>
     <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../vendor/minizip/src;../../../../vendor/zlib/src;../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -91,7 +94,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../../vendor/minizip/src;../../../../vendor/zlib/src;../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -147,12 +150,6 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\vendor\minizip\msvc\minizip.vcxproj">
-      <Project>{f3e5680f-0eef-4cf2-834f-0968e25ca647}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\vendor\zlib\msvc\zlib.vcxproj">
-      <Project>{eff8c713-14fb-4121-ae2e-a2be2a614901}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\common\core.common.vcxproj">
       <Project>{608dc682-e676-4aa0-8886-fb8177c3a9b6}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
