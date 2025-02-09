@@ -29,18 +29,6 @@ using namespace MGDF::core;
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
-
-// track memory leaks
-class MemoryLeakChecker {
- public:
-  MemoryLeakChecker() {
-    ::_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    ::_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-  }
-  virtual ~MemoryLeakChecker() { ::_CrtDumpMemoryLeaks(); }
-};
-
-static MemoryLeakChecker _memoryLeakChecker;
 #endif
 
 struct DumpData {
@@ -55,6 +43,11 @@ bool _hasDumped = false;
 INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
                      _In_opt_ HINSTANCE const hPreviousInstance,
                      _In_ LPSTR const lpCmdLine, _In_ INT32 const nCmdShow) {
+#if defined(_DEBUG)
+  ::_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+  ::_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+#endif
+
   std::ignore = nCmdShow;
   std::ignore = lpCmdLine;
   std::ignore = hPreviousInstance;

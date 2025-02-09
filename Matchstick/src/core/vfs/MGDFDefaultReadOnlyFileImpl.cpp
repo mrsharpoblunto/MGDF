@@ -49,9 +49,10 @@ HRESULT DefaultReadOnlyFileImpl::Open(IMGDFFileReader **reader) {
         _path.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
 
     if (fileStream && !fileStream->bad() && fileStream->is_open()) {
-      _reader = new DefaultFileReader(fileStream, [this]() {
-        const std::lock_guard<std::mutex> lock(_mutex);
-        _reader = nullptr;
+      ComObject<DefaultReadOnlyFileImpl> self(this, true);
+      _reader = new DefaultFileReader(fileStream, [self]() {
+        const std::lock_guard<std::mutex> lock(self->_mutex);
+        self->_reader = nullptr;
       });
       *reader = _reader;
       return S_OK;

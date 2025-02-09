@@ -20,7 +20,7 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-HRESULT OpenALSound::TryCreate(IMGDFReadOnlyFile *source,
+HRESULT OpenALSound::TryCreate(ComObject<IMGDFReadOnlyFile> source,
                                OpenALSoundManagerComponentImpl *manager,
                                INT32 priority, ComObject<OpenALSound> &sound) {
   sound = MakeCom<OpenALSound>(manager, priority);
@@ -33,7 +33,7 @@ HRESULT OpenALSound::TryCreate(IMGDFReadOnlyFile *source,
 
 OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
                          INT32 priority)
-    : _soundManager(manager),
+    : _soundManager(manager, true),
       _priority(priority),
       _position(XMFLOAT3(0.0f, 0.0f, 0.0f)),
       _velocity(XMFLOAT3(0.0f, 0.0f, 0.0f)),
@@ -53,7 +53,7 @@ OpenALSound::OpenALSound(OpenALSoundManagerComponentImpl *manager,
   _globalVolume = manager->GetSoundVolume();
 }
 
-HRESULT OpenALSound::Init(IMGDFReadOnlyFile *source) {
+HRESULT OpenALSound::Init(ComObject<IMGDFReadOnlyFile> source) {
   _ASSERTE(source);
   _name = ComString<&IMGDFReadOnlyFile::GetLogicalName>(source);
 
@@ -65,9 +65,9 @@ HRESULT OpenALSound::Init(IMGDFReadOnlyFile *source) {
 }
 
 OpenALSound::~OpenALSound() {
-  _soundManager->RemoveSound(this);
-  _soundManager->RemoveSoundBuffer(_bufferId);
   Deactivate();
+  _soundManager->RemoveSoundBuffer(_bufferId);
+  _soundManager->RemoveSound(this);
 }
 
 void OpenALSound::Reactivate() {
@@ -118,7 +118,7 @@ void OpenALSound::SetSourceRelative(BOOL sourceRelative) {
   }
 }
 
-HRESULT OpenALSound::GetName(wchar_t *name, size_t *length) {
+HRESULT OpenALSound::GetName(wchar_t *name, UINT64 *length) {
   return StringWriter::Write(_name, name, length);
 }
 

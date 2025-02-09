@@ -64,6 +64,7 @@ class Module : public ComBase<IMGDFModule> {
   std::unique_ptr<TextManager> _textManager;
   ComObject<IMGDFPerformanceCounter> _textManagerCounter;
   ComObject<IMGDFPerformanceCounter> _testModuleCounter;
+  ComObject<IMGDFInputManager> _input;
 };
 
 }  // namespace Test

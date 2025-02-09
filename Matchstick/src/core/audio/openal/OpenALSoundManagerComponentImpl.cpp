@@ -3,8 +3,8 @@
 
 #include "OpenALSoundManagerComponentImpl.hpp"
 
+#include <AL/al.h>
 #include <AL/alut.h>
-#include <al.h>
 
 #include <algorithm>
 
@@ -51,6 +51,12 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
 }
 
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
+  for (auto &buffer : _sharedBuffers) {
+    alDeleteBuffers(1, &buffer.first);
+  }
+}
+
+void OpenALSoundManagerComponentImpl::Stop() {
   for (auto sound : _sounds) {
     std::wstring name = ComString<&IMGDFSound::GetName>(sound);
     LOG("Sound '" << Resources::ToString(name) << "' still has live references",
@@ -61,9 +67,6 @@ OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
     LOG("SoundStream '" << Resources::ToString(name)
                         << "' still has live references",
         MGDF_LOG_ERROR);
-  }
-  for (auto &buffer : _sharedBuffers) {
-    alDeleteBuffers(1, &buffer.first);
   }
 }
 
@@ -244,7 +247,8 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundStream(
     return E_FAIL;
   } else {
     ComObject<VorbisStream> s;
-    const auto result = VorbisStream::TryCreate(file, this, s);
+    ComObject<IMGDFReadOnlyFile> f(file, true);
+    const auto result = VorbisStream::TryCreate(f, this, s);
     if (SUCCEEDED(result)) {
       _soundStreams.insert(s);
       s.AddRawRef(stream);
@@ -271,7 +275,8 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSound(IMGDFReadOnlyFile *file,
   }
 
   ComObject<OpenALSound> s;
-  const auto result = OpenALSound::TryCreate(file, this, priority, s);
+  ComObject<IMGDFReadOnlyFile> f(file, true);
+  const auto result = OpenALSound::TryCreate(f, this, priority, s);
   if (SUCCEEDED(result)) {
     _sounds.insert(s);
     s.AddRawRef(sound);
@@ -359,7 +364,7 @@ bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a, OpenALSound *b) {
 }
 
 HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
-    IMGDFReadOnlyFile *dataSource, ALuint *bufferId) {
+    ComObject<IMGDFReadOnlyFile> dataSource, ALuint *bufferId) {
   _ASSERTE(dataSource);
 
   LOG("Getting sound buffer...", MGDF_LOG_MEDIUM);

@@ -190,10 +190,12 @@ HRESULT Host::Init() {
 
 Host::~Host(void) {
   _ASSERTE(_references == 0UL);
+  STDisposeModule();
   for (auto &it : _metrics) {
     it.second->Release();
   }
-  STDisposeModule();
+  _sound->Stop();
+  _network->Stop();
   LOG("Uninitialised host successfully", MGDF_LOG_LOW);
 }
 

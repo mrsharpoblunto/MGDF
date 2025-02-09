@@ -75,9 +75,6 @@
 XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
-echo copying MGDF vendor libs to bin dir
-XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
-XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 if errorlevel 1 goto BuildEventFailed
 
 REM Exit properly because the build will not fail
@@ -134,9 +131,6 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
 XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
 echo copying MGDF content to bin dir
 XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
-echo copying MGDF vendor libs to bin dir
-XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\OpenAL32.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
-XCOPY  "$(SolutionDir)..\vendor\lib\$(Platform)\Release\wrap_oal.dll" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
 if errorlevel 1 goto BuildEventFailed
 
 REM Exit properly because the build will not fail

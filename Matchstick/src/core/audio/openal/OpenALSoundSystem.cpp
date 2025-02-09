@@ -32,19 +32,22 @@ HRESULT OpenALSoundSystem::Init() {
 
   _context = alcCreateContext(device, nullptr);
   if (_context == nullptr) {
+    alcCloseDevice(device);
     LOG("Failed to initialize OpenAL", MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
-  alcMakeContextCurrent(_context);
-  if (alcGetError(device) != AL_NO_ERROR) {
+  if (!alcMakeContextCurrent(_context)) {
+    alcDestroyContext(_context);
+    alcCloseDevice(device);
     LOG("Failed to make OpenAL context current", MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
   if (!alutInitWithoutContext(nullptr, nullptr)) {
     const ALenum alError = alutGetError();
-    LOG("Failed to initialize alut" << alutGetErrorString(alError), MGDF_LOG_ERROR);
+    LOG("Failed to initialize alut" << alutGetErrorString(alError),
+        MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
@@ -73,17 +76,16 @@ HRESULT OpenALSoundSystem::Init() {
 
 OpenALSoundSystem::~OpenALSoundSystem() {
   if (_context) {
-    ALCdevice *device = alcGetContextsDevice(_context);
-    alcMakeContextCurrent(nullptr);
-    alcDestroyContext(_context);
-    alcCloseDevice(device);
-
     while (_freeSources.size() > 0) {
       const ALuint source = _freeSources.top();
       _freeSources.pop();
       alDeleteSources(1, &source);
     }
 
+    alcMakeContextCurrent(nullptr);
+    ALCdevice *device = alcGetContextsDevice(_context);
+    alcDestroyContext(_context);
+    alcCloseDevice(device);
     LOG("uninitialised successfully", MGDF_LOG_LOW);
   }
 }
@@ -94,7 +96,7 @@ HRESULT OpenALSoundSystem::AcquireSource(ALuint *source) {
   if (freeSources > 0) {
     ALuint freeSource = _freeSources.top();
     _freeSources.pop();
-    _allocatedSources[freeSource] = true;
+    _allocatedSources.insert(freeSource);
 
     // make sure we clear out any properties from a source acquired from the
     // pool

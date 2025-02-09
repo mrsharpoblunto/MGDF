@@ -224,9 +224,10 @@ HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
         _physicalPath.c_str(), std::ios::out | std::ios::binary);
 
     if (fileStream && !fileStream->bad() && fileStream->is_open()) {
-      _writer = new DefaultFileWriter(fileStream, [this]() {
-        const std::lock_guard<std::mutex> lock(_mutex);
-        _writer = nullptr;
+      ComObject<DefaultWriteableFileImpl> self(this, true);
+      _writer = new DefaultFileWriter(fileStream, [self]() {
+        const std::lock_guard<std::mutex> lock(self->_mutex);
+        self->_writer = nullptr;
       });
       *writer = _writer;
       return S_OK;
@@ -253,9 +254,10 @@ HRESULT DefaultWriteableFileImpl::Open(IMGDFFileReader** reader) {
         _physicalPath.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
 
     if (fileStream && !fileStream->bad() && fileStream->is_open()) {
-      _reader = new DefaultFileReader(fileStream, [this]() {
-        const std::lock_guard<std::mutex> lock(_mutex);
-        _reader = nullptr;
+      ComObject<DefaultWriteableFileImpl> self(this, true);
+      _reader = new DefaultFileReader(fileStream, [self]() {
+        const std::lock_guard<std::mutex> lock(self->_mutex);
+        self->_reader = nullptr;
       });
       *reader = _reader;
       return S_OK;

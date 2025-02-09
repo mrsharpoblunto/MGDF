@@ -1,7 +1,7 @@
 #pragma once
 
+#include <AL/al.h>
 #include <MGDF/MGDF.h>
-#include <al.h>
 
 #include <MGDF/ComObject.hpp>
 
@@ -16,7 +16,7 @@ class OpenALSound : public ComBase<IMGDFSound> {
  public:
   virtual ~OpenALSound();
   OpenALSound(OpenALSoundManagerComponentImpl *manager, INT32 priority);
-  static HRESULT TryCreate(IMGDFReadOnlyFile *source,
+  static HRESULT TryCreate(ComObject<IMGDFReadOnlyFile> source,
                            OpenALSoundManagerComponentImpl *manager,
                            INT32 priority, ComObject<OpenALSound> &sound);
 
@@ -54,10 +54,10 @@ class OpenALSound : public ComBase<IMGDFSound> {
   void Update(float attenuationFactor);
 
  private:
-  HRESULT Init(IMGDFReadOnlyFile *source);
+  HRESULT Init(ComObject<IMGDFReadOnlyFile> source);
 
   std::wstring _name;
-  OpenALSoundManagerComponentImpl *_soundManager;
+  ComObject<OpenALSoundManagerComponentImpl> _soundManager;
   ALuint _sourceId, _bufferId;
   float _innerRange, _outerRange, _volume, _globalVolume, _attenuationFactor,
       _pitch;

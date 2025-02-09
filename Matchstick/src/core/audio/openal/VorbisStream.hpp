@@ -1,8 +1,8 @@
 #pragma once
 
+#include <AL/al.h>
 #include <MGDF/MGDF.h>
 #include <Vorbis/vorbisfile.h>
-#include <al.h>
 
 #include <MGDF/ComObject.hpp>
 
@@ -30,9 +30,9 @@ enum VorbisStreamState { NOT_STARTED, PLAY, PAUSE, STOP };
 class VorbisStream : public ComBase<IMGDFSoundStream> {
  public:
   virtual ~VorbisStream();
-  VorbisStream(IMGDFReadOnlyFile *source,
+  VorbisStream(ComObject<IMGDFReadOnlyFile> source,
                OpenALSoundManagerComponentImpl *manager);
-  static HRESULT TryCreate(IMGDFReadOnlyFile *source,
+  static HRESULT TryCreate(ComObject<IMGDFReadOnlyFile> source,
                            OpenALSoundManagerComponentImpl *manager,
                            ComObject<VorbisStream> &stream);
 
@@ -74,7 +74,7 @@ class VorbisStream : public ComBase<IMGDFSoundStream> {
   float _volume;
   float _globalVolume;
 
-  OpenALSoundManagerComponentImpl *_soundManager;
+  ComObject<OpenALSoundManagerComponentImpl> _soundManager;
 
   static INT32 _references;
   static HINSTANCE _vorbisInstance;

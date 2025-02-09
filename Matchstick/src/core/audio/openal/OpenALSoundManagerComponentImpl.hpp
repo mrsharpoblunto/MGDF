@@ -1,8 +1,8 @@
 #pragma once
 
+#include <AL/al.h>
 #include <DirectXMath.h>
 #include <MGDF/MGDF.h>
-#include <al.h>
 
 #include <set>
 #include <string>
@@ -32,6 +32,7 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
       const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs);
   HRESULT Init() final;
   void Update() final;
+  void Stop() final;
 
   MGDFSoundPosition *__stdcall GetListenerPosition(
       MGDFSoundPosition *position) final;
@@ -70,7 +71,8 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
 
   void RemoveSoundStream(IMGDFSoundStream *stream);
   void RemoveSound(IMGDFSound *sound);
-  HRESULT CreateSoundBuffer(IMGDFReadOnlyFile *dataSource, ALuint *bufferId);
+  HRESULT CreateSoundBuffer(ComObject<IMGDFReadOnlyFile> dataSource,
+                            ALuint *bufferId);
   void RemoveSoundBuffer(ALuint bufferId);
 
  private:

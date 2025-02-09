@@ -670,14 +670,21 @@ MongooseNetworkManagerComponent::MongooseNetworkManagerComponent(
   });
 }
 
+void MongooseNetworkManagerComponent::Stop() {
+  if (_running) {
+    _running = false;
+    _pollThread.join();
+  }
+}
+
 std::shared_ptr<HttpClientPendingRequest>
 MongooseNetworkManagerComponent::SendRequest(
     HttpMessage &request,
     std::function<void(std::shared_ptr<HttpMessage> &response)> handler) {
   // transformed url
   std::string url = request.Url;
-  std::transform(url.begin(), url.end(), url.begin(), [](auto c) {
-    return static_cast<char>((c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c);
+  std::transform(url.begin(), url.end(), url.begin(), [](auto ch) {
+    return std::tolower(ch, std::locale("en_US.utf8"));
   });
   // original url
   const char *originalUrl = mg_url_uri(request.Url.c_str());
@@ -737,8 +744,7 @@ MongooseNetworkManagerComponent::SendRequest(
 }
 
 MongooseNetworkManagerComponent::~MongooseNetworkManagerComponent() {
-  _running = false;
-  _pollThread.join();
+  Stop();
 
   // clean up any pending requests or requests in progress
   std::lock_guard<std::mutex> lock(_originMutex);
@@ -795,12 +801,12 @@ void MongooseNetworkManagerComponent::Poll() {
         auto p = origin.second->PendingRequests.front();
         origin.second->PendingRequests.pop_front();
 
-        auto connection = std::shared_ptr<HttpConnection>(new HttpConnection{
-            .Request = p,
-            .KeepAliveDuration = _options.HttpClientKeepAlive,
-            .ConnectTimeoutDuration = _options.HttpClientConnectionTimeout,
-            .Origin = origin.second.get(),
-        });
+        auto connection = std::make_shared<HttpConnection>();
+        connection->Request = p;
+        connection->KeepAliveDuration = _options.HttpClientKeepAlive;
+        connection->ConnectTimeoutDuration =
+            _options.HttpClientConnectionTimeout;
+        connection->Origin = origin.second.get();
 
         auto connectionId = mg_http_connect(
             &_mgr, p->GetUrl().c_str(),

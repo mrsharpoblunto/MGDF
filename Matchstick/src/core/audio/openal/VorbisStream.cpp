@@ -24,13 +24,13 @@ LPOVINFO VorbisStream::fn_ov_info = nullptr;
 LPOVCOMMENT VorbisStream::fn_ov_comment = nullptr;
 LPOVOPENCALLBACKS VorbisStream::fn_ov_open_callbacks = nullptr;
 
-VorbisStream::VorbisStream(IMGDFReadOnlyFile *source,
+VorbisStream::VorbisStream(ComObject<IMGDFReadOnlyFile> source,
                            OpenALSoundManagerComponentImpl *manager)
-    : _soundManager(manager),
+    : _soundManager(manager, true),
       _volume(1.0),
       _source(0),
       _vorbisInfo(nullptr),
-      _dataSource(ComObject(source, true)),
+      _dataSource(source),
       _initLevel(0),
       _name(ComString<&IMGDFReadOnlyFile::GetLogicalName>(source)),
       _state(NOT_STARTED),
@@ -52,7 +52,7 @@ VorbisStream::~VorbisStream() {
   _soundManager->RemoveSoundStream(this);
 }
 
-HRESULT VorbisStream::TryCreate(IMGDFReadOnlyFile *source,
+HRESULT VorbisStream::TryCreate(ComObject<IMGDFReadOnlyFile> source,
                                 OpenALSoundManagerComponentImpl *manager,
                                 ComObject<VorbisStream> &stream) {
   stream = MakeCom<VorbisStream>(source, manager);
@@ -187,8 +187,6 @@ HRESULT VorbisStream::InitStream() {
 void VorbisStream::UninitStream() {
   LOG("Disposing of sound stream...", MGDF_LOG_MEDIUM);
   if (_initLevel == 5) {
-    alSourceStop(_source);
-    alSourcei(_source, AL_BUFFER, 0);
     _soundManager->ReleaseSource(_source);
   }
 
@@ -248,7 +246,7 @@ void VorbisStream::UninitVorbis() {
   }
 }
 
-HRESULT VorbisStream::GetName(wchar_t *name, size_t *length) {
+HRESULT VorbisStream::GetName(wchar_t *name, UINT64 *length) {
   return StringWriter::Write(_name, name, length);
 }
 

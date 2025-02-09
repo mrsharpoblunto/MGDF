@@ -21,6 +21,7 @@ struct NetworkManagerOptions {
 class INetworkManagerComponent {
  public:
   virtual ~INetworkManagerComponent() {}
+  virtual void Stop() = 0;
   virtual std::unique_ptr<IHttpClientRequest> CreateHttpRequest(
       const std::string &url) = 0;
   virtual std::shared_ptr<IHttpServer> CreateHttpServer(

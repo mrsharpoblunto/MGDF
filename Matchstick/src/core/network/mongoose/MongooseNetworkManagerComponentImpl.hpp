@@ -55,7 +55,7 @@ struct HttpConnection {
   size_t KeepAlive;
   size_t KeepAliveDuration;
   size_t ConnectTimeout;
-  const size_t ConnectTimeoutDuration;
+  size_t ConnectTimeoutDuration;
   HttpOrigin *Origin;
   mg_connection *Connection;
 };
@@ -253,6 +253,8 @@ class MongooseNetworkManagerComponent
   std::shared_ptr<HttpClientPendingRequest> SendRequest(
       HttpMessage &request,
       std::function<void(std::shared_ptr<HttpMessage> &response)> handler);
+
+  void Stop() final;
 
   void TLSInit(mg_connection *conn, const std::string &host);
   void ReconnectWebSocket(std::weak_ptr<WebSocket> socket, size_t when);

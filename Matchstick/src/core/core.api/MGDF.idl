@@ -1951,46 +1951,6 @@ this interface are safe to be used from any thread
   void GetDebug([out] IMGDFDebug * *debug);
 
   /**
-  create a pending http request. The request isn't actually sent until the
-  Send method is called on the request object
-  \param url the url to send the request to
-  \param request the created request object
-  \return S_OK if the request could be created, otherwise an error code is returned
-  */
-  HRESULT
-  CreateHttpRequest([in] const small *url, [out] IMGDFHttpClientRequest *
-                                               *request);
-
-  /**
-  create an http request group. These are used to group related requests and
-  responses
-  \param group the created request group object
-  \return S_OK if the request group could be created, otherwise an error code is returned
-  */
-  HRESULT
-  CreateHttpRequestGroup([out] IMGDFHttpClientRequestGroup * *group);
-
-  /**
-  create a websocket connection
-  \param url the url to connect to
-  \param socket the created websocket object
-  \return S_OK if the websocket could be created, otherwise an error code is returned
-  */
-  HRESULT
-  CreateWebSocket([in] const small *url, [out] IMGDFWebSocket **socket);
-
-  /**
-  create a websocket connection
-  \param port for the server to listen on
-  \param websocketPath Any requests matching this path glob will be upgraded to a websocket connection. If null, all requests will be treated as regular HTTP requests
-  \param socket the created websocket server object
-  \return S_OK if the webserver could be created, otherwise an error code is returned
-  */
-  HRESULT
-  CreateWebServer(unsigned int port,
-                  const small *websocketPath, [out] IMGDFWebServer **server);
-
-  /**
    create a performance counter for profiling CPU time taken. When no longer
    used it should be released
   \param metric the metric the counter should update
@@ -2242,6 +2202,46 @@ are safe to be used ONLY from the sim thread.
   tells the host to invoke the modules shutdown callback
   */
   void QueueShutDown();
+
+  /**
+  create a pending http request. The request isn't actually sent until the
+  Send method is called on the request object
+  \param url the url to send the request to
+  \param request the created request object
+  \return S_OK if the request could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateHttpRequest([in] const small *url, [out] IMGDFHttpClientRequest *
+                                               *request);
+
+  /**
+  create an http request group. These are used to group related requests and
+  responses
+  \param group the created request group object
+  \return S_OK if the request group could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateHttpRequestGroup([out] IMGDFHttpClientRequestGroup * *group);
+
+  /**
+  create a websocket connection
+  \param url the url to connect to
+  \param socket the created websocket object
+  \return S_OK if the websocket could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateWebSocket([in] const small *url, [out] IMGDFWebSocket **socket);
+
+  /**
+  create a websocket connection
+  \param port for the server to listen on
+  \param websocketPath Any requests matching this path glob will be upgraded to a websocket connection. If null, all requests will be treated as regular HTTP requests
+  \param socket the created websocket server object
+  \return S_OK if the webserver could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateWebServer(unsigned int port,
+                  const small *websocketPath, [out] IMGDFWebServer **server);
 };
 
 /**

@@ -174,6 +174,7 @@ void Logger::SetRemoteEndpoint(
     std::function<void(const std::string &content,
                        const std::string &contentType)>
         remoteSender) {
+  std::lock_guard<std::mutex> lock(_mutex);
   _remoteEndpoint = endpoint;
   _remoteSender = remoteSender;
 }
