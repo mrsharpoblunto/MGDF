@@ -7,12 +7,12 @@
 namespace MGDF {
 namespace core {
 namespace storage {
-namespace jsoncppImpl {
+namespace json {
 
-class JsonCppStorageFactoryComponent : public IStorageFactoryComponent {
+class JsonStorageFactoryComponent : public IStorageFactoryComponent {
  public:
-  JsonCppStorageFactoryComponent() {}
-  virtual ~JsonCppStorageFactoryComponent() {}
+  JsonStorageFactoryComponent() {}
+  virtual ~JsonStorageFactoryComponent() {}
 
   std::unique_ptr<IGameStorageHandler> CreateGameStorageHandler() const final;
   std::unique_ptr<IGameStateStorageHandler> CreateGameStateStorageHandler(
@@ -21,7 +21,7 @@ class JsonCppStorageFactoryComponent : public IStorageFactoryComponent {
   CreatePreferenceConfigStorageHandler() const final;
 };
 
-}  // namespace jsoncppImpl
+}  // namespace json
 }  // namespace storage
 }  // namespace core
 }  // namespace MGDF

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <json/json.h>
-
 #include <fstream>
 #include <iostream>
+#include <nlohmann\/json.hpp>
 
 #include "../../MGDFStdAfxBase.h"
 
-std::string GetJsonValue(const Json::Value &json, const std::string &name);
+std::string GetJsonValue(const nlohmann::json &json, const std::string &name);

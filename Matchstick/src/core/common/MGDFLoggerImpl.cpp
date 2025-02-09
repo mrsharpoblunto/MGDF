@@ -2,11 +2,10 @@
 
 #include "MGDFLoggerImpl.hpp"
 
-#include <json/json.h>
-
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json.hpp>
 
 #include "MGDFResources.hpp"
 
@@ -105,15 +104,12 @@ Logger::Logger() {
         }
 
         if (_remoteEndpoint.size()) {
-          Json::Value root;
-          Json::Value &streams = root["streams"] =
-              Json::Value(Json::arrayValue);
-          Json::Value &stream = streams.append(Json::Value(Json::objectValue));
-          Json::Value &streamLabel = stream["stream"] =
-              Json::Value(Json::objectValue);
+          nlohmann::json root;
+          auto &streams = root["streams"] = nlohmann::json::array();
+          auto &stream = streams.emplace_back(nlohmann::json::object());
+          auto &streamLabel = stream["stream"] = nlohmann::json::object();
           streamLabel["label"] = "MGDF";
-          Json::Value &values = stream["values"] =
-              Json::Value(Json::arrayValue);
+          auto &values = stream["values"] = nlohmann::json::array();
 
           for (const auto &evt : events) {
             std::string levelKey;
@@ -131,14 +127,14 @@ Logger::Logger() {
                 levelKey = "debug";
                 break;
             }
-            auto &value = values.append(Json::Value(Json::arrayValue));
+            auto &value = values.emplace_back(nlohmann::json::array());
             std::ostringstream t;
             t << evt.Timestamp * 1000000;
-            value.append(t.str());
+            value.emplace_back(t.str());
             std::ostringstream m;
             m << "lvl=" << levelKey << " sender=" << evt.Sender << " "
               << "message=\"" << evt.Message << "\"";
-            value.append(m.str());
+            value.emplace_back(m.str());
           }
 
           std::ostringstream requestBody;

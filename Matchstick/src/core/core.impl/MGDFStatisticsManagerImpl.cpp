@@ -2,9 +2,8 @@
 
 #include "MGDFStatisticsManagerImpl.hpp"
 
-#include <json/json.h>
-
 #include <chrono>
+#include <nlohmann/json.hpp>
 #include <sstream>
 
 #include "../common/MGDFLoggerImpl.hpp"
@@ -66,19 +65,16 @@ void StatisticsManager::SetRemoteEndpoint(const std::string& endpoint) {
         lock.unlock();
 
         if (tmp.size()) {
-          Json::Value root;
+          nlohmann::json root;
           root["gameUid"] = _gameUid;
           root["sessionId"] = _sessionId;
-          Json::Value& streams = root["statistics"] =
-              Json::Value(Json::arrayValue);
+          auto& streams = root["statistics"] = nlohmann::json::array();
           for (const auto& s : tmp) {
-            Json::Value& statistic =
-                streams.append(Json::Value(Json::objectValue));
+            auto& statistic = streams.emplace_back(nlohmann::json::object());
             statistic["name"] = s.Name;
             statistic["value"] = s.Value;
             statistic["timestamp"] = static_cast<double>(s.Timestamp);
-            Json::Value& tags = statistic["tags"] =
-                Json::Value(Json::objectValue);
+            auto& tags = statistic["tags"] = nlohmann::json::object();
             for (const auto& t : s.Tags) {
               tags[t.first] = t.second;
             }

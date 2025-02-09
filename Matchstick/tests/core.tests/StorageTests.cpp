@@ -4,7 +4,7 @@
 
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/common/MGDFVersionHelper.hpp"
-#include "../../src/core/storage/jsoncpp/JsonCppStorageFactoryComponent.hpp"
+#include "../../src/core/storage/jsoncpp/JsonStorageFactoryComponent.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
 
 using namespace MGDF;
@@ -25,7 +25,7 @@ SUITE(StorageTests) {
       CreateReadOnlyVirtualFileSystemComponent(_vfs);
       _vfs->Mount((Resources::Instance().RootDir() + L"../../../tests/content")
                       .c_str());
-      jsoncppImpl::CreateStorageFactoryComponent(_storage);
+      json::CreateStorageFactoryComponent(_storage);
     }
     virtual ~StorageTestFixture() {}
 

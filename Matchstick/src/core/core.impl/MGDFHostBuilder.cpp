@@ -13,7 +13,7 @@
 #include "../common/MGDFResources.hpp"
 #include "../input/xinput/XInputManagerComponent.hpp"
 #include "../network/mongoose/MongooseNetworkManagerComponent.hpp"
-#include "../storage/jsoncpp/JsonCppStorageFactoryComponent.hpp"
+#include "../storage/jsoncpp/JsonStorageFactoryComponent.hpp"
 #include "MGDFGameBuilder.hpp"
 #include "MGDFParameterConstants.hpp"
 
@@ -45,8 +45,7 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
 
   InitLogger(components.Network);
 
-  if (!storage::jsoncppImpl::CreateStorageFactoryComponent(
-          components.Storage)) {
+  if (!storage::json::CreateStorageFactoryComponent(components.Storage)) {
     LOG("FATAL ERROR: Unable to register StorageFactory", MGDF_LOG_ERROR);
     return false;
   }

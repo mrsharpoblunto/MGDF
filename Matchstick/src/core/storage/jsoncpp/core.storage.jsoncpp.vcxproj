@@ -15,6 +15,7 @@
     <RootNamespace>corexmlxerces</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>core.storage.json</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -64,10 +65,21 @@
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <VcpkgConfiguration>Debug</VcpkgConfiguration>
+    <VcpkgUseStatic>false</VcpkgUseStatic>
+    <VcpkgUseMD>
+    </VcpkgUseMD>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <VcpkgUseStatic>false</VcpkgUseStatic>
+    <VcpkgUseMD>
+    </VcpkgUseMD>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -94,7 +106,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../../include;../../../../../vendor/jsoncpp-0.5.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;MG_ENABLE_MBEDTLS;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -118,27 +130,24 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="JsonCppGameStateStorageHandler.cpp" />
-    <ClCompile Include="JsonCppGameStorageHandler.cpp" />
-    <ClCompile Include="JsonCppPreferenceConfigStorageHandler.cpp" />
-    <ClCompile Include="JsonCppStorageFactoryComponent.cpp" />
-    <ClCompile Include="JsonCppStorageFactoryComponentImpl.cpp" />
+    <ClCompile Include="JsonGameStateStorageHandler.cpp" />
+    <ClCompile Include="JsonGameStorageHandler.cpp" />
+    <ClCompile Include="JsonPreferenceConfigStorageHandler.cpp" />
+    <ClCompile Include="JsonStorageFactoryComponent.cpp" />
+    <ClCompile Include="JsonStorageFactoryComponentImpl.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="JsonCppGameStateStorageHandler.hpp" />
-    <ClInclude Include="JsonCppGameStorageHandler.hpp" />
-    <ClInclude Include="JsonCppPreferenceConfigStorageHandler.hpp" />
-    <ClInclude Include="JsonCppStorageFactoryComponent.hpp" />
-    <ClInclude Include="JsonCppStorageFactoryComponentImpl.hpp" />
+    <ClInclude Include="JsonGameStateStorageHandler.hpp" />
+    <ClInclude Include="JsonGameStorageHandler.hpp" />
+    <ClInclude Include="JsonPreferenceConfigStorageHandler.hpp" />
+    <ClInclude Include="JsonStorageFactoryComponent.hpp" />
+    <ClInclude Include="JsonStorageFactoryComponentImpl.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\vendor\jsoncpp-0.5.0\Jsoncpp.vcxproj">
-      <Project>{41260955-25de-4d86-b54f-282735b1289d}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\common\core.common.vcxproj">
       <Project>{608dc682-e676-4aa0-8886-fb8177c3a9b6}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
