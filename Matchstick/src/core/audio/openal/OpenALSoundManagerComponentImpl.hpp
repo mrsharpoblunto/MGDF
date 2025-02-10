@@ -21,11 +21,11 @@ typedef struct SharedBuffer {
   INT32 References = 0;
 } SharedBuffer;
 
+class OpenALSound;
+class VorbisStream;
+
 class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
                                         public ISoundManagerComponent {
-  friend class OpenALSound;
-  friend class VorbisStream;
-
  public:
   virtual ~OpenALSoundManagerComponentImpl();
   OpenALSoundManagerComponentImpl(
