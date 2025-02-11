@@ -5,6 +5,7 @@
 #include <string>
 
 #include "../../MGDFReadOnlyFileBaseImpl.hpp"
+#include "ZipCommon.hpp"
 
 namespace MGDF {
 namespace core {
@@ -54,7 +55,8 @@ class ZipFileImpl : public ReadOnlyFileBaseImpl {
 
  public:
   ZipFileImpl(IMGDFReadOnlyFile *parent, IMGDFReadOnlyVirtualFileSystem *vfs,
-              IMGDFReadOnlyFile *root, unzFile zip, ZipFileHeader &&header)
+              IMGDFReadOnlyFile *root, std::shared_ptr<ZipFileWrapper> zip,
+              ZipFileHeader &&header)
       : ReadOnlyFileBaseImpl(parent, vfs),
         _root(root),
         _header(header),
@@ -84,9 +86,9 @@ class ZipFileImpl : public ReadOnlyFileBaseImpl {
 
  private:
   IMGDFReadOnlyFile *_root;
+  std::shared_ptr<ZipFileWrapper> _zip;
   ZipFileHeader _header;
   IMGDFFileReader *_reader;
-  unzFile _zip;
 };
 
 }  // namespace zip

@@ -4,6 +4,7 @@
 
 #include "../../../common/MGDFLoggerImpl.hpp"
 #include "../../../common/MGDFResources.hpp"
+#include "ZipCommon.hpp"
 #include "ZipFileImpl.hpp"
 #include "ZipFileRoot.hpp"
 #include "ZipFolderImpl.hpp"
@@ -43,17 +44,18 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
   auto zip = unzOpen(physicalFileUtf8.c_str());
 
   if (zip) {
+    auto wrapper = std::make_shared<ZipFileWrapper>(zip);
     ComObject<IMGDFReadOnlyFile> root(
-        new ZipFileRoot(name, physicalPath, parent, vfs, zip));
+        new ZipFileRoot(name, physicalPath, parent, vfs, wrapper));
 
     // We need to map file positions to speed up opening later
-    for (INT32 ret = unzGoToFirstFile(zip); ret == UNZ_OK;
-         ret = unzGoToNextFile(zip)) {
+    for (INT32 ret = unzGoToFirstFile(wrapper->Get()); ret == UNZ_OK;
+         ret = unzGoToNextFile(wrapper->Get())) {
       unz_file_info info;
       char nameBuffer[FILENAME_BUFFER];
 
-      unzGetCurrentFileInfo(zip, &info, nameBuffer, FILENAME_BUFFER, nullptr, 0,
-                            nullptr, 0);
+      unzGetCurrentFileInfo(wrapper->Get(), &info, nameBuffer, FILENAME_BUFFER,
+                            nullptr, 0, nullptr, 0);
 
       // if the path is for a folder the last element will be a "" element
       // (because all path element names found using zlib include a trailing
@@ -68,12 +70,13 @@ HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
       if (info.uncompressed_size > 0) {
         _ASSERTE(filename);
         ZipFileHeader header;
-        unzGetFilePos(zip, &header.filePosition);
+        unzGetFilePos(wrapper->Get(), &header.filePosition);
         header.size = info.uncompressed_size;
         header.name = filename;  // the name is the last part of the path
 
         ComObject<IMGDFReadOnlyFile> child =
-            MakeCom<ZipFileImpl>(parentFile, vfs, root, zip, std::move(header))
+            MakeCom<ZipFileImpl>(parentFile, vfs, root, wrapper,
+                                 std::move(header))
                 .As<IMGDFReadOnlyFile>();
         _ASSERTE(child);
         auto parentPtr = dynamic_cast<ReadOnlyFileBaseImpl *>(parentFile.Get());

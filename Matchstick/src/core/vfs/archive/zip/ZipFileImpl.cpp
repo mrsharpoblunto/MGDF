@@ -65,7 +65,7 @@ HRESULT ZipFileImpl::Open(IMGDFFileReader** reader) {
 
   // if the entry is already in the map then the file is already open
   // if its not in the hashmap then open it
-  unzGoToFilePos(_zip, &_header.filePosition);
+  unzGoToFilePos(_zip->Get(), &_header.filePosition);
 
   if (_header.size > UINT32_MAX) {
     std::string message = "Archive files cannot be over 4GB in size";
@@ -79,10 +79,10 @@ HRESULT ZipFileImpl::Open(IMGDFFileReader** reader) {
   data.readPosition = 0;
   data.data = static_cast<char*>(malloc(static_cast<UINT32>(_header.size)));
 
-  if (unzOpenCurrentFile(_zip) == UNZ_OK &&
-      unzReadCurrentFile(_zip, data.data, static_cast<UINT32>(_header.size)) >=
-          0 &&
-      unzCloseCurrentFile(_zip) != UNZ_CRCERROR) {
+  if (unzOpenCurrentFile(_zip->Get()) == UNZ_OK &&
+      unzReadCurrentFile(_zip->Get(), data.data,
+                         static_cast<UINT32>(_header.size)) >= 0 &&
+      unzCloseCurrentFile(_zip->Get()) != UNZ_CRCERROR) {
     _reader = new ZipFileImplReader(this, _header, data);
     *reader = _reader;
     return S_OK;

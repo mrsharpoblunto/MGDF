@@ -3,6 +3,7 @@
 #include <minizip/unzip.h>
 
 #include "../../MGDFDefaultReadOnlyFileImpl.hpp"
+#include "ZipCommon.hpp"
 
 namespace MGDF {
 namespace core {
@@ -19,14 +20,14 @@ class ZipFileRoot : public DefaultReadOnlyFileImpl {
  public:
   ZipFileRoot(const std::wstring &name, const std::wstring &physicalPath,
               IMGDFReadOnlyFile *parent, IMGDFReadOnlyVirtualFileSystem *vfs,
-              unzFile zip)
+              std::shared_ptr<ZipFileWrapper> zip)
       : DefaultReadOnlyFileImpl(name, physicalPath, parent, vfs), _zip(zip) {}
-  ~ZipFileRoot() { unzClose(_zip); }
+  ~ZipFileRoot() {}
 
   BOOL __stdcall IsArchive() final { return true; }
 
  private:
-  unzFile _zip;
+  std::shared_ptr<ZipFileWrapper> _zip;
 };
 
 }  // namespace zip

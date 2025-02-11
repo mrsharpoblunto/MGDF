@@ -138,6 +138,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="archive\zip\ZipArchiveHandlerImpl.hpp" />
+    <ClInclude Include="archive\zip\ZipCommon.hpp" />
     <ClInclude Include="archive\zip\ZipFileImpl.hpp" />
     <ClInclude Include="archive\zip\ZipFileRoot.hpp" />
     <ClInclude Include="archive\zip\ZipFolderImpl.hpp" />

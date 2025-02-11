@@ -3,10 +3,6 @@
 
 #include "MGDFDefaultWriteableFileImpl.hpp"
 
-#include "../common/MGDFLoggerImpl.hpp"
-#include "../common/MGDFResources.hpp"
-#include "../common/MGDFStringImpl.hpp"
-
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)
@@ -42,27 +38,6 @@ void DefaultFileWriter::SetPosition(INT64 pos) { _stream->seekp(pos); }
 INT64 DefaultFileWriter::GetPosition() { return _stream->tellp(); }
 
 BOOL DefaultWriteableFileImpl::Exists() { return exists(_physicalPath); }
-
-BOOL DefaultWriteableFileImpl::IsFolder() {
-  return is_directory(_physicalPath);
-}
-
-BOOL DefaultWriteableFileImpl::IsOpen() { return _writer || _reader; }
-
-HRESULT DefaultWriteableFileImpl::GetPhysicalName(wchar_t* name,
-                                                  UINT64* length) {
-  return StringWriter::Write(_name, name, length);
-}
-
-HRESULT DefaultWriteableFileImpl::GetLogicalName(wchar_t* name,
-                                                 UINT64* length) {
-  return StringWriter::Write(_name, name, length);
-}
-
-HRESULT DefaultWriteableFileImpl::GetPhysicalPath(wchar_t* path,
-                                                  UINT64* length) {
-  return StringWriter::Write(_physicalPath.wstring(), path, length);
-}
 
 void DefaultWriteableFileImpl::GetVFS(IMGDFWriteableVirtualFileSystem** vfs) {
   _vfs->AddRef();
@@ -101,16 +76,11 @@ HRESULT DefaultWriteableFileImpl::GetChild(const wchar_t* name,
 }
 
 UINT64 DefaultWriteableFileImpl::GetChildCount() {
-  if (!Exists() || !IsFolder()) {
+  if (!Exists()) {
     return 0U;
+  } else {
+    return DefaultFileBase::GetChildCount();
   }
-
-  UINT64 result = 0;
-  for (auto& p : directory_iterator(_physicalPath)) {
-    (void)p;
-    ++result;
-  }
-  return result;
 }
 
 HRESULT DefaultWriteableFileImpl::GetAllChildren(
@@ -126,17 +96,6 @@ HRESULT DefaultWriteableFileImpl::GetAllChildren(
     childFile.AddRawRef(childBuffer++);
   }
   return S_OK;
-}
-
-UINT64 DefaultWriteableFileImpl::GetLastWriteTime() {
-  struct _stat64 fileInfo;
-  if (_wstati64(_physicalPath.c_str(), &fileInfo) != 0) {
-    LOG("Unable to get last write time for "
-            << Resources::ToString(_physicalPath),
-        MGDF_LOG_ERROR);
-    return 0;
-  }
-  return fileInfo.st_mtime;
 }
 
 HRESULT DefaultWriteableFileImpl::CreateFolder() {
@@ -202,6 +161,10 @@ HRESULT DefaultWriteableFileImpl::CopyTo(IMGDFWriteableFile* destination) {
   return !code.value() ? S_OK : E_FAIL;
 }
 
+BOOL DefaultWriteableFileImpl::IsOpen() {
+  return _writer || DefaultFileBase::IsOpen();
+}
+
 HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (IsFolder()) {
@@ -230,36 +193,6 @@ HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
         self->_writer = nullptr;
       });
       *writer = _writer;
-      return S_OK;
-    } else {
-      LOG("Unable to open file stream for "
-              << Resources::ToString(_physicalPath) << " - " << GetLastError(),
-          MGDF_LOG_ERROR);
-      return E_FAIL;
-    }
-  }
-  LOG("File " << Resources::ToString(_physicalPath) << " currently in use",
-      MGDF_LOG_ERROR);
-  return E_ACCESSDENIED;
-}
-
-HRESULT DefaultWriteableFileImpl::Open(IMGDFFileReader** reader) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (IsFolder()) {
-    return E_FAIL;
-  }
-
-  if (!IsOpen()) {
-    auto fileStream = std::make_shared<std::ifstream>(
-        _physicalPath.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
-
-    if (fileStream && !fileStream->bad() && fileStream->is_open()) {
-      ComObject<DefaultWriteableFileImpl> self(this, true);
-      _reader = new DefaultFileReader(fileStream, [self]() {
-        const std::lock_guard<std::mutex> lock(self->_mutex);
-        self->_reader = nullptr;
-      });
-      *reader = _reader;
       return S_OK;
     } else {
       LOG("Unable to open file stream for "

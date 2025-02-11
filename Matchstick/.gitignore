@@ -9,3 +9,4 @@ obj/
 *.sdf
 *.opensdf
 vcpkg_installed/*
+.env

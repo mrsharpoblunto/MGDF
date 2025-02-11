@@ -73,13 +73,16 @@
     <ClInclude Include="MGDFWriteableVirtualFileSystem.hpp">
       <Filter>writeable</Filter>
     </ClInclude>
-    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponent.hpp">
-      <Filter>readonly</Filter>
-    </ClInclude>
     <ClInclude Include="MGDFDefaultReadOnlyFileImpl.hpp">
       <Filter>readonly</Filter>
     </ClInclude>
     <ClInclude Include="MGDFLogicalPathResolver.h" />
     <ClInclude Include="MGDFVirtualFileSystemComponent.hpp" />
+    <ClInclude Include="archive\zip\ZipCommon.hpp">
+      <Filter>archive\zip</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFReadOnlyVirtualFileSystemComponent.hpp">
+      <Filter>writeable</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
