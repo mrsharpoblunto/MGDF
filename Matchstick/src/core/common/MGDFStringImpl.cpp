@@ -12,22 +12,27 @@ namespace core {
 
 HRESULT StringWriter::Write(const std::string &out, char *buffer,
                             size_t *length) {
+  const auto inputLength = *length;
+  *length = out.size();
+
   if (buffer == nullptr) {
-    *length = out.size();
     return S_OK;
   }
-  return memcpy_s(buffer, *length, out.data(), out.size())
+  return memcpy_s(buffer, inputLength, out.data(), out.size())
              ? E_NOT_SUFFICIENT_BUFFER
              : S_OK;
 }
 
 HRESULT StringWriter::Write(const std::wstring &out, wchar_t *buffer,
                             size_t *length) {
+  const auto inputLength = *length;
+  *length = out.size();
+
   if (buffer == nullptr) {
-    *length = out.size();
     return S_OK;
   }
-  return wmemcpy_s(buffer, *length, out.data(), out.size())
+  return memcpy_s(buffer, inputLength * sizeof(wchar_t), out.data(),
+                  out.size() * sizeof(wchar_t))
              ? E_NOT_SUFFICIENT_BUFFER
              : S_OK;
 }

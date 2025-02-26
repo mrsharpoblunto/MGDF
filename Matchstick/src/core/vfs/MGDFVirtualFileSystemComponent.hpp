@@ -8,8 +8,9 @@ namespace MGDF {
 namespace core {
 namespace vfs {
 
-class IReadOnlyVirtualFileSystemComponent
-    : public MGDF::ComBase<IMGDFReadOnlyVirtualFileSystem> {
+class __declspec(uuid(
+    "3643D6EE-F123-415D-9137-9475A131360F")) IReadOnlyVirtualFileSystemComponent
+    : public IMGDFReadOnlyVirtualFileSystem {
  public:
   virtual ~IReadOnlyVirtualFileSystemComponent() {}
   virtual bool Mount(const wchar_t *physicalDirectory) = 0;

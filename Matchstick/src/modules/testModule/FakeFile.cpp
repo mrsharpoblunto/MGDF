@@ -12,22 +12,20 @@
 namespace MGDF {
 namespace Test {
 
-FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalFile,
-                   IMGDFReadOnlyFile *parent,
-                   IMGDFReadOnlyVirtualFileSystem *vfs)
-    : _parent(parent),
-      _vfs(vfs),
+FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalPath,
+                   const std::wstring &logicalPath)
+    : _parent(nullptr),
       _children(nullptr),
       _name(name),
-      _physicalPath(physicalFile),
+      _physicalPath(physicalPath),
+      _logicalPath(logicalPath),
       _data(""),
       _isOpen(false),
       _position(0),
-      _logicalPath(L""),
       _references(1UL) {}
 
 FakeFile::FakeFile(const std::wstring &name, FakeFile *parent,
-                   const std::string &data)  // nullptr data indicates a folder
+                   const std::string &data)
     : _parent(parent),
       _children(nullptr),
       _name(name),
@@ -35,11 +33,8 @@ FakeFile::FakeFile(const std::wstring &name, FakeFile *parent,
       _data(data),
       _isOpen(false),
       _position(0),
-      _logicalPath(L""),
       _references(1UL) {
-  ComObject<IMGDFReadOnlyVirtualFileSystem> vfs;
-  parent->GetVFS(vfs.Assign());
-  _vfs = vfs;
+  _logicalPath = parent->_logicalPath + L"/" + name;
 }
 
 FakeFile::~FakeFile() {}
@@ -97,10 +92,21 @@ BOOL FakeFile::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
   return false;
 }
 
-void FakeFile::GetAllChildren(IMGDFReadOnlyFile **childBuffer) {
+HRESULT FakeFile::GetAllChildren(IMGDFReadOnlyFile **childBuffer,
+                                 UINT64 *length) {
+  const auto inputLength = *length;
+  *length = _children ? _children->size() : 0;
+
+  if (!childBuffer) {
+    return S_OK;
+  } else if (inputLength < *length) {
+    return E_NOT_SUFFICIENT_BUFFER;
+  }
+
   for (auto child : *_children) {
     child.second.Ref.AddRawRef(childBuffer++);
   }
+  return S_OK;
 }
 
 void FakeFile::AddChild(ComObject<FakeFile> file) {
@@ -200,18 +206,19 @@ HRESULT FakeFile::GetPhysicalName(wchar_t *path, UINT64 *length) {
   return GetLogicalName(path, length);
 }
 
+HRESULT FakeFile::GetLogicalPath(wchar_t *path, UINT64 *length) {
+  if (!path) {
+    *length = _logicalPath.size();
+    return S_OK;
+  }
+  return wmemcpy_s(path, *length, _logicalPath.data(), _logicalPath.size())
+             ? E_NOT_SUFFICIENT_BUFFER
+             : S_OK;
+}
+
 HRESULT FakeFile::CopyTo(IMGDFWriteableFile *destination) {
   std::ignore = destination;
   return E_FAIL;  // not supported
-}
-
-void FakeFile::GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) {
-  _vfs->AddRef();
-  *vfs = _vfs;
-}
-
-HRESULT FakeFile::GetLogicalPath(wchar_t *path, UINT64 *length) {
-  return _vfs->GetLogicalPath(this, path, length);
 }
 
 }  // namespace Test

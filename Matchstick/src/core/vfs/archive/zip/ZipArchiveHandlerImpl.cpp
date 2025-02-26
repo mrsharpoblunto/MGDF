@@ -2,19 +2,18 @@
 
 #include "ZipArchiveHandlerImpl.hpp"
 
+#include <algorithm>
+
 #include "../../../common/MGDFLoggerImpl.hpp"
 #include "../../../common/MGDFResources.hpp"
-#include "ZipCommon.hpp"
 #include "ZipFileImpl.hpp"
-#include "ZipFileRoot.hpp"
-#include "ZipFolderImpl.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)
 #endif
 
-const wchar_t *ZIP_EXT = L".zip";
+const std::wstring ZIP_EXT(L".zip");
 #define FILENAME_BUFFER 512
 
 namespace MGDF {
@@ -26,77 +25,102 @@ ComObject<IMGDFArchiveHandler> CreateZipArchiveHandlerImpl() {
   return MakeCom<ZipArchiveHandlerImpl>().As<IMGDFArchiveHandler>();
 }
 
-ZipArchiveHandlerImpl::ZipArchiveHandlerImpl() {
-  _fileExtensions.push_back(ZIP_EXT);
-}
+ZipArchiveHandlerImpl::ZipArchiveHandlerImpl() {}
 
 ZipArchiveHandlerImpl::~ZipArchiveHandlerImpl() {}
 
-HRESULT ZipArchiveHandlerImpl::MapArchive(const wchar_t *name,
-                                          const wchar_t *physicalPath,
-                                          IMGDFReadOnlyFile *parent,
-                                          IMGDFReadOnlyVirtualFileSystem *vfs,
-                                          IMGDFReadOnlyFile **file) {
-  _ASSERTE(name);
-  _ASSERTE(physicalPath);
-
-  auto physicalFileUtf8 = Resources::ToString(physicalPath);
-  auto zip = unzOpen(physicalFileUtf8.c_str());
-
-  if (zip) {
-    auto wrapper = std::make_shared<ZipFileWrapper>(zip);
-    ComObject<IMGDFReadOnlyFile> root(
-        new ZipFileRoot(name, physicalPath, parent, vfs, wrapper));
-
-    // We need to map file positions to speed up opening later
-    for (INT32 ret = unzGoToFirstFile(wrapper->Get()); ret == UNZ_OK;
-         ret = unzGoToNextFile(wrapper->Get())) {
-      unz_file_info info;
-      char nameBuffer[FILENAME_BUFFER];
-
-      unzGetCurrentFileInfo(wrapper->Get(), &info, nameBuffer, FILENAME_BUFFER,
-                            nullptr, 0, nullptr, 0);
-
-      // if the path is for a folder the last element will be a "" element
-      // (because all path element names found using zlib include a trailing
-      // "/") this means that the entire folder tree will be created in the case
-      // of folders, and that the last element will be excluded for files which
-      // is the desired behaviour
-      const wchar_t *filename = nullptr;
-      std::wstring path = Resources::ToWString(nameBuffer);
-      ComObject<IMGDFReadOnlyFile> parentFile =
-          CreateParentFile(path, vfs, root, &filename);
-
-      if (info.uncompressed_size > 0) {
-        _ASSERTE(filename);
-        ZipFileHeader header;
-        unzGetFilePos(wrapper->Get(), &header.filePosition);
-        header.size = info.uncompressed_size;
-        header.name = filename;  // the name is the last part of the path
-
-        ComObject<IMGDFReadOnlyFile> child =
-            MakeCom<ZipFileImpl>(parentFile, vfs, root, wrapper,
-                                 std::move(header))
-                .As<IMGDFReadOnlyFile>();
-        _ASSERTE(child);
-        auto parentPtr = dynamic_cast<ReadOnlyFileBaseImpl *>(parentFile.Get());
-        _ASSERTE(parentPtr);
-        parentPtr->AddChild(child);
-      }
-    }
-    root.AddRawRef(file);
-    return S_OK;
-  } else {
-    LOG("Could not open archive " << Resources::ToString(physicalPath),
-        MGDF_LOG_ERROR);
-    return ERROR_OPEN_FAILED;
-  }
+BOOL ZipArchiveHandlerImpl::TestPathSegment(
+    const MGDFArchivePathSegment *segment) {
+  const std::wstring_view view(segment->Start, segment->Length);
+  return view.ends_with(ZIP_EXT);
 }
 
-ComObject<IMGDFReadOnlyFile> ZipArchiveHandlerImpl::CreateParentFile(
-    std::wstring &path, IMGDFReadOnlyVirtualFileSystem *vfs,
-    ComObject<IMGDFReadOnlyFile> root, const wchar_t **filename) {
+BOOL ZipArchiveHandlerImpl::MapArchive(const wchar_t *rootPath,
+                                       const wchar_t *fullPath,
+                                       const MGDFArchivePathSegment *segments,
+                                       UINT64 segmentCount,
+                                       IMGDFReadOnlyFile **file) {
+  _ASSERTE(rootPath);
+  _ASSERTE(fullPath);
+
+  auto zip = unzOpen64(Resources::ToString(fullPath).c_str());
+  if (!zip) {
+    LOG("Could not open archive " << Resources::ToString(fullPath),
+        MGDF_LOG_ERROR);
+    return FALSE;
+  }
+
+  UINT64 lastModifiedTime = 0;
+  struct _stat64 fileInfo;
+  if (_wstati64(fullPath, &fileInfo) != 0) {
+    LOG("Unable to get last write time for " << Resources::ToString(fullPath),
+        MGDF_LOG_ERROR);
+    fileInfo.st_mtime = 0;
+  }
+  lastModifiedTime = fileInfo.st_mtime;
+
+  std::wstring logicalPath(fullPath + wcslen(rootPath));
+  std::replace(logicalPath.begin(), logicalPath.end(), '\\', '/');
+
+  auto archive =
+      MakeCom<ZipArchive>(logicalPath, fullPath, lastModifiedTime, zip);
+  auto rootResource =
+      std::make_shared<ZipFolderImpl>(logicalPath.c_str(), nullptr, archive);
+  archive->AddResource(rootResource);
+
+  // We need to map file positions to speed up opening later
+  for (INT32 ret = unzGoToFirstFile(archive->GetZip()); ret == UNZ_OK;
+       ret = unzGoToNextFile(archive->GetZip())) {
+    unz_file_info info;
+    char nameBuffer[FILENAME_BUFFER];
+
+    unzGetCurrentFileInfo(archive->GetZip(), &info, nameBuffer, FILENAME_BUFFER,
+                          nullptr, 0, nullptr, 0);
+
+    // if the path is for a folder the last element will be a "" element
+    // (because all path element names found using zlib include a trailing
+    // "/") this means that the entire folder tree will be created in the case
+    // of folders, and that the last element will be excluded for files which
+    // is the desired behaviour
+    const wchar_t *filename = nullptr;
+    auto path = Resources::ToWString(nameBuffer);
+    auto parent =
+        CreateParentFolder(path, archive.Get(), rootResource.get(), &filename);
+
+    if (info.uncompressed_size > 0) {
+      _ASSERTE(filename);
+      ZipFileHeader header;
+      unzGetFilePos(archive->GetZip(), &header.filePosition);
+      header.size = info.uncompressed_size;
+      header.name = filename;  // the name is the last part of the path
+
+      auto child = std::make_shared<ZipFileImpl>(filename, parent, archive,
+                                                 std::move(header));
+      parent->AddChild(child);
+    }
+  }
+
+  // if the logical path was a file within the archive, we need to traverse
+  // the components to get that, rather than just returning the root of the archive
+  ComObject<IMGDFReadOnlyFile> current(rootResource.get(), true);
+  for (UINT64 i = 0; i < segmentCount; ++i) {
+    std::wstring childName(segments[i].Start, segments[i].Length);
+    ComObject<IMGDFReadOnlyFile> child;
+    if (current->GetChild(childName.c_str(), child.Assign())) {
+      current = child;
+    } else {
+      return FALSE;
+    }
+  }
+  current.AddRawRef(file);
+  return TRUE;
+}
+
+ZipFolderImpl *ZipArchiveHandlerImpl::CreateParentFolder(
+    std::wstring &path, ZipArchive *archive, ZipFolderImpl *root,
+    const wchar_t **filename) {
   _ASSERTE(root);
+  _ASSERTE(archive);
   _ASSERTE(path.size());
 
   size_t len = path.rfind('/');
@@ -110,7 +134,7 @@ ComObject<IMGDFReadOnlyFile> ZipArchiveHandlerImpl::CreateParentFile(
 
   size_t start = 0;
   size_t end = 0;
-  ComObject<IMGDFReadOnlyFile> parent(root);
+  ZipFolderImpl *parent = root;
 
   while (end < len) {
     while (end < len && path[end] != '/') {
@@ -119,49 +143,19 @@ ComObject<IMGDFReadOnlyFile> ZipArchiveHandlerImpl::CreateParentFile(
     if (end != start) {
       path[end] = '\0';
       ComObject<IMGDFReadOnlyFile> child;
-      if (!parent->GetChild(&path[start], child.Assign())) {
-        child = ComObject<IMGDFReadOnlyFile>(
-            new ZipFolderImpl(&path[start], parent, vfs, root));
-        _ASSERTE(child);
-        auto parentPtr = dynamic_cast<ReadOnlyFileBaseImpl *>(parent.Get());
-        _ASSERTE(parentPtr);
-        parentPtr->AddChild(child);
+      wchar_t *name = &path[start];
+      if (!parent->GetChild(name, child.Assign())) {
+        auto newChild = std::make_shared<ZipFolderImpl>(name, parent, archive);
+        child = ComObject<IMGDFReadOnlyFile>(newChild.get(), true);
+        parent->AddChild(newChild);
       }
-      parent = child;
+      parent = static_cast<ZipFolderImpl *>(child.Get());
     }
     ++end;
     start = end;
   }
 
   return parent;
-}
-
-BOOL ZipArchiveHandlerImpl::IsArchive(const wchar_t *path) {
-  _ASSERTE(path);
-  if (!path) return false;
-
-  const wchar_t *extension = GetFileExtension(path);
-  if (!extension) return false;
-
-  for (auto ext : _fileExtensions) {
-    if (wcscmp(ext, extension) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-const wchar_t *ZipArchiveHandlerImpl::GetFileExtension(
-    const wchar_t *filename) const {
-  _ASSERTE(filename);
-  if (!filename) return nullptr;
-
-  size_t index = wcslen(filename);
-  while (index >= 0) {
-    if (filename[index] == '.') return &filename[index];
-    --index;
-  }
-  return nullptr;
 }
 
 }  // namespace zip

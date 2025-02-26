@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <functional>
+#include <memory>
 
 #include "MGDF/ComObject.hpp"
 #include "MGDF/MGDF.h"
@@ -9,8 +10,6 @@
 namespace MGDF {
 namespace core {
 namespace vfs {
-
-class ReadableFileBaseImpl;
 
 class DefaultFileReader : public ComBase<IMGDFFileReader> {
  public:

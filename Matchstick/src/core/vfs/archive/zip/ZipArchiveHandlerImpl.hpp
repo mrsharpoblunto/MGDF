@@ -3,8 +3,9 @@
 #include <MGDF/MGDF.h>
 
 #include <MGDF/ComObject.hpp>
-#include <string>
-#include <vector>
+
+#include "ZipArchive.hpp"
+#include "ZipFolderImpl.hpp"
 
 namespace MGDF {
 namespace core {
@@ -19,25 +20,16 @@ class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
   ZipArchiveHandlerImpl();
   ~ZipArchiveHandlerImpl();
 
-  BOOL __stdcall IsArchive(const wchar_t *physicalPath) final;
-  HRESULT __stdcall MapArchive(const wchar_t *name, const wchar_t *physicalPath,
-                               IMGDFReadOnlyFile *parent,
-                               IMGDFReadOnlyVirtualFileSystem *vfs,
-                               IMGDFReadOnlyFile **file) final;
+  BOOL __stdcall TestPathSegment(const MGDFArchivePathSegment *segment) final;
+  BOOL __stdcall MapArchive(const wchar_t *rootPath, const wchar_t *fullPath,
+                            const MGDFArchivePathSegment *segments,
+                            UINT64 segmentCount,
+                            IMGDFReadOnlyFile **file) final;
 
  private:
-  std::vector<const wchar_t *> _fileExtensions;
-
-  /**
-  get the extension of a file
-  \return the extension (excluding the preceding '.' if possible, otherwise
-  returns "" if no extension could be found
-  */
-  const wchar_t *GetFileExtension(const wchar_t *file) const;
-
-  ComObject<IMGDFReadOnlyFile> CreateParentFile(
-      std::wstring &path, IMGDFReadOnlyVirtualFileSystem *vfs,
-      ComObject<IMGDFReadOnlyFile> root, const wchar_t **);
+  ZipFolderImpl *CreateParentFolder(std::wstring &path, ZipArchive *archive,
+                                    ZipFolderImpl *root,
+                                    const wchar_t **filename);
 };
 
 ComObject<IMGDFArchiveHandler> CreateZipArchiveHandlerImpl();

@@ -2,6 +2,8 @@
 
 #include "MGDFNetworkImpl.hpp"
 
+#include "../common/MGDFStringImpl.hpp"
+
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)
@@ -74,39 +76,18 @@ HRESULT HttpClientResponseImpl::GetResponseHeader(const small *name,
                                                   UINT64 *length) {
   auto found = _response->Headers.find(name);
   if (found != _response->Headers.end()) {
-    if (*length >= found->second.size()) {
-      memcpy_s(value, found->second.size(), found->second.c_str(),
-               found->second.size());
-      return S_OK;
-    } else {
-      *length = found->second.size();
-      return E_FAIL;
-    }
+    return StringWriter::Write(found->second, value, length);
   } else {
     return E_NOT_SET;
   }
 }
 
 HRESULT HttpClientResponseImpl::GetResponseError(small *error, UINT64 *length) {
-  if (*length >= _response->Error.size()) {
-    memcpy_s(error, _response->Error.size(), _response->Error.c_str(),
-             _response->Error.size());
-    return S_OK;
-  } else {
-    *length = _response->Error.size();
-    return E_FAIL;
-  }
+  return StringWriter::Write(_response->Error, error, length);
 }
 
 HRESULT HttpClientResponseImpl::GetResponseBody(small *body, UINT64 *length) {
-  if (*length >= _response->Body.size()) {
-    memcpy_s(body, _response->Body.size(), _response->Body.data(),
-             _response->Body.size());
-    return S_OK;
-  } else {
-    *length = _response->Body.size();
-    return E_FAIL;
-  }
+  return StringWriter::Write(_response->Body, body, length);
 }
 
 void HttpClientRequestGroupImpl::OnRequest(
@@ -228,13 +209,7 @@ HRESULT HttpServerRequestImpl::GetRequestHeader(const small *name, small *value,
                                                 UINT64 *length) {
   if (_request->HasRequestHeader(name)) {
     auto &hdr = _request->GetRequestHeader(name);
-    if (*length >= hdr.size()) {
-      memcpy_s(value, hdr.size(), hdr.c_str(), hdr.size());
-      return S_OK;
-    } else {
-      *length = hdr.size();
-      return E_FAIL;
-    }
+    return StringWriter::Write(hdr, value, length);
   } else {
     return E_NOT_SET;
   }
@@ -242,35 +217,17 @@ HRESULT HttpServerRequestImpl::GetRequestHeader(const small *name, small *value,
 
 HRESULT HttpServerRequestImpl::GetRequestPath(small *path, UINT64 *length) {
   auto &m = _request->GetRequestPath();
-  if (*length >= m.size()) {
-    memcpy_s(path, m.size(), m.c_str(), m.size());
-    return S_OK;
-  } else {
-    *length = m.size();
-    return E_FAIL;
-  }
+  return StringWriter::Write(m, path, length);
 }
 
 HRESULT HttpServerRequestImpl::GetRequestMethod(small *method, UINT64 *length) {
   auto &m = _request->GetRequestMethod();
-  if (*length >= m.size()) {
-    memcpy_s(method, m.size(), m.c_str(), m.size());
-    return S_OK;
-  } else {
-    *length = m.size();
-    return E_FAIL;
-  }
+  return StringWriter::Write(m, method, length);
 }
 
 HRESULT HttpServerRequestImpl::GetRequestBody(small *body, UINT64 *length) {
   auto &b = _request->GetRequestBody();
-  if (*length >= b.size()) {
-    memcpy_s(body, b.size(), b.data(), b.size());
-    return S_OK;
-  } else {
-    *length = b.size();
-    return E_FAIL;
-  }
+  return StringWriter::Write(b, body, length);
 }
 
 IMGDFHttpServerRequest *HttpServerRequestImpl::SetResponseCode(INT32 code) {

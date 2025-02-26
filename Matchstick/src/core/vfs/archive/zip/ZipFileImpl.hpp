@@ -2,10 +2,11 @@
 
 #include <minizip/unzip.h>
 
+#include <MGDF/ComObject.hpp>
+#include <mutex>
 #include <string>
 
-#include "../../MGDFReadOnlyFileBaseImpl.hpp"
-#include "ZipCommon.hpp"
+#include "ZipArchive.hpp"
 
 namespace MGDF {
 namespace core {
@@ -47,46 +48,30 @@ class ZipFileImplReader : public ComBase<IMGDFFileReader> {
   INT64 _size;
   ComObject<ZipFileImpl> _zip;
 };
+
 /**
 implementation of a file in a zipped archive
 */
-class ZipFileImpl : public ReadOnlyFileBaseImpl {
+class ZipFileImpl : public ZipResource {
   friend class ZipFileImplReader;
 
  public:
-  ZipFileImpl(IMGDFReadOnlyFile *parent, IMGDFReadOnlyVirtualFileSystem *vfs,
-              IMGDFReadOnlyFile *root, std::shared_ptr<ZipFileWrapper> zip,
+  ZipFileImpl(const wchar_t *name, ZipResource *parent, ZipArchive *archive,
               ZipFileHeader &&header)
-      : ReadOnlyFileBaseImpl(parent, vfs),
-        _root(root),
-        _header(header),
-        _zip(zip),
-        _reader(nullptr) {}
+      : ZipResource(name, parent, archive), _header(header), _reader(nullptr) {}
   virtual ~ZipFileImpl();
 
-  BOOL __stdcall IsArchive() final { return true; }
   BOOL __stdcall IsFolder() final { return false; }
-
-  HRESULT __stdcall GetPhysicalName(wchar_t *name, UINT64 *length) final {
-    return _root->GetPhysicalName(name, length);
-  }
-
-  HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final {
-    return _root->GetPhysicalPath(path, length);
-  }
-
-  HRESULT __stdcall GetLogicalName(wchar_t *name, UINT64 *length) final;
-
-  BOOL __stdcall IsOpen() final { return _reader != nullptr; }
+  BOOL __stdcall IsOpen() final;
   HRESULT __stdcall Open(IMGDFFileReader **reader) final;
-
-  UINT64 __stdcall GetLastWriteTime() final {
-    return _root->GetLastWriteTime();
-  }
+  HRESULT __stdcall GetAllChildren(IMGDFReadOnlyFile **buffer,
+                                   UINT64 *length) final;
+  UINT64 __stdcall GetChildCount() final { return 0U; }
+  BOOL __stdcall GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
+  HRESULT __stdcall CopyTo(IMGDFWriteableFile *destination) final;
 
  private:
-  IMGDFReadOnlyFile *_root;
-  std::shared_ptr<ZipFileWrapper> _zip;
+  std::mutex _mutex;
   ZipFileHeader _header;
   IMGDFFileReader *_reader;
 };

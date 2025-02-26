@@ -97,10 +97,22 @@ SUITE(ReadOnlyVFSTests) {
     ComObject<IMGDFReadOnlyFile> root;
     _vfs->GetRoot(root.Assign());
     CHECK(root);
-    CHECK_EQUAL(6, root->GetChildCount());
+    UINT64 childCount = root->GetChildCount();
+    CHECK_EQUAL(6, childCount);
+
+    CHECK_EQUAL(S_OK, root->GetAllChildren(nullptr, &childCount));
+    CHECK_EQUAL(6, childCount);
 
     ComArray<IMGDFReadOnlyFile> buffer2(6);
-    root->GetAllChildren(buffer2.Data());
+
+    childCount = 5;
+    CHECK_EQUAL(E_NOT_SUFFICIENT_BUFFER,
+                root->GetAllChildren(buffer2.Data(), &childCount));
+    CHECK_EQUAL(6, childCount);
+
+    CHECK_EQUAL(S_OK, root->GetAllChildren(buffer2.Data(), &childCount));
+    CHECK_EQUAL(6, childCount);
+
     CHECK_WS_EQUAL(L"boot", GetLogicalName(buffer2[0]));
     CHECK_WS_EQUAL(L"content", GetLogicalName(buffer2[1]));
     CHECK_WS_EQUAL(L"game.xml", GetLogicalName(buffer2[2]));

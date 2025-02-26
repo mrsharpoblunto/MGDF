@@ -2,6 +2,9 @@
 
 #include "FakeArchiveHandler.hpp"
 
+#include <algorithm>
+#include <filesystem>
+
 #include "FakeFile.hpp"
 
 #if defined(_DEBUG)
@@ -12,51 +15,50 @@
 namespace MGDF {
 namespace Test {
 
-static const wchar_t *FAKE_EXT = L".fakearchive";
+static const std::wstring FAKE_EXT(L".fakearchive");
 
-FakeArchiveHandler::FakeArchiveHandler(IMGDFLogger *logger)
-    : _logger(logger), _references(1UL) {
-  _fileExtensions.push_back(FAKE_EXT);
-}
+FakeArchiveHandler::FakeArchiveHandler(IMGDFLogger *logger) : _logger(logger) {}
 
 FakeArchiveHandler::~FakeArchiveHandler() {}
 
-HRESULT FakeArchiveHandler::MapArchive(const wchar_t *name,
-                                       const wchar_t *archiveFile,
-                                       IMGDFReadOnlyFile *parent,
-                                       IMGDFReadOnlyVirtualFileSystem *vfs,
-                                       IMGDFReadOnlyFile **child) {
-  ComObject<FakeFile> rootFile(new FakeFile(name, archiveFile, parent, vfs));
+BOOL __stdcall FakeArchiveHandler::TestPathSegment(
+    const MGDFArchivePathSegment *segment) {
+  const std::wstring_view view(segment->Start, segment->Length);
+  return view.ends_with(FAKE_EXT);
+}
+
+BOOL __stdcall FakeArchiveHandler::MapArchive(
+    const wchar_t *rootPath, const wchar_t *archivePath,
+    const MGDFArchivePathSegment *logicalPathSegments,
+    UINT64 logicalPathSegmentCount, IMGDFReadOnlyFile **file) {
+  const auto root = std::filesystem::path(rootPath).lexically_normal();
+  const auto physicalPath =
+      std::filesystem::path(archivePath).lexically_normal();
+
+  std::wstring logicalPath =
+      physicalPath.wstring().substr(root.wstring().size() + 1);
+  std::replace(logicalPath.begin(), logicalPath.end(), '/', '\\');
+
+  ComObject<FakeFile> rootFile(new FakeFile(
+      physicalPath.filename().wstring(), physicalPath.wstring(), logicalPath));
 
   ComObject<FakeFile> subFile(
       new FakeFile(L"testfile.txt", rootFile, "hello world"));
   rootFile->AddChild(subFile);
-  rootFile.AddRawRef(child);
-  return S_OK;
-}
 
-BOOL FakeArchiveHandler::IsArchive(const wchar_t *path) {
-  _ASSERTE(path);
-  const wchar_t *extension = GetFileExtension(path);
-  if (!extension) return false;
-
-  for (auto ext : _fileExtensions) {
-    if (wcscmp(ext, extension) == 0) {
-      return true;
+  ComObject<IMGDFReadOnlyFile> current = rootFile.As<IMGDFReadOnlyFile>();
+  for (UINT64 i = 0; i < logicalPathSegmentCount; ++i) {
+    std::wstring childName(logicalPathSegments[i].Start,
+                           logicalPathSegments[i].Length);
+    ComObject<IMGDFReadOnlyFile> child;
+    if (current->GetChild(childName.c_str(), child.Assign())) {
+      current = child;
+    } else {
+      return FALSE;
     }
   }
-  return false;
-}
-
-const wchar_t *FakeArchiveHandler::GetFileExtension(
-    const wchar_t *filename) const {
-  _ASSERTE(filename);
-  size_t index = wcslen(filename);
-  while (index >= 0) {
-    if (filename[index] == '.') return &filename[index];
-    --index;
-  }
-  return nullptr;
+  current.AddRawRef(file);
+  return TRUE;
 }
 
 }  // namespace Test

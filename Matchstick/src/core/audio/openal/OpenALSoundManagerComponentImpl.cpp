@@ -370,8 +370,7 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
   LOG("Getting sound buffer...", MGDF_LOG_MEDIUM);
 
   std::wstring dataSourceName =
-      ComString<&IMGDFReadOnlyVirtualFileSystem::GetLogicalPath>(_vfs,
-                                                                 dataSource);
+      ComString<&IMGDFReadOnlyFile::GetLogicalPath>(dataSource);
 
   // see if the buffer already exists in memory before trying to create it
   for (auto &buffer : _sharedBuffers) {

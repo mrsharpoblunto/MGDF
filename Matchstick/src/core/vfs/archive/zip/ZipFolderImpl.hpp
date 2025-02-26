@@ -1,6 +1,12 @@
 #pragma once
 
-#include "../../MGDFReadOnlyFileBaseImpl.hpp"
+#include <MGDF/MGDF.h>
+
+#include <unordered_map>
+
+#include "../../../common/MGDFStringImpl.hpp"
+#include "../../MGDFReadOnlyVirtualFileSystemComponent.hpp"
+#include "ZipArchive.hpp"
 
 namespace MGDF {
 namespace core {
@@ -10,39 +16,25 @@ namespace zip {
 /**
 implementation of a folder in a zipped archive
 */
-class ZipFolderImpl : public ReadOnlyFileBaseImpl {
+class ZipFolderImpl : public ZipResource {
  public:
-  ZipFolderImpl(const wchar_t *name, IMGDFReadOnlyFile *parent,
-                IMGDFReadOnlyVirtualFileSystem *vfs, IMGDFReadOnlyFile *root)
-      : ReadOnlyFileBaseImpl(parent, vfs), _name(name), _root(root) {}
-  ~ZipFolderImpl(){};
+  ZipFolderImpl(const wchar_t *name, ZipFolderImpl *parent, ZipArchive *archive)
+      : ZipResource(name, parent, archive) {}
+  ~ZipFolderImpl() {};
 
-  BOOL __stdcall IsArchive() final { return true; }
   BOOL __stdcall IsFolder() final { return true; }
-
-  HRESULT __stdcall GetPhysicalName(wchar_t *name, UINT64 *length) final {
-    return _root->GetPhysicalName(name, length);
-  }
-
-  HRESULT __stdcall GetPhysicalPath(wchar_t *path, UINT64 *length) final {
-    return _root->GetPhysicalPath(path, length);
-  }
-
-  HRESULT GetLogicalName(wchar_t *name, UINT64 *length) final;
-
   BOOL __stdcall IsOpen() final { return false; }
-  HRESULT __stdcall Open(IMGDFFileReader **reader) final {
-    std::ignore = reader;
-    return E_FAIL;
-  }
+  HRESULT __stdcall Open(IMGDFFileReader **reader) final;
+  HRESULT __stdcall GetAllChildren(IMGDFReadOnlyFile **buffer,
+                                   UINT64 *length) final;
+  UINT64 __stdcall GetChildCount() final;
+  BOOL __stdcall GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
+  HRESULT __stdcall CopyTo(IMGDFWriteableFile *destination) final;
 
-  UINT64 __stdcall GetLastWriteTime() final {
-    return _root->GetLastWriteTime();
-  }
+  void AddChild(std::shared_ptr<ZipResource> child);
 
  private:
-  IMGDFReadOnlyFile *_root;
-  std::wstring _name;
+  std::unordered_map<std::wstring, ZipResource *> _children;
 };
 
 }  // namespace zip

@@ -26,8 +26,6 @@ class PendingSave : public ComBase<IMGDFWriteableVirtualFileSystem> {
   BOOL __stdcall GetFile(const wchar_t *logicalPath,
                          IMGDFWriteableFile **file) final;
   void __stdcall GetRoot(IMGDFWriteableFile **root) final;
-  HRESULT __stdcall GetLogicalPath(IMGDFWriteableFile *file, wchar_t *path,
-                                   UINT64 *length) final;
 
  private:
   ComObject<IMGDFWriteableVirtualFileSystem> _vfs;

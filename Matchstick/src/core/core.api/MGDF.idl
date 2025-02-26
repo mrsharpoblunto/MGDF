@@ -97,7 +97,7 @@ and the preferences associated with that game
   \param name the preference name
   \param value buffer to store the value associated with the key or nullptr if there is no such key
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the value was found and the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the value was found and the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetPreference([in] const small *name, [ in, out ] small *value,
                         [ in, out ] UINT64 *length);
@@ -860,7 +860,7 @@ readonly virtual filesystem and writeable save and working directories.
   Gets the physical name of this file on disk
   \param name buffer to store the file name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetPhysicalName([ in, out ] wchar_t * name,
                           [ in, out ] UINT64 * length);
@@ -869,7 +869,7 @@ readonly virtual filesystem and writeable save and working directories.
   Gets the physical path to this file
   \param name buffer to store the file path
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetPhysicalPath([ in, out ] wchar_t * name,
                           [ in, out ] UINT64 * length);
@@ -878,7 +878,7 @@ readonly virtual filesystem and writeable save and working directories.
   Gets the logical name of this file
   \param name buffer to store the file name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetLogicalName([ in, out ] wchar_t * name,
                          [ in, out ] UINT64 * length);
@@ -887,7 +887,7 @@ readonly virtual filesystem and writeable save and working directories.
   Gets the logical path to this file
   \param name buffer to store the file name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetLogicalPath([ in, out ] wchar_t * name,
                          [ in, out ] UINT64 * length);
@@ -921,17 +921,17 @@ include writeable folders such as the working directory and save game folders.
   Gets a child of this file with the given name (if any)
   \param name the child name of this file
   \param child the child file of the current file
-  \return S_OK if the child file could be found, E_FAIL otherwise
+  \return true if the child file could be found
   */
-  HRESULT GetChild([in] const wchar_t *name, [out] IMGDFWriteableFile **child);
+  BOOL GetChild([in] const wchar_t *name, [out] IMGDFWriteableFile **child);
 
   /**
    Get all the children of this file (non-recursive)
-   \param childBuffer an array to store the results (must be large enough to
-   hold GetChildCount entries)
-   \return S_OK if all the children could be stored in the provided buffer
+   \param buffer an array to store the results
+   \param length the length of the buffer provided to store the value above. Will be set to the length required.
+   \return S_OK if all the children could be stored in the provided buffer or the buffer was NULL, E_NOT_SUFFICIENT_BUFFER otherwise
    */
-  HRESULT GetAllChildren([out] IMGDFWriteableFile * *childBuffer);
+  HRESULT GetAllChildren([out] IMGDFWriteableFile * *buffer, UINT64 * length);
 
   /**
   attempt to open the file for writing if the path to this file doesn't exist
@@ -969,12 +969,6 @@ include writeable folders such as the working directory and save game folders.
   \return S_OK if the file/folder could be copied, otherwise E_FAIL
   */
   HRESULT CopyTo([in] IMGDFWriteableFile * destination);
-
-  /**
-  Get the virtual filesystem this file belongs to
-  \param vfs the virtual filesystem this file belongs to
-  */
-  void GetVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
 };
 
 interface IMGDFReadOnlyVirtualFileSystem;
@@ -1010,22 +1004,17 @@ uncompressed archive data
 
   /**
    Get all the children of this file (non-recursive)
-   \param childBuffer an array to store the results (must be large enough to
-   hold GetChildCount entries)
+   \param buffer an array to store the results
+   \param length the length of the buffer provided to store the value above. Will be set to the length required
+   \return S_OK if all the children could be stored in the provided buffer or the buffer was NULL, E_NOT_SUFFICIENT_BUFFER otherwise
    */
-  void GetAllChildren([out] IMGDFReadOnlyFile * *childBuffer);
+  HRESULT GetAllChildren([out] IMGDFReadOnlyFile * *buffer, UINT64 * length);
 
   /**
   determines if the file is a (or is a member of) an archive file
   \return true if the file is a (or is a member of) an archive file
   */
   BOOL IsArchive();
-
-  /**
-  Get the virtual filesystem this file belongs to
-  \param vfs the virtual filesystem this file belongs to
-  */
-  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
 
   /**
   copies this file or folder to the desired writeable target location
@@ -1037,6 +1026,15 @@ uncompressed archive data
 };
 
 /**
+Part of a logical path to a file in the virtual filesystem representing either a
+folder or file
+*/
+typedef struct MGDFArchivePathSegment {
+  const wchar_t *Start;
+  UINT64 Length;
+} MGDFArchivePathSegment;
+
+/**
 Provides an interface for creating portions of the vfs tree from archive files
 */
 [
@@ -1044,27 +1042,26 @@ Provides an interface for creating portions of the vfs tree from archive files
   local
 ] interface IMGDFArchiveHandler : IUnknown {
   /**
-  get the root node of the mapped vfs subtree
-  \param name the name of the archive
-  \param physicalPath the physical path on disk containing the archive
-  \param parent the VFS parent node of the archive
-  \param vfs the VFS the archive will belong to
-  \param root pointer to the root node of the mapped vfs subtree
-  \return S_OK if the archive could be mapped correctly, otherwise E_FAIL
-  */
-  HRESULT
-  MapArchive([in] const wchar_t *name, [in] const wchar_t *physicalPath,
-             [in] IMGDFReadOnlyFile *parent,
-             [in] IMGDFReadOnlyVirtualFileSystem *vfs,
-             [out] IMGDFReadOnlyFile **root);
+  Test if the logical path segment looks like it could be an archive file
+  \param segment part of the logical path to test
+  \return TRUE if the segment looks like it could be an archive file
+*/
+  BOOL TestPathSegment([in] const MGDFArchivePathSegment *segment);
 
   /**
-  whether this file/directory is recognised as an archive type
-  \param physicalPath the physical path on disk of a possible achive file
-  \return true if the file is a recognized archive file to be handled by this
-  handler
+  If the logicalPath points to a file that is an archive, this function will
+  map the archive and return the file inside the archive at the logical path
+  \param rootPath the physical path on disk to the vfs root
+  \param archivePath the physical path on disk to the archive file
+  \param logicalPathSegments the logical path to the file within the archive
+  \param logicalPathSegmentCount the number of segments in the logical path
+  \param file pointer to the file in the mapped vfs subtree
+  \return TRUE if the fullPath could be mapped to an archive, otherwise FALSE
   */
-  BOOL IsArchive([in] const wchar_t *physicalPath);
+  BOOL
+  MapArchive([in] const wchar_t *rootPath, [in] const wchar_t *archivePath,
+             [in] const MGDFArchivePathSegment *logicalPathSegments,
+             UINT64 logicalPathSegmentCount, [out] IMGDFReadOnlyFile **file);
 };
 
 /**
@@ -1094,16 +1091,6 @@ mounted from the game/content folder.
   \param root pointer to the root node of the filesystem
   */
   void GetRoot([out] IMGDFReadOnlyFile * *root);
-
-  /**
-  Get the logical path to a file
-  \param file the file to get the logical path to
-  \param path buffer to store the logical path
-  \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
-  */
-  HRESULT GetLogicalPath(IMGDFReadOnlyFile * file, wchar_t * path,
-                         UINT64 * length);
 };
 
 /**
@@ -1131,16 +1118,6 @@ save game folders and the working directory
   \param root pointer to the root node of the filesystem
   */
   void GetRoot([out] IMGDFWriteableFile * *root);
-
-  /**
-  Get the logical path to a file
-  \param file the file to get the logical path to
-  \param path buffer to store the logical path
-  \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
-  */
-  HRESULT GetLogicalPath(IMGDFWriteableFile * file, wchar_t * path,
-                         UINT64 * length);
 };
 
 /**
@@ -1161,7 +1138,7 @@ An sound source in 3d space
   The name of the sound
   \param name buffer to store the sound name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the name buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetName([ in, out ] wchar_t * name, [ in, out ] UINT64 * length);
 
@@ -1350,7 +1327,7 @@ A vorbis sound stream
   The name of the sound stream
   \param name buffer to store the sound stream name
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the name buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetName([ in, out ] wchar_t * name, [ in, out ] UINT64 * length);
 
@@ -1632,7 +1609,7 @@ An interface for an HTTP Response. The memory returned by all methods are owned 
   \param name the name of the header
   \param value a buffer to store the header value in
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length, E_NOT_SET if no header exists, otherwise E_FAIL if the buffer size was insufficient
+  \return S_OK if the buffer was the correct length or was NULL, E_NOT_SET if no header exists, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetResponseHeader([in] const small *name, [ in, out ] small *value,
                             [ in, out ] UINT64 *length);
@@ -1641,7 +1618,7 @@ An interface for an HTTP Response. The memory returned by all methods are owned 
   If the request failed, get the error message
   \param error a buffer to store the error message in
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL if the buffer size was insufficient
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetResponseError([ in, out ] small * error,
                            [ in, out ] UINT64 * length);
@@ -1651,7 +1628,7 @@ An interface for an HTTP Response. The memory returned by all methods are owned 
 and may not be null terminated.
   \param body a buffer to store the response body in
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL if the buffer size was insufficient
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetResponseBody([ in, out ] small * body,
                           [ in, out ] UINT64 * length);
@@ -1736,7 +1713,7 @@ and responding to that request.
   \name the name of the header
   \param value a buffer to store the header value in
 \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length, E_NOT_SET if no header exists, otherwise E_FAIL if the buffer size was insufficient
+  \return S_OK if the buffer was the correct length or was NULL, E_NOT_SET if no header exists, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestHeader([in] const small *name, [ in, out ] small *value,
                            [ in, out ] UINT64 *length);
@@ -1745,7 +1722,7 @@ and responding to that request.
   Gets the HTTP method used in the request
   \param method a buffer to store the method in
 \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL if the buffer size was insufficient
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestMethod([ in, out ] small * method,
                            [ in, out ] UINT64 * length);
@@ -1754,7 +1731,7 @@ and responding to that request.
   Gets the path of the request
   \param method a buffer to store the path in
 \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL if the buffer size was insufficient
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestPath([ in, out ] small * path, [ in, out ] UINT64 * length);
 
@@ -1763,7 +1740,7 @@ and responding to that request.
 and may not be null terminated
   \param body a buffer to store the request body in
 \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the buffer was the correct length otherwise E_FAIL if the buffer size was insufficient
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestBody([ in, out ] small * body, [ in, out ] UINT64 * length);
 
@@ -1843,7 +1820,7 @@ An interface for sending and recieving websocket messages
   \param message the message to recieve
   \param len the length of the buffer to recieve the message
   \binary true if the message is binary, false if it is a string
-  \return S_OK if there was a message to receive and the buffer was large enough to store it, otherwise an error code is returned
+  \return S_OK if there was a message to receive and the buffer was large enough to store it, otherwise E_NOT_SUFFICIENT_BUFFER is returned
   */
   HRESULT Receive([ in, out ] void *message, [in] UINT64 len,
                   [ in, out ] BOOL *binary);
@@ -1851,7 +1828,7 @@ An interface for sending and recieving websocket messages
   /**
   Gets the current status of the connection
   \param status the current status of the connection. The LastError field should point to a buffer of at least LastErrorLength bytes
-  \return S_OK if the LastError buffer was large enough to store the error message, otherwise an error code is returned & LastErrorLength will be set to the required length
+  \return S_OK if the LastError buffer was large enough to store the error message, otherwise E_NOT_SUFFICIENT_BUFFER is returned & LastErrorLength will be set to the required length
   */
   HRESULT GetConnectionStatus([ in, out ] MGDFWebSocketConnectionStatus *
                               status);
@@ -2072,7 +2049,7 @@ this interface are safe to be used from any thread
   \param key the name of the metadata key
   \param value buffer to store the value associated with the key or nullptr if there is no such key
   \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the value was found and the buffer was the correct length otherwise E_FAIL
+  \return S_OK if the value was found and the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
   */
   HRESULT GetMetadata([in] const small *key, [ in, out ] small *value,
                       [ in, out ] UINT64 *length);

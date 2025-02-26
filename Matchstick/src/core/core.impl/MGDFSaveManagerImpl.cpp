@@ -70,14 +70,6 @@ void PendingSave::GetRoot(IMGDFWriteableFile** root) {
   _vfs->GetRoot(root);
 }
 
-HRESULT PendingSave::GetLogicalPath(IMGDFWriteableFile* file, wchar_t* path,
-                                    UINT64* length) {
-  if (!_vfs) {
-    return E_FAIL;
-  }
-  return _vfs->GetLogicalPath(file, path, length);
-}
-
 PendingSave::~PendingSave() {
   if (_saveData.empty()) {
     // don't do anything if the pending save wasn't initialized correctly

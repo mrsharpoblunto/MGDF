@@ -16,17 +16,14 @@ namespace vfs {
 
 bool CreateReadOnlyVirtualFileSystemComponent(
     ComObject<IReadOnlyVirtualFileSystemComponent> &comp) {
-  comp = ComObject<IReadOnlyVirtualFileSystemComponent>(
-      new ReadOnlyVirtualFileSystemComponent());
+  comp = MakeCom<ReadOnlyVirtualFileSystemComponent>();
   return true;
 }
 
 bool CreateWriteableVirtualFileSystemComponent(
     const std::wstring &physicalDirectory,
     ComObject<IMGDFWriteableVirtualFileSystem> &comp) {
-  auto impl =
-      MakeCom<vfs::WriteableVirtualFileSystem>(physicalDirectory.c_str());
-  comp = impl.As<IMGDFWriteableVirtualFileSystem>();
+  comp = MakeCom<WriteableVirtualFileSystem>(physicalDirectory.c_str());
   return true;
 }
 

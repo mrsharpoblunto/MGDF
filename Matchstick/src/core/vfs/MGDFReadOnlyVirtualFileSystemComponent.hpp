@@ -3,21 +3,32 @@
 #include <MGDF/MGDF.h>
 
 #include <MGDF/ComObject.hpp>
-#include <filesystem>
-#include <vector>
 
-#include "MGDFLogicalPathResolver.h"
+#include "MGDFDefaultFileBase.hpp"
 #include "MGDFVirtualFileSystemComponent.hpp"
 
 namespace MGDF {
 namespace core {
 namespace vfs {
 
-class DefaultFolderImpl;
-struct WCharCmp;
+class DefaultReadOnlyFileImpl : public DefaultFileBase<IMGDFReadOnlyFile> {
+ public:
+  DefaultReadOnlyFileImpl(const std::wstring &name,
+                          const std::filesystem::path &physicalPath,
+                          const std::filesystem::path &rootPath);
+  virtual ~DefaultReadOnlyFileImpl() {}
+
+  BOOL __stdcall IsArchive() final { return false; }
+  BOOL __stdcall GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
+
+  ComObject<IMGDFReadOnlyFile> CreateFile(
+      const std::wstring &name, const std::filesystem::path &path,
+      const std::filesystem::path &rootPath) final;
+};
 
 class ReadOnlyVirtualFileSystemComponent
-    : public IReadOnlyVirtualFileSystemComponent {
+    : public ComBase<IReadOnlyVirtualFileSystemComponent,
+                     IMGDFReadOnlyVirtualFileSystem> {
  public:
   ReadOnlyVirtualFileSystemComponent();
   virtual ~ReadOnlyVirtualFileSystemComponent() {};
@@ -25,22 +36,13 @@ class ReadOnlyVirtualFileSystemComponent
   BOOL __stdcall GetFile(const wchar_t *logicalPath,
                          IMGDFReadOnlyFile **file) final;
   void __stdcall GetRoot(IMGDFReadOnlyFile **root) final;
-  HRESULT __stdcall GetLogicalPath(IMGDFReadOnlyFile *file, wchar_t *path,
-                                   UINT64 *length) final;
 
   bool Mount(const wchar_t *physicalDirectory) final;
   void RegisterArchiveHandler(ComObject<IMGDFArchiveHandler> handler) final;
-  void Map(const std::filesystem::path &path,
-           ComObject<IMGDFReadOnlyFile> parent,
-           ComObject<IMGDFReadOnlyFile> &child);
 
  private:
+  std::filesystem::path _rootPath;
   std::vector<ComObject<IMGDFArchiveHandler>> _archiveHandlers;
-  ComObject<IMGDFReadOnlyFile> _root;
-
-  bool GetArchiveHandler(const std::wstring &path,
-                         ComObject<IMGDFArchiveHandler> &handler);
-  LogicalPathResolver<IMGDFReadOnlyFile> _resolver;
 };
 
 }  // namespace vfs

@@ -1,11 +1,6 @@
-
 #include "stdafx.h"
 
 #include "MGDFWriteableVirtualFileSystem.hpp"
-
-#include <MGDF/ComObject.hpp>
-
-#include "MGDFDefaultWriteableFileImpl.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -18,45 +13,183 @@ namespace vfs {
 
 using namespace std::filesystem;
 
-const constexpr std::wstring_view S_DOT(L".");
-const constexpr std::wstring_view S_DOTDOT(L"..");
+DefaultFileWriter::DefaultFileWriter(std::shared_ptr<std::ofstream> stream,
+                                     std::function<void()> cleanup)
+    : _stream(stream), _cleanup(cleanup) {}
 
-BOOL WriteableVirtualFileSystem::GetFile(const wchar_t *logicalPath,
-                                         IMGDFWriteableFile **file) {
+DefaultFileWriter::~DefaultFileWriter() {
+  _stream->close();
+  _cleanup();
+}
+
+UINT32 DefaultFileWriter::Write(void* buffer, UINT32 length) {
+  if (buffer && length) {
+    const auto oldPosition = _stream->tellp();
+    _stream->write(static_cast<char*>(buffer), length);
+    const auto newPosition = _stream->tellp();
+    return static_cast<UINT32>(newPosition - oldPosition);
+  }
+  return 0;
+}
+
+void DefaultFileWriter::SetPosition(INT64 pos) { _stream->seekp(pos); }
+
+INT64 DefaultFileWriter::GetPosition() { return _stream->tellp(); }
+
+DefaultWriteableFileImpl::DefaultWriteableFileImpl(
+    const std::wstring& name, const std::filesystem::path& physicalPath,
+    const std::filesystem::path& rootPath)
+    : DefaultFileBase(name, physicalPath, rootPath), _writer(nullptr) {}
+
+ComObject<IMGDFWriteableFile> DefaultWriteableFileImpl::CreateFile(
+    const std::wstring& name, const std::filesystem::path& path,
+    const std::filesystem::path& rootPath) {
+  return MakeCom<DefaultWriteableFileImpl>(name, path, rootPath)
+      .As<IMGDFWriteableFile>();
+}
+
+BOOL DefaultWriteableFileImpl::Exists() { return exists(_physicalPath); }
+
+UINT64 DefaultWriteableFileImpl::GetChildCount() {
+  if (!Exists()) {
+    return 0U;
+  } else {
+    return DefaultFileBase::GetChildCount();
+  }
+}
+
+HRESULT DefaultWriteableFileImpl::GetAllChildren(
+    IMGDFWriteableFile** childBuffer, UINT64* length) {
+  if (!Exists()) {
+    *length = 0;
+    return S_OK;
+  }
+  return DefaultFileBase::GetAllChildren(childBuffer, length);
+}
+
+BOOL DefaultWriteableFileImpl::GetChild(const wchar_t* name,
+                                        IMGDFWriteableFile** child) {
+  if (!Exists()) {
+    return FALSE;
+  } else {
+    const auto childPath = _physicalPath / name;
+    auto childFile =
+        MakeCom<DefaultWriteableFileImpl>(name, childPath, _rootPath);
+    childFile.AddRawRef(child);
+    return TRUE;
+  }
+}
+
+HRESULT DefaultWriteableFileImpl::CreateFolder() {
+  if (Exists()) {
+    return E_FAIL;
+  }
+
+  std::error_code code;
+  return (create_directories(_physicalPath, code) && !code.value()) ? S_OK
+                                                                    : E_FAIL;
+}
+
+HRESULT DefaultWriteableFileImpl::Delete() {
+  if (!Exists() || _physicalPath == _rootPath) {
+    return E_FAIL;
+  }
+  std::error_code code;
+  return (remove_all(_physicalPath, code) && !code.value()) ? S_OK : E_FAIL;
+}
+
+HRESULT DefaultWriteableFileImpl::MoveTo(IMGDFWriteableFile* destination) {
+  if (!Exists() || destination->Exists()) {
+    return E_FAIL;
+  }
+
+  // create all parent directories to the destination
+  std::wstring destPathString =
+      ComString<&IMGDFWriteableFile::GetPhysicalPath>(destination);
+  path destinationPath(destPathString);
+  auto parentPath = destinationPath.parent_path();
+  if (!exists(parentPath)) {
+    std::error_code code;
+    if (!create_directories(parentPath, code) || code.value()) {
+      return E_FAIL;
+    }
+  }
+
+  std::error_code code;
+  rename(_physicalPath, destinationPath, code);
+  return !code.value() ? S_OK : E_FAIL;
+}
+
+BOOL DefaultWriteableFileImpl::IsOpen() {
+  return _writer || DefaultFileBase::IsOpen();
+}
+
+HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (IsFolder()) {
+    return E_FAIL;
+  }
+
+  if (!IsOpen()) {
+    if (!Exists()) {
+      // create all parent directories
+      auto parentPath = _physicalPath.parent_path();
+      if (!exists(parentPath)) {
+        std::error_code code;
+        if (!create_directories(parentPath, code) || code.value()) {
+          return E_FAIL;
+        }
+      }
+    }
+
+    auto fileStream = std::make_shared<std::ofstream>(
+        _physicalPath.c_str(), std::ios::out | std::ios::binary);
+
+    if (fileStream && !fileStream->bad() && fileStream->is_open()) {
+      ComObject<DefaultWriteableFileImpl> self(this, true);
+      _writer = new DefaultFileWriter(fileStream, [self]() {
+        const std::lock_guard<std::mutex> lock(self->_mutex);
+        self->_writer = nullptr;
+      });
+      *writer = _writer;
+      return S_OK;
+    } else {
+      LOG("Unable to open file stream for "
+              << Resources::ToString(_physicalPath) << " - " << GetLastError(),
+          MGDF_LOG_ERROR);
+      return E_FAIL;
+    }
+  }
+  LOG("File " << Resources::ToString(_physicalPath) << " currently in use",
+      MGDF_LOG_ERROR);
+  return E_ACCESSDENIED;
+}
+
+WriteableVirtualFileSystem::WriteableVirtualFileSystem(
+    const std::wstring& rootPath) {
+  _rootPath = std::filesystem::path(rootPath).lexically_normal();
+}
+
+BOOL WriteableVirtualFileSystem::GetFile(const wchar_t* logicalPath,
+                                         IMGDFWriteableFile** file) {
   if (!logicalPath) {
     GetRoot(file);
     return true;
   }
 
-  wchar_t *context = 0;
-  const size_t destinationLength = wcslen(logicalPath) + 1;
-  std::vector<wchar_t> copy(destinationLength);
-  wcscpy_s(copy.data(), destinationLength, logicalPath);
-  wchar_t *components = wcstok_s(copy.data(), L"/", &context);
+  std::filesystem::path path =
+      (_rootPath / std::filesystem::path(logicalPath)).lexically_normal();
 
-  std::filesystem::path path(_rootPath);
-  while (components) {
-    if (S_DOT != components && S_DOTDOT != components) {
-      path /= components;
-    }
-    components = wcstok_s(0, L"/", &context);
-  }
-
-  auto node = MakeCom<DefaultWriteableFileImpl>(path.filename().wstring(),
-                                                path.wstring(), this);
+  auto node = MakeCom<DefaultWriteableFileImpl>(path.filename().c_str(), path,
+                                                _rootPath);
   node.AddRawRef(file);
   return true;
 }
 
-void WriteableVirtualFileSystem::GetRoot(IMGDFWriteableFile **root) {
-  auto r = MakeCom<DefaultWriteableFileImpl>(_rootPath.filename().wstring(),
-                                             _rootPath.wstring(), this);
+void WriteableVirtualFileSystem::GetRoot(IMGDFWriteableFile** root) {
+  auto r = MakeCom<DefaultWriteableFileImpl>(_rootPath.filename().c_str(),
+                                             _rootPath, _rootPath);
   r.AddRawRef(root);
-}
-
-HRESULT __stdcall WriteableVirtualFileSystem::GetLogicalPath(
-    IMGDFWriteableFile *file, wchar_t *path, UINT64 *length) {
-  return _resolver.GetLogicalPath(file, path, length);
 }
 
 }  // namespace vfs
