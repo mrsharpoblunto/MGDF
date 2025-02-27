@@ -57,6 +57,9 @@ BOOL Module::RTDeviceReset(IMGDFRenderHost *host) {
   // Recreate any resources cleared out in RTBeforeDeviceReset
   return true;
 }
+void Module::RTShutDown(IMGDFRenderHost *host) {
+  // clean up any Direct3D resources
+}
 void Module::Panic() {
   // Called by the host after any module event fails
 }

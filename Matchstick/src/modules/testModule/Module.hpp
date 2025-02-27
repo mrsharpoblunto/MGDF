@@ -53,6 +53,7 @@ class Module : public ComBase<IMGDFModule> {
   BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTDeviceReset(IMGDFRenderHost *renderHost) final;
+  void __stdcall RTShutDown(IMGDFRenderHost *renderHost) final;
   void __stdcall Panic() final;
 
  private:

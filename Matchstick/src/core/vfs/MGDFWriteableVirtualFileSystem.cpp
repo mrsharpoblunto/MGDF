@@ -86,8 +86,12 @@ HRESULT DefaultWriteableFileImpl::CreateFolder() {
   }
 
   std::error_code code;
-  return (create_directories(_physicalPath, code) && !code.value()) ? S_OK
-                                                                    : E_FAIL;
+  const auto result = create_directories(_physicalPath, code) && !code.value();
+  if (result) {
+    _isFolder = true;
+  }
+
+  return result ? S_OK : E_FAIL;
 }
 
 HRESULT DefaultWriteableFileImpl::Delete() {
@@ -121,16 +125,17 @@ HRESULT DefaultWriteableFileImpl::MoveTo(IMGDFWriteableFile* destination) {
 }
 
 BOOL DefaultWriteableFileImpl::IsOpen() {
-  return _writer || DefaultFileBase::IsOpen();
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _writer || _reader;
 }
 
 HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
-  std::lock_guard<std::mutex> lock(_mutex);
   if (IsFolder()) {
     return E_FAIL;
   }
 
-  if (!IsOpen()) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (!_writer && !_reader) {
     if (!Exists()) {
       // create all parent directories
       auto parentPath = _physicalPath.parent_path();
@@ -168,6 +173,9 @@ HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
 WriteableVirtualFileSystem::WriteableVirtualFileSystem(
     const std::wstring& rootPath) {
   _rootPath = std::filesystem::path(rootPath).lexically_normal();
+  if (!_rootPath.has_filename()) {
+    _rootPath = _rootPath.parent_path();
+  }
 }
 
 BOOL WriteableVirtualFileSystem::GetFile(const wchar_t* logicalPath,

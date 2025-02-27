@@ -314,6 +314,13 @@ void Host::RTDeviceReset() {
   }
 }
 
+void Host::RTShutDown() {
+  if (_module) {
+    LOG("Calling module RTShutdown...", MGDF_LOG_MEDIUM);
+    _module->RTShutDown(this);
+  }
+}
+
 void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice,
                         const ComObject<ID2D1Device> &d2dDevice) {
   LOG("Initializing render settings and GPU timers...", MGDF_LOG_LOW);

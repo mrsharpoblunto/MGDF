@@ -66,7 +66,7 @@ SUITE(WriteableVFSTests) {
 
     // fetch a non-existant file
     ComObject<IMGDFWriteableFile> newFile;
-    CHECK_EQUAL(S_OK, nestedFolder->GetChild(L"newFile.txt", newFile.Assign()));
+    CHECK(nestedFolder->GetChild(L"newFile.txt", newFile.Assign()));
     CHECK(!newFile->Exists());
 
     // then write to it

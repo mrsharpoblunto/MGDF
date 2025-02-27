@@ -41,17 +41,24 @@ ReadOnlyVirtualFileSystemComponent::ReadOnlyVirtualFileSystemComponent() {}
 bool ReadOnlyVirtualFileSystemComponent::Mount(
     const wchar_t *physicalDirectory) {
   _rootPath = std::filesystem::path(physicalDirectory).lexically_normal();
-  return std::filesystem::is_directory(physicalDirectory);
+  if (!_rootPath.has_filename()) {
+    _rootPath = _rootPath.parent_path();
+  }
+  return std::filesystem::is_directory(_rootPath);
 }
 
 BOOL ReadOnlyVirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
                                                  IMGDFReadOnlyFile **file) {
-  if (!logicalPath) {
-    GetRoot(file);
-    return true;
-  }
-
   std::filesystem::path path = (_rootPath / logicalPath).lexically_normal();
+  return Get(path, file);
+}
+
+void ReadOnlyVirtualFileSystemComponent::GetRoot(IMGDFReadOnlyFile **root) {
+  Get(_rootPath, root);
+}
+
+BOOL ReadOnlyVirtualFileSystemComponent::Get(const std::filesystem::path &path,
+                                             IMGDFReadOnlyFile **file) {
   if (!_archiveHandlers.empty()) {
     std::wstring pathStr = path.wstring();
     std::vector<MGDFArchivePathSegment> segments;
@@ -74,8 +81,8 @@ BOOL ReadOnlyVirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
     }
 
     // Process each segment to check if it's an archive
-    size_t endPos = 0;
     for (auto &handler : _archiveHandlers) {
+      size_t endPos = 0;
       for (size_t i = 0; i < segments.size(); ++i) {
         endPos += segments[i].Length;
         if (!handler->TestPathSegment(&segments[i])) {
@@ -104,12 +111,6 @@ void ReadOnlyVirtualFileSystemComponent::RegisterArchiveHandler(
     ComObject<IMGDFArchiveHandler> handler) {
   _ASSERTE(handler);
   _archiveHandlers.push_back(handler);
-}
-
-void ReadOnlyVirtualFileSystemComponent::GetRoot(IMGDFReadOnlyFile **root) {
-  auto r = MakeCom<DefaultReadOnlyFileImpl>(_rootPath.filename().c_str(),
-                                            _rootPath, _rootPath);
-  r.AddRawRef(root);
 }
 
 }  // namespace vfs

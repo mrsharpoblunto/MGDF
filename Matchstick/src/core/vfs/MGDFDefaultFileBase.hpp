@@ -120,12 +120,12 @@ class DefaultFileBase : public ComBase<T> {
   }
 
   HRESULT __stdcall Open(IMGDFFileReader **reader) final {
-    std::lock_guard<std::mutex> lock(_mutex);
     if (IsFolder()) {
       return E_FAIL;
     }
 
-    if (!IsOpen()) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (!_reader) {
       auto fileStream = std::make_shared<std::ifstream>(
           _physicalPath.c_str(),
           std::ios::in | std::ios::binary | std::ios::ate);

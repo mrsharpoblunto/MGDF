@@ -2310,6 +2310,12 @@ are safe to be used ONLY from the sim thread.
   BOOL RTDeviceReset(IMGDFRenderHost * host);
 
   /**
+  Called by the host just before Direct3D gets cleaned up
+  \param host the render thread host
+  */
+  void RTShutDown(IMGDFRenderHost * host);
+
+  /**
   Called by the host when a fatalError event occurs.
   This method gives the module a chance to clean up any memory/open files etc.
   as best it can before the host aborts. Methods on the render and sim hosts

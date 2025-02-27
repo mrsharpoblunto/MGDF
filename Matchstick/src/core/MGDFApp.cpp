@@ -68,7 +68,7 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
   RTInitDirectWrite();
 }
 
-MGDFApp::~MGDFApp() {}
+MGDFApp::~MGDFApp() { _host->RTShutDown(); }
 
 UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                               UINT64 *featureLevelsSize) {

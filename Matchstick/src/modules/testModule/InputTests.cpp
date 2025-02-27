@@ -38,21 +38,19 @@ void InputTests::Setup(IMGDFSimHost *host) {
       .Step([this](auto state) {
         std::ignore = state;
         if (_input->IsKeyDown(VK_UP)) {
-          _time = _timer->GetCurrentTimeTicks();
-          return TestStep::NEXT;
-        } else {
-          return TestStep::CONT;
-        }
-      })
-      .Step([this](auto state) {
-        std::ignore = state;
-        if (_input->IsKeyDown(VK_UP)) {
+          if (!_time.QuadPart) {
+            _time = _timer->GetCurrentTimeTicks();
+          }
           if (_timer->ConvertDifferenceToSeconds(_timer->GetCurrentTimeTicks(),
                                                  _time) > 1) {
-            return TestStep::PASSED;
+            return TestStep::NEXT;
+          } else {
+            return TestStep::CONT;
           }
+        } else {
+          _time.QuadPart = 0;
+          return TestStep::CONT;
         }
-        return TestStep::CONT;
       })
       .StepOnce(
           [](auto state) { state->AddLine("Now release the [UP ARROW] key"); })

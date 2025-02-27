@@ -58,6 +58,7 @@ ULONG FakeFile::Release() {
 HRESULT FakeFile::QueryInterface(REFIID riid, void **ppvObject) {
   if (!ppvObject) return E_POINTER;
   if (riid == IID_IUnknown || riid == __uuidof(IMGDFFile) ||
+      riid == __uuidof(IMGDFReadOnlyFile) ||
       (_isOpen && riid == _uuidof(IMGDFFileReader))) {
     AddRef();
     *ppvObject = this;

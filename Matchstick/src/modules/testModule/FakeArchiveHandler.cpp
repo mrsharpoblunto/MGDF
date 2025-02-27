@@ -37,7 +37,7 @@ BOOL __stdcall FakeArchiveHandler::MapArchive(
 
   std::wstring logicalPath =
       physicalPath.wstring().substr(root.wstring().size() + 1);
-  std::replace(logicalPath.begin(), logicalPath.end(), '/', '\\');
+  std::replace(logicalPath.begin(), logicalPath.end(), '\\', '/');
 
   ComObject<FakeFile> rootFile(new FakeFile(
       physicalPath.filename().wstring(), physicalPath.wstring(), logicalPath));

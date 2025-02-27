@@ -1,7 +1,8 @@
 #pragma once
 
-#include <MGDF/ComObject.hpp>
 #include <MGDF/MGDF.h>
+
+#include <MGDF/ComObject.hpp>
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -22,6 +23,7 @@ class Module : public MGDF::ComBase<IMGDFModule> {
   BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *host) final;
   BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *host) final;
   BOOL __stdcall RTDeviceReset(IMGDFRenderHost *host) final;
+  void __stdcall RTShutDown(IMGDFRenderHost *host) final;
 
   void __stdcall Panic() final;
 

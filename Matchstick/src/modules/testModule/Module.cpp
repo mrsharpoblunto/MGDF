@@ -69,10 +69,10 @@ Module::Module()
 
 BOOL Module::STNew(IMGDFSimHost* host) {
   std::ignore = host;
-  //_testModules.push_back(std::make_unique<NetworkTests>());
-  //_testModules.push_back(std::make_unique<InputTests>());
+  _testModules.push_back(std::make_unique<NetworkTests>());
+  _testModules.push_back(std::make_unique<InputTests>());
   _testModules.push_back(std::make_unique<SoundTests>());
-  //_testModules.push_back(std::make_unique<LoadSaveTests>());
+  _testModules.push_back(std::make_unique<LoadSaveTests>());
   _currentModule = _testModules.begin();
 
   return true;
@@ -109,7 +109,8 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
       _stateBuffer.Pending()->AddLine("");
       _stateBuffer.Pending()->AddLine(oss.str());
       _stateBuffer.Pending()->AddLine("");
-    } else if (_input->IsKeyPress(VK_ESCAPE)) {
+    }
+    if (_input->IsKeyPress(VK_ESCAPE)) {
       host->QueueShutDown();
     }
   }
@@ -167,6 +168,12 @@ BOOL Module::RTBeforeDeviceReset(IMGDFRenderHost* host) {
 BOOL Module::RTDeviceReset(IMGDFRenderHost* host) {
   std::ignore = host;
   return true;
+}
+
+void Module::RTShutDown(IMGDFRenderHost* host) {
+  std::ignore = host;
+  _textManagerCounter.Clear();
+  _textManager.reset();
 }
 
 void Module::Panic() {}

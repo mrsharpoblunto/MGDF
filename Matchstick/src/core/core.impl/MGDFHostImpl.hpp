@@ -69,6 +69,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                           const ComObject<ID3D11Texture2D> &depthStencilBuffer);
   void RTBeforeDeviceReset();
   void RTDeviceReset();
+  void RTShutDown();
 
   UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                        UINT64 *featureLevelsSize);

@@ -13,7 +13,8 @@
 #pragma warning(disable : 4291)
 #endif
 
-const std::wstring ZIP_EXT(L".zip");
+const std::wstring S_ZIP_EXT(L".zip");
+const std::wstring S_EMPTY(L"");
 #define FILENAME_BUFFER 512
 
 namespace MGDF {
@@ -32,7 +33,7 @@ ZipArchiveHandlerImpl::~ZipArchiveHandlerImpl() {}
 BOOL ZipArchiveHandlerImpl::TestPathSegment(
     const MGDFArchivePathSegment *segment) {
   const std::wstring_view view(segment->Start, segment->Length);
-  return view.ends_with(ZIP_EXT);
+  return view.ends_with(S_ZIP_EXT);
 }
 
 BOOL ZipArchiveHandlerImpl::MapArchive(const wchar_t *rootPath,
@@ -43,23 +44,27 @@ BOOL ZipArchiveHandlerImpl::MapArchive(const wchar_t *rootPath,
   _ASSERTE(rootPath);
   _ASSERTE(fullPath);
 
-  auto zip = unzOpen64(Resources::ToString(fullPath).c_str());
+  std::string fullPathUtf8 = Resources::ToString(fullPath);
+  auto zip = unzOpen64(fullPathUtf8.c_str());
   if (!zip) {
-    LOG("Could not open archive " << Resources::ToString(fullPath),
-        MGDF_LOG_ERROR);
+    LOG("Could not open archive " << fullPathUtf8, MGDF_LOG_ERROR);
     return FALSE;
   }
 
   UINT64 lastModifiedTime = 0;
   struct _stat64 fileInfo;
   if (_wstati64(fullPath, &fileInfo) != 0) {
-    LOG("Unable to get last write time for " << Resources::ToString(fullPath),
-        MGDF_LOG_ERROR);
+    LOG("Unable to get last write time for " << fullPathUtf8, MGDF_LOG_ERROR);
     fileInfo.st_mtime = 0;
   }
   lastModifiedTime = fileInfo.st_mtime;
 
-  std::wstring logicalPath(fullPath + wcslen(rootPath));
+  const size_t rootPathLength = wcslen(rootPath);
+  const size_t fullPathLength = fullPathUtf8.size();
+
+  std::wstring logicalPath = fullPathLength > rootPathLength
+                                 ? std::wstring(fullPath + wcslen(rootPath) + 1)
+                                 : S_EMPTY;
   std::replace(logicalPath.begin(), logicalPath.end(), '\\', '/');
 
   auto archive =

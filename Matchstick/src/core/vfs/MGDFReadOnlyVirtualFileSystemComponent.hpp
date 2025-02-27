@@ -41,6 +41,7 @@ class ReadOnlyVirtualFileSystemComponent
   void RegisterArchiveHandler(ComObject<IMGDFArchiveHandler> handler) final;
 
  private:
+  BOOL Get(const std::filesystem::path &path, IMGDFReadOnlyFile **file);
   std::filesystem::path _rootPath;
   std::vector<ComObject<IMGDFArchiveHandler>> _archiveHandlers;
 };

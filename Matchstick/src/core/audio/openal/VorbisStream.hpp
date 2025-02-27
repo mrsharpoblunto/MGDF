@@ -56,7 +56,7 @@ class VorbisStream : public ComBase<IMGDFSoundStream> {
   void UninitStream();
 
   std::wstring _name;
-  ComObject<IMGDFFile> _dataSource;
+  ComObject<IMGDFReadOnlyFile> _dataSource;
   ComObject<IMGDFFileReader> _reader;
   ALuint _buffers[VORBIS_BUFFER_COUNT];
   ALuint _source;
