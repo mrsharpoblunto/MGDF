@@ -12,9 +12,10 @@
 namespace MGDF {
 namespace Test {
 
-FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalPath,
+FakeFile::FakeFile(const std::wstring &name, IMGDFReadOnlyFile *parent,
+                   const std::wstring &physicalPath,
                    const std::wstring &logicalPath)
-    : _parent(nullptr),
+    : _parent(parent, true),
       _children(nullptr),
       _name(name),
       _physicalPath(physicalPath),
@@ -26,7 +27,7 @@ FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalPath,
 
 FakeFile::FakeFile(const std::wstring &name, FakeFile *parent,
                    const std::string &data)
-    : _parent(parent),
+    : _parent(parent, true),
       _children(nullptr),
       _name(name),
       _physicalPath(parent->_physicalPath),
@@ -68,9 +69,13 @@ HRESULT FakeFile::QueryInterface(REFIID riid, void **ppvObject) {
 };
 
 BOOL FakeFile::GetParent(IMGDFReadOnlyFile **parent) {
-  _parent->AddRef();
-  *parent = _parent;
-  return true;
+  if (!_parent) {
+    _parent->AddRef();
+    *parent = _parent;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 UINT64 FakeFile::GetChildCount() {

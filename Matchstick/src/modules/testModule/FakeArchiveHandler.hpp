@@ -17,6 +17,8 @@ class FakeArchiveHandler : public ComBase<IMGDFArchiveHandler> {
   BOOL __stdcall MapArchive(const wchar_t *rootPath, const wchar_t *archivePath,
                             const MGDFArchivePathSegment *logicalPathSegments,
                             UINT64 logicalPathSegmentCount,
+                            IMGDFArchiveHandler **handlers, UINT64 handlerCount,
+                            IMGDFReadOnlyFile *parent,
                             IMGDFReadOnlyFile **child) final;
 
  private:

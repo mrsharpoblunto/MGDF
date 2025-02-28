@@ -36,11 +36,11 @@ BOOL ZipArchiveHandlerImpl::TestPathSegment(
   return view.ends_with(S_ZIP_EXT);
 }
 
-BOOL ZipArchiveHandlerImpl::MapArchive(const wchar_t *rootPath,
-                                       const wchar_t *fullPath,
-                                       const MGDFArchivePathSegment *segments,
-                                       UINT64 segmentCount,
-                                       IMGDFReadOnlyFile **file) {
+BOOL ZipArchiveHandlerImpl::MapArchive(
+    const wchar_t *rootPath, const wchar_t *fullPath,
+    const MGDFArchivePathSegment *segments, UINT64 segmentCount,
+    IMGDFArchiveHandler **handlers, UINT64 handlerCount,
+    IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **file) {
   _ASSERTE(rootPath);
   _ASSERTE(fullPath);
 
@@ -67,8 +67,8 @@ BOOL ZipArchiveHandlerImpl::MapArchive(const wchar_t *rootPath,
                                  : S_EMPTY;
   std::replace(logicalPath.begin(), logicalPath.end(), '\\', '/');
 
-  auto archive =
-      MakeCom<ZipArchive>(logicalPath, fullPath, lastModifiedTime, zip);
+  auto archive = MakeCom<ZipArchive>(logicalPath, fullPath, lastModifiedTime,
+                                     zip, parent, handlers, handlerCount);
   auto rootResource =
       std::make_shared<ZipFolderImpl>(logicalPath.c_str(), nullptr, archive);
   archive->AddResource(rootResource);
@@ -89,7 +89,7 @@ BOOL ZipArchiveHandlerImpl::MapArchive(const wchar_t *rootPath,
     // is the desired behaviour
     const wchar_t *filename = nullptr;
     auto path = Resources::ToWString(nameBuffer);
-    auto parent =
+    auto parentFolder =
         CreateParentFolder(path, archive.Get(), rootResource.get(), &filename);
 
     if (info.uncompressed_size > 0) {
@@ -99,9 +99,9 @@ BOOL ZipArchiveHandlerImpl::MapArchive(const wchar_t *rootPath,
       header.size = info.uncompressed_size;
       header.name = filename;  // the name is the last part of the path
 
-      auto child = std::make_shared<ZipFileImpl>(filename, parent, archive,
-                                                 std::move(header));
-      parent->AddChild(child);
+      auto child = std::make_shared<ZipFileImpl>(filename, parentFolder,
+                                                 archive, std::move(header));
+      parentFolder->AddChild(child);
     }
   }
 

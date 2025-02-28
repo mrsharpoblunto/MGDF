@@ -23,7 +23,8 @@ class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
   BOOL __stdcall TestPathSegment(const MGDFArchivePathSegment *segment) final;
   BOOL __stdcall MapArchive(const wchar_t *rootPath, const wchar_t *fullPath,
                             const MGDFArchivePathSegment *segments,
-                            UINT64 segmentCount,
+                            UINT64 segmentCount, IMGDFArchiveHandler **handlers,
+                            UINT64 handlerCount, IMGDFReadOnlyFile *parent,
                             IMGDFReadOnlyFile **file) final;
 
  private:

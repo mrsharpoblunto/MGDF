@@ -5,7 +5,6 @@
 #include <sstream>
 
 #include "../../../common/MGDFStringImpl.hpp"
-#include "../../MGDFReadOnlyVirtualFileSystemComponent.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -82,13 +81,13 @@ BOOL ZipResource::GetParent(IMGDFReadOnlyFile **parent) {
     *parent = _parent;
     return true;
   } else {
-    auto parentPath = _archive->GetPhysicalPath().parent_path();
-    auto parentName = parentPath.filename();
-    auto parentFile = MakeCom<DefaultReadOnlyFileImpl>(
-        parentName.wstring(), parentPath, _archive->GetPhysicalPath());
-    parentFile.AddRawRef(parent);
-    return true;
+    auto archiveParent = _archive->GetParent();
+    if (archiveParent) {
+      archiveParent.AddRawRef(parent);
+      return true;
+    }
   }
+  return false;
 }
 
 UINT64 ZipResource::GetLastWriteTime() { return _archive->GetLastWriteTime(); }

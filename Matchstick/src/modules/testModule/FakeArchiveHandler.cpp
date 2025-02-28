@@ -30,7 +30,11 @@ BOOL __stdcall FakeArchiveHandler::TestPathSegment(
 BOOL __stdcall FakeArchiveHandler::MapArchive(
     const wchar_t *rootPath, const wchar_t *archivePath,
     const MGDFArchivePathSegment *logicalPathSegments,
-    UINT64 logicalPathSegmentCount, IMGDFReadOnlyFile **file) {
+    UINT64 logicalPathSegmentCount, IMGDFArchiveHandler **handlers,
+    UINT64 handlerCount, IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **file) {
+  std::ignore = handlers;
+  std::ignore = handlerCount;
+
   const auto root = std::filesystem::path(rootPath).lexically_normal();
   const auto physicalPath =
       std::filesystem::path(archivePath).lexically_normal();
@@ -39,8 +43,9 @@ BOOL __stdcall FakeArchiveHandler::MapArchive(
       physicalPath.wstring().substr(root.wstring().size() + 1);
   std::replace(logicalPath.begin(), logicalPath.end(), '\\', '/');
 
-  ComObject<FakeFile> rootFile(new FakeFile(
-      physicalPath.filename().wstring(), physicalPath.wstring(), logicalPath));
+  ComObject<FakeFile> rootFile(new FakeFile(physicalPath.filename().wstring(),
+                                            parent, physicalPath.wstring(),
+                                            logicalPath));
 
   ComObject<FakeFile> subFile(
       new FakeFile(L"testfile.txt", rootFile, "hello world"));

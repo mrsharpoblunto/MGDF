@@ -1055,13 +1055,18 @@ Provides an interface for creating portions of the vfs tree from archive files
   \param archivePath the physical path on disk to the archive file
   \param logicalPathSegments the logical path to the file within the archive
   \param logicalPathSegmentCount the number of segments in the logical path
+  \param handlers an array of all registered archive handlers
+  \param handlerCount the number of registered archive handlers
+  \param parent the parent file in the vfs tree
   \param file pointer to the file in the mapped vfs subtree
   \return TRUE if the fullPath could be mapped to an archive, otherwise FALSE
   */
-  BOOL
-  MapArchive([in] const wchar_t *rootPath, [in] const wchar_t *archivePath,
-             [in] const MGDFArchivePathSegment *logicalPathSegments,
-             UINT64 logicalPathSegmentCount, [out] IMGDFReadOnlyFile **file);
+  BOOL MapArchive([in] const wchar_t *rootPath, [in] const wchar_t *archivePath,
+                  [in] const MGDFArchivePathSegment *logicalPathSegments,
+                  UINT64 logicalPathSegmentCount,
+                  [in] IMGDFArchiveHandler **handlers,
+                  UINT64 handlerCount, [in] IMGDFReadOnlyFile *parent,
+                  [out] IMGDFReadOnlyFile **file);
 };
 
 /**

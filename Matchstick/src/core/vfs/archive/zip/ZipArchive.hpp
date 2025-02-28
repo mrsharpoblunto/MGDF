@@ -43,17 +43,34 @@ class ZipResource : public IMGDFReadOnlyFile {
 class ZipArchive : public ComBase<IUnknown> {
  public:
   ZipArchive(const std::wstring &logicalPath, const std::wstring &physicalPath,
-             uint64_t lastWriteTime, unzFile zip)
+             uint64_t lastWriteTime, unzFile zip, IMGDFReadOnlyFile *parent,
+             IMGDFArchiveHandler **handlers, UINT64 handlerCount)
       : _zip(zip),
         _lastWriteTime(lastWriteTime),
         _logicalPath(logicalPath),
-        _physicalPath(physicalPath) {}
-  ~ZipArchive() { unzClose(_zip); }
+        _physicalPath(physicalPath),
+        _parent(parent, true),
+        _handlers(handlers),
+        _handlerCount(handlerCount) {
+    for (size_t i = 0; i < handlerCount; ++i) {
+      handlers[i]->AddRef();
+    }
+  }
+
+  virtual ~ZipArchive() {
+    for (size_t i = 0; i < _handlerCount; ++i) {
+      _handlers[i]->Release();
+    }
+    unzClose(_zip);
+  }
 
   unzFile GetZip() { return _zip; }
   uint64_t GetLastWriteTime() const { return _lastWriteTime; }
   const std::wstring &GetLogicalPath() const { return _logicalPath; }
   const std::filesystem::path &GetPhysicalPath() const { return _physicalPath; }
+  size_t GetHandlerCount() const { return _handlerCount; }
+  IMGDFArchiveHandler **GetHandlers() const { return _handlers; }
+  ComObject<IMGDFReadOnlyFile> GetParent() const { return _parent; }
   void AddResource(std::shared_ptr<ZipResource> resource) {
     _resources.push_back(resource);
   }
@@ -64,6 +81,9 @@ class ZipArchive : public ComBase<IUnknown> {
   std::wstring _logicalPath;
   std::filesystem::path _physicalPath;
   std::vector<std::shared_ptr<ZipResource>> _resources;
+  IMGDFArchiveHandler **_handlers;
+  UINT64 _handlerCount;
+  ComObject<IMGDFReadOnlyFile> _parent;
 };
 
 }  // namespace zip
