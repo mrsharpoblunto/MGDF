@@ -30,7 +30,6 @@ bool TestModule::Update(IMGDFSimHost* host, TextManagerState* state,
       state->SetStatus(TextColor::GREEN, "[Test Passed]");
       ++_testIndex;
       ++results.Passed;
-      return _testIndex == _steps.size();
     } else if (result == TestStep::FAILED) {
       state->SetStatus(TextColor::RED, "[Test Failed]");
       _testIndex = static_cast<int>(_steps.size());
@@ -40,7 +39,7 @@ bool TestModule::Update(IMGDFSimHost* host, TextManagerState* state,
       ++_testIndex;
     }
   }
-  return false;
+  return _testIndex == _steps.size();
 }
 
 TestModule& TestModule::Step(std::function<TestStep(TextManagerState*)> step) {

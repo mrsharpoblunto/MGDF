@@ -58,10 +58,6 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         state->AddLine("Https request cleanup");
         _requestGroup.Clear();
         _request.Clear();
-        _response.Clear();
-        // if this is commented out the tests don't close... TODO fix whats
-        // stopping the network manager stopping if this is in scope...
-        //_groupResponse.Clear();
         return TestStep::PASSED;
       })
       .StepOnce([this, host](auto state) {

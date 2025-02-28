@@ -125,13 +125,13 @@ void HttpClientPendingRequest::CancelRequest() {
 }
 
 HttpRequestState HttpClientPendingRequest::GetRequestState() const {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::shared_lock<std::shared_mutex> lock(_mutex);
   return _state;
 }
 
 bool HttpClientPendingRequest::GetResponse(
     std::shared_ptr<HttpMessage> &response) {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::shared_lock<std::shared_mutex> lock(_mutex);
   if (_state == HttpRequestState::Complete ||
       _state == HttpRequestState::Error ||
       _state == HttpRequestState::Cancelled) {
@@ -143,7 +143,7 @@ bool HttpClientPendingRequest::GetResponse(
 
 void HttpClientPendingRequest::SetResponse(HttpRequestState state,
                                            HttpMessage &response) {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   if (_state == HttpRequestState::Requesting) {
     _state = state;
     response.Method = _request.Method;
@@ -164,7 +164,7 @@ void HttpClientPendingRequest::SetResponse(HttpRequestState state,
 }
 
 bool HttpClientPendingRequest::SendRequest(HttpConnection &conn) {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   if (_state == HttpRequestState::Cancelled) {
     return false;
   }
@@ -186,7 +186,7 @@ bool HttpClientPendingRequest::SendRequest(HttpConnection &conn) {
 
 void HttpClientPendingRequest::ReceiveResponse(HttpConnection &conn,
                                                mg_http_message *hm) {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::shared_lock<std::shared_mutex> lock(_mutex);
   if (_state == HttpRequestState::Cancelled) {
     return;
   }
@@ -267,14 +267,14 @@ std::shared_ptr<IHttpClientPendingRequest> HttpClientRequest::SendRequest(
 }
 
 IWebSocket *WebSocketBase::Send(const std::vector<char> &data, bool binary) {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   auto &buffer = _out.emplace_back(data.size(), binary);
   memcpy_s(buffer.Data.data(), buffer.Data.size(), data.data(), data.size());
   return this;
 }
 
 IWebSocket *WebSocketBase::Send(void *data, size_t dataLength, bool binary) {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   auto &buffer = _out.emplace_back(dataLength, binary);
   memcpy_s(buffer.Data.data(), buffer.Data.size(), data, dataLength);
   return this;
@@ -282,14 +282,14 @@ IWebSocket *WebSocketBase::Send(void *data, size_t dataLength, bool binary) {
 
 IWebSocket *WebSocketBase::OnReceive(
     std::function<void(std::span<const char> &message, bool binary)> handler) {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   _inHandler = handler;
   return this;
 }
 
 MGDFWebSocketConnectionState WebSocketBase::GetConnectionState(
     std::string &lastError) const {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::shared_lock<std::shared_mutex> lock(_mutex);
   lastError = _lastError;
   return _state;
 }
@@ -309,13 +309,17 @@ WebSocket::WebSocket(const std::string &url,
 }
 
 WebSocket::~WebSocket() {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   _forceClose = true;
   _closing = true;
   _cv.wait(lock, [this]() { return _state == MGDF_WEBSOCKET_CLOSED; });
 }
 
 void WebSocket::Connect(mg_mgr &mgr) {
+  {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _state = MGDF_WEBSOCKET_CONNECTING;
+  }
   mg_ws_connect(&mgr, _url.c_str(), &WebSocket::HandleEvents, this, nullptr);
 }
 
@@ -324,7 +328,7 @@ void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
   WebSocket *socket = static_cast<WebSocket *>(fn_data);
   switch (ev) {
     case MG_EV_POLL: {
-      std::unique_lock<std::mutex> lock(socket->_mutex);
+      std::unique_lock<std::shared_mutex> lock(socket->_mutex);
       if (socket->_closing) {
         conn->is_closing = 1;
         return;
@@ -351,7 +355,7 @@ void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
       mg_ws_upgrade(conn, (struct mg_http_message *)ev_data, NULL);
     } break;
     case MG_EV_WS_OPEN: {
-      std::lock_guard<std::mutex> lock(socket->_mutex);
+      std::unique_lock<std::shared_mutex> lock(socket->_mutex);
       socket->_state = MGDF_WEBSOCKET_OPEN;
       socket->_lastError.clear();
     } break;
@@ -359,7 +363,7 @@ void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
       struct mg_ws_message *wm = (struct mg_ws_message *)ev_data;
       const auto op = wm->flags & 15;
       auto data = std::span<const char>(wm->data.ptr, wm->data.len);
-      std::unique_lock<std::mutex> lock(socket->_mutex);
+      std::shared_lock<std::shared_mutex> lock(socket->_mutex);
       auto inHandler = socket->_inHandler;
       lock.unlock();
       if (inHandler) {
@@ -367,13 +371,14 @@ void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
       }
     } break;
     case MG_EV_ERROR: {
-      std::lock_guard<std::mutex> lock(socket->_mutex);
+      std::unique_lock<std::shared_mutex> lock(socket->_mutex);
       socket->_lastError = std::string((const char *)ev_data);
     } break;
     case MG_EV_CLOSE: {
-      std::unique_lock<std::mutex> lock(socket->_mutex);
+      std::unique_lock<std::shared_mutex> lock(socket->_mutex);
       socket->_state = MGDF_WEBSOCKET_CLOSED;
       if (!socket->_forceClose && socket->_reconnectInterval) {
+        lock.unlock();
         socket->_manager->ReconnectWebSocket(
             socket->weak_from_this(), mg_millis() + socket->_reconnectInterval);
       } else {
@@ -391,7 +396,7 @@ ServerWebSocket::ServerWebSocket(mg_connection *connection,
       _server(server) {}
 
 ServerWebSocket::~ServerWebSocket() {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::shared_lock<std::shared_mutex> lock(_mutex);
   if (_state == MGDF_WEBSOCKET_CLOSED) {
     return;
   }
@@ -401,7 +406,7 @@ ServerWebSocket::~ServerWebSocket() {
 
 void ServerWebSocket::ReceiveMessage(std::span<const char> &message,
                                      bool binary) {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::shared_lock<std::shared_mutex> lock(_mutex);
   auto inHandler = _inHandler;
   if (_state == MGDF_WEBSOCKET_CLOSED) {
     return;
@@ -425,7 +430,7 @@ IWebSocket *ServerWebSocket::Send(void *data, size_t dataLength, bool binary) {
 }
 
 void ServerWebSocket::SendMessages() {
-  std::unique_lock<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   std::vector<WebSocketMessage> out = std::move(_out);
   _out.clear();
   if (_state == MGDF_WEBSOCKET_CLOSED) {
@@ -439,7 +444,7 @@ void ServerWebSocket::SendMessages() {
 }
 
 void ServerWebSocket::ForceClose() {
-  std::lock_guard<std::mutex> lock(_mutex);
+  std::unique_lock<std::shared_mutex> lock(_mutex);
   _state = MGDF_WEBSOCKET_CLOSED;
 }
 
@@ -453,26 +458,29 @@ HttpServer::HttpServer(const std::string &webSocketPath,
 
 HttpServer::~HttpServer() {
   _closing.store(true);
-  std::unique_lock<std::mutex> lock(_stateMutex);
+  std::unique_lock<std::mutex> lock(_mutex);
   _cv.wait(lock, [this]() { return _closed; });
 }
 
 IHttpServer *HttpServer::OnHttpRequest(
     std::function<void(std::shared_ptr<IHttpServerRequest> request)> handler) {
-  std::unique_lock<std::mutex> lock(_stateMutex);
+  std::unique_lock<std::mutex> lock(_mutex);
   _requestHandler = handler;
   return this;
 }
 
 IHttpServer *HttpServer::OnWebSocketRequest(
     std::function<void(std::shared_ptr<IWebSocket> socket)> handler) {
-  std::unique_lock<std::mutex> lock(_stateMutex);
+  std::unique_lock<std::mutex> lock(_mutex);
   _webSocketHandler = handler;
   return this;
 }
 
 void HttpServer::SendResponse(mg_connection *conn, HttpMessage &response) {
-  std::lock_guard<std::mutex> lock(_httpResponseMutex);
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (_closed) {
+    return;
+  }
   // make sure the connection is still valid before we add a pending response
   const auto &awaiting = _awaitingServerResponse.find(conn);
   if (awaiting != _awaitingServerResponse.end()) {
@@ -482,12 +490,18 @@ void HttpServer::SendResponse(mg_connection *conn, HttpMessage &response) {
 }
 
 void HttpServer::QueueMessage(std::shared_ptr<ServerWebSocket> socket) {
-  std::lock_guard<std::mutex> lock(_webSocketMutex);
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (_closed) {
+    return;
+  }
   _pendingWebSocketMessages.insert(socket);
 }
 
 void HttpServer::QueueClose(mg_connection *connection) {
-  std::lock_guard<std::mutex> lock(_webSocketMutex);
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (_closed) {
+    return;
+  }
   _webSockets.erase(connection);
   _pendingWebSocketClosures.insert(connection);
 }
@@ -501,8 +515,11 @@ void HttpServer::Listen(mg_mgr &mgr, uint32_t port) {
 
 void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
                               void *fn_data) {
+  if (!fn_data) {
+    return;
+  }
+
   HttpServer *server = static_cast<HttpServer *>(fn_data);
-  _ASSERTE(server);
   switch (ev) {
     case MG_EV_OPEN: {
       if (c->is_listening) {
@@ -511,18 +528,16 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
       }
     } break;
     case MG_EV_POLL: {
+      if (server->_closing.load()) {
+        c->is_closing = 1;
+      }
+
       if (!c->is_listening) {
         return;
       }
 
-      // check if the server needs to be closed
-      if (server->_closing.load()) {
-        c->is_closing = 1;
-        return;
-      }
-
       // send pending server http responses
-      std::unique_lock<std::mutex> serverLock(server->_httpResponseMutex);
+      std::unique_lock<std::mutex> serverLock(server->_mutex);
       auto responses = std::move(server->_pendingServerResponses);
       server->_pendingServerResponses.clear();
       serverLock.unlock();
@@ -530,7 +545,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
         SendHttpResponse(response.first, response.second);
       }
 
-      std::unique_lock<std::mutex> socketLock(server->_webSocketMutex);
+      std::unique_lock<std::mutex> socketLock(server->_mutex);
       // close any pending sockets
       for (auto connection : server->_pendingWebSocketClosures) {
         connection->is_closing = 1;
@@ -553,7 +568,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
         mg_ws_upgrade(c, hm, NULL);
         c->label[0] = 'W';
       } else {
-        std::unique_lock<std::mutex> lock(server->_httpResponseMutex);
+        std::unique_lock<std::mutex> lock(server->_mutex);
         auto handler = server->_requestHandler;
         if (!handler) {
           // if the server has no http handler, kill the client connection
@@ -573,7 +588,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
     case MG_EV_WS_MSG: {
       std::shared_ptr<ServerWebSocket> socket;
       {
-        std::unique_lock<std::mutex> lock(server->_webSocketMutex);
+        std::unique_lock<std::mutex> lock(server->_mutex);
         auto found = server->_webSockets.find(c);
         if (found == server->_webSockets.end()) {
           auto handler = server->_webSocketHandler;
@@ -605,7 +620,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
     } break;
     case MG_EV_ERROR: {
       if (c->label[0] == 'W') {
-        std::unique_lock<std::mutex> lock(server->_webSocketMutex);
+        std::unique_lock<std::mutex> lock(server->_mutex);
         auto found = server->_webSockets.find(c);
         if (found != server->_webSockets.end()) {
           server->_webSockets.erase(found);
@@ -620,7 +635,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
     case MG_EV_CLOSE: {
       if (c->label[0] == 'W') {
         // close a connected socket
-        std::unique_lock<std::mutex> lock(server->_webSocketMutex);
+        std::unique_lock<std::mutex> lock(server->_mutex);
         auto found = server->_webSockets.find(c);
         if (found != server->_webSockets.end()) {
           auto socket = found->second.lock();
@@ -631,15 +646,23 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
           }
         }
       } else if (c->label[0] == 'H') {
-        std::lock_guard<std::mutex> serverLock(server->_httpResponseMutex);
+        std::lock_guard<std::mutex> serverLock(server->_mutex);
         server->_pendingServerResponses.erase(c);
         server->_awaitingServerResponse.erase(c);
       } else if (c->label[0] == 'L') {
+        // make sure any active connections on this server when closing don't
+        // access the server after its deleted
+        for (mg_connection *wc = c->mgr->conns; wc != NULL; wc = wc->next) {
+          if (wc->fn_data == server &&
+              (c->label[0] == 'W' || c->label[0] == 'H' ||
+               c->label[0] == 'L')) {
+            wc->fn_data = nullptr;
+          }
+        }
         server->_listening.store(false);
-        std::unique_lock<std::mutex> lock(server->_stateMutex);
+        std::unique_lock<std::mutex> lock(server->_mutex);
         server->_closed = true;
-        // break any circular shared_ptr references that would hold the server
-        // in memory
+        // break any circular shared_ptr references that would pin the server
         server->_pendingWebSocketMessages.clear();
         lock.unlock();
         server->_cv.notify_one();
@@ -716,7 +739,7 @@ MongooseNetworkManagerComponent::SendRequest(
   canonicalURL << (usesTLS ? S_HTTPS : S_HTTP) << canonicalHostStr
                << (originalUrl[0] == '\\' ? "/" : originalUrl);
 
-  std::unique_lock<std::mutex> lock(_originMutex);
+  std::unique_lock<std::shared_mutex> lock(_originMutex);
   auto o = _origins.find(canonicalHostAndPort.str());
   if (o == _origins.end()) {
     o = _origins
@@ -747,7 +770,7 @@ MongooseNetworkManagerComponent::~MongooseNetworkManagerComponent() {
   Stop();
 
   // clean up any pending requests or requests in progress
-  std::lock_guard<std::mutex> lock(_originMutex);
+  std::shared_lock<std::shared_mutex> lock(_originMutex);
   for (auto &origin : _origins) {
     std::lock_guard<std::mutex> originLock(origin.second->Mutex);
     for (const auto pending : origin.second->PendingRequests) {
@@ -788,7 +811,7 @@ std::shared_ptr<IWebSocket> MongooseNetworkManagerComponent::CreateWebSocket(
 
 void MongooseNetworkManagerComponent::Poll() {
   {
-    std::lock_guard<std::mutex> lock(_originMutex);
+    std::shared_lock<std::shared_mutex> lock(_originMutex);
     for (auto &origin : _origins) {
       std::lock_guard<std::mutex> originLock(origin.second->Mutex);
       // any pending requests that have not been assigned to a connection

@@ -16,7 +16,7 @@ namespace core {
 namespace vfs {
 
 template <typename T>
-class DefaultFileBase : public ComBase<T> {
+class DefaultFileBase : public ComBase<T, IMGDFFile> {
  public:
   DefaultFileBase(const std::wstring &name,
                   const std::filesystem::path &physicalPath,

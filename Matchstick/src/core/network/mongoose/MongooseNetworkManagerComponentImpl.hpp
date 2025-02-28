@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -52,12 +53,12 @@ class HttpClientPendingRequest;
 
 struct HttpConnection {
   std::shared_ptr<HttpClientPendingRequest> Request;
-  size_t KeepAlive;
-  size_t KeepAliveDuration;
-  size_t ConnectTimeout;
-  size_t ConnectTimeoutDuration;
-  HttpOrigin *Origin;
-  mg_connection *Connection;
+  size_t KeepAlive = 0;
+  size_t KeepAliveDuration = 0;
+  size_t ConnectTimeout = 0;
+  size_t ConnectTimeoutDuration = 0;
+  HttpOrigin *Origin = nullptr;
+  mg_connection *Connection = nullptr;
 };
 
 struct HttpOrigin {
@@ -93,7 +94,7 @@ class HttpClientPendingRequest
   const std::string &GetUrl() const { return _request.Url; }
 
  private:
-  mutable std::mutex _mutex;
+  mutable std::shared_mutex _mutex;
   HttpRequestState _state;
   HttpMessage _request;
   std::shared_ptr<HttpMessage> _response;
@@ -142,7 +143,7 @@ class WebSocketBase : public IWebSocket {
   std::vector<WebSocketMessage> _out;
   std::string _lastError;
   MGDFWebSocketConnectionState _state;
-  mutable std::mutex _mutex;
+  mutable std::shared_mutex _mutex;
 };
 
 class WebSocket : public std::enable_shared_from_this<WebSocket>,
@@ -167,7 +168,7 @@ class WebSocket : public std::enable_shared_from_this<WebSocket>,
 
   bool _forceClose;
   bool _closing;
-  std::condition_variable _cv;
+  std::condition_variable_any _cv;
 };
 
 class ServerWebSocket : public std::enable_shared_from_this<ServerWebSocket>,
@@ -215,7 +216,7 @@ class HttpServer : public std::enable_shared_from_this<HttpServer>,
   void QueueClose(mg_connection *c);
 
  private:
-  std::mutex _stateMutex;
+  std::mutex _mutex;
   std::condition_variable _cv;
   bool _closed;
   std::atomic_bool _listening;
@@ -226,11 +227,9 @@ class HttpServer : public std::enable_shared_from_this<HttpServer>,
   std::function<void(std::shared_ptr<IWebSocket> socket)> _webSocketHandler;
   std::shared_ptr<MongooseNetworkManagerComponent> _manager;
 
-  std::mutex _httpResponseMutex;
   std::unordered_map<mg_connection *, HttpMessage> _pendingServerResponses;
   std::unordered_set<mg_connection *> _awaitingServerResponse;
 
-  std::mutex _webSocketMutex;
   std::unordered_map<mg_connection *, std::weak_ptr<ServerWebSocket>>
       _webSockets;
   std::unordered_set<std::shared_ptr<ServerWebSocket>>
@@ -270,7 +269,7 @@ class MongooseNetworkManagerComponent
   NetworkManagerOptions _options;
   bool _running;
 
-  std::mutex _originMutex;
+  std::shared_mutex _originMutex;
   std::unordered_map<std::string, std::shared_ptr<HttpOrigin>> _origins;
 
   std::mutex _webSocketMutex;

@@ -1779,6 +1779,7 @@ and may not be null terminated
 The state of a websocket connection
 */
 typedef enum MGDFWebSocketConnectionState {
+  MGDF_WEBSOCKET_CONNECTING,
   MGDF_WEBSOCKET_OPEN,
   MGDF_WEBSOCKET_CLOSED,
 } MGDFWebSocketConnectionState;
