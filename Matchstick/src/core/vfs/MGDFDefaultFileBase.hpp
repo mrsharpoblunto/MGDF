@@ -15,18 +15,22 @@ namespace MGDF {
 namespace core {
 namespace vfs {
 
-template <typename T>
+struct DefaultFileBaseContext {
+  std::filesystem::path RootPath;
+};
+
+template <typename T, typename U = DefaultFileBaseContext>
 class DefaultFileBase : public ComBase<T, IMGDFFile> {
  public:
   DefaultFileBase(const std::wstring &name,
                   const std::filesystem::path &physicalPath,
-                  const std::filesystem::path &rootPath)
+                  std::shared_ptr<U> context)
       : _physicalPath(physicalPath),
-        _rootPath(rootPath),
+        _context(context),
         _name(name),
         _reader(nullptr) {
     std::filesystem::path relative =
-        std::filesystem::proximate(_physicalPath, _rootPath);
+        std::filesystem::proximate(_physicalPath, _context->RootPath);
     _logicalPath = relative.wstring();
     std::replace(_logicalPath.begin(), _logicalPath.end(), '\\', '/');
     _isFolder = is_directory(_physicalPath);
@@ -58,18 +62,17 @@ class DefaultFileBase : public ComBase<T, IMGDFFile> {
   }
 
   virtual ComObject<T> CreateFile(const std::wstring &name,
-                                  const std::filesystem::path &path,
-                                  const std::filesystem::path &rootPath) = 0;
+                                  const std::filesystem::path &path) = 0;
 
   BOOL GetParent(T **parent) override {
-    if (_physicalPath == _rootPath) {
+    if (_physicalPath == _context->RootPath) {
       *parent = nullptr;
       return false;
     }
 
     auto parentPath = _physicalPath.parent_path();
     auto parentName = parentPath.filename();
-    auto parentFile = CreateFile(parentName.wstring(), parentPath, _rootPath);
+    auto parentFile = CreateFile(parentName.wstring(), parentPath);
     parentFile.AddRawRef(parent);
     return true;
   }
@@ -94,7 +97,7 @@ class DefaultFileBase : public ComBase<T, IMGDFFile> {
     for (auto &p : std::filesystem::directory_iterator(_physicalPath)) {
       if (count < inputLength) {
         auto childName = p.path().filename();
-        auto childFile = CreateFile(childName.wstring(), p.path(), _rootPath);
+        auto childFile = CreateFile(childName.wstring(), p.path());
         childFile.AddRawRef(buffer++);
       }
       ++count;
@@ -178,12 +181,12 @@ class DefaultFileBase : public ComBase<T, IMGDFFile> {
 
  protected:
   std::mutex _mutex;
+  DefaultFileReader *_reader;
   std::wstring _name;
   std::wstring _logicalPath;
   std::filesystem::path _physicalPath;
-  std::filesystem::path _rootPath;
   bool _isFolder;
-  DefaultFileReader *_reader;
+  std::shared_ptr<U> _context;
 };
 
 }  // namespace vfs

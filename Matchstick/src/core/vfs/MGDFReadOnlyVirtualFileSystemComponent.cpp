@@ -15,27 +15,14 @@ using namespace std::filesystem;
 
 DefaultReadOnlyFileImpl::DefaultReadOnlyFileImpl(
     const std::wstring &name, const std::filesystem::path &physicalPath,
-    const std::filesystem::path &rootPath, IMGDFArchiveHandler **handlers,
-    size_t handlerCount)
-    : DefaultFileBase(name, physicalPath, rootPath),
-      _handlers(handlers),
-      _handlerCount(handlerCount) {
-  for (size_t i = 0; i < handlerCount; ++i) {
-    handlers[i]->AddRef();
-  }
-}
+    std::shared_ptr<ReadOnlyFileContext> context)
+    : DefaultFileBase(name, physicalPath, context) {}
 
-DefaultReadOnlyFileImpl::~DefaultReadOnlyFileImpl() {
-  for (size_t i = 0; i < _handlerCount; ++i) {
-    _handlers[i]->Release();
-  }
-}
+DefaultReadOnlyFileImpl::~DefaultReadOnlyFileImpl() {}
 
 ComObject<IMGDFReadOnlyFile> DefaultReadOnlyFileImpl::CreateFile(
-    const std::wstring &name, const std::filesystem::path &path,
-    const std::filesystem::path &rootPath) {
-  return MakeCom<DefaultReadOnlyFileImpl>(name, path, rootPath, _handlers,
-                                          _handlerCount)
+    const std::wstring &name, const std::filesystem::path &path) {
+  return MakeCom<DefaultReadOnlyFileImpl>(name, path, _context)
       .As<IMGDFReadOnlyFile>();
 }
 
@@ -43,14 +30,15 @@ BOOL DefaultReadOnlyFileImpl::GetChild(const wchar_t *name,
                                        IMGDFReadOnlyFile **child) {
   const auto childPath = _physicalPath / name;
 
-  if (_handlerCount) {
+  if (_context->Handlers.size()) {
     const std::wstring_view view(name);
     const MGDFArchivePathSegment segment{.Start = name, .Length = view.size()};
-    for (size_t i = 0; i < _handlerCount; ++i) {
-      if (_handlers[i]->TestPathSegment(&segment)) {
-        if (_handlers[i]->MapArchive(_rootPath.c_str(),
-                                     childPath.wstring().c_str(), nullptr, 0,
-                                     _handlers, _handlerCount, this, child)) {
+    for (auto &handler : _context->Handlers) {
+      if (handler->TestPathSegment(&segment)) {
+        if (handler->MapArchive(_context->RootPath.c_str(),
+                                childPath.wstring().c_str(), nullptr, 0,
+                                _context->Handlers.data(),
+                                _context->Handlers.size(), this, child)) {
           return TRUE;
         }
       }
@@ -61,44 +49,42 @@ BOOL DefaultReadOnlyFileImpl::GetChild(const wchar_t *name,
     return FALSE;
   }
 
-  auto childFile = MakeCom<DefaultReadOnlyFileImpl>(name, childPath, _rootPath,
-                                                    _handlers, _handlerCount);
+  auto childFile = MakeCom<DefaultReadOnlyFileImpl>(name, childPath, _context);
   childFile.AddRawRef(child);
   return TRUE;
 }
 
 ReadOnlyVirtualFileSystemComponent::ReadOnlyVirtualFileSystemComponent()
-    : _rootParentPathSize(0) {}
+    : _rootParentPathSize(0),
+      _context(std::make_shared<ReadOnlyFileContext>()) {}
 
-ReadOnlyVirtualFileSystemComponent::~ReadOnlyVirtualFileSystemComponent() {
-  for (auto handler : _archiveHandlers) {
-    handler->Release();
-  }
-}
+ReadOnlyVirtualFileSystemComponent::~ReadOnlyVirtualFileSystemComponent() {}
 
 bool ReadOnlyVirtualFileSystemComponent::Mount(
     const wchar_t *physicalDirectory) {
-  _rootPath = std::filesystem::path(physicalDirectory).lexically_normal();
-  if (!_rootPath.has_filename()) {
-    _rootPath = _rootPath.parent_path();
+  _context->RootPath =
+      std::filesystem::path(physicalDirectory).lexically_normal();
+  if (!_context->RootPath.has_filename()) {
+    _context->RootPath = _context->RootPath.parent_path();
   }
-  _rootParentPathSize = _rootPath.parent_path().wstring().size();
-  return std::filesystem::is_directory(_rootPath);
+  _rootParentPathSize = _context->RootPath.parent_path().wstring().size();
+  return std::filesystem::is_directory(_context->RootPath);
 }
 
 BOOL ReadOnlyVirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
                                                  IMGDFReadOnlyFile **file) {
-  std::filesystem::path path = (_rootPath / logicalPath).lexically_normal();
+  std::filesystem::path path =
+      (_context->RootPath / logicalPath).lexically_normal();
   return Get(path, file);
 }
 
 void ReadOnlyVirtualFileSystemComponent::GetRoot(IMGDFReadOnlyFile **root) {
-  Get(_rootPath, root);
+  Get(_context->RootPath, root);
 }
 
 BOOL ReadOnlyVirtualFileSystemComponent::Get(const std::filesystem::path &path,
                                              IMGDFReadOnlyFile **file) {
-  if (!_archiveHandlers.empty()) {
+  if (!_context->Handlers.empty()) {
     std::wstring pathStr = path.wstring();
     std::vector<MGDFArchivePathSegment> segments;
 
@@ -120,7 +106,7 @@ BOOL ReadOnlyVirtualFileSystemComponent::Get(const std::filesystem::path &path,
     }
 
     // Process each segment to check if it's an archive
-    for (auto &handler : _archiveHandlers) {
+    for (auto &handler : _context->Handlers) {
       size_t endPos = _rootParentPathSize + 1;
       for (size_t i = 0; i < segments.size(); ++i) {
         endPos += segments[i].Length;
@@ -134,27 +120,26 @@ BOOL ReadOnlyVirtualFileSystemComponent::Get(const std::filesystem::path &path,
           // if the archive parent is above the root, then it should have a null
           // parent to prevent traversal outside the vfs root
           if (archiveParentPath.wstring().size() >=
-              _rootPath.wstring().size()) {
+              _context->RootPath.wstring().size()) {
             parent = MakeCom<DefaultReadOnlyFileImpl>(
                 archiveParentPath.filename().c_str(), archiveParentPath,
-                _rootPath, _archiveHandlers.data(), _archiveHandlers.size());
+                _context);
           }
 
           // Try to map archive with remaining path segments as logical path
           if (handler->MapArchive(
-                  _rootPath.c_str(), archivePath.wstring().c_str(),
+                  _context->RootPath.c_str(), archivePath.wstring().c_str(),
                   segments.data() + i + 1,  // segments after archive
-                  segments.size() - i - 1, _archiveHandlers.data(),
-                  _archiveHandlers.size(), parent, file)) {
+                  segments.size() - i - 1, _context->Handlers.data(),
+                  _context->Handlers.size(), parent, file)) {
             return TRUE;
           }
         }
       }
     }
   }
-  auto node = MakeCom<DefaultReadOnlyFileImpl>(
-      path.filename().c_str(), path, _rootPath, _archiveHandlers.data(),
-      _archiveHandlers.size());
+  auto node =
+      MakeCom<DefaultReadOnlyFileImpl>(path.filename().c_str(), path, _context);
   node.AddRawRef(file);
   return TRUE;
 }
@@ -163,7 +148,7 @@ void ReadOnlyVirtualFileSystemComponent::RegisterArchiveHandler(
     ComObject<IMGDFArchiveHandler> handler) {
   _ASSERTE(handler);
   handler->AddRef();
-  _archiveHandlers.push_back(handler);
+  _context->Handlers.push_back(handler);
 }
 
 }  // namespace vfs

@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 
-#include "ZipArchive.hpp"
+#include "ZipResource.hpp"
 
 #include <sstream>
 
@@ -16,9 +16,13 @@ namespace core {
 namespace vfs {
 namespace zip {
 
-ULONG __stdcall ZipResource::AddRef() { return _archive->AddRef(); };
-ULONG __stdcall ZipResource::Release() { return _archive->Release(); }
-HRESULT __stdcall ZipResource::QueryInterface(REFIID riid, void **ppvObject) {
+ZipResource::ZipResource(const wchar_t *name, ZipResource *parent,
+                         ZipContext *context)
+    : _name(name), _parent(parent), _context(context) {}
+
+ULONG ZipResource::AddRef() { return _context->AddRef(); };
+ULONG ZipResource::Release() { return _context->Release(); }
+HRESULT ZipResource::QueryInterface(REFIID riid, void **ppvObject) {
   if (!ppvObject) return E_POINTER;
   if (IIDMatch<IMGDFReadOnlyFile, IMGDFFile>(riid)) {
     AddRef();
@@ -26,20 +30,19 @@ HRESULT __stdcall ZipResource::QueryInterface(REFIID riid, void **ppvObject) {
     return S_OK;
   }
   return E_NOINTERFACE;
-}
+};
 
 HRESULT ZipResource::GetLogicalName(wchar_t *name, UINT64 *length) {
   return StringWriter::Write(_name, name, length);
 }
 
 HRESULT ZipResource::GetPhysicalName(wchar_t *name, UINT64 *length) {
-  return StringWriter::Write(_archive->GetPhysicalPath().filename().wstring(),
-                             name, length);
+  return StringWriter::Write(_context->PhysicalPath.filename().wstring(), name,
+                             length);
 }
 
 HRESULT ZipResource::GetPhysicalPath(wchar_t *path, UINT64 *length) {
-  return StringWriter::Write(_archive->GetPhysicalPath().wstring(), path,
-                             length);
+  return StringWriter::Write(_context->PhysicalPath.wstring(), path, length);
 }
 
 HRESULT ZipResource::GetLogicalPath(wchar_t *path, UINT64 *length) {
@@ -51,7 +54,7 @@ HRESULT ZipResource::GetLogicalPath(wchar_t *path, UINT64 *length) {
     parent = parent->_parent;
   }
 
-  size_t logicalPathLength = _archive->GetLogicalPath().length();
+  size_t logicalPathLength = _context->LogicalPath.length();
   for (const auto &c : components) {
     logicalPathLength += c->GetName().length() + 1;
   }
@@ -65,7 +68,7 @@ HRESULT ZipResource::GetLogicalPath(wchar_t *path, UINT64 *length) {
   }
 
   std::wostringstream ss;
-  ss << _archive->GetLogicalPath();
+  ss << _context->LogicalPath;
   for (const auto &c : components) {
     ss << L'/' << c->GetName();
   }
@@ -81,7 +84,7 @@ BOOL ZipResource::GetParent(IMGDFReadOnlyFile **parent) {
     *parent = _parent;
     return true;
   } else {
-    auto archiveParent = _archive->GetParent();
+    auto archiveParent = _context->Parent;
     if (archiveParent) {
       archiveParent.AddRawRef(parent);
       return true;
@@ -90,7 +93,7 @@ BOOL ZipResource::GetParent(IMGDFReadOnlyFile **parent) {
   return false;
 }
 
-UINT64 ZipResource::GetLastWriteTime() { return _archive->GetLastWriteTime(); }
+UINT64 ZipResource::GetLastWriteTime() { return _context->LastWriteTime; }
 
 }  // namespace zip
 }  // namespace vfs

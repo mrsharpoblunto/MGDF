@@ -2,9 +2,6 @@
 
 #include "ZipFolderImpl.hpp"
 
-#include "../../../common/MGDFStringImpl.hpp"
-#include "ZipFileImpl.hpp"
-
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #pragma warning(disable : 4291)
@@ -17,7 +14,7 @@ namespace zip {
 
 void ZipFolderImpl::AddChild(std::shared_ptr<ZipResource> child) {
   _children.insert(std::make_pair(child->GetName(), child.get()));
-  _archive->AddResource(child);
+  _context->Resources.push_back(child);
 }
 
 HRESULT ZipFolderImpl::Open(IMGDFFileReader **reader) {

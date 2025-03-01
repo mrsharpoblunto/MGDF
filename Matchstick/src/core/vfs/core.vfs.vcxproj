@@ -120,7 +120,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="archive\zip\ZipArchive.cpp" />
+    <ClCompile Include="archive\zip\ZipResource.cpp" />
     <ClCompile Include="archive\zip\ZipArchiveHandlerImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFileImpl.cpp" />
     <ClCompile Include="archive\zip\ZipFolderImpl.cpp" />
@@ -135,7 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="archive\zip\ZipArchiveHandlerImpl.hpp" />
-    <ClInclude Include="archive\zip\ZipArchive.hpp" />
+    <ClInclude Include="archive\zip\ZipResource.hpp" />
     <ClInclude Include="archive\zip\ZipFileImpl.hpp" />
     <ClInclude Include="archive\zip\ZipFolderImpl.hpp" />
     <ClInclude Include="MGDFDefaultFileBase.hpp" />

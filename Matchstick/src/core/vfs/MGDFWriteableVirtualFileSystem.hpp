@@ -28,7 +28,7 @@ class DefaultWriteableFileImpl : public DefaultFileBase<IMGDFWriteableFile> {
  public:
   DefaultWriteableFileImpl(const std::wstring &name,
                            const std::filesystem::path &physicalPath,
-                           const std::filesystem::path &rootPath);
+                           std::shared_ptr<DefaultFileBaseContext> context);
   virtual ~DefaultWriteableFileImpl() {}
 
   BOOL __stdcall IsOpen() final;
@@ -44,8 +44,7 @@ class DefaultWriteableFileImpl : public DefaultFileBase<IMGDFWriteableFile> {
   HRESULT __stdcall MoveTo(IMGDFWriteableFile *destination) final;
 
   ComObject<IMGDFWriteableFile> CreateFile(
-      const std::wstring &name, const std::filesystem::path &path,
-      const std::filesystem::path &rootPath) final;
+      const std::wstring &name, const std::filesystem::path &path) final;
 
  private:
   DefaultFileWriter *_writer;
@@ -61,10 +60,12 @@ class WriteableVirtualFileSystem
                          IMGDFWriteableFile **file) final;
   void __stdcall GetRoot(IMGDFWriteableFile **root) final;
 
-  const std::filesystem::path &GetRootPath() const { return _rootPath; }
+  const std::filesystem::path &GetRootPath() const {
+    return _context->RootPath;
+  }
 
  private:
-  std::filesystem::path _rootPath;
+  std::shared_ptr<DefaultFileBaseContext> _context;
 };
 
 }  // namespace vfs

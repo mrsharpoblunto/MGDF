@@ -11,26 +11,32 @@ namespace MGDF {
 namespace core {
 namespace vfs {
 
+struct ReadOnlyFileContext {
+  std::filesystem::path RootPath;
+  std::vector<IMGDFArchiveHandler *> Handlers;
+
+  ~ReadOnlyFileContext() {
+    for (auto handler : Handlers) {
+      handler->Release();
+    }
+  }
+};
+
 class ReadOnlyVirtualFileSystemComponent;
 
-class DefaultReadOnlyFileImpl : public DefaultFileBase<IMGDFReadOnlyFile> {
+class DefaultReadOnlyFileImpl
+    : public DefaultFileBase<IMGDFReadOnlyFile, ReadOnlyFileContext> {
  public:
   DefaultReadOnlyFileImpl(const std::wstring &name,
                           const std::filesystem::path &physicalPath,
-                          const std::filesystem::path &rootPath,
-                          IMGDFArchiveHandler **handlers, size_t handlerCount);
+                          std::shared_ptr<ReadOnlyFileContext> context);
   virtual ~DefaultReadOnlyFileImpl();
 
   BOOL __stdcall IsArchive() final { return false; }
   BOOL __stdcall GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) final;
 
   ComObject<IMGDFReadOnlyFile> CreateFile(
-      const std::wstring &name, const std::filesystem::path &path,
-      const std::filesystem::path &rootPath) final;
-
- private:
-  IMGDFArchiveHandler **_handlers;
-  UINT64 _handlerCount;
+      const std::wstring &name, const std::filesystem::path &path) final;
 };
 
 class ReadOnlyVirtualFileSystemComponent
@@ -51,9 +57,8 @@ class ReadOnlyVirtualFileSystemComponent
 
  private:
   BOOL Get(const std::filesystem::path &path, IMGDFReadOnlyFile **file);
-  std::filesystem::path _rootPath;
   size_t _rootParentPathSize;
-  std::vector<IMGDFArchiveHandler *> _archiveHandlers;
+  std::shared_ptr<ReadOnlyFileContext> _context;
 };
 
 }  // namespace vfs

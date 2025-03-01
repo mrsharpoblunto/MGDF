@@ -4,9 +4,7 @@
 
 #include <unordered_map>
 
-#include "../../../common/MGDFStringImpl.hpp"
-#include "../../MGDFReadOnlyVirtualFileSystemComponent.hpp"
-#include "ZipArchive.hpp"
+#include "ZipResource.hpp"
 
 namespace MGDF {
 namespace core {
@@ -18,8 +16,8 @@ implementation of a folder in a zipped archive
 */
 class ZipFolderImpl : public ZipResource {
  public:
-  ZipFolderImpl(const wchar_t *name, ZipFolderImpl *parent, ZipArchive *archive)
-      : ZipResource(name, parent, archive) {}
+  ZipFolderImpl(const wchar_t *name, ZipFolderImpl *parent, ZipContext *context)
+      : ZipResource(name, parent, context) {}
   ~ZipFolderImpl() {};
 
   BOOL __stdcall IsFolder() final { return true; }

@@ -6,7 +6,7 @@
 #include <mutex>
 #include <string>
 
-#include "ZipArchive.hpp"
+#include "ZipResource.hpp"
 
 namespace MGDF {
 namespace core {
@@ -56,9 +56,9 @@ class ZipFileImpl : public ZipResource {
   friend class ZipFileImplReader;
 
  public:
-  ZipFileImpl(const wchar_t *name, ZipResource *parent, ZipArchive *archive,
+  ZipFileImpl(const wchar_t *name, ZipResource *parent, ZipContext *context,
               ZipFileHeader &&header)
-      : ZipResource(name, parent, archive), _header(header), _reader(nullptr) {}
+      : ZipResource(name, parent, context), _header(header), _reader(nullptr) {}
   virtual ~ZipFileImpl();
 
   BOOL __stdcall IsFolder() final { return false; }

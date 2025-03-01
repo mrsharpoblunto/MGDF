@@ -38,13 +38,12 @@ INT64 DefaultFileWriter::GetPosition() { return _stream->tellp(); }
 
 DefaultWriteableFileImpl::DefaultWriteableFileImpl(
     const std::wstring& name, const std::filesystem::path& physicalPath,
-    const std::filesystem::path& rootPath)
-    : DefaultFileBase(name, physicalPath, rootPath), _writer(nullptr) {}
+    std::shared_ptr<DefaultFileBaseContext> context)
+    : DefaultFileBase(name, physicalPath, context), _writer(nullptr) {}
 
 ComObject<IMGDFWriteableFile> DefaultWriteableFileImpl::CreateFile(
-    const std::wstring& name, const std::filesystem::path& path,
-    const std::filesystem::path& rootPath) {
-  return MakeCom<DefaultWriteableFileImpl>(name, path, rootPath)
+    const std::wstring& name, const std::filesystem::path& path) {
+  return MakeCom<DefaultWriteableFileImpl>(name, path, _context)
       .As<IMGDFWriteableFile>();
 }
 
@@ -74,7 +73,7 @@ BOOL DefaultWriteableFileImpl::GetChild(const wchar_t* name,
   } else {
     const auto childPath = _physicalPath / name;
     auto childFile =
-        MakeCom<DefaultWriteableFileImpl>(name, childPath, _rootPath);
+        MakeCom<DefaultWriteableFileImpl>(name, childPath, _context);
     childFile.AddRawRef(child);
     return TRUE;
   }
@@ -95,7 +94,7 @@ HRESULT DefaultWriteableFileImpl::CreateFolder() {
 }
 
 HRESULT DefaultWriteableFileImpl::Delete() {
-  if (!Exists() || _physicalPath == _rootPath) {
+  if (!Exists() || _physicalPath == _context->RootPath) {
     return E_FAIL;
   }
   std::error_code code;
@@ -171,10 +170,11 @@ HRESULT DefaultWriteableFileImpl::OpenWrite(IMGDFFileWriter** writer) {
 }
 
 WriteableVirtualFileSystem::WriteableVirtualFileSystem(
-    const std::wstring& rootPath) {
-  _rootPath = std::filesystem::path(rootPath).lexically_normal();
-  if (!_rootPath.has_filename()) {
-    _rootPath = _rootPath.parent_path();
+    const std::wstring& rootPath)
+    : _context(std::make_shared<DefaultFileBaseContext>()) {
+  _context->RootPath = std::filesystem::path(rootPath).lexically_normal();
+  if (!_context->RootPath.has_filename()) {
+    _context->RootPath = _context->RootPath.parent_path();
   }
 }
 
@@ -186,17 +186,18 @@ BOOL WriteableVirtualFileSystem::GetFile(const wchar_t* logicalPath,
   }
 
   std::filesystem::path path =
-      (_rootPath / std::filesystem::path(logicalPath)).lexically_normal();
+      (_context->RootPath / std::filesystem::path(logicalPath))
+          .lexically_normal();
 
   auto node = MakeCom<DefaultWriteableFileImpl>(path.filename().c_str(), path,
-                                                _rootPath);
+                                                _context);
   node.AddRawRef(file);
   return true;
 }
 
 void WriteableVirtualFileSystem::GetRoot(IMGDFWriteableFile** root) {
-  auto r = MakeCom<DefaultWriteableFileImpl>(_rootPath.filename().c_str(),
-                                             _rootPath, _rootPath);
+  auto r = MakeCom<DefaultWriteableFileImpl>(
+      _context->RootPath.filename().c_str(), _context->RootPath, _context);
   r.AddRawRef(root);
 }
 

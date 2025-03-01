@@ -41,6 +41,8 @@ BOOL ZipArchiveHandlerImpl::MapArchive(
     const MGDFArchivePathSegment *segments, UINT64 segmentCount,
     IMGDFArchiveHandler **handlers, UINT64 handlerCount,
     IMGDFReadOnlyFile *parent, IMGDFReadOnlyFile **file) {
+  std::ignore = handlers;
+  std::ignore = handlerCount;
   _ASSERTE(rootPath);
   _ASSERTE(fullPath);
 
@@ -67,19 +69,24 @@ BOOL ZipArchiveHandlerImpl::MapArchive(
                                  : S_EMPTY;
   std::replace(logicalPath.begin(), logicalPath.end(), '\\', '/');
 
-  auto archive = MakeCom<ZipArchive>(logicalPath, fullPath, lastModifiedTime,
-                                     zip, parent, handlers, handlerCount);
+  ComObject<ZipContext> context = MakeCom<ZipContext>();
+  context->Zip = zip;
+  context->LastWriteTime = lastModifiedTime;
+  context->LogicalPath = logicalPath;
+  context->PhysicalPath = fullPath;
+  context->Parent = ComObject<IMGDFReadOnlyFile>(parent, true);
+
   auto rootResource =
-      std::make_shared<ZipFolderImpl>(logicalPath.c_str(), nullptr, archive);
-  archive->AddResource(rootResource);
+      std::make_shared<ZipFolderImpl>(logicalPath.c_str(), nullptr, context);
+  context->Resources.push_back(rootResource);
 
   // We need to map file positions to speed up opening later
-  for (INT32 ret = unzGoToFirstFile(archive->GetZip()); ret == UNZ_OK;
-       ret = unzGoToNextFile(archive->GetZip())) {
+  for (INT32 ret = unzGoToFirstFile(context->Zip); ret == UNZ_OK;
+       ret = unzGoToNextFile(context->Zip)) {
     unz_file_info info;
     char nameBuffer[FILENAME_BUFFER];
 
-    unzGetCurrentFileInfo(archive->GetZip(), &info, nameBuffer, FILENAME_BUFFER,
+    unzGetCurrentFileInfo(context->Zip, &info, nameBuffer, FILENAME_BUFFER,
                           nullptr, 0, nullptr, 0);
 
     // if the path is for a folder the last element will be a "" element
@@ -90,17 +97,17 @@ BOOL ZipArchiveHandlerImpl::MapArchive(
     const wchar_t *filename = nullptr;
     auto path = Resources::ToWString(nameBuffer);
     auto parentFolder =
-        CreateParentFolder(path, archive.Get(), rootResource.get(), &filename);
+        CreateParentFolder(path, context, rootResource.get(), &filename);
 
     if (info.uncompressed_size > 0) {
       _ASSERTE(filename);
       ZipFileHeader header;
-      unzGetFilePos(archive->GetZip(), &header.filePosition);
+      unzGetFilePos(context->Zip, &header.filePosition);
       header.size = info.uncompressed_size;
       header.name = filename;  // the name is the last part of the path
 
       auto child = std::make_shared<ZipFileImpl>(filename, parentFolder,
-                                                 archive, std::move(header));
+                                                 context, std::move(header));
       parentFolder->AddChild(child);
     }
   }
@@ -122,10 +129,9 @@ BOOL ZipArchiveHandlerImpl::MapArchive(
 }
 
 ZipFolderImpl *ZipArchiveHandlerImpl::CreateParentFolder(
-    std::wstring &path, ZipArchive *archive, ZipFolderImpl *root,
+    std::wstring &path, ComObject<ZipContext> &context, ZipFolderImpl *root,
     const wchar_t **filename) {
   _ASSERTE(root);
-  _ASSERTE(archive);
   _ASSERTE(path.size());
 
   size_t len = path.rfind('/');
@@ -150,7 +156,7 @@ ZipFolderImpl *ZipArchiveHandlerImpl::CreateParentFolder(
       ComObject<IMGDFReadOnlyFile> child;
       wchar_t *name = &path[start];
       if (!parent->GetChild(name, child.Assign())) {
-        auto newChild = std::make_shared<ZipFolderImpl>(name, parent, archive);
+        auto newChild = std::make_shared<ZipFolderImpl>(name, parent, context);
         child = ComObject<IMGDFReadOnlyFile>(newChild.get(), true);
         parent->AddChild(newChild);
       }

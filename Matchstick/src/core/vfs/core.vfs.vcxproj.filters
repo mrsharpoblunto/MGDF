@@ -33,7 +33,7 @@
       <Filter>archive\zip</Filter>
     </ClCompile>
     <ClCompile Include="MGDFVirtualFileSystemComponent.cpp" />
-    <ClCompile Include="archive\zip\ZipArchive.cpp">
+    <ClCompile Include="archive\zip\ZipResource.cpp">
       <Filter>archive\zip</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,7 +53,7 @@
       <Filter>writeable</Filter>
     </ClInclude>
     <ClInclude Include="MGDFVirtualFileSystemComponent.hpp" />
-    <ClInclude Include="archive\zip\ZipArchive.hpp">
+    <ClInclude Include="archive\zip\ZipResource.hpp">
       <Filter>archive\zip</Filter>
     </ClInclude>
     <ClInclude Include="MGDFDefaultFileBase.hpp" />

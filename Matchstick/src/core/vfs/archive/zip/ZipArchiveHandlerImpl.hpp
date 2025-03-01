@@ -4,8 +4,8 @@
 
 #include <MGDF/ComObject.hpp>
 
-#include "ZipArchive.hpp"
 #include "ZipFolderImpl.hpp"
+#include "ZipResource.hpp"
 
 namespace MGDF {
 namespace core {
@@ -28,7 +28,8 @@ class ZipArchiveHandlerImpl : public ComBase<IMGDFArchiveHandler> {
                             IMGDFReadOnlyFile **file) final;
 
  private:
-  ZipFolderImpl *CreateParentFolder(std::wstring &path, ZipArchive *archive,
+  ZipFolderImpl *CreateParentFolder(std::wstring &path,
+                                    ComObject<ZipContext> &context,
                                     ZipFolderImpl *root,
                                     const wchar_t **filename);
 };
