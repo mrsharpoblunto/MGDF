@@ -130,6 +130,8 @@ HRESULT Host::Init() {
   // ensure the vfs enumerates any custom defined archive formats
   LOG("Registering custom archive VFS handlers...", MGDF_LOG_LOW);
   UINT64 length = 0;
+#pragma warning(push)
+#pragma warning(disable : 26474)
   result = _moduleFactory->GetCustomArchiveHandlers(
       nullptr, &length, static_cast<IMGDFSimHost *>(this));
   if (FAILED(result)) {
@@ -153,6 +155,7 @@ HRESULT Host::Init() {
   } else {
     LOG("No custom archive VFS handlers to be registered", MGDF_LOG_LOW);
   }
+#pragma warning(pop)
 
   // enumerate the current games content directory
   LOG("Mounting content directory into VFS...", MGDF_LOG_LOW);

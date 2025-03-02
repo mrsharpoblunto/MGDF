@@ -235,7 +235,8 @@ HRESULT SaveManager::GetSave(UINT64 index, IMGDFGameState** s) {
 }
 
 HRESULT SaveManager::DeleteSave(IMGDFGameState* s) {
-  auto state = MakeComFromPtr<GameState>(s);
+  auto state = dynamic_cast<GameState*>(s);
+  _ASSERTE(state);
   auto found = std::find(_saves.begin(), _saves.end(), state->GetSave());
   if (found == _saves.end()) {
     return E_INVALIDARG;

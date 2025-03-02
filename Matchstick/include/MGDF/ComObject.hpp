@@ -264,9 +264,7 @@ ComObject<T> MakeCom(Args &&...args) {
 
 template <typename T, typename U = T>
 ComObject<T> MakeComFromPtr(U *ptr) {
-  auto sub = dynamic_cast<T *>(ptr);
-  _ASSERTE(sub);
-  return ComObject<T>(sub, true);
+  return ComObject<T>(ptr, true);
 }
 
 template <auto F>

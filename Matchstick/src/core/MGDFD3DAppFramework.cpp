@@ -37,7 +37,7 @@ static std::unordered_map<HWND, D3DAppFramework *> windowMappings;
 static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam,
                                          LPARAM lParam) {
   if (msg == WM_NCCREATE) {
-    CREATESTRUCT *create = reinterpret_cast<CREATESTRUCT *>(lParam);
+    CREATESTRUCT *create = (CREATESTRUCT *)lParam;
     windowMappings.insert(std::make_pair(
         hwnd, static_cast<D3DAppFramework *>(create->lpCreateParams)));
   }
