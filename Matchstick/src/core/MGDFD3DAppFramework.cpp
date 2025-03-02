@@ -42,7 +42,7 @@ static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam,
         hwnd, static_cast<D3DAppFramework *>(create->lpCreateParams)));
   }
 
-  auto it = windowMappings.find(hwnd);
+  const auto it = windowMappings.find(hwnd);
   if (it != windowMappings.end()) {
     return it->second->MsgProc(hwnd, msg, wParam, lParam);
   }

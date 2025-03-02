@@ -318,6 +318,8 @@ struct ComString<F> {
 
   const std::basic_string<Char> &str() const { return _str; }
 
+  const Char *c_str() const { return _str.c_str(); }
+
   bool operator==(const std::basic_string<Char> &str) const {
     return _str == str;
   }

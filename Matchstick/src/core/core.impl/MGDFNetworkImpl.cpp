@@ -74,7 +74,7 @@ INT32 HttpClientResponseImpl::GetResponseCode() { return _response->Code; }
 HRESULT HttpClientResponseImpl::GetResponseHeader(const small *name,
                                                   small *value,
                                                   UINT64 *length) {
-  auto found = _response->Headers.find(name);
+  const auto found = _response->Headers.find(name);
   if (found != _response->Headers.end()) {
     return StringWriter::Write(found->second, value, length);
   } else {
@@ -102,7 +102,7 @@ void *HttpClientRequestGroupImpl::GetResponse(
   if (!_responses.size()) {
     return nullptr;
   }
-  auto pair = _responses.begin();
+  const auto pair = _responses.begin();
   auto r = pair->second;
   r.AddRawRef(responseOut);
   auto key = pair->first;
