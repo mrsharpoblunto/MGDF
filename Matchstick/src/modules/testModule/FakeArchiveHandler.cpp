@@ -43,15 +43,19 @@ BOOL __stdcall FakeArchiveHandler::MapArchive(
       physicalPath.wstring().substr(root.wstring().size() + 1);
   std::replace(logicalPath.begin(), logicalPath.end(), '\\', '/');
 
-  ComObject<FakeFile> rootFile(new FakeFile(physicalPath.filename().wstring(),
-                                            parent, physicalPath.wstring(),
-                                            logicalPath));
+  ComObject<FakeContext> context(new FakeContext());
+  context->Parent = ComObject<IMGDFReadOnlyFile>(parent, true);
 
-  ComObject<FakeFile> subFile(
-      new FakeFile(L"testfile.txt", rootFile, "hello world"));
+  std::shared_ptr<FakeFile> rootFile =
+      std::make_shared<FakeFile>(physicalPath.filename().wstring(),
+                                 physicalPath.wstring(), logicalPath, context);
+  context->Resources.push_back(rootFile);
+
+  std::shared_ptr<FakeFile> subFile = std::make_shared<FakeFile>(
+      L"testfile.txt", rootFile.get(), "hello world", context);
   rootFile->AddChild(subFile);
 
-  ComObject<IMGDFReadOnlyFile> current = rootFile.As<IMGDFReadOnlyFile>();
+  ComObject<IMGDFReadOnlyFile> current(rootFile.get(), true);
   for (UINT64 i = 0; i < logicalPathSegmentCount; ++i) {
     std::wstring childName(logicalPathSegments[i].Start,
                            logicalPathSegments[i].Length);

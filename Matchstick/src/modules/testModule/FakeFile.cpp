@@ -12,49 +12,36 @@
 namespace MGDF {
 namespace Test {
 
-FakeFile::FakeFile(const std::wstring &name, IMGDFReadOnlyFile *parent,
-                   const std::wstring &physicalPath,
-                   const std::wstring &logicalPath)
-    : _parent(parent, true),
+FakeFile::FakeFile(const std::wstring &name, const std::wstring &physicalPath,
+                   const std::wstring &logicalPath, FakeContext *context)
+    : _parent(nullptr),
+      _context(context),
       _children(nullptr),
       _name(name),
       _physicalPath(physicalPath),
       _logicalPath(logicalPath),
       _data(""),
       _isOpen(false),
-      _position(0),
-      _references(1UL) {}
+      _position(0) {}
 
 FakeFile::FakeFile(const std::wstring &name, FakeFile *parent,
-                   const std::string &data)
-    : _parent(parent, true),
+                   const std::string &data, FakeContext *context)
+    : _parent(parent),
+      _context(context),
       _children(nullptr),
       _name(name),
       _physicalPath(parent->_physicalPath),
       _data(data),
       _isOpen(false),
-      _position(0),
-      _references(1UL) {
+      _position(0) {
   _logicalPath = parent->_logicalPath + L"/" + name;
 }
 
 FakeFile::~FakeFile() {}
 
-ULONG FakeFile::AddRef() { return ++_references; }
+ULONG FakeFile::AddRef() { return _context->AddRef(); }
 
-ULONG FakeFile::Release() {
-  {
-    std::lock_guard<std::mutex> lock(_mutex);
-    if (!_data.empty() && _isOpen) {
-      _isOpen = false;
-    }
-  }
-  const ULONG refs = --_references;
-  if (refs == 0UL) {
-    delete this;
-  };
-  return refs;
-}
+ULONG FakeFile::Release() { return _context->Release(); }
 
 HRESULT FakeFile::QueryInterface(REFIID riid, void **ppvObject) {
   if (!ppvObject) return E_POINTER;
@@ -74,7 +61,7 @@ BOOL FakeFile::GetParent(IMGDFReadOnlyFile **parent) {
     *parent = _parent;
     return true;
   } else {
-    return false;
+    return _context->Parent;
   }
 }
 
@@ -92,7 +79,8 @@ BOOL FakeFile::GetChild(const wchar_t *name, IMGDFReadOnlyFile **child) {
 
   const auto it = _children->find(name);
   if (it != _children->end()) {
-    it->second.Ref.AddRawRef(child);
+    it->second.Ref->AddRef();
+    *child = it->second.Ref;
     return true;
   }
   return false;
@@ -110,12 +98,13 @@ HRESULT FakeFile::GetAllChildren(IMGDFReadOnlyFile **childBuffer,
   }
 
   for (auto child : *_children) {
-    child.second.Ref.AddRawRef(childBuffer++);
+    child.second.Ref->AddRef();
+    *(childBuffer++) = child.second.Ref;
   }
   return S_OK;
 }
 
-void FakeFile::AddChild(ComObject<FakeFile> file) {
+void FakeFile::AddChild(std::shared_ptr<FakeFile> file) {
   _ASSERTE(file);
   if (!_children) {
     _children = std::make_unique<
@@ -126,9 +115,10 @@ void FakeFile::AddChild(ComObject<FakeFile> file) {
   file->GetLogicalName(nullptr, &length);
   ref.Name.resize(length);
   file->GetLogicalName(ref.Name.data(), &length);
-  ref.Ref = std::move(file);
+  ref.Ref = file.get();
 
   _children->insert(std::make_pair(ref.Name.data(), std::move(ref)));
+  _context->Resources.push_back(file);
 }
 
 BOOL FakeFile::IsOpen() {

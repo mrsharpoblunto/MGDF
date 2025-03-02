@@ -23,6 +23,10 @@
     {
       "name": "gtest",
       "version>=": "1.16.0#0"
+    },
+    {
+      "name": "libvorbis",
+      "version>=": "1.3.7#3"
     }
   ]
 }

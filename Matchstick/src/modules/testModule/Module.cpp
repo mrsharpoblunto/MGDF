@@ -69,8 +69,8 @@ Module::Module()
 BOOL Module::STNew(IMGDFSimHost* host) {
   std::ignore = host;
   _testModules.push_back(std::make_unique<NetworkTests>());
-  _testModules.push_back(std::make_unique<InputTests>());
   _testModules.push_back(std::make_unique<SoundTests>());
+  _testModules.push_back(std::make_unique<InputTests>());
   _testModules.push_back(std::make_unique<LoadSaveTests>());
   _currentModule = _testModules.begin();
 

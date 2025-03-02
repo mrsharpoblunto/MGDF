@@ -17,6 +17,16 @@ struct WCharCmp {
   }
 };
 
+class FakeFile;
+
+struct FakeContext : ComBase<IUnknown> {
+ public:
+  virtual ~FakeContext() {}
+
+  std::vector<std::shared_ptr<FakeFile>> Resources;
+  ComObject<IMGDFReadOnlyFile> Parent;
+};
+
 /**
  abstract class which contains the common functionality to default file
  instances aswell as the zip and other archive file implementations of the
@@ -24,10 +34,11 @@ struct WCharCmp {
 */
 class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
  public:
-  FakeFile(const std::wstring &name, IMGDFReadOnlyFile *parent,
-           const std::wstring &physicalPath, const std::wstring &logicalPath);
-  FakeFile(const std::wstring &name, FakeFile *parent, const std::string &data);
-  void AddChild(ComObject<FakeFile> file);
+  FakeFile(const std::wstring &name, const std::wstring &physicalPath,
+           const std::wstring &logicalPath, FakeContext *context);
+  FakeFile(const std::wstring &name, FakeFile *parent, const std::string &data,
+           FakeContext *context);
+  void AddChild(std::shared_ptr<FakeFile> file);
   virtual ~FakeFile(void);
 
   BOOL __stdcall GetParent(IMGDFReadOnlyFile **parent) final;
@@ -62,7 +73,7 @@ class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
 
  protected:
   struct ChildFileRef {
-    ComObject<FakeFile> Ref;
+    FakeFile *Ref = nullptr;
     std::wstring Name;
   };
 
@@ -71,16 +82,14 @@ class FakeFile : public IMGDFReadOnlyFile, public IMGDFFileReader {
 
   std::unique_ptr<std::map<const wchar_t *, FakeFile::ChildFileRef, WCharCmp>>
       _children;
-  ComObject<IMGDFReadOnlyFile> _parent;
+  FakeContext *_context;
+  FakeFile *_parent;
   std::wstring _name;
   std::wstring _physicalPath;
 
   std::string _data;
   INT32 _position;
   bool _isOpen;
-
- private:
-  std::atomic<ULONG> _references;
 };
 
 }  // namespace Test
