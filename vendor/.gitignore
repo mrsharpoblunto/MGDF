@@ -1,7 +1,0 @@
-
-*.ncb
-bin/
-*_ReSharper*/
-obj/
-*.user
-*.suo

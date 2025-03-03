@@ -1,5 +1,6 @@
 build/tools/*
 !build/tools/packages.config
+packages/*
 *.ncb
 bin/
 *_ReSharper*/
