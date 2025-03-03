@@ -102,7 +102,6 @@ Task("Sign")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
     var files = GetFiles($@"../bin/x64/{buildConfiguration}/*.exe");
-    files.Add(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.exe"));
     files.Add(GetFiles($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/*.exe"));
 		var signSecret = Argument<string>("signsecret");
     Sign(files, new SignToolSignSettings {
@@ -150,6 +149,7 @@ Task("Dist")
 		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
+		DeleteFiles(GetFiles("../dist/tmp/**/gmock.dll"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));
 
 		Zip("../dist/tmp/x64", $@"../dist/SDK/MGDF_{buildNumber}_x64.zip");
@@ -174,9 +174,6 @@ Task("Dist")
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/symbols/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/symbols/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.pdb"), "../dist/symbols/x64");
-		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.dll"), "../dist/symbols/x64");
-		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.exe"), "../dist/symbols/x64");
-		CopyFiles(GetFiles($@"../vendor/lib/x64/{buildConfiguration}/*.pdb"), "../dist/symbols/x64");
 
 		// copy MGDF headers
 		CreateDirectory("../dist/SDK/include/MGDF");

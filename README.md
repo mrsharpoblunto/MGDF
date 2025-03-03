@@ -4,7 +4,7 @@ MGDF - Matchstick game development framework
 What is it
 ----------
 
-MGDF is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 7+ supported) easier. The framework uses DirectX 11 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
+MGDF is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 10+ supported) easier. The framework uses DirectX 11 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
 
 * MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game.
 * MGDF makes distributing games easier as it includes an auto update mechanism with full versioning support.
@@ -18,22 +18,19 @@ Features
 The framework is composed of three main parts (the second two of which are not required for running games, but for online updating/distribution)
 
 ### The core
-This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before boostrapping the user supplied game dll and passing control on to that dll. Once up and running the game dll can then access the frameworks functionality via a series of c++ interfaces (graphics, audio, input, virtual filesystem etc...)
+This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before boostrapping the user supplied game dll and passing control on to that dll. Once up and running the game dll can then access the frameworks functionality via a series of COM interfaces (graphics, audio, input, virtual filesystem etc...)
 
 ### The GamesManager (Optional)
 This is written in C# (.NET 4.6) and consists a windows forms application which provides a graphical user interface for launching and updating games.
 
-### Statistics services (Optional)
-This is written in c# (.NET 4.6) and is a WCF web service that allows games to submit statistics to remotely in order to help developers get better information on how their games are being played. In order to respect users privacy, any games wishing to upload statistics to a statistics service will have to be granted permission by the user. This service exposes a simple REST API and could be implemented using a non .NET backend if required.
-
 Building Source
 ---------------
 
-* Using Microsoft Visual Studio 2022 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick/Matchstick.sln in x64 debug/release configurations
+* Using Microsoft Visual Studio 2022 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick.sln in x64 debug/release configurations
 
 Running unit tests
 ------------------
-All managed code projects use nunit 3,	all unmanaged code tests are contained within the core.tests.exe binary which must first be compiled as part of the Matchstick/Matchstick.sln project Once built, running this exe from the command line will run the test suite.
+All managed code projects use nunit 3,	all unmanaged code tests are contained within the core.tests.exe binary which must first be compiled as part of the Matchstick.sln project Once built, running this exe from the command line will run the test suite.
 
 To make running the unmanaged unit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
 
@@ -68,5 +65,5 @@ Running GamesManager.exe from command line
 Building a release package
 --------------------------
 
-* To build a release package, run `Matchstick\build\build.ps1 -Target Dist -buildnumber=x.x.x` from a powershell prompt. This will put the generated release in /dist
-* To publish the release, locate /dist from the previous step and run `Matchstick\build\build.ps1 -Target Publish -dist=<dist_folder_from_previous_step> -backup=<some_build_archive_folder> -s3accesskey=xxxx -s3secretkey=yyyy` from a powershell prompt.
+* To build a release package, run `build\build.ps1 -Target Dist -buildnumber=x.x.x` from a powershell prompt. This will put the generated release in /dist
+* To publish the release, locate /dist from the previous step and run `build\build.ps1 -Target Publish -dist=<dist_folder_from_previous_step> -backup=<some_build_archive_folder> -s3accesskey=xxxx -s3secretkey=yyyy` from a powershell prompt.

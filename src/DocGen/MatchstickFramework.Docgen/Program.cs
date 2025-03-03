@@ -16,8 +16,6 @@ namespace MatchstickFramework.Docgen
   {
     public static string Capitalize(this string input)
     {
-      if (String.IsNullOrEmpty(input))
-        throw new ArgumentException("ARGH!");
       return input.First().ToString().ToUpper() + String.Join("", input.Skip(1));
     }
   }
