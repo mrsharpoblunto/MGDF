@@ -1,11 +1,9 @@
 #pragma once
 
-#include <d3d11.h>
+#include <MGDF/MGDF.h>
 #include <dwrite_1.h>
 
 #include <MGDF/ComObject.hpp>
-#include <MGDF/MGDF.h>
-#include <memory>
 
 #include "Common.hpp"
 
@@ -31,13 +29,13 @@ class TESTCOMMON_DLL TextManagerState {
   friend class TextManager;
 
  public:
-  virtual ~TextManagerState(){};
-  TextManagerState(){};
-  TextManagerState(const TextManagerState *state);
+  virtual ~TextManagerState() {};
+  TextManagerState() {};
+  TextManagerState(const TextManagerState &state);
+  TextManagerState(const TextManagerState &startState,
+                   const TextManagerState &endState, double alpha);
   void AddLine(const std::string &line);
   void SetStatus(TextColor color, const std::string &text);
-  std::shared_ptr<TextManagerState> Interpolate(const TextManagerState *state,
-                                                double alpha);
 
  private:
 #pragma warning(push)
@@ -50,7 +48,7 @@ class TESTCOMMON_DLL TextManager {
  public:
   virtual ~TextManager();
   TextManager(IMGDFRenderHost *renderHost);
-  void SetState(std::shared_ptr<TextManagerState> state);
+  void SetState(TextManagerState &state);
   void BackBufferChange();
   void BeforeBackBufferChange();
   void BeforeDeviceReset();
@@ -59,7 +57,7 @@ class TESTCOMMON_DLL TextManager {
  private:
 #pragma warning(push)
 #pragma warning(disable : 4251)
-  std::shared_ptr<TextManagerState> _state;
+  TextManagerState _state;
   ComObject<IMGDFRenderSettingsManager> _settings;
   ComObject<ID2D1SolidColorBrush> _whiteBrush;
   ComObject<ID2D1SolidColorBrush> _redBrush;

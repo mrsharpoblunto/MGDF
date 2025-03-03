@@ -115,6 +115,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DisplayTests.cpp" />
     <ClCompile Include="FakeArchiveHandler.cpp" />
     <ClCompile Include="FakeFile.cpp" />
     <ClCompile Include="main.cpp" />
@@ -129,6 +130,7 @@
     <ClCompile Include="NetworkTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DisplayTests.hpp" />
     <ClInclude Include="FakeArchiveHandler.hpp" />
     <ClInclude Include="FakeFile.hpp" />
     <ClInclude Include="Module.hpp" />

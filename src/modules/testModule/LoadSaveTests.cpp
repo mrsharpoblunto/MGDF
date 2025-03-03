@@ -20,15 +20,15 @@ void LoadSaveTests::Setup(IMGDFSimHost *host) {
   host->GetSaves(_saves.Assign());
 
   Step([this](auto state) {
-    state->AddLine("");
-    state->AddLine("Load/Save Tests");
-    state->AddLine("");
+    state->Text.AddLine("");
+    state->Text.AddLine("Load/Save Tests");
+    state->Text.AddLine("");
     while (_saves->GetSaveCount() > 0) {
       ComObject<IMGDFGameState> s;
       _saves->GetSave(0, s.Assign());
       _saves->DeleteSave(s);
     }
-    state->AddLine("Save game state");
+    state->Text.AddLine("Save game state");
 
     _saves->CreateGameState(_state.Assign());
 
@@ -63,7 +63,7 @@ void LoadSaveTests::Setup(IMGDFSimHost *host) {
     }
   })
       .Step([this](auto state) {
-        state->AddLine("Search saved game state");
+        state->Text.AddLine("Search saved game state");
         // we didn't complete saving yet so it shouldn't appear in the list
         if (_saves->GetSaveCount() != 0) {
           return TestStep::FAILED;
@@ -86,7 +86,7 @@ void LoadSaveTests::Setup(IMGDFSimHost *host) {
         }
       })
       .Step([this](auto state) {
-        state->AddLine("Load game state");
+        state->Text.AddLine("Load game state");
 
         // check the version
         MGDFVersion version;
@@ -121,7 +121,7 @@ void LoadSaveTests::Setup(IMGDFSimHost *host) {
         return data == "2" ? TestStep::PASSED : TestStep::FAILED;
       })
       .Step([host](auto state) {
-        state->AddLine("Testing custom VFS archive handler registration");
+        state->Text.AddLine("Testing custom VFS archive handler registration");
 
         ComObject<IMGDFReadOnlyVirtualFileSystem> vfs;
         host->GetVFS(vfs.Assign());
@@ -140,46 +140,6 @@ void LoadSaveTests::Setup(IMGDFSimHost *host) {
           }
         }
         return TestStep::FAILED;
-      })
-      .StepOnce([](auto state) {
-        state->AddLine(
-            "Press [F] to toggle fullscreen/windowed mode. Then press "
-            "[Y/N] if this works correctly");
-      })
-      .Step([host, this](auto state) {
-        std::ignore = state;
-        if (_input->IsKeyPress('Y')) {
-          return TestStep::PASSED;
-        } else if (_input->IsKeyPress('N')) {
-          return TestStep::FAILED;
-        } else {
-          if (_input->IsKeyPress('F')) {
-            ComObject<IMGDFRenderSettingsManager> settings;
-            host->GetRenderSettings(settings.Assign());
-            MGDFFullScreenDesc desc;
-            settings->GetFullscreen(&desc);
-            desc.FullScreen = !desc.FullScreen;
-
-            ComObject<IMGDFPendingRenderSettingsChange> change;
-            settings->CreatePendingSettingsChange(change.Assign());
-            change->SetFullscreen(&desc);
-          }
-          return TestStep::CONT;
-        }
-      })
-      .StepOnce([](auto state) {
-        state->AddLine(
-            "Press [ALT]+[F12] to toggle the  information overlay. Then press "
-            "[Y/N] if this works correctly");
-      })
-      .Step([this](auto state) {
-        std::ignore = state;
-        if (_input->IsKeyPress('Y')) {
-          return TestStep::PASSED;
-        } else if (_input->IsKeyPress('N')) {
-          return TestStep::FAILED;
-        }
-        return TestStep::CONT;
       });
 }
 

@@ -11,11 +11,16 @@ namespace Test {
 
 #define MAX_LINES 100
 
-TextManagerState::TextManagerState(const TextManagerState *state) {
-  for (auto line : state->_lines) {
-    _lines.push_back(line);
-  }
+TextManagerState::TextManagerState(const TextManagerState &startState,
+                                   const TextManagerState &endState,
+                                   double alpha)
+    : _lines(endState._lines) {
+  std::ignore = alpha;
+  std::ignore = startState;
 }
+
+TextManagerState::TextManagerState(const TextManagerState &state)
+    : _lines(state._lines) {}
 
 void TextManagerState::AddLine(const std::string &line) {
   Line l;
@@ -30,14 +35,6 @@ void TextManagerState::AddLine(const std::string &line) {
 void TextManagerState::SetStatus(TextColor color, const std::string &text) {
   _lines[0].StatusText = text;
   _lines[0].StatusColor = color;
-}
-
-std::shared_ptr<TextManagerState> TextManagerState::Interpolate(
-    const TextManagerState *endState, double alpha) {
-  std::ignore = alpha;
-  // interpolation isn't really possible with this type of gamestate, so just
-  // use the most recent.
-  return std::shared_ptr<TextManagerState>(new TextManagerState(endState));
 }
 
 TextManager::~TextManager() { BeforeDeviceReset(); }
@@ -68,8 +65,8 @@ TextManager::TextManager(IMGDFRenderHost *renderHost)
   _renderHost->GetRenderSettings(_settings.Assign());
 }
 
-void TextManager::SetState(std::shared_ptr<TextManagerState> state) {
-  _state = state;
+void TextManager::SetState(TextManagerState &state) {
+  _state = std::move(state);
 }
 
 void TextManager::DrawText() {
@@ -121,59 +118,55 @@ void TextManager::DrawText() {
     }
   }
 
-  if (_state) {
-    INT32 starty =
-        (_state.get()->_lines.size() * 25 < _settings->GetScreenY())
-            ? ((static_cast<UINT32>(_state.get()->_lines.size()) * 25) - 25)
-            : (_settings->GetScreenY() - 25);
+  INT32 starty = (_state._lines.size() * 25 < _settings->GetScreenY())
+                     ? ((static_cast<UINT32>(_state._lines.size()) * 25) - 25)
+                     : (_settings->GetScreenY() - 25);
 
-    _d2dContext->BeginDraw();
+  _d2dContext->BeginDraw();
 
-    for (auto &line : _state.get()->_lines) {
-      std::wstring content;
-      content.assign(line.Content.begin(), line.Content.end());
+  for (auto &line : _state._lines) {
+    std::wstring content;
+    content.assign(line.Content.begin(), line.Content.end());
 
-      ComObject<IDWriteTextLayout> textLayout;
+    ComObject<IDWriteTextLayout> textLayout;
+    if (FAILED(_dWriteFactory->CreateTextLayout(
+            content.c_str(), static_cast<UINT32>(content.size()), _textFormat,
+            static_cast<float>(_settings->GetScreenX()),
+            static_cast<float>(_settings->GetScreenY()),
+            textLayout.Assign()))) {
+      FATALERROR(_renderHost, "Unable to create text layout");
+    }
+
+    D2D_POINT_2F origin;
+    origin.x = 0;
+    origin.y = static_cast<float>(starty);
+
+    _d2dContext->DrawTextLayout(origin, textLayout, _whiteBrush);
+
+    if (line.StatusText != "") {
+      std::wstring statusText;
+      statusText.assign(line.StatusText.begin(), line.StatusText.end());
+
       if (FAILED(_dWriteFactory->CreateTextLayout(
-              content.c_str(), static_cast<UINT32>(content.size()), _textFormat,
-              static_cast<float>(_settings->GetScreenX()),
+              statusText.c_str(), static_cast<UINT32>(statusText.size()),
+              _textFormat, static_cast<float>(_settings->GetScreenX()),
               static_cast<float>(_settings->GetScreenY()),
               textLayout.Assign()))) {
         FATALERROR(_renderHost, "Unable to create text layout");
       }
 
-      D2D_POINT_2F origin;
-      origin.x = 0;
+      origin.x = static_cast<float>(_settings->GetScreenX()) - 150.0f;
       origin.y = static_cast<float>(starty);
 
-      _d2dContext->DrawTextLayout(origin, textLayout, _whiteBrush);
-
-      if (line.StatusText != "") {
-        std::wstring statusText;
-        statusText.assign(line.StatusText.begin(), line.StatusText.end());
-
-        if (FAILED(_dWriteFactory->CreateTextLayout(
-                statusText.c_str(), static_cast<UINT32>(statusText.size()),
-                _textFormat, static_cast<float>(_settings->GetScreenX()),
-                static_cast<float>(_settings->GetScreenY()),
-                textLayout.Assign()))) {
-          FATALERROR(_renderHost, "Unable to create text layout");
-        }
-
-        origin.x = static_cast<float>(_settings->GetScreenX()) - 150.0f;
-        origin.y = static_cast<float>(starty);
-
-        _d2dContext->DrawTextLayout(
-            origin, textLayout,
-            line.StatusColor == TextColor::GREEN ? _greenBrush : _redBrush);
-      }
-
-      starty -= 25;
-      if (starty <= -25) break;
+      _d2dContext->DrawTextLayout(
+          origin, textLayout,
+          line.StatusColor == TextColor::GREEN ? _greenBrush : _redBrush);
     }
 
-    _d2dContext->EndDraw();
+    starty -= 25;
+    if (starty <= -25) break;
   }
+  _d2dContext->EndDraw();
 }
 
 }  // namespace Test

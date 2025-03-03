@@ -22,10 +22,10 @@ void InputTests::Setup(IMGDFSimHost *host) {
   _gamepad = gamepads[0];
   host->GetTimer(_timer.Assign());
   StepOnce([](auto state) {
-    state->AddLine("");
-    state->AddLine("InputManager Tests");
-    state->AddLine("");
-    state->AddLine("Press the [ENTER] key");
+    state->Text.AddLine("");
+    state->Text.AddLine("InputManager Tests");
+    state->Text.AddLine("");
+    state->Text.AddLine("Press the [ENTER] key");
   })
       .Step([this](auto state) {
         std::ignore = state;
@@ -33,7 +33,8 @@ void InputTests::Setup(IMGDFSimHost *host) {
                                              : TestStep::CONT;
       })
       .StepOnce([](auto state) {
-        state->AddLine("Press and hold [UP ARROW] key for at least one second");
+        state->Text.AddLine(
+            "Press and hold [UP ARROW] key for at least one second");
       })
       .Step([this](auto state) {
         std::ignore = state;
@@ -52,36 +53,39 @@ void InputTests::Setup(IMGDFSimHost *host) {
           return TestStep::CONT;
         }
       })
-      .StepOnce(
-          [](auto state) { state->AddLine("Now release the [UP ARROW] key"); })
+      .StepOnce([](auto state) {
+        state->Text.AddLine("Now release the [UP ARROW] key");
+      })
       .Step([this](auto state) {
         std::ignore = state;
         return _input->IsKeyUp(VK_UP) ? TestStep::PASSED : TestStep::CONT;
       })
-      .StepOnce(
-          [](auto state) { state->AddLine("Now click the left mouse button"); })
+      .StepOnce([](auto state) {
+        state->Text.AddLine("Now click the left mouse button");
+      })
       .Step([this](auto state) {
         std::ignore = state;
         return _input->IsButtonClicked(MGDF_MOUSE_LEFT) ? TestStep::PASSED
                                                         : TestStep::CONT;
       })
-      .StepOnce([](auto state) { state->AddLine("Now move the mouse up"); })
+      .StepOnce(
+          [](auto state) { state->Text.AddLine("Now move the mouse up"); })
       .Step([this](auto state) {
         std::ignore = state;
         return _input->GetMouseDY() < 0 ? TestStep::PASSED : TestStep::CONT;
       })
       .Step([this](auto state) {
         if (_gamepad->IsConnected()) {
-          state->AddLine("Xbox controller detected");
+          state->Text.AddLine("Xbox controller detected");
           return TestStep::NEXT;
         } else if (!_waitingForGamepad) {
           _waitingForGamepad = true;
-          state->AddLine("Plug in an Xbox controller");
+          state->Text.AddLine("Plug in an Xbox controller");
         }
         return TestStep::CONT;
       })
       .StepOnce([](auto state) {
-        state->AddLine("Press the [A] button on controller 1");
+        state->Text.AddLine("Press the [A] button on controller 1");
       })
       .Step([this](auto state) {
         std::ignore = state;
@@ -89,7 +93,7 @@ void InputTests::Setup(IMGDFSimHost *host) {
                                                        : TestStep::CONT;
       })
       .StepOnce([](auto state) {
-        state->AddLine("Pull the left trigger on controller 1");
+        state->Text.AddLine("Pull the left trigger on controller 1");
       })
       .Step([this](auto state) {
         std::ignore = state;
@@ -97,7 +101,7 @@ void InputTests::Setup(IMGDFSimHost *host) {
                                                  : TestStep::CONT;
       })
       .StepOnce([](auto state) {
-        state->AddLine(
+        state->Text.AddLine(
             "Pull the right trigger on controller 1, press [A] if the "
             "controller "
             "vibrates, [B] if it does not.");

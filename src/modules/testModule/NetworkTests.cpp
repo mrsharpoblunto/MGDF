@@ -18,12 +18,12 @@ NetworkTests::NetworkTests() : _requestGroupKey(nullptr) {}
 
 void NetworkTests::Setup(IMGDFSimHost *host) {
   StepOnce([this](auto state) {
-    state->AddLine("");
-    state->AddLine("Network Tests");
-    state->AddLine("");
+    state->Text.AddLine("");
+    state->Text.AddLine("Network Tests");
+    state->Text.AddLine("");
   })
       .StepOnce([host, this](auto state) {
-        state->AddLine("Https client request");
+        state->Text.AddLine("Https client request");
         host->CreateHttpRequest("https://www.matchstickframework.org/",
                                 _request.Assign());
         host->CreateHttpRequestGroup(_requestGroup.Assign());
@@ -55,13 +55,13 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .Step([this](auto state) {
-        state->AddLine("Https request cleanup");
+        state->Text.AddLine("Https request cleanup");
         _requestGroup.Clear();
         _request.Clear();
         return TestStep::PASSED;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("client request cancellation");
+        state->Text.AddLine("client request cancellation");
         host->CreateHttpRequest("https://www.matchstickframework.org/",
                                 _request.Assign());
         _request->SetRequestMethod("GET")->SendRequest(nullptr);
@@ -81,12 +81,12 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .Step([this](auto state) {
-        state->AddLine("cancelled request cleanup");
+        state->Text.AddLine("cancelled request cleanup");
         _request.Clear();
         return TestStep::PASSED;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("Invalid client request (1): No server");
+        state->Text.AddLine("Invalid client request (1): No server");
         host->CreateHttpRequest("http://localhost:6006", _request.Assign());
         _request->SetRequestMethod("GET")->SendRequest(nullptr);
       })
@@ -104,12 +104,12 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .Step([this](auto state) {
-        state->AddLine("Invalid request cleanup (1)");
+        state->Text.AddLine("Invalid request cleanup (1)");
         _request.Clear();
         return TestStep::PASSED;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("Invalid client request (2): Invalid URL");
+        state->Text.AddLine("Invalid client request (2): Invalid URL");
         host->CreateHttpRequest("arglebargle", _request.Assign());
         _request->SetRequestMethod("GET")->SendRequest(nullptr);
       })
@@ -127,12 +127,12 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .Step([this](auto state) {
-        state->AddLine("Invalid request cleanup (2)");
+        state->Text.AddLine("Invalid request cleanup (2)");
         _request.Clear();
         return TestStep::PASSED;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("Wss socket client");
+        state->Text.AddLine("Wss socket client");
         host->CreateWebSocket("wss://echo.websocket.org/",
                               _socketClient.Assign());
         std::string message("Hello");
@@ -162,12 +162,12 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .Step([this](auto state) {
-        state->AddLine("Wss socket client cleanup");
+        state->Text.AddLine("Wss socket client cleanup");
         _socketClient.Clear();
         return TestStep::PASSED;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("Invalid client WebSocket (1): No server");
+        state->Text.AddLine("Invalid client WebSocket (1): No server");
         host->CreateWebSocket("wss://localhost:6006/", _socketClient.Assign());
         std::string message("Hello");
         _socketClient->Send(message.data(), message.size(), false);
@@ -191,12 +191,12 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .Step([this](auto state) {
-        state->AddLine("Invalid client WebSocket cleanup (1)");
+        state->Text.AddLine("Invalid client WebSocket cleanup (1)");
         _socketClient.Clear();
         return TestStep::PASSED;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("Starting Web Server on port 3000");
+        state->Text.AddLine("Starting Web Server on port 3000");
         host->CreateWebServer(3000, "/websocket", _server.Assign());
       })
       .Step([this, host](auto state) {
@@ -207,7 +207,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("Web Server multiple http requests");
+        state->Text.AddLine("Web Server multiple http requests");
 
         for (int i = 0; i < 10; i++) {
           auto key = std::to_string(i);
@@ -268,7 +268,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .StepOnce([this, host](auto state) {
-        state->AddLine("Client WebSocket -> Web Server WebSocket");
+        state->Text.AddLine("Client WebSocket -> Web Server WebSocket");
         host->CreateWebSocket("ws://localhost:3000/websocket",
                               _socketClient.Assign());
         std::string foobar("foobar");
@@ -302,7 +302,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         return TestStep::CONT;
       })
       .StepOnce([this](auto state) {
-        state->AddLine("Web Server WebSocket -> Client WebSocket");
+        state->Text.AddLine("Web Server WebSocket -> Client WebSocket");
       })
       .Step([this](auto state) {
         std::ignore = state;
@@ -322,7 +322,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
       })
       .StepOnce([this, host](auto state) {
         _socketClient.Clear();
-        state->AddLine("Web Server cleanup");
+        state->Text.AddLine("Web Server cleanup");
       })
       .Step([this, host](auto state) {
         std::ignore = state;

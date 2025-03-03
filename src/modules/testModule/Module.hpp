@@ -20,22 +20,33 @@ struct TestResults {
   uint32_t Failed;
 };
 
+class TestState {
+ public:
+  TestState() : TestHDR(false) {}
+  TestState(const TestState &state);
+  TestState(const TestState &startState, const TestState &endState,
+            double alpha);
+  virtual ~TestState() {}
+  TextManagerState Text;
+  bool TestHDR;
+};
+
 class TestModule {
  public:
   enum class TestStep { FAILED, PASSED, CONT, NEXT };
 
   TestModule() : _testIndex(0) {}
   virtual ~TestModule(void) {}
-  bool Update(IMGDFSimHost *host, TextManagerState *state,
+  bool Update(IMGDFSimHost *host, std::shared_ptr<TestState> &state,
               TestResults &results);
-  TestModule &Step(std::function<TestStep(TextManagerState *)> step);
-  TestModule &StepOnce(std::function<void(TextManagerState *)> step);
+  TestModule &Step(std::function<TestStep(std::shared_ptr<TestState> &)> step);
+  TestModule &StepOnce(std::function<void(std::shared_ptr<TestState> &)> step);
 
  protected:
   virtual void Setup(IMGDFSimHost *host) = 0;
 
  private:
-  std::vector<std::function<TestStep(TextManagerState *)>> _steps;
+  std::vector<std::function<TestStep(std::shared_ptr<TestState> &)>> _steps;
   int _testIndex;
 };
 
@@ -61,7 +72,7 @@ class Module : public ComBase<IMGDFModule> {
   bool _finalResult;
   std::list<std::unique_ptr<TestModule>> _testModules;
   std::list<std::unique_ptr<TestModule>>::iterator _currentModule;
-  BufferedGameState<TextManagerState> _stateBuffer;
+  BufferedGameState<TestState> _stateBuffer;
   std::unique_ptr<TextManager> _textManager;
   ComObject<IMGDFPerformanceCounter> _textManagerCounter;
   ComObject<IMGDFPerformanceCounter> _testModuleCounter;

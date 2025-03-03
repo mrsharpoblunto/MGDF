@@ -19,14 +19,14 @@ void SoundTests::Setup(IMGDFSimHost *host) {
   host->GetSound(_soundManager.Assign());
 
   Step([this](auto state) {
-    state->AddLine("");
-    state->AddLine("Sound Tests");
-    state->AddLine("");
-    state->AddLine("Checking SoundManager is initialized");
+    state->Text.AddLine("");
+    state->Text.AddLine("Sound Tests");
+    state->Text.AddLine("");
+    state->Text.AddLine("Checking SoundManager is initialized");
     return _soundManager ? TestStep::PASSED : TestStep::FAILED;
   })
       .Step([this](auto state) {
-        state->AddLine("Loading sound chimes.wav");
+        state->Text.AddLine("Loading sound chimes.wav");
         _soundManager->SetEnableAttenuation(true);
         ComObject<IMGDFReadOnlyFile> file;
         if (_vfs->GetFile(L"chimes.wav", file.Assign()) &&
@@ -46,7 +46,7 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         _sound->SetInnerRange(0);
         _sound->SetOuterRange(250);
         _sound->Play();
-        state->AddLine("Is a sound playing? [Y/N]");
+        state->Text.AddLine("Is a sound playing? [Y/N]");
       })
       .Step([this](auto state) {
         std::ignore = state;
@@ -59,7 +59,7 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         }
       })
       .StepOnce([this](auto state) {
-        state->AddLine(
+        state->Text.AddLine(
             "Use arrow keys to change sounds position, press [Y/N] if the "
             "sound "
             "adjusts accordingly");
@@ -92,7 +92,7 @@ void SoundTests::Setup(IMGDFSimHost *host) {
       })
       .Step([this](auto state) {
         _sound.Clear();
-        state->AddLine("Loading stream stream.ogg");
+        state->Text.AddLine("Loading stream stream.ogg");
         ComObject<IMGDFReadOnlyFile> file;
         if (_vfs->GetFile(L"Stream.ogg", file.Assign()) &&
             FAILED(_soundManager->CreateSoundStream(file, _stream.Assign()))) {
@@ -109,7 +109,7 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         }
       })
       .StepOnce([](auto state) {
-        state->AddLine(
+        state->Text.AddLine(
             "Playing stream, press [Y/N] if the stream is actually playing");
       })
       .Step([this](auto state) {
@@ -123,7 +123,7 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         }
       })
       .StepOnce([](auto state) {
-        state->AddLine(
+        state->Text.AddLine(
             "Use [P] to toggle pause/play, press [Y/N] if this is working.");
       })
       .Step([this](auto state) {

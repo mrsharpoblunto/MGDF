@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "DisplayTests.hpp"
 #include "InputTests.hpp"
 #include "LoadSaveTests.hpp"
 #include "NetworkTests.hpp"
@@ -14,7 +15,14 @@
 namespace MGDF {
 namespace Test {
 
-bool TestModule::Update(IMGDFSimHost* host, TextManagerState* state,
+TestState::TestState(const TestState& state)
+    : TestHDR(state.TestHDR), Text(state.Text) {}
+
+TestState::TestState(const TestState& startState, const TestState& endState,
+                     double alpha)
+    : TestHDR(endState.TestHDR), Text(startState.Text, endState.Text, alpha) {}
+
+bool TestModule::Update(IMGDFSimHost* host, std::shared_ptr<TestState>& state,
                         TestResults& results) {
   ComObject<IMGDFInputManager> input;
   host->GetInput(input.Assign());
@@ -27,11 +35,11 @@ bool TestModule::Update(IMGDFSimHost* host, TextManagerState* state,
   } else if (_testIndex < _steps.size()) {
     auto result = _steps[_testIndex](state);
     if (result == TestStep::PASSED) {
-      state->SetStatus(TextColor::GREEN, "[Test Passed]");
+      state->Text.SetStatus(TextColor::GREEN, "[Test Passed]");
       ++_testIndex;
       ++results.Passed;
     } else if (result == TestStep::FAILED) {
-      state->SetStatus(TextColor::RED, "[Test Failed]");
+      state->Text.SetStatus(TextColor::RED, "[Test Failed]");
       _testIndex = static_cast<int>(_steps.size());
       ++results.Failed;
       return true;
@@ -42,12 +50,14 @@ bool TestModule::Update(IMGDFSimHost* host, TextManagerState* state,
   return _testIndex == _steps.size();
 }
 
-TestModule& TestModule::Step(std::function<TestStep(TextManagerState*)> step) {
+TestModule& TestModule::Step(
+    std::function<TestStep(std::shared_ptr<TestState>&)> step) {
   _steps.push_back(step);
   return *this;
 }
 
-TestModule& TestModule::StepOnce(std::function<void(TextManagerState*)> step) {
+TestModule& TestModule::StepOnce(
+    std::function<void(std::shared_ptr<TestState>&)> step) {
   _steps.push_back([step](auto state) {
     step(state);
     return TestStep::NEXT;
@@ -63,15 +73,16 @@ Module::Module()
       _textManagerCounter(nullptr),
       _testModuleCounter(nullptr),
       _textManager(nullptr) {
-  _stateBuffer.Pending()->AddLine("MGDF functional test suite started");
+  _stateBuffer.Pending()->Text.AddLine("MGDF functional test suite started");
 }
 
 BOOL Module::STNew(IMGDFSimHost* host) {
   std::ignore = host;
+  _testModules.push_back(std::make_unique<DisplayTests>());
+  _testModules.push_back(std::make_unique<LoadSaveTests>());
   _testModules.push_back(std::make_unique<NetworkTests>());
   _testModules.push_back(std::make_unique<SoundTests>());
   _testModules.push_back(std::make_unique<InputTests>());
-  _testModules.push_back(std::make_unique<LoadSaveTests>());
   _currentModule = _testModules.begin();
 
   return true;
@@ -92,9 +103,10 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
   {
     ComObject<IMGDFPerformanceCounterScope> counterScope;
     _testModuleCounter->Begin(nullptr, counterScope.Assign());
+    auto state = _stateBuffer.Pending();
     if (_currentModule != _testModules.end()) {
       const auto moduleComplete =
-          (*_currentModule)->Update(host, _stateBuffer.Pending(), _results);
+          (*_currentModule)->Update(host, state, _results);
 
       if (moduleComplete) {
         ++_currentModule;
@@ -105,9 +117,9 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
       oss << _results.Passed << "/" << (_results.Passed + _results.Failed)
           << " tests passed. Press the [ESC] key to exit (then make sure there "
              "were no memory leaks)";
-      _stateBuffer.Pending()->AddLine("");
-      _stateBuffer.Pending()->AddLine(oss.str());
-      _stateBuffer.Pending()->AddLine("");
+      state->Text.AddLine("");
+      state->Text.AddLine(oss.str());
+      state->Text.AddLine("");
     }
     if (_input->IsKeyPress(VK_ESCAPE)) {
       host->QueueShutDown();
@@ -135,13 +147,17 @@ BOOL Module::RTBeforeFirstDraw(IMGDFRenderHost* host) {
 
 BOOL Module::RTDraw(IMGDFRenderHost* host, double alpha) {
   std::ignore = host;
-  std::shared_ptr<TextManagerState> state = _stateBuffer.Interpolate(alpha);
+  std::shared_ptr<TestState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
-    ComObject<IMGDFPerformanceCounterScope> counter;
-    if (_textManagerCounter)
-      _textManagerCounter->Begin(nullptr, counter.Assign());
-    _textManager->SetState(state);
-    _textManager->DrawText();
+    if (!state->TestHDR) {
+      ComObject<IMGDFPerformanceCounterScope> counter;
+      if (_textManagerCounter)
+        _textManagerCounter->Begin(nullptr, counter.Assign());
+      _textManager->SetState(state->Text);
+      _textManager->DrawText();
+    } else {
+      // TODO
+    }
   }
   return true;
 }

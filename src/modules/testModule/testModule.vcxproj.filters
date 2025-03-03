@@ -18,6 +18,9 @@
     <ClCompile Include="NetworkTests.cpp">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="DisplayTests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FakeArchiveHandler.hpp" />
@@ -34,6 +37,9 @@
       <Filter>tests</Filter>
     </ClInclude>
     <ClInclude Include="NetworkTests.hpp">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplayTests.hpp">
       <Filter>tests</Filter>
     </ClInclude>
   </ItemGroup>
