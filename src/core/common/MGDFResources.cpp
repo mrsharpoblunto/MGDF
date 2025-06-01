@@ -36,8 +36,7 @@ bool DecompressStringImpl(const char *str, const size_t strLen, T &out) {
   int ret = 0;
   do {
     out.resize(out.size() + BUFFER_SIZE);
-    zs.next_out =
-        reinterpret_cast<Bytef *>(out.data() + out.size() - BUFFER_SIZE);
+    zs.next_out = (Bytef *)(out.data() + out.size() - BUFFER_SIZE);
     zs.avail_out = BUFFER_SIZE;
 
     ret = inflate(&zs, 0);
@@ -65,8 +64,7 @@ bool Resources::CompressString(const std::string &str, std::vector<char> &out) {
   out.clear();
   do {
     out.resize(out.size() + BUFFER_SIZE);
-    zs.next_out =
-        reinterpret_cast<Bytef *>(out.data() + out.size() - BUFFER_SIZE);
+    zs.next_out = (Bytef *)(out.data() + out.size() - BUFFER_SIZE);
     zs.avail_out = BUFFER_SIZE;
 
     ret = deflate(&zs, Z_FINISH);

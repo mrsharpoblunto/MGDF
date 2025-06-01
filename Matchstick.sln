@@ -146,6 +146,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.clang-format = .clang-format
 		.gitignore = .gitignore
 		src\matchstick.ruleset = src\matchstick.ruleset
+		LICENSE.txt = LICENSE.txt
 		README.md = README.md
 		vcpkg-configuration.json = vcpkg-configuration.json
 		vcpkg.json = vcpkg.json

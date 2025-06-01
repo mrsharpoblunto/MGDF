@@ -14,37 +14,35 @@ namespace Test {
 
 DisplayTests::~DisplayTests(void) {}
 
-DisplayTests::DisplayTests() {}
+DisplayTests::DisplayTests() : _testHDR(false) {}
 
 void DisplayTests::Setup(IMGDFSimHost *host) {
   host->GetInput(_input.Assign());
   host->GetRenderSettings(_settings.Assign());
 
   StepOnce([this](auto state) {
-    MGDFHDRDisplayInfo info;
-    _settings->GetCurrentOutputHDRDisplayInfo(&info);
-    if (info.Supported) {
-      std::ostringstream oss;
-      oss << "HDR Display Info: " << info.MinLuminance << "->"
-          << info.MaxLuminance << "Nits, SDR level: " << info.SDRWhiteLevel;
-      state->Text.AddLine(oss.str());
-    } else {
-      state->Text.AddLine("Warning: HDR Unsupported");
-    }
     state->Text.AddLine("");
-    state->Text.AddLine("Press [H] to toggle HDR mode.");
-    state->Text.AddLine("\tSDR - You should see a white screen");
-    state->Text.AddLine(
-        "\tHDR - You should see a white screen with a pulsing extra white "
-        "square at the center");
+    state->Text.AddLine("Press [H] to query HDR mode on the current output");
     state->Text.AddLine("Press [Y/N] if this works correctly");
   })
       .Step([host, this](auto state) {
         if (_input->IsKeyPress('H')) {
-          state->TestHDR = !state->TestHDR;
+          _testHDR = !_testHDR;
           ComObject<IMGDFPendingRenderSettingsChange> pending;
           _settings->CreatePendingSettingsChange(pending.Assign());
-          pending->SetHDREnabled(state->TestHDR);
+          pending->SetHDREnabled(_testHDR);
+
+          MGDFHDRDisplayInfo info;
+          _settings->GetCurrentOutputHDRDisplayInfo(&info);
+          if (info.Supported) {
+            std::ostringstream oss;
+            oss << "HDR Display Info: " << info.MinLuminance << "->"
+                << info.MaxLuminance
+                << "Nits, SDR level: " << info.SDRWhiteLevel;
+            state->Text.AddLine(oss.str());
+          } else {
+            state->Text.AddLine("Warning: HDR Unsupported");
+          }
         } else if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {

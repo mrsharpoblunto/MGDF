@@ -17,6 +17,7 @@ class MGDFApp : public D3DAppFramework {
   virtual ~MGDFApp();
 
  protected:
+  std::pair<DXGI_FORMAT, DXGI_FORMAT> RTOnBeforeEnumerateDisplayModes() final;
   void RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice,
                        const ComObject<ID2D1Device> &d2dDevice) final;
   MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,

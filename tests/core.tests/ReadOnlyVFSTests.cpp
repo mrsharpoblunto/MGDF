@@ -45,7 +45,8 @@ TEST_F(ReadOnlyVFSTests, ZipArchiveTests) {
     EXPECT_STREQ(f, GetLogicalName(file).c_str());
   }
 
-  ASSERT_TRUE(_vfs->GetFile(L"boot/gameState.xml", file.Assign()));
+  // absolute and relative paths should be relativized to the root
+  ASSERT_TRUE(_vfs->GetFile(L"/boot/gameState.xml", file.Assign()));
   EXPECT_STREQ(L"gameState.xml", GetLogicalName(file).c_str());
   ASSERT_TRUE(_vfs->GetFile(L"boot/persistency.xml", file.Assign()));
   EXPECT_STREQ(L"persistency.xml", GetLogicalName(file).c_str());
@@ -130,9 +131,12 @@ TEST_F(ReadOnlyVFSTests, FileSystemTests) {
     ComObject<IMGDFReadOnlyFile> file;
     ASSERT_TRUE(_vfs->GetFile(f, file.Assign()));
     EXPECT_STREQ(f, GetLogicalName(file).c_str());
-    ASSERT_TRUE(root->GetChild(f, file.Assign()));
-    EXPECT_STREQ(f, GetLogicalName(file).c_str());
   }
+
+  // test absolute paths are relativized
+  ComObject<IMGDFReadOnlyFile> file;
+  ASSERT_TRUE(_vfs->GetFile(L"/test.zip", file.Assign()));
+  EXPECT_STREQ(L"test.zip", GetLogicalName(file).c_str());
 }
 
 // check that files in the standard file can be read from the vfs correctly

@@ -15,12 +15,11 @@
 namespace MGDF {
 namespace Test {
 
-TestState::TestState(const TestState& state)
-    : TestHDR(state.TestHDR), Text(state.Text) {}
+TestState::TestState(const TestState& state) : Text(state.Text) {}
 
 TestState::TestState(const TestState& startState, const TestState& endState,
                      double alpha)
-    : TestHDR(endState.TestHDR), Text(startState.Text, endState.Text, alpha) {}
+    : Text(startState.Text, endState.Text, alpha) {}
 
 bool TestModule::Update(IMGDFSimHost* host, std::shared_ptr<TestState>& state,
                         TestResults& results) {
@@ -149,15 +148,11 @@ BOOL Module::RTDraw(IMGDFRenderHost* host, double alpha) {
   std::ignore = host;
   std::shared_ptr<TestState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
-    if (!state->TestHDR) {
-      ComObject<IMGDFPerformanceCounterScope> counter;
-      if (_textManagerCounter)
-        _textManagerCounter->Begin(nullptr, counter.Assign());
-      _textManager->SetState(state->Text);
-      _textManager->DrawText();
-    } else {
-      // TODO
-    }
+    ComObject<IMGDFPerformanceCounterScope> counter;
+    if (_textManagerCounter)
+      _textManagerCounter->Begin(nullptr, counter.Assign());
+    _textManager->SetState(state->Text);
+    _textManager->DrawText();
   }
   return true;
 }

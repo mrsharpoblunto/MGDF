@@ -54,6 +54,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   RenderSettingsManager();
   virtual ~RenderSettingsManager();
 
+  DXGI_FORMAT __stdcall GetSDRBackBufferFormat() final;
+  DXGI_FORMAT __stdcall GetHDRBackBufferFormat() final;
   UINT32 __stdcall GetMaxFrameLatency() final;
   BOOL __stdcall GetVSync() final;
   void __stdcall GetFullscreen(MGDFFullScreenDesc *desc) final;
@@ -100,7 +102,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   std::map<UINT32, UINT32> _multiSampleQuality;
   UINT32 _currentMultiSampleLevel;
   UINT32 _backBufferMultiSampleLevel;
-  DXGI_FORMAT _backBufferFormat;
+  DXGI_FORMAT _sdrBackBufferFormat;
+  DXGI_FORMAT _hdrBackBufferFormat;
 
   UINT32 _screenX, _screenY;
   UINT32 _maxFrameLatency;

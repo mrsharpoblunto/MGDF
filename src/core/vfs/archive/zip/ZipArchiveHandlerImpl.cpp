@@ -147,7 +147,7 @@ ZipFolderImpl *ZipArchiveHandlerImpl::CreateParentFolder(
   size_t end = 0;
   ZipFolderImpl *parent = root;
 
-  while (end < len) {
+  while (parent && end < len) {
     while (end < len && path[end] != '/') {
       ++end;
     }
@@ -160,7 +160,7 @@ ZipFolderImpl *ZipArchiveHandlerImpl::CreateParentFolder(
         child = ComObject<IMGDFReadOnlyFile>(newChild.get(), true);
         parent->AddChild(newChild);
       }
-      parent = static_cast<ZipFolderImpl *>(child.Get());
+      parent = dynamic_cast<ZipFolderImpl *>(child.Get());
     }
     ++end;
     start = end;

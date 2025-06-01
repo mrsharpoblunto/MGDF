@@ -22,6 +22,7 @@ class DisplayTests : public TestModule {
   void Setup(IMGDFSimHost *host) final;
 
  private:
+  bool _testHDR;
   ComObject<IMGDFInputManager> _input;
   ComObject<IMGDFRenderSettingsManager> _settings;
 };

@@ -73,8 +73,20 @@ bool ReadOnlyVirtualFileSystemComponent::Mount(
 
 BOOL ReadOnlyVirtualFileSystemComponent::GetFile(const wchar_t *logicalPath,
                                                  IMGDFReadOnlyFile **file) {
+  if (!logicalPath) {
+    GetRoot(file);
+    return true;
+  }
+
+  std::wstring_view logicalPathView(logicalPath);
+  if (logicalPathView.at(0) == L'/') {
+    // If the logical path starts with a '/', we assume it's root-relative.
+    // We can remove the leading '/' to make it relative to the root path.
+    logicalPathView.remove_prefix(1);
+  }
+
   std::filesystem::path path =
-      (_context->RootPath / logicalPath).lexically_normal();
+      (_context->RootPath / logicalPathView).lexically_normal();
   return Get(path, file);
 }
 

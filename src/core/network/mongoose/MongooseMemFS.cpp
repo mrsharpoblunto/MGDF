@@ -46,7 +46,12 @@ void *MemFS::op(const char *path, int flags) {
   }
 }
 
-void MemFS::cl(void *fd) { delete static_cast<FD *>(fd); }
+void MemFS::cl(void *fd) {
+#pragma warning(push)
+#pragma warning(disable : 26401)
+  delete static_cast<FD *>(fd);
+#pragma warning(pop)
+}
 
 size_t MemFS::rd(void *fd, void *buf, size_t len) {
   FD *context = static_cast<FD *>(fd);

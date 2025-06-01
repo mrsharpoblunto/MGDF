@@ -308,12 +308,18 @@ UINT32 VorbisStream::GetPosition() {
   float currentOffset;
   alGetSourcef(_source, AL_SEC_OFFSET, &currentOffset);
   const double actualOffset = bufferOffset + currentOffset;
+#pragma warning(push)
+#pragma warning(disable : 26467)
   return static_cast<UINT32>((actualOffset < 0 ? 0 : actualOffset) * 1000);
+#pragma warning(pop)
 }
 
 UINT32 VorbisStream::GetLength() {
   const auto total = ov_time_total(&_vorbisFile, -1);
+#pragma warning(push)
+#pragma warning(disable : 26467)
   return static_cast<UINT32>((total < 0 ? 0 : total) * 1000);
+#pragma warning(pop)
 }
 
 void VorbisStream::Update() {

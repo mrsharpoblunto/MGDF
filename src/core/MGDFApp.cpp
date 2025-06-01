@@ -283,6 +283,11 @@ void MGDFApp::RTInitBrushes() {
   }
 }
 
+std::pair<DXGI_FORMAT, DXGI_FORMAT> MGDFApp::RTOnBeforeEnumerateDisplayModes() {
+  return std::make_pair(_settings->GetSDRBackBufferFormat(),
+                        _settings->GetHDRBackBufferFormat());
+}
+
 void MGDFApp::RTOnDisplayChange(
     const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
     ULONG currentSDRWhiteLevel,
@@ -298,7 +303,7 @@ void MGDFApp::RTOnDisplayChange(
         std::make_tuple(mode.Width, mode.Height, mode.RefreshRate.Numerator,
                         mode.RefreshRate.Denominator);
 
-    const bool isHDR = mode.Format == DXGI_FORMAT_R16G16B16A16_FLOAT;
+    const bool isHDR = mode.Format == _settings->GetHDRBackBufferFormat();
 
     const auto &found = uniqueModes.find(key);
     if (found == uniqueModes.end()) {

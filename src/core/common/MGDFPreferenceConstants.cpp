@@ -30,6 +30,10 @@ const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
 const char *PreferenceConstants::WINDOW_POSITIONX = "host.windowPositionX";
 const char *PreferenceConstants::WINDOW_POSITIONY = "host.windowPositionY";
 const char *PreferenceConstants::HDR_ENABLED = "host.hdrEnabled";
+const char *PreferenceConstants::SDR_BACKBUFFER_FORMAT =
+    "host.sdrBackBufferFormat";
+const char *PreferenceConstants::HDR_BACKBUFFER_FORMAT =
+    "host.hdrBackBufferFormat";
 
 constexpr char S_1[] = "1";
 
@@ -67,6 +71,11 @@ double FromString(const std::string &str) {
 template <>
 float FromString(const std::string &str) {
   return static_cast<float>(FromString<double>(str));
+}
+
+template <>
+DXGI_FORMAT FromString(const std::string &str) {
+  return static_cast<DXGI_FORMAT>(atoll(str.c_str()));
 }
 
 bool GetPreference(IMGDFGame *game, const std::string &name,

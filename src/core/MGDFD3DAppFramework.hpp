@@ -38,6 +38,8 @@ class D3DAppFramework {
   INT32 Run();
 
  protected:
+  virtual std::pair<DXGI_FORMAT, DXGI_FORMAT>
+  RTOnBeforeEnumerateDisplayModes() = 0;
   virtual void RTOnBeforeFirstDraw() = 0;
   virtual void RTOnBeforeDeviceReset() = 0;
   virtual void RTOnDeviceReset() = 0;

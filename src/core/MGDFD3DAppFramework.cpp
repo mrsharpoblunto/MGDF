@@ -412,6 +412,8 @@ void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
   ComObject<IDXGIOutput6> primaryOutput;
   float bestIntersectArea = -1;
 
+  const auto displayModeFormats = RTOnBeforeEnumerateDisplayModes();
+
   // the best matching output is the one with the largest intersection area
   // with the app window
   LOG("Checking outputs to find best match for current window...",
@@ -467,13 +469,13 @@ void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
   }
 
   UINT32 maxSDRAdaptorModes = 0U;
-  primaryOutput->GetDisplayModeList1(DXGI_FORMAT_R8G8B8A8_UNORM, 0,
+  primaryOutput->GetDisplayModeList1(displayModeFormats.first, 0,
                                      &maxSDRAdaptorModes, nullptr);
 
   UINT32 maxHDRAdaptorModes = 0U;
   if (primaryDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020) {
     LOG("Primary output supports HDR", MGDF_LOG_LOW);
-    primaryOutput->GetDisplayModeList1(DXGI_FORMAT_R16G16B16A16_FLOAT, 0,
+    primaryOutput->GetDisplayModeList1(displayModeFormats.second, 0,
                                        &maxHDRAdaptorModes, nullptr);
   }
 
@@ -482,12 +484,12 @@ void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
       static_cast<size_t>(maxHDRAdaptorModes));
 
   // get all valid modes for the outputs supported
-  if (FAILED(primaryOutput->GetDisplayModeList1(DXGI_FORMAT_R8G8B8A8_UNORM, 0,
+  if (FAILED(primaryOutput->GetDisplayModeList1(displayModeFormats.first, 0,
                                                 &maxSDRAdaptorModes,
                                                 primaryModes.data())) ||
       (maxHDRAdaptorModes > 0U &&
        FAILED(primaryOutput->GetDisplayModeList1(
-           DXGI_FORMAT_R16G16B16A16_FLOAT, 0, &maxHDRAdaptorModes,
+           displayModeFormats.second, 0, &maxHDRAdaptorModes,
            primaryModes.data() + maxSDRAdaptorModes)))) {
     FATALERROR(this, "Failed to get mode lists from adapter");
   }
@@ -851,6 +853,8 @@ INT32 D3DAppFramework::Run() {
                   FATALERROR(this, "GetFullscreenState failed");
                 }
                 if (fullscreen) {
+                  LOG("Switching from exclusive fullscreen to windowed mode",
+                      MGDF_LOG_LOW);
                   // d3d has to be in windowed mode to cleanup correctly
                   if (FAILED(
                           _rtSwapChain->SetFullscreenState(false, nullptr))) {
@@ -863,6 +867,7 @@ INT32 D3DAppFramework::Run() {
               if (!newFullScreen.ExclusiveMode) {
                 // switch to fullscreen-borderless
                 if (newFullScreen.FullScreen) {
+                  LOG("Setting fullscreen-borderless mode", MGDF_LOG_LOW);
                   if (!::SetWindowLongW(
                           window, GWL_STYLE,
                           WS_OVERLAPPEDWINDOW &
@@ -889,6 +894,7 @@ INT32 D3DAppFramework::Run() {
                   }
                   ::ShowWindow(window, SW_MAXIMIZE);
                 } else {
+                  LOG("Setting windowed mode", MGDF_LOG_LOW);
                   if (!::SetWindowLong(window, GWL_STYLE, windowStyle)) {
                     FATALERROR(this, "SetWindowLong failed");
                   }
@@ -911,6 +917,8 @@ INT32 D3DAppFramework::Run() {
                 // exclusive fullscreen is only supported on the primary output
                 // so we need to fetch that before restoring the fullscreen
                 // state
+                LOG("Switching to exclusive fullscreen on primary output",
+                    MGDF_LOG_LOW);
                 ComObject<IDXGIDevice> device = _rtD3dDevice.As<IDXGIDevice>();
                 ComObject<IDXGIAdapter> adapter;
                 device->GetAdapter(adapter.Assign());

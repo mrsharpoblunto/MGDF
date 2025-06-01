@@ -22,13 +22,12 @@ struct TestResults {
 
 class TestState {
  public:
-  TestState() : TestHDR(false) {}
+  TestState() {}
   TestState(const TestState &state);
   TestState(const TestState &startState, const TestState &endState,
             double alpha);
   virtual ~TestState() {}
   TextManagerState Text;
-  bool TestHDR;
 };
 
 class TestModule {

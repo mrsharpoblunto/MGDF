@@ -2,8 +2,8 @@
   "gameUid": "Test",
   "gameName": "Test Game",
   "version": "0.1",
-  "developerName": "Team Junkship",
-  "homepage": "http://www.junkship.net",
+  "developerName": "Straylight Technologies",
+  "homepage": "http://www.matchstickframework.org",
   "supportEmail": "support@matchstickframework.org",
   "preferences": {
     "host.windowResize": "1",

@@ -130,7 +130,8 @@ void PendingRenderSettingsChange::Cancel() { _cancelled = true; }
 RenderSettingsManager::RenderSettingsManager()
     : _currentMultiSampleLevel(1),
       _backBufferMultiSampleLevel(1),
-      _backBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM),
+      _sdrBackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM),
+      _hdrBackBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT),
       _hdrEnabled(false),
       _currentDPI(96),
       _vsync(true),
@@ -193,6 +194,14 @@ BOOL RenderSettingsManager::GetCurrentOutputHDRDisplayInfo(
   return _hdrEnabled && _currentDisplayInfo.Supported;
 }
 
+DXGI_FORMAT RenderSettingsManager::GetSDRBackBufferFormat() {
+  return _sdrBackBufferFormat;
+}
+
+DXGI_FORMAT RenderSettingsManager::GetHDRBackBufferFormat() {
+  return _hdrBackBufferFormat;
+}
+
 BOOL RenderSettingsManager::GetHDREnabled() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _hdrEnabled;
@@ -228,20 +237,6 @@ void RenderSettingsManager::SetOutputProperties(
       }
       _currentDisplayMode = mode;
       break;
-    }
-  }
-
-  // in fullscreen exclusive mode, the HDR format is set by the display mode
-  // so we don't need to change it here
-  if (!_fullScreen.ExclusiveMode && !_fullScreen.FullScreen) {
-    if (_currentDisplayMode.SupportsHDR &&
-        _backBufferFormat != DXGI_FORMAT_R16G16B16A16_FLOAT && _hdrEnabled) {
-      _backBufferFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-      _changePending.store(true);
-    } else if (!_currentDisplayMode.SupportsHDR &&
-               _backBufferFormat != DXGI_FORMAT_R8G8B8A8_UNORM) {
-      _backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-      _changePending.store(true);
     }
   }
 
@@ -411,7 +406,13 @@ void RenderSettingsManager::OnResetSwapChain(
   if (!_fullScreen.ExclusiveMode) {
     desc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
   }
-  desc.Format = _backBufferFormat;
+
+  if (_currentDisplayMode.SupportsHDR && _hdrEnabled) {
+    desc.Format = _hdrBackBufferFormat;
+  } else {
+    desc.Format = _sdrBackBufferFormat;
+  }
+
   desc.SampleDesc.Count = _backBufferMultiSampleLevel;
   desc.SampleDesc.Quality =
       _multiSampleQuality[_backBufferMultiSampleLevel] - 1;
@@ -454,6 +455,12 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
 
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::HDR_ENABLED, ToString(_hdrEnabled)));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::SDR_BACKBUFFER_FORMAT,
+                     ToString(_sdrBackBufferFormat)));
+  p->Preferences.insert(
+      std::make_pair(PreferenceConstants::HDR_BACKBUFFER_FORMAT,
+                     ToString(_hdrBackBufferFormat)));
   p.AddRawRef(preferences);
 }
 
@@ -481,6 +488,14 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
 
   if (GetPreference(game, PreferenceConstants::HDR_ENABLED, pref)) {
     _hdrEnabled = FromString<bool>(pref);
+  }
+
+  if (GetPreference(game, PreferenceConstants::SDR_BACKBUFFER_FORMAT, pref)) {
+    _sdrBackBufferFormat = FromString<DXGI_FORMAT>(pref);
+  }
+
+  if (GetPreference(game, PreferenceConstants::HDR_BACKBUFFER_FORMAT, pref)) {
+    _hdrBackBufferFormat = FromString<DXGI_FORMAT>(pref);
   }
 
   std::string xPref;

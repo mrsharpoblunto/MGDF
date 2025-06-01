@@ -12,5 +12,7 @@
   "host.windowResize": "1",
   "host.windowSizeX": "1024",
   "host.windowSizeY": "768",
-  "host.hdrEnabled": "1"
+  "host.hdrEnabled": "1",
+  "host.sdrBackBufferFormat": "28",
+  "host.hdrBackBufferFormat": "10"
 }

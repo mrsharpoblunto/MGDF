@@ -386,6 +386,8 @@ void WebSocket::HandleEvents(mg_connection *conn, int ev, void *ev_data,
         socket->_cv.notify_one();
       }
     } break;
+    default:
+      break;
   }
 }
 
@@ -668,6 +670,8 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
         server->_cv.notify_one();
       }
     } break;
+    default:
+      break;
   }
 }
 
@@ -679,7 +683,7 @@ void MongooseNetworkManagerComponent::ReconnectWebSocket(
 
 MongooseNetworkManagerComponent::MongooseNetworkManagerComponent(
     const NetworkManagerOptions &options)
-    : _running(true), _options(options) {
+    : _running(true), _options(options), _fs(), _mgr() {
   _pollThread = std::thread([this]() {
     MemFS::InitMGFS(_fs);
     MemFS::Ensure(CertificateManager::S_CA_PEM, &CertificateManager::LoadCerts);

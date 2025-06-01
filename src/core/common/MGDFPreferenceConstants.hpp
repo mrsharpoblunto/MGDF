@@ -28,6 +28,8 @@ class PreferenceConstants {
   static const char *WINDOW_POSITIONX;
   static const char *WINDOW_POSITIONY;
   static const char *HDR_ENABLED;
+  static const char *SDR_BACKBUFFER_FORMAT;
+  static const char *HDR_BACKBUFFER_FORMAT;
 };
 
 template <typename T>
@@ -60,6 +62,9 @@ double FromString(const std::string &str);
 
 template <>
 float FromString(const std::string &str);
+
+template <>
+DXGI_FORMAT FromString(const std::string &str);
 
 bool GetPreference(IMGDFGame *game, const std::string &name,
                    std::string &value);
