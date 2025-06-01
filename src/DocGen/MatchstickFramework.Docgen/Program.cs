@@ -44,6 +44,8 @@ namespace MatchstickFramework.Docgen
 
     static ApiDoc ParseInput(string input)
     {
+      List<string> errors = new List<string>();
+
       ApiDoc api = new ApiDoc
       {
         Classes = new List<ClassDoc>(),
@@ -88,7 +90,25 @@ namespace MatchstickFramework.Docgen
                       }
                       if (string.IsNullOrEmpty(c.Description))
                       {
-                        throw new Exception($"no description found for interface {c.Name}");
+                        errors.Add($"no description found for interface {c.Name}");
+                      }
+                      foreach (var member in c.Members)
+                      {
+                        if (string.IsNullOrEmpty(member.Description))
+                        {
+                          errors.Add($"no description found for interface member {c.Name}.{member.Name}");
+                        }
+                        if (string.IsNullOrEmpty(member.ReturnDescription) && member.ReturnType != "void")
+                        {
+                          errors.Add($"No \\return description found for interface member {c.Name}.{member.Name}");
+                        }
+                        member.Args.ForEach((arg) =>
+                        {
+                          if (string.IsNullOrEmpty(arg.Description))
+                          {
+                            errors.Add($"No \\param description found for {arg.Name} in interface member {c.Name}.{member.Name}");
+                          }
+                        });
                       }
                       api.Classes.Add(c);
                     }
@@ -113,7 +133,7 @@ namespace MatchstickFramework.Docgen
                         }
                         if (string.IsNullOrEmpty(e.Description))
                         {
-                          throw new Exception($"no description found for enum {e.Name}");
+                          errors.Add($"no description found for enum {e.Name}");
                         }
                         api.Enums.Add(e);
                         lastComment = null;
@@ -130,7 +150,7 @@ namespace MatchstickFramework.Docgen
                         }
                         if (string.IsNullOrEmpty(s.Description))
                         {
-                          throw new Exception($"no description found for struct {s.Name}");
+                          errors.Add($"no description found for struct {s.Name}");
                         }
                         api.Structs.Add(s);
                         lastComment = null;
@@ -148,6 +168,16 @@ namespace MatchstickFramework.Docgen
             }
           }
         }
+      }
+
+      if (errors.Count > 0)
+      {
+        Console.WriteLine("Errors found generating docs:");
+        foreach (var error in errors)
+        {
+          Console.WriteLine($" - {error}");
+        }
+        Environment.Exit(1);
       }
       return api;
     }
@@ -430,22 +460,13 @@ namespace MatchstickFramework.Docgen
               if (lastComment != null)
               {
                 member.Description = lastComment.Description;
-                if (string.IsNullOrEmpty(member.Description))
-                {
-                  throw new Exception($"no description found for interface member {c.Name}.{member.Name}");
-                }
                 member.ReturnDescription = lastComment.ReturnDescription;
-                if (string.IsNullOrEmpty(member.ReturnDescription) && member.ReturnType != "void")
-                {
-                  throw new Exception($"No \\return description found for interface member {c.Name}.{member.Name}");
-                }
                 member.Args.ForEach((arg) =>
                 {
-                  if (!lastComment.ParamDescriptions.ContainsKey(arg.Name))
+                  if (lastComment.ParamDescriptions.ContainsKey(arg.Name))
                   {
-                    throw new Exception($"No \\param description found for {arg.Name} in interface member {c.Name}.{member.Name}");
+                    arg.Description = lastComment.ParamDescriptions[arg.Name];
                   }
-                  arg.Description = lastComment.ParamDescriptions[arg.Name];
                 });
               }
               c.Members.Add(member);
@@ -502,39 +523,57 @@ namespace MatchstickFramework.Docgen
           default:
             {
               FunctionArg arg = new FunctionArg();
-              var modifierOrType = CaptureWord(reader);
-              if (modifierOrType == "const")
-              {
-                var type = CaptureWord(reader);
-                if (mappings.ContainsKey(type))
-                {
-                  arg.TypeRefId = type;
-                }
-                modifierOrType += " " + type;
-              }
-              else if (mappings.ContainsKey(modifierOrType))
-              {
-                arg.TypeRefId = modifierOrType;
-              }
-              // reference or pointer types
-              string pointer = CapturePunctuation(reader);
-              string pointerModifier = "";
-              while (pointer != "")
-              {
-                pointerModifier += pointer;
-                pointer = CapturePunctuation(reader);
 
-              }
-              if (pointerModifier != "")
+              List<string> tokens = new List<string>();
+              while (!reader.EndOfStream)
               {
-                modifierOrType += " " + pointerModifier;
+                var word = CaptureWord(reader);
+                if (!string.IsNullOrEmpty(word))
+                {
+                  tokens.Add(word);
+                }
+
+                ch = (char)reader.Peek();
+                if (ch == ',' || ch == ')')
+                {
+                  break;
+                }
+
+                var punct = CapturePunctuation(reader);
+                if (!string.IsNullOrEmpty(punct))
+                {
+                  tokens.Add(punct);
+                }
               }
-              arg.Type = modifierOrType;
-              arg.Name = CaptureWord(reader);
-              if (string.IsNullOrEmpty(arg.Name))
+
+              if (tokens.Count == 0)
               {
-                throw new Exception($"Unnamed argument in interface member {c.Name}.{member.Name}");
+                throw new Exception($"Invalid declaration of argument in interface member {c.Name}.{member.Name}");
               }
+
+              // Last token is the argument name
+              arg.Name = tokens[tokens.Count - 1];
+
+              // All preceding tokens form the type
+              var typeTokens = tokens.Take(tokens.Count - 1).ToList();
+              if (typeTokens.Count == 0)
+              {
+                throw new Exception($"No type found for argument {arg.Name} in interface member {c.Name}.{member.Name}");
+              }
+
+              arg.Type = string.Join(" ", typeTokens);
+
+              // Check if type is in mappings (excluding const prefix)
+              var typeForMapping = typeTokens.FirstOrDefault();
+              if (typeForMapping == "const" && typeTokens.Count > 1)
+              {
+                typeForMapping = typeTokens[1];
+              }
+              if (!string.IsNullOrEmpty(typeForMapping) && mappings.ContainsKey(typeForMapping))
+              {
+                arg.TypeRefId = typeForMapping;
+              }
+
               member.Args.Add(arg);
             }
             break;

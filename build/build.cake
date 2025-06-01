@@ -105,7 +105,7 @@ Task("Sign")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
     var files = GetFiles($@"../bin/x64/{buildConfiguration}/*.exe");
-    files.Add(GetFiles($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/*.exe"));
+    files.Add(GetFiles($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/GamesManager.PackageGen.exe"));
 		var signSecret = Argument<string>("signsecret");
     Sign(files, new SignToolSignSettings {
 			TimeStampUri = new Uri("http://timestamp.digicert.com"),

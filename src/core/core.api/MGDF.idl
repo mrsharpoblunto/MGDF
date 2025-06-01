@@ -1679,6 +1679,7 @@ An interface for sending an HTTP request
   Set the value of an HTTP header on the request
   \param name the name of the header
   \param value the value of the header
+  \return this request object for chaining
   */
   IMGDFHttpClientRequest *
   SetRequestHeader([in] const small *name, [in] const small *value);
@@ -1686,6 +1687,7 @@ An interface for sending an HTTP request
   /**
     Set the HTTP method to use for the request
     \param method the HTTP method to use for the request, one of the standard HTTP verbs (GET, POST, PUT, DELETE, etc)
+    \return this request object for chaining
   */
   IMGDFHttpClientRequest *SetRequestMethod([in] const small *method);
 
@@ -1693,6 +1695,7 @@ An interface for sending an HTTP request
   Set the body of the request. This method copies the body data into the request
   \param body the body of the request
   \param bodyLength the length of the body
+  \return this request object for chaining
   */
   IMGDFHttpClientRequest *
   SetRequestBody([in] const small *body, [in] UINT64 bodyLength);
@@ -1730,9 +1733,9 @@ and responding to that request.
 ] interface IMGDFHttpServerRequest : IUnknown {
   /**
   Get the value of a header in the request
-  \name the name of the header
+  \param name the name of the header
   \param value a buffer to store the header value in
-\param length the length of the buffer provided to store the value above. Will be set to the length required
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the buffer was the correct length or was NULL, E_NOT_SET if no header exists, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestHeader([in] const small *name, [ in, out ] small *value,
@@ -1741,7 +1744,7 @@ and responding to that request.
   /**
   Gets the HTTP method used in the request
   \param method a buffer to store the method in
-\param length the length of the buffer provided to store the value above. Will be set to the length required
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestMethod([ in, out ] small * method,
@@ -1749,8 +1752,8 @@ and responding to that request.
 
   /**
   Gets the path of the request
-  \param method a buffer to store the path in
-\param length the length of the buffer provided to store the value above. Will be set to the length required
+  \param path a buffer to store the path in
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestPath([ in, out ] small * path, [ in, out ] UINT64 * length);
@@ -1759,7 +1762,7 @@ and responding to that request.
   Gets the body of the request. NOTE: this is not necessarily a valid C string
 and may not be null terminated
   \param body a buffer to store the request body in
-\param length the length of the buffer provided to store the value above. Will be set to the length required
+  \param length the length of the buffer provided to store the value above. Will be set to the length required
   \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER if the buffer size was insufficient
   */
   HRESULT GetRequestBody([ in, out ] small * body, [ in, out ] UINT64 * length);
@@ -1840,7 +1843,7 @@ An interface for sending and recieving websocket messages
   Recieves a message from the other end of the websocket connection
   \param message the message to recieve
   \param len the length of the buffer to recieve the message
-  \binary true if the message is binary, false if it is a string
+  \param binary true if the message is binary, false if it is a string
   \return S_OK if there was a message to receive and the buffer was large enough to store it, otherwise E_NOT_SUFFICIENT_BUFFER is returned
   */
   HRESULT Receive([ in, out ] void *message, [in] UINT64 len,
@@ -2231,10 +2234,10 @@ are safe to be used ONLY from the sim thread.
   CreateWebSocket([in] const small *url, [out] IMGDFWebSocket **socket);
 
   /**
-  create a websocket connection
+  create a web server that can handle http and web socket requests
   \param port for the server to listen on
   \param websocketPath Any requests matching this path glob will be upgraded to a websocket connection. If null, all requests will be treated as regular HTTP requests
-  \param socket the created websocket server object
+  \param server the created web server object
   \return S_OK if the webserver could be created, otherwise an error code is returned
   */
   HRESULT
