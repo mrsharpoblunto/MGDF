@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{762B44B2-4615-4C7D-9418-DC604A6D930A}</ProjectGuid>
-    <RootNamespace>junkship</RootNamespace>
+    <RootNamespace>core</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -71,25 +71,26 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>echo copying MGDF dependencies to bin dir
-XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
-echo copying MGDF content to bin dir
-XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
-if errorlevel 1 goto BuildEventFailed
+      <Command>
+        echo copying MGDF dependencies to bin dir
+        XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
+        echo copying MGDF content to bin dir
+        XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
+        if errorlevel 1 goto BuildEventFailed
 
-REM Exit properly because the build will not fail
-REM unless the final step exits with an error code
-goto BuildEventOK
+        REM Exit properly because the build will not fail
+        REM unless the final step exits with an error code
+        goto BuildEventOK
 
-:BuildEventFailed
-echo POSTBUILDSTEP for $(ProjectName) FAILED
-exit 1
+        :BuildEventFailed
+        echo POSTBUILDSTEP for $(ProjectName) FAILED
+        exit 1
 
-:BuildEventOK
+        :BuildEventOK
 
-echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
+        echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
 
-</Command>
+      </Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -129,25 +130,26 @@ echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>echo copying MGDF dependencies to bin dir
-XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
-echo copying MGDF content to bin dir
-XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
-if errorlevel 1 goto BuildEventFailed
+      <Command>
+        echo copying MGDF dependencies to bin dir
+        XCOPY  "$(SolutionDir)dependencies\$(Platform)" "$(SolutionDir)bin\$(Platform)\$(Configuration)\dependencies" /E /Y /I
+        echo copying MGDF content to bin dir
+        XCOPY  "$(SolutionDir)content" "$(SolutionDir)bin\$(Platform)\$(Configuration)" /E /Y /I
+        if errorlevel 1 goto BuildEventFailed
 
-REM Exit properly because the build will not fail
-REM unless the final step exits with an error code
-goto BuildEventOK
+        REM Exit properly because the build will not fail
+        REM unless the final step exits with an error code
+        goto BuildEventOK
 
-:BuildEventFailed
-echo POSTBUILDSTEP for $(ProjectName) FAILED
-exit 1
+        :BuildEventFailed
+        echo POSTBUILDSTEP for $(ProjectName) FAILED
+        exit 1
 
-:BuildEventOK
+        :BuildEventOK
 
-echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
+        echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK
 
-</Command>
+      </Command>
     </PreBuildEvent>
     <ClCompile>
       <AdditionalIncludeDirectories>../../include</AdditionalIncludeDirectories>

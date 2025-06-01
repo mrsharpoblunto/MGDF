@@ -87,13 +87,6 @@
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
-    <Link>
-      <AdditionalDependencies>../../../../../vendor/lib/Release/OpenAL32.lib;../../../../../vendor/lib/Release/alut.lib;../../../../../vendor/lib/$(Configuration)/vorbisfile.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AssemblyDebug>
-      </AssemblyDebug>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-    </Link>
     <Lib>
       <AdditionalDependencies>
       </AdditionalDependencies>
@@ -101,7 +94,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../../include;../../../../vcpkg_installed/x64-windows/x64-windows/include/AL;../../../../../vendor/libvorbis-1.3.1/include;../../../../../vendor/libogg-1.2.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../vcpkg_installed/x64-windows/x64-windows/include/AL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -113,11 +106,6 @@
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
-    <Link>
-      <AdditionalDependencies>../../../../../vendor/lib/Release/OpenAL32.lib;../../../../../vendor/lib/Release/alut.lib;../../../../../vendor/lib/$(Configuration)/vorbisfile.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-    </Link>
     <Lib>
       <AdditionalDependencies>
       </AdditionalDependencies>

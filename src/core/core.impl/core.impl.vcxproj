@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{84289E70-D37A-482E-A1D5-72E6773826DC}</ProjectGuid>
-    <RootNamespace>corelib</RootNamespace>
+    <RootNamespace>coreimpl</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>

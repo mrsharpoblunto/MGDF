@@ -1652,8 +1652,10 @@ and may not be null terminated.
                           [ in, out ] UINT64 * length);
 };
 
-interface IMGDFHttpClientRequest;
-
+/**
+An interface for grouping HTTP requests together. This allows multiple requests
+to be checked for completion at once.
+*/
 [
   uuid("037BBA90-175F-4C30-AA66-221BC2278846"), object,
   local

@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{562212BD-4D30-461A-9452-88E372527BE2}</ProjectGuid>
-    <RootNamespace>testModule1</RootNamespace>
+    <RootNamespace>emptygame</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

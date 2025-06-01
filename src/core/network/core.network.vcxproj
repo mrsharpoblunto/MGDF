@@ -18,7 +18,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}</ProjectGuid>
-    <RootNamespace>xml</RootNamespace>
+    <RootNamespace>corenetwork</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>

@@ -53,12 +53,15 @@ Task("Documentation")
   .Does(() => {
     // Generate docs
     CreateDirectory("../dist/documentation");
-    StartProcess($@"../src/Docgen/MatchstickFramework.Docgen/bin/{buildConfiguration}/MatchstickFramework.Docgen.exe", new ProcessSettings() {
+    int exitCode = StartProcess($@"../src/Docgen/MatchstickFramework.Docgen/bin/{buildConfiguration}/MatchstickFramework.Docgen.exe", new ProcessSettings() {
       WorkingDirectory = new DirectoryPath(".."),
       Arguments = new ProcessArgumentBuilder()
         .AppendQuoted("src/core/core.api/MGDF.idl")
         .AppendQuoted("dist/documentation/api.json")
     });
+		if (exitCode != 0) {
+			throw new Exception("Docgen failed to generate documentation");
+		}
   });
 
 Task("TestGamesManager")
