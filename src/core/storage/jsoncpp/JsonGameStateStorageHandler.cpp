@@ -28,7 +28,7 @@ HRESULT JsonGameStateStorageHandler::Load(const std::wstring &filename) {
     _gameUid = GetJsonValue(root, "gameUid");
     _version = VersionHelper::Create(GetJsonValue(root, "gameVersion"));
     _metadata.clear();
-    auto metadata = root.find("gameMetadata");
+    const auto metadata = root.find("gameMetadata");
     if (metadata != root.cend()) {
       for (const auto &el : metadata.value().items()) {
         _metadata[el.key()] = el.value().get<std::string>();

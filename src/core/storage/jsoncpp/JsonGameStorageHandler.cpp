@@ -48,7 +48,7 @@ HRESULT JsonGameStorageHandler::Load(const std::wstring &filename) {
     _gameUid = GetJsonValue(root, "gameUid");
     _statisticsService = GetJsonValue(root, "statisticsService");
     _version = VersionHelper::Create(GetJsonValue(root, "version"));
-    auto preferences = root.find("preferences");
+    const auto preferences = root.find("preferences");
     if (preferences != root.end()) {
       for (const auto &el : preferences.value().items()) {
         _preferences.insert(

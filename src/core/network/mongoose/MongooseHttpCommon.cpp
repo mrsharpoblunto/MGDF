@@ -97,7 +97,7 @@ void SendHttpRequest(mg_connection *c, const std::string &host,
   bool removeContentEncoding = false;
 
   if (!m.Body.empty()) {
-    auto found = m.Headers.find(S_CONTENT_ENCODING);
+    const auto found = m.Headers.find(S_CONTENT_ENCODING);
     if (found != m.Headers.end() && found->second == S_GZIP) {
       if (Resources::CompressString(m.Body, compressedBody)) {
         bodyData = compressedBody.data();
@@ -136,7 +136,7 @@ void SendHttpResponse(mg_connection *c, const HttpMessage &m) {
   bool stripContentEncoding = false;
 
   if (!m.Body.empty()) {
-    auto found = m.Headers.find(S_CONTENT_ENCODING);
+    const auto found = m.Headers.find(S_CONTENT_ENCODING);
     if (found != m.Headers.end() && found->second == S_GZIP) {
       if (Resources::CompressString(m.Body, compressedBody)) {
         bodyData = compressedBody.data();

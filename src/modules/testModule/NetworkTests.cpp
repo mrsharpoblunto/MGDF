@@ -253,7 +253,7 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
               return TestStep::FAILED;
             }
 
-            auto found = _pendingRecieve.find(body);
+            const auto found = _pendingRecieve.find(body);
             if (found != _pendingRecieve.end()) {
               _pendingRecieve.erase(found);
             } else {

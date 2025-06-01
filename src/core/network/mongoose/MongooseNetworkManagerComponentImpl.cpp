@@ -62,7 +62,7 @@ HttpServerRequest::~HttpServerRequest() {
 
 bool HttpServerRequest::GetRequestHeader(const std::string &name,
                                          std::string &value) const {
-  auto found = _request.Headers.find(name);
+  const auto found = _request.Headers.find(name);
   if (found != _request.Headers.end()) {
     value = found->second;
     return true;
@@ -76,7 +76,7 @@ bool HttpServerRequest::HasRequestHeader(const std::string &name) const {
 
 const std::string &HttpServerRequest::GetRequestHeader(
     const std::string &name) const {
-  auto found = _request.Headers.find(name);
+  const auto found = _request.Headers.find(name);
   if (found != _request.Headers.end()) {
     return found->second;
   }
@@ -591,7 +591,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
       std::shared_ptr<ServerWebSocket> socket;
       {
         std::unique_lock<std::mutex> lock(server->_mutex);
-        auto found = server->_webSockets.find(c);
+        const auto found = server->_webSockets.find(c);
         if (found == server->_webSockets.end()) {
           auto handler = server->_webSocketHandler;
           if (handler) {
@@ -623,7 +623,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
     case MG_EV_ERROR: {
       if (c->label[0] == 'W') {
         std::unique_lock<std::mutex> lock(server->_mutex);
-        auto found = server->_webSockets.find(c);
+        const auto found = server->_webSockets.find(c);
         if (found != server->_webSockets.end()) {
           server->_webSockets.erase(found);
           if (auto socket = found->second.lock()) {
@@ -638,7 +638,7 @@ void HttpServer::HandleEvents(mg_connection *c, int ev, void *ev_data,
       if (c->label[0] == 'W') {
         // close a connected socket
         std::unique_lock<std::mutex> lock(server->_mutex);
-        auto found = server->_webSockets.find(c);
+        const auto found = server->_webSockets.find(c);
         if (found != server->_webSockets.end()) {
           auto socket = found->second.lock();
           server->_webSockets.erase(found);

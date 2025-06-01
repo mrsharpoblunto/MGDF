@@ -7,5 +7,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("0.16.3")]
-[assembly: AssemblyFileVersion("0.16.3")]
+[assembly: AssemblyVersion("0.17.0")]
+[assembly: AssemblyFileVersion("0.17.0")]
