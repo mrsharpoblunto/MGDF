@@ -152,9 +152,11 @@ void Logger::MoveOutputFile() {
       std::filesystem::exists(_filename)) {
     std::filesystem::path from(_filename);
     std::filesystem::path to(Resources::Instance().LogFile());
-    std::filesystem::copy_file(
-        from, to, std::filesystem::copy_options::overwrite_existing);
-    std::filesystem::remove(from);
+    std::error_code ec;
+    if (std::filesystem::copy_file(
+            from, to, std::filesystem::copy_options::overwrite_existing, ec)) {
+      std::filesystem::remove(from, ec);
+    }
   }
   _filename = newFile;
 }

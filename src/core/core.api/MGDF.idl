@@ -550,12 +550,12 @@ the settings will be applied to the render system on the next frame
   BOOL SetCurrentMultiSampleLevel(UINT32 multisampleLevel);
 
   /**
-  sets the current display mode of the primary display output when running in
+  sets the display mode of the primary display output when running in
   exclusive fullscreen mode
   \param mode the display mode to use
   \return true if the display mode is supported and can be applied, false otherwise
   */
-  BOOL SetCurrentDisplayMode([in] const MGDFDisplayMode *mode);
+  BOOL SetCurrentPrimaryDisplayMode([in] const MGDFDisplayMode *mode);
 
   /**
   sets the size of the window when running in windowed mode. While running in
@@ -581,13 +581,15 @@ the settings will be applied to the render system on the next frame
 /**
 The current outputs HDR display information
 */
-typedef struct MGDFHDRDisplayInfo {
-  BOOL Supported;
+typedef struct MGDFOutputDisplayInfo {
+  BOOL SupportsHDR;
   FLOAT MaxFullFrameLuminance;
   FLOAT MaxLuminance;
   FLOAT MinLuminance;
   ULONG SDRWhiteLevel;
-} MGDFHDRDisplayInfo;
+  UINT32 Width;
+  UINT32 Height;
+} MGDFOutputDisplayInfo;
 
 /**
 Provides an interface for getting and setting the hosts various display settings
@@ -658,28 +660,29 @@ Provides an interface for getting and setting the hosts various display settings
   UINT32 GetCurrentMultiSampleLevel([out] UINT32 * quality);
 
   /**
-  get the number of supported display modes
+  get the number of supported display modes on the primary output
   \return the number of supported display modes
   */
-  UINT64 GetDisplayModeCount();
+  UINT64 GetPrimaryDisplayModeCount();
 
   /**
   get a supported display mode for the primary output at the given index (0 to
-  GetDisplayModeCount - 1)
+  GetPrimaryDisplayModeCount - 1)
   \param index the display mode index
   \param mode will be set to the the display mode at the given index
   \return true if a display mode exists at a particular index
   */
-  BOOL GetDisplayMode(UINT64 index, [ in, out ] MGDFDisplayMode * mode);
+  BOOL GetPrimaryDisplayMode(UINT64 index, [ in, out ] MGDFDisplayMode * mode);
 
   /**
   get all the supported display modes for the primary output
-  \param modes an array big enough to hold GetDisplayModeCount() modes
+  \param modes an array big enough to hold GetPrimaryDisplayModeCount() modes
   */
-  void GetDisplayModes([out] MGDFDisplayMode * *modes);
+  void GetPrimaryDisplayModes([out] MGDFDisplayMode * *modes);
 
   /**
-  get the display mode (if any) matching the requested width and height, if no
+  get the display mode from the primary output matching the requested width and
+  height, if no
   matching display mode is found, false is returned. If HDR is enabled, and supported
   an HDR display mode will be preferentially chosen
   \param width the desired width of the display mode
@@ -687,8 +690,8 @@ Provides an interface for getting and setting the hosts various display settings
   \param mode will be set to the matching display mode found (if any)
   \return true if a supported display mode exists for the given width and height
   */
-  BOOL GetDisplayModeFromDimensions(UINT32 width, UINT32 height,
-                                    [ in, out ] MGDFDisplayMode * mode);
+  BOOL GetPrimaryDisplayModeFromDimensions(UINT32 width, UINT32 height,
+                                           [ in, out ] MGDFDisplayMode * mode);
 
   /**
   get the display mode matching the native width and height, of the primary
@@ -697,7 +700,7 @@ Provides an interface for getting and setting the hosts various display settings
   \param mode will be set to the current display mode found
   \return true if a supported display mode exists for the native output width & height
   */
-  BOOL GetNativeDisplayMode([ in, out ] MGDFDisplayMode * mode);
+  BOOL GetNativePrimaryDisplayMode([ in, out ] MGDFDisplayMode * mode);
 
   /**
   get the current display mode for the primary output being used when running in
@@ -705,10 +708,11 @@ Provides an interface for getting and setting the hosts various display settings
   \param mode will be set to the current display mode being used.
   \return the current display mode being used (a pointer to mode)
   */
-  MGDFDisplayMode *GetCurrentDisplayMode([ in, out ] MGDFDisplayMode * mode);
+  MGDFDisplayMode *GetCurrentPrimaryDisplayMode([ in, out ] MGDFDisplayMode *
+                                                mode);
 
   /**
-  get the current screen width, based on the current display mode in exclusive
+  get the current screen width, based on the primary display mode in exclusive
   fullscreen, or on the window dimensions otherwise
   \return the current screen width
   */
@@ -729,12 +733,10 @@ Provides an interface for getting and setting the hosts various display settings
   BOOL GetHDREnabled();
 
   /**
-  get whether HDR is supported by the current display output. This can change
-  from frame to frame, so shouldn't be cached.
-  \param info a pointer to the HDR display info structure to be filled in
-  \return is hdr supported by the current display output
+  get information about the current display
+  \param info a pointer to the display info structure to be filled in
   */
-  BOOL GetCurrentOutputHDRDisplayInfo([ in, out ] MGDFHDRDisplayInfo * info);
+  void GetCurrentOutputDisplayInfo([ in, out ] MGDFOutputDisplayInfo * info);
 
   /**
   get the DPI of the current display output. This can change from frame to

@@ -98,18 +98,18 @@ BOOL PendingRenderSettingsChange::SetCurrentMultiSampleLevel(
   }
 }
 
-BOOL PendingRenderSettingsChange::SetCurrentDisplayMode(
+BOOL PendingRenderSettingsChange::SetCurrentPrimaryDisplayMode(
     const MGDFDisplayMode *mode) {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_manager._mutex);
 
-  for (auto currentMode : _manager._displayModes) {
+  for (auto currentMode : _manager._primaryDisplayModes) {
     if (currentMode.Width == mode->Width &&
         currentMode.Height == mode->Height &&
         currentMode.SupportsHDR == mode->SupportsHDR &&
         currentMode.RefreshRateDenominator == mode->RefreshRateDenominator &&
         currentMode.RefreshRateNumerator == mode->RefreshRateNumerator) {
-      _newDisplayMode = currentMode;
+      _newPrimaryDisplayMode = currentMode;
       return true;
     }
   }
@@ -133,11 +133,11 @@ RenderSettingsManager::RenderSettingsManager()
       _sdrBackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM),
       _hdrBackBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT),
       _hdrEnabled(false),
-      _currentDPI(96),
+      _currentOutputDPI(96),
       _vsync(true),
       _screenX(0),
       _screenY(0),
-      _currentDisplayMode(MGDFDisplayMode{
+      _primaryDisplayMode(MGDFDisplayMode{
           .Width = 0,
           .Height = 0,
           .RefreshRateNumerator = 0,
@@ -145,9 +145,14 @@ RenderSettingsManager::RenderSettingsManager()
           .SupportsHDR = false,
           .IsNativeSize = false,
       }),
-      _currentDisplayInfo(MGDFHDRDisplayInfo{
-          .Supported = false,
+      _currentOutputDisplayInfo(MGDFOutputDisplayInfo{
+          .SupportsHDR = false,
+          .MaxFullFrameLuminance = 80.0f,
+          .MaxLuminance = 80.0f,
+          .MinLuminance = 0.0001f,
           .SDRWhiteLevel = 1000,
+          .Width = 0,
+          .Height = 0,
       }),
       _fullScreen(MGDFFullScreenDesc{
           .FullScreen = false,
@@ -187,11 +192,12 @@ void RenderSettingsManager::CreatePendingSettingsChange(
   p.AddRawRef(change);
 }
 
-BOOL RenderSettingsManager::GetCurrentOutputHDRDisplayInfo(
-    MGDFHDRDisplayInfo *info) {
+void RenderSettingsManager::GetCurrentOutputDisplayInfo(
+    MGDFOutputDisplayInfo *info) {
   std::lock_guard<std::mutex> lock(_mutex);
-  *info = _currentDisplayInfo;
-  return _hdrEnabled && _currentDisplayInfo.Supported;
+  MGDFOutputDisplayInfo currentInfo = _currentOutputDisplayInfo;
+  currentInfo.SupportsHDR = currentInfo.SupportsHDR && _hdrEnabled;
+  *info = currentInfo;
 }
 
 DXGI_FORMAT RenderSettingsManager::GetSDRBackBufferFormat() {
@@ -209,41 +215,42 @@ BOOL RenderSettingsManager::GetHDREnabled() {
 
 UINT RenderSettingsManager::GetCurrentOutputDPI() {
   std::lock_guard<std::mutex> lock(_mutex);
-  return _currentDPI;
+  return _currentOutputDPI;
 }
 
 void RenderSettingsManager::SetOutputProperties(
-    const MGDFHDRDisplayInfo &info, UINT currentDPI,
-    const std::vector<MGDFDisplayMode> &modes) {
+    const MGDFOutputDisplayInfo &info, UINT currentDPI,
+    const std::vector<MGDFDisplayMode> &primaryModes) {
   std::lock_guard<std::mutex> lock(_mutex);
 
-  if (_currentDisplayInfo.SDRWhiteLevel != info.SDRWhiteLevel) {
+  if (_currentOutputDisplayInfo.SDRWhiteLevel != info.SDRWhiteLevel) {
     _changePending.store(true);
   }
-  _currentDisplayInfo = info;
+  _currentOutputDisplayInfo = info;
 
   // update the fullscreen adaptor modes and current adaptor
-  _displayModes.clear();
-  _displayModes.insert(_displayModes.end(), modes.begin(), modes.end());
-  for (const auto &mode : _displayModes) {
-    if (mode.Width == _currentDisplayMode.Width &&
-        mode.Height == _currentDisplayMode.Height &&
-        mode.RefreshRateNumerator == _currentDisplayMode.RefreshRateNumerator &&
+  _primaryDisplayModes.clear();
+  _primaryDisplayModes.insert(_primaryDisplayModes.end(), primaryModes.begin(),
+                              primaryModes.end());
+  for (const auto &mode : _primaryDisplayModes) {
+    if (mode.Width == _primaryDisplayMode.Width &&
+        mode.Height == _primaryDisplayMode.Height &&
+        mode.RefreshRateNumerator == _primaryDisplayMode.RefreshRateNumerator &&
         mode.RefreshRateDenominator ==
-            _currentDisplayMode.RefreshRateDenominator) {
+            _primaryDisplayMode.RefreshRateDenominator) {
       if (_fullScreen.ExclusiveMode && _fullScreen.FullScreen &&
-          mode.SupportsHDR != _currentDisplayMode.SupportsHDR) {
+          mode.SupportsHDR != _primaryDisplayMode.SupportsHDR) {
         _changePending.store(true);
       }
-      _currentDisplayMode = mode;
+      _primaryDisplayMode = mode;
       break;
     }
   }
 
-  if (_currentDPI != currentDPI) {
+  if (_currentOutputDPI != currentDPI) {
     _changePending.store(true);
   }
-  _currentDPI = currentDPI;
+  _currentOutputDPI = currentDPI;
 }
 
 UINT64 RenderSettingsManager::GetMultiSampleLevelCount() {
@@ -288,33 +295,33 @@ void RenderSettingsManager::GetFullscreen(MGDFFullScreenDesc *desc) {
   *desc = _fullScreen;
 }
 
-UINT64 RenderSettingsManager::GetDisplayModeCount() {
+UINT64 RenderSettingsManager::GetPrimaryDisplayModeCount() {
   std::lock_guard<std::mutex> lock(_mutex);
-  return _displayModes.size();
+  return _primaryDisplayModes.size();
 }
 
-BOOL RenderSettingsManager::GetDisplayMode(UINT64 index,
-                                           MGDFDisplayMode *mode) {
+BOOL RenderSettingsManager::GetPrimaryDisplayMode(UINT64 index,
+                                                  MGDFDisplayMode *mode) {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_mutex);
-  if (index < _displayModes.size()) {
-    auto m = _displayModes.at(index);
+  if (index < _primaryDisplayModes.size()) {
+    auto m = _primaryDisplayModes.at(index);
     *mode = m;
     return true;
   }
   return false;
 }
 
-void RenderSettingsManager::GetDisplayModes(MGDFDisplayMode **modes) {
+void RenderSettingsManager::GetPrimaryDisplayModes(MGDFDisplayMode **modes) {
   std::lock_guard<std::mutex> lock(_mutex);
-  if (modes && !_displayModes.empty()) {
-    memcpy_s(modes, _displayModes.size() * sizeof(MGDFDisplayMode),
-             _displayModes.data(),
-             _displayModes.size() * sizeof(MGDFDisplayMode));
+  if (modes && !_primaryDisplayModes.empty()) {
+    memcpy_s(modes, _primaryDisplayModes.size() * sizeof(MGDFDisplayMode),
+             _primaryDisplayModes.data(),
+             _primaryDisplayModes.size() * sizeof(MGDFDisplayMode));
   }
 }
 
-BOOL RenderSettingsManager::GetDisplayModeFromDimensions(
+BOOL RenderSettingsManager::GetPrimaryDisplayModeFromDimensions(
     UINT32 width, UINT32 height, MGDFDisplayMode *mode) {
   if (!mode) return false;
   std::lock_guard<std::mutex> lock(_mutex);
@@ -322,7 +329,7 @@ BOOL RenderSettingsManager::GetDisplayModeFromDimensions(
   MGDFDisplayMode bestMode{};
   bool foundMode = false;
 
-  for (const auto &currentMode : _displayModes) {
+  for (const auto &currentMode : _primaryDisplayModes) {
     if (currentMode.Width == width && currentMode.Height == height) {
       if (!foundMode ||
           // find the highest refresh rate for the given resolution
@@ -345,16 +352,16 @@ BOOL RenderSettingsManager::GetDisplayModeFromDimensions(
   return foundMode;
 }
 
-BOOL RenderSettingsManager::GetNativeDisplayMode(MGDFDisplayMode *mode) {
+BOOL RenderSettingsManager::GetNativePrimaryDisplayMode(MGDFDisplayMode *mode) {
   const INT32 nativeWidth = GetSystemMetrics(SM_CXSCREEN);
   const INT32 nativeHeight = GetSystemMetrics(SM_CYSCREEN);
-  return GetDisplayModeFromDimensions(nativeWidth, nativeHeight, mode);
+  return GetPrimaryDisplayModeFromDimensions(nativeWidth, nativeHeight, mode);
 }
 
-MGDFDisplayMode *RenderSettingsManager::GetCurrentDisplayMode(
+MGDFDisplayMode *RenderSettingsManager::GetCurrentPrimaryDisplayMode(
     MGDFDisplayMode *mode) {
   std::lock_guard<std::mutex> lock(_mutex);
-  *mode = _currentDisplayMode;
+  *mode = _primaryDisplayMode;
   return mode;
 }
 
@@ -386,18 +393,23 @@ void RenderSettingsManager::OnResetSwapChain(
   std::lock_guard<std::mutex> lock(_mutex);
 
   fullscreenDesc.Windowed =
-      !_fullScreen.FullScreen || !_fullScreen.ExclusiveMode;
+      !(_fullScreen.FullScreen && !_fullScreen.ExclusiveMode);
   fullscreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
   fullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
   fullscreenDesc.RefreshRate.Numerator =
-      _currentDisplayMode.RefreshRateNumerator;
+      _primaryDisplayMode.RefreshRateNumerator;
   fullscreenDesc.RefreshRate.Denominator =
-      _currentDisplayMode.RefreshRateDenominator;
+      _primaryDisplayMode.RefreshRateDenominator;
 
-  desc.Width =
-      !_fullScreen.FullScreen ? windowSize.right : _currentDisplayMode.Width;
+  desc.Width = _fullScreen.FullScreen ? (_fullScreen.ExclusiveMode
+                                             ? _primaryDisplayMode.Width
+                                             : _currentOutputDisplayInfo.Width)
+                                      : windowSize.right;
   desc.Height =
-      !_fullScreen.FullScreen ? windowSize.bottom : _currentDisplayMode.Height;
+      _fullScreen.FullScreen
+          ? (_fullScreen.ExclusiveMode ? _primaryDisplayMode.Height
+                                       : _currentOutputDisplayInfo.Height)
+          : windowSize.bottom;
   desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
   desc.BufferCount = 2;
   desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -407,7 +419,14 @@ void RenderSettingsManager::OnResetSwapChain(
     desc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
   }
 
-  if (_currentDisplayMode.SupportsHDR && _hdrEnabled) {
+  // fullscreen exclusive always uses the primary display output
+  const bool supportsHDR =
+      ((_fullScreen.FullScreen && _fullScreen.ExclusiveMode)
+           ? _primaryDisplayMode.SupportsHDR
+           : _currentOutputDisplayInfo.SupportsHDR) &&
+      _hdrEnabled;
+
+  if (supportsHDR) {
     desc.Format = _hdrBackBufferFormat;
   } else {
     desc.Format = _sdrBackBufferFormat;
@@ -444,9 +463,9 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
   p->Preferences.insert(std::make_pair(PreferenceConstants::MAX_FRAME_LATENCY,
                                        ToString(_maxFrameLatency)));
   p->Preferences.insert(std::make_pair(PreferenceConstants::SCREEN_X,
-                                       ToString(_currentDisplayMode.Width)));
+                                       ToString(_primaryDisplayMode.Width)));
   p->Preferences.insert(std::make_pair(PreferenceConstants::SCREEN_Y,
-                                       ToString(_currentDisplayMode.Height)));
+                                       ToString(_primaryDisplayMode.Height)));
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
                      ToString(_currentMultiSampleLevel)));
@@ -502,24 +521,24 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
   std::string yPref;
   if (GetPreference(game, PreferenceConstants::SCREEN_X, xPref) &&
       GetPreference(game, PreferenceConstants::SCREEN_Y, yPref)) {
-    hasCurrentMode = GetDisplayModeFromDimensions(
-        FromString<int>(xPref), FromString<int>(yPref), &_currentDisplayMode);
+    hasCurrentMode = GetPrimaryDisplayModeFromDimensions(
+        FromString<int>(xPref), FromString<int>(yPref), &_primaryDisplayMode);
   }
 
   if (!hasCurrentMode) {
-    _currentDisplayMode = GetBestAlternativeDisplayMode();
+    _primaryDisplayMode = GetBestAlternativeDisplayMode();
 
     LOG("No fullscreen resolution preferences found, using "
-            << SCREEN_RES(_currentDisplayMode),
+            << SCREEN_RES(_primaryDisplayMode),
         MGDF_LOG_LOW);
     game->SetPreference(PreferenceConstants::SCREEN_X,
-                        ToString(_currentDisplayMode.Width).c_str());
+                        ToString(_primaryDisplayMode.Width).c_str());
     game->SetPreference(PreferenceConstants::SCREEN_Y,
-                        ToString(_currentDisplayMode.Height).c_str());
+                        ToString(_primaryDisplayMode.Height).c_str());
     savePreferences = true;
   } else {
     LOG("Loaded fullscreen resolution preference for "
-            << SCREEN_RES(_currentDisplayMode),
+            << SCREEN_RES(_primaryDisplayMode),
         MGDF_LOG_LOW);
   }
 
@@ -563,15 +582,15 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
 MGDFDisplayMode RenderSettingsManager::GetBestAlternativeDisplayMode() {
   // try to find the native resolution if possible
   MGDFDisplayMode mode;
-  bool hasCurrentMode = GetNativeDisplayMode(&mode);
+  bool hasCurrentMode = GetNativePrimaryDisplayMode(&mode);
   if (!hasCurrentMode) {
     // set 1024*768 as the default
-    hasCurrentMode = GetDisplayModeFromDimensions(
+    hasCurrentMode = GetPrimaryDisplayModeFromDimensions(
         Resources::MIN_SCREEN_X, Resources::MIN_SCREEN_Y, &mode);
   }
   // or if 1024*768 was unavailble the first adaptor mode in the list
   if (!hasCurrentMode) {
-    mode = _displayModes.at(0);
+    mode = _primaryDisplayModes.at(0);
   }
   return mode;
 }

@@ -329,14 +329,19 @@ void MGDFApp::RTOnDisplayChange(
     FATALERROR(this, "No display modes found");
   }
 
-  const bool hdrSupported = currentOutputDesc.ColorSpace ==
-                            DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
-  const MGDFHDRDisplayInfo info{
-      .Supported = hdrSupported,
+  const bool supportsHDR = currentOutputDesc.ColorSpace ==
+                           DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+  const MGDFOutputDisplayInfo info{
+      .SupportsHDR = supportsHDR,
       .MaxFullFrameLuminance = currentOutputDesc.MaxFullFrameLuminance,
       .MaxLuminance = currentOutputDesc.MaxLuminance,
       .MinLuminance = currentOutputDesc.MinLuminance,
-      .SDRWhiteLevel = hdrSupported ? currentSDRWhiteLevel : 1000,
+      .SDRWhiteLevel = supportsHDR ? currentSDRWhiteLevel : 1000,
+      .Width = static_cast<UINT32>(currentOutputDesc.DesktopCoordinates.right -
+                                   currentOutputDesc.DesktopCoordinates.left),
+      .Height =
+          static_cast<UINT32>(currentOutputDesc.DesktopCoordinates.bottom -
+                              currentOutputDesc.DesktopCoordinates.top),
   };
 
   _host->GetRenderSettingsImpl()->SetOutputProperties(info, currentDPI, modes);

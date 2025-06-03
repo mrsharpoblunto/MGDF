@@ -32,9 +32,9 @@ void DisplayTests::Setup(IMGDFSimHost *host) {
           _settings->CreatePendingSettingsChange(pending.Assign());
           pending->SetHDREnabled(_testHDR);
 
-          MGDFHDRDisplayInfo info;
-          _settings->GetCurrentOutputHDRDisplayInfo(&info);
-          if (info.Supported) {
+          MGDFOutputDisplayInfo info;
+          _settings->GetCurrentOutputDisplayInfo(&info);
+          if (info.SupportsHDR) {
             std::ostringstream oss;
             oss << "HDR Display Info: " << info.MinLuminance << "->"
                 << info.MaxLuminance

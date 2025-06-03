@@ -28,7 +28,8 @@ class PendingRenderSettingsChange
   void __stdcall SetFullscreen(const MGDFFullScreenDesc *fullscreen) final;
   BOOL __stdcall SetBackBufferMultiSampleLevel(UINT32 multisampleLevel) final;
   BOOL __stdcall SetCurrentMultiSampleLevel(UINT32 multisampleLevel) final;
-  BOOL __stdcall SetCurrentDisplayMode(const MGDFDisplayMode *mode) final;
+  BOOL __stdcall SetCurrentPrimaryDisplayMode(
+      const MGDFDisplayMode *mode) final;
   void __stdcall SetWindowSize(UINT32 width, UINT32 height) final;
   void __stdcall SetHDREnabled(BOOL enabled) final;
   void __stdcall Cancel() final;
@@ -41,7 +42,7 @@ class PendingRenderSettingsChange
   std::optional<UINT32> _newCurrentMultiSampleLevel;
   std::optional<MGDFFullScreenDesc> _newFullscreen;
   std::optional<BOOL> _newHDREnabled;
-  std::optional<MGDFDisplayMode> _newDisplayMode;
+  std::optional<MGDFDisplayMode> _newPrimaryDisplayMode;
   std::optional<std::pair<UINT32, UINT32>> _newSize;
   RenderSettingsManager &_manager;
 };
@@ -63,14 +64,16 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   BOOL __stdcall GetMultiSampleLevel(UINT64 index, UINT32 *level) final;
   UINT32 __stdcall GetBackBufferMultiSampleLevel() final;
   UINT32 __stdcall GetCurrentMultiSampleLevel(UINT32 *quality) final;
-  UINT64 __stdcall GetDisplayModeCount() final;
-  BOOL __stdcall GetDisplayMode(UINT64 index, MGDFDisplayMode *mode) final;
-  void __stdcall GetDisplayModes(MGDFDisplayMode **modes) final;
-  BOOL __stdcall GetDisplayModeFromDimensions(UINT32 width, UINT32 height,
-                                              MGDFDisplayMode *mode) final;
-  BOOL __stdcall GetNativeDisplayMode(MGDFDisplayMode *mode) final;
-  MGDFDisplayMode *__stdcall GetCurrentDisplayMode(MGDFDisplayMode *mode) final;
-  BOOL __stdcall GetCurrentOutputHDRDisplayInfo(MGDFHDRDisplayInfo *info) final;
+  UINT64 __stdcall GetPrimaryDisplayModeCount() final;
+  BOOL __stdcall GetPrimaryDisplayMode(UINT64 index,
+                                       MGDFDisplayMode *mode) final;
+  void __stdcall GetPrimaryDisplayModes(MGDFDisplayMode **modes) final;
+  BOOL __stdcall GetPrimaryDisplayModeFromDimensions(
+      UINT32 width, UINT32 height, MGDFDisplayMode *mode) final;
+  BOOL __stdcall GetNativePrimaryDisplayMode(MGDFDisplayMode *mode) final;
+  MGDFDisplayMode *__stdcall GetCurrentPrimaryDisplayMode(
+      MGDFDisplayMode *mode) final;
+  void __stdcall GetCurrentOutputDisplayInfo(MGDFOutputDisplayInfo *info) final;
   UINT __stdcall GetCurrentOutputDPI() final;
   BOOL __stdcall GetHDREnabled() final;
   void __stdcall CreatePendingSettingsChange(
@@ -86,8 +89,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
                         const RECT &windowSize);
   void OnResize(UINT32 width, UINT32 height);
-  void SetOutputProperties(const MGDFHDRDisplayInfo &info, UINT currentDPI,
-                           const std::vector<MGDFDisplayMode> &modes);
+  void SetOutputProperties(const MGDFOutputDisplayInfo &info, UINT currentDPI,
+                           const std::vector<MGDFDisplayMode> &primaryModes);
 
  private:
   void Cleanup();
@@ -95,8 +98,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
 
   std::atomic_bool _changePending;
 
-  std::vector<MGDFDisplayMode> _displayModes;
-  MGDFDisplayMode _currentDisplayMode;
+  std::vector<MGDFDisplayMode> _primaryDisplayModes;
+  MGDFDisplayMode _primaryDisplayMode;
 
   std::vector<UINT32> _multiSampleLevels;
   std::map<UINT32, UINT32> _multiSampleQuality;
@@ -108,8 +111,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 _screenX, _screenY;
   UINT32 _maxFrameLatency;
 
-  UINT _currentDPI;
-  MGDFHDRDisplayInfo _currentDisplayInfo;
+  UINT _currentOutputDPI;
+  MGDFOutputDisplayInfo _currentOutputDisplayInfo;
   bool _hdrEnabled;
   bool _vsync;
   MGDFFullScreenDesc _fullScreen;

@@ -6,7 +6,9 @@
 #include <string>
 
 #include "common/MGDFLoggerImpl.hpp"
+#include "common/MGDFParameterManager.hpp"
 #include "common/MGDFResources.hpp"
+#include "core.impl/MGDFParameterConstants.hpp"
 #include "windowsx.h"
 
 #if defined(_DEBUG)
@@ -206,84 +208,98 @@ void D3DAppFramework::RTInitD3D(const HWND window) {
   _rtFactory = RTCreateDXGIFactory();
 
   BOOL allowTearing = FALSE;
-  if (FAILED(_rtFactory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-                                             &allowTearing,
-                                             sizeof(allowTearing)))) {
+  if (!_rtFactory || FAILED(_rtFactory->CheckFeatureSupport(
+                         DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing,
+                         sizeof(allowTearing)))) {
     allowTearing = FALSE;
   }
   _rtAllowTearing = allowTearing == TRUE;
 
-  ComObject<IDXGIAdapter1> adapter;
-  ComObject<IDXGIAdapter1> bestAdapter;
-  SIZE_T bestAdapterMemory = 0;
-
-  char videoCardDescription[128];
-  ::SecureZeroMemory(videoCardDescription, sizeof(videoCardDescription));
-  DXGI_ADAPTER_DESC1 adapterDesc = {};
-
-  // step through the adapters and ensure we use the best one to create our
-  // device
-  LOG("Enumerating display adapters...", MGDF_LOG_LOW);
-  for (INT32 i = 0;
-       _rtFactory->EnumAdapters1(i, adapter.Assign()) != DXGI_ERROR_NOT_FOUND;
-       i++) {
-    adapter->GetDesc1(&adapterDesc);
-
-    if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-      LOG("Skipping software adapter", MGDF_LOG_LOW);
-      continue;
-    }
-
-    size_t length = wcslen(adapterDesc.Description);
-#if defined(_DEBUG) || defined(DEBUG)
-    size_t stringLength = 0;
-    const INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
-                                   adapterDesc.Description, length);
-    _ASSERTE(!error);
-#endif
-
-    std::string message(videoCardDescription, videoCardDescription + length);
-    message.insert(0, "Attempting to create device for adapter ");
-    LOG(message, MGDF_LOG_LOW);
-
-    if (!bestAdapter || adapterDesc.DedicatedVideoMemory > bestAdapterMemory) {
-      D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-      ComObject<ID3D11Device> device;
-      ComObject<ID3D11DeviceContext> context;
-
 #if defined(DEBUG) || defined(_DEBUG)
-      constexpr const UINT32 createDeviceFlags =
-          D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
+  constexpr const UINT32 createDeviceFlags =
+      D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
 #else
-      constexpr const UINT32 createDeviceFlags =
-          D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+  constexpr const UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #endif
 
-      if (SUCCEEDED(::D3D11CreateDevice(
-              adapter,
-              D3D_DRIVER_TYPE_UNKNOWN,  // as we're specifying an adapter to
-                                        // use, we must specify that the driver
-                                        // type is unknown!!!
-              0,                        // no software device
-              createDeviceFlags, _rtLevels.data(),
-              static_cast<UINT>(
-                  _rtLevels.size()),  // default feature level array
-              D3D11_SDK_VERSION, device.Assign(), &featureLevel,
-              context.Assign())) &&
-          featureLevel != 0) {
-        // this is the first acceptable adapter, or the best one so far
-        if (!_rtD3dDevice || featureLevel >= _rtD3dDevice->GetFeatureLevel()) {
-          // store the new best adapter
-          bestAdapter = adapter;
-          bestAdapterMemory = adapterDesc.DedicatedVideoMemory;
-          _rtD3dDevice = device;
-          _rtImmediateContext = context;
-          LOG("Adapter is the best found so far", MGDF_LOG_LOW);
-        }
-        // this adapter is no better than what we already have, so ignore it
-        else {
-          LOG("A better adapter has already been found - Ignoring",
-              MGDF_LOG_LOW);
+  if (!_rtFactory) {
+    // use the default adapter to create the device
+    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
+    if (FAILED(::D3D11CreateDevice(
+            nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, createDeviceFlags,
+            _rtLevels.data(), static_cast<UINT>(_rtLevels.size()),
+            D3D11_SDK_VERSION, _rtD3dDevice.Assign(), &featureLevel,
+            _rtImmediateContext.Assign())) ||
+        featureLevel == 0) {
+      FATALERROR(this, "Failed to create device with default adapter");
+    }
+  } else {
+    // step through the adapters and ensure we use the best one to create our
+    // device
+    ComObject<IDXGIAdapter1> adapter;
+    ComObject<IDXGIAdapter1> bestAdapter;
+    SIZE_T bestAdapterMemory = 0;
+
+    char videoCardDescription[128];
+    ::SecureZeroMemory(videoCardDescription, sizeof(videoCardDescription));
+    DXGI_ADAPTER_DESC1 adapterDesc = {};
+
+    LOG("Enumerating display adapters...", MGDF_LOG_LOW);
+    for (INT32 i = 0;
+         _rtFactory->EnumAdapters1(i, adapter.Assign()) != DXGI_ERROR_NOT_FOUND;
+         i++) {
+      adapter->GetDesc1(&adapterDesc);
+
+      if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+        LOG("Skipping software adapter", MGDF_LOG_LOW);
+        continue;
+      }
+
+      size_t length = wcslen(adapterDesc.Description);
+#if defined(_DEBUG) || defined(DEBUG)
+      size_t stringLength = 0;
+      const INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
+                                     adapterDesc.Description, length);
+      _ASSERTE(!error);
+#endif
+
+      std::string message(videoCardDescription, videoCardDescription + length);
+      message.insert(0, "Attempting to create device for adapter ");
+      LOG(message, MGDF_LOG_LOW);
+
+      if (!bestAdapter ||
+          adapterDesc.DedicatedVideoMemory > bestAdapterMemory) {
+        D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
+        ComObject<ID3D11Device> device;
+        ComObject<ID3D11DeviceContext> context;
+
+        if (SUCCEEDED(::D3D11CreateDevice(
+                adapter,
+                D3D_DRIVER_TYPE_UNKNOWN,  // as we're specifying an adapter to
+                                          // use, we must specify that the
+                                          // driver type is unknown!!!
+                0,                        // no software device
+                createDeviceFlags, _rtLevels.data(),
+                static_cast<UINT>(
+                    _rtLevels.size()),  // default feature level array
+                D3D11_SDK_VERSION, device.Assign(), &featureLevel,
+                context.Assign())) &&
+            featureLevel != 0) {
+          // this is the first acceptable adapter, or the best one so far
+          if (!_rtD3dDevice ||
+              featureLevel >= _rtD3dDevice->GetFeatureLevel()) {
+            // store the new best adapter
+            bestAdapter = adapter;
+            bestAdapterMemory = adapterDesc.DedicatedVideoMemory;
+            _rtD3dDevice = device;
+            _rtImmediateContext = context;
+            LOG("Adapter is the best found so far", MGDF_LOG_LOW);
+          }
+          // this adapter is no better than what we already have, so ignore it
+          else {
+            LOG("A better adapter has already been found - Ignoring",
+                MGDF_LOG_LOW);
+          }
         }
       }
     }
@@ -341,8 +357,14 @@ ComObject<IDXGIFactory6> D3DAppFramework::RTCreateDXGIFactory() {
   constexpr auto flags = 0U;
 #endif
   ComObject<IDXGIFactory6> factory;
-  if (FAILED(::CreateDXGIFactory2(flags, IID_PPV_ARGS(factory.Assign())))) {
-    FATALERROR(this, "Failed to create IDXGIFactory6.");
+  // Visual studio graphics debugger doesn't like it when you create a
+  // DXGIFactory2 sometimes - no idea why, but to get it working, you can pass
+  // -usedefaultadapter to skip adapter selection and use the default adapter.
+  if (!ParameterManager::Instance().HasParameter(
+          ParameterConstants::USE_DEFAULT_ADAPTER)) {
+    if (FAILED(::CreateDXGIFactory2(flags, IID_PPV_ARGS(factory.Assign())))) {
+      FATALERROR(this, "Failed to create IDXGIFactory6");
+    }
   }
   return factory;
 }
@@ -795,7 +817,8 @@ INT32 D3DAppFramework::Run() {
               continue;
             }
           } else {
-            const auto dxgiFactoryIsCurrent = _rtFactory->IsCurrent();
+            const auto dxgiFactoryIsCurrent =
+                !_rtFactory || _rtFactory->IsCurrent();
             if (!dxgiFactoryIsCurrent) {
               LOG("DXGI factory is no longer current, recreating...",
                   MGDF_LOG_LOW);
@@ -914,9 +937,9 @@ INT32 D3DAppFramework::Run() {
               // fullscreen or if this backbuffer change was for a toggle from
               // windowed to fullscreen
               if (newFullScreen.FullScreen && newFullScreen.ExclusiveMode) {
-                // exclusive fullscreen is only supported on the primary output
-                // so we need to fetch that before restoring the fullscreen
-                // state
+                // exclusive fullscreen is only supported on the primary
+                // output so we need to fetch that before restoring the
+                // fullscreen state
                 LOG("Switching to exclusive fullscreen on primary output",
                     MGDF_LOG_LOW);
                 ComObject<IDXGIDevice> device = _rtD3dDevice.As<IDXGIDevice>();
@@ -998,8 +1021,8 @@ INT32 D3DAppFramework::Run() {
         !hasFocus
             // process all messages to ensure waking up reliably
             ? ::PeekMessage(&msg, _window, 0, 0, PM_REMOVE)
-            // only process non WM_INPUT messages as WM_INPUT is handled above
-            // by GetRawInputBuffer
+            // only process non WM_INPUT messages as WM_INPUT is handled
+            // above by GetRawInputBuffer
             : (::PeekMessage(&msg, _window, 0, WM_INPUT - 1, PM_REMOVE) != 0 ||
                ::PeekMessage(&msg, _window, WM_INPUT + 1, (UINT)-1,
                              PM_REMOVE) != 0)) {
