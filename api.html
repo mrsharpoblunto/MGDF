@@ -13,7 +13,18 @@ layout: default
             <dd><em>[Optional]</em> Allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error</dd>
             <dt>-userdiroverride</dt>
             <dd><em>[Optional]</em> If specified, the directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\uid folder</dd>
-            <dt>-gamediroverride</dt><dd><em>[Optional]</em> Allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory)</dd>
+            <dt>-gamediroverride</dt>
+	    <dd><em>[Optional]</em> Allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory)</dd>
+	    <dt>-usedefaultadapter</dt>
+            <dd><em>[Optional]</em> Skips Direct3D adapter enumeration, which can cause issues when running via the Visual Studio graphics debugger</dd>
+	    <dt>-metricsport</dt>
+	    <dd><em>[Optional]</em> If specified, exposes a <a href="https://prometheus.io">Prometheus</a> metrics server on the given port that can record <a href="#IMGDFMetric">performance metrics</a></dd>	
+	    <dt>-logendpoint</dt>
+            <dd><em>[Optional]</em> If specified, streams logs to a <a href="https://grafana.com/docs/loki/latest/">Loki</a> server</dd>
+	    <dt>-statisticsenabled</dt>
+	    <dd><em>[Optional]</em> If specified, enables sending statistics to a remote endpoint (see <a href="getting-started#statistics">here</a> for more info on setting up a statistics endpoint)</dd>
+	    <dt>-statisticsendpointoverride</dt>
+	    <dd><em>[Optional]</em> If specified, overrides the statisticsService property in game.json</dd>	
          </dl>
 
         <h4>Running GamesManager.exe from command line</h4>
