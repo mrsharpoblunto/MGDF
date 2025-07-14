@@ -16,6 +16,7 @@ namespace core {
 MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
     : D3DAppFramework(hInstance),
       _metrics(TIMER_SAMPLES),
+      _sdrReferenceWhiteLevel(0),
       _host(host),
       _settings(host->GetRenderSettingsImpl()),
       _stInitialized(false),
@@ -224,6 +225,15 @@ void MGDFApp::RTOnDraw() {
 }
 
 void MGDFApp::RTDrawSystemOverlay() {
+  MGDFOutputDisplayInfo info;
+  _host->GetRenderSettingsImpl()->GetCurrentOutputDisplayInfo(&info);
+
+  if (_sdrReferenceWhiteLevel != info.SDRWhiteLevel) {
+    _sdrReferenceWhiteLevel = info.SDRWhiteLevel;
+    TextStyle::SetSDRWhiteLevel(info.SDRWhiteLevel);
+    _rtWhiteBrush.Clear();
+    _rtBlackBrush.Clear();
+  }
   if (!_rtWhiteBrush || !_rtBlackBrush) {
     RTInitBrushes();
   }
@@ -269,13 +279,18 @@ void MGDFApp::RTDrawSystemOverlay() {
 }
 
 void MGDFApp::RTInitBrushes() {
-  D2D1_COLOR_F color{.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
+  const float whiteScale = _sdrReferenceWhiteLevel / 1000.0f;
+
+  D2D1_COLOR_F color{.r = 1.0f * whiteScale,
+                     .g = 1.0f * whiteScale,
+                     .b = 1.0f * whiteScale,
+                     .a = 1.0f};
   if (FAILED(
           _rtContext->CreateSolidColorBrush(color, _rtWhiteBrush.Assign()))) {
     FATALERROR(_host, "Unable to create white color brush");
   }
 
-  color.r = color.g = color.b = 0.05f;
+  color.r = color.g = color.b = 0.05f * whiteScale;
   color.a = 0.85f;
   if (FAILED(
           _rtContext->CreateSolidColorBrush(color, _rtBlackBrush.Assign()))) {

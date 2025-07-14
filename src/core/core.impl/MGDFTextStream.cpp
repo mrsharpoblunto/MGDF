@@ -10,6 +10,11 @@
 namespace MGDF {
 namespace core {
 
+float TextStyle::_sdrWhiteLevel = 1.0f;
+void TextStyle::SetSDRWhiteLevel(ULONG level) {
+  _sdrWhiteLevel = level / 1000.0f;
+}
+
 TextStyle TextStyle::Weight(DWRITE_FONT_WEIGHT weight) {
   TextStyle style;
   style._weight = std::make_shared<DWRITE_FONT_WEIGHT>(weight);
@@ -27,9 +32,9 @@ TextStyle TextStyle::Size(float size) {
 TextStyle TextStyle::Color(float r, float g, float b, float a) {
   TextStyle style;
   style._color = std::make_shared<D2D1_COLOR_F>();
-  style._color->r = r;
-  style._color->g = g;
-  style._color->b = b;
+  style._color->r = r * _sdrWhiteLevel;
+  style._color->g = g * _sdrWhiteLevel;
+  style._color->b = b * _sdrWhiteLevel;
   style._color->a = a;
   style._push = true;
   return style;

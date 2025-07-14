@@ -70,6 +70,7 @@ class MGDFApp : public D3DAppFramework {
   ComObject<ID2D1DeviceContext> _rtContext;
   ComObject<ID2D1SolidColorBrush> _rtWhiteBrush;
   ComObject<ID2D1SolidColorBrush> _rtBlackBrush;
+  ULONG _sdrReferenceWhiteLevel;
   ComObject<IDWriteFactory1> _rtDWriteFactory;
   ComObject<IDWriteTextFormat> _rtTextFormat;
   std::unique_ptr<TextStream> _rtTextStream;

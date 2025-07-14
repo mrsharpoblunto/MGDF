@@ -26,12 +26,14 @@ struct TextStyle {
   static TextStyle Size(float size);
   static TextStyle Color(float r, float g, float b, float a);
   static TextStyle Pop();
+  static void SetSDRWhiteLevel(ULONG level);
 
  private:
   TextStyle() : _push(false) {}
   std::shared_ptr<DWRITE_FONT_WEIGHT> _weight;
   std::shared_ptr<float> _size;
   std::shared_ptr<D2D1_COLOR_F> _color;
+  static float _sdrWhiteLevel;
   bool _push;
 };
 
