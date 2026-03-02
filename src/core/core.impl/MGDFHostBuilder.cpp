@@ -55,6 +55,7 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
 
 bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
                                                HostComponents &components) {
+  std::ignore = gameUid;
   if (!input::xinput::CreateInputManagerComponent(components.Input)) {
     LOG("FATAL ERROR: Unable to register InputManager", MGDF_LOG_ERROR);
     return false;

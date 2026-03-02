@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <locale>
 
 #include "CertificateManager.hpp"
 #include "MongooseHttpCommon.hpp"

@@ -26,7 +26,7 @@ This is written in C# (.NET 4.6) and consists a windows forms application which 
 Building Source
 ---------------
 
-* Using Microsoft Visual Studio 2022 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick.sln in x64 debug/release configurations
+* Using Microsoft Visual Studio 2026 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick.sln in x64 debug/release configurations
 
 Running unit tests
 ------------------
