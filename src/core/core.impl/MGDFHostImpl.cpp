@@ -322,6 +322,14 @@ void Host::RTShutDown() {
     LOG("Calling module RTShutdown...", MGDF_LOG_MEDIUM);
     _module->RTShutDown(this);
   }
+  // release all device dependent resources now as the app framework will
+  // uninitialize D3D (and report any remaining live objects in debug builds)
+  // before this host is destroyed
+  _backBuffer.Clear();
+  _depthStencilBuffer.Clear();
+  _timer->BeforeDeviceReset();
+  _d2dDevice.Clear();
+  _d3dDevice.Clear();
 }
 
 void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice,
