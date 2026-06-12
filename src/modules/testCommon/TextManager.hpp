@@ -4,6 +4,8 @@
 #include <dwrite_1.h>
 
 #include <MGDF/ComObject.hpp>
+#include <functional>
+#include <string>
 
 #include "Common.hpp"
 
@@ -37,11 +39,34 @@ class TESTCOMMON_DLL TextManagerState {
   void AddLine(const std::string &line);
   void SetStatus(TextColor color, const std::string &text);
 
+  static constexpr UINT32 LINE_HEIGHT = 25;
+  static constexpr float SCROLLBAR_WIDTH = 12.0f;
+
+  // scrolls the view by the given number of lines (positive scrolls
+  // back into older output, negative towards the newest)
+  void Scroll(INT32 lines, UINT32 screenHeight);
+  // scrolls the view so the scrollbar thumb centers on the given
+  // vertical mouse position
+  void SetScroll(float mouseY, UINT32 screenHeight);
+
+  // when set, all test output lines and status changes are also
+  // forwarded to this sink (e.g. to mirror them into the MGDF log)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+  static std::function<void(const std::string &)> LogSink;
+#pragma warning(pop)
+
  private:
+  size_t MaxScrollOffset(UINT32 screenHeight) const;
+  float ThumbHeight(UINT32 screenHeight) const;
+
 #pragma warning(push)
 #pragma warning(disable : 4251)
   std::vector<Line> _lines;
 #pragma warning(pop)
+  // how many lines back from the newest the view is scrolled
+  // (0 = pinned to the latest output)
+  size_t _scrollOffset = 0;
 };
 
 class TESTCOMMON_DLL TextManager {

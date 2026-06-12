@@ -20,6 +20,8 @@ struct TestResults {
   uint32_t Failed;
 };
 
+enum class TestStep { FAILED, PASSED, CONT, NEXT };
+
 class TestState {
  public:
   TestState() {}
@@ -28,12 +30,18 @@ class TestState {
             double alpha);
   virtual ~TestState() {}
   TextManagerState Text;
+
+  // fails the current test, recording the reason for the assertion failure
+  // so it can be displayed below the failed test
+  TestStep Fail(const std::string &error) {
+    LastError = error;
+    return TestStep::FAILED;
+  }
+  std::string LastError;
 };
 
 class TestModule {
  public:
-  enum class TestStep { FAILED, PASSED, CONT, NEXT };
-
   TestModule() : _testIndex(0) {}
   virtual ~TestModule(void) {}
   bool Update(IMGDFSimHost *host, std::shared_ptr<TestState> &state,
@@ -76,6 +84,9 @@ class Module : public ComBase<IMGDFModule> {
   ComObject<IMGDFPerformanceCounter> _textManagerCounter;
   ComObject<IMGDFPerformanceCounter> _testModuleCounter;
   ComObject<IMGDFInputManager> _input;
+  ComObject<IMGDFRenderSettingsManager> _renderSettings;
+  bool _draggingScrollbar;
+  INT32 _wheelAccumulator;
 };
 
 }  // namespace Test

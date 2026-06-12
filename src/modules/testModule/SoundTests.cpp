@@ -23,7 +23,8 @@ void SoundTests::Setup(IMGDFSimHost *host) {
     state->Text.AddLine("Sound Tests");
     state->Text.AddLine("");
     state->Text.AddLine("Checking SoundManager is initialized");
-    return _soundManager ? TestStep::PASSED : TestStep::FAILED;
+    return _soundManager ? TestStep::PASSED
+                         : state->Fail("SoundManager was not initialized");
   })
       .Step([this](auto state) {
         state->Text.AddLine("Loading sound chimes.wav");
@@ -31,11 +32,13 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         ComObject<IMGDFReadOnlyFile> file;
         if (_vfs->GetFile(L"chimes.wav", file.Assign()) &&
             FAILED(_soundManager->CreateSound(file, 0, _sound.Assign()))) {
-          return TestStep::FAILED;
+          return state->Fail("Unable to create a sound from chimes.wav");
         } else {
           ComObject<IMGDFSound> s;
           if (S_OK != _sound->QueryInterface<IMGDFSound>(s.Assign())) {
-            return TestStep::FAILED;
+            return state->Fail(
+                "Unable to query the IMGDFSound interface from the created "
+                "sound");
           } else {
             return TestStep::PASSED;
           }
@@ -49,11 +52,10 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         state->Text.AddLine("Is a sound playing? [Y/N]");
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
-          return TestStep::FAILED;
+          return state->Fail("User reported no sound was playing");
         } else {
           return TestStep::CONT;
         }
@@ -65,12 +67,12 @@ void SoundTests::Setup(IMGDFSimHost *host) {
             "adjusts accordingly");
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
           _sound.Clear();
-          return TestStep::FAILED;
+          return state->Fail(
+              "User reported the sound did not adjust to position changes");
         } else {
           MGDFSoundPosition position;
           _sound->GetPosition(&position);
@@ -96,13 +98,15 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         ComObject<IMGDFReadOnlyFile> file;
         if (_vfs->GetFile(L"Stream.ogg", file.Assign()) &&
             FAILED(_soundManager->CreateSoundStream(file, _stream.Assign()))) {
-          return TestStep::FAILED;
+          return state->Fail("Unable to create a sound stream from Stream.ogg");
         } else {
           ComObject<IMGDFSoundStream> ss;
           if (S_OK != _stream->QueryInterface<IMGDFSoundStream>(ss.Assign())) {
-            return TestStep::FAILED;
+            return state->Fail(
+                "Unable to query the IMGDFSoundStream interface from the "
+                "created stream");
           } else if (FAILED(_stream->Play())) {
-            return TestStep::FAILED;
+            return state->Fail("Unable to play the sound stream");
           } else {
             return TestStep::PASSED;
           }
@@ -113,11 +117,10 @@ void SoundTests::Setup(IMGDFSimHost *host) {
             "Playing stream, press [Y/N] if the stream is actually playing");
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
-          return TestStep::FAILED;
+          return state->Fail("User reported the stream was not playing");
         } else {
           return TestStep::CONT;
         }
@@ -127,19 +130,18 @@ void SoundTests::Setup(IMGDFSimHost *host) {
             "Use [P] to toggle pause/play, press [Y/N] if this is working.");
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           _stream.Clear();
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
           _stream.Clear();
-          return TestStep::FAILED;
+          return state->Fail("User reported pause/play toggle did not work");
         } else {
           if (_input->IsKeyPress('P')) {
             if (_stream->IsPaused()) {
               if (FAILED(_stream->Play())) {
                 _stream.Clear();
-                return TestStep::FAILED;
+                return state->Fail("Unable to resume the paused stream");
               }
             } else
               _stream->Pause();

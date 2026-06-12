@@ -116,7 +116,7 @@ void InputTests::Setup(IMGDFSimHost *host) {
           return TestStep::PASSED;
         } else if (_gamepad->IsButtonPress(MGDF_GAMEPAD_B)) {
           _gamepad->SetVibrationSpeed(0, 0);
-          return TestStep::FAILED;
+          return state->Fail("User reported the controller did not vibrate");
         }
         return TestStep::CONT;
       });

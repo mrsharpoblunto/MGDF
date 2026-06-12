@@ -39,6 +39,10 @@ bool TestModule::Update(IMGDFSimHost* host, std::shared_ptr<TestState>& state,
       ++results.Passed;
     } else if (result == TestStep::FAILED) {
       state->Text.SetStatus(TextColor::RED, "[Test Failed]");
+      if (!state->LastError.empty()) {
+        state->Text.AddLine("  ERROR: " + state->LastError);
+        state->LastError.clear();
+      }
       _testIndex = static_cast<int>(_steps.size());
       ++results.Failed;
       return true;
@@ -71,12 +75,19 @@ Module::Module()
       _results({0, 0}),
       _textManagerCounter(nullptr),
       _testModuleCounter(nullptr),
-      _textManager(nullptr) {
+      _textManager(nullptr),
+      _draggingScrollbar(false),
+      _wheelAccumulator(0) {
   _stateBuffer.Pending()->Text.AddLine("MGDF functional test suite started");
 }
 
 BOOL Module::STNew(IMGDFSimHost* host) {
-  std::ignore = host;
+  // mirror all test output into the MGDF log so that test results and
+  // failure details are available in the core log after a run
+  TextManagerState::LogSink = [host](const std::string& line) {
+    host->Log("TestModule", line.c_str(), MGDF_LOG_LOW);
+  };
+  host->GetRenderSettings(_renderSettings.Assign());
   _testModules.push_back(std::make_unique<DisplayTests>());
   _testModules.push_back(std::make_unique<LoadSaveTests>());
   _testModules.push_back(std::make_unique<NetworkTests>());
@@ -120,6 +131,32 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
       state->Text.AddLine(oss.str());
       state->Text.AddLine("");
     }
+
+    // mousewheel scrolling of the test output
+    const UINT32 screenX = _renderSettings->GetScreenX();
+    const UINT32 screenY = _renderSettings->GetScreenY();
+    _wheelAccumulator += _input->GetMouseDZ();
+    const INT32 wheelLines = (_wheelAccumulator * 3) / WHEEL_DELTA;
+    if (wheelLines) {
+      _wheelAccumulator -= (wheelLines * WHEEL_DELTA) / 3;
+      state->Text.Scroll(wheelLines, screenY);
+    }
+
+    // dragging the scrollbar on the right of the screen
+    if (_input->IsButtonDown(MGDF_MOUSE_LEFT)) {
+      // use a slightly wider hit area than the rendered scrollbar to make
+      // it easier to grab
+      const INT32 hitArea = static_cast<INT32>(
+          static_cast<float>(screenX) - 2 * TextManagerState::SCROLLBAR_WIDTH);
+      if (_draggingScrollbar || _input->GetMouseX() >= hitArea) {
+        _draggingScrollbar = true;
+        state->Text.SetScroll(static_cast<float>(_input->GetMouseY()),
+                              screenY);
+      }
+    } else {
+      _draggingScrollbar = false;
+    }
+
     if (_input->IsKeyPress(VK_ESCAPE)) {
       host->QueueShutDown();
     }
@@ -129,7 +166,10 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
   return true;
 }
 
-void Module::STShutDown(IMGDFSimHost* host) { host->ShutDown(); }
+void Module::STShutDown(IMGDFSimHost* host) {
+  TextManagerState::LogSink = nullptr;
+  host->ShutDown();
+}
 
 BOOL Module::RTBeforeFirstDraw(IMGDFRenderHost* host) {
   _textManager = std::make_unique<TextManager>(host);

@@ -31,22 +31,32 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         _requestGroupKey = _request->SendRequest(_requestGroup);
       })
       .Step([host, this](auto state) {
-        std::ignore = state;
         auto groupResponseKey =
             _requestGroup->GetResponse(_groupResponse.Assign());
         if (groupResponseKey) {
           if (groupResponseKey != _requestGroupKey) {
-            return TestStep::FAILED;
+            return state->Fail(
+                "Group response key does not match the key returned when "
+                "sending the request");
           } else if (!_request->GetResponse(_response.Assign())) {
             // both the group and request should have a response
-            return TestStep::FAILED;
+            return state->Fail(
+                "The request group has a response, but the request itself "
+                "does not");
           } else {
             const MGDF::ComString<&IMGDFHttpClientResponse::GetResponseHeader>
                 contentType(_response, "Content-Type");
             if (_groupResponse != _response ||
                 _groupResponse->GetResponseCode() != 200 ||
                 contentType != "text/html; charset=utf-8") {
-              return TestStep::FAILED;
+              const MGDF::ComString<&IMGDFHttpClientResponse::GetResponseError>
+                  error(_response);
+              std::ostringstream oss;
+              oss << "Expected matching 200 responses with Content-Type "
+                     "'text/html; charset=utf-8', got code "
+                  << _groupResponse->GetResponseCode() << ", Content-Type '"
+                  << contentType.str() << "', error '" << error.str() << "'";
+              return state->Fail(oss.str());
             } else {
               return TestStep::PASSED;
             }
@@ -68,14 +78,17 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         _request->CancelRequest();
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_request->GetResponse(_response.Assign())) {
           const MGDF::ComString<&IMGDFHttpClientResponse::GetResponseError>
               error(_response);
           if (error == "Cancelled" || _response->GetResponseCode() == -1) {
             return TestStep::PASSED;
           } else {
-            return TestStep::FAILED;
+            std::ostringstream oss;
+            oss << "Expected a cancelled response, got code "
+                << _response->GetResponseCode() << " with error '"
+                << error.str() << "'";
+            return state->Fail(oss.str());
           }
         }
         return TestStep::CONT;
@@ -91,12 +104,15 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         _request->SetRequestMethod("GET")->SendRequest(nullptr);
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_request->GetResponse(_response.Assign())) {
           const MGDF::ComString<&IMGDFHttpClientResponse::GetResponseError>
               error(_response);
           if (!error.str().size() || _response->GetResponseCode() != 0) {
-            return TestStep::FAILED;
+            std::ostringstream oss;
+            oss << "Expected an error response with code 0, got code "
+                << _response->GetResponseCode() << " with error '"
+                << error.str() << "'";
+            return state->Fail(oss.str());
           } else {
             return TestStep::PASSED;
           }
@@ -114,12 +130,15 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         _request->SetRequestMethod("GET")->SendRequest(nullptr);
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_request->GetResponse(_response.Assign())) {
           const MGDF::ComString<&IMGDFHttpClientResponse::GetResponseError>
               error(_response);
           if (!error.str().size() || _response->GetResponseCode() != 0) {
-            return TestStep::FAILED;
+            std::ostringstream oss;
+            oss << "Expected an error response with code 0, got code "
+                << _response->GetResponseCode() << " with error '"
+                << error.str() << "'";
+            return state->Fail(oss.str());
           } else {
             return TestStep::PASSED;
           }
@@ -139,9 +158,9 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         _socketClient->Send(message.data(), message.size(), false);
       })
       .Step([this, host](auto state) {
-        std::ignore = state;
         uint64_t recvBufferSize = 0;
-        MGDFWebSocketConnectionStatus status{.LastErrorLength = 0};
+        MGDFWebSocketConnectionStatus status{.LastError = nullptr,
+                                             .LastErrorLength = 0};
         if (_socketClient->CanRecieve(&recvBufferSize)) {
           std::string messageBuffer;
           messageBuffer.resize(recvBufferSize);
@@ -153,11 +172,18 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
               return TestStep::PASSED;
             }
           } else {
-            return TestStep::FAILED;
+            return state->Fail(
+                binary ? "Expected a text echo response, got a binary message"
+                       : "Failed to receive an echo response from the socket");
           }
         } else if (FAILED(_socketClient->GetConnectionStatus(&status)) &&
                    status.LastErrorLength > 0) {
-          return TestStep::FAILED;
+          std::string lastError(status.LastErrorLength, ' ');
+          status.LastError = lastError.data();
+          if (SUCCEEDED(_socketClient->GetConnectionStatus(&status))) {
+            return state->Fail("WebSocket connection failed: " + lastError);
+          }
+          return state->Fail("WebSocket connection failed");
         }
         return TestStep::CONT;
       })
@@ -173,7 +199,6 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
         _socketClient->Send(message.data(), message.size(), false);
       })
       .Step([this](auto state) {
-        std::ignore = state;
         MGDFWebSocketConnectionStatus status{
             .LastError = nullptr,
             .LastErrorLength = 0,
@@ -186,7 +211,10 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
               return TestStep::PASSED;
             }
           }
-          return TestStep::FAILED;
+          std::ostringstream oss;
+          oss << "Expected the socket to be closed with an error, got state "
+              << status.State << " with error '" << lastError << "'";
+          return state->Fail(oss.str());
         }
         return TestStep::CONT;
       })
@@ -238,7 +266,12 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
             const MGDF::ComString<&IMGDFHttpServerRequest::GetRequestHeader>
                 contentType(httpRequest, "Content-Type");
             if (method != "POST" || contentType != "text/plain") {
-              return TestStep::FAILED;
+              std::ostringstream oss;
+              oss << "Expected a POST request with Content-Type 'text/plain', "
+                     "got '"
+                  << method.str() << "' with Content-Type '"
+                  << contentType.str() << "'";
+              return state->Fail(oss.str());
             }
 
             const MGDF::ComString<&IMGDFHttpServerRequest::GetRequestBody> body(
@@ -250,14 +283,20 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
             expectedPath << "/" << body << "?key=" << body;
 
             if (path.str() != expectedPath.str()) {
-              return TestStep::FAILED;
+              std::ostringstream oss;
+              oss << "Expected request path '" << expectedPath.str()
+                  << "', got '" << path.str() << "'";
+              return state->Fail(oss.str());
             }
 
             const auto found = _pendingRecieve.find(body);
             if (found != _pendingRecieve.end()) {
               _pendingRecieve.erase(found);
             } else {
-              return TestStep::FAILED;
+              std::ostringstream oss;
+              oss << "Received a request with unexpected body '" << body.str()
+                  << "'";
+              return state->Fail(oss.str());
             }
 
             if (_pendingRecieve.empty()) {
@@ -292,7 +331,11 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
                                                            messageBuffer.size(),
                                                            &binary) == S_OK) {
           if (messageBuffer != "foobar" || binary) {
-            return TestStep::FAILED;
+            std::ostringstream oss;
+            oss << "Expected text message 'foobar' from the client socket, "
+                   "got '"
+                << messageBuffer << "' (binary=" << binary << ")";
+            return state->Fail(oss.str());
           } else {
             std::string foobarbaz("foobarbaz");
             _socketServer->Send(foobarbaz.data(), foobarbaz.size(), false);
@@ -313,7 +356,11 @@ void NetworkTests::Setup(IMGDFSimHost *host) {
             SUCCEEDED(_socketClient->Receive(messageBuffer.data(),
                                              messageBuffer.size(), &binary))) {
           if (messageBuffer != "foobarbaz" || binary) {
-            return TestStep::FAILED;
+            std::ostringstream oss;
+            oss << "Expected text message 'foobarbaz' from the server socket, "
+                   "got '"
+                << messageBuffer << "' (binary=" << binary << ")";
+            return state->Fail(oss.str());
           } else {
             return TestStep::PASSED;
           }

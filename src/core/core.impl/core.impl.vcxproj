@@ -161,7 +161,7 @@
     <ProjectReference Include="..\input\xinput\core.input.xinput.vcxproj">
       <Project>{e2d534de-f3e6-44a3-b7d9-eead49c56a2c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\network\mongoose\core.network.mongoose.vcxproj">
+    <ProjectReference Include="..\network\impl\core.network.impl.vcxproj">
       <Project>{fcce76a9-9ea8-4e54-8212-480a5ca9d701}</Project>
     </ProjectReference>
     <ProjectReference Include="..\storage\jsoncpp\core.storage.jsoncpp.vcxproj">

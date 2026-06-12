@@ -175,7 +175,9 @@ void D3DAppFramework::InitWindow(const std::string &caption) {
       GetCompatibleD3DFeatureLevels(_rtLevels.data(), &levelsSize);
     }
 
-    RTInitD3D(_window);
+    if (!RTInitD3D(_window)) {
+      FATALERROR(this, "Failed to initialize D3D");
+    }
   }
 }
 
@@ -202,7 +204,7 @@ void D3DAppFramework::InitRawInput() {
   }
 }
 
-void D3DAppFramework::RTInitD3D(const HWND window) {
+bool D3DAppFramework::RTInitD3D(const HWND window) {
   LOG("Initializing Direct3D...", MGDF_LOG_LOW);
 
   _rtFactory = RTCreateDXGIFactory();
@@ -231,7 +233,8 @@ void D3DAppFramework::RTInitD3D(const HWND window) {
             D3D11_SDK_VERSION, _rtD3dDevice.Assign(), &featureLevel,
             _rtImmediateContext.Assign())) ||
         featureLevel == 0) {
-      FATALERROR(this, "Failed to create device with default adapter");
+      LOG("Failed to create device with default adapter", MGDF_LOG_ERROR);
+      return false;
     }
   } else {
     // step through the adapters and ensure we use the best one to create our
@@ -306,8 +309,9 @@ void D3DAppFramework::RTInitD3D(const HWND window) {
   }
 
   if (!_rtD3dDevice) {
-    FATALERROR(this,
-               "No adapters found supporting The specified D3D Feature set");
+    LOG("No adapters found supporting the specified D3D feature set",
+        MGDF_LOG_ERROR);
+    return false;
   } else {
     LOG("Created device with D3D Feature level: "
             << _rtD3dDevice->GetFeatureLevel(),
@@ -336,7 +340,9 @@ void D3DAppFramework::RTInitD3D(const HWND window) {
     FATALERROR(this, "Unable to create ID2D1Device");
   }
 
-  RTCheckForDisplayChanges(window);
+  if (!RTCheckForDisplayChanges(window)) {
+    return false;
+  }
   RTOnInitDevices(_rtD3dDevice, _rtD2dDevice);
 
   RECT windowSize;
@@ -348,6 +354,7 @@ void D3DAppFramework::RTInitD3D(const HWND window) {
       RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
   RTCreateSwapChain(window);
   RTResizeBackBuffer();
+  return true;
 }
 
 ComObject<IDXGIFactory6> D3DAppFramework::RTCreateDXGIFactory() {
@@ -420,7 +427,7 @@ void D3DAppFramework::RTUninitD3D() {
   }
 }
 
-void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
+bool D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
   ComObject<IDXGIDevice1> dxgiDevice;
   if (FAILED(_rtD3dDevice->QueryInterface<IDXGIDevice1>(dxgiDevice.Assign()))) {
     FATALERROR(this, "Unable to acquire IDXGIDevice from ID3D11Device");
@@ -480,7 +487,8 @@ void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
   }
 
   if (!bestOutput || !primaryOutput) {
-    FATALERROR(this, "No outputs found");
+    LOG("No outputs found", MGDF_LOG_ERROR);
+    return false;
   }
 
   DXGI_OUTPUT_DESC1 primaryDesc;
@@ -513,7 +521,8 @@ void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
        FAILED(primaryOutput->GetDisplayModeList1(
            displayModeFormats.second, 0, &maxHDRAdaptorModes,
            primaryModes.data() + maxSDRAdaptorModes)))) {
-    FATALERROR(this, "Failed to get mode lists from adapter");
+    LOG("Failed to get mode lists from adapter", MGDF_LOG_ERROR);
+    return false;
   }
 
   primaryModes.erase(
@@ -595,11 +604,26 @@ void D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
 
   RTOnDisplayChange(currentDesc, currentDPI, currentSDRWhiteLevel,
                     primaryModes);
+  return true;
 }
 
 void D3DAppFramework::RTReinitD3D(const HWND window) {
-  RTInitD3D(window);
-  RTOnDeviceReset();
+  constexpr int maxRetries = 5;
+  constexpr int retryDelayMs = 1000;
+  for (int attempt = 0; attempt <= maxRetries; ++attempt) {
+    if (attempt > 0) {
+      LOG("D3D reinit attempt " << (attempt + 1) << " of "
+                                << (maxRetries + 1) << "...",
+          MGDF_LOG_LOW);
+      RTUninitD3D();
+      ::Sleep(retryDelayMs);
+    }
+    if (RTInitD3D(window)) {
+      RTOnDeviceReset();
+      return;
+    }
+  }
+  FATALERROR(this, "Failed to reinitialize D3D after multiple attempts");
 }
 
 bool D3DAppFramework::RTAllowTearing() {
@@ -828,7 +852,10 @@ INT32 D3DAppFramework::Run() {
             // get the most recent display change message (if any)
             std::optional<DisplayChangeMessage> displayChange;
             if (PopRTMessage(displayChange) || !dxgiFactoryIsCurrent) {
-              RTCheckForDisplayChanges(window);
+              if (!RTCheckForDisplayChanges(window)) {
+                LOG("Failed to check for display changes, will retry later",
+                    MGDF_LOG_LOW);
+              }
             }
 
             // for window moves and resizes that don't result

@@ -12,7 +12,7 @@
 #include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
 #include "../input/xinput/XInputManagerComponent.hpp"
-#include "../network/mongoose/MongooseNetworkManagerComponent.hpp"
+#include "../network/impl/NetworkManagerComponent.hpp"
 #include "../storage/jsoncpp/JsonStorageFactoryComponent.hpp"
 #include "MGDFGameBuilder.hpp"
 #include "MGDFParameterConstants.hpp"
@@ -37,8 +37,8 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
       .HttpClientConnectionTimeout = 10000,
       .HttpClientKeepAlive = 10000,
       .WebSocketClientReconnectInterval = 500};
-  if (!network::mongoose::CreateNetworkManagerComponent(components.Network,
-                                                        options)) {
+  if (!network::impl::CreateNetworkManagerComponent(components.Network,
+                                                    options)) {
     LOG("FATAL ERROR: Unable to register NetworkManager", MGDF_LOG_ERROR);
     return false;
   }

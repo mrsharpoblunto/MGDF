@@ -81,7 +81,7 @@ class D3DAppFramework {
 
  private:
   ComObject<IDXGIFactory6> RTCreateDXGIFactory();
-  void RTInitD3D(const HWND window);
+  bool RTInitD3D(const HWND window);
   void RTPrepareToReinitD3D();
   void RTReinitD3D(const HWND window);
   void RTUninitD3D();
@@ -89,7 +89,7 @@ class D3DAppFramework {
   void RTClearBackBuffer();
   void RTResizeBackBuffer();
   bool RTAllowTearing();
-  void RTCheckForDisplayChanges(const HWND window);
+  bool RTCheckForDisplayChanges(const HWND window);
 
   void InitRawInput();
   void ProcessRawInput();

@@ -156,7 +156,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.api", "src\core\core.a
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network", "src\core\network\core.network.vcxproj", "{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network.mongoose", "src\core\network\mongoose\core.network.mongoose.vcxproj", "{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network.impl", "src\core\network\impl\core.network.impl.vcxproj", "{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

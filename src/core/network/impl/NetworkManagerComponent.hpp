@@ -5,13 +5,13 @@
 namespace MGDF {
 namespace core {
 namespace network {
-namespace mongoose {
+namespace impl {
 
 bool CreateNetworkManagerComponent(
     std::shared_ptr<INetworkManagerComponent> &network,
     const NetworkManagerOptions &options);
 
-}  // namespace mongoose
+}  // namespace impl
 }  // namespace network
 }  // namespace core
 }  // namespace MGDF

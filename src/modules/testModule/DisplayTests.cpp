@@ -46,7 +46,7 @@ void DisplayTests::Setup(IMGDFSimHost *host) {
         } else if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
-          return TestStep::FAILED;
+          return state->Fail("User reported HDR mode query did not work");
         }
         return TestStep::CONT;
       })
@@ -56,11 +56,11 @@ void DisplayTests::Setup(IMGDFSimHost *host) {
             "[Y/N] if this works correctly");
       })
       .Step([host, this](auto state) {
-        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
-          return TestStep::FAILED;
+          return state->Fail(
+              "User reported fullscreen/windowed toggle did not work");
         } else {
           if (_input->IsKeyPress('F')) {
             ComObject<IMGDFRenderSettingsManager> settings;
@@ -82,11 +82,11 @@ void DisplayTests::Setup(IMGDFSimHost *host) {
             "[Y/N] if this works correctly");
       })
       .Step([this](auto state) {
-        std::ignore = state;
         if (_input->IsKeyPress('Y')) {
           return TestStep::PASSED;
         } else if (_input->IsKeyPress('N')) {
-          return TestStep::FAILED;
+          return state->Fail(
+              "User reported the information overlay toggle did not work");
         }
         return TestStep::CONT;
       });
