@@ -62,7 +62,7 @@ HRESULT WebSocketImpl::GetConnectionStatus(
     return S_OK;
   } else {
     status->LastErrorLength = lastError.size();
-    return E_FAIL;
+    return E_NOT_SUFFICIENT_BUFFER;
   }
 }
 HttpClientResponseImpl::HttpClientResponseImpl(
