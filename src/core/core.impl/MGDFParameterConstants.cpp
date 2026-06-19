@@ -10,6 +10,8 @@
 namespace MGDF {
 namespace core {
 
+const char *ParameterConstants::ENV_PREFIX = "MGDF_";
+
 const char *ParameterConstants::LOG_LEVEL = "loglevel";
 
 const char *ParameterConstants::USER_DIR_OVERRIDE = "userdiroverride";

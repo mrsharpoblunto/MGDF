@@ -39,19 +39,30 @@ To make running the unmanaged unit tests easier you can set up an external tool 
 
 Running core.exe from command line
 ----------------------------------
-core.exe can be invoked either via the GamesManager or directly via the command line. 
-For ease of debugging command line parameters can also be placed in a params.txt file in the application directory (the contents of this file will have preference over anything specified on the command line)
+core.exe can be invoked either via the GamesManager or directly via the command line.
+
+Configuration can be supplied either as command line arguments or as environment variables. Every command line argument `-name [value]` has an equivalent environment variable `MGDF_NAME` (the argument name upper-cased and prefixed with `MGDF_`); for flags that take no value, set the variable to any non-empty value. Command line arguments take precedence over environment variables.
+
+For ease of debugging the environment variables can also be placed in a `.env` file in the application directory. Each line is a `KEY=VALUE` pair; blank lines and lines beginning with `#` are ignored, and values may optionally be wrapped in matching single or double quotes. On startup these values are loaded into the process environment (without overwriting any variable already set in the real environment), so they are visible both to the framework and to the bootstrapped game module (via `getenv`/`GetEnvironmentVariable`), as well as to any child processes.
 
 ### Arguments
-* -loglevel <level>: (OPTIONAL) The logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
-* -userdiroverride (OPTIONAL) The directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
-* -gamediroverride <directory>: (OPTIONAL) The directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
-* -metricsport <port_number>: (OPTIONAL) A port to expose internal metrics via a prometheus compatible endpoint at http://localhost:<port_number>/metrics
-* -logendpoint <url>: (OPTIONAL) A Loki logging endpoint to push internal logs to
-* -statisticsendpointoverride <url>: (OPTIONAL) A statistics endpoint to push statistics to (overrides any statistics service specified in the games manifest)
+* -loglevel <level> (env `MGDF_LOGLEVEL`): (OPTIONAL) The logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
+* -userdiroverride (env `MGDF_USERDIROVERRIDE`): (OPTIONAL) The directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
+* -gamediroverride <directory> (env `MGDF_GAMEDIROVERRIDE`): (OPTIONAL) The directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
+* -metricsport <port_number> (env `MGDF_METRICSPORT`): (OPTIONAL) A port to expose internal metrics via a prometheus compatible endpoint at http://localhost:<port_number>/metrics
+* -logendpoint <url> (env `MGDF_LOGENDPOINT`): (OPTIONAL) A Loki logging endpoint to push internal logs to
+* -statisticsendpointoverride <url> (env `MGDF_STATISTICSENDPOINTOVERRIDE`): (OPTIONAL) A statistics endpoint to push statistics to (overrides any statistics service specified in the games manifest)
+
+An example `.env` file:
+
+    # logging
+    MGDF_LOGLEVEL=log_high
+    MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
 
 Running GamesManager.exe from command line
 ------------------------------------------
+
+As with core.exe, these arguments can also be supplied as `MGDF_`-prefixed environment variables (e.g. `MGDF_GAMEDIROVERRIDE`), including via a `.env` file in the application directory. Command line arguments take precedence over environment variables. The GamesManager loads the `.env` file into the process environment before launching core.exe, so the values are inherited by the game as well.
 
 ### Arguments
 * -register: In order to make installing/uninstalling your game easier, you can use the gamesManager register argument to create installed program registry entries, desktop shortcuts, start menu shortcuts and windows games explorer integration.

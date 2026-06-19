@@ -28,7 +28,7 @@ class Resources {
   std::wstring GameBaseDir();
   std::wstring UserBaseDir();
 
-  std::wstring ParamsFile();
+  std::wstring EnvFile();
   std::wstring GameFile();
   std::wstring WorkingDir();
   std::wstring SaveBaseDir();

@@ -50,11 +50,56 @@ namespace MGDF.GamesManager.Common
       }
     }
 
-    public static string ParamsOverrideFile
+    public static string EnvFile
     {
       get
       {
-        return FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, "params.txt");
+        return FileSystem.Combine(EnvironmentSettings.Current.AppDirectory, ".env");
+      }
+    }
+
+    // Load a .env file from the application directory into the process
+    // environment so its values propagate to the launched core.exe and the
+    // bootstrapped game module.
+    public static void LoadEnvironmentFile()
+    {
+      if (!FileSystem.Current.FileExists(EnvFile))
+      {
+        return;
+      }
+
+      using (var stream = FileSystem.Current.GetFile(EnvFile).OpenStream(FileMode.Open))
+      using (var reader = new StreamReader(stream))
+      {
+        string line;
+        while ((line = reader.ReadLine()) != null)
+        {
+          line = line.Trim();
+          if (line.Length == 0 || line[0] == '#')
+          {
+            continue; // blank line or comment
+          }
+
+          int eq = line.IndexOf('=');
+          if (eq <= 0)
+          {
+            continue; // not a KEY=VALUE pair
+          }
+
+          string key = line.Substring(0, eq).Trim();
+          string value = line.Substring(eq + 1).Trim();
+          // strip a single pair of matching surrounding quotes
+          if (value.Length >= 2 && (value[0] == '"' || value[0] == '\'') && value[value.Length - 1] == value[0])
+          {
+            value = value.Substring(1, value.Length - 2);
+          }
+
+          // don't clobber a variable already set in the real environment
+          if (Environment.GetEnvironmentVariable(key) == null)
+          {
+            Environment.SetEnvironmentVariable(key, value);
+          }
+        }
       }
     }
 

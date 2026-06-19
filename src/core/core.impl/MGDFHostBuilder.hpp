@@ -14,6 +14,10 @@ class HostBuilder {
   static bool RegisterAdditionalComponents(std::string gameUid,
                                            HostComponents &);
   static void InitParameterManager();
+  // load a .env file from the application directory into the process
+  // environment so both the framework and the bootstrapped game module can
+  // read its values
+  static void LoadEnvironmentFile();
   static void InitResources(std::string gameUid = "");
   static void InitLogger(
       const std::shared_ptr<network::INetworkManagerComponent> &network);

@@ -129,7 +129,12 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
 }
 
 void HostBuilder::InitParameterManager() {
-  std::string paramString;
+  // load any .env file into the process environment first, then pull MGDF
+  // parameters from the environment. The command line is parsed last so it
+  // takes precedence over the environment.
+  LoadEnvironmentFile();
+  ParameterManager::Instance().AddEnvironmentParameters(
+      ParameterConstants::ENV_PREFIX);
 
   // parse the command line
   std::string cmdLine = GetCommandLine();
@@ -148,21 +153,54 @@ void HostBuilder::InitParameterManager() {
     // First token wasn't a quote
     while (*cmdLineIter > ' ') ++cmdLineIter;
   }
-  paramString = std::string(cmdLineIter, cmdLine.end());
+  const std::string paramString(cmdLineIter, cmdLine.end());
   ParameterManager::Instance().AddParameterString(paramString.c_str());
+}
 
-  // then override with the supplied params.txt in the application path (if provided)
-  // providing a params.txt can be useful for debugging purposes.
-  path paramsTxt(Resources::Instance().ParamsFile());
-  if (exists(paramsTxt)) {
-    std::ifstream input(paramsTxt.wstring().c_str(), std::ios::in);
-    std::stringstream buffer;
-    buffer << input.rdbuf();
-    paramString = buffer.str();
-    if (paramString.starts_with("//")) {
-      paramString.clear();
+void HostBuilder::LoadEnvironmentFile() {
+  path envFile(Resources::Instance().EnvFile());
+  if (!exists(envFile)) {
+    return;
+  }
+
+  std::ifstream input(envFile.wstring().c_str(), std::ios::in);
+  std::string line;
+  while (std::getline(input, line)) {
+    // tolerate CRLF line endings
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
     }
-    ParameterManager::Instance().AddParameterString(paramString.c_str());
+
+    const size_t start = line.find_first_not_of(" \t");
+    if (start == std::string::npos || line[start] == '#') {
+      continue;  // blank line or comment
+    }
+
+    const size_t eq = line.find('=', start);
+    if (eq == std::string::npos || eq == start) {
+      continue;  // not a KEY=VALUE pair, or an empty key
+    }
+
+    const size_t keyEnd = line.find_last_not_of(" \t", eq - 1);
+    const std::string key = line.substr(start, keyEnd - start + 1);
+
+    std::string value;
+    const size_t valueStart = line.find_first_not_of(" \t", eq + 1);
+    if (valueStart != std::string::npos) {
+      const size_t valueEnd = line.find_last_not_of(" \t");
+      value = line.substr(valueStart, valueEnd - valueStart + 1);
+      // strip a single pair of matching surrounding quotes
+      if (value.size() >= 2 &&
+          (value.front() == '"' || value.front() == '\'') &&
+          value.back() == value.front()) {
+        value = value.substr(1, value.size() - 2);
+      }
+    }
+
+    // don't clobber a variable already set in the real environment
+    if (GetEnvironmentVariableA(key.c_str(), nullptr, 0) == 0) {
+      SetEnvironmentVariableA(key.c_str(), value.c_str());
+    }
   }
 }
 

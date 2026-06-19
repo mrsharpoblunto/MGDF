@@ -140,7 +140,7 @@ const UINT32 Resources::MIN_SCREEN_Y = 768;
 
 std::wstring Resources::LogFile() { return UserBaseDir() + L"coreLog.txt"; }
 
-std::wstring Resources::ParamsFile() { return RootDir() + L"params.txt"; }
+std::wstring Resources::EnvFile() { return RootDir() + L".env"; }
 
 std::wstring Resources::RootDir() { return _applicationDirectory; }
 

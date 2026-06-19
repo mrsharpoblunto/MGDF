@@ -32,6 +32,39 @@ HRESULT ParameterManager::AddParameterString(const char *paramString) {
   return ParseParameters(ps, _parameters);
 }
 
+HRESULT ParameterManager::AddEnvironmentParameters(const char *prefix) {
+  _ASSERTE(prefix);
+  const size_t prefixLen = strlen(prefix);
+
+  // GetEnvironmentStrings reflects any SetEnvironmentVariable calls made during
+  // start up (e.g. values loaded from a .env file), unlike the CRT environ.
+  LPCH env = GetEnvironmentStringsA();
+  if (!env) {
+    return E_FAIL;
+  }
+
+  for (LPCH var = env; *var != '\0'; var += strlen(var) + 1) {
+    if (_strnicmp(var, prefix, prefixLen) != 0) {
+      continue;
+    }
+    const char *name = var + prefixLen;
+    const char *eq = strchr(name, '=');
+    // skip entries with no name after the prefix (drive-letter entries like
+    // "=C:=..." also have an empty name and are ignored here)
+    if (!eq || eq == name) {
+      continue;
+    }
+    std::string key(name, eq);
+    for (char &c : key) {
+      c = tolowerChar(c);
+    }
+    _parameters[key] = std::string(eq + 1);
+  }
+
+  FreeEnvironmentStringsA(env);
+  return S_OK;
+}
+
 HRESULT ParameterManager::ParseParameters(
     const std::string &paramString,
     std::map<std::string, std::string> &paramMap) {
@@ -70,29 +103,24 @@ HRESULT ParameterManager::ParseParameters(
       ++iter;
     }
 
-    // parse the value (if present)
+    // parse the value (if present). The next token is a value unless it starts a
+    // new flag (a bare '-'). A quoted value runs to its matching closing quote and
+    // may contain spaces and '-'; an unquoted value runs to the next whitespace,
+    // so paths and URLs containing '-' are preserved intact.
     if (iter != paramString.end() && *iter != '-') {
-      while (iter != paramString.end() && (*iter != '-')) {
-        value += *(iter++);
-      }
-
-      // check that the key is valid (i.e non null)
-      if (key.size() == 0) {
-        return E_INVALIDARG;
-      }
-
-      // erase trailing whitespace
-      const std::string::size_type pos = value.find_last_not_of(' ');
-      if (pos != std::string::npos) {
-        value.erase(pos + 1);
-      }
-      // erase leading quotes
-      if (value.front() == '"' || value.front() == '\'') {
-        value.erase(0, 1);
-      }
-      // erase trailing quotes
-      if (value.back() == '"' || value.back() == '\'') {
-        value.erase(value.size() - 1);
+      if (*iter == '"' || *iter == '\'') {
+        const char quote = *iter;
+        ++iter;  // skip opening quote
+        while (iter != paramString.end() && *iter != quote) {
+          value += *(iter++);
+        }
+        if (iter != paramString.end()) {
+          ++iter;  // skip closing quote
+        }
+      } else {
+        while (iter != paramString.end() && *iter > ' ') {
+          value += *(iter++);
+        }
       }
     }
 
