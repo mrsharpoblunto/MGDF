@@ -2113,12 +2113,18 @@ this interface are safe to be used from any thread
   /**
   Begins the process of saving the gamestate data. Once finished saving all
   data to the VFS
-  instance returned. Modules should release the VFS to commit the save
+  instance returned. Modules should release the VFS to commit the save.
+  Committing REPLACES the previous save contents wholesale, so anything that
+  should survive across saves must be migrated into the pending VFS during
+  the save - the previous save's data is exposed for exactly that purpose
   \param pending A VFS mounted in a temporary save directory, once released any data in this
   directory will be copied into the permanent game state data directory
+  \param previous A readonly VFS mounted over the previous save's data (null for a new
+  game state), valid until the pending VFS is released - gives the module the opportunity
+  to move or merge prior contents into the new save
   \return S_OK if the VFS could be mounted
   */
-  HRESULT BeginSave([out] IMGDFWriteableVirtualFileSystem * *pending);
+  HRESULT BeginSave([out] IMGDFWriteableVirtualFileSystem * *pending, [out] IMGDFReadOnlyVirtualFileSystem * *previous);
 };
 
 /**

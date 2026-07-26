@@ -175,11 +175,24 @@ HRESULT GameState::SetMetadata(const char* key, const char* value) {
 
 void GameState::GetVersion(MGDFVersion* version) { *version = _gameVersion; }
 
-HRESULT GameState::BeginSave(IMGDFWriteableVirtualFileSystem** p) {
+HRESULT GameState::BeginSave(IMGDFWriteableVirtualFileSystem** p,
+                             IMGDFReadOnlyVirtualFileSystem** previous) {
   auto state = MakeComFromPtr<GameState>(this);
   auto pending = MakeCom<PendingSave>(state);
   if (FAILED(pending->Init())) {
     return E_FAIL;
+  }
+  // expose the previous save's data (if any) alongside the pending VFS so
+  // the module can migrate anything that should survive the wholesale
+  // replacement that committing performs
+  if (previous) {
+    *previous = nullptr;
+    if (!IsNew()) {
+      const HRESULT hr = GetVFS(previous);
+      if (FAILED(hr) && hr != E_NOT_SET) {
+        return hr;
+      }
+    }
   }
   pending.AddRawRef(p);
   return S_OK;
