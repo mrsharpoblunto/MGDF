@@ -53,7 +53,8 @@ class GameState : public ComBase<IMGDFGameState> {
   void __stdcall GetVersion(MGDFVersion *version) final;
   BOOL __stdcall IsNew() final { return _saveName.empty(); }
   HRESULT __stdcall GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) final;
-  HRESULT __stdcall BeginSave(IMGDFWriteableVirtualFileSystem **pending) final;
+  HRESULT __stdcall BeginSave(IMGDFWriteableVirtualFileSystem **pending,
+                              IMGDFReadOnlyVirtualFileSystem **previous) final;
 
   std::string GetSave() const { return _saveName; }
   void SetSave(const std::string &saveName);

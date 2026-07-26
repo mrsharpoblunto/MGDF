@@ -39,7 +39,7 @@ void LoadSaveTests::Setup(IMGDFSimHost *host) {
     _state->SetMetadata("key", "value");
     _state->SetMetadata("key1", "value1");
 
-    if (FAILED(_state->BeginSave(_pending.Assign()))) {
+    if (FAILED(_state->BeginSave(_pending.Assign(), nullptr))) {
       return state->Fail("BeginSave failed on the new game state");
     } else {
       ComObject<IMGDFWriteableFile> saveFile;
