@@ -5,6 +5,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <nlohmann/json.hpp>
 
 #include "MGDFResources.hpp"
@@ -30,6 +31,15 @@ size_t GetTimeStamp() {
       .count();
 }
 
+// milliseconds since the host started, so the ordered log doubles as a
+// coarse profile without each caller having to time itself
+double GetElapsed() {
+  static const auto start = std::chrono::steady_clock::now();
+  return std::chrono::duration<double, std::milli>(
+             std::chrono::steady_clock::now() - start)
+      .count();
+}
+
 void MGDFLog(std::function<void(std::ostringstream &)> msg, MGDFLogLevel level,
              const char *file, int line) {
   if (level <= Logger::Instance().GetLoggingLevel()) {
@@ -46,9 +56,13 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
   _ASSERTE(message);
 
   if (level <= _level.load()) {
+    std::ostringstream prefixed;
+    prefixed << "[t=" << std::fixed << std::setprecision(1) << GetElapsed()
+             << "ms] " << message;
+    const auto text = prefixed.str();
 #if defined(_DEBUG)
     std::ostringstream stream;
-    stream << sender << ": " << message << "\n";
+    stream << sender << ": " << text << "\n";
     OutputDebugString(stream.str().c_str());
 #endif
     {
@@ -57,7 +71,7 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
       _events.push_back(LogEntry{.Level = level,
                                  .Timestamp = timestamp,
                                  .Sender = sender,
-                                 .Message = message});
+                                 .Message = text});
       if (_events.size() >= LOG_BUFFER_SIZE) {
         lock.unlock();
         _cv.notify_one();
