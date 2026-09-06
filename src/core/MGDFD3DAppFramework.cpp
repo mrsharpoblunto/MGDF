@@ -1231,7 +1231,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
 
     case WM_SETCURSOR: {
       if (LOWORD(lParam) == HTCLIENT) {
-        if (OnHideCursor()) {
+        if (OnSetCursor()) {
           return TRUE;
         }
       }

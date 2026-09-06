@@ -13,7 +13,7 @@ namespace input {
 namespace xinput {
 
 XInputManagerComponent::XInputManagerComponent()
-    : _showCursor(true),
+    : _showCursor(true), _cursor(MGDF_CURSOR_ARROW),
       _pendingMouseX(0),
       _pendingMouseY(0),
       _pendingMouseDX(0L),
@@ -240,6 +240,12 @@ void XInputManagerComponent::ProcessSim() {
 bool XInputManagerComponent::GetShowCursor() { return _showCursor.load(); }
 
 void XInputManagerComponent::ShowCursor(BOOL show) { _showCursor.store(show); }
+
+MGDFCursor XInputManagerComponent::GetCursorShape() { return _cursor.load(); }
+
+void XInputManagerComponent::SetCursorShape(MGDFCursor cursor) {
+  _cursor.store(cursor);
+}
 
 BOOL XInputManagerComponent::IsKeyDown(UINT16 key) { return _keyDown[key]; }
 

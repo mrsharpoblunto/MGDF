@@ -84,6 +84,17 @@ void HostMetrics::GetTimings(Timings& timings) const {
   timings.ExpectedSimTime = _expectedSimTime;
 }
 
+void HostMetrics::GetSamples(TimingSamples& samples) const {
+  std::lock_guard<std::mutex> lock(_statsMutex);
+  samples.RenderTime.assign(_renderTime.begin(), _renderTime.end());
+  samples.ActiveRenderTime.assign(_activeRenderTime.begin(),
+                                  _activeRenderTime.end());
+  samples.SimTime.assign(_simTime.begin(), _simTime.end());
+  samples.ActiveSimTime.assign(_activeSimTime.begin(), _activeSimTime.end());
+  samples.SimInputTime.assign(_simInputTime.begin(), _simInputTime.end());
+  samples.SimAudioTime.assign(_simAudioTime.begin(), _simAudioTime.end());
+}
+
 void HostMetrics::SetExpectedSimTime(double value) { _expectedSimTime = value; }
 
 double HostMetrics::ExpectedSimTime() const { return _expectedSimTime; }

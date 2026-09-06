@@ -45,7 +45,7 @@ class MGDFApp : public D3DAppFramework {
   UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                        UINT64 *featureLevelsSize) final;
   bool OnInitWindow(RECT &windowSize) final;
-  bool OnHideCursor() final;
+  bool OnSetCursor() final;
   LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                           LPARAM lParam) final;
   void OnExternalClose() final;

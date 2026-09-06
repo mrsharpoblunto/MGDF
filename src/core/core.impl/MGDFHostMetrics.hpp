@@ -4,6 +4,7 @@
 #include <list>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 
 #include "../network/MGDFNetworkManagerComponent.hpp"
 #include "MGDFMetrics.hpp"
@@ -41,12 +42,23 @@ struct Timings {
   double ExpectedSimTime;
 };
 
+// the per frame history behind Timings, newest first
+struct TimingSamples {
+  std::vector<double> RenderTime;
+  std::vector<double> ActiveRenderTime;
+  std::vector<double> SimTime;
+  std::vector<double> ActiveSimTime;
+  std::vector<double> SimInputTime;
+  std::vector<double> SimAudioTime;
+};
+
 class HostMetrics {
  public:
   HostMetrics(UINT32 maxSamples);
   virtual ~HostMetrics() {};
 
   void GetTimings(Timings &timings) const;
+  void GetSamples(TimingSamples &samples) const;
   double ExpectedSimTime() const;
 
   void AppendRenderTimes(double renderValue, double activeRenderValue);

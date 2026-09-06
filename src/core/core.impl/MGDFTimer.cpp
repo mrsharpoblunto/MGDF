@@ -5,6 +5,7 @@
 #include <map>
 
 #include "../common/MGDFLoggerImpl.hpp"
+#include "MGDFMetrics.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -37,6 +38,15 @@ void CounterBase::AddSample(double sample) {
 double CounterBase::GetAverageValue() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _average;
+}
+
+void CounterBase::Snapshot(CounterSnapshot& snapshot, bool gpu) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  // every metric the host hands out is a MetricBase
+  snapshot.Name = static_cast<MetricBase*>(_metric.Get())->GetName();
+  snapshot.GPU = gpu;
+  snapshot.Average = _average;
+  snapshot.Samples.assign(_samples.begin(), _samples.end());
 }
 
 void CounterBase::GetMetric(IMGDFMetric **metric) { _metric.AddRawRef(metric); }
@@ -350,6 +360,18 @@ double Timer::ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
   const LONGLONG diff = max(newTime.QuadPart, oldTime.QuadPart) -
                         min(newTime.QuadPart, oldTime.QuadPart);
   return max((double)diff / _freq.QuadPart, 0);
+}
+
+void Timer::GetCounterSnapshots(
+    std::vector<CounterSnapshot>& snapshots) const {
+  std::lock_guard<std::mutex> lock(_mutex);
+  snapshots.reserve(_cpuCounters.size() + _gpuCounters.size());
+  for (auto* counter : _cpuCounters) {
+    counter->Snapshot(snapshots.emplace_back(), false);
+  }
+  for (auto* counter : _gpuCounters) {
+    counter->Snapshot(snapshots.emplace_back(), true);
+  }
 }
 
 HRESULT Timer::CreateCPUCounter(IMGDFMetric *metric,
