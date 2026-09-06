@@ -27,3 +27,4 @@ obj/
 *.opensdf
 vcpkg_installed/
 
+.worktrees/
