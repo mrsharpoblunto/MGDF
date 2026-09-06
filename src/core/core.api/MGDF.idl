@@ -326,6 +326,18 @@ XInput compatible gamepad connected to the PC
 };
 
 /**
+The OS cursor shapes a module can ask for while the cursor is shown
+*/
+typedef enum MGDFCursor {
+  MGDF_CURSOR_ARROW,
+  MGDF_CURSOR_HAND,
+  MGDF_CURSOR_SIZE_NWSE,
+  MGDF_CURSOR_SIZE_NS,
+  MGDF_CURSOR_SIZE_WE,
+  MGDF_CURSOR_SIZE_ALL
+} MGDFCursor;
+
+/**
 Provides a means for modules to access information regarding user input
 from the mouse, keyboard, and xinput controllers
 */
@@ -338,6 +350,13 @@ from the mouse, keyboard, and xinput controllers
   \param show Whether to show the cursor or not
   */
   void ShowCursor(BOOL show);
+
+  /**
+  sets the shape the OS cursor takes while it is shown. The shape applies
+  from the next mouse move
+  \param cursor the cursor shape
+  */
+  void SetCursorShape([in] MGDFCursor cursor);
 
   /**
   determines if a key is presed

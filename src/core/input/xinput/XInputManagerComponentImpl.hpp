@@ -29,8 +29,10 @@ class XInputManagerComponent : public IInputManagerComponent {
   void ClearInput() final;
   void ProcessSim() final;
   bool GetShowCursor() final;
+  MGDFCursor GetCursorShape() final;
 
   void __stdcall ShowCursor(BOOL show) final;
+  void __stdcall SetCursorShape(MGDFCursor cursor) final;
   BOOL __stdcall IsKeyDown(UINT16 key) final;
   BOOL __stdcall IsKeyUp(UINT16 key) final;
   BOOL __stdcall IsKeyPress(UINT16 key) final;
@@ -56,6 +58,7 @@ class XInputManagerComponent : public IInputManagerComponent {
   UINT8 _pendingKeyPressEventsLength;
 
   std::atomic_bool _showCursor;
+  std::atomic<MGDFCursor> _cursor;
 
   // current keyboard state (sim thread)
   bool _keyDown[256];

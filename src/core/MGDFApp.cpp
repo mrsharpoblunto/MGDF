@@ -407,12 +407,34 @@ void MGDFApp::OnMoveWindow(INT32 x, INT32 y) {
   _game->SetPreference(PreferenceConstants::WINDOW_POSITIONY, ys.str().c_str());
 }
 
-bool MGDFApp::OnHideCursor() {
-  if (!_host->GetInputManagerImpl()->GetShowCursor()) {
+bool MGDFApp::OnSetCursor() {
+  const auto input = _host->GetInputManagerImpl();
+  if (!input->GetShowCursor()) {
     ::SetCursor(NULL);
     return true;
   }
-  return false;
+  LPCTSTR shape = nullptr;
+  switch (input->GetCursorShape()) {
+    case MGDF_CURSOR_HAND:
+      shape = IDC_HAND;
+      break;
+    case MGDF_CURSOR_SIZE_NWSE:
+      shape = IDC_SIZENWSE;
+      break;
+    case MGDF_CURSOR_SIZE_NS:
+      shape = IDC_SIZENS;
+      break;
+    case MGDF_CURSOR_SIZE_WE:
+      shape = IDC_SIZEWE;
+      break;
+    case MGDF_CURSOR_SIZE_ALL:
+      shape = IDC_SIZEALL;
+      break;
+    default:
+      return false;
+  }
+  ::SetCursor(::LoadCursor(nullptr, shape));
+  return true;
 }
 
 LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,

@@ -21,6 +21,7 @@ class IInputManagerComponent : public ComBase<IMGDFInputManager> {
   virtual void ProcessSim() = 0;  // do any reading/processing of input required
                                   // before the current sim frame
   virtual bool GetShowCursor() = 0;
+  virtual MGDFCursor GetCursorShape() = 0;
 };
 
 }  // namespace input

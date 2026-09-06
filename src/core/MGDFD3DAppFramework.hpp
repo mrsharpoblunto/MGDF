@@ -71,7 +71,7 @@ class D3DAppFramework {
   virtual LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                                   LPARAM lParam) = 0;
   virtual void OnMoveWindow(INT32 x, INT32 y) = 0;
-  virtual bool OnHideCursor() = 0;
+  virtual bool OnSetCursor() = 0;
   virtual UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                                UINT64 *featureLevelsSize) = 0;
   virtual void FatalError(const char *sender, const char *message) = 0;
