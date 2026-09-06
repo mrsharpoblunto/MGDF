@@ -2,9 +2,6 @@
 
 #include "MGDFDebugImpl.hpp"
 
-#include <cmath>
-#include <cstdio>
-#include <iomanip>
 
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFStringImpl.hpp"
@@ -17,61 +14,6 @@
 
 namespace MGDF {
 namespace core {
-
-namespace {
-
-void WriteJsonString(std::ostringstream& out, const std::string& value) {
-  out << '"';
-  for (const unsigned char c : value) {
-    switch (c) {
-      case '"':
-        out << "\\\"";
-        break;
-      case '\\':
-        out << "\\\\";
-        break;
-      case '\n':
-        out << "\\n";
-        break;
-      case '\r':
-        out << "\\r";
-        break;
-      case '\t':
-        out << "\\t";
-        break;
-      default:
-        if (c < 0x20) {
-          out << "\\u" << std::hex << std::setw(4) << std::setfill('0')
-              << static_cast<int>(c) << std::dec;
-        } else {
-          out << c;
-        }
-        break;
-    }
-  }
-  out << '"';
-}
-
-void WriteJsonNumber(std::ostringstream& out, double value) {
-  if (!std::isfinite(value)) {
-    out << "null";
-    return;
-  }
-  char buffer[32];
-  snprintf(buffer, sizeof(buffer), "%.9g", value);
-  out << buffer;
-}
-
-void WriteJsonNumbers(std::ostringstream& out, const std::vector<double>& v) {
-  out << '[';
-  for (size_t i = 0; i < v.size(); ++i) {
-    if (i) out << ',';
-    WriteJsonNumber(out, v[i]);
-  }
-  out << ']';
-}
-
-}  // namespace
 
 Debug::Debug(Timer* timer) : _timer(timer), _metrics(nullptr) {
   _shown.store(false);
@@ -134,97 +76,66 @@ void Debug::SetHostRenderingEnabled(BOOL enabled) {
 
 BOOL Debug::IsHostRenderingEnabled() { return _hostRendering.load(); }
 
-HRESULT Debug::GetOverlayData(char* buffer, UINT64* length) {
-  if (!length) return E_INVALIDARG;
-  const std::string json = BuildOverlayData();
-  if (buffer && *length < json.size()) {
-    *length = json.size();
-    return E_NOT_SUFFICIENT_BUFFER;
-  }
-  size_t size = static_cast<size_t>(*length);
-  const HRESULT result = StringWriter::Write(json, buffer, &size);
-  *length = size;
-  return result;
-}
-
-std::string Debug::BuildOverlayData() const {
-  std::ostringstream out;
-  out << "{\"version\":";
-  WriteJsonString(out, MGDFVersionInfo::MGDF_VERSION());
-  out << ",\"interfaceVersion\":" << MGDFVersionInfo::MGDF_INTERFACE_VERSION;
-
-  if (_metrics) {
-    Timings timings;
-    _metrics->GetTimings(timings);
-    TimingSamples samples;
-    _metrics->GetSamples(samples);
-    out << ",\"timings\":{\"expectedSimTime\":";
-    WriteJsonNumber(out, timings.ExpectedSimTime);
-    out << ",\"render\":{\"avg\":";
-    WriteJsonNumber(out, timings.AvgRenderTime);
-    out << ",\"activeAvg\":";
-    WriteJsonNumber(out, timings.AvgActiveRenderTime);
-    out << ",\"samples\":";
-    WriteJsonNumbers(out, samples.RenderTime);
-    out << ",\"activeSamples\":";
-    WriteJsonNumbers(out, samples.ActiveRenderTime);
-    out << "},\"sim\":{\"avg\":";
-    WriteJsonNumber(out, timings.AvgSimTime);
-    out << ",\"activeAvg\":";
-    WriteJsonNumber(out, timings.AvgActiveSimTime);
-    out << ",\"inputAvg\":";
-    WriteJsonNumber(out, timings.AvgSimInputTime);
-    out << ",\"audioAvg\":";
-    WriteJsonNumber(out, timings.AvgSimAudioTime);
-    out << ",\"samples\":";
-    WriteJsonNumbers(out, samples.SimTime);
-    out << ",\"activeSamples\":";
-    WriteJsonNumbers(out, samples.ActiveSimTime);
-    out << ",\"inputSamples\":";
-    WriteJsonNumbers(out, samples.SimInputTime);
-    out << ",\"audioSamples\":";
-    WriteJsonNumbers(out, samples.SimAudioTime);
-    out << "}}";
-  }
-
-  out << ",\"counters\":[";
-  if (_timer) {
-    std::vector<CounterSnapshot> counters;
-    _timer->GetCounterSnapshots(counters);
-    for (size_t i = 0; i < counters.size(); ++i) {
-      if (i) out << ',';
-      out << "{\"name\":";
-      WriteJsonString(out, counters[i].Name);
-      out << ",\"gpu\":" << (counters[i].GPU ? "true" : "false")
-          << ",\"average\":";
-      WriteJsonNumber(out, counters[i].Average);
-      out << ",\"samples\":";
-      WriteJsonNumbers(out, counters[i].Samples);
-      out << '}';
-    }
-  }
-  out << "],\"sections\":{";
+HRESULT Debug::GetOverlaySnapshot(IMGDFDebugOverlaySnapshot** snapshot) {
+  if (!snapshot) return E_INVALIDARG;
+  DebugSections sections;
   {
     std::lock_guard<std::mutex> lock(_dataMutex);
-    bool firstSection = true;
-    for (const auto& section : _data) {
-      if (!firstSection) out << ',';
-      firstSection = false;
-      WriteJsonString(out, section.first);
-      out << ":{";
-      bool firstKey = true;
-      for (const auto& kvp : section.second) {
-        if (!firstKey) out << ',';
-        firstKey = false;
-        WriteJsonString(out, kvp.first);
-        out << ':';
-        WriteJsonString(out, kvp.second);
-      }
-      out << '}';
+    sections = _data;
+  }
+  auto copy = MakeCom<DebugOverlaySnapshot>(_metrics, _timer, sections);
+  copy.AddRawRef(snapshot);
+  return S_OK;
+}
+
+MGDFDebugTiming DebugOverlaySnapshot::View(double average,
+                                           const std::vector<double>& samples) {
+  return {average, samples.data(), samples.size()};
+}
+
+DebugOverlaySnapshot::DebugOverlaySnapshot(const HostMetrics* metrics,
+                                           const Timer* timer,
+                                           const DebugSections& sections)
+    : _sections(sections), _data{} {
+  _data.Version = MGDFVersionInfo::MGDF_VERSION();
+  _data.InterfaceVersion = MGDFVersionInfo::MGDF_INTERFACE_VERSION;
+
+  if (metrics) {
+    Timings timings;
+    metrics->GetTimings(timings);
+    metrics->GetSamples(_samples);
+    _data.HasTimings = TRUE;
+    _data.ExpectedSimTime = timings.ExpectedSimTime;
+    _data.RenderTime = View(timings.AvgRenderTime, _samples.RenderTime);
+    _data.ActiveRenderTime =
+        View(timings.AvgActiveRenderTime, _samples.ActiveRenderTime);
+    _data.SimTime = View(timings.AvgSimTime, _samples.SimTime);
+    _data.ActiveSimTime =
+        View(timings.AvgActiveSimTime, _samples.ActiveSimTime);
+    _data.SimInputTime = View(timings.AvgSimInputTime, _samples.SimInputTime);
+    _data.SimAudioTime = View(timings.AvgSimAudioTime, _samples.SimAudioTime);
+  }
+
+  if (timer) timer->GetCounterSnapshots(_counters);
+  _counterViews.reserve(_counters.size());
+  for (const auto& c : _counters) {
+    _counterViews.push_back(
+        {c.Name.c_str(), c.GPU ? TRUE : FALSE, View(c.Average, c.Samples)});
+  }
+  _data.Counters = _counterViews.data();
+  _data.CounterCount = _counterViews.size();
+
+  size_t count = 0;
+  for (const auto& section : _sections) count += section.second.size();
+  _entries.reserve(count);
+  for (const auto& section : _sections) {
+    for (const auto& kvp : section.second) {
+      _entries.push_back(
+          {section.first.c_str(), kvp.first.c_str(), kvp.second.c_str()});
     }
   }
-  out << "}}";
-  return out.str();
+  _data.Entries = _entries.data();
+  _data.EntryCount = _entries.size();
 }
 
 void Debug::DumpInfo(const HostMetrics& stats, TextStream& ss) const {

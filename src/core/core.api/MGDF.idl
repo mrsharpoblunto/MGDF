@@ -9,6 +9,71 @@ cpp_quote("#ifdef __cplusplus") cpp_quote("}") cpp_quote("#endif")
 interface ID2D1DeviceContext;
 
 /**
+An average with its per frame history behind it, in seconds. Samples run
+newest first and belong to the IMGDFDebugOverlaySnapshot they came from
+*/
+typedef struct MGDFDebugTiming {
+  double Average;
+  const double *Samples;
+  UINT64 SampleCount;
+} MGDFDebugTiming;
+
+/**
+A performance counter as the debug overlay shows it
+*/
+typedef struct MGDFDebugCounter {
+  const small *Name;
+  BOOL GPU;
+  MGDFDebugTiming Timing;
+} MGDFDebugCounter;
+
+/**
+One key/value a module set through IMGDFDebug::Set
+*/
+typedef struct MGDFDebugEntry {
+  const small *Section;
+  const small *Key;
+  const small *Value;
+} MGDFDebugEntry;
+
+/**
+Everything the debug overlay shows. HasTimings is FALSE before the host has
+frame timings to report. Every pointer stays valid for the lifetime of the
+IMGDFDebugOverlaySnapshot that returned the struct
+*/
+typedef struct MGDFDebugOverlayData {
+  const small *Version;
+  INT32 InterfaceVersion;
+  BOOL HasTimings;
+  double ExpectedSimTime;
+  MGDFDebugTiming RenderTime;
+  MGDFDebugTiming ActiveRenderTime;
+  MGDFDebugTiming SimTime;
+  MGDFDebugTiming ActiveSimTime;
+  MGDFDebugTiming SimInputTime;
+  MGDFDebugTiming SimAudioTime;
+  const MGDFDebugCounter *Counters;
+  UINT64 CounterCount;
+  const MGDFDebugEntry *Entries;
+  UINT64 EntryCount;
+} MGDFDebugOverlayData;
+
+/**
+An immutable copy of the debug overlay data taken by
+IMGDFDebug::GetOverlaySnapshot. Release it when done with the data
+*/
+[
+  uuid("07A5A77F-89F0-42E2-BA48-181D313E8316"), object,
+  local
+] interface IMGDFDebugOverlaySnapshot : IUnknown {
+  /**
+   The copied overlay data
+   \return the overlay data, valid while this snapshot is alive
+   */
+  const MGDFDebugOverlayData *GetData();
+};
+
+/**
 Controls the data displayed in the MGDF debug overlay sheet
 (press ALT-F12 to see in game)
 */
@@ -44,7 +109,7 @@ Controls the data displayed in the MGDF debug overlay sheet
 
   /**
    Sets whether the host draws the overlay while it is shown. A module that
-   draws the overlay itself from the data in GetOverlayData turns this off;
+   draws the overlay itself from GetOverlaySnapshot turns this off;
    IsShown and ToggleShown keep tracking visibility either way
    \param enabled TRUE for the host to draw the overlay (the default)
    */
@@ -57,21 +122,12 @@ Controls the data displayed in the MGDF debug overlay sheet
   BOOL IsHostRenderingEnabled();
 
   /**
-   Gets a UTF-8 JSON snapshot of everything the overlay shows, so a module
-   can render it itself. Times are in seconds and sample arrays run newest
-   first. The shape is
-   {"version":"..","interfaceVersion":1,
-    "timings":{"expectedSimTime":n,
-      "render":{"avg":n,"activeAvg":n,"samples":[..],"activeSamples":[..]},
-      "sim":{"avg":n,"activeAvg":n,"inputAvg":n,"audioAvg":n,
-             "samples":[..],"activeSamples":[..],"inputSamples":[..],"audioSamples":[..]}},
-    "counters":[{"name":"..","gpu":bool,"average":n,"samples":[..]}],
-    "sections":{"section":{"key":"value"}}}
-   \param buffer buffer to store the JSON in
-   \param length the length of the buffer provided. Will be set to the length required
-   \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
+   Copies everything the overlay shows into a snapshot, so a module that
+   draws the overlay itself can read it as structured data
+   \param snapshot points to the created snapshot
+   \return S_OK if the snapshot could be created, otherwise an error code
    */
-  HRESULT GetOverlayData([ in, out ] small *buffer, [ in, out ] UINT64 *length);
+  HRESULT GetOverlaySnapshot([out] IMGDFDebugOverlaySnapshot * *snapshot);
 };
 
 /**

@@ -20,8 +20,8 @@ class Timer;
 // a counter's recent history, as the debug overlay reads it
 struct CounterSnapshot {
   std::string Name;
-  bool GPU;
-  double Average;
+  bool GPU = false;
+  double Average = 0.0;
   std::vector<double> Samples;
 };
 
