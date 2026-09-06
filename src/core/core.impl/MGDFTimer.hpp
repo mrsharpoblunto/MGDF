@@ -17,6 +17,14 @@ namespace core {
 
 class Timer;
 
+// a counter's recent history, as the debug overlay reads it
+struct CounterSnapshot {
+  std::string Name;
+  bool GPU;
+  double Average;
+  std::vector<double> Samples;
+};
+
 class CounterBase : public ComBase<IMGDFPerformanceCounter> {
  public:
   static constexpr const size_t MaxSamples = 5;
@@ -29,6 +37,8 @@ class CounterBase : public ComBase<IMGDFPerformanceCounter> {
                           IMGDFPerformanceCounterScope **scope) final;
 
   double __stdcall GetAverageValue() final;
+
+  void Snapshot(CounterSnapshot &snapshot, bool gpu);
 
  protected:
   void AddSample(double sample);
@@ -141,6 +151,8 @@ class Timer : public ComBase<IMGDFTimer> {
 
   void Begin();
   void End();
+
+  void GetCounterSnapshots(std::vector<CounterSnapshot> &snapshots) const;
 
   template <typename T>
   void RemoveCounter(T *counter) {

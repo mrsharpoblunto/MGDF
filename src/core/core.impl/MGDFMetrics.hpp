@@ -23,6 +23,7 @@ struct PushStatistic {
 class MetricBase : public ComBase<IMGDFMetric> {
  public:
   virtual ~MetricBase() {}
+  virtual const std::string &GetName() const = 0;
   virtual void DumpPrometheus(std::ostringstream &output) const = 0;
   virtual void DumpPush(PushStatistic &stat) const = 0;
 };
@@ -37,6 +38,8 @@ class MetricImpl : public MetricBase {
 
   MetricImpl(const char *name, const char *description)
       : _name(name), _description(description), _hasRecorded(false) {}
+
+  const std::string &GetName() const final { return _name; }
 
   virtual ~MetricImpl() {}
 

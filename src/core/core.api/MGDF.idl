@@ -41,6 +41,37 @@ Controls the data displayed in the MGDF debug overlay sheet
    Toggle the visibility status of the overlay
    */
   void ToggleShown();
+
+  /**
+   Sets whether the host draws the overlay while it is shown. A module that
+   draws the overlay itself from the data in GetOverlayData turns this off;
+   IsShown and ToggleShown keep tracking visibility either way
+   \param enabled TRUE for the host to draw the overlay (the default)
+   */
+  void SetHostRenderingEnabled([in] BOOL enabled);
+
+  /**
+   Whether the host draws the overlay while it is shown
+   \return whether the host draws the overlay while it is shown
+   */
+  BOOL IsHostRenderingEnabled();
+
+  /**
+   Gets a UTF-8 JSON snapshot of everything the overlay shows, so a module
+   can render it itself. Times are in seconds and sample arrays run newest
+   first. The shape is
+   {"version":"..","interfaceVersion":1,
+    "timings":{"expectedSimTime":n,
+      "render":{"avg":n,"activeAvg":n,"samples":[..],"activeSamples":[..]},
+      "sim":{"avg":n,"activeAvg":n,"inputAvg":n,"audioAvg":n,
+             "samples":[..],"activeSamples":[..],"inputSamples":[..],"audioSamples":[..]}},
+    "counters":[{"name":"..","gpu":bool,"average":n,"samples":[..]}],
+    "sections":{"section":{"key":"value"}}}
+   \param buffer buffer to store the JSON in
+   \param length the length of the buffer provided. Will be set to the length required
+   \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
+   */
+  HRESULT GetOverlayData([ in, out ] small *buffer, [ in, out ] UINT64 *length);
 };
 
 /**

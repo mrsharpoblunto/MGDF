@@ -31,6 +31,7 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
 
   host->GetGame(_game.Assign());
   host->GetTimer(_timer.Assign());
+  host->GetDebugImpl()->SetMetrics(&_metrics);
 
   std::string pref;
   if (!GetPreference(_game, PreferenceConstants::SIM_FPS, pref)) {
@@ -218,7 +219,8 @@ void MGDFApp::RTOnDraw() {
 
   _host->RTDraw(elapsedTime);
 
-  if (_host->GetDebugImpl()->IsShown()) {
+  const auto debug = _host->GetDebugImpl();
+  if (debug->IsShown() && debug->IsHostRenderingEnabled()) {
     RTDrawSystemOverlay();
   }
   _rtActiveEnd = _timer->GetCurrentTimeTicks();

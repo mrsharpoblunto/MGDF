@@ -2,7 +2,12 @@
 
 #include "MGDFDebugImpl.hpp"
 
+#include <cmath>
+#include <cstdio>
+#include <iomanip>
+
 #include "../common/MGDFResources.hpp"
+#include "../common/MGDFStringImpl.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 
 #if defined(_DEBUG)
@@ -13,12 +18,73 @@
 namespace MGDF {
 namespace core {
 
-Debug::Debug(Timer* timer) : _timer(timer) { _shown.store(false); }
+namespace {
+
+void WriteJsonString(std::ostringstream& out, const std::string& value) {
+  out << '"';
+  for (const unsigned char c : value) {
+    switch (c) {
+      case '"':
+        out << "\\\"";
+        break;
+      case '\\':
+        out << "\\\\";
+        break;
+      case '\n':
+        out << "\\n";
+        break;
+      case '\r':
+        out << "\\r";
+        break;
+      case '\t':
+        out << "\\t";
+        break;
+      default:
+        if (c < 0x20) {
+          out << "\\u" << std::hex << std::setw(4) << std::setfill('0')
+              << static_cast<int>(c) << std::dec;
+        } else {
+          out << c;
+        }
+        break;
+    }
+  }
+  out << '"';
+}
+
+void WriteJsonNumber(std::ostringstream& out, double value) {
+  if (!std::isfinite(value)) {
+    out << "null";
+    return;
+  }
+  char buffer[32];
+  snprintf(buffer, sizeof(buffer), "%.9g", value);
+  out << buffer;
+}
+
+void WriteJsonNumbers(std::ostringstream& out, const std::vector<double>& v) {
+  out << '[';
+  for (size_t i = 0; i < v.size(); ++i) {
+    if (i) out << ',';
+    WriteJsonNumber(out, v[i]);
+  }
+  out << ']';
+}
+
+}  // namespace
+
+Debug::Debug(Timer* timer) : _timer(timer), _metrics(nullptr) {
+  _shown.store(false);
+  _hostRendering.store(true);
+}
+
+void Debug::SetMetrics(const HostMetrics* metrics) { _metrics = metrics; }
 
 void Debug::Set(const char* section, const char* key, const char* value) {
   if (!section || !key || !value) {
     return;
   }
+  std::lock_guard<std::mutex> lock(_dataMutex);
 
   auto sectionMap = _data.find(section);
   if (sectionMap == _data.end()) {
@@ -34,6 +100,7 @@ void Debug::Clear(const char* section, const char* key) {
   if (!section) {
     return;
   }
+  std::lock_guard<std::mutex> lock(_dataMutex);
   if (!key) {
     _data.erase(section);
   } else {
@@ -59,6 +126,105 @@ void Debug::ToggleShown() {
     exp = false;
     _shown.compare_exchange_strong(exp, true);
   }
+}
+
+void Debug::SetHostRenderingEnabled(BOOL enabled) {
+  _hostRendering.store(enabled != FALSE);
+}
+
+BOOL Debug::IsHostRenderingEnabled() { return _hostRendering.load(); }
+
+HRESULT Debug::GetOverlayData(char* buffer, UINT64* length) {
+  if (!length) return E_INVALIDARG;
+  const std::string json = BuildOverlayData();
+  if (buffer && *length < json.size()) {
+    *length = json.size();
+    return E_NOT_SUFFICIENT_BUFFER;
+  }
+  size_t size = static_cast<size_t>(*length);
+  const HRESULT result = StringWriter::Write(json, buffer, &size);
+  *length = size;
+  return result;
+}
+
+std::string Debug::BuildOverlayData() const {
+  std::ostringstream out;
+  out << "{\"version\":";
+  WriteJsonString(out, MGDFVersionInfo::MGDF_VERSION());
+  out << ",\"interfaceVersion\":" << MGDFVersionInfo::MGDF_INTERFACE_VERSION;
+
+  if (_metrics) {
+    Timings timings;
+    _metrics->GetTimings(timings);
+    TimingSamples samples;
+    _metrics->GetSamples(samples);
+    out << ",\"timings\":{\"expectedSimTime\":";
+    WriteJsonNumber(out, timings.ExpectedSimTime);
+    out << ",\"render\":{\"avg\":";
+    WriteJsonNumber(out, timings.AvgRenderTime);
+    out << ",\"activeAvg\":";
+    WriteJsonNumber(out, timings.AvgActiveRenderTime);
+    out << ",\"samples\":";
+    WriteJsonNumbers(out, samples.RenderTime);
+    out << ",\"activeSamples\":";
+    WriteJsonNumbers(out, samples.ActiveRenderTime);
+    out << "},\"sim\":{\"avg\":";
+    WriteJsonNumber(out, timings.AvgSimTime);
+    out << ",\"activeAvg\":";
+    WriteJsonNumber(out, timings.AvgActiveSimTime);
+    out << ",\"inputAvg\":";
+    WriteJsonNumber(out, timings.AvgSimInputTime);
+    out << ",\"audioAvg\":";
+    WriteJsonNumber(out, timings.AvgSimAudioTime);
+    out << ",\"samples\":";
+    WriteJsonNumbers(out, samples.SimTime);
+    out << ",\"activeSamples\":";
+    WriteJsonNumbers(out, samples.ActiveSimTime);
+    out << ",\"inputSamples\":";
+    WriteJsonNumbers(out, samples.SimInputTime);
+    out << ",\"audioSamples\":";
+    WriteJsonNumbers(out, samples.SimAudioTime);
+    out << "}}";
+  }
+
+  out << ",\"counters\":[";
+  if (_timer) {
+    std::vector<CounterSnapshot> counters;
+    _timer->GetCounterSnapshots(counters);
+    for (size_t i = 0; i < counters.size(); ++i) {
+      if (i) out << ',';
+      out << "{\"name\":";
+      WriteJsonString(out, counters[i].Name);
+      out << ",\"gpu\":" << (counters[i].GPU ? "true" : "false")
+          << ",\"average\":";
+      WriteJsonNumber(out, counters[i].Average);
+      out << ",\"samples\":";
+      WriteJsonNumbers(out, counters[i].Samples);
+      out << '}';
+    }
+  }
+  out << "],\"sections\":{";
+  {
+    std::lock_guard<std::mutex> lock(_dataMutex);
+    bool firstSection = true;
+    for (const auto& section : _data) {
+      if (!firstSection) out << ',';
+      firstSection = false;
+      WriteJsonString(out, section.first);
+      out << ":{";
+      bool firstKey = true;
+      for (const auto& kvp : section.second) {
+        if (!firstKey) out << ',';
+        firstKey = false;
+        WriteJsonString(out, kvp.first);
+        out << ':';
+        WriteJsonString(out, kvp.second);
+      }
+      out << '}';
+    }
+  }
+  out << "}}";
+  return out.str();
 }
 
 void Debug::DumpInfo(const HostMetrics& stats, TextStream& ss) const {
@@ -123,6 +289,7 @@ void Debug::DumpInfo(const HostMetrics& stats, TextStream& ss) const {
       },
       ss);
 
+  std::lock_guard<std::mutex> lock(_dataMutex);
   for (auto section = _data.cbegin(); section != _data.cend(); ++section) {
     ss << "\r\n\r\n"
        << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)
