@@ -32,6 +32,7 @@ class PendingSave : public ComBase<IMGDFWriteableVirtualFileSystem> {
   std::wstring _saveData;
   ComObject<GameState> _gameState;
   std::string _pendingName;
+  bool _initialized = false;
 };
 
 class SaveManager;

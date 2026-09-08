@@ -4,6 +4,7 @@
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="ParameterManagerTests.cpp" />
     <ClCompile Include="ResourcesTests.cpp" />
+    <ClCompile Include="SaveManagerTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />

@@ -20,22 +20,22 @@ using namespace std::filesystem;
 namespace MGDF {
 namespace core {
 
-bool GuidString(std::string& guid) {
+bool GuidString(std::string &guid) {
   UUID uuid;
   if (UuidCreate(&uuid) != RPC_S_OK) {
     return false;
   }
-  char* uuidStrBuffer;
-  if (UuidToStringA(&uuid, (RPC_CSTR*)&uuidStrBuffer) != RPC_S_OK ||
+  char *uuidStrBuffer;
+  if (UuidToStringA(&uuid, (RPC_CSTR *)&uuidStrBuffer) != RPC_S_OK ||
       !uuidStrBuffer) {
     return false;
   }
   guid = std::string(uuidStrBuffer);
-  RpcStringFree((RPC_CSTR*)&uuidStrBuffer);
+  RpcStringFree((RPC_CSTR *)&uuidStrBuffer);
   return true;
 }
 
-PendingSave::PendingSave(ComObject<GameState>& gameState)
+PendingSave::PendingSave(ComObject<GameState> &gameState)
     : _gameState(gameState) {}
 
 HRESULT PendingSave::Init() {
@@ -44,26 +44,32 @@ HRESULT PendingSave::Init() {
   }
   _pendingName.append(Resources::ToString(PENDING_SAVE_MARKER));
 
-  _saveData = Resources::Instance().SaveDir(_pendingName);
-  create_directories(_saveData);
+  _saveData =
+      (path(Resources::Instance().SaveBaseDir()) / _pendingName).wstring();
+  std::error_code error;
+  create_directories(_saveData, error);
+  if (error) {
+    return HRESULT_FROM_WIN32(error.value());
+  }
   LOG("Mounting pending save directory \'" << Resources::ToString(_saveData)
                                            << "\' into VFS",
       MGDF_LOG_LOW);
   if (!vfs::CreateWriteableVirtualFileSystemComponent(_saveData, _vfs)) {
     return E_FAIL;
   }
+  _initialized = true;
   return S_OK;
 }
 
-BOOL PendingSave::GetFile(const wchar_t* logicalPath,
-                          IMGDFWriteableFile** file) {
+BOOL PendingSave::GetFile(const wchar_t *logicalPath,
+                          IMGDFWriteableFile **file) {
   if (!_vfs) {
     return false;
   }
   return _vfs->GetFile(logicalPath, file);
 }
 
-void PendingSave::GetRoot(IMGDFWriteableFile** root) {
+void PendingSave::GetRoot(IMGDFWriteableFile **root) {
   if (!_vfs) {
     return;
   }
@@ -71,39 +77,62 @@ void PendingSave::GetRoot(IMGDFWriteableFile** root) {
 }
 
 PendingSave::~PendingSave() {
-  if (_saveData.empty()) {
-    // don't do anything if the pending save wasn't initialized correctly
+  if (!_initialized) return;
+
+  _vfs.Clear();
+  std::error_code error;
+  const bool isNew = _gameState->IsNew();
+  std::string saveName = _gameState->GetSave();
+  if (isNew && !GuidString(saveName)) {
+    LOG("Unable to allocate a save name", MGDF_LOG_ERROR);
+    return;
+  }
+  const path saveDir(Resources::Instance().SaveDir(saveName));
+  const path saveData = saveDir / L"data";
+  const path backup = saveDir / L"backup";
+  if (isNew) {
+    create_directories(saveDir, error);
+  } else {
+    remove_all(backup, error);
+    if (!error) rename(saveData, backup, error);
+  }
+  if (error) {
+    LOG("Unable to prepare save " << saveName << ": " << error.message(),
+        MGDF_LOG_ERROR);
     return;
   }
 
-  if (!_gameState->IsNew()) {
-    // swap the pending data over to the existing save state
-    std::wstring oldSaveData(
-        Resources::Instance().SaveDataDir(_gameState->GetSave()));
-    std::wstring oldSaveDataBackup(
-        Resources::Instance().SaveDir(_gameState->GetSave()) + L"/backup");
-    std::filesystem::rename(oldSaveData, oldSaveDataBackup);
-    std::filesystem::rename(_saveData, oldSaveData);
-    remove_all(oldSaveDataBackup);
-  } else {
-    std::string saveName;
-    GuidString(saveName);
-    _gameState->SetSave(saveName);
-    std::wstring newSave(Resources::Instance().SaveDir(_gameState->GetSave()));
-    create_directories(newSave);
-    std::wstring saveData(
-        Resources::Instance().SaveDataDir(_gameState->GetSave()));
-    std::filesystem::rename(_saveData, saveData);
+  rename(_saveData, saveData, error);
+  if (error) {
+    LOG("Unable to commit save " << saveName << ": " << error.message(),
+        MGDF_LOG_ERROR);
+    if (!isNew) {
+      std::error_code restoreError;
+      rename(backup, saveData, restoreError);
+      if (restoreError) {
+        LOG("Unable to restore save " << saveName << ": "
+                                      << restoreError.message(),
+            MGDF_LOG_ERROR);
+      }
+    }
+    return;
   }
+  if (isNew) _gameState->SetSave(saveName);
   if (FAILED(_gameState->Save())) {
-    LOG("Unable to update save " << _gameState->GetSave(), MGDF_LOG_ERROR);
+    LOG("Unable to update save " << saveName, MGDF_LOG_ERROR);
+    return;
+  }
+  remove_all(backup, error);
+  if (error) {
+    LOG("Unable to remove save backup " << saveName << ": " << error.message(),
+        MGDF_LOG_ERROR);
   }
 }
 
 GameState::GameState(
-    const std::string& saveName, const std::string& gameUid, SaveManager* saves,
-    const ComObject<vfs::IReadOnlyVirtualFileSystemComponent>& vfs,
-    const std::shared_ptr<storage::IStorageFactoryComponent>& factory)
+    const std::string &saveName, const std::string &gameUid, SaveManager *saves,
+    const ComObject<vfs::IReadOnlyVirtualFileSystemComponent> &vfs,
+    const std::shared_ptr<storage::IStorageFactoryComponent> &factory)
     : _saveName(saveName),
       _gameUid(gameUid),
       _saves(saves),
@@ -113,16 +142,16 @@ GameState::GameState(
 }
 
 GameState::GameState(
-    const std::string& gameUid, MGDFVersion& version, SaveManager* saves,
-    const ComObject<vfs::IReadOnlyVirtualFileSystemComponent>& vfs,
-    const std::shared_ptr<storage::IStorageFactoryComponent>& factory)
+    const std::string &gameUid, MGDFVersion &version, SaveManager *saves,
+    const ComObject<vfs::IReadOnlyVirtualFileSystemComponent> &vfs,
+    const std::shared_ptr<storage::IStorageFactoryComponent> &factory)
     : _gameUid(gameUid),
       _gameVersion(version),
       _saves(saves),
       _vfs(vfs),
       _factory(factory) {}
 
-void GameState::SetSave(const std::string& saveName) {
+void GameState::SetSave(const std::string &saveName) {
   _saveName = saveName;
   _saves->AppendSave(saveName);
 }
@@ -157,7 +186,7 @@ HRESULT GameState::Save() {
   return S_OK;
 }
 
-HRESULT GameState::GetMetadata(const char* key, char* value, UINT64* length) {
+HRESULT GameState::GetMetadata(const char *key, char *value, UINT64 *length) {
   const auto found = _metadata.find(key);
   if (found == _metadata.end()) {
     return E_NOT_SET;
@@ -165,7 +194,7 @@ HRESULT GameState::GetMetadata(const char* key, char* value, UINT64* length) {
   return StringWriter::Write(found->second, value, length);
 }
 
-HRESULT GameState::SetMetadata(const char* key, const char* value) {
+HRESULT GameState::SetMetadata(const char *key, const char *value) {
   if (key == nullptr) {
     return E_INVALIDARG;
   }
@@ -173,36 +202,46 @@ HRESULT GameState::SetMetadata(const char* key, const char* value) {
   return S_OK;
 }
 
-void GameState::GetVersion(MGDFVersion* version) { *version = _gameVersion; }
+void GameState::GetVersion(MGDFVersion *version) { *version = _gameVersion; }
 
-HRESULT GameState::BeginSave(IMGDFWriteableVirtualFileSystem** p,
-                             IMGDFReadOnlyVirtualFileSystem** previous) {
+HRESULT GameState::BeginSave(IMGDFWriteableVirtualFileSystem **p,
+                             IMGDFReadOnlyVirtualFileSystem **previous) {
+  if (!p) return E_POINTER;
+  *p = nullptr;
+  if (previous) *previous = nullptr;
+
+  ComObject<IMGDFReadOnlyVirtualFileSystem> previousVFS;
+  if (!IsNew()) {
+    const HRESULT result = GetVFS(previousVFS.Assign());
+    if (FAILED(result)) return result;
+  }
+
   auto state = MakeComFromPtr<GameState>(this);
   auto pending = MakeCom<PendingSave>(state);
-  if (FAILED(pending->Init())) {
-    return E_FAIL;
-  }
-  // expose the previous save's data (if any) alongside the pending VFS so
-  // the module can migrate anything that should survive the wholesale
-  // replacement that committing performs
-  if (previous) {
-    *previous = nullptr;
-    if (!IsNew()) {
-      const HRESULT hr = GetVFS(previous);
-      if (FAILED(hr) && hr != E_NOT_SET) {
-        return hr;
-      }
-    }
-  }
+  const HRESULT result = pending->Init();
+  if (FAILED(result)) return result;
+  if (previous && previousVFS) previousVFS.AddRawRef(previous);
   pending.AddRawRef(p);
   return S_OK;
 }
 
-HRESULT GameState::GetVFS(IMGDFReadOnlyVirtualFileSystem** vfs) {
-  if (IsNew()) {
-    return E_NOT_SET;
+HRESULT GameState::GetVFS(IMGDFReadOnlyVirtualFileSystem **vfs) {
+  if (!vfs) return E_POINTER;
+  *vfs = nullptr;
+  if (IsNew()) return E_NOT_SET;
+  const path saveRoot(Resources::Instance().SaveDir(_saveName));
+  const path saveDir = saveRoot / L"data";
+  const path backup = saveRoot / L"backup";
+  std::error_code error;
+  const bool hasData = exists(saveDir, error);
+  if (error) return HRESULT_FROM_WIN32(error.value());
+  if (!hasData) {
+    const bool hasBackup = is_directory(backup, error);
+    if (error) return HRESULT_FROM_WIN32(error.value());
+    if (!hasBackup) return E_FAIL;
+    rename(backup, saveDir, error);
+    if (error) return HRESULT_FROM_WIN32(error.value());
   }
-  auto saveDir = Resources::Instance().SaveDataDir(_saveName);
 
   ComObject<vfs::IReadOnlyVirtualFileSystemComponent> vfsImpl;
   if (!vfs::CreateReadOnlyVirtualFileSystemComponent(vfsImpl) ||
@@ -214,7 +253,7 @@ HRESULT GameState::GetVFS(IMGDFReadOnlyVirtualFileSystem** vfs) {
 }
 
 SaveManager::SaveManager(
-    const ComObject<Game>& game,
+    const ComObject<Game> &game,
     ComObject<vfs::IReadOnlyVirtualFileSystemComponent> vfs,
     std::shared_ptr<storage::IStorageFactoryComponent> storageFactory)
     : _vfs(vfs), _storageFactory(storageFactory) {
@@ -232,7 +271,7 @@ SaveManager::SaveManager(
   }
 }
 
-HRESULT SaveManager::GetSave(UINT64 index, IMGDFGameState** s) {
+HRESULT SaveManager::GetSave(UINT64 index, IMGDFGameState **s) {
   if (index >= _saves.size()) {
     return E_INVALIDARG;
   }
@@ -247,8 +286,8 @@ HRESULT SaveManager::GetSave(UINT64 index, IMGDFGameState** s) {
   return S_OK;
 }
 
-HRESULT SaveManager::DeleteSave(IMGDFGameState* s) {
-  auto state = dynamic_cast<GameState*>(s);
+HRESULT SaveManager::DeleteSave(IMGDFGameState *s) {
+  auto state = dynamic_cast<GameState *>(s);
   _ASSERTE(state);
   auto found = std::find(_saves.begin(), _saves.end(), state->GetSave());
   if (found == _saves.end()) {
@@ -266,7 +305,7 @@ HRESULT SaveManager::DeleteSave(IMGDFGameState* s) {
   }
 }
 
-void SaveManager::CreateGameState(IMGDFGameState** save) {
+void SaveManager::CreateGameState(IMGDFGameState **save) {
   auto state =
       MakeCom<GameState>(_gameUid, _gameVersion, this, _vfs, _storageFactory);
   state.AddRawRef(save);
