@@ -191,10 +191,9 @@ void D3DAppFramework::InitRawInput() {
           .hwndTarget = _window,
       },
       {
-          .usUsagePage = 0x01,         // desktop input
-          .usUsage = 0x06,             // keyboard
-          .dwFlags = RIDEV_NOHOTKEYS,  // disable windows key and other windows
-                                       // hotkeys while the game has focus
+          .usUsagePage = 0x01,  // desktop input
+          .usUsage = 0x06,      // keyboard
+          .dwFlags = 0,  // Allow application shortcuts while the game has focus.
           .hwndTarget = _window,
       }};
 
