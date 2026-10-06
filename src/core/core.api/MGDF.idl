@@ -3,11 +3,6 @@ import "ocidl.idl";
 import "d3d11.idl";
 import "dxgi.idl";
 
-cpp_quote("#ifdef __cplusplus") cpp_quote("}") cpp_quote("#endif")
-    cpp_quote("#include \"d2d1_1.h\"") cpp_quote("#ifdef __cplusplus")
-        cpp_quote("extern \"C\" {") cpp_quote("#endif") interface ID2D1Device;
-interface ID2D1DeviceContext;
-
 /**
 An average with its per frame history behind it, in seconds. Samples run
 newest first and belong to the IMGDFDebugOverlaySnapshot they came from
@@ -74,8 +69,8 @@ IMGDFDebug::GetOverlaySnapshot. Release it when done with the data
 };
 
 /**
-Controls the data displayed in the MGDF debug overlay sheet
-(press ALT-F12 to see in game)
+Controls debug overlay data and visibility (toggled with ALT-F12).
+The module draws the overlay from GetOverlaySnapshot when IsShown is TRUE
 */
 [
   uuid("D69DC4E5-238B-4427-AF03-628818464E41"), object,
@@ -97,8 +92,8 @@ Controls the data displayed in the MGDF debug overlay sheet
   void Clear([in] const small *section, [in] const small *key);
 
   /**
-   Whether the debug overlay is currently visible
-   \return whether the debug overlay is currently visible
+   Whether the module should draw the debug overlay
+   \return whether the module should draw the debug overlay
    */
   BOOL IsShown();
 
@@ -108,22 +103,7 @@ Controls the data displayed in the MGDF debug overlay sheet
   void ToggleShown();
 
   /**
-   Sets whether the host draws the overlay while it is shown. A module that
-   draws the overlay itself from GetOverlaySnapshot turns this off;
-   IsShown and ToggleShown keep tracking visibility either way
-   \param enabled TRUE for the host to draw the overlay (the default)
-   */
-  void SetHostRenderingEnabled([in] BOOL enabled);
-
-  /**
-   Whether the host draws the overlay while it is shown
-   \return whether the host draws the overlay while it is shown
-   */
-  BOOL IsHostRenderingEnabled();
-
-  /**
-   Copies everything the overlay shows into a snapshot, so a module that
-   draws the overlay itself can read it as structured data
+   Copies the overlay data into a snapshot for the module to draw
    \param snapshot points to the created snapshot
    \return S_OK if the snapshot could be created, otherwise an error code
    */
@@ -2048,13 +2028,7 @@ this interface are safe to be used from any thread
   void GetD3DDevice([out] ID3D11Device * *device);
 
   /**
-  get the direct2d device object from the host
-  \param device the direct2d device object from the host
-  */
-  void GetD2DDevice([out] ID2D1Device * *device);
-
-  /**
-  get the onscreen debug overlay interface
+  get the debug overlay data and visibility interface
   \param debug pointer to a debug overlay object
   */
   void GetDebug([out] IMGDFDebug * *debug);
@@ -2122,15 +2096,6 @@ this interface are safe to be used from any thread
   uuid("514EBD97-3C53-4235-90E1-7AD3B7F517BD"), object,
   local
 ] interface IMGDFRenderHost : IMGDFCommonHost {
-  /**
-  set the current back buffer as the render target for the specified d2d
-  device context
-  \param context the d2d device context to set the render target for
-  \return true if the back buffer can be set as the render target for the device
-  context
-  */
-  BOOL SetBackBufferRenderTarget(ID2D1DeviceContext * context);
-
   /**
   Gets the current back buffer texture.
   \param backbuffer the current back buffer texture. The pointer returned by this method

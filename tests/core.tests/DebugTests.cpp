@@ -16,14 +16,13 @@ ComObject<IMGDFDebugOverlaySnapshot> Snapshot(Debug &debug) {
 
 }  // namespace
 
-TEST(DebugTests, HostRenderingDefaultsOnAndToggles) {
+TEST(DebugTests, VisibilityDefaultsOffAndToggles) {
   auto debug = MakeCom<Debug>(nullptr);
-  EXPECT_TRUE(debug->IsHostRenderingEnabled());
-  debug->SetHostRenderingEnabled(FALSE);
-  EXPECT_FALSE(debug->IsHostRenderingEnabled());
   EXPECT_FALSE(debug->IsShown());
   debug->ToggleShown();
   EXPECT_TRUE(debug->IsShown());
+  debug->ToggleShown();
+  EXPECT_FALSE(debug->IsShown());
 }
 
 TEST(DebugTests, OverlaySnapshotCarriesSections) {

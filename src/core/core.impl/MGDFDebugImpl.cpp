@@ -2,9 +2,6 @@
 
 #include "MGDFDebugImpl.hpp"
 
-
-#include "../common/MGDFResources.hpp"
-#include "../common/MGDFStringImpl.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 
 #if defined(_DEBUG)
@@ -17,7 +14,6 @@ namespace core {
 
 Debug::Debug(Timer* timer) : _timer(timer), _metrics(nullptr) {
   _shown.store(false);
-  _hostRendering.store(true);
 }
 
 void Debug::SetMetrics(const HostMetrics* metrics) { _metrics = metrics; }
@@ -69,12 +65,6 @@ void Debug::ToggleShown() {
     _shown.compare_exchange_strong(exp, true);
   }
 }
-
-void Debug::SetHostRenderingEnabled(BOOL enabled) {
-  _hostRendering.store(enabled != FALSE);
-}
-
-BOOL Debug::IsHostRenderingEnabled() { return _hostRendering.load(); }
 
 HRESULT Debug::GetOverlaySnapshot(IMGDFDebugOverlaySnapshot** snapshot) {
   if (!snapshot) return E_INVALIDARG;
@@ -136,82 +126,6 @@ DebugOverlaySnapshot::DebugOverlaySnapshot(const HostMetrics* metrics,
   }
   _data.Entries = _entries.data();
   _data.EntryCount = _entries.size();
-}
-
-void Debug::DumpInfo(const HostMetrics& stats, TextStream& ss) const {
-  std::wstring mgdfVersion(
-      Resources::ToWString(MGDFVersionInfo::MGDF_VERSION()));
-
-  Timings timings;
-  stats.GetTimings(timings);
-
-  ss.SetF(std::ios::fixed);
-
-  ss << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)
-     << "MGDF Version: " << TextStyle::Pop() << mgdfVersion
-     << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)
-     << "\r\nMGDF Interface version:" << TextStyle::Pop()
-     << MGDFVersionInfo::MGDF_INTERFACE_VERSION << "\r\n";
-
-  ss << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD) << "\r\nRender Thread\r\n"
-     << TextStyle::Pop();
-  ss.Precision(0);
-  ss << " FPS : ";
-  if (timings.AvgRenderTime == 0)
-    ss << "N/A\r\n";
-  else
-    ss << 1 / timings.AvgRenderTime << "\r\n";
-
-  ss.Precision(1);
-  ss << " Render CPU : " << timings.AvgActiveRenderTime * 1000 << "\r\n";
-  ss << " Idle CPU : "
-     << (timings.AvgRenderTime - timings.AvgActiveRenderTime) * 1000 << "\r\n";
-
-  ss << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD) << "\r\nSim Thread\r\n"
-     << TextStyle::Pop();
-  ss.Precision(0);
-  ss << " Expected FPS : ";
-  if (timings.ExpectedSimTime == 0)
-    ss << "N/A\r\n";
-  else
-    ss << 1 / timings.ExpectedSimTime << "\r\n";
-
-  ss << " Actual FPS : ";
-  if (timings.AvgSimTime == 0)
-    ss << "N/A";
-  else
-    ss << 1 / timings.AvgSimTime;
-
-  ss.Precision(1);
-  std::set<std::pair<std::string, double>> simTimings;
-  simTimings.insert(std::make_pair("Input CPU", timings.AvgSimInputTime));
-  simTimings.insert(std::make_pair("Audio CPU", timings.AvgSimAudioTime));
-  simTimings.insert(std::make_pair("Other CPU", timings.AvgActiveSimTime));
-  simTimings.insert(std::make_pair(
-      "Idle CPU", (timings.AvgSimTime - timings.AvgActiveSimTime -
-                   timings.AvgSimInputTime - timings.AvgSimAudioTime)));
-
-  ss.Precision(2);
-  KeyValueHeatMap<std::pair<std::string, double>, double>(
-      simTimings,
-      [](const auto& in, auto& out) {
-        out.first = in.first;
-        out.second = in.second * 1000;
-      },
-      ss);
-
-  std::lock_guard<std::mutex> lock(_dataMutex);
-  for (auto section = _data.cbegin(); section != _data.cend(); ++section) {
-    ss << "\r\n\r\n"
-       << TextStyle::Weight(DWRITE_FONT_WEIGHT_BOLD)
-       << Resources::ToWString(section->first) << TextStyle::Pop();
-
-    for (auto kvp = section->second.cbegin(); kvp != section->second.cend();
-         ++kvp) {
-      ss << "\r\n " << Resources::ToWString(kvp->first) << " : "
-         << Resources::ToWString(kvp->second);
-    }
-  }
 }
 
 }  // namespace core

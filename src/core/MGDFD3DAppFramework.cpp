@@ -317,32 +317,10 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
         MGDF_LOG_LOW);
   }
 
-  const D2D1_FACTORY_OPTIONS options{
-#if defined(DEBUG) || defined(_DEBUG)
-      .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION
-#else
-      .debugLevel = D2D1_DEBUG_LEVEL_NONE
-#endif
-  };
-
-  if (FAILED(::D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, options,
-                                 _rtD2dFactory.Assign()))) {
-    FATALERROR(this, "Unable to create ID2DFactory1");
-  }
-
-  ComObject<IDXGIDevice1> dxgiDevice;
-  if (FAILED(_rtD3dDevice->QueryInterface<IDXGIDevice1>(dxgiDevice.Assign()))) {
-    FATALERROR(this, "Unable to acquire IDXGIDevice from ID3D11Device");
-  }
-
-  if (FAILED(_rtD2dFactory->CreateDevice(dxgiDevice, _rtD2dDevice.Assign()))) {
-    FATALERROR(this, "Unable to create ID2D1Device");
-  }
-
   if (!RTCheckForDisplayChanges(window)) {
     return false;
   }
-  RTOnInitDevices(_rtD3dDevice, _rtD2dDevice);
+  RTOnInitDevices(_rtD3dDevice);
 
   RECT windowSize;
   if (!::GetClientRect(window, &windowSize)) {
@@ -471,8 +449,6 @@ void D3DAppFramework::RTUninitD3D() {
   _rtSwapChain.Clear();
   _rtFactory.Clear();
   _rtImmediateContext.Clear();
-  _rtD2dDevice.Clear();
-  _rtD2dFactory.Clear();
 
   if (_rtD3dDevice) {
 #if defined(_DEBUG)

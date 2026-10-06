@@ -40,9 +40,6 @@
     <ClCompile Include="MGDFDebugImpl.cpp">
       <Filter>System</Filter>
     </ClCompile>
-    <ClCompile Include="MGDFTextStream.cpp">
-      <Filter>Helpers</Filter>
-    </ClCompile>
     <ClCompile Include="MGDFSaveManagerImpl.cpp">
       <Filter>System</Filter>
     </ClCompile>
@@ -82,9 +79,6 @@
     <ClInclude Include="MGDFHostMetrics.hpp" />
     <ClInclude Include="MGDFDebugImpl.hpp">
       <Filter>System</Filter>
-    </ClInclude>
-    <ClInclude Include="MGDFTextStream.hpp">
-      <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="MGDFSaveManagerImpl.hpp">
       <Filter>System</Filter>

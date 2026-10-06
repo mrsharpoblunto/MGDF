@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "MGDFHostMetrics.hpp"
-#include "MGDFTextStream.hpp"
 #include "MGDFTimer.hpp"
 
 namespace MGDF {
@@ -49,14 +48,11 @@ class Debug : public ComBase<IMGDFDebug> {
   void __stdcall Clear(const char *section, const char *key) final;
   BOOL __stdcall IsShown() final;
   void __stdcall ToggleShown() final;
-  void __stdcall SetHostRenderingEnabled(BOOL enabled) final;
-  BOOL __stdcall IsHostRenderingEnabled() final;
   HRESULT __stdcall GetOverlaySnapshot(
       IMGDFDebugOverlaySnapshot **snapshot) final;
 
   // the frame timings the overlay reads; owned by the app
   void SetMetrics(const HostMetrics *metrics);
-  void DumpInfo(const HostMetrics &stats, TextStream &ss) const;
 
  private:
   // Set/Clear run on the sim thread while the overlay reads on the render
@@ -64,7 +60,6 @@ class Debug : public ComBase<IMGDFDebug> {
   mutable std::mutex _dataMutex;
   DebugSections _data;
   mutable std::atomic<bool> _shown;
-  std::atomic<bool> _hostRendering;
   Timer *_timer;
   const HostMetrics *_metrics;
 };
