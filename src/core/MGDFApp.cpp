@@ -66,7 +66,10 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
   _host->SetDeviceResetHandler([this]() { QueueResetDevice(); });
 }
 
-MGDFApp::~MGDFApp() { _host->RTShutDown(); }
+MGDFApp::~MGDFApp() {
+  RTWaitForGpuIdle();
+  _host->RTShutDown();
+}
 
 UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
                                               UINT64 *featureLevelsSize) {
@@ -93,13 +96,13 @@ MGDFFullScreenDesc MGDFApp::RTOnResetSwapChain(
   return desc;
 }
 
-void MGDFApp::RTOnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) {
+std::optional<UINT> MGDFApp::RTGetMaxFrameLatency() const {
   MGDFFullScreenDesc desc;
   _settings->GetFullscreen(&desc);
   if (!desc.ExclusiveMode) {
-    swapchain.As<IDXGISwapChain2>()->SetMaximumFrameLatency(
-        _settings->GetMaxFrameLatency());
+    return _settings->GetMaxFrameLatency();
   }
+  return std::nullopt;
 }
 
 void MGDFApp::RTOnResize(UINT32 width, UINT32 height) {

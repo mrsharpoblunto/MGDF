@@ -19,7 +19,7 @@ class MGDFApp : public D3DAppFramework {
   MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                         const RECT &windowSize) final;
-  void RTOnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) final;
+  std::optional<UINT> RTGetMaxFrameLatency() const final;
   void RTOnResize(UINT32 width, UINT32 height) final;
   bool RTIsBackBufferChangePending() final;
   bool RTVSyncEnabled() const final;
