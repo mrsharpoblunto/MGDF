@@ -74,7 +74,7 @@ Installer package created
     "statisticsService":"https://www.example.com/api/statistics",
     "statisticsPrivacyPolicy":"https://www.example.com/privacy",
     "preferences":{
-        "key":"value",
+        "key":"value"
     }
 }
 {% endhighlight %}
@@ -99,7 +99,7 @@ Installer package created
               <ul>
                 <li><em>email</em>: An email address shown to users when crashes and other errors occur so that they can submit error reports.</li>
                 <li><em>github</em>: A github repo URL (e.g. https://github.com/user/repo) shown to users when crashes and other errors occur so that they can create a Github issue.</li>
-                <li><em>s3</em>: A url which returns a presigned link to an S3 Bucket which MGDF can automatically upload crash reports to (see <a href="#crashreports">Crash reporting service configuration</a> for more information)</dd>
+                <li><em>s3</em>: A url which returns a presigned link to an S3 Bucket which MGDF can automatically upload crash reports to (see <a href="#crashreports">Crash reporting service configuration</a> for more information)</li>
               </ul>
             </dd>
             <dt>updateService</dt>
@@ -112,8 +112,10 @@ Installer package created
             <dd><em>[Optional]</em> A dictionary of strings specifying any preferences used by the game. These can be accessed via the <a href="#IMGDFGame">IMGDFGame</a> Get/Set/HasPreference methods. A number of built in preferences are also used by the MGDF host and are always prefixed with <strong>host.</strong> The full list of built in preferences is shown below. These built in preferences can be overridden by specifying them in the game.json file.</dd>
         </dl>
 
-        <h4>Built in host preferences</h4>
+        <h4 id="hostpreferences">Built in host preferences</h4>
         <dl class ="dl-horizontal">
+            <dt>host.graphicsAPI</dt>
+            <dd>Selects <code>"d3d11"</code> or <code>"d3d12"</code> at startup. The host uses this API only if <code>GetGraphicsRequirements</code> lists it. If the preference is empty, absent, or not in the module's list, the host uses the first API in that list. Other nonempty values cause a startup error. The D3D12 backend is not available in this host version.</dd>
             <dt>host.musicVolume</dt>
             <dd>A string value between 0 and 1 that sets the volume for all music played using <a href="#IMGDFSoundStream">IMGDFSoundStreams</a>. Defaults to "1.0"</dd>
             <dt>host.soundVolume</dt>
