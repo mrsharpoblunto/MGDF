@@ -7,13 +7,18 @@
 #include <atomic>
 #include <functional>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <thread>
 #include <vector>
 
+#include "MGDFRenderBackend.hpp"
+
 namespace MGDF {
 namespace core {
+
+class D3D11RenderBackend;
 
 enum DisplayChangeType {
   DC_WINDOW_MOVE,
@@ -43,8 +48,7 @@ class D3DAppFramework {
   virtual void RTOnBeforeFirstDraw() = 0;
   virtual void RTOnBeforeDeviceReset() = 0;
   virtual void RTOnDeviceReset() = 0;
-  virtual void RTOnInitDevice(
-      const ComObject<ID3D11Device> &d3dDevice) = 0;
+  virtual void RTOnInitDevice(const ComObject<ID3D11Device> &d3dDevice) = 0;
   virtual void RTOnBeforeBackBufferChange() = 0;
   virtual void RTOnBackBufferChange(
       const ComObject<ID3D11Texture2D> &backBuffer,
@@ -52,7 +56,7 @@ class D3DAppFramework {
   virtual MGDFFullScreenDesc RTOnResetSwapChain(
       DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
       const RECT &windowSize) = 0;
-  virtual void RTOnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) = 0;
+  virtual std::optional<UINT> RTGetMaxFrameLatency() const = 0;
   virtual void RTOnDisplayChange(
       const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
       ULONG currentSDRWhiteLevel,
@@ -78,6 +82,7 @@ class D3DAppFramework {
 
   void CloseWindow();
   void QueueResetDevice();
+  void RTWaitForGpuIdle();
 
  private:
   ComObject<IDXGIFactory6> RTCreateDXGIFactory();
@@ -86,9 +91,7 @@ class D3DAppFramework {
   void RTReinitD3D(const HWND window);
   void RTUninitD3D();
   void RTCreateSwapChain(const HWND window);
-  void RTSetExclusiveFullscreen();
   void ApplyWindowMode(const HWND window, const bool fullScreenBorderless);
-  void RTClearBackBuffer();
   void RTResizeBackBuffer();
   bool RTAllowTearing();
   bool RTCheckForDisplayChanges(const HWND window);
@@ -101,18 +104,12 @@ class D3DAppFramework {
   bool PopRTMessage(std::optional<DisplayChangeMessage> &message);
 
   // Render thread variables
-  ComObject<ID3D11Device> _rtD3dDevice;
-  ComObject<ID3D11DeviceContext> _rtImmediateContext;
-  ComObject<IDXGISwapChain1> _rtSwapChain;
   ComObject<IDXGIFactory6> _rtFactory;
-  ComObject<ID3D11RenderTargetView> _rtRenderTargetView;
-  ComObject<ID3D11DepthStencilView> _rtDepthStencilView;
-  ComObject<ID3D11Texture2D> _rtDepthStencilBuffer;
-  ComObject<ID3D11Texture2D> _rtBackBuffer;
+  ComObject<IDXGIAdapter> _rtAdapter;
+  std::unique_ptr<IRenderBackend> _rtRenderBackend;
+  D3D11RenderBackend *_rtD3D11Backend = nullptr;
   DXGI_SWAP_CHAIN_DESC1 _rtSwapDesc;
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC _rtFullscreenSwapDesc;
-  std::vector<D3D_FEATURE_LEVEL> _rtLevels;
-  HANDLE _rtFrameWaitableObject;
   MGDFFullScreenDesc _rtCurrentFullScreen;
   bool _rtAllowTearing;
   RECT _rtWindowRect;
@@ -120,7 +117,7 @@ class D3DAppFramework {
   // shared variables
   std::mutex _displayChangeMutex;
   std::list<DisplayChangeMessage> _pendingDisplayChanges;
-  std::atomic_bool _minimized, _awaitingD3DReset;
+  std::atomic_bool _minimized, _awaitingD3DReset, _hasSwapChain;
   std::atomic_flag _runRenderThread;
 
   // Non-render thread variables
