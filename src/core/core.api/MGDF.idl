@@ -2193,13 +2193,25 @@ Release returned references before acknowledging a device reset.
   uuid("EFCB361F-5317-40DC-B58E-82CE1CDA79D5"), object,
   local
 ] interface IMGDFD3D12Host : IUnknown {
-  /** Gets an owned reference to the device, or null during device reset */
+  /**
+  Gets an owned reference to the device, or null during device reset
+  \param device points to the device
+  */
   void GetD3D12Device([out] ID3D12Device10 **device);
-  /** Gets an owned reference to the direct queue */
+  /**
+  Gets an owned reference to the direct queue
+  \param queue points to the direct queue
+  */
   void GetDirectQueue([out] ID3D12CommandQueue **queue);
-  /** Gets an owned reference to the compute queue */
+  /**
+  Gets an owned reference to the compute queue
+  \param queue points to the compute queue
+  */
   void GetComputeQueue([out] ID3D12CommandQueue **queue);
-  /** Gets an owned reference to the copy queue */
+  /**
+  Gets an owned reference to the copy queue
+  \param queue points to the copy queue
+  */
   void GetCopyQueue([out] ID3D12CommandQueue **queue);
 };
 
@@ -2233,9 +2245,15 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   uuid("46AA223E-991D-4272-A30E-9E9F3DCB0F38"), object,
   local
 ] interface IMGDFD3D12RenderHost : IMGDFRenderHost {
-  /** Gets the current frame; its ordinal and slot stay fixed through RTAfterPresent */
+  /**
+  Gets the current frame. Its ordinal and slot stay fixed through RTAfterPresent
+  \param frame receives the current frame
+  */
   void GetCurrentFrame([out] MGDFFrameInfo *frame);
-  /** Gets an owned reference to the host's frame fence; modules must not signal it */
+  /**
+  Gets an owned reference to the host's frame fence. Modules must not signal it
+  \param fence points to the frame fence
+  */
   void GetFrameFence([out] ID3D12Fence **fence);
   /**
   Creates a GPU timestamp counter bound to a direct-queue command list. Each scope
@@ -2245,6 +2263,10 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   list returns E_INVALIDARG. A scope released after Close/Reset or the end of its
   frame is logged and discarded without recording a timestamp.
   Compute/copy lists are unsupported and return E_INVALIDARG.
+  \param metric the metric the counter updates
+  \param list the direct-queue command list the counter scopes record into
+  \param counter points to the created counter
+  \return S_OK if the counter could be created, otherwise an error code
   */
   HRESULT CreateGPUCounter([in] IMGDFMetric *metric,
                            [in] ID3D12GraphicsCommandList *list,
