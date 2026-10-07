@@ -13,7 +13,6 @@ namespace MGDF {
 namespace core {
 
 Debug::Debug(Timer* timer) : _timer(timer), _metrics(nullptr) {
-  _shown.store(false);
 }
 
 void Debug::SetMetrics(const HostMetrics* metrics) { _metrics = metrics; }
@@ -47,22 +46,6 @@ void Debug::Clear(const char* section, const char* key) {
       return;
     }
     sectionMap->second.erase(key);
-  }
-}
-
-BOOL Debug::IsShown() {
-  bool exp = true;
-  return _shown.compare_exchange_weak(exp, true);
-}
-
-void Debug::ToggleShown() {
-  // Toggle  stats overlay with alt f12
-  bool exp = true;
-  // if its true set it to false.
-  if (!_shown.compare_exchange_strong(exp, false)) {
-    // otherwise it must be false so set it to true
-    exp = false;
-    _shown.compare_exchange_strong(exp, true);
   }
 }
 

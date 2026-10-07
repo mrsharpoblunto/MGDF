@@ -320,7 +320,7 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   if (!RTCheckForDisplayChanges(window)) {
     return false;
   }
-  RTOnInitDevices(_rtD3dDevice);
+  RTOnInitDevice(_rtD3dDevice);
 
   RECT windowSize;
   if (!::GetClientRect(window, &windowSize)) {

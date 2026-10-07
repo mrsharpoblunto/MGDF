@@ -69,8 +69,8 @@ IMGDFDebug::GetOverlaySnapshot. Release it when done with the data
 };
 
 /**
-Controls debug overlay data and visibility (toggled with ALT-F12).
-The module draws the overlay from GetOverlaySnapshot when IsShown is TRUE
+Debug overlay data. The host draws no overlay: a module that wants one
+draws it from GetOverlaySnapshot and decides itself when to show it
 */
 [
   uuid("D69DC4E5-238B-4427-AF03-628818464E41"), object,
@@ -90,17 +90,6 @@ The module draws the overlay from GetOverlaySnapshot when IsShown is TRUE
    \param key The key to clear (if null, clears all keys in the section)
    */
   void Clear([in] const small *section, [in] const small *key);
-
-  /**
-   Whether the module should draw the debug overlay
-   \return whether the module should draw the debug overlay
-   */
-  BOOL IsShown();
-
-  /**
-   Toggle the visibility status of the overlay
-   */
-  void ToggleShown();
 
   /**
    Copies the overlay data into a snapshot for the module to draw
@@ -513,8 +502,8 @@ typedef struct MGDFTags {
 
 /**
  A names performance counter that can be used to time the duration of
- events. The results of these counters are shown in the MGDF debug overlay
- (press ALT-F12 to see in game)
+ events. The results of these counters are part of the debug overlay
+ snapshot
  */
 [
   uuid("E2E9FE7E-4D07-40FE-9858-8E583D73CB37"), object,

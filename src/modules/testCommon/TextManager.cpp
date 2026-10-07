@@ -18,13 +18,17 @@ namespace Test {
 TextManagerState::TextManagerState(const TextManagerState &startState,
                                    const TextManagerState &endState,
                                    double alpha)
-    : _lines(endState._lines), _scrollOffset(endState._scrollOffset) {
+    : _lines(endState._lines),
+      _scrollOffset(endState._scrollOffset),
+      _overlayShown(endState._overlayShown) {
   std::ignore = alpha;
   std::ignore = startState;
 }
 
 TextManagerState::TextManagerState(const TextManagerState &state)
-    : _lines(state._lines), _scrollOffset(state._scrollOffset) {}
+    : _lines(state._lines),
+      _scrollOffset(state._scrollOffset),
+      _overlayShown(state._overlayShown) {}
 
 std::function<void(const std::string &)> TextManagerState::LogSink;
 
@@ -328,7 +332,7 @@ void TextManager::DrawText() {
 }
 
 void TextManager::DrawOverlay() {
-  if (!_debug->IsShown()) return;
+  if (!_state.OverlayShown()) return;
 
   ComObject<IMGDFDebugOverlaySnapshot> snapshot;
   if (FAILED(_debug->GetOverlaySnapshot(snapshot.Assign()))) {

@@ -39,6 +39,9 @@ class TESTCOMMON_DLL TextManagerState {
                    const TextManagerState &endState, double alpha);
   void AddLine(const std::string &line);
   void SetStatus(TextColor color, const std::string &text);
+  // the host draws no overlay; the test module shows it on ALT+F12
+  void ToggleOverlay() { _overlayShown = !_overlayShown; }
+  bool OverlayShown() const { return _overlayShown; }
 
   static constexpr UINT32 LINE_HEIGHT = 25;
   static constexpr float SCROLLBAR_WIDTH = 12.0f;
@@ -68,6 +71,7 @@ class TESTCOMMON_DLL TextManagerState {
   // how many lines back from the newest the view is scrolled
   // (0 = pinned to the latest output)
   size_t _scrollOffset = 0;
+  bool _overlayShown = false;
 };
 
 class TESTCOMMON_DLL TextManager {

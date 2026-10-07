@@ -16,15 +16,6 @@ ComObject<IMGDFDebugOverlaySnapshot> Snapshot(Debug &debug) {
 
 }  // namespace
 
-TEST(DebugTests, VisibilityDefaultsOffAndToggles) {
-  auto debug = MakeCom<Debug>(nullptr);
-  EXPECT_FALSE(debug->IsShown());
-  debug->ToggleShown();
-  EXPECT_TRUE(debug->IsShown());
-  debug->ToggleShown();
-  EXPECT_FALSE(debug->IsShown());
-}
-
 TEST(DebugTests, OverlaySnapshotCarriesSections) {
   auto debug = MakeCom<Debug>(nullptr);
   debug->Set("Scene", "Visible", "12");

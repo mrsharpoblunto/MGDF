@@ -73,7 +73,7 @@ UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
   return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
 }
 
-void MGDFApp::RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice) {
+void MGDFApp::RTOnInitDevice(const ComObject<ID3D11Device> &d3dDevice) {
   _ASSERTE(d3dDevice);
   _host->RTSetDevices(d3dDevice);
 }
@@ -316,13 +316,7 @@ LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                                  LPARAM lParam) {
   switch (msg) {
     case WM_SYSKEYDOWN:
-      switch (wParam) {
-        case VK_F12:
-          _host->GetDebugImpl()->ToggleShown();
-          return 0;
-        default:
-          return 0;
-      }
+      return 0;
     case WM_ACTIVATE:
       if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE) {
         _host->GetInputManagerImpl()->ClearInput();

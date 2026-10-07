@@ -46,8 +46,6 @@ class Debug : public ComBase<IMGDFDebug> {
   void __stdcall Set(const char *section, const char *key,
                      const char *value) final;
   void __stdcall Clear(const char *section, const char *key) final;
-  BOOL __stdcall IsShown() final;
-  void __stdcall ToggleShown() final;
   HRESULT __stdcall GetOverlaySnapshot(
       IMGDFDebugOverlaySnapshot **snapshot) final;
 
@@ -59,7 +57,6 @@ class Debug : public ComBase<IMGDFDebug> {
   // thread
   mutable std::mutex _dataMutex;
   DebugSections _data;
-  mutable std::atomic<bool> _shown;
   Timer *_timer;
   const HostMetrics *_metrics;
 };

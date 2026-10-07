@@ -160,6 +160,9 @@ BOOL Module::STUpdate(IMGDFSimHost* host, double elapsedTime) {
     if (_input->IsKeyPress(VK_ESCAPE)) {
       host->QueueShutDown();
     }
+    if (_input->IsKeyDown(VK_MENU) && _input->IsKeyPress(VK_F12)) {
+      state->Text.ToggleOverlay();
+    }
   }
 
   _stateBuffer.Flip();
