@@ -15,7 +15,7 @@ class MGDFApp : public D3DAppFramework {
 
  protected:
   std::pair<DXGI_FORMAT, DXGI_FORMAT> RTOnBeforeEnumerateDisplayModes() final;
-  void RTOnInitDevice(const ComObject<ID3D11Device> &d3dDevice) final;
+  void RTOnInitDevice(IRenderBackend &backend) final;
   MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                         const RECT &windowSize) final;
@@ -24,9 +24,7 @@ class MGDFApp : public D3DAppFramework {
   bool RTIsBackBufferChangePending() final;
   bool RTVSyncEnabled() const final;
   void RTOnBeforeBackBufferChange() final;
-  void RTOnBackBufferChange(
-      const ComObject<ID3D11Texture2D> &backBuffer,
-      const ComObject<ID3D11Texture2D> &depthStencilBuffer) final;
+  void RTOnBackBufferChange(IRenderBackend &backend) final;
   void RTOnBeforeDeviceReset() final;
   void RTOnDeviceReset() final;
   void RTOnBeforeFirstDraw() final;
@@ -35,11 +33,12 @@ class MGDFApp : public D3DAppFramework {
       ULONG currentSDRWhiteLevel,
       const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) final;
   void RTOnDraw() final;
+  void RTOnAfterPresent() final;
 
   void STOnUpdateSim() final;
 
-  UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                       UINT64 *featureLevelsSize) final;
+  std::unique_ptr<IRenderBackend> CreateRenderBackend(
+      const ComObject<IDXGIFactory6> &factory) final;
   bool OnInitWindow(RECT &windowSize) final;
   bool OnSetCursor() final;
   LRESULT OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,

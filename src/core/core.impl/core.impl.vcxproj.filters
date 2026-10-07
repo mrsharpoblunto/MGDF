@@ -15,6 +15,9 @@
     <ClCompile Include="MGDFGameImpl.cpp">
       <Filter>System</Filter>
     </ClCompile>
+    <ClCompile Include="MGDFGraphicsRequirements.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
     <ClCompile Include="MGDFModuleFactory.cpp">
       <Filter>System</Filter>
     </ClCompile>
@@ -53,6 +56,9 @@
       <Filter>System</Filter>
     </ClInclude>
     <ClInclude Include="MGDFGameImpl.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="MGDFGraphicsRequirements.hpp">
       <Filter>System</Filter>
     </ClInclude>
     <ClInclude Include="MGDFModuleFactory.hpp">

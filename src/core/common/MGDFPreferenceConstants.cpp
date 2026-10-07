@@ -10,6 +10,7 @@
 namespace MGDF {
 namespace core {
 
+const char *PreferenceConstants::GRAPHICS_API = "host.graphicsAPI";
 const char *PreferenceConstants::MUSIC_VOLUME = "host.musicVolume";
 const char *PreferenceConstants::SOUND_VOLUME = "host.soundVolume";
 const char *PreferenceConstants::SIM_FPS = "host.simFps";

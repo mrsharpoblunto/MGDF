@@ -2,7 +2,9 @@
 
 #include "MGDFApp.hpp"
 
+#include "MGDFD3D11RenderBackend.hpp"
 #include "common/MGDFPreferenceConstants.hpp"
+#include "core.impl/MGDFGraphicsRequirements.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
 
 #if defined(_DEBUG)
@@ -22,6 +24,7 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
       _rtFrameLimiter(nullptr),
       _stFrameLimiter(nullptr) {
   _ASSERTE(host);
+  _host->InitGraphics();
 
   ::SecureZeroMemory(&_rtActiveEnd, sizeof(LARGE_INTEGER));
   ::SecureZeroMemory(&_rtStart, sizeof(LARGE_INTEGER));
@@ -71,14 +74,18 @@ MGDFApp::~MGDFApp() {
   _host->RTShutDown();
 }
 
-UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                              UINT64 *featureLevelsSize) {
-  return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
+std::unique_ptr<IRenderBackend> MGDFApp::CreateRenderBackend(
+    const ComObject<IDXGIFactory6> &factory) {
+  return std::make_unique<D3D11RenderBackend>(
+      factory,
+      GetD3D11FeatureLevels(_host->GetGraphicsRequirements().MinFeatureLevel),
+      [this](const char *sender, const char *message) {
+        FatalError(sender, message);
+      });
 }
 
-void MGDFApp::RTOnInitDevice(const ComObject<ID3D11Device> &d3dDevice) {
-  _ASSERTE(d3dDevice);
-  _host->RTSetDevices(d3dDevice);
+void MGDFApp::RTOnInitDevice(IRenderBackend &backend) {
+  _host->RTSetDevices(backend);
 }
 
 bool MGDFApp::RTIsBackBufferChangePending() {
@@ -141,13 +148,8 @@ void MGDFApp::RTOnBeforeBackBufferChange() {
   _host->RTBeforeBackBufferChange();
 }
 
-void MGDFApp::RTOnBackBufferChange(
-    const ComObject<ID3D11Texture2D> &backBuffer,
-    const ComObject<ID3D11Texture2D> &depthStencilBuffer) {
-  _ASSERTE(backBuffer);
-  _ASSERTE(depthStencilBuffer);
-
-  _host->RTBackBufferChange(backBuffer, depthStencilBuffer);
+void MGDFApp::RTOnBackBufferChange(IRenderBackend &backend) {
+  _host->RTBackBufferChange(backend);
 }
 
 void MGDFApp::RTOnBeforeFirstDraw() {
@@ -177,6 +179,8 @@ void MGDFApp::RTOnDraw() {
 
   _rtActiveEnd = _timer->GetCurrentTimeTicks();
 }
+
+void MGDFApp::RTOnAfterPresent() { _host->RTAfterPresent(); }
 
 std::pair<DXGI_FORMAT, DXGI_FORMAT> MGDFApp::RTOnBeforeEnumerateDisplayModes() {
   return std::make_pair(_settings->GetSDRBackBufferFormat(),

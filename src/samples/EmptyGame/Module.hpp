@@ -19,6 +19,7 @@ class Module : public MGDF::ComBase<IMGDFModule> {
 
   BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *host) final;
   BOOL __stdcall RTDraw(IMGDFRenderHost *host, double alpha) final;
+  void __stdcall RTAfterPresent(IMGDFRenderHost *host) final;
   BOOL __stdcall RTBeforeBackBufferChange(IMGDFRenderHost *host) final;
   BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *host) final;
   BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *host) final;

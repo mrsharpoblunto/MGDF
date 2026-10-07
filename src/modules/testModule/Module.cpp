@@ -82,6 +82,18 @@ Module::Module()
 }
 
 BOOL Module::STNew(IMGDFSimHost* host) {
+  auto commonHost = MakeComFromPtr<IMGDFSimHost>(host).As<IMGDFCommonHost>();
+  auto d3d11Host = MakeComFromPtr<IMGDFSimHost>(host).As<IMGDFD3D11Host>();
+  if (!commonHost || !d3d11Host ||
+      commonHost->GetGraphicsAPI() != MGDF_GRAPHICS_API_D3D11)
+    return false;
+  auto simHost = commonHost.As<IMGDFSimHost>();
+  if (!simHost) return false;
+  ComObject<IMGDFGame> game;
+  simHost->GetGame(game.Assign());
+  ComObject<ID3D11Device> device;
+  d3d11Host->GetD3D11Device(device.Assign());
+  if (!game || !device) return false;
   // mirror all test output into the MGDF log so that test results and
   // failure details are available in the core log after a run
   TextManagerState::LogSink = [host](const std::string& line) {
@@ -177,18 +189,33 @@ void Module::STShutDown(IMGDFSimHost* host) {
 BOOL Module::RTBeforeFirstDraw(IMGDFRenderHost* host) {
   _textManager = std::make_unique<TextManager>(host);
   ComObject<ID3D11Device> device;
-  host->GetD3DDevice(device.Assign());
+  auto d3d11Host = MakeComFromPtr<IMGDFRenderHost>(host).As<IMGDFD3D11Host>();
+  auto d3d11RenderHost =
+      MakeComFromPtr<IMGDFRenderHost>(host).As<IMGDFD3D11RenderHost>();
+  if (!d3d11Host || !d3d11RenderHost) return false;
+  d3d11Host->GetD3D11Device(device.Assign());
+  MGDFBackBufferInfo info{};
+  host->GetBackBufferInfo(&info);
+  D3D11_TEXTURE2D_DESC desc{};
+  d3d11RenderHost->GetBackBufferDescription(&desc, nullptr);
+  if (info.Width != desc.Width || info.Height != desc.Height ||
+      info.Format != desc.Format || info.SampleCount != desc.SampleDesc.Count ||
+      !info.Width || !info.Height)
+    return false;
   ComObject<ID3D11DeviceContext> context;
   device->GetImmediateContext(context.Assign());
   ComObject<IMGDFMetric> gauge;
   host->CreateGaugeMetric("text_rendering", "Text rendering time",
                           gauge.Assign());
-  host->CreateGPUCounter(gauge, context, _textManagerCounter.Assign());
+  d3d11RenderHost->CreateGPUCounter(gauge, context,
+                                    _textManagerCounter.Assign());
   return true;
 }
 
 BOOL Module::RTDraw(IMGDFRenderHost* host, double alpha) {
   std::ignore = host;
+  if (_awaitingPresent) return false;
+  _awaitingPresent = true;
   std::shared_ptr<TestState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
     ComObject<IMGDFPerformanceCounterScope> counter;
@@ -204,6 +231,18 @@ BOOL Module::RTBackBufferChange(IMGDFRenderHost* host) {
   std::ignore = host;
   _textManager->BackBufferChange();
   return true;
+}
+
+void Module::RTAfterPresent(IMGDFRenderHost *host) {
+  if (!_awaitingPresent) {
+    host->FatalError("TestModule", "RTAfterPresent called without RTDraw");
+    return;
+  }
+  _awaitingPresent = false;
+  if (++_presentedFrames == 1) {
+    host->Log("TestModule", "D3D11 host interfaces and RTAfterPresent verified",
+              MGDF_LOG_LOW);
+  }
 }
 
 BOOL Module::RTBeforeBackBufferChange(IMGDFRenderHost* host) {

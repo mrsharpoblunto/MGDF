@@ -1,6 +1,5 @@
 #pragma once
 
-#include <d3d11.h>
 #include <dxgi1_6.h>
 
 #include <MGDF/ComObject.hpp>
@@ -17,8 +16,6 @@
 
 namespace MGDF {
 namespace core {
-
-class D3D11RenderBackend;
 
 enum DisplayChangeType {
   DC_WINDOW_MOVE,
@@ -48,11 +45,9 @@ class D3DAppFramework {
   virtual void RTOnBeforeFirstDraw() = 0;
   virtual void RTOnBeforeDeviceReset() = 0;
   virtual void RTOnDeviceReset() = 0;
-  virtual void RTOnInitDevice(const ComObject<ID3D11Device> &d3dDevice) = 0;
+  virtual void RTOnInitDevice(IRenderBackend &backend) = 0;
   virtual void RTOnBeforeBackBufferChange() = 0;
-  virtual void RTOnBackBufferChange(
-      const ComObject<ID3D11Texture2D> &backBuffer,
-      const ComObject<ID3D11Texture2D> &depthStencilBuffer) = 0;
+  virtual void RTOnBackBufferChange(IRenderBackend &backend) = 0;
   virtual MGDFFullScreenDesc RTOnResetSwapChain(
       DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
       const RECT &windowSize) = 0;
@@ -64,6 +59,7 @@ class D3DAppFramework {
   virtual void RTOnResize(UINT32 width, UINT32 height) = 0;
   virtual bool RTVSyncEnabled() const = 0;
   virtual void RTOnDraw() = 0;
+  virtual void RTOnAfterPresent() = 0;
   virtual bool RTIsBackBufferChangePending() = 0;
 
   virtual void STOnUpdateSim() = 0;
@@ -76,8 +72,8 @@ class D3DAppFramework {
                                   LPARAM lParam) = 0;
   virtual void OnMoveWindow(INT32 x, INT32 y) = 0;
   virtual bool OnSetCursor() = 0;
-  virtual UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                               UINT64 *featureLevelsSize) = 0;
+  virtual std::unique_ptr<IRenderBackend> CreateRenderBackend(
+      const ComObject<IDXGIFactory6> &factory) = 0;
   virtual void FatalError(const char *sender, const char *message) = 0;
 
   void CloseWindow();
@@ -107,7 +103,6 @@ class D3DAppFramework {
   ComObject<IDXGIFactory6> _rtFactory;
   ComObject<IDXGIAdapter> _rtAdapter;
   std::unique_ptr<IRenderBackend> _rtRenderBackend;
-  D3D11RenderBackend *_rtD3D11Backend = nullptr;
   DXGI_SWAP_CHAIN_DESC1 _rtSwapDesc;
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC _rtFullscreenSwapDesc;
   MGDFFullScreenDesc _rtCurrentFullScreen;

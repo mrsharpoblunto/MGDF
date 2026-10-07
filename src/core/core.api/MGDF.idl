@@ -4,6 +4,36 @@ import "d3d11.idl";
 import "dxgi.idl";
 
 /**
+The graphics APIs a module can request
+*/
+typedef enum MGDFGraphicsAPI {
+  MGDF_GRAPHICS_API_D3D11 = 0,
+  MGDF_GRAPHICS_API_D3D12 = 1,
+} MGDFGraphicsAPI;
+
+/**
+The graphics requirements returned by the module's GetGraphicsRequirements export
+*/
+typedef struct MGDFGraphicsRequirements {
+  /** APIs the module supports, most preferred first */
+  UINT32 APICount;
+  MGDFGraphicsAPI APIs[4];
+  D3D_FEATURE_LEVEL MinFeatureLevel;
+  /** D3D_SHADER_MODEL value; only checked for D3D12 */
+  UINT32 MinShaderModel;
+} MGDFGraphicsRequirements;
+
+/**
+The current back buffer properties, independent of the graphics API
+*/
+typedef struct MGDFBackBufferInfo {
+  UINT32 Width;
+  UINT32 Height;
+  DXGI_FORMAT Format;
+  UINT32 SampleCount;
+} MGDFBackBufferInfo;
+
+/**
 An average with its per frame history behind it, in seconds. Samples run
 newest first and belong to the IMGDFDebugOverlaySnapshot they came from
 */
@@ -73,7 +103,7 @@ Debug overlay data. The host draws no overlay: a module that wants one
 draws it from GetOverlaySnapshot and decides itself when to show it
 */
 [
-  uuid("D69DC4E5-238B-4427-AF03-628818464E41"), object,
+  uuid("6EF19CBF-862A-4BF6-BFC9-50C58C20255F"), object,
   local
 ] interface IMGDFDebug : IUnknown {
   /**
@@ -1970,7 +2000,7 @@ Provides an entrypoint for a module to interact with the MGDF host. Methods in
 this interface are safe to be used from any thread
 */
 [
-  uuid("B6FDBA44-D098-4EF7-AF79-7368FB85AA6C"), object,
+  uuid("D5772E20-668C-43BC-B803-453ACF6D74AF"), object,
   local
 ] interface IMGDFCommonHost : IMGDFLogger {
   /**
@@ -2011,10 +2041,10 @@ this interface are safe to be used from any thread
   void GetWorkingVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
 
   /**
-  get the direct3d device object from the host
-  \param device the direct3d device object from the host
+  get the graphics API selected by the host
+  \return the selected graphics API
   */
-  void GetD3DDevice([out] ID3D11Device * *device);
+  MGDFGraphicsAPI GetGraphicsAPI();
 
   /**
   get the debug overlay data and visibility interface
@@ -2082,9 +2112,39 @@ this interface are safe to be used from any thread
  safe to be used ONLY from the render thread.
 */
 [
-  uuid("514EBD97-3C53-4235-90E1-7AD3B7F517BD"), object,
+  uuid("E7616E80-733E-4E33-8A71-CCF53161508B"), object,
   local
 ] interface IMGDFRenderHost : IMGDFCommonHost {
+  /**
+  Gets the current back buffer properties
+  \param info the back buffer properties to populate
+  */
+  void GetBackBufferInfo([out] MGDFBackBufferInfo * info);
+};
+
+/**
+Provides D3D11 device access through QueryInterface on any host interface.
+Methods in this interface are safe to be used from any thread
+*/
+[
+  uuid("33357B0B-E626-450E-90F2-C017D52AB911"), object,
+  local
+] interface IMGDFD3D11Host : IUnknown {
+  /**
+  get the direct3d 11 device object from the host
+  \param device the direct3d 11 device object from the host
+  */
+  void GetD3D11Device([out] ID3D11Device * *device);
+};
+
+/**
+Provides D3D11 rendering access through QueryInterface on the render host.
+Additional methods in this interface are safe to be used ONLY from the render thread
+*/
+[
+  uuid("756E8862-E68C-4796-AD6C-00667632F33B"), object,
+  local
+] interface IMGDFD3D11RenderHost : IMGDFRenderHost {
   /**
   Gets the current back buffer texture.
   \param backbuffer the current back buffer texture. The pointer returned by this method
@@ -2228,7 +2288,7 @@ interface inherits from IMGDFCommonHost and provides additional methods which
 are safe to be used ONLY from the sim thread.
 */
 [
-  uuid("381AD5F1-8058-4739-992F-A5B551AA0E87"), object,
+  uuid("267014B0-7C2C-4FCB-85F8-13AAA9F4FBCC"), object,
   local
 ] interface IMGDFSimHost : IMGDFCommonHost {
   /**
@@ -2317,7 +2377,7 @@ are safe to be used ONLY from the sim thread.
  The interface to be implemented by an MGDF game
 */
 [
-  uuid("08D1F4AD-366B-4659-B4A6-AA04B458D6DB"), object,
+  uuid("7E8179E6-D60A-4CF0-BFBD-8576D8E73B49"), object,
   local
 ] interface IMGDFModule : IUnknown {
   /**
@@ -2363,6 +2423,12 @@ are safe to be used ONLY from the sim thread.
    \return false if the module experiences a fatal error drawing the scene
   */
   BOOL RTDraw(IMGDFRenderHost * host, double alpha);
+
+  /**
+   Called by the host once per render frame after Present
+   \param host the render thread host
+  */
+  void RTAfterPresent(IMGDFRenderHost * host);
 
   /**
   Called by the host if the swap chain options need to be changed, or the

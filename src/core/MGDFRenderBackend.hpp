@@ -1,7 +1,9 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <dxgi1_2.h>
 
+#include <MGDF/ComObject.hpp>
 #include <optional>
 
 namespace MGDF {
@@ -12,6 +14,11 @@ class IRenderBackend {
  public:
   virtual ~IRenderBackend() = default;
 
+  virtual ComObject<IUnknown> RTGetDevice() = 0;
+  virtual ComObject<IUnknown> RTGetBackBuffer() = 0;
+  virtual ComObject<IUnknown> RTGetDepthStencilBuffer() = 0;
+  virtual ComObject<IDXGIAdapter> RTGetAdapter() = 0;
+  virtual MGDFBackBufferInfo RTGetBackBufferInfo() const = 0;
   virtual bool RTInit() = 0;
   virtual bool RTIsInitialized() const = 0;
   virtual void RTUninit(bool exclusiveMode) = 0;
