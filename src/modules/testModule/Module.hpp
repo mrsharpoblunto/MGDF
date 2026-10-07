@@ -67,6 +67,7 @@ class Module : public ComBase<IMGDFModule> {
   void __stdcall STShutDown(IMGDFSimHost *simHost) final;
   BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTDraw(IMGDFRenderHost *renderHost, double alpha) final;
+  void __stdcall RTAfterPresent(IMGDFRenderHost *host) final;
   BOOL __stdcall RTBeforeBackBufferChange(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *renderHost) final;
@@ -77,6 +78,8 @@ class Module : public ComBase<IMGDFModule> {
  private:
   TestResults _results;
   bool _finalResult;
+  bool _awaitingPresent = false;
+  UINT64 _presentedFrames = 0;
   std::list<std::unique_ptr<TestModule>> _testModules;
   std::list<std::unique_ptr<TestModule>>::iterator _currentModule;
   BufferedGameState<TestState> _stateBuffer;

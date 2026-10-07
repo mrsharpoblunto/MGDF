@@ -5,7 +5,6 @@
 #include <optional>
 #include <string>
 
-#include "MGDFD3D11RenderBackend.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFParameterManager.hpp"
 #include "common/MGDFResources.hpp"
@@ -169,21 +168,7 @@ void D3DAppFramework::InitWindow(const std::string &caption) {
 
     InitRawInput();
 
-    LOG("Getting compatible D3D feature levels...", MGDF_LOG_LOW);
-    std::vector<D3D_FEATURE_LEVEL> levels;
-    UINT64 levelsSize = 0;
-    if (GetCompatibleD3DFeatureLevels(nullptr, &levelsSize)) {
-      levels.resize(levelsSize);
-      GetCompatibleD3DFeatureLevels(levels.data(), &levelsSize);
-    }
-
-    auto backend = std::make_unique<D3D11RenderBackend>(
-        _rtFactory, std::move(levels),
-        [this](const char *sender, const char *message) {
-          FatalError(sender, message);
-        });
-    _rtD3D11Backend = backend.get();
-    _rtRenderBackend = std::move(backend);
+    _rtRenderBackend = CreateRenderBackend(_rtFactory);
 
     if (!RTInitD3D(_window)) {
       FATALERROR(this, "Failed to initialize D3D");
@@ -230,12 +215,12 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   if (!_rtRenderBackend->RTInit()) {
     return false;
   }
-  _rtAdapter = _rtD3D11Backend->RTGetAdapter();
+  _rtAdapter = _rtRenderBackend->RTGetAdapter();
 
   if (!RTCheckForDisplayChanges(window)) {
     return false;
   }
-  RTOnInitDevice(_rtD3D11Backend->RTGetDevice());
+  RTOnInitDevice(*_rtRenderBackend);
 
   RECT windowSize;
   if (!::GetClientRect(window, &windowSize)) {
@@ -568,8 +553,7 @@ void D3DAppFramework::RTResizeBackBuffer() {
     FATALERROR(this, "Failed to resize swapchain buffers");
   }
 
-  RTOnBackBufferChange(_rtD3D11Backend->RTGetBackBuffer(),
-                       _rtD3D11Backend->RTGetDepthStencilBuffer());
+  RTOnBackBufferChange(*_rtRenderBackend);
 }
 
 void D3DAppFramework::PushRTMessage(
@@ -733,6 +717,7 @@ INT32 D3DAppFramework::Run() {
             const HRESULT result = _rtRenderBackend->RTPresent(
                 RTVSyncEnabled() ? 1 : 0,
                 RTAllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0);
+            RTOnAfterPresent();
 
             if (result == DXGI_ERROR_DEVICE_REMOVED ||
                 result == DXGI_ERROR_DEVICE_RESET) {

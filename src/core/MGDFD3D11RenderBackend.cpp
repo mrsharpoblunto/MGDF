@@ -382,17 +382,22 @@ HRESULT D3D11RenderBackend::RTGetDeviceRemovedReason() const {
   return _rtD3dDevice->GetDeviceRemovedReason();
 }
 
-const ComObject<ID3D11Device> &D3D11RenderBackend::RTGetDevice() const {
-  return _rtD3dDevice;
+ComObject<IUnknown> D3D11RenderBackend::RTGetDevice() {
+  return _rtD3dDevice.As<IUnknown>();
 }
 
-const ComObject<ID3D11Texture2D> &D3D11RenderBackend::RTGetBackBuffer() const {
-  return _rtBackBuffer;
+ComObject<IUnknown> D3D11RenderBackend::RTGetBackBuffer() {
+  return _rtBackBuffer.As<IUnknown>();
 }
 
-const ComObject<ID3D11Texture2D> &D3D11RenderBackend::RTGetDepthStencilBuffer()
-    const {
-  return _rtDepthStencilBuffer;
+ComObject<IUnknown> D3D11RenderBackend::RTGetDepthStencilBuffer() {
+  return _rtDepthStencilBuffer.As<IUnknown>();
+}
+
+MGDFBackBufferInfo D3D11RenderBackend::RTGetBackBufferInfo() const {
+  D3D11_TEXTURE2D_DESC desc{};
+  if (_rtBackBuffer) _rtBackBuffer->GetDesc(&desc);
+  return {desc.Width, desc.Height, desc.Format, desc.SampleDesc.Count};
 }
 
 void D3D11RenderBackend::FatalError(const char *sender, const char *message) {

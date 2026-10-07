@@ -113,7 +113,13 @@ void TextManager::BackBufferChange() {
   BeforeBackBufferChange();
 
   ComObject<ID3D11Texture2D> backBuffer;
-  _renderHost->GetBackBuffer(backBuffer.Assign());
+  auto d3d11Host =
+      MakeComFromPtr<IMGDFRenderHost>(_renderHost).As<IMGDFD3D11RenderHost>();
+  if (!d3d11Host) {
+    FATALERROR(_renderHost, "D3D11 render host is not available");
+    return;
+  }
+  d3d11Host->GetBackBuffer(backBuffer.Assign());
   D3D11_TEXTURE2D_DESC desc;
   backBuffer->GetDesc(&desc);
 
@@ -163,7 +169,13 @@ void TextManager::SetState(TextManagerState &state) {
 void TextManager::DrawText() {
   if (!_d2dContext) {
     ComObject<ID3D11Device> d3dDevice;
-    _renderHost->GetD3DDevice(d3dDevice.Assign());
+    auto d3d11Host =
+        MakeComFromPtr<IMGDFRenderHost>(_renderHost).As<IMGDFD3D11Host>();
+    if (!d3d11Host) {
+      FATALERROR(_renderHost, "D3D11 host is not available");
+      return;
+    }
+    d3d11Host->GetD3D11Device(d3dDevice.Assign());
     ComObject<IDXGIDevice> dxgiDevice;
     if (FAILED(d3dDevice->QueryInterface<IDXGIDevice>(dxgiDevice.Assign()))) {
       FATALERROR(_renderHost, "Unable to acquire IDXGIDevice from ID3D11Device");

@@ -34,6 +34,8 @@ BOOL Module::RTDraw(IMGDFRenderHost *host, double alpha) {
   // Any rendering goes here.
   return true;
 }
+void Module::RTAfterPresent(IMGDFRenderHost *host) { std::ignore = host; }
+
 BOOL Module::RTBeforeBackBufferChange(IMGDFRenderHost *host) {
   // Called before the host resizes the current backbuffer
   // Anything holding a reference to the backbuffer should release it now

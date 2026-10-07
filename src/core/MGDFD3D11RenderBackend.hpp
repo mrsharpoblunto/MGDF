@@ -33,10 +33,11 @@ class D3D11RenderBackend : public IRenderBackend {
   HRESULT RTPresent(UINT syncInterval, UINT flags) final;
   HRESULT RTGetDeviceRemovedReason() const final;
 
-  const ComObject<ID3D11Device> &RTGetDevice() const;
-  const ComObject<ID3D11Texture2D> &RTGetBackBuffer() const;
-  const ComObject<ID3D11Texture2D> &RTGetDepthStencilBuffer() const;
-  ComObject<IDXGIAdapter> RTGetAdapter();
+  ComObject<IUnknown> RTGetDevice() final;
+  ComObject<IUnknown> RTGetBackBuffer() final;
+  ComObject<IUnknown> RTGetDepthStencilBuffer() final;
+  ComObject<IDXGIAdapter> RTGetAdapter() final;
+  MGDFBackBufferInfo RTGetBackBufferInfo() const final;
 
  private:
   void RTClearBackBuffer();

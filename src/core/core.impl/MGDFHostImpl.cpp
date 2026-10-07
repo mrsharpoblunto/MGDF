@@ -11,6 +11,7 @@
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
+#include "MGDFGraphicsRequirements.hpp"
 #include "MGDFMetrics.hpp"
 #include "MGDFNetworkImpl.hpp"
 #include "MGDFParameterConstants.hpp"
@@ -101,14 +102,23 @@ ULONG Host::Release() {
 }
 HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
   if (!ppvObject) return E_POINTER;
+  *ppvObject = nullptr;
   if (riid == IID_IUnknown || riid == __uuidof(IMGDFLogger) ||
-      riid == __uuidof(IMGDFSimHost) || riid == __uuidof(IMGDFRenderHost) ||
-      riid == __uuidof(IMGDFCommonHost)) {
-    AddRef();
-    *ppvObject = this;
-    return S_OK;
+      riid == __uuidof(IMGDFCommonHost) || riid == __uuidof(IMGDFRenderHost)) {
+    *ppvObject = static_cast<IMGDFRenderHost *>(this);
+  } else if (riid == __uuidof(IMGDFSimHost)) {
+    *ppvObject = static_cast<IMGDFSimHost *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
+             riid == __uuidof(IMGDFD3D11Host)) {
+    *ppvObject = static_cast<IMGDFD3D11Host *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
+             riid == __uuidof(IMGDFD3D11RenderHost)) {
+    *ppvObject = static_cast<IMGDFD3D11RenderHost *>(this);
+  } else {
+    return E_NOINTERFACE;
   }
-  return E_NOINTERFACE;
+  AddRef();
+  return S_OK;
 };
 
 HRESULT Host::Init() {
@@ -215,10 +225,37 @@ ComObject<input::IInputManagerComponent> Host::GetInputManagerImpl() {
   return _input;
 }
 
-UINT64 Host::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                           UINT64 *featureLevelsSize) {
-  return _moduleFactory->GetCompatibleFeatureLevels(levels, featureLevelsSize);
+void Host::InitGraphics() {
+  if (FAILED(_moduleFactory->GetGraphicsRequirements(_graphicsRequirements))) {
+    FATALERROR(this, "Module GetGraphicsRequirements failed");
+    return;
+  }
+  std::string preference;
+  GetPreference(_game.As<IMGDFGame>(), PreferenceConstants::GRAPHICS_API,
+                preference);
+  std::string error;
+  const HRESULT result =
+      SelectGraphicsAPI(_graphicsRequirements, preference, _graphicsAPI, error);
+  if (SUCCEEDED(result) || result == E_NOTIMPL) {
+    LOG("Selected graphics API: "
+            << (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 ? "d3d11" : "d3d12"),
+        MGDF_LOG_LOW);
+  }
+  if (FAILED(result)) {
+    FATALERROR(this, error);
+    return;
+  }
+  if (GetD3D11FeatureLevels(_graphicsRequirements.MinFeatureLevel).empty()) {
+    FATALERROR(this,
+               "The requested minimum feature level is not supported by D3D11");
+  }
 }
+
+const MGDFGraphicsRequirements &Host::GetGraphicsRequirements() const {
+  return _graphicsRequirements;
+}
+
+MGDFGraphicsAPI Host::GetGraphicsAPI() { return _graphicsAPI; }
 
 /**
 create and initialize a new module
@@ -231,12 +268,14 @@ void Host::STCreateModule() {
     }
 
     // create the module
-    if (FAILED(_moduleFactory->GetModule(_module))) {
+    const HRESULT result = _moduleFactory->GetModule(_module);
+    if (result == E_NOINTERFACE) {
+      FATALERROR(this, "The module was built for another interface version");
+      return;
+    } else if (FAILED(result)) {
       FATALERROR(this, "Unable to create module class");
+      return;
     }
-
-    // This is where additional QueryInterface checks should go if
-    // IModule gets extended to determine support for new methods
 
     // init the module
     ClearWorkingDirectory();
@@ -298,6 +337,7 @@ void Host::RTBeforeDeviceReset() {
     }
   }
   _timer->BeforeDeviceReset();
+  std::lock_guard lock(_deviceMutex);
   _d3dDevice.Clear();
 }
 
@@ -326,10 +366,13 @@ void Host::RTShutDown() {
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
   _timer->BeforeDeviceReset();
+  std::lock_guard lock(_deviceMutex);
   _d3dDevice.Clear();
 }
 
-void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice) {
+void Host::RTSetDevices(IRenderBackend &backend) {
+  auto d3dDevice = backend.RTGetDevice().As<ID3D11Device>();
+  _ASSERTE(d3dDevice);
   LOG("Initializing render settings and GPU timers...", MGDF_LOG_LOW);
   _renderSettings->InitFromDevice(d3dDevice);
   _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
@@ -340,6 +383,7 @@ void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice) {
     _renderSettings->LoadPreferences(game);
   }
 
+  std::lock_guard lock(_deviceMutex);
   _d3dDevice = d3dDevice;
 }
 
@@ -354,7 +398,12 @@ void Host::RTDraw(double alpha) {
   _timer->End();
 }
 
+void Host::RTAfterPresent() {
+  if (_module) _module->RTAfterPresent(this);
+}
+
 void Host::RTBeforeBackBufferChange() {
+  _backBufferInfo = {};
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
   if (_module) {
@@ -365,11 +414,10 @@ void Host::RTBeforeBackBufferChange() {
   }
 }
 
-void Host::RTBackBufferChange(
-    const ComObject<ID3D11Texture2D> &backBuffer,
-    const ComObject<ID3D11Texture2D> &depthStencilBuffer) {
-  _backBuffer = backBuffer;
-  _depthStencilBuffer = depthStencilBuffer;
+void Host::RTBackBufferChange(IRenderBackend &backend) {
+  _backBufferInfo = backend.RTGetBackBufferInfo();
+  _backBuffer = backend.RTGetBackBuffer().As<ID3D11Texture2D>();
+  _depthStencilBuffer = backend.RTGetDepthStencilBuffer().As<ID3D11Texture2D>();
   if (_module) {
     LOG("Calling module RTBackBufferChange...", MGDF_LOG_MEDIUM);
     if (!_module->RTBackBufferChange(this)) {
@@ -396,7 +444,14 @@ void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
   }
 }
 
-void Host::GetD3DDevice(ID3D11Device **device) { _d3dDevice.AddRawRef(device); }
+void Host::GetBackBufferInfo(MGDFBackBufferInfo *info) {
+  *info = _backBufferInfo;
+}
+
+void Host::GetD3D11Device(ID3D11Device **device) {
+  std::lock_guard lock(_deviceMutex);
+  _d3dDevice.AddRawRef(device);
+}
 
 void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
   _renderSettings.AddRawRef(settings);
