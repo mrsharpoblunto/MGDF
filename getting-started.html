@@ -116,8 +116,8 @@ layout: default
     "interfaceVersion":"1",
     "developerName":"Human readable developer name",
     "homepage":"https://www.example.com",
-    "supoprtType":"email",
-    "supportUrl":"support@example.com",
+    "supportType":"email",
+    "supportUrl":"support@example.com"
 }
 {% endhighlight %}
 
@@ -129,113 +129,118 @@ layout: default
         other without having to worry about concurrency issues. By default the Render thread will not run more than once per Sim tick, so you don't have to worry about buffer underrun in this case either (though this behaviour is configurable - if you have a very slow Sim framerate and want to interpolate a single game state over several render frames - check out the host.interpolateFrames preference option in the <a href="{{ site.baseurl }}/api#gamemanifeset">Game.json API reference</a>)</p>
         <p class="alert alert-info"><strong>NOTE</strong> The SDK includes a sample visual studio game project in src/samples/EmptyGame. This project contains a game.json file and will create a compatible module.dll with a stub module class.</p>
         <h4>Implementing the IMGDFModule interface</h4>
-        <p>Below is a stub implmentation of the IMGDFModule interface. All MGDF interfaces are COM objects and inherit from IUnknown, so it is the users responsibility to release them when no longer required. Once a module instance is created, the host communicates events to the module by calling into the various methods provided. You may notice that all methods except Panic are prefixed with ST or RT - RT methods will be called by the host from the render thread, and ST methods will be called by the host from the sim thread. Panic may be called from either thread.</p>
-        <h5>Module.h</h5>
+        <p>Implement each method in <a href="{{ site.baseurl }}/api#IMGDFModule">IMGDFModule</a>. The host calls ST methods on the simulation thread. It calls RT methods on the render thread. It can call <code>Panic</code> on either thread. MGDF interfaces use COM reference counting. Release each interface when you no longer need it.</p>
+        <p>This example uses D3D11. Call <code>IMGDFCommonHost::GetGraphicsAPI</code> to read the selected API. Query the host for <a href="{{ site.baseurl }}/api#IMGDFD3D11Host">IMGDFD3D11Host</a> to get the D3D11 device from any thread. Query the render host for <a href="{{ site.baseurl }}/api#IMGDFD3D11RenderHost">IMGDFD3D11RenderHost</a> to get the back buffer, depth buffer, texture descriptions, or GPU counters. Use those render methods only on the render thread. <code>IMGDFRenderHost::GetBackBufferInfo</code> returns the back buffer width, height, format, and sample count for either graphics API.</p>
+        <p>The example queries the interfaces in <code>RTDraw</code>. Its local <code>MGDF::ComObject</code> values release their references when the method returns. If you keep resources between frames, release back buffer references in <code>RTBeforeBackBufferChange</code>. Release device resources in <code>RTBeforeDeviceReset</code> and <code>RTShutDown</code>.</p>
+        <h5>Module.hpp</h5>
 {% highlight c++ %}
 #pragma once
-#include <MGDF/ComObject.hpp>
+#include <crtdbg.h>
+#include <cstring>
 #include <MGDF/MGDF.h>
+#include <MGDF/ComObject.hpp>
 
 class Module: public MGDF::ComBase<IMGDFModule>
 {
 public:
-	virtual ~Module( void );
-	Module();
-	BOOL __stdcall STNew( IMGDFSimHost *host ) final;
-	BOOL __stdcall STUpdate( IMGDFSimHost *host, double elapsedTime ) final;
-	void __stdcall STShutDown( IMGDFSimHost *host ) final;
-	BOOL __stdcall STDispose( IMGDFSimHost *host ) final;
-	BOOL __stdcall RTBeforeFirstDraw( IMGDFRenderHost *host ) final;
-	BOOL __stdcall RTDraw( IMGDFRenderHost *host, double alpha ) final;
-	BOOL __stdcall RTBeforeBackBufferChange( IMGDFRenderHost *host ) final;
-	BOOL __stdcall RTBackBufferChange( IMGDFRenderHost *host ) final;
-	BOOL __stdcall RTBeforeDeviceReset( IMGDFRenderHost *host ) final;
-	BOOL __stdcall RTDeviceReset( IMGDFRenderHost *host ) final;
-	void __stdcall Panic() final;
+    virtual ~Module() = default;
+    BOOL __stdcall STNew(IMGDFSimHost *host) final;
+    BOOL __stdcall STUpdate(IMGDFSimHost *host, double elapsedTime) final;
+    void __stdcall STShutDown(IMGDFSimHost *host) final;
+    BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *host) final;
+    BOOL __stdcall RTDraw(IMGDFRenderHost *host, double alpha) final;
+    void __stdcall RTAfterPresent(IMGDFRenderHost *host) final;
+    BOOL __stdcall RTBeforeBackBufferChange(IMGDFRenderHost *host) final;
+    BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *host) final;
+    BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *host) final;
+    BOOL __stdcall RTDeviceReset(IMGDFRenderHost *host) final;
+    void __stdcall RTShutDown(IMGDFRenderHost *host) final;
+    void __stdcall Panic() final;
 };
 {% endhighlight %}
         <h5>Module.cpp</h5>
 {% highlight c++ %}
 #include "Module.hpp"
 
-Module::~Module( void )
+BOOL __stdcall Module::STNew(IMGDFSimHost *host)
 {
+    // Initialize the simulation.
+    return TRUE;
 }
-Module::Module()
+BOOL __stdcall Module::STUpdate(IMGDFSimHost *host, double elapsedTime)
 {
+    // Update the game state.
+    return TRUE;
 }
-BOOL Module::STNew( IMGDFSimHost *host )
+void __stdcall Module::STShutDown(IMGDFSimHost *host)
 {
-    // This method is called by the host to initialize the module.
-    return true;
-}
-BOOL Module::STUpdate( IMGDFSimHost *host, double elapsedTime )
-{
-    // Game logic goes here, the host calls this function once per
-    // tick of the simulation thread
-    return true;
-}
-void Module::STShutDown( IMGDFSimHost *host )
-{
-    // Called by the host to indicate to the module that it should shut down
-    // as soon as possible. Note that shutdown will not actually occur until
-    // the module then calls host->Shutdown(), which it can do at its discretion
     host->ShutDown();
 }
-BOOL Module::STDispose( IMGDFSimHost *host  )
+BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host)
 {
-    // called by the host when the module is to be destroyed
-    delete this;
-    return true;
+    // Initialize rendering resources.
+    return TRUE;
 }
-BOOL Module::RTBeforeFirstDraw( IMGDFRenderHost *host )
+BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha)
 {
-    // Called by the host before any rendering occurs on the render thread
-    // Any first time rendering initialization stuff should go here
-    return true;
+    if (host->GetGraphicsAPI() != MGDF_GRAPHICS_API_D3D11) return FALSE;
+
+    MGDF::ComObject<IMGDFD3D11Host> d3d11;
+    if (FAILED(host->QueryInterface(__uuidof(IMGDFD3D11Host),
+            reinterpret_cast<void **>(d3d11.Assign())))) return FALSE;
+
+    MGDF::ComObject<ID3D11Device> device;
+    d3d11->GetD3D11Device(device.Assign());
+
+    MGDF::ComObject<IMGDFD3D11RenderHost> render;
+    if (FAILED(host->QueryInterface(__uuidof(IMGDFD3D11RenderHost),
+            reinterpret_cast<void **>(render.Assign())))) return FALSE;
+
+    MGDF::ComObject<ID3D11Texture2D> backBuffer;
+    render->GetBackBuffer(backBuffer.Assign());
+    MGDFBackBufferInfo info = {};
+    host->GetBackBufferInfo(&info);
+
+    // Draw with device and backBuffer here.
+    return TRUE;
 }
-BOOL Module::RTDraw( IMGDFRenderHost *host, double alpha )
+void __stdcall Module::RTAfterPresent(IMGDFRenderHost *host)
 {
-    // Called by the host once per tick of the render thread
-    // Any rendering goes here.
-    return true;
+    // The host calls this after Present on each render frame.
 }
-BOOL Module::RTBeforeBackBufferChange( IMGDFRenderHost *host )
+BOOL __stdcall Module::RTBeforeBackBufferChange(IMGDFRenderHost *host)
 {
-    // Called before the host resizes the current backbuffer
-    // Anything holding a reference to the backbuffer should release it now
-    // otherwise Direct3D will not be able to change the backbuffer
-    return true;
+    // Release saved back buffer references and views here.
+    return TRUE;
 }
-BOOL Module::RTBackBufferChange( IMGDFRenderHost *host )
+BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host)
 {
-    // Called after the host has created a newly resized back buffer
-    // Any Direct3D resources that may need to be updated as a result of the backbuffer
-    // changing should be handled here.
-    return true;
+    // Recreate resources that depend on the back buffer size.
+    return TRUE;
 }
-BOOL Module::RTBeforeDeviceReset( IMGDFRenderHost *host )
+BOOL __stdcall Module::RTBeforeDeviceReset(IMGDFRenderHost *host)
 {
-    // Called by the host before resetting the Direct3D Device
-    // Anything holding a reference to ANY device dependent resource should release it now
-    // as these references to the removed device are now invalid
-    return true;
+    // Release saved device resources here.
+    return TRUE;
 }
-BOOL Module::RTDeviceReset( IMGDFRenderHost *host )
+BOOL __stdcall Module::RTDeviceReset(IMGDFRenderHost *host)
 {
-    // Called by the host after resetting the Direct3D device
-    // Recreate any resources cleared out in RTBeforeDeviceReset
-    return true;
+    // Recreate device resources here.
+    return TRUE;
 }
-void Module::Panic()
+void __stdcall Module::RTShutDown(IMGDFRenderHost *host)
 {
-    // Called by the host after any module event fails
+    // Release saved rendering resources here.
+}
+void __stdcall Module::Panic()
+{
+    // Clean up after a fatal error without calling host methods.
 }
 {% endhighlight %}
 
     <h4>Implementing main.cpp</h4>
-    <p>Now that we have a module implementation, we need to make it available to the host. Below is a sample main.cpp file for a module dll. When the host starts up, it will first call the 
-       GetCompatibleFeatureLevels function. It will then call GetModule, and will invoke events on that module instance for the rest of the hosts lifetime.</p>
+    <p>Export <a href="{{ site.baseurl }}/api#functions">GetGraphicsRequirements</a> to declare the graphics requirements. This export replaces <code>GetCompatibleFeatureLevels</code>. Set <code>APICount</code> to a value from 1 to 4. Fill <code>APIs</code> with supported <code>MGDFGraphicsAPI</code> values in preference order. The values are <code>MGDF_GRAPHICS_API_D3D11</code> and <code>MGDF_GRAPHICS_API_D3D12</code>. Set <code>MinFeatureLevel</code> to the minimum D3D feature level. <code>MinShaderModel</code> holds a <code>D3D_SHADER_MODEL</code> value for D3D12. D3D11 ignores this field.</p>
+    <p>The host reads these requirements before it calls <code>GetModule</code>. The <a href="{{ site.baseurl }}/api#hostpreferences">host.graphicsAPI</a> preference can select an API from the list. This example requests only D3D11.</p>
 {% highlight c++ %}
 #include "Module.hpp"
 
@@ -247,15 +252,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	return TRUE;
 }
 
-extern "C" __declspec(dllexport) UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                        UINT64 *featureLevelsSize) {
-  if (*featureLevelsSize != 1) {
-    *featureLevelsSize = 1;
-    return 1;
-  } else {
-    levels[0] = D3D_FEATURE_LEVEL_11_0;
-    return 0;
-  }
+extern "C" __declspec(dllexport) HRESULT
+GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
+  if (!requirements) return E_POINTER;
+  *requirements = {};
+  requirements->APICount = 1;
+  requirements->APIs[0] = MGDF_GRAPHICS_API_D3D11;
+  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+  return S_OK;
 }
 
 extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {

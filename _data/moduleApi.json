@@ -2,24 +2,18 @@
   "Functions": [
     {
       "MemberType": 1,
-      "Id": "GetCompatibleFeatureLevels",
-      "Name": "GetCompatibleFeatureLevels",
-      "Description": "Allows a module to tell the host what D3D11 feature level to try and use when creating the D3D device. ",
-      "ReturnType": "UINT64",
-      "ReturnDescription": "Should return 0 if the supplied levels array is large enough, otherwise should return the size required",
+      "Id": "GetGraphicsRequirements",
+      "Name": "GetGraphicsRequirements",
+      "Description": "Declares the graphics APIs that the module supports, in preference order. Replaces GetCompatibleFeatureLevels in interface version 2. The host reads these requirements before it creates the module.",
+      "ReturnType": "HRESULT",
+      "ReturnDescription": "Return S_OK after filling the requirements. Return an error code if the requirements cannot be supplied.",
       "ReturnTypeRefId": null,
       "Args": [
         {
-          "Name": "levels",
-          "Type": "D3D_FEATURE_LEVEL *",
-          "TypeRefId": null,
-          "Description": "An array supplied to the module to fill with acceptable D3D feature levels "
-        },
-        {
-          "Name": "featureLevelSize",
-          "Type": "UINT64 *",
-          "TypeRefId": null,
-          "Description": "The size of the levels array "
+          "Name": "requirements",
+          "Type": "MGDFGraphicsRequirements *",
+          "TypeRefId": "MGDFGraphicsRequirements",
+          "Description": "The requirements to fill. Set APICount from 1 to 4. Fill APIs in preference order with MGDF_GRAPHICS_API_D3D11 or MGDF_GRAPHICS_API_D3D12. Set MinFeatureLevel to the minimum D3D feature level. Set MinShaderModel to a D3D_SHADER_MODEL value for D3D12. D3D11 ignores MinShaderModel."
         }
       ],
       "Const": false
