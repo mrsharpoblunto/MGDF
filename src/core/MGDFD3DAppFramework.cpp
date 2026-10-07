@@ -351,9 +351,73 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   RTOnBeforeBackBufferChange();
   _rtCurrentFullScreen =
       RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
+  // the window starts windowed: restyle it before the swapchain is created,
+  // or a fullscreen sized swapchain presents into the small window
+  if (_rtCurrentFullScreen.FullScreen && !_rtCurrentFullScreen.ExclusiveMode) {
+    ApplyWindowMode(window, true);
+  }
   RTCreateSwapChain(window);
+  if (_rtCurrentFullScreen.FullScreen && _rtCurrentFullScreen.ExclusiveMode) {
+    RTSetExclusiveFullscreen();
+  }
   RTResizeBackBuffer();
   return true;
+}
+
+void D3DAppFramework::RTSetExclusiveFullscreen() {
+  // exclusive fullscreen is only supported on the primary output
+  LOG("Switching to exclusive fullscreen on primary output", MGDF_LOG_LOW);
+  ComObject<IDXGIDevice> device = _rtD3dDevice.As<IDXGIDevice>();
+  ComObject<IDXGIAdapter> adapter;
+  device->GetAdapter(adapter.Assign());
+  ComObject<IDXGIOutput> primary;
+  if (FAILED(adapter->EnumOutputs(0, primary.Assign()))) {
+    FATALERROR(this, "Failed to get primary output");
+  }
+  if (FAILED(_rtSwapChain->SetFullscreenState(true, primary))) {
+    FATALERROR(this, "SetFullscreenState failed on primary output");
+  }
+}
+
+void D3DAppFramework::ApplyWindowMode(const HWND window,
+                                      const bool fullScreenBorderless) {
+  if (fullScreenBorderless) {
+    LOG("Setting fullscreen-borderless mode", MGDF_LOG_LOW);
+    if (!::SetWindowLongW(
+            window, GWL_STYLE,
+            WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME |
+                                    WS_MINIMIZEBOX | WS_MAXIMIZEBOX))) {
+      FATALERROR(this, "SetWindowLongW failed");
+    }
+    HMONITOR hMonitor = ::MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEX monitorInfo = {};
+    monitorInfo.cbSize = sizeof(MONITORINFOEX);
+    if (!::GetMonitorInfo(hMonitor, &monitorInfo)) {
+      FATALERROR(this, "GetMonitorInfo failed");
+    }
+    if (!::SetWindowPos(
+            window, HWND_TOP, monitorInfo.rcMonitor.left,
+            monitorInfo.rcMonitor.top,
+            monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+            monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+            SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
+      FATALERROR(this, "SetWindowPos failed");
+    }
+    ::ShowWindow(window, SW_MAXIMIZE);
+  } else {
+    LOG("Setting windowed mode", MGDF_LOG_LOW);
+    if (!::SetWindowLong(window, GWL_STYLE, _windowStyle)) {
+      FATALERROR(this, "SetWindowLong failed");
+    }
+    if (!::SetWindowPos(window, HWND_NOTOPMOST, _rtWindowRect.left,
+                        _rtWindowRect.top,
+                        _rtWindowRect.right - _rtWindowRect.left,
+                        _rtWindowRect.bottom - _rtWindowRect.top,
+                        SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
+      FATALERROR(this, "SetWindowPos failed");
+    }
+    ::ShowWindow(window, SW_NORMAL);
+  }
 }
 
 ComObject<IDXGIFactory6> D3DAppFramework::RTCreateDXGIFactory() {
@@ -819,7 +883,7 @@ INT32 D3DAppFramework::Run() {
 
   // run the renderer in its own thread
   _renderThread = std::make_unique<std::thread>(
-      [this](const HWND window, const DWORD windowStyle) {
+      [this](const HWND window) {
         LOG("Starting render thread...", MGDF_LOG_LOW);
         RTOnBeforeFirstDraw();
 
@@ -914,48 +978,7 @@ INT32 D3DAppFramework::Run() {
               _rtCurrentFullScreen = newFullScreen;
 
               if (!newFullScreen.ExclusiveMode) {
-                // switch to fullscreen-borderless
-                if (newFullScreen.FullScreen) {
-                  LOG("Setting fullscreen-borderless mode", MGDF_LOG_LOW);
-                  if (!::SetWindowLongW(
-                          window, GWL_STYLE,
-                          WS_OVERLAPPEDWINDOW &
-                              ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME |
-                                WS_MINIMIZEBOX | WS_MAXIMIZEBOX))) {
-                    FATALERROR(this, "SetWindowLongW failed");
-                  }
-                  HMONITOR hMonitor =
-                      ::MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-                  MONITORINFOEX monitorInfo = {};
-                  monitorInfo.cbSize = sizeof(MONITORINFOEX);
-                  if (!::GetMonitorInfo(hMonitor, &monitorInfo)) {
-                    FATALERROR(this, "GetMonitorInfo failed");
-                  }
-                  if (!::SetWindowPos(window, HWND_TOP,
-                                      monitorInfo.rcMonitor.left,
-                                      monitorInfo.rcMonitor.top,
-                                      monitorInfo.rcMonitor.right -
-                                          monitorInfo.rcMonitor.left,
-                                      monitorInfo.rcMonitor.bottom -
-                                          monitorInfo.rcMonitor.top,
-                                      SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
-                    FATALERROR(this, "SetWindowPos failed");
-                  }
-                  ::ShowWindow(window, SW_MAXIMIZE);
-                } else {
-                  LOG("Setting windowed mode", MGDF_LOG_LOW);
-                  if (!::SetWindowLong(window, GWL_STYLE, windowStyle)) {
-                    FATALERROR(this, "SetWindowLong failed");
-                  }
-                  if (!::SetWindowPos(window, HWND_NOTOPMOST,
-                                      _rtWindowRect.left, _rtWindowRect.top,
-                                      _rtWindowRect.right - _rtWindowRect.left,
-                                      _rtWindowRect.bottom - _rtWindowRect.top,
-                                      SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
-                    FATALERROR(this, "SetWindowPos failed");
-                  }
-                  ::ShowWindow(window, SW_NORMAL);
-                }
+                ApplyWindowMode(window, newFullScreen.FullScreen);
               }
               RTCreateSwapChain(window);
 
@@ -963,22 +986,7 @@ INT32 D3DAppFramework::Run() {
               // fullscreen or if this backbuffer change was for a toggle from
               // windowed to fullscreen
               if (newFullScreen.FullScreen && newFullScreen.ExclusiveMode) {
-                // exclusive fullscreen is only supported on the primary
-                // output so we need to fetch that before restoring the
-                // fullscreen state
-                LOG("Switching to exclusive fullscreen on primary output",
-                    MGDF_LOG_LOW);
-                ComObject<IDXGIDevice> device = _rtD3dDevice.As<IDXGIDevice>();
-                ComObject<IDXGIAdapter> adapter;
-                device->GetAdapter(adapter.Assign());
-                ComObject<IDXGIOutput> primary;
-                if (FAILED(adapter->EnumOutputs(0, primary.Assign()))) {
-                  FATALERROR(this, "Failed to get primary output");
-                }
-                if (FAILED(_rtSwapChain->SetFullscreenState(true, primary))) {
-                  FATALERROR(this,
-                             "SetFullscreenState failed on primary output");
-                }
+                RTSetExclusiveFullscreen();
               }
               RTResizeBackBuffer();
             }
@@ -1028,7 +1036,7 @@ INT32 D3DAppFramework::Run() {
         }
         LOG("Stopping render thread...", MGDF_LOG_LOW);
       },
-      _window, _windowStyle);
+      _window);
 
   MSG msg{
       .message = WM_NULL,

@@ -86,6 +86,8 @@ class D3DAppFramework {
   void RTReinitD3D(const HWND window);
   void RTUninitD3D();
   void RTCreateSwapChain(const HWND window);
+  void RTSetExclusiveFullscreen();
+  void ApplyWindowMode(const HWND window, const bool fullScreenBorderless);
   void RTClearBackBuffer();
   void RTResizeBackBuffer();
   bool RTAllowTearing();
