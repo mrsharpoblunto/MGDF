@@ -66,7 +66,6 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _saves(MakeCom<SaveManager>(game, components.VFS, components.Storage)),
       _references(1UL),
       _d3dDevice(nullptr),
-      _d2dDevice(nullptr),
       _depthStencilBuffer(nullptr),
       _backBuffer(nullptr) {
   _shutdownQueued.store(false);
@@ -299,7 +298,6 @@ void Host::RTBeforeDeviceReset() {
     }
   }
   _timer->BeforeDeviceReset();
-  _d2dDevice.Clear();
   _d3dDevice.Clear();
 }
 
@@ -328,12 +326,10 @@ void Host::RTShutDown() {
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
   _timer->BeforeDeviceReset();
-  _d2dDevice.Clear();
   _d3dDevice.Clear();
 }
 
-void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice,
-                        const ComObject<ID2D1Device> &d2dDevice) {
+void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice) {
   LOG("Initializing render settings and GPU timers...", MGDF_LOG_LOW);
   _renderSettings->InitFromDevice(d3dDevice);
   _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
@@ -344,7 +340,6 @@ void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice,
     _renderSettings->LoadPreferences(game);
   }
 
-  _d2dDevice = d2dDevice;
   _d3dDevice = d3dDevice;
 }
 
@@ -403,43 +398,8 @@ void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
 
 void Host::GetD3DDevice(ID3D11Device **device) { _d3dDevice.AddRawRef(device); }
 
-void Host::GetD2DDevice(ID2D1Device **device) { _d2dDevice.AddRawRef(device); }
-
 void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
   _renderSettings.AddRawRef(settings);
-}
-
-BOOL Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
-  if (!context) return false;
-
-  D3D11_TEXTURE2D_DESC desc;
-  _backBuffer->GetDesc(&desc);
-
-  LOG("Setting D2D device context render target to backbuffer...",
-      MGDF_LOG_HIGH);
-  D2D1_PIXEL_FORMAT pixelFormat;
-  pixelFormat.format = desc.Format;
-  pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
-
-  D2D1_BITMAP_PROPERTIES1 bitmapProperties;
-  bitmapProperties.bitmapOptions =
-      D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-  bitmapProperties.pixelFormat = pixelFormat;
-  bitmapProperties.dpiX = 0;
-  bitmapProperties.dpiX = 0;
-  bitmapProperties.colorContext = nullptr;
-
-  ComObject<IDXGISurface1> dxgiSurface;
-  if (!FAILED(
-          _backBuffer->QueryInterface<IDXGISurface1>(dxgiSurface.Assign()))) {
-    ComObject<ID2D1Bitmap1> bitmap;
-    if (!FAILED(context->CreateBitmapFromDxgiSurface(
-            dxgiSurface, bitmapProperties, bitmap.Assign()))) {
-      context->SetTarget(bitmap);
-      return true;
-    }
-  }
-  return false;
 }
 
 void Host::FatalError(const char *sender, const char *message) {

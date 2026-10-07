@@ -43,8 +43,8 @@ class D3DAppFramework {
   virtual void RTOnBeforeFirstDraw() = 0;
   virtual void RTOnBeforeDeviceReset() = 0;
   virtual void RTOnDeviceReset() = 0;
-  virtual void RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice,
-                               const ComObject<ID2D1Device> &d2dDevice) = 0;
+  virtual void RTOnInitDevice(
+      const ComObject<ID3D11Device> &d3dDevice) = 0;
   virtual void RTOnBeforeBackBufferChange() = 0;
   virtual void RTOnBackBufferChange(
       const ComObject<ID3D11Texture2D> &backBuffer,
@@ -103,8 +103,6 @@ class D3DAppFramework {
   // Render thread variables
   ComObject<ID3D11Device> _rtD3dDevice;
   ComObject<ID3D11DeviceContext> _rtImmediateContext;
-  ComObject<ID2D1Device> _rtD2dDevice;
-  ComObject<ID2D1Factory1> _rtD2dFactory;
   ComObject<IDXGISwapChain1> _rtSwapChain;
   ComObject<IDXGIFactory6> _rtFactory;
   ComObject<ID3D11RenderTargetView> _rtRenderTargetView;

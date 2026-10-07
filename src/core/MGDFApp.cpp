@@ -16,7 +16,6 @@ namespace core {
 MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
     : D3DAppFramework(hInstance),
       _metrics(TIMER_SAMPLES),
-      _sdrReferenceWhiteLevel(0),
       _host(host),
       _settings(host->GetRenderSettingsImpl()),
       _stInitialized(false),
@@ -26,7 +25,6 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
 
   ::SecureZeroMemory(&_rtActiveEnd, sizeof(LARGE_INTEGER));
   ::SecureZeroMemory(&_rtStart, sizeof(LARGE_INTEGER));
-  ::SecureZeroMemory(&_rtTextMetrics, sizeof(DWRITE_TEXT_METRICS));
   ::SecureZeroMemory(&_stEnd, sizeof(LARGE_INTEGER));
 
   host->GetGame(_game.Assign());
@@ -66,8 +64,6 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
     CloseWindow();
   });
   _host->SetDeviceResetHandler([this]() { QueueResetDevice(); });
-
-  RTInitDirectWrite();
 }
 
 MGDFApp::~MGDFApp() { _host->RTShutDown(); }
@@ -77,17 +73,9 @@ UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
   return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
 }
 
-void MGDFApp::RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice,
-                              const ComObject<ID2D1Device> &d2dDevice) {
+void MGDFApp::RTOnInitDevice(const ComObject<ID3D11Device> &d3dDevice) {
   _ASSERTE(d3dDevice);
-  _ASSERTE(d2dDevice);
-
-  if (FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-                                            _rtContext.Assign()))) {
-    FATALERROR(this, "Unable to create ID2D1DeviceContext");
-  }
-
-  _host->RTSetDevices(d3dDevice, d2dDevice);
+  _host->RTSetDevices(d3dDevice);
 }
 
 bool MGDFApp::RTIsBackBufferChangePending() {
@@ -141,46 +129,12 @@ bool MGDFApp::OnInitWindow(RECT &window) {
 
 void MGDFApp::RTOnBeforeDeviceReset() {
   RTOnBeforeBackBufferChange();
-  _rtContext.Clear();
-  _rtBlackBrush.Clear();
-  _rtWhiteBrush.Clear();
-  _rtTextLayout.Clear();
-  _rtTextStream.reset();
-  _rtTextFormat.Clear();
-  _rtDWriteFactory.Clear();
   _host->RTBeforeDeviceReset();
 }
 
-void MGDFApp::RTOnDeviceReset() {
-  RTInitDirectWrite();
-  _host->RTDeviceReset();
-}
-
-void MGDFApp::RTInitDirectWrite() {
-  if (FAILED(::DWriteCreateFactory(
-          DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory1),
-          reinterpret_cast<IUnknown **>(_rtDWriteFactory.Assign())))) {
-    FATALERROR(_host, "Unable to create IDWriteFactory");
-  }
-
-  ComObject<IDWriteFontCollection> fontCollection;
-  if (FAILED(
-          _rtDWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
-    FATALERROR(_host, "Unable to get  font collection");
-  }
-
-  if (FAILED(_rtDWriteFactory->CreateTextFormat(
-          L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
-          DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14, L"",
-          _rtTextFormat.Assign()))) {
-    FATALERROR(_host, "Unable to create text format");
-  }
-
-  _rtTextStream = std::make_unique<TextStream>(_rtDWriteFactory);
-}
+void MGDFApp::RTOnDeviceReset() { _host->RTDeviceReset(); }
 
 void MGDFApp::RTOnBeforeBackBufferChange() {
-  _rtContext->SetTarget(nullptr);
   _host->RTBeforeBackBufferChange();
 }
 
@@ -191,7 +145,6 @@ void MGDFApp::RTOnBackBufferChange(
   _ASSERTE(depthStencilBuffer);
 
   _host->RTBackBufferChange(backBuffer, depthStencilBuffer);
-  _host->SetBackBufferRenderTarget(_rtContext);
 }
 
 void MGDFApp::RTOnBeforeFirstDraw() {
@@ -219,85 +172,7 @@ void MGDFApp::RTOnDraw() {
 
   _host->RTDraw(elapsedTime);
 
-  const auto debug = _host->GetDebugImpl();
-  if (debug->IsShown() && debug->IsHostRenderingEnabled()) {
-    RTDrawSystemOverlay();
-  }
   _rtActiveEnd = _timer->GetCurrentTimeTicks();
-}
-
-void MGDFApp::RTDrawSystemOverlay() {
-  MGDFOutputDisplayInfo info;
-  _host->GetRenderSettingsImpl()->GetCurrentOutputDisplayInfo(&info);
-
-  if (_sdrReferenceWhiteLevel != info.SDRWhiteLevel) {
-    _sdrReferenceWhiteLevel = info.SDRWhiteLevel;
-    TextStyle::SetSDRWhiteLevel(info.SDRWhiteLevel);
-    _rtWhiteBrush.Clear();
-    _rtBlackBrush.Clear();
-  }
-  if (!_rtWhiteBrush || !_rtBlackBrush) {
-    RTInitBrushes();
-  }
-
-  _rtTextStream->ClearText();
-  _host->GetDebugImpl()->DumpInfo(_metrics, *_rtTextStream);
-
-  if (FAILED(_rtTextStream->GenerateLayout(
-          _rtContext, _rtTextFormat,
-          static_cast<float>(_settings->GetScreenX()),
-          static_cast<float>(_settings->GetScreenY()), _rtTextLayout))) {
-    FATALERROR(_host, "Unable to create text layout");
-  }
-
-  ::SecureZeroMemory(&_rtTextMetrics, sizeof(_rtTextMetrics));
-  if (FAILED(_rtTextLayout->GetMetrics(&_rtTextMetrics))) {
-    FATALERROR(_host, "Unable to get text overhang metrics");
-  }
-
-  _rtContext->BeginDraw();
-
-  constexpr float margin = 5.0f;
-  const D2D1_ROUNDED_RECT rect{
-      .rect = {.left = margin,
-               .top = margin,
-               .right = (margin * 3) + _rtTextMetrics.width,
-               .bottom = (margin * 3) + _rtTextMetrics.height},
-      .radiusX = margin,
-      .radiusY = margin,
-  };
-  _ASSERTE(_rtBlackBrush);
-  _rtContext->FillRoundedRectangle(&rect, _rtBlackBrush);
-  _ASSERTE(_rtWhiteBrush);
-  _rtContext->DrawRoundedRectangle(&rect, _rtWhiteBrush);
-
-  const D2D_POINT_2F origin{
-      .x = 2 * margin,
-      .y = 2 * margin,
-  };
-  _rtContext->DrawTextLayout(origin, _rtTextLayout, _rtWhiteBrush);
-
-  _rtContext->EndDraw();
-}
-
-void MGDFApp::RTInitBrushes() {
-  const float whiteScale = _sdrReferenceWhiteLevel / 1000.0f;
-
-  D2D1_COLOR_F color{.r = 1.0f * whiteScale,
-                     .g = 1.0f * whiteScale,
-                     .b = 1.0f * whiteScale,
-                     .a = 1.0f};
-  if (FAILED(
-          _rtContext->CreateSolidColorBrush(color, _rtWhiteBrush.Assign()))) {
-    FATALERROR(_host, "Unable to create white color brush");
-  }
-
-  color.r = color.g = color.b = 0.05f * whiteScale;
-  color.a = 0.85f;
-  if (FAILED(
-          _rtContext->CreateSolidColorBrush(color, _rtBlackBrush.Assign()))) {
-    FATALERROR(_host, "Unable to create black color brush");
-  }
 }
 
 std::pair<DXGI_FORMAT, DXGI_FORMAT> MGDFApp::RTOnBeforeEnumerateDisplayModes() {
@@ -441,13 +316,7 @@ LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                                  LPARAM lParam) {
   switch (msg) {
     case WM_SYSKEYDOWN:
-      switch (wParam) {
-        case VK_F12:
-          _host->GetDebugImpl()->ToggleShown();
-          return 0;
-        default:
-          return 0;
-      }
+      return 0;
     case WM_ACTIVATE:
       if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE) {
         _host->GetInputManagerImpl()->ClearInput();

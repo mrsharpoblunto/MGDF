@@ -1,6 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
+#include <d2d1_1.h>
 #include <dwrite_1.h>
 
 #include <MGDF/ComObject.hpp>
@@ -38,6 +39,9 @@ class TESTCOMMON_DLL TextManagerState {
                    const TextManagerState &endState, double alpha);
   void AddLine(const std::string &line);
   void SetStatus(TextColor color, const std::string &text);
+  // the host draws no overlay; the test module shows it on ALT+F12
+  void ToggleOverlay() { _overlayShown = !_overlayShown; }
+  bool OverlayShown() const { return _overlayShown; }
 
   static constexpr UINT32 LINE_HEIGHT = 25;
   static constexpr float SCROLLBAR_WIDTH = 12.0f;
@@ -67,6 +71,7 @@ class TESTCOMMON_DLL TextManagerState {
   // how many lines back from the newest the view is scrolled
   // (0 = pinned to the latest output)
   size_t _scrollOffset = 0;
+  bool _overlayShown = false;
 };
 
 class TESTCOMMON_DLL TextManager {
@@ -80,16 +85,24 @@ class TESTCOMMON_DLL TextManager {
   void DrawText();
 
  private:
+  void DrawOverlay();
+
 #pragma warning(push)
 #pragma warning(disable : 4251)
   TextManagerState _state;
   ComObject<IMGDFRenderSettingsManager> _settings;
+  ComObject<IMGDFDebug> _debug;
   ComObject<ID2D1SolidColorBrush> _whiteBrush;
   ComObject<ID2D1SolidColorBrush> _redBrush;
   ComObject<ID2D1SolidColorBrush> _greenBrush;
+  ComObject<ID2D1SolidColorBrush> _overlayBackgroundBrush;
+  ComObject<ID2D1Factory1> _d2dFactory;
+  ComObject<ID2D1Device> _d2dDevice;
   ComObject<ID2D1DeviceContext> _d2dContext;
+  ComObject<ID2D1Bitmap1> _targetBitmap;
   ComObject<IDWriteFactory1> _dWriteFactory;
   ComObject<IDWriteTextFormat> _textFormat;
+  ComObject<IDWriteTextFormat> _overlayTextFormat;
 #pragma warning(pop)
   IMGDFRenderHost *_renderHost;
 };

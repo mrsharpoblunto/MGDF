@@ -61,8 +61,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void STDisposeModule();
 
   void RTBeforeFirstDraw();
-  void RTSetDevices(const ComObject<ID3D11Device> &device,
-                    const ComObject<ID2D1Device> &d2dDevice);
+  void RTSetDevices(const ComObject<ID3D11Device> &device);
   void RTDraw(double alpha);
   void RTBeforeBackBufferChange();
   void RTBackBufferChange(const ComObject<ID3D11Texture2D> &backBuffer,
@@ -109,8 +108,6 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
 
   // IRenderHost methods
   void __stdcall GetD3DDevice(ID3D11Device **device) final;
-  void __stdcall GetD2DDevice(ID2D1Device **device) final;
-  BOOL __stdcall SetBackBufferRenderTarget(ID2D1DeviceContext *context) final;
   void __stdcall GetBackBuffer(ID3D11Texture2D **backbuffer) final;
   void __stdcall GetDepthStencilBuffer(ID3D11Texture2D **depthStencil) final;
   void __stdcall GetBackBufferDescription(
@@ -177,7 +174,6 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<StatisticsManager> _stats;
 
   ComObject<ID3D11Device> _d3dDevice;
-  ComObject<ID2D1Device> _d2dDevice;
   ComObject<ID3D11Texture2D> _backBuffer;
   ComObject<ID3D11Texture2D> _depthStencilBuffer;
 

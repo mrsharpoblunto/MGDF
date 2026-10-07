@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -17,13 +18,17 @@ namespace Test {
 TextManagerState::TextManagerState(const TextManagerState &startState,
                                    const TextManagerState &endState,
                                    double alpha)
-    : _lines(endState._lines), _scrollOffset(endState._scrollOffset) {
+    : _lines(endState._lines),
+      _scrollOffset(endState._scrollOffset),
+      _overlayShown(endState._overlayShown) {
   std::ignore = alpha;
   std::ignore = startState;
 }
 
 TextManagerState::TextManagerState(const TextManagerState &state)
-    : _lines(state._lines), _scrollOffset(state._scrollOffset) {}
+    : _lines(state._lines),
+      _scrollOffset(state._scrollOffset),
+      _overlayShown(state._overlayShown) {}
 
 std::function<void(const std::string &)> TextManagerState::LogSink;
 
@@ -100,26 +105,55 @@ void TextManager::BeforeBackBufferChange() {
   if (_d2dContext) {
     _d2dContext->SetTarget(nullptr);
   }
+  _targetBitmap.Clear();
 }
 
 void TextManager::BackBufferChange() {
-  if (_d2dContext) {
-    _renderHost->SetBackBufferRenderTarget(_d2dContext);
+  if (!_d2dContext) return;
+  BeforeBackBufferChange();
+
+  ComObject<ID3D11Texture2D> backBuffer;
+  _renderHost->GetBackBuffer(backBuffer.Assign());
+  D3D11_TEXTURE2D_DESC desc;
+  backBuffer->GetDesc(&desc);
+
+  ComObject<IDXGISurface> surface;
+  if (FAILED(backBuffer->QueryInterface<IDXGISurface>(surface.Assign()))) {
+    FATALERROR(_renderHost, "Unable to acquire IDXGISurface from backbuffer");
+    return;
   }
+
+  D2D1_BITMAP_PROPERTIES1 properties{};
+  properties.bitmapOptions =
+      D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
+  properties.pixelFormat = {desc.Format, D2D1_ALPHA_MODE_IGNORE};
+  properties.dpiX = properties.dpiY = 96.0f;
+  if (FAILED(_d2dContext->CreateBitmapFromDxgiSurface(
+          surface, properties, _targetBitmap.Assign()))) {
+    FATALERROR(_renderHost, "Unable to create backbuffer target bitmap");
+    return;
+  }
+  _d2dContext->SetTarget(_targetBitmap);
 }
 
 void TextManager::BeforeDeviceReset() {
+  BeforeBackBufferChange();
   _whiteBrush.Clear();
   _redBrush.Clear();
   _greenBrush.Clear();
+  _overlayBackgroundBrush.Clear();
   _d2dContext.Clear();
-  _dWriteFactory.Clear();
+  _d2dDevice.Clear();
+  _d2dFactory.Clear();
   _textFormat.Clear();
+  _overlayTextFormat.Clear();
+  _dWriteFactory.Clear();
 }
 
 TextManager::TextManager(IMGDFRenderHost *renderHost)
     : _renderHost(renderHost) {
   _renderHost->GetRenderSettings(_settings.Assign());
+  _renderHost->GetDebug(_debug.Assign());
 }
 
 void TextManager::SetState(TextManagerState &state) {
@@ -128,10 +162,32 @@ void TextManager::SetState(TextManagerState &state) {
 
 void TextManager::DrawText() {
   if (!_d2dContext) {
-    ComObject<ID2D1Device> d2dDevice;
-    _renderHost->GetD2DDevice(d2dDevice.Assign());
-    if (FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-                                              _d2dContext.Assign()))) {
+    ComObject<ID3D11Device> d3dDevice;
+    _renderHost->GetD3DDevice(d3dDevice.Assign());
+    ComObject<IDXGIDevice> dxgiDevice;
+    if (FAILED(d3dDevice->QueryInterface<IDXGIDevice>(dxgiDevice.Assign()))) {
+      FATALERROR(_renderHost, "Unable to acquire IDXGIDevice from ID3D11Device");
+      return;
+    }
+
+    const D2D1_FACTORY_OPTIONS options{
+#if defined(_DEBUG)
+        .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION
+#else
+        .debugLevel = D2D1_DEBUG_LEVEL_NONE
+#endif
+    };
+    if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, options,
+                                _d2dFactory.Assign()))) {
+      FATALERROR(_renderHost, "Unable to create ID2D1Factory1");
+      return;
+    }
+    if (FAILED(_d2dFactory->CreateDevice(dxgiDevice, _d2dDevice.Assign()))) {
+      FATALERROR(_renderHost, "Unable to create ID2D1Device");
+      return;
+    }
+    if (FAILED(_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
+                                             _d2dContext.Assign()))) {
       FATALERROR(_renderHost, "Unable to create ID2D1DeviceContext");
     }
     BackBufferChange();
@@ -153,6 +209,19 @@ void TextManager::DrawText() {
             DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 22, L"",
             _textFormat.Assign()))) {
       FATALERROR(_renderHost, "Unable to create text format");
+    }
+
+    if (FAILED(_dWriteFactory->CreateTextFormat(
+            L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14, L"",
+            _overlayTextFormat.Assign()))) {
+      FATALERROR(_renderHost, "Unable to create overlay text format");
+    }
+
+    const D2D1_COLOR_F background{0.05f, 0.05f, 0.05f, 0.85f};
+    if (FAILED(_d2dContext->CreateSolidColorBrush(
+            background, _overlayBackgroundBrush.Assign()))) {
+      FATALERROR(_renderHost, "Unable to create overlay background brush");
     }
 
     D2D1_COLOR_F color;
@@ -258,7 +327,92 @@ void TextManager::DrawText() {
     _whiteBrush->SetOpacity(1.0f);
   }
 
+  DrawOverlay();
   _d2dContext->EndDraw();
+}
+
+void TextManager::DrawOverlay() {
+  if (!_state.OverlayShown()) return;
+
+  ComObject<IMGDFDebugOverlaySnapshot> snapshot;
+  if (FAILED(_debug->GetOverlaySnapshot(snapshot.Assign()))) {
+    FATALERROR(_renderHost, "Unable to get overlay snapshot");
+    return;
+  }
+  const auto data = snapshot->GetData();
+  std::ostringstream text;
+  text << "MGDF Version: " << data->Version
+       << "\nMGDF Interface version: " << data->InterfaceVersion;
+  if (data->HasTimings) {
+    const auto fps = [&text](const char *name, double time) {
+      text << "\n " << name << " : ";
+      if (time > 0) {
+        text << std::fixed << std::setprecision(0) << 1 / time;
+      } else {
+        text << "N/A";
+      }
+    };
+    const auto timing = [&text](const char *name, double time) {
+      text << "\n " << name << " : " << std::fixed << std::setprecision(2)
+           << time * 1000 << " ms";
+    };
+    text << "\n\nRender Thread";
+    fps("FPS", data->RenderTime.Average);
+    timing("Render CPU", data->ActiveRenderTime.Average);
+    timing("Idle CPU",
+           data->RenderTime.Average - data->ActiveRenderTime.Average);
+    text << "\n\nSim Thread";
+    fps("Expected FPS", data->ExpectedSimTime);
+    fps("Actual FPS", data->SimTime.Average);
+    timing("Input CPU", data->SimInputTime.Average);
+    timing("Audio CPU", data->SimAudioTime.Average);
+    timing("Other CPU", data->ActiveSimTime.Average);
+    timing("Idle CPU",
+           data->SimTime.Average - data->ActiveSimTime.Average -
+               data->SimInputTime.Average - data->SimAudioTime.Average);
+  }
+  if (data->CounterCount) text << "\n\nPerformance Counters";
+  for (UINT64 i = 0; i < data->CounterCount; ++i) {
+    const auto &counter = data->Counters[i];
+    text << "\n " << counter.Name << (counter.GPU ? " GPU : " : " CPU : ")
+         << std::fixed << std::setprecision(2)
+         << counter.Timing.Average * 1000 << " ms";
+  }
+  std::string section;
+  for (UINT64 i = 0; i < data->EntryCount; ++i) {
+    const auto &entry = data->Entries[i];
+    if (i == 0 || section != entry.Section) {
+      section = entry.Section;
+      text << "\n\n" << section;
+    }
+    text << "\n " << entry.Key << " : " << entry.Value;
+  }
+
+  const std::string content = text.str();
+  const int length = MultiByteToWideChar(CP_UTF8, 0, content.data(),
+                                        static_cast<int>(content.size()),
+                                        nullptr, 0);
+  std::wstring wideContent(length, L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, content.data(),
+                      static_cast<int>(content.size()), wideContent.data(),
+                      length);
+  ComObject<IDWriteTextLayout> layout;
+  if (FAILED(_dWriteFactory->CreateTextLayout(
+          wideContent.c_str(), static_cast<UINT32>(wideContent.size()),
+          _overlayTextFormat, static_cast<float>(_settings->GetScreenX()),
+          static_cast<float>(_settings->GetScreenY()), layout.Assign()))) {
+    FATALERROR(_renderHost, "Unable to create overlay text layout");
+    return;
+  }
+  DWRITE_TEXT_METRICS metrics{};
+  if (FAILED(layout->GetMetrics(&metrics))) {
+    FATALERROR(_renderHost, "Unable to get overlay text metrics");
+    return;
+  }
+  const D2D1_RECT_F rect{5.0f, 5.0f, metrics.width + 15.0f,
+                        metrics.height + 15.0f};
+  _d2dContext->FillRectangle(rect, _overlayBackgroundBrush);
+  _d2dContext->DrawTextLayout({10.0f, 10.0f}, layout, _whiteBrush);
 }
 
 }  // namespace Test
