@@ -115,7 +115,7 @@ Installer package created
         <h4 id="hostpreferences">Built in host preferences</h4>
         <dl class ="dl-horizontal">
             <dt>host.graphicsAPI</dt>
-            <dd>Selects <code>"d3d11"</code> or <code>"d3d12"</code> at startup. The host uses this API only if <code>GetGraphicsRequirements</code> lists it. If the preference is empty, absent, or not in the module's list, the host uses the first API in that list. Other nonempty values cause a startup error. The D3D12 backend is not available in this host version.</dd>
+            <dd>Selects <code>"d3d11"</code> or <code>"d3d12"</code> at startup. The host uses this API only if <code>GetGraphicsRequirements</code> lists it. If the preference is empty, absent, or not in the module's list, the host uses the first API in that list. Other nonempty values cause a startup error.</dd>
             <dt>host.musicVolume</dt>
             <dd>A string value between 0 and 1 that sets the volume for all music played using <a href="#IMGDFSoundStream">IMGDFSoundStreams</a>. Defaults to "1.0"</dd>
             <dt>host.soundVolume</dt>
@@ -133,7 +133,7 @@ Installer package created
 	    <dt>host.fullScreenExclusive</dt>
             <dd>Should fullscreen use exclusive mode ("1") or windowed mode ("0"). Defaults to "0"</dd>
             <dt>host.multiSampleLevel</dt>
-            <dd>The desired multisample level to use for the backbuffer, if this is not supported on the current display device, then the next highest level that is supported will be used instead. Defaults to "1"</dd>
+            <dd>Sets the requested D3D11 back buffer sample count. The host uses a supported sample count. The default is "1". D3D12 uses a single-sample back buffer. A D3D12 module creates its own multisample targets.</dd>
             <dt>host.RTMultiSampleLevel</dt>
             <dd>The desired multisample level to use for render target buffers. Modules don't have to use this setting, though it is recommended. Defaults to "1"</dd>
             <dt>host.vsync</dt>

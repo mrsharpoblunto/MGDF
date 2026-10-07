@@ -4,7 +4,7 @@ layout: default
 <div class="row">    
     <div class="col-md-9 main">
         <h1 id="overview" class="page-header">Overview</h1>
-        <p>Matchstick (MGDF) is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 7+ supported) easier. The framework uses DirectX 11 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).</p>
+        <p>Matchstick (MGDF) is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 7+ supported) easier. The framework uses DirectX 11 or 12 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).</p>
         
         <p>MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game. It also makes distributing games easier as it includes an auto update mechanism with full versioning support.</p> 
 
@@ -12,8 +12,7 @@ layout: default
 
         <h2>The core <small>(core.exe)</small></h2>
         <p>This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before loading the user supplied game dll (known as a game module) and passing control on to that module. Once up and running the game module can then access the framework's functionality via a series of c++ interfaces (see the <a href="{{ site.baseurl }}/api#interfaces">API reference</a> for more details)</p>
-        <p>These interfaces include the ability to create audio samples and streams which under the hood are powered by the openAL audio system. Also included is the ability to access user interfaces devices including the mouse, keyboard, and any connected xbox 360 controllers. File system access is performed by a virtual file system wrapper which allows simple access to normal files on disk as well as files within compressed archives. Unlike the previous services, Direct3D 11 is directly accessible by the game module
-        so as to negate the need to wrap the entire Direct3D API, though a number of helper interfaces are made available to make changing graphics settings easier.</p>
+        <p>These interfaces include the ability to create audio samples and streams which under the hood are powered by the openAL audio system. Also included is the ability to access user interfaces devices including the mouse, keyboard, and any connected xbox 360 controllers. File system access is performed by a virtual file system wrapper which allows simple access to normal files on disk as well as files within compressed archives. The module accesses the selected D3D11 or D3D12 device through the host interfaces. The framework also provides interfaces for graphics settings.</p>
 
         <div class="architecture hidden-xs hidden-sm">
             <br />
@@ -45,7 +44,7 @@ layout: default
                     <h4>MGDF host</h4>
                 </div>
                 <div class="col-md-2" style="background-color: #ff0094; border-top: 5px solid #ff0094; border-bottom: 5px solid #ff0094; ">
-                    <h4>Direct3D 11</h4>
+                    <h4>D3D11 / D3D12</h4>
                 </div>
             </div>
             <div class="row">
@@ -269,6 +268,102 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
 }
 
 {% endhighlight %}
+    <h2 id="d3d12module">Writing a D3D12 module</h2>
+    <p>Export <code>GetGraphicsRequirements</code> with <code>MGDF_GRAPHICS_API_D3D12</code> in its API list. This example requests D3D12 with feature level 11.0 and shader model 6.0.</p>
+{% highlight c++ %}
+#include <MGDF/MGDF.h>
+
+extern "C" __declspec(dllexport) HRESULT
+GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
+  if (!requirements) return E_POINTER;
+  *requirements = {};
+  requirements->APICount = 1;
+  requirements->APIs[0] = MGDF_GRAPHICS_API_D3D12;
+  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+  requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
+  return S_OK;
+}
+{% endhighlight %}
+    <p>A module that implements both APIs can list both values in preference order. The <a href="{{ site.baseurl }}/api#hostpreferences">host.graphicsAPI</a> preference can select either listed API. Check <code>GetGraphicsAPI</code> before you query an API interface. <code>QueryInterface</code> exposes D3D11 interfaces only when D3D11 is selected. It exposes D3D12 interfaces only when D3D12 is selected.</p>
+
+    <h4>Device and queue access</h4>
+    <p>Query any host interface for <a href="{{ site.baseurl }}/api#IMGDFD3D12Host">IMGDFD3D12Host</a>. Its methods are safe to call from any thread. <code>GetD3D12Device</code> returns an <code>ID3D12Device10</code> reference. <code>GetDirectQueue</code>, <code>GetComputeQueue</code>, and <code>GetCopyQueue</code> return command queue references. The module owns these returned references. Release them before you acknowledge a device reset. The device can be null during a reset.</p>
+    <p>Query the render host for <a href="{{ site.baseurl }}/api#IMGDFD3D12RenderHost">IMGDFD3D12RenderHost</a>. Use its methods only on the render thread. <code>GetCurrentFrame</code> fills an <a href="{{ site.baseurl }}/api#MGDFFrameInfo">MGDFFrameInfo</a> structure. <code>GetFrameFence</code> returns an owned reference to the host's frame fence. Release that reference when you no longer need it. Only the host signals this fence.</p>
+    <p><code>MGDFFrameInfo</code> supplies the current <code>BackBuffer</code>, <code>BackBufferRTV</code>, <code>BackBufferDesc</code>, and <code>BackBufferIndex</code>. The back buffer pointer is borrowed. Release any references you add before <code>RTBeforeBackBufferChange</code> returns. Get the current frame again after a back buffer change. The D3D12 swap chain uses one sample per pixel. The module creates its own depth buffers and multisample targets.</p>
+
+    <h4>Frame contract</h4>
+    <ol>
+        <li>Call <code>GetCurrentFrame</code> in <code>RTDraw</code>. The back buffer enters this callback in <code>D3D12_RESOURCE_STATE_PRESENT</code>.</li>
+        <li>Record the module's command lists. Add a resource barrier before you use the back buffer as a render target. End each list that uses the back buffer with a transition to <code>D3D12_RESOURCE_STATE_PRESENT</code>.</li>
+        <li>Execute the lists on the direct queue in <code>RTDraw</code>. The module submits its own lists. The back buffer must be in <code>PRESENT</code> state when those lists complete.</li>
+        <li>The host calls <code>Present</code> after <code>RTDraw</code>. It then calls <code>void RTAfterPresent(IMGDFRenderHost *host)</code>. Use this callback to submit background work that does not use the presented back buffer.</li>
+        <li>After <code>RTAfterPresent</code> returns, the host resolves GPU counters. It then signals the frame fence on the direct queue with <code>FrameOrdinal</code>.</li>
+    </ol>
+    <p><code>FrameOrdinal</code> and <code>FrameSlot</code> stay fixed through <code>RTAfterPresent</code>. Work on the compute or copy queue needs explicit synchronization. Signal a module fence on that queue after its work. Add a wait for that value on the direct queue before <code>RTAfterPresent</code> returns. The host's frame fence covers that work only after this synchronization.</p>
+
+    <h4>Frame resources and deferred release</h4>
+    <p>The host permits two frames in flight. <code>FramesInFlight</code> is 2. <code>FrameSlot</code> equals <code>FrameOrdinal % FramesInFlight</code>. Keep a command allocator and other temporary resources for each frame slot. Use <code>FrameSlot</code> to select them. <code>BackBufferIndex</code> identifies the swap chain image and is separate from the frame slot.</p>
+    <p>The host waits for the previous use of a frame slot before it calls <code>RTDraw</code>. You can then reset that slot's command allocator and reuse its resources. This applies to work covered by the host's frame fence. Track other queue work with a module fence.</p>
+    <p>Record a resource's last <code>FrameOrdinal</code> when you submit its final use. Keep the resource in a deferred release list. <code>CompletedOrdinal</code> is the highest completed frame fence value when the host prepares the frame. Release the resource only when <code>CompletedOrdinal &gt;= lastUseOrdinal</code>. Apply the same rule before you reuse upload memory or GPU descriptor storage. CPU return from <code>RTDraw</code> does not indicate GPU completion.</p>
+
+    <h4>GPU counters</h4>
+    <p>Use <code>IMGDFD3D12RenderHost::CreateGPUCounter</code> to time commands on a direct queue list. Pass an <code>IMGDFMetric</code>, the native command list, and an output pointer for <code>IMGDFPerformanceCounter</code>. Compute and copy lists are not supported.</p>
+    <p>For lists used with GPU counters, include <code>MGDF/D3D12CommandList.hpp</code> from <code>include/MGDF/D3D12CommandList.hpp</code> in the SDK. Use <code>MGDF::D3D12CommandList::Create</code> to create each list. Call <code>Reset</code> on the helper to start a new recording. Call <code>Close</code> on the helper to finish recording. Use <code>Get</code> to record commands, create counters, and submit the native list. Do not call <code>Reset</code> or <code>Close</code> through the native pointer. The counter needs the helper's recording state. An untracked list returns <code>E_INVALIDARG</code>.</p>
+    <p>Begin each counter scope while its list is recording. Release the scope before you close or reset the list. Execute that list in the same frame before <code>RTAfterPresent</code> returns. The host logs and discards a scope that ends after its list closes, resets, or passes the end of its frame.</p>
+    <p>This helper records and submits a timed clear from <code>RTDraw</code>. The caller supplies an open command list for the current frame slot. Keep that list and its allocator alive until the frame completes. Create the metric with <code>IMGDFCommonHost::CreateGaugeMetric</code>.</p>
+{% highlight c++ %}
+#include <crtdbg.h>
+#include <cstring>
+#include <MGDF/MGDF.h>
+#include <MGDF/D3D12CommandList.hpp>
+
+HRESULT DrawTimedClear(IMGDFD3D12RenderHost *host,
+                      ID3D12CommandQueue *directQueue,
+                      MGDF::D3D12CommandList &commands,
+                      IMGDFMetric *metric) {
+  MGDFFrameInfo frame = {};
+  host->GetCurrentFrame(&frame);
+  auto list = commands.Get();
+
+  MGDF::ComObject<IMGDFPerformanceCounter> counter;
+  HRESULT result = host->CreateGPUCounter(metric, list, counter.Assign());
+  if (FAILED(result)) return result;
+
+  {
+    MGDF::ComObject<IMGDFPerformanceCounterScope> scope;
+    result = counter->Begin(nullptr, scope.Assign());
+    if (FAILED(result)) return result;
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = frame.BackBuffer;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    list->ResourceBarrier(1, &barrier);
+
+    const float color[4] = {0.1f, 0.2f, 0.3f, 1.0f};
+    list->ClearRenderTargetView(frame.BackBufferRTV, color, 0, nullptr);
+
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+    list->ResourceBarrier(1, &barrier);
+  } // Release the scope while the list is still recording.
+
+  result = commands.Close();
+  if (FAILED(result)) return result;
+  ID3D12CommandList *lists[] = {list};
+  directQueue->ExecuteCommandLists(1, lists);
+  return S_OK;
+}
+{% endhighlight %}
+    <p>Call <code>Create(device, allocator)</code> before the list's first use. This leaves the list open. For each later use, reset the completed frame slot's allocator first. Then call <code>Reset(allocator)</code> on the helper before <code>DrawTimedClear</code>. Return <code>TRUE</code> from <code>RTDraw</code> after a successful submission.</p>
+
+    <h4>Agility SDK and debug builds</h4>
+    <p>The D3D12 backend uses Agility SDK 1.619.5. Build modules with the matching SDK headers. Put the Agility include directory before the Windows SDK include directory. The module needs these headers for types such as <code>ID3D12Device10</code>.</p>
+    <p><code>core.exe</code> exports <code>D3D12SDKVersion = D3D12_SDK_VERSION</code> and <code>D3D12SDKPath = ".\\D3D12\\"</code>. The host owns these exports. Distribute <code>D3D12Core.dll</code> in the <code>D3D12</code> folder beside <code>core.exe</code>. Include <code>d3d12SDKLayers.dll</code> there for debug builds.</p>
+    <p>Debug builds enable the D3D12 debug layer before device creation. They also enable Device Removed Extended Data (DRED) breadcrumbs and page fault data. The host logs debug layer warnings and errors. After device removal, it logs the available DRED data. Use these logs to check resource states and resource lifetimes.</p>
+
     <h1 id="running" class="page-header">Running a game</h1>
     <p>When distributing a game to users, one simply has to put the game content and module in the prescribed locations inside the framework redistributable (as shown <a href="#folderstructure">here</a>). Users can then run the game by running GamesManager.exe.</p>
     <p>However, having to keep your game inside the redistributable folder can be annoying during development, so there are a few other options available to make running the game in development easier.</p>
@@ -457,6 +552,7 @@ FunctionEnd
                         <li><a href="#folderstructure">Folder structure</a></li>
                         <li><a href="#gamemanifest">Game.json</a></li>
                         <li><a href="#gamemodule">Module.dll</a></li>
+                        <li><a href="#d3d12module">Writing a D3D12 module</a></li>
                     </ul>
                 </li>
                 <li>
