@@ -32,7 +32,7 @@ class MGDFApp : public D3DAppFramework {
       const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
       ULONG currentSDRWhiteLevel,
       const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) final;
-  void RTOnDraw() final;
+  bool RTOnDraw() final;
   void RTOnAfterPresent() final;
 
   void STOnUpdateSim() final;

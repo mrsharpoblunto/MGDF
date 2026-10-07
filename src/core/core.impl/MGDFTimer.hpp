@@ -16,6 +16,7 @@ namespace MGDF {
 namespace core {
 
 class Timer;
+class D3D12CounterManager;
 
 // a counter's recent history, as the debug overlay reads it
 struct CounterSnapshot {
@@ -123,6 +124,7 @@ class GPUPerformanceCounter : public CounterBase {
   std::stack<ComObject<ID3D11Query>> _beginQueries;
   std::stack<ComObject<ID3D11Query>> _endQueries;
   ID3D11Query *_currentDisjoint;
+  std::unique_ptr<D3D12CounterManager> _d3d12Counters;
   ComObject<ID3D11Device> _device;
   ComObject<ID3D11DeviceContext> _context;
 };
@@ -146,6 +148,12 @@ class Timer : public ComBase<IMGDFTimer> {
   HRESULT CreateGPUCounter(IMGDFMetric *metric, ID3D11DeviceContext *context,
                            IMGDFPerformanceCounter **counter);
 
+  HRESULT CreateGPUCounter(IMGDFMetric *metric, ID3D12GraphicsCommandList *list,
+                           IMGDFPerformanceCounter **counter);
+  HRESULT InitFromDevice12(ID3D12Device10 *device, ID3D12CommandQueue *queue,
+                           UINT slots);
+  void BeginD3D12Frame(const MGDFFrameInfo &frame);
+  HRESULT EndD3D12Frame();
   void BeforeDeviceReset();
   void InitFromDevice(const ComObject<ID3D11Device> &device, UINT32 bufferSize);
 
@@ -168,6 +176,7 @@ class Timer : public ComBase<IMGDFTimer> {
   void RemoveInternal(GPUPerformanceCounter *counter);
   void RemoveInternal(CPUPerformanceCounter *counter);
 
+  std::unique_ptr<D3D12CounterManager> _d3d12Counters;
   ComObject<ID3D11Device> _device;
   ComObject<ID3D11DeviceContext> _context;
   LARGE_INTEGER _freq;

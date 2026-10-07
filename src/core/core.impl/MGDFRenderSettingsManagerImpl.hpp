@@ -84,6 +84,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
 
   void LoadPreferences(const ComObject<IMGDFGame> &game);
   void InitFromDevice(const ComObject<ID3D11Device> &d3dDevice);
+  void InitD3D12();
   bool IsBackBufferChangePending();
   void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &desc,
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,

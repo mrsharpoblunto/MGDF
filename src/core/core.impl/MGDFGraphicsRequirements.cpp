@@ -36,10 +36,6 @@ HRESULT SelectGraphicsAPI(const MGDFGraphicsRequirements &requirements,
       }
     }
   }
-  if (api == MGDF_GRAPHICS_API_D3D12) {
-    error = "The D3D12 backend is not available in this host version";
-    return E_NOTIMPL;
-  }
   return S_OK;
 }
 

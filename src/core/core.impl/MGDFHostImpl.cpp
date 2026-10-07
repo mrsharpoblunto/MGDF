@@ -105,7 +105,7 @@ HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
   *ppvObject = nullptr;
   if (riid == IID_IUnknown || riid == __uuidof(IMGDFLogger) ||
       riid == __uuidof(IMGDFCommonHost) || riid == __uuidof(IMGDFRenderHost)) {
-    *ppvObject = static_cast<IMGDFRenderHost *>(this);
+    *ppvObject = RenderHost();
   } else if (riid == __uuidof(IMGDFSimHost)) {
     *ppvObject = static_cast<IMGDFSimHost *>(this);
   } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
@@ -114,6 +114,12 @@ HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
   } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
              riid == __uuidof(IMGDFD3D11RenderHost)) {
     *ppvObject = static_cast<IMGDFD3D11RenderHost *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
+             riid == __uuidof(IMGDFD3D12Host)) {
+    *ppvObject = static_cast<IMGDFD3D12Host *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
+             riid == __uuidof(IMGDFD3D12RenderHost)) {
+    *ppvObject = static_cast<IMGDFD3D12RenderHost *>(this);
   } else {
     return E_NOINTERFACE;
   }
@@ -236,7 +242,7 @@ void Host::InitGraphics() {
   std::string error;
   const HRESULT result =
       SelectGraphicsAPI(_graphicsRequirements, preference, _graphicsAPI, error);
-  if (SUCCEEDED(result) || result == E_NOTIMPL) {
+  if (SUCCEEDED(result)) {
     LOG("Selected graphics API: "
             << (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 ? "d3d11" : "d3d12"),
         MGDF_LOG_LOW);
@@ -245,7 +251,8 @@ void Host::InitGraphics() {
     FATALERROR(this, error);
     return;
   }
-  if (GetD3D11FeatureLevels(_graphicsRequirements.MinFeatureLevel).empty()) {
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
+      GetD3D11FeatureLevels(_graphicsRequirements.MinFeatureLevel).empty()) {
     FATALERROR(this,
                "The requested minimum feature level is not supported by D3D11");
   }
@@ -323,7 +330,7 @@ void Host::STDisposeModule() {
 void Host::RTBeforeFirstDraw() {
   if (_module) {
     LOG("Calling module RTBeforeFirstDraw...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBeforeFirstDraw(this)) {
+    if (!_module->RTBeforeFirstDraw(RenderHost())) {
       FATALERROR(this, "Error in before first draw in module");
     }
   }
@@ -332,13 +339,18 @@ void Host::RTBeforeFirstDraw() {
 void Host::RTBeforeDeviceReset() {
   if (_module) {
     LOG("Calling module RTBeforeDeviceReset...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBeforeDeviceReset(this)) {
+    if (!_module->RTBeforeDeviceReset(RenderHost())) {
       FATALERROR(this, "Error in before device reset in module");
     }
   }
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
   _d3dDevice.Clear();
+  _d3d12Device.Clear();
+  _directQueue.Clear();
+  _computeQueue.Clear();
+  _copyQueue.Clear();
+  _frameFence.Clear();
 }
 
 void Host::QueueDeviceReset() {
@@ -349,7 +361,7 @@ void Host::QueueDeviceReset() {
 void Host::RTDeviceReset() {
   if (_module) {
     LOG("Calling module RTDeviceReset...", MGDF_LOG_MEDIUM);
-    if (!_module->RTDeviceReset(this)) {
+    if (!_module->RTDeviceReset(RenderHost())) {
       FATALERROR(this, "Error in device reset in module");
     }
   }
@@ -358,7 +370,7 @@ void Host::RTDeviceReset() {
 void Host::RTShutDown() {
   if (_module) {
     LOG("Calling module RTShutdown...", MGDF_LOG_MEDIUM);
-    _module->RTShutDown(this);
+    _module->RTShutDown(RenderHost());
   }
   // release all device dependent resources now as the app framework will
   // uninitialize D3D (and report any remaining live objects in debug builds)
@@ -368,38 +380,58 @@ void Host::RTShutDown() {
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
   _d3dDevice.Clear();
+  _d3d12Device.Clear();
+  _directQueue.Clear();
+  _computeQueue.Clear();
+  _copyQueue.Clear();
+  _frameFence.Clear();
 }
 
 void Host::RTSetDevices(IRenderBackend &backend) {
-  auto d3dDevice = backend.RTGetDevice().As<ID3D11Device>();
-  _ASSERTE(d3dDevice);
-  LOG("Initializing render settings and GPU timers...", MGDF_LOG_LOW);
-  _renderSettings->InitFromDevice(d3dDevice);
-  _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
-
-  if (!_d3dDevice) {
-    LOG("Loading Render settings...", MGDF_LOG_LOW);
-    auto game = _game.As<IMGDFGame>();
-    _renderSettings->LoadPreferences(game);
+  _backend = &backend;
+  auto device = backend.RTGetDevice();
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) {
+    auto d3d11 = device.As<ID3D11Device>();
+    _renderSettings->InitFromDevice(d3d11);
+    _timer->InitFromDevice(d3d11, GPU_TIMER_BUFFER);
+    std::lock_guard lock(_deviceMutex);
+    _d3dDevice = d3d11;
+  } else {
+    auto d3d12 = device.As<ID3D12Device10>();
+    auto direct = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    _renderSettings->InitD3D12();
+    if (FAILED(_timer->InitFromDevice12(d3d12, direct, 2))) {
+      FATALERROR(this, "Failed to initialize D3D12 GPU counters");
+    }
+    std::lock_guard lock(_deviceMutex);
+    _d3d12Device = d3d12;
+    _directQueue = direct;
+    _computeQueue = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+    _copyQueue = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+    _frameFence = backend.RTGetFrameFence();
   }
-
-  std::lock_guard lock(_deviceMutex);
-  _d3dDevice = d3dDevice;
+  LOG("Loading Render settings...", MGDF_LOG_LOW);
+  _renderSettings->LoadPreferences(_game.As<IMGDFGame>());
 }
 
-void Host::RTDraw(double alpha) {
-  _timer->Begin();
-  if (_module) {
-    LOG("Calling module RTDraw...", MGDF_LOG_HIGH);
-    if (!_module->RTDraw(this, alpha)) {
-      FATALERROR(this, "Error drawing scene in module");
-    }
+bool Host::RTDraw(double alpha) {
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12) {
+    _timer->BeginD3D12Frame(_backend->RTGetCurrentFrame());
+  } else {
+    _timer->Begin();
   }
-  _timer->End();
+  const bool drawn = _module && _module->RTDraw(RenderHost(), alpha);
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) _timer->End();
+  return drawn;
 }
 
 void Host::RTAfterPresent() {
-  if (_module) _module->RTAfterPresent(this);
+  if (_module) _module->RTAfterPresent(RenderHost());
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
+      FAILED(_timer->EndD3D12Frame()) &&
+      SUCCEEDED(_backend->RTGetDeviceRemovedReason())) {
+    FATALERROR(this, "Failed to resolve D3D12 GPU counters");
+  }
 }
 
 void Host::RTBeforeBackBufferChange() {
@@ -408,7 +440,7 @@ void Host::RTBeforeBackBufferChange() {
   _depthStencilBuffer.Clear();
   if (_module) {
     LOG("Calling module RTBeforeBackBufferChange...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBeforeBackBufferChange(this)) {
+    if (!_module->RTBeforeBackBufferChange(RenderHost())) {
       FATALERROR(this, "Error handling before back buffer change in module");
     }
   }
@@ -420,7 +452,7 @@ void Host::RTBackBufferChange(IRenderBackend &backend) {
   _depthStencilBuffer = backend.RTGetDepthStencilBuffer().As<ID3D11Texture2D>();
   if (_module) {
     LOG("Calling module RTBackBufferChange...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBackBufferChange(this)) {
+    if (!_module->RTBackBufferChange(RenderHost())) {
       FATALERROR(this, "Error handling back buffer change in module");
     }
   }
@@ -451,6 +483,32 @@ void Host::GetBackBufferInfo(MGDFBackBufferInfo *info) {
 void Host::GetD3D11Device(ID3D11Device **device) {
   std::lock_guard lock(_deviceMutex);
   _d3dDevice.AddRawRef(device);
+}
+
+void Host::GetD3D12Device(ID3D12Device10 **device) {
+  std::lock_guard lock(_deviceMutex);
+  _d3d12Device.AddRawRef(device);
+}
+void Host::GetDirectQueue(ID3D12CommandQueue **queue) {
+  std::lock_guard lock(_deviceMutex);
+  _directQueue.AddRawRef(queue);
+}
+void Host::GetComputeQueue(ID3D12CommandQueue **queue) {
+  std::lock_guard lock(_deviceMutex);
+  _computeQueue.AddRawRef(queue);
+}
+void Host::GetCopyQueue(ID3D12CommandQueue **queue) {
+  std::lock_guard lock(_deviceMutex);
+  _copyQueue.AddRawRef(queue);
+}
+void Host::GetCurrentFrame(MGDFFrameInfo *frame) {
+  *frame = _backend->RTGetCurrentFrame();
+}
+void Host::GetFrameFence(ID3D12Fence **fence) { _frameFence.AddRawRef(fence); }
+HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
+                               ID3D12GraphicsCommandList *list,
+                               IMGDFPerformanceCounter **counter) {
+  return _timer->CreateGPUCounter(metric, list, counter);
 }
 
 void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {

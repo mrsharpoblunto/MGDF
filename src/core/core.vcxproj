@@ -114,7 +114,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -170,7 +170,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -193,6 +193,8 @@
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
     <ClInclude Include="MGDFRenderBackend.hpp" />
     <ClInclude Include="MGDFD3D11RenderBackend.hpp" />
+    <ClInclude Include="MGDFD3D12RenderBackend.hpp" />
+    <ClInclude Include="MGDFD3D12FrameState.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
     <ClInclude Include="MGDFStdAfxBase.h" />
     <ClInclude Include="StdAfx.h" />
@@ -202,6 +204,7 @@
     <ClCompile Include="MGDFApp.cpp" />
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
     <ClCompile Include="MGDFD3D11RenderBackend.cpp" />
+    <ClCompile Include="MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

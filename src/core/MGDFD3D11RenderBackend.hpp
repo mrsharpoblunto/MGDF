@@ -27,7 +27,7 @@ class D3D11RenderBackend : public IRenderBackend {
   HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) final;
   void RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
-  void RTWaitForFrame() final;
+  bool RTWaitForFrame() final;
   void RTWaitForGpuIdle() final;
   void RTClear() final;
   HRESULT RTPresent(UINT syncInterval, UINT flags) final;
@@ -41,6 +41,7 @@ class D3D11RenderBackend : public IRenderBackend {
 
  private:
   void RTClearBackBuffer();
+  void RTLogDebugMessages();
   void FatalError(const char *sender, const char *message);
 
   // The framework owns and refreshes the shared factory.

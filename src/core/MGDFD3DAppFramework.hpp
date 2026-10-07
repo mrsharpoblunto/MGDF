@@ -58,7 +58,7 @@ class D3DAppFramework {
       const std::vector<DXGI_MODE_DESC1> &primaryOutputModes) = 0;
   virtual void RTOnResize(UINT32 width, UINT32 height) = 0;
   virtual bool RTVSyncEnabled() const = 0;
-  virtual void RTOnDraw() = 0;
+  virtual bool RTOnDraw() = 0;
   virtual void RTOnAfterPresent() = 0;
   virtual bool RTIsBackBufferChangePending() = 0;
 
@@ -107,6 +107,7 @@ class D3DAppFramework {
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC _rtFullscreenSwapDesc;
   MGDFFullScreenDesc _rtCurrentFullScreen;
   bool _rtAllowTearing;
+  ULONGLONG _rtResetDeadline = 0;
   RECT _rtWindowRect;
 
   // shared variables

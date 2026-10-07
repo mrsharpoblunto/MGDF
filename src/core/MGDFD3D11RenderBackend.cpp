@@ -149,7 +149,7 @@ void D3D11RenderBackend::RTUninit(bool exclusiveMode) {
 
   if (_rtSwapChain && exclusiveMode) {
     BOOL fullscreen = false;
-    if (FAILED(_rtSwapChain->GetFullscreenState(&fullscreen, nullptr)) &&
+    if (SUCCEEDED(_rtSwapChain->GetFullscreenState(&fullscreen, nullptr)) &&
         fullscreen) {
       // d3d has to be in windowed mode to cleanup correctly
       _rtSwapChain->SetFullscreenState(false, nullptr);
@@ -160,10 +160,15 @@ void D3D11RenderBackend::RTUninit(bool exclusiveMode) {
   _rtRenderTargetView.Clear();
   _rtDepthStencilView.Clear();
   _rtDepthStencilBuffer.Clear();
+  if (_rtFrameWaitableObject) {
+    CloseHandle(_rtFrameWaitableObject);
+    _rtFrameWaitableObject = nullptr;
+  }
   _rtSwapChain.Clear();
   _rtImmediateContext.Clear();
 
   if (_rtD3dDevice) {
+    RTLogDebugMessages();
 #if defined(_DEBUG)
     ComObject<ID3D11Debug> debug;
     const bool failed =
@@ -193,7 +198,13 @@ ComObject<IDXGIAdapter> D3D11RenderBackend::RTGetAdapter() {
 void D3D11RenderBackend::RTCreateSwapChain(
     HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
     std::optional<UINT> maxFrameLatency) {
+  RTWaitForGpuIdle();
   _rtSwapDesc = desc;
+  if (_rtFrameWaitableObject) {
+    CloseHandle(_rtFrameWaitableObject);
+    _rtFrameWaitableObject = nullptr;
+  }
+  _rtSwapChain.Clear();
   // ensure everything referencing the old swapchain is cleaned up
   RTClearBackBuffer();
   _rtImmediateContext->ClearState();
@@ -338,14 +349,18 @@ void D3D11RenderBackend::RTSetWindowed() {
   }
 }
 
-void D3D11RenderBackend::RTWaitForFrame() {
+bool D3D11RenderBackend::RTWaitForFrame() {
   if (_rtFrameWaitableObject) {
     const DWORD wait =
         ::WaitForSingleObjectEx(_rtFrameWaitableObject, 1000, true);
-    if (wait == WAIT_ABANDONED || wait == WAIT_TIMEOUT || wait == WAIT_FAILED) {
-      LOG("Failed to wait on FrameWaitableObject", MGDF_LOG_ERROR);
+    if (wait == WAIT_TIMEOUT || wait == WAIT_IO_COMPLETION) return false;
+    if (wait != WAIT_OBJECT_0) {
+      FATALERROR(this, "Failed to wait on FrameWaitableObject");
+      return false;
     }
   }
+  RTClear();
+  return true;
 }
 
 void D3D11RenderBackend::RTClear() {
@@ -356,6 +371,8 @@ void D3D11RenderBackend::RTClear() {
 }
 
 HRESULT D3D11RenderBackend::RTPresent(UINT syncInterval, UINT flags) {
+  if (!(_rtSwapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) || syncInterval)
+    flags &= ~DXGI_PRESENT_ALLOW_TEARING;
   const HRESULT result = _rtSwapChain->Present(syncInterval, flags);
   if (SUCCEEDED(result) &&
       (_rtSwapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD ||
@@ -365,13 +382,49 @@ HRESULT D3D11RenderBackend::RTPresent(UINT syncInterval, UINT flags) {
     _rtImmediateContext->OMSetRenderTargets(1, _rtRenderTargetView.AsArray(),
                                             _rtDepthStencilView);
   }
+  RTLogDebugMessages();
   return result;
 }
 
 void D3D11RenderBackend::RTWaitForGpuIdle() {
-  if (_rtImmediateContext) {
-    _rtImmediateContext->Flush();
+  if (!_rtImmediateContext || FAILED(_rtD3dDevice->GetDeviceRemovedReason()))
+    return;
+  const D3D11_QUERY_DESC desc{D3D11_QUERY_EVENT, 0};
+  ComObject<ID3D11Query> query;
+  if (FAILED(_rtD3dDevice->CreateQuery(&desc, query.Assign()))) {
+    FATALERROR(this, "Failed to create GPU idle query");
+    return;
   }
+  _rtImmediateContext->End(query);
+  _rtImmediateContext->Flush();
+  HRESULT result;
+  while ((result = _rtImmediateContext->GetData(query, nullptr, 0, 0)) ==
+         S_FALSE) {
+    if (FAILED(_rtD3dDevice->GetDeviceRemovedReason())) return;
+    Sleep(1);
+  }
+  if (FAILED(result) && SUCCEEDED(_rtD3dDevice->GetDeviceRemovedReason()))
+    FATALERROR(this, "Failed to wait for D3D11 GPU idle");
+}
+
+void D3D11RenderBackend::RTLogDebugMessages() {
+#if defined(_DEBUG)
+  auto info = _rtD3dDevice.As<ID3D11InfoQueue>();
+  if (!info) return;
+  for (UINT64 i = 0; i < info->GetNumStoredMessages(); ++i) {
+    SIZE_T size = 0;
+    if (FAILED(info->GetMessage(i, nullptr, &size))) continue;
+    std::vector<BYTE> buffer(size);
+    auto message = reinterpret_cast<D3D11_MESSAGE *>(buffer.data());
+    if (SUCCEEDED(info->GetMessage(i, message, &size)) &&
+        message->Severity <= D3D11_MESSAGE_SEVERITY_WARNING) {
+      LOG("D3D11 debug layer: " << message->pDescription,
+          message->Severity <= D3D11_MESSAGE_SEVERITY_ERROR ? MGDF_LOG_ERROR
+                                                            : MGDF_LOG_LOW);
+    }
+  }
+  info->ClearStoredMessages();
+#endif
 }
 
 bool D3D11RenderBackend::RTIsInitialized() const {

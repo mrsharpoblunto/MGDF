@@ -28,16 +28,17 @@ extern "C" __declspec(dllexport) HRESULT
 GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
   if (!requirements) return E_POINTER;
   *requirements = {};
-  requirements->APICount = 1;
+  requirements->APICount = 2;
   requirements->APIs[0] = MGDF_GRAPHICS_API_D3D11;
+  requirements->APIs[1] = MGDF_GRAPHICS_API_D3D12;
   requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_9_3;
+  requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
   return S_OK;
 }
 
 // register custom archive handlers
-extern "C" __declspec(dllexport) HRESULT
-    GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
-                             IMGDFLogger *logger) {
+extern "C" __declspec(dllexport) HRESULT GetCustomArchiveHandlers(
+    IMGDFArchiveHandler **list, UINT64 *length, IMGDFLogger *logger) {
   *length = 1;
   if (!list) {
     return S_OK;
