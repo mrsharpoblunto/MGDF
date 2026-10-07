@@ -24,6 +24,11 @@ typedef BOOL(WINAPI *MINIDUMPWRITEDUMP)(
     CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
     CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
+extern "C" {
+__declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
+__declspec(dllexport) extern const char *D3D12SDKPath = ".\\D3D12\\";
+}
+
 using namespace MGDF;
 using namespace MGDF::core;
 

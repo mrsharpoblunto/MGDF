@@ -5,6 +5,7 @@
 #include <map>
 
 #include "../common/MGDFLoggerImpl.hpp"
+#include "MGDFD3D12Timer.hpp"
 #include "MGDFMetrics.hpp"
 
 #if defined(_DEBUG)
@@ -40,10 +41,10 @@ double CounterBase::GetAverageValue() {
   return _average;
 }
 
-void CounterBase::Snapshot(CounterSnapshot& snapshot, bool gpu) {
+void CounterBase::Snapshot(CounterSnapshot &snapshot, bool gpu) {
   std::lock_guard<std::mutex> lock(_mutex);
   // every metric the host hands out is a MetricBase
-  snapshot.Name = static_cast<MetricBase*>(_metric.Get())->GetName();
+  snapshot.Name = static_cast<MetricBase *>(_metric.Get())->GetName();
   snapshot.GPU = gpu;
   snapshot.Average = _average;
   snapshot.Samples.assign(_samples.begin(), _samples.end());
@@ -190,6 +191,7 @@ HRESULT GPUPerformanceCounter::Init(const ComObject<ID3D11Device> &device,
 }
 
 void GPUPerformanceCounter::Reset() {
+  _device.Clear();
   _context.Clear();
   while (!_beginQueries.empty()) {
     _beginQueries.pop();
@@ -266,7 +268,8 @@ HRESULT Timer::TryCreate(UINT32 maxSamples, ComObject<Timer> &timer) {
 }
 
 Timer::Timer(UINT32 maxSamples)
-    : _device(nullptr),
+    : _d3d12Counters(std::make_unique<D3D12CounterManager>(*this)),
+      _device(nullptr),
       _maxSamples(maxSamples),
       _bufferSize(0),
       _context(nullptr),
@@ -310,6 +313,7 @@ void Timer::ResetGPUTimers() {
 }
 
 void Timer::BeforeDeviceReset() {
+  _d3d12Counters->Reset();
   _device.Clear();
   _context.Clear();
   ResetGPUTimers();
@@ -362,14 +366,15 @@ double Timer::ConvertDifferenceToSeconds(LARGE_INTEGER newTime,
   return max((double)diff / _freq.QuadPart, 0);
 }
 
-void Timer::GetCounterSnapshots(
-    std::vector<CounterSnapshot>& snapshots) const {
+void Timer::GetCounterSnapshots(std::vector<CounterSnapshot> &snapshots) const {
   std::lock_guard<std::mutex> lock(_mutex);
-  snapshots.reserve(_cpuCounters.size() + _gpuCounters.size());
-  for (auto* counter : _cpuCounters) {
+  _d3d12Counters->Snapshots(snapshots);
+  snapshots.reserve(snapshots.size() + _cpuCounters.size() +
+                    _gpuCounters.size());
+  for (auto *counter : _cpuCounters) {
     counter->Snapshot(snapshots.emplace_back(), false);
   }
-  for (auto* counter : _gpuCounters) {
+  for (auto *counter : _gpuCounters) {
     counter->Snapshot(snapshots.emplace_back(), true);
   }
 }
@@ -407,6 +412,20 @@ void Timer::RemoveInternal(CPUPerformanceCounter *counter) {
 
 void Timer::RemoveInternal(GPUPerformanceCounter *counter) {
   _gpuCounters.erase(counter);
+}
+
+HRESULT Timer::InitFromDevice12(ID3D12Device10 *device,
+                                ID3D12CommandQueue *queue, UINT slots) {
+  return _d3d12Counters->Init(device, queue, slots);
+}
+void Timer::BeginD3D12Frame(const MGDFFrameInfo &frame) {
+  _d3d12Counters->BeginFrame(frame);
+}
+HRESULT Timer::EndD3D12Frame() { return _d3d12Counters->EndFrame(); }
+HRESULT Timer::CreateGPUCounter(IMGDFMetric *metric,
+                                ID3D12GraphicsCommandList *list,
+                                IMGDFPerformanceCounter **counter) {
+  return _d3d12Counters->Create(metric, list, counter);
 }
 
 void Timer::Begin() {

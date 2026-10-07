@@ -307,6 +307,7 @@ void D3DAppFramework::RTPrepareToReinitD3D() {
   const HRESULT reason = _rtRenderBackend->RTGetDeviceRemovedReason();
   LOG("Device removed! DXGI_ERROR code " << reason, MGDF_LOG_ERROR);
 
+  _rtResetDeadline = GetTickCount64() + 10000;
   _awaitingD3DReset.store(true);
   RTWaitForGpuIdle();
   RTOnBeforeDeviceReset();
@@ -523,14 +524,17 @@ void D3DAppFramework::RTReinitD3D(const HWND window) {
 }
 
 bool D3DAppFramework::RTAllowTearing() {
-  return (_rtAllowTearing && !RTVSyncEnabled() &&
+  return ((_rtSwapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) &&
           !(_rtCurrentFullScreen.FullScreen &&
             _rtCurrentFullScreen.ExclusiveMode) &&
           _rtSwapDesc.SampleDesc.Count == 1);
 }
 
 void D3DAppFramework::RTCreateSwapChain(const HWND window) {
-  if (RTAllowTearing()) {
+  _rtSwapDesc.Flags &= ~DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+  if (_rtAllowTearing && _rtSwapDesc.SampleDesc.Count == 1 &&
+      !(_rtCurrentFullScreen.FullScreen &&
+        _rtCurrentFullScreen.ExclusiveMode)) {
     _rtSwapDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
   }
 
@@ -619,6 +623,11 @@ INT32 D3DAppFramework::Run() {
         while (_runRenderThread.test_and_set()) {
           const bool awaitingReset = _awaitingD3DReset.load();
           if (awaitingReset) {
+            if (GetTickCount64() >= _rtResetDeadline) {
+              FATALERROR(
+                  this,
+                  "Module did not call QueueDeviceReset within 10 seconds");
+            }
             // waiting for the module to signal that its cleaned up all
             // its D3D resources and is ready for a device reset
             ::Sleep(100);
@@ -709,15 +718,25 @@ INT32 D3DAppFramework::Run() {
           }
 
           if (!_minimized.load() && _rtRenderBackend->RTIsInitialized()) {
-            _rtRenderBackend->RTWaitForFrame();
-            _rtRenderBackend->RTClear();
+            if (!_rtRenderBackend->RTWaitForFrame()) {
+              if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason()))
+                RTPrepareToReinitD3D();
+              continue;
+            }
+            if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason())) {
+              RTPrepareToReinitD3D();
+              continue;
+            }
+            if (!RTOnDraw()) _rtRenderBackend->RTClear();
 
-            RTOnDraw();
-
-            const HRESULT result = _rtRenderBackend->RTPresent(
+            HRESULT result = _rtRenderBackend->RTPresent(
                 RTVSyncEnabled() ? 1 : 0,
-                RTAllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0);
+                (!RTVSyncEnabled() && RTAllowTearing())
+                    ? DXGI_PRESENT_ALLOW_TEARING
+                    : 0);
             RTOnAfterPresent();
+            const HRESULT frameResult = _rtRenderBackend->RTEndFrame();
+            if (SUCCEEDED(result)) result = frameResult;
 
             if (result == DXGI_ERROR_DEVICE_REMOVED ||
                 result == DXGI_ERROR_DEVICE_RESET) {

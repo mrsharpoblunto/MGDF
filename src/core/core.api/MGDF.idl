@@ -1,6 +1,7 @@
 import "oaidl.idl";
 import "ocidl.idl";
 import "d3d11.idl";
+import "d3d12.idl";
 import "dxgi.idl";
 
 /**
@@ -2184,6 +2185,95 @@ Additional methods in this interface are safe to be used ONLY from the render th
 };
 
 /**
+D3D12 device and queues. These methods may be called from any thread. QueryInterface
+returns this interface only when GetGraphicsAPI returns MGDF_GRAPHICS_API_D3D12.
+Release returned references before acknowledging a device reset.
+*/
+[
+  uuid("EFCB361F-5317-40DC-B58E-82CE1CDA79D5"), object,
+  local
+] interface IMGDFD3D12Host : IUnknown {
+  /**
+  Gets an owned reference to the device, or null during device reset
+  \param device points to the device
+  */
+  void GetD3D12Device([out] ID3D12Device10 **device);
+  /**
+  Gets an owned reference to the direct queue
+  \param queue points to the direct queue
+  */
+  void GetDirectQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets an owned reference to the compute queue
+  \param queue points to the compute queue
+  */
+  void GetComputeQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets an owned reference to the copy queue
+  \param queue points to the copy queue
+  */
+  void GetCopyQueue([out] ID3D12CommandQueue **queue);
+};
+
+/**
+The current D3D12 frame. BackBuffer is borrowed until RTBeforeBackBufferChange;
+release any additional references in that callback. It enters RTDraw in PRESENT
+state. Every module command list touching it must leave it in PRESENT state.
+*/
+typedef struct MGDFFrameInfo {
+  /** Frame fence value the host signals after this frame's RTAfterPresent */
+  UINT64 FrameOrdinal;
+  /** Highest completed frame fence value */
+  UINT64 CompletedOrdinal;
+  /** FrameOrdinal modulo FramesInFlight; safe to reuse on entry to RTDraw */
+  UINT32 FrameSlot;
+  UINT32 FramesInFlight;
+  UINT32 BackBufferIndex;
+  ID3D12Resource *BackBuffer;
+  D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTV;
+  D3D12_RESOURCE_DESC BackBufferDesc;
+} MGDFFrameInfo;
+
+/**
+D3D12 rendering methods, usable only on the render thread. The module records and
+executes its own lists on the direct queue during RTDraw and may submit background
+work during RTAfterPresent. The host resolves GPU counters and signals the frame
+fence with FrameOrdinal after RTAfterPresent. Work on compute/copy queues must be
+joined to the direct queue by the module if it is to be covered by that frame fence.
+*/
+[
+  uuid("46AA223E-991D-4272-A30E-9E9F3DCB0F38"), object,
+  local
+] interface IMGDFD3D12RenderHost : IMGDFRenderHost {
+  /**
+  Gets the current frame. Its ordinal and slot stay fixed through RTAfterPresent
+  \param frame receives the current frame
+  */
+  void GetCurrentFrame([out] MGDFFrameInfo *frame);
+  /**
+  Gets an owned reference to the host's frame fence. Modules must not signal it
+  \param fence points to the frame fence
+  */
+  void GetFrameFence([out] ID3D12Fence **fence);
+  /**
+  Creates a GPU timestamp counter bound to a direct-queue command list. Each scope
+  must begin and end while recording and its list must execute in the same frame,
+  before RTAfterPresent returns. Release each scope before closing its list.
+  Use the SDK MGDF::D3D12CommandList helper for Close/Reset tracking; an untracked
+  list returns E_INVALIDARG. A scope released after Close/Reset or the end of its
+  frame is logged and discarded without recording a timestamp.
+  Compute/copy lists are unsupported and return E_INVALIDARG.
+  \param metric the metric the counter updates
+  \param list the direct-queue command list the counter scopes record into
+  \param counter points to the created counter
+  \return S_OK if the counter could be created, otherwise an error code
+  */
+  HRESULT CreateGPUCounter([in] IMGDFMetric *metric,
+                           [in] ID3D12GraphicsCommandList *list,
+                           [out] IMGDFPerformanceCounter **counter);
+};
+
+/**
  A saved game state and its associated metadata
 */
 [
@@ -2420,7 +2510,7 @@ are safe to be used ONLY from the sim thread.
    rendering required for the current frame in here
    \param host the render thread host
    \param alpha how far between the current and next simulation frame (0-1)
-   \return false if the module experiences a fatal error drawing the scene
+   \return false to ask the host to clear the backbuffer for this frame
   */
   BOOL RTDraw(IMGDFRenderHost * host, double alpha);
 

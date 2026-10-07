@@ -3,6 +3,7 @@
 #include "MGDFApp.hpp"
 
 #include "MGDFD3D11RenderBackend.hpp"
+#include "MGDFD3D12RenderBackend.hpp"
 #include "common/MGDFPreferenceConstants.hpp"
 #include "core.impl/MGDFGraphicsRequirements.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
@@ -76,6 +77,13 @@ MGDFApp::~MGDFApp() {
 
 std::unique_ptr<IRenderBackend> MGDFApp::CreateRenderBackend(
     const ComObject<IDXGIFactory6> &factory) {
+  if (_host->GetGraphicsAPI() == MGDF_GRAPHICS_API_D3D12) {
+    return std::make_unique<D3D12RenderBackend>(
+        factory, _host->GetGraphicsRequirements(),
+        [this](const char *sender, const char *message) {
+          FatalError(sender, message);
+        });
+  }
   return std::make_unique<D3D11RenderBackend>(
       factory,
       GetD3D11FeatureLevels(_host->GetGraphicsRequirements().MinFeatureLevel),
@@ -163,7 +171,7 @@ void MGDFApp::RTOnBeforeFirstDraw() {
   _host->RTBeforeFirstDraw();
 }
 
-void MGDFApp::RTOnDraw() {
+bool MGDFApp::RTOnDraw() {
   bool didLimit = false;
   const LARGE_INTEGER currentTime = _rtFrameLimiter
                                         ? _rtFrameLimiter->LimitFps(didLimit)
@@ -175,9 +183,10 @@ void MGDFApp::RTOnDraw() {
       elapsedTime, _timer->ConvertDifferenceToSeconds(_rtActiveEnd, _rtStart));
   _rtStart = currentTime;
 
-  _host->RTDraw(elapsedTime);
+  const bool drawn = _host->RTDraw(elapsedTime);
 
   _rtActiveEnd = _timer->GetCurrentTimeTicks();
+  return drawn;
 }
 
 void MGDFApp::RTOnAfterPresent() { _host->RTAfterPresent(); }

@@ -28,6 +28,7 @@
       <Filter>Helpers</Filter>
     </ClCompile>
     <ClCompile Include="MGDFParameterConstants.cpp" />
+    <ClCompile Include="MGDFD3D12Timer.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp">
@@ -71,6 +72,7 @@
       <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="MGDFParameterConstants.hpp" />
+    <ClInclude Include="MGDFD3D12Timer.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp">
