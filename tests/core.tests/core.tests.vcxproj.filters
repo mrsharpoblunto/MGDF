@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
+    <ClCompile Include="D3D12TimerTests.cpp" />
     <ClCompile Include="ParameterManagerTests.cpp" />
     <ClCompile Include="ResourcesTests.cpp" />
     <ClCompile Include="SaveManagerTests.cpp" />

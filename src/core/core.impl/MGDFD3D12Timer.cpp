@@ -218,17 +218,21 @@ HRESULT D3D12CounterManager::EndFrame() {
   if (FAILED(result)) return result;
   result = slot.List->Reset(slot.Allocator, nullptr);
   if (FAILED(result)) return result;
-  for (const auto &sample : slot.Pending) {
-    // Never resolve an uninitialized end query from a rejected or leaked scope.
-    if (sample->Ended) {
-      slot.List->ResolveQueryData(slot.Heap, D3D12_QUERY_TYPE_TIMESTAMP,
-                                  sample->Index, 2, slot.Readback,
-                                  sample->Index * sizeof(UINT64));
-    } else {
+  for (size_t first = 0; first < slot.Pending.size();) {
+    if (!slot.Pending[first]->Ended) {
       LOG("D3D12 GPU scope was not completed in its recording frame; sample "
           "discarded",
           MGDF_LOG_ERROR);
+      ++first;
+      continue;
     }
+    size_t end = first + 1;
+    while (end < slot.Pending.size() && slot.Pending[end]->Ended) ++end;
+    const auto index = slot.Pending[first]->Index;
+    slot.List->ResolveQueryData(slot.Heap, D3D12_QUERY_TYPE_TIMESTAMP, index,
+                                static_cast<UINT>((end - first) * 2),
+                                slot.Readback, index * sizeof(UINT64));
+    first = end;
   }
   result = slot.List->Close();
   if (FAILED(result)) return result;
