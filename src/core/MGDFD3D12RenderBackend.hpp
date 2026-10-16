@@ -39,6 +39,8 @@ class D3D12RenderBackend : public IRenderBackend {
   ComObject<ID3D12CommandQueue> RTGetQueue(D3D12_COMMAND_LIST_TYPE type) final;
   ComObject<ID3D12Fence> RTGetFrameFence() final;
   MGDFFrameInfo RTGetCurrentFrame() const final;
+  void RTSetFrameTimingEnabled(bool enabled) final;
+  HRESULT RTGetFrameTiming(UINT64 frame, MGDFFrameTiming *timing) const final;
 
  private:
   static constexpr UINT BackBufferCount = 3;
@@ -71,6 +73,8 @@ class D3D12RenderBackend : public IRenderBackend {
       _clearLists;
   D3D12FrameState _frames;
   MGDFFrameInfo _frame{};
+  bool _frameTimingEnabled = false;
+  std::array<MGDFFrameTiming, 16> _frameTimings{};
   DWORD _debugCallback = 0;
   bool _hasDebugCallback = false;
 };

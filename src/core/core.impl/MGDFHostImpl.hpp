@@ -41,7 +41,8 @@ class Host : public IMGDFD3D11RenderHost,
              public IMGDFSimHost,
              public IMGDFD3D11Host,
              public IMGDFD3D12Host,
-             public IMGDFD3D12RenderHost {
+             public IMGDFD3D12RenderHost,
+             public IMGDFD3D12FrameTiming {
  public:
   static HRESULT TryCreate(ComObject<Game> game, HostComponents &components,
                            ComObject<Host> &host);
@@ -121,6 +122,8 @@ class Host : public IMGDFD3D11RenderHost,
   void __stdcall GetComputeQueue(ID3D12CommandQueue **queue) final;
   void __stdcall GetCopyQueue(ID3D12CommandQueue **queue) final;
   void __stdcall GetCurrentFrame(MGDFFrameInfo *frame) final;
+  void __stdcall SetFrameTimingEnabled(BOOL enabled) final;
+  HRESULT __stdcall GetFrameTiming(UINT64 frame, MGDFFrameTiming *timing) final;
   void __stdcall GetFrameFence(ID3D12Fence **fence) final;
   HRESULT __stdcall CreateGPUCounter(IMGDFMetric *metric,
                                      ID3D12GraphicsCommandList *list,

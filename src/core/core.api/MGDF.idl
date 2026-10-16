@@ -2234,6 +2234,28 @@ typedef struct MGDFFrameInfo {
   D3D12_RESOURCE_DESC BackBufferDesc;
 } MGDFFrameInfo;
 
+/** CPU QPC ticks for one D3D12 frame. Zero means no event. */
+typedef struct MGDFFrameTiming {
+  UINT64 FrameOrdinal;
+  UINT64 FrameBegin;
+  UINT64 LatencyWaitBegin;
+  UINT64 LatencyWaitEnd;
+  UINT64 FenceWaitBegin;
+  UINT64 FenceWaitEnd;
+  UINT64 FenceValue;
+  UINT64 PresentBegin;
+  UINT64 PresentEnd;
+} MGDFFrameTiming;
+
+/** Optional timing. Use only on the render thread. Disabled by default. */
+[
+  uuid("B150C20E-494B-4CAB-ADE6-8C5BD3DCE121"), object, local
+] interface IMGDFD3D12FrameTiming : IUnknown {
+  void SetFrameTimingEnabled(BOOL enabled);
+  /** Returns S_FALSE if the frame is not in the last 16 frames. */
+  HRESULT GetFrameTiming(UINT64 frame, [out] MGDFFrameTiming *timing);
+};
+
 /**
 D3D12 rendering methods, usable only on the render thread. The module records and
 executes its own lists on the direct queue during RTDraw and may submit background

@@ -120,6 +120,9 @@ HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
   } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
              riid == __uuidof(IMGDFD3D12RenderHost)) {
     *ppvObject = static_cast<IMGDFD3D12RenderHost *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
+             riid == __uuidof(IMGDFD3D12FrameTiming)) {
+    *ppvObject = static_cast<IMGDFD3D12FrameTiming *>(this);
   } else {
     return E_NOINTERFACE;
   }
@@ -503,6 +506,13 @@ void Host::GetCopyQueue(ID3D12CommandQueue **queue) {
 }
 void Host::GetCurrentFrame(MGDFFrameInfo *frame) {
   *frame = _backend->RTGetCurrentFrame();
+}
+void Host::SetFrameTimingEnabled(BOOL enabled) {
+  _backend->RTSetFrameTimingEnabled(enabled != FALSE);
+}
+HRESULT Host::GetFrameTiming(UINT64 frame, MGDFFrameTiming *timing) {
+  if (!timing) return E_POINTER;
+  return _backend->RTGetFrameTiming(frame, timing);
 }
 void Host::GetFrameFence(ID3D12Fence **fence) { _frameFence.AddRawRef(fence); }
 HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,

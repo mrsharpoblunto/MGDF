@@ -9,6 +9,14 @@
 namespace MGDF {
 namespace core {
 
+namespace {
+UINT64 Qpc() {
+  LARGE_INTEGER tick;
+  QueryPerformanceCounter(&tick);
+  return tick.QuadPart;
+}
+}  // namespace
+
 D3D12RenderBackend::D3D12RenderBackend(
     const ComObject<IDXGIFactory6> &factory,
     const MGDFGraphicsRequirements &requirements,
@@ -300,14 +308,29 @@ void D3D12RenderBackend::RTSetWindowed() {
 }
 
 bool D3D12RenderBackend::RTWaitForFrame() {
+  auto *timing = _frameTimingEnabled
+                     ? &_frameTimings[_frames.Ordinal() % _frameTimings.size()]
+                     : nullptr;
+  if (timing) {
+    *timing = {};
+    timing->FrameOrdinal = _frames.Ordinal();
+    timing->FrameBegin = Qpc();
+  }
   if (_frameWaitable) {
+    if (timing) timing->LatencyWaitBegin = Qpc();
     const auto result = WaitForSingleObject(_frameWaitable, 1000);
+    if (timing) timing->LatencyWaitEnd = Qpc();
     if (result == WAIT_TIMEOUT || FAILED(RTGetDeviceRemovedReason()))
       return false;
     if (result != WAIT_OBJECT_0)
       FATALERROR(this, "Failed to wait for swapchain");
   }
+  if (timing) {
+    timing->FenceValue = _frames.PreviousFence();
+    timing->FenceWaitBegin = Qpc();
+  }
   RTWaitForFence(_frameFence, _frames.PreviousFence());
+  if (timing) timing->FenceWaitEnd = Qpc();
   const UINT index = _swapChain->GetCurrentBackBufferIndex();
   auto handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
   handle.ptr += static_cast<SIZE_T>(index) * _rtvSize;
@@ -346,7 +369,28 @@ void D3D12RenderBackend::RTClear() {
 HRESULT D3D12RenderBackend::RTPresent(UINT syncInterval, UINT flags) {
   if (!(_swapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) || syncInterval)
     flags &= ~DXGI_PRESENT_ALLOW_TEARING;
-  return _swapChain->Present(syncInterval, flags);
+  auto *timing =
+      _frameTimingEnabled
+          ? &_frameTimings[_frame.FrameOrdinal % _frameTimings.size()]
+          : nullptr;
+  if (timing) timing->PresentBegin = Qpc();
+  const auto result = _swapChain->Present(syncInterval, flags);
+  if (timing) timing->PresentEnd = Qpc();
+  return result;
+}
+
+void D3D12RenderBackend::RTSetFrameTimingEnabled(bool enabled) {
+  _frameTimingEnabled = enabled;
+  if (!enabled) _frameTimings = {};
+}
+
+HRESULT D3D12RenderBackend::RTGetFrameTiming(UINT64 frame,
+                                             MGDFFrameTiming *timing) const {
+  const auto &source = _frameTimings[frame % _frameTimings.size()];
+  *timing = {};
+  if (!_frameTimingEnabled || source.FrameOrdinal != frame) return S_FALSE;
+  *timing = source;
+  return S_OK;
 }
 
 HRESULT D3D12RenderBackend::RTEndFrame() {
