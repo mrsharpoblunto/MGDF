@@ -673,8 +673,13 @@ INT32 D3DAppFramework::Run() {
             }
 
             // a window event may have triggered a resize event.
-            if (displayChange && (displayChange->Type == DC_WINDOW_RESIZE ||
-                                  displayChange->Type == DC_WINDOW_MAXIMIZE)) {
+            if (displayChange &&
+                (displayChange->Type == DC_WINDOW_RESIZE ||
+                 displayChange->Type == DC_WINDOW_MAXIMIZE) &&
+                (static_cast<UINT>(displayChange->Point.x) !=
+                     _rtSwapDesc.Width ||
+                 static_cast<UINT>(displayChange->Point.y) !=
+                     _rtSwapDesc.Height)) {
               LOG("Resizing...", MGDF_LOG_MEDIUM);
               _rtSwapDesc.Width = displayChange->Point.x;
               _rtSwapDesc.Height = displayChange->Point.y;
@@ -860,6 +865,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
         _minimized.store(true);
       } else if (wParam == SIZE_MAXIMIZED) {
         _minimized.store(false);
+        _clientSize = POINT{.x = LOWORD(lParam), .y = HIWORD(lParam)};
         PushRTMessage(DC_WINDOW_MAXIMIZE, [lParam](auto &message) {
           message.Point = POINT{
               .x = LOWORD(lParam),
@@ -871,16 +877,16 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
         // For example, restoring the window to its default size
         // after a minimize or maximize, or from dragging the resize
         // bars.
-        bool exp = true;
+        const POINT size{.x = LOWORD(lParam), .y = HIWORD(lParam)};
+        const bool restoredSameSize = _minimized.exchange(false) &&
+                                      size.x == _clientSize.x &&
+                                      size.y == _clientSize.y;
+        _clientSize = size;
         if (_resizing.get()) {
           // Track, but don't resize until the user has finished resizing
           _resizing->x = LOWORD(lParam);
           _resizing->y = HIWORD(lParam);
-        } else if (!_hasSwapChain.load() ||
-                   _minimized.compare_exchange_strong(exp, false)) {
-          // If we are just starting up and haven't initialized d3d yet, or we
-          // are simply restoring the window view without changing the size
-        } else {
+        } else if (!restoredSameSize) {
           PushRTMessage(DC_WINDOW_RESIZE, [lParam](auto &message) {
             message.Point = POINT{
                 .x = LOWORD(lParam),

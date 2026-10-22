@@ -123,6 +123,7 @@ class D3DAppFramework {
   HWND _window;
   DWORD _windowStyle;
   POINT _clientOffset;
+  POINT _clientSize{};
   std::unique_ptr<POINT> _resizing;
   bool _internalShutDown;
   bool _closing = false;
