@@ -724,8 +724,11 @@ INT32 D3DAppFramework::Run() {
 
           if (!_minimized.load() && _rtRenderBackend->RTIsInitialized()) {
             if (!_rtRenderBackend->RTWaitForFrame()) {
-              if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason()))
+              if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason())) {
                 RTPrepareToReinitD3D();
+              } else {
+                ::Sleep(10);
+              }
               continue;
             }
             if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason())) {
@@ -749,6 +752,8 @@ INT32 D3DAppFramework::Run() {
             } else if (FAILED(result)) {
               FATALERROR(this, "Direct3d Present1 failed");
             }
+          } else {
+            ::Sleep(10);
           }
         }
         LOG("Stopping render thread...", MGDF_LOG_LOW);
