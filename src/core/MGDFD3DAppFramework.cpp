@@ -62,7 +62,6 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
     : _applicationInstance(hInstance),
       _window(nullptr),
       _renderThread(nullptr),
-      _internalShutDown(false),
       _windowStyle(WS_OVERLAPPEDWINDOW),
       _rtAllowTearing(false),
       _hasSwapChain(false) {
@@ -141,6 +140,7 @@ void D3DAppFramework::InitWindow(const std::string &caption) {
     if (!_window) {
       FATALERROR(this, "CreateWindow FAILED");
     }
+    _closeWindow = _window;
 
     if (x || y) {
       const POINT pt{.x = x, .y = y};
@@ -230,6 +230,7 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   RTOnBeforeBackBufferChange();
   _rtCurrentFullScreen =
       RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
+  _fullScreen.store(_rtCurrentFullScreen.FullScreen);
   // the window starts windowed: restyle it before the swapchain is created,
   // or a fullscreen sized swapchain presents into the small window
   if (_rtCurrentFullScreen.FullScreen && !_rtCurrentFullScreen.ExclusiveMode) {
@@ -590,8 +591,8 @@ void D3DAppFramework::QueueResetDevice() { _awaitingD3DReset.store(false); }
 
 void D3DAppFramework::CloseWindow() {
   LOG("Sending WM_CLOSE message...", MGDF_LOG_HIGH);
-  _internalShutDown = true;
-  ::PostMessage(_window, WM_CLOSE, 0, 0);
+  _internalShutDown.store(true);
+  ::PostMessage(_closeWindow, WM_CLOSE, 0, 0);
 }
 
 INT32 D3DAppFramework::Run() {
@@ -706,6 +707,7 @@ INT32 D3DAppFramework::Run() {
                 _rtRenderBackend->RTSetWindowed();
               }
               _rtCurrentFullScreen = newFullScreen;
+              _fullScreen.store(newFullScreen.FullScreen);
 
               if (!newFullScreen.ExclusiveMode) {
                 ApplyWindowMode(window, newFullScreen.FullScreen);
@@ -927,7 +929,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     }
 
     case WM_MOVE: {
-      if (!_rtCurrentFullScreen.FullScreen) {
+      if (!_fullScreen.load()) {
         OnMoveWindow((int)(short)LOWORD(lParam) - _clientOffset.x,
                      (int)(short)HIWORD(lParam) - _clientOffset.y);
         PushRTMessage(DC_WINDOW_MOVE);
@@ -939,7 +941,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // caption bar menu, when the host schedules a shutdown
     case WM_CLOSE:
       if (_closing) return 0;
-      if (_internalShutDown) {
+      if (_internalShutDown.load()) {
         _runRenderThread.clear();
         _closing = true;
       } else {
