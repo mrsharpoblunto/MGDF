@@ -124,7 +124,6 @@ class GPUPerformanceCounter : public CounterBase {
   std::stack<ComObject<ID3D11Query>> _beginQueries;
   std::stack<ComObject<ID3D11Query>> _endQueries;
   ID3D11Query *_currentDisjoint;
-  std::unique_ptr<D3D12CounterManager> _d3d12Counters;
   ComObject<ID3D11Device> _device;
   ComObject<ID3D11DeviceContext> _context;
 };
