@@ -747,6 +747,7 @@ INT32 D3DAppFramework::Run() {
           }
         }
         LOG("Stopping render thread...", MGDF_LOG_LOW);
+        _renderThreadEnded.store(true);
       },
       _window);
 
@@ -778,6 +779,11 @@ INT32 D3DAppFramework::Run() {
       }
       ::TranslateMessage(&msg);
       ::DispatchMessage(&msg);
+    }
+    if (_closing && _window && _renderThreadEnded.load()) {
+      _ASSERTE(_renderThread && _renderThread->joinable());
+      _renderThread->join();
+      DestroyWindow(_window);
     }
   }
 
@@ -921,14 +927,10 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // WM_CLOSE is sent when the user presses the 'X' button in the
     // caption bar menu, when the host schedules a shutdown
     case WM_CLOSE:
+      if (_closing) return 0;
       if (_internalShutDown) {
-        if (_renderThread) {
-          // make sure we stop rendering before disposing of the window
-          _runRenderThread.clear();
-          _renderThread->join();
-        }
-        // if we triggered this, then shut down
-        DestroyWindow(_window);
+        _runRenderThread.clear();
+        _closing = true;
       } else {
         // otherwise just inform the rest of the system that
         // it should shut down ASAP, but give it time to shut down cleanly
