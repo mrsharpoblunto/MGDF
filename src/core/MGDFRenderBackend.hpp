@@ -24,10 +24,6 @@ class IRenderBackend {
   }
   virtual ComObject<ID3D12Fence> RTGetFrameFence() { return {}; }
   virtual MGDFFrameInfo RTGetCurrentFrame() const { return {}; }
-  virtual void RTSetFrameTimingEnabled(bool) {}
-  virtual HRESULT RTGetFrameTiming(UINT64, MGDFFrameTiming *) const {
-    return S_FALSE;
-  }
   virtual HRESULT RTEndFrame() { return S_OK; }
   virtual bool RTInit() = 0;
   virtual bool RTIsInitialized() const = 0;
