@@ -2,6 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
+    <ClCompile Include="GamePreferencesTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />
     <ClCompile Include="ParameterManagerTests.cpp" />

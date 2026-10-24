@@ -62,7 +62,6 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
     : _applicationInstance(hInstance),
       _window(nullptr),
       _renderThread(nullptr),
-      _internalShutDown(false),
       _windowStyle(WS_OVERLAPPEDWINDOW),
       _rtAllowTearing(false),
       _hasSwapChain(false) {
@@ -141,6 +140,7 @@ void D3DAppFramework::InitWindow(const std::string &caption) {
     if (!_window) {
       FATALERROR(this, "CreateWindow FAILED");
     }
+    _closeWindow = _window;
 
     if (x || y) {
       const POINT pt{.x = x, .y = y};
@@ -230,6 +230,7 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   RTOnBeforeBackBufferChange();
   _rtCurrentFullScreen =
       RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
+  _fullScreen.store(_rtCurrentFullScreen.FullScreen);
   // the window starts windowed: restyle it before the swapchain is created,
   // or a fullscreen sized swapchain presents into the small window
   if (_rtCurrentFullScreen.FullScreen && !_rtCurrentFullScreen.ExclusiveMode) {
@@ -590,8 +591,8 @@ void D3DAppFramework::QueueResetDevice() { _awaitingD3DReset.store(false); }
 
 void D3DAppFramework::CloseWindow() {
   LOG("Sending WM_CLOSE message...", MGDF_LOG_HIGH);
-  _internalShutDown = true;
-  ::PostMessage(_window, WM_CLOSE, 0, 0);
+  _internalShutDown.store(true);
+  ::PostMessage(_closeWindow, WM_CLOSE, 0, 0);
 }
 
 INT32 D3DAppFramework::Run() {
@@ -673,8 +674,13 @@ INT32 D3DAppFramework::Run() {
             }
 
             // a window event may have triggered a resize event.
-            if (displayChange && (displayChange->Type == DC_WINDOW_RESIZE ||
-                                  displayChange->Type == DC_WINDOW_MAXIMIZE)) {
+            if (displayChange &&
+                (displayChange->Type == DC_WINDOW_RESIZE ||
+                 displayChange->Type == DC_WINDOW_MAXIMIZE) &&
+                (static_cast<UINT>(displayChange->Point.x) !=
+                     _rtSwapDesc.Width ||
+                 static_cast<UINT>(displayChange->Point.y) !=
+                     _rtSwapDesc.Height)) {
               LOG("Resizing...", MGDF_LOG_MEDIUM);
               _rtSwapDesc.Width = displayChange->Point.x;
               _rtSwapDesc.Height = displayChange->Point.y;
@@ -701,6 +707,7 @@ INT32 D3DAppFramework::Run() {
                 _rtRenderBackend->RTSetWindowed();
               }
               _rtCurrentFullScreen = newFullScreen;
+              _fullScreen.store(newFullScreen.FullScreen);
 
               if (!newFullScreen.ExclusiveMode) {
                 ApplyWindowMode(window, newFullScreen.FullScreen);
@@ -719,8 +726,11 @@ INT32 D3DAppFramework::Run() {
 
           if (!_minimized.load() && _rtRenderBackend->RTIsInitialized()) {
             if (!_rtRenderBackend->RTWaitForFrame()) {
-              if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason()))
+              if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason())) {
                 RTPrepareToReinitD3D();
+              } else {
+                ::Sleep(10);
+              }
               continue;
             }
             if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason())) {
@@ -744,9 +754,12 @@ INT32 D3DAppFramework::Run() {
             } else if (FAILED(result)) {
               FATALERROR(this, "Direct3d Present1 failed");
             }
+          } else {
+            ::Sleep(10);
           }
         }
         LOG("Stopping render thread...", MGDF_LOG_LOW);
+        _renderThreadEnded.store(true);
       },
       _window);
 
@@ -778,6 +791,11 @@ INT32 D3DAppFramework::Run() {
       }
       ::TranslateMessage(&msg);
       ::DispatchMessage(&msg);
+    }
+    if (_closing && _window && _renderThreadEnded.load()) {
+      _ASSERTE(_renderThread && _renderThread->joinable());
+      _renderThread->join();
+      DestroyWindow(_window);
     }
   }
 
@@ -854,6 +872,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
         _minimized.store(true);
       } else if (wParam == SIZE_MAXIMIZED) {
         _minimized.store(false);
+        _clientSize = POINT{.x = LOWORD(lParam), .y = HIWORD(lParam)};
         PushRTMessage(DC_WINDOW_MAXIMIZE, [lParam](auto &message) {
           message.Point = POINT{
               .x = LOWORD(lParam),
@@ -865,16 +884,16 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
         // For example, restoring the window to its default size
         // after a minimize or maximize, or from dragging the resize
         // bars.
-        bool exp = true;
+        const POINT size{.x = LOWORD(lParam), .y = HIWORD(lParam)};
+        const bool restoredSameSize = _minimized.exchange(false) &&
+                                      size.x == _clientSize.x &&
+                                      size.y == _clientSize.y;
+        _clientSize = size;
         if (_resizing.get()) {
           // Track, but don't resize until the user has finished resizing
           _resizing->x = LOWORD(lParam);
           _resizing->y = HIWORD(lParam);
-        } else if (!_hasSwapChain.load() ||
-                   _minimized.compare_exchange_strong(exp, false)) {
-          // If we are just starting up and haven't initialized d3d yet, or we
-          // are simply restoring the window view without changing the size
-        } else {
+        } else if (!restoredSameSize) {
           PushRTMessage(DC_WINDOW_RESIZE, [lParam](auto &message) {
             message.Point = POINT{
                 .x = LOWORD(lParam),
@@ -910,7 +929,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     }
 
     case WM_MOVE: {
-      if (!_rtCurrentFullScreen.FullScreen) {
+      if (!_fullScreen.load()) {
         OnMoveWindow((int)(short)LOWORD(lParam) - _clientOffset.x,
                      (int)(short)HIWORD(lParam) - _clientOffset.y);
         PushRTMessage(DC_WINDOW_MOVE);
@@ -921,14 +940,10 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // WM_CLOSE is sent when the user presses the 'X' button in the
     // caption bar menu, when the host schedules a shutdown
     case WM_CLOSE:
-      if (_internalShutDown) {
-        if (_renderThread) {
-          // make sure we stop rendering before disposing of the window
-          _runRenderThread.clear();
-          _renderThread->join();
-        }
-        // if we triggered this, then shut down
-        DestroyWindow(_window);
+      if (_closing) return 0;
+      if (_internalShutDown.load()) {
+        _runRenderThread.clear();
+        _closing = true;
       } else {
         // otherwise just inform the rest of the system that
         // it should shut down ASAP, but give it time to shut down cleanly

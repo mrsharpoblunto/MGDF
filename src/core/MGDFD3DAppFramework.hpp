@@ -115,6 +115,11 @@ class D3DAppFramework {
   std::list<DisplayChangeMessage> _pendingDisplayChanges;
   std::atomic_bool _minimized, _awaitingD3DReset, _hasSwapChain;
   std::atomic_flag _runRenderThread;
+  std::atomic_bool _renderThreadEnded{false};
+  std::atomic_bool _internalShutDown{false};
+  std::atomic_bool _fullScreen{false};
+  // Set before the worker threads start; retained after WM_DESTROY.
+  HWND _closeWindow = nullptr;
 
   // Non-render thread variables
   std::unique_ptr<std::thread> _renderThread;
@@ -122,8 +127,9 @@ class D3DAppFramework {
   HWND _window;
   DWORD _windowStyle;
   POINT _clientOffset;
+  POINT _clientSize{};
   std::unique_ptr<POINT> _resizing;
-  bool _internalShutDown;
+  bool _closing = false;
   std::vector<BYTE> _rawInputBuffer;
 };
 
