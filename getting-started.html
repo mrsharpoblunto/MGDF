@@ -359,10 +359,8 @@ HRESULT DrawTimedClear(IMGDFD3D12RenderHost *host,
 {% endhighlight %}
     <p>Call <code>Create(device, allocator)</code> before the list's first use. This leaves the list open. For each later use, reset the completed frame slot's allocator first. Then call <code>Reset(allocator)</code> on the helper before <code>DrawTimedClear</code>. Return <code>TRUE</code> from <code>RTDraw</code> after a successful submission.</p>
 
-    <h4>Agility SDK and debug builds</h4>
-    <p>The D3D12 backend uses Agility SDK 1.619.5. Build modules with the matching SDK headers. Put the Agility include directory before the Windows SDK include directory. The module needs these headers for types such as <code>ID3D12Device10</code>.</p>
-    <p><code>core.exe</code> exports <code>D3D12SDKVersion = D3D12_SDK_VERSION</code> and <code>D3D12SDKPath = ".\\D3D12\\"</code>. The host owns these exports. Distribute <code>D3D12Core.dll</code> in the <code>D3D12</code> folder beside <code>core.exe</code>. Include <code>d3d12SDKLayers.dll</code> there for debug builds.</p>
-    <p>Debug builds enable the D3D12 debug layer before device creation. They also enable Device Removed Extended Data (DRED) breadcrumbs and page fault data. The host logs debug layer warnings and errors. After device removal, it logs the available DRED data. Use these logs to check resource states and resource lifetimes.</p>
+    <h4>Build requirements</h4>
+    <p>Build D3D12 modules with Windows SDK 10.0.26100 or later. The MGDF headers need no other D3D12 headers. The redistributable includes the D3D12 Agility SDK runtime (1.619.5) in the <code>D3D12</code> folder beside <code>core.exe</code>, so modules don't distribute it. A module needs the <a href="https://devblogs.microsoft.com/directx/directx12agility/">Agility SDK</a> headers only to use D3D12 APIs that its Windows SDK doesn't declare. Use headers no newer than 1.619.5, because the host loads that runtime.</p>
 
     <h1 id="running" class="page-header">Running a game</h1>
     <p>When distributing a game to users, one simply has to put the game content and module in the prescribed locations inside the framework redistributable (as shown <a href="#folderstructure">here</a>). Users can then run the game by running GamesManager.exe.</p>
