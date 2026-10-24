@@ -149,6 +149,7 @@ Task("Dist")
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe.config"), "../dist/tmp/x64");
+		CopyDirectory($@"../bin/x64/{buildConfiguration}/D3D12", "../dist/tmp/x64/D3D12");
 		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
