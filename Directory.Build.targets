@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Keep the Agility headers ahead of the Windows SDK, including MIDL imports. -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\include\directx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\include\directx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </Midl>
+  </ItemDefinitionGroup>
+  <Target Name="CopyAgilityRuntime" AfterTargets="Build" Condition="'$(MSBuildProjectName)' == 'core' And '$(Platform)' == 'x64'">
+    <PropertyGroup>
+      <AgilityBin>$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\bin</AgilityBin>
+    </PropertyGroup>
+    <MakeDir Directories="$(OutDir)D3D12" />
+    <Copy SourceFiles="$(AgilityBin)\D3D12Core.dll" DestinationFolder="$(OutDir)D3D12" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(AgilityBin)\..\debug\bin\d3d12SDKLayers.dll" DestinationFolder="$(OutDir)D3D12" SkipUnchangedFiles="true" Condition="'$(Configuration)' == 'Debug'" />
+  </Target>
+</Project>

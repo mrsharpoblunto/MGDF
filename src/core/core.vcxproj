@@ -114,7 +114,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -123,10 +123,6 @@
       <Command>
       </Command>
     </PostBuildEvent>
-    <FxCompile>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>$(OutDir)resources\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
@@ -170,7 +166,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;dwrite.lib;d2d1.lib;d3d11.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -181,16 +177,16 @@
       <Command>
       </Command>
     </PostBuildEvent>
-    <FxCompile>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>$(OutDir)resources\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\MGDF\ComObject.hpp" />
     <ClInclude Include="..\..\include\MGDF\MGDF.h" />
     <ClInclude Include="MGDFApp.hpp" />
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
+    <ClInclude Include="MGDFRenderBackend.hpp" />
+    <ClInclude Include="MGDFD3D11RenderBackend.hpp" />
+    <ClInclude Include="MGDFD3D12RenderBackend.hpp" />
+    <ClInclude Include="MGDFD3D12FrameState.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
     <ClInclude Include="MGDFStdAfxBase.h" />
     <ClInclude Include="StdAfx.h" />
@@ -199,6 +195,8 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MGDFApp.cpp" />
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
+    <ClCompile Include="MGDFD3D11RenderBackend.cpp" />
+    <ClCompile Include="MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -3,6 +3,8 @@
 #include <MGDF/MGDF.h>
 
 #include <MGDF/ComObject.hpp>
+#include <MGDF/D3D12CommandList.hpp>
+#include <array>
 #include <functional>
 
 #include "BufferedGameState.hpp"
@@ -67,6 +69,7 @@ class Module : public ComBase<IMGDFModule> {
   void __stdcall STShutDown(IMGDFSimHost *simHost) final;
   BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTDraw(IMGDFRenderHost *renderHost, double alpha) final;
+  void __stdcall RTAfterPresent(IMGDFRenderHost *host) final;
   BOOL __stdcall RTBeforeBackBufferChange(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *renderHost) final;
   BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *renderHost) final;
@@ -75,8 +78,21 @@ class Module : public ComBase<IMGDFModule> {
   void __stdcall Panic() final;
 
  private:
+  bool InitD3D12(IMGDFRenderHost *host);
+  bool DrawD3D12(IMGDFRenderHost *host, double elapsed);
+  void ReleaseD3D12();
+  ComObject<ID3D12Device10> _d3d12Device;
+  ComObject<ID3D12CommandQueue> _directQueue;
+  ComObject<ID3D12Fence> _frameFence;
+  std::array<ComObject<ID3D12CommandAllocator>, 2> _allocators;
+  std::array<D3D12CommandList, 2> _lists;
+  std::array<ComObject<IMGDFPerformanceCounter>, 2> _gpuCounters;
+  std::array<UINT64, 2> _slotFences{};
+  double _renderTime = 0;
   TestResults _results;
   bool _finalResult;
+  bool _awaitingPresent = false;
+  UINT64 _presentedFrames = 0;
   std::list<std::unique_ptr<TestModule>> _testModules;
   std::list<std::unique_ptr<TestModule>>::iterator _currentModule;
   BufferedGameState<TestState> _stateBuffer;

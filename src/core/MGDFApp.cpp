@@ -2,7 +2,10 @@
 
 #include "MGDFApp.hpp"
 
+#include "MGDFD3D11RenderBackend.hpp"
+#include "MGDFD3D12RenderBackend.hpp"
 #include "common/MGDFPreferenceConstants.hpp"
+#include "core.impl/MGDFGraphicsRequirements.hpp"
 #include "core.impl/MGDFHostImpl.hpp"
 
 #if defined(_DEBUG)
@@ -16,17 +19,16 @@ namespace core {
 MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
     : D3DAppFramework(hInstance),
       _metrics(TIMER_SAMPLES),
-      _sdrReferenceWhiteLevel(0),
       _host(host),
       _settings(host->GetRenderSettingsImpl()),
       _stInitialized(false),
       _rtFrameLimiter(nullptr),
       _stFrameLimiter(nullptr) {
   _ASSERTE(host);
+  _host->InitGraphics();
 
   ::SecureZeroMemory(&_rtActiveEnd, sizeof(LARGE_INTEGER));
   ::SecureZeroMemory(&_rtStart, sizeof(LARGE_INTEGER));
-  ::SecureZeroMemory(&_rtTextMetrics, sizeof(DWRITE_TEXT_METRICS));
   ::SecureZeroMemory(&_stEnd, sizeof(LARGE_INTEGER));
 
   host->GetGame(_game.Assign());
@@ -66,28 +68,32 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
     CloseWindow();
   });
   _host->SetDeviceResetHandler([this]() { QueueResetDevice(); });
-
-  RTInitDirectWrite();
 }
 
-MGDFApp::~MGDFApp() { _host->RTShutDown(); }
-
-UINT64 MGDFApp::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                              UINT64 *featureLevelsSize) {
-  return _host->GetCompatibleD3DFeatureLevels(levels, featureLevelsSize);
+MGDFApp::~MGDFApp() {
+  RTWaitForGpuIdle();
+  _host->RTShutDown();
 }
 
-void MGDFApp::RTOnInitDevices(const ComObject<ID3D11Device> &d3dDevice,
-                              const ComObject<ID2D1Device> &d2dDevice) {
-  _ASSERTE(d3dDevice);
-  _ASSERTE(d2dDevice);
-
-  if (FAILED(d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-                                            _rtContext.Assign()))) {
-    FATALERROR(this, "Unable to create ID2D1DeviceContext");
+std::unique_ptr<IRenderBackend> MGDFApp::CreateRenderBackend(
+    const ComObject<IDXGIFactory6> &factory) {
+  if (_host->GetGraphicsAPI() == MGDF_GRAPHICS_API_D3D12) {
+    return std::make_unique<D3D12RenderBackend>(
+        factory, _host->GetGraphicsRequirements(),
+        [this](const char *sender, const char *message) {
+          FatalError(sender, message);
+        });
   }
+  return std::make_unique<D3D11RenderBackend>(
+      factory,
+      GetD3D11FeatureLevels(_host->GetGraphicsRequirements().MinFeatureLevel),
+      [this](const char *sender, const char *message) {
+        FatalError(sender, message);
+      });
+}
 
-  _host->RTSetDevices(d3dDevice, d2dDevice);
+void MGDFApp::RTOnInitDevice(IRenderBackend &backend) {
+  _host->RTSetDevices(backend);
 }
 
 bool MGDFApp::RTIsBackBufferChangePending() {
@@ -105,13 +111,13 @@ MGDFFullScreenDesc MGDFApp::RTOnResetSwapChain(
   return desc;
 }
 
-void MGDFApp::RTOnSwapChainCreated(ComObject<IDXGISwapChain1> &swapchain) {
+std::optional<UINT> MGDFApp::RTGetMaxFrameLatency() const {
   MGDFFullScreenDesc desc;
   _settings->GetFullscreen(&desc);
   if (!desc.ExclusiveMode) {
-    swapchain.As<IDXGISwapChain2>()->SetMaximumFrameLatency(
-        _settings->GetMaxFrameLatency());
+    return _settings->GetMaxFrameLatency();
   }
+  return std::nullopt;
 }
 
 void MGDFApp::RTOnResize(UINT32 width, UINT32 height) {
@@ -141,57 +147,17 @@ bool MGDFApp::OnInitWindow(RECT &window) {
 
 void MGDFApp::RTOnBeforeDeviceReset() {
   RTOnBeforeBackBufferChange();
-  _rtContext.Clear();
-  _rtBlackBrush.Clear();
-  _rtWhiteBrush.Clear();
-  _rtTextLayout.Clear();
-  _rtTextStream.reset();
-  _rtTextFormat.Clear();
-  _rtDWriteFactory.Clear();
   _host->RTBeforeDeviceReset();
 }
 
-void MGDFApp::RTOnDeviceReset() {
-  RTInitDirectWrite();
-  _host->RTDeviceReset();
-}
-
-void MGDFApp::RTInitDirectWrite() {
-  if (FAILED(::DWriteCreateFactory(
-          DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory1),
-          reinterpret_cast<IUnknown **>(_rtDWriteFactory.Assign())))) {
-    FATALERROR(_host, "Unable to create IDWriteFactory");
-  }
-
-  ComObject<IDWriteFontCollection> fontCollection;
-  if (FAILED(
-          _rtDWriteFactory->GetSystemFontCollection(fontCollection.Assign()))) {
-    FATALERROR(_host, "Unable to get  font collection");
-  }
-
-  if (FAILED(_rtDWriteFactory->CreateTextFormat(
-          L"Arial", fontCollection, DWRITE_FONT_WEIGHT_NORMAL,
-          DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14, L"",
-          _rtTextFormat.Assign()))) {
-    FATALERROR(_host, "Unable to create text format");
-  }
-
-  _rtTextStream = std::make_unique<TextStream>(_rtDWriteFactory);
-}
+void MGDFApp::RTOnDeviceReset() { _host->RTDeviceReset(); }
 
 void MGDFApp::RTOnBeforeBackBufferChange() {
-  _rtContext->SetTarget(nullptr);
   _host->RTBeforeBackBufferChange();
 }
 
-void MGDFApp::RTOnBackBufferChange(
-    const ComObject<ID3D11Texture2D> &backBuffer,
-    const ComObject<ID3D11Texture2D> &depthStencilBuffer) {
-  _ASSERTE(backBuffer);
-  _ASSERTE(depthStencilBuffer);
-
-  _host->RTBackBufferChange(backBuffer, depthStencilBuffer);
-  _host->SetBackBufferRenderTarget(_rtContext);
+void MGDFApp::RTOnBackBufferChange(IRenderBackend &backend) {
+  _host->RTBackBufferChange(backend);
 }
 
 void MGDFApp::RTOnBeforeFirstDraw() {
@@ -205,7 +171,7 @@ void MGDFApp::RTOnBeforeFirstDraw() {
   _host->RTBeforeFirstDraw();
 }
 
-void MGDFApp::RTOnDraw() {
+bool MGDFApp::RTOnDraw() {
   bool didLimit = false;
   const LARGE_INTEGER currentTime = _rtFrameLimiter
                                         ? _rtFrameLimiter->LimitFps(didLimit)
@@ -217,88 +183,13 @@ void MGDFApp::RTOnDraw() {
       elapsedTime, _timer->ConvertDifferenceToSeconds(_rtActiveEnd, _rtStart));
   _rtStart = currentTime;
 
-  _host->RTDraw(elapsedTime);
+  const bool drawn = _host->RTDraw(elapsedTime);
 
-  const auto debug = _host->GetDebugImpl();
-  if (debug->IsShown() && debug->IsHostRenderingEnabled()) {
-    RTDrawSystemOverlay();
-  }
   _rtActiveEnd = _timer->GetCurrentTimeTicks();
+  return drawn;
 }
 
-void MGDFApp::RTDrawSystemOverlay() {
-  MGDFOutputDisplayInfo info;
-  _host->GetRenderSettingsImpl()->GetCurrentOutputDisplayInfo(&info);
-
-  if (_sdrReferenceWhiteLevel != info.SDRWhiteLevel) {
-    _sdrReferenceWhiteLevel = info.SDRWhiteLevel;
-    TextStyle::SetSDRWhiteLevel(info.SDRWhiteLevel);
-    _rtWhiteBrush.Clear();
-    _rtBlackBrush.Clear();
-  }
-  if (!_rtWhiteBrush || !_rtBlackBrush) {
-    RTInitBrushes();
-  }
-
-  _rtTextStream->ClearText();
-  _host->GetDebugImpl()->DumpInfo(_metrics, *_rtTextStream);
-
-  if (FAILED(_rtTextStream->GenerateLayout(
-          _rtContext, _rtTextFormat,
-          static_cast<float>(_settings->GetScreenX()),
-          static_cast<float>(_settings->GetScreenY()), _rtTextLayout))) {
-    FATALERROR(_host, "Unable to create text layout");
-  }
-
-  ::SecureZeroMemory(&_rtTextMetrics, sizeof(_rtTextMetrics));
-  if (FAILED(_rtTextLayout->GetMetrics(&_rtTextMetrics))) {
-    FATALERROR(_host, "Unable to get text overhang metrics");
-  }
-
-  _rtContext->BeginDraw();
-
-  constexpr float margin = 5.0f;
-  const D2D1_ROUNDED_RECT rect{
-      .rect = {.left = margin,
-               .top = margin,
-               .right = (margin * 3) + _rtTextMetrics.width,
-               .bottom = (margin * 3) + _rtTextMetrics.height},
-      .radiusX = margin,
-      .radiusY = margin,
-  };
-  _ASSERTE(_rtBlackBrush);
-  _rtContext->FillRoundedRectangle(&rect, _rtBlackBrush);
-  _ASSERTE(_rtWhiteBrush);
-  _rtContext->DrawRoundedRectangle(&rect, _rtWhiteBrush);
-
-  const D2D_POINT_2F origin{
-      .x = 2 * margin,
-      .y = 2 * margin,
-  };
-  _rtContext->DrawTextLayout(origin, _rtTextLayout, _rtWhiteBrush);
-
-  _rtContext->EndDraw();
-}
-
-void MGDFApp::RTInitBrushes() {
-  const float whiteScale = _sdrReferenceWhiteLevel / 1000.0f;
-
-  D2D1_COLOR_F color{.r = 1.0f * whiteScale,
-                     .g = 1.0f * whiteScale,
-                     .b = 1.0f * whiteScale,
-                     .a = 1.0f};
-  if (FAILED(
-          _rtContext->CreateSolidColorBrush(color, _rtWhiteBrush.Assign()))) {
-    FATALERROR(_host, "Unable to create white color brush");
-  }
-
-  color.r = color.g = color.b = 0.05f * whiteScale;
-  color.a = 0.85f;
-  if (FAILED(
-          _rtContext->CreateSolidColorBrush(color, _rtBlackBrush.Assign()))) {
-    FATALERROR(_host, "Unable to create black color brush");
-  }
-}
+void MGDFApp::RTOnAfterPresent() { _host->RTAfterPresent(); }
 
 std::pair<DXGI_FORMAT, DXGI_FORMAT> MGDFApp::RTOnBeforeEnumerateDisplayModes() {
   return std::make_pair(_settings->GetSDRBackBufferFormat(),
@@ -441,13 +332,7 @@ LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
                                  LPARAM lParam) {
   switch (msg) {
     case WM_SYSKEYDOWN:
-      switch (wParam) {
-        case VK_F12:
-          _host->GetDebugImpl()->ToggleShown();
-          return 0;
-        default:
-          return 0;
-      }
+      return 0;
     case WM_ACTIVATE:
       if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE) {
         _host->GetInputManagerImpl()->ClearInput();

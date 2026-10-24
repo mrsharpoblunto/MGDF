@@ -183,6 +183,14 @@ void RenderSettingsManager::InitFromDevice(
   }
 }
 
+void RenderSettingsManager::InitD3D12() {
+  std::lock_guard lock(_mutex);
+  Cleanup();
+  _multiSampleLevels.push_back(1);
+  _multiSampleQuality[1] = 1;
+  _backBufferMultiSampleLevel = _currentMultiSampleLevel = 1;
+}
+
 RenderSettingsManager::~RenderSettingsManager(void) {}
 
 void RenderSettingsManager::CreatePendingSettingsChange(

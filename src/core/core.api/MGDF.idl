@@ -1,12 +1,38 @@
 import "oaidl.idl";
 import "ocidl.idl";
 import "d3d11.idl";
+import "d3d12.idl";
 import "dxgi.idl";
 
-cpp_quote("#ifdef __cplusplus") cpp_quote("}") cpp_quote("#endif")
-    cpp_quote("#include \"d2d1_1.h\"") cpp_quote("#ifdef __cplusplus")
-        cpp_quote("extern \"C\" {") cpp_quote("#endif") interface ID2D1Device;
-interface ID2D1DeviceContext;
+/**
+The graphics APIs a module can request
+*/
+typedef enum MGDFGraphicsAPI {
+  MGDF_GRAPHICS_API_D3D11 = 0,
+  MGDF_GRAPHICS_API_D3D12 = 1,
+} MGDFGraphicsAPI;
+
+/**
+The graphics requirements returned by the module's GetGraphicsRequirements export
+*/
+typedef struct MGDFGraphicsRequirements {
+  /** APIs the module supports, most preferred first */
+  UINT32 APICount;
+  MGDFGraphicsAPI APIs[4];
+  D3D_FEATURE_LEVEL MinFeatureLevel;
+  /** D3D_SHADER_MODEL value; only checked for D3D12 */
+  UINT32 MinShaderModel;
+} MGDFGraphicsRequirements;
+
+/**
+The current back buffer properties, independent of the graphics API
+*/
+typedef struct MGDFBackBufferInfo {
+  UINT32 Width;
+  UINT32 Height;
+  DXGI_FORMAT Format;
+  UINT32 SampleCount;
+} MGDFBackBufferInfo;
 
 /**
 An average with its per frame history behind it, in seconds. Samples run
@@ -74,11 +100,11 @@ IMGDFDebug::GetOverlaySnapshot. Release it when done with the data
 };
 
 /**
-Controls the data displayed in the MGDF debug overlay sheet
-(press ALT-F12 to see in game)
+Debug overlay data. The host draws no overlay: a module that wants one
+draws it from GetOverlaySnapshot and decides itself when to show it
 */
 [
-  uuid("D69DC4E5-238B-4427-AF03-628818464E41"), object,
+  uuid("6EF19CBF-862A-4BF6-BFC9-50C58C20255F"), object,
   local
 ] interface IMGDFDebug : IUnknown {
   /**
@@ -97,33 +123,7 @@ Controls the data displayed in the MGDF debug overlay sheet
   void Clear([in] const small *section, [in] const small *key);
 
   /**
-   Whether the debug overlay is currently visible
-   \return whether the debug overlay is currently visible
-   */
-  BOOL IsShown();
-
-  /**
-   Toggle the visibility status of the overlay
-   */
-  void ToggleShown();
-
-  /**
-   Sets whether the host draws the overlay while it is shown. A module that
-   draws the overlay itself from GetOverlaySnapshot turns this off;
-   IsShown and ToggleShown keep tracking visibility either way
-   \param enabled TRUE for the host to draw the overlay (the default)
-   */
-  void SetHostRenderingEnabled([in] BOOL enabled);
-
-  /**
-   Whether the host draws the overlay while it is shown
-   \return whether the host draws the overlay while it is shown
-   */
-  BOOL IsHostRenderingEnabled();
-
-  /**
-   Copies everything the overlay shows into a snapshot, so a module that
-   draws the overlay itself can read it as structured data
+   Copies the overlay data into a snapshot for the module to draw
    \param snapshot points to the created snapshot
    \return S_OK if the snapshot could be created, otherwise an error code
    */
@@ -533,8 +533,8 @@ typedef struct MGDFTags {
 
 /**
  A names performance counter that can be used to time the duration of
- events. The results of these counters are shown in the MGDF debug overlay
- (press ALT-F12 to see in game)
+ events. The results of these counters are part of the debug overlay
+ snapshot
  */
 [
   uuid("E2E9FE7E-4D07-40FE-9858-8E583D73CB37"), object,
@@ -2001,7 +2001,7 @@ Provides an entrypoint for a module to interact with the MGDF host. Methods in
 this interface are safe to be used from any thread
 */
 [
-  uuid("B6FDBA44-D098-4EF7-AF79-7368FB85AA6C"), object,
+  uuid("D5772E20-668C-43BC-B803-453ACF6D74AF"), object,
   local
 ] interface IMGDFCommonHost : IMGDFLogger {
   /**
@@ -2042,19 +2042,13 @@ this interface are safe to be used from any thread
   void GetWorkingVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
 
   /**
-  get the direct3d device object from the host
-  \param device the direct3d device object from the host
+  get the graphics API selected by the host
+  \return the selected graphics API
   */
-  void GetD3DDevice([out] ID3D11Device * *device);
+  MGDFGraphicsAPI GetGraphicsAPI();
 
   /**
-  get the direct2d device object from the host
-  \param device the direct2d device object from the host
-  */
-  void GetD2DDevice([out] ID2D1Device * *device);
-
-  /**
-  get the onscreen debug overlay interface
+  get the debug overlay data and visibility interface
   \param debug pointer to a debug overlay object
   */
   void GetDebug([out] IMGDFDebug * *debug);
@@ -2119,18 +2113,39 @@ this interface are safe to be used from any thread
  safe to be used ONLY from the render thread.
 */
 [
-  uuid("514EBD97-3C53-4235-90E1-7AD3B7F517BD"), object,
+  uuid("E7616E80-733E-4E33-8A71-CCF53161508B"), object,
   local
 ] interface IMGDFRenderHost : IMGDFCommonHost {
   /**
-  set the current back buffer as the render target for the specified d2d
-  device context
-  \param context the d2d device context to set the render target for
-  \return true if the back buffer can be set as the render target for the device
-  context
+  Gets the current back buffer properties
+  \param info the back buffer properties to populate
   */
-  BOOL SetBackBufferRenderTarget(ID2D1DeviceContext * context);
+  void GetBackBufferInfo([out] MGDFBackBufferInfo * info);
+};
 
+/**
+Provides D3D11 device access through QueryInterface on any host interface.
+Methods in this interface are safe to be used from any thread
+*/
+[
+  uuid("33357B0B-E626-450E-90F2-C017D52AB911"), object,
+  local
+] interface IMGDFD3D11Host : IUnknown {
+  /**
+  get the direct3d 11 device object from the host
+  \param device the direct3d 11 device object from the host
+  */
+  void GetD3D11Device([out] ID3D11Device * *device);
+};
+
+/**
+Provides D3D11 rendering access through QueryInterface on the render host.
+Additional methods in this interface are safe to be used ONLY from the render thread
+*/
+[
+  uuid("756E8862-E68C-4796-AD6C-00667632F33B"), object,
+  local
+] interface IMGDFD3D11RenderHost : IMGDFRenderHost {
   /**
   Gets the current back buffer texture.
   \param backbuffer the current back buffer texture. The pointer returned by this method
@@ -2167,6 +2182,95 @@ this interface are safe to be used from any thread
   HRESULT CreateGPUCounter([in] IMGDFMetric * metric,
                            [in] ID3D11DeviceContext * context,
                            [out] IMGDFPerformanceCounter * *counter);
+};
+
+/**
+D3D12 device and queues. These methods may be called from any thread. QueryInterface
+returns this interface only when GetGraphicsAPI returns MGDF_GRAPHICS_API_D3D12.
+Release returned references before acknowledging a device reset.
+*/
+[
+  uuid("EFCB361F-5317-40DC-B58E-82CE1CDA79D5"), object,
+  local
+] interface IMGDFD3D12Host : IUnknown {
+  /**
+  Gets an owned reference to the device, or null during device reset
+  \param device points to the device
+  */
+  void GetD3D12Device([out] ID3D12Device10 **device);
+  /**
+  Gets an owned reference to the direct queue
+  \param queue points to the direct queue
+  */
+  void GetDirectQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets an owned reference to the compute queue
+  \param queue points to the compute queue
+  */
+  void GetComputeQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets an owned reference to the copy queue
+  \param queue points to the copy queue
+  */
+  void GetCopyQueue([out] ID3D12CommandQueue **queue);
+};
+
+/**
+The current D3D12 frame. BackBuffer is borrowed until RTBeforeBackBufferChange;
+release any additional references in that callback. It enters RTDraw in PRESENT
+state. Every module command list touching it must leave it in PRESENT state.
+*/
+typedef struct MGDFFrameInfo {
+  /** Frame fence value the host signals after this frame's RTAfterPresent */
+  UINT64 FrameOrdinal;
+  /** Highest completed frame fence value */
+  UINT64 CompletedOrdinal;
+  /** FrameOrdinal modulo FramesInFlight; safe to reuse on entry to RTDraw */
+  UINT32 FrameSlot;
+  UINT32 FramesInFlight;
+  UINT32 BackBufferIndex;
+  ID3D12Resource *BackBuffer;
+  D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTV;
+  D3D12_RESOURCE_DESC BackBufferDesc;
+} MGDFFrameInfo;
+
+/**
+D3D12 rendering methods, usable only on the render thread. The module records and
+executes its own lists on the direct queue during RTDraw and may submit background
+work during RTAfterPresent. The host resolves GPU counters and signals the frame
+fence with FrameOrdinal after RTAfterPresent. Work on compute/copy queues must be
+joined to the direct queue by the module if it is to be covered by that frame fence.
+*/
+[
+  uuid("46AA223E-991D-4272-A30E-9E9F3DCB0F38"), object,
+  local
+] interface IMGDFD3D12RenderHost : IMGDFRenderHost {
+  /**
+  Gets the current frame. Its ordinal and slot stay fixed through RTAfterPresent
+  \param frame receives the current frame
+  */
+  void GetCurrentFrame([out] MGDFFrameInfo *frame);
+  /**
+  Gets an owned reference to the host's frame fence. Modules must not signal it
+  \param fence points to the frame fence
+  */
+  void GetFrameFence([out] ID3D12Fence **fence);
+  /**
+  Creates a GPU timestamp counter bound to a direct-queue command list. Each scope
+  must begin and end while recording and its list must execute in the same frame,
+  before RTAfterPresent returns. Release each scope before closing its list.
+  Use the SDK MGDF::D3D12CommandList helper for Close/Reset tracking; an untracked
+  list returns E_INVALIDARG. A scope released after Close/Reset or the end of its
+  frame is logged and discarded without recording a timestamp.
+  Compute/copy lists are unsupported and return E_INVALIDARG.
+  \param metric the metric the counter updates
+  \param list the direct-queue command list the counter scopes record into
+  \param counter points to the created counter
+  \return S_OK if the counter could be created, otherwise an error code
+  */
+  HRESULT CreateGPUCounter([in] IMGDFMetric *metric,
+                           [in] ID3D12GraphicsCommandList *list,
+                           [out] IMGDFPerformanceCounter **counter);
 };
 
 /**
@@ -2274,7 +2378,7 @@ interface inherits from IMGDFCommonHost and provides additional methods which
 are safe to be used ONLY from the sim thread.
 */
 [
-  uuid("381AD5F1-8058-4739-992F-A5B551AA0E87"), object,
+  uuid("267014B0-7C2C-4FCB-85F8-13AAA9F4FBCC"), object,
   local
 ] interface IMGDFSimHost : IMGDFCommonHost {
   /**
@@ -2363,7 +2467,7 @@ are safe to be used ONLY from the sim thread.
  The interface to be implemented by an MGDF game
 */
 [
-  uuid("08D1F4AD-366B-4659-B4A6-AA04B458D6DB"), object,
+  uuid("7E8179E6-D60A-4CF0-BFBD-8576D8E73B49"), object,
   local
 ] interface IMGDFModule : IUnknown {
   /**
@@ -2406,9 +2510,15 @@ are safe to be used ONLY from the sim thread.
    rendering required for the current frame in here
    \param host the render thread host
    \param alpha how far between the current and next simulation frame (0-1)
-   \return false if the module experiences a fatal error drawing the scene
+   \return false to ask the host to clear the backbuffer for this frame
   */
   BOOL RTDraw(IMGDFRenderHost * host, double alpha);
+
+  /**
+   Called by the host once per render frame after Present
+   \param host the render thread host
+  */
+  void RTAfterPresent(IMGDFRenderHost * host);
 
   /**
   Called by the host if the swap chain options need to be changed, or the

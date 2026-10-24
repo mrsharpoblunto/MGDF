@@ -49,7 +49,7 @@ ModuleFactory::ModuleFactory()
     : _moduleInstance(nullptr),
       _getCustomArchiveHandlers(nullptr),
       _getModule(nullptr),
-      _getCompatibleFeatureLevels(nullptr) {}
+      _getGraphicsRequirements(nullptr) {}
 
 HRESULT ModuleFactory::Init() {
   path globalModule(Resources::Instance().Module());
@@ -79,14 +79,14 @@ HRESULT ModuleFactory::Init() {
             MGDF_LOG_LOW);
       }
 
-      _getCompatibleFeatureLevels =
-          (GetCompatibleFeatureLevelsPtr)GetProcAddress(
-              _moduleInstance, "GetCompatibleFeatureLevels");
-      if (_getCompatibleFeatureLevels != nullptr) {
-        LOG("Loaded GetCompatibleFeatureLevels from Module.dll", MGDF_LOG_LOW);
+      _getGraphicsRequirements = (GetGraphicsRequirementsPtr)GetProcAddress(
+          _moduleInstance, "GetGraphicsRequirements");
+      if (_getGraphicsRequirements != nullptr) {
+        LOG("Loaded GetGraphicsRequirements from Module.dll", MGDF_LOG_LOW);
       } else {
-        LOG("Module has no exported GetCompatibleFeatureLevels function",
-            MGDF_LOG_LOW);
+        LOG("Module has no exported GetGraphicsRequirements function",
+            MGDF_LOG_ERROR);
+        return E_FAIL;
       }
 
       return S_OK;
@@ -161,20 +161,24 @@ HRESULT ModuleFactory::GetCustomArchiveHandlers(IMGDFArchiveHandler **list,
 }
 
 HRESULT ModuleFactory::GetModule(ComObject<IMGDFModule> &module) const {
-  if (_getModule != nullptr) {
-    return _getModule(module.Assign());
-  } else {
-    return E_FAIL;
+  module.Clear();
+  ComObject<IMGDFModule> instance;
+  const HRESULT result = _getModule(instance.Assign());
+  if (FAILED(result)) return result;
+  if (!instance) return E_FAIL;
+  if (FAILED(instance->QueryInterface(
+          __uuidof(IMGDFModule), reinterpret_cast<void **>(module.Assign()))) ||
+      !module) {
+    module.Clear();
+    return E_NOINTERFACE;
   }
+  return S_OK;
 }
 
-UINT64 ModuleFactory::GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                                 UINT64 *levelSize) const {
-  if (_getCompatibleFeatureLevels != nullptr) {
-    return _getCompatibleFeatureLevels(levels, levelSize);
-  } else {
-    return 0;
-  }
+HRESULT ModuleFactory::GetGraphicsRequirements(
+    MGDFGraphicsRequirements &requirements) const {
+  requirements = {};
+  return _getGraphicsRequirements(&requirements);
 }
 
 bool ModuleFactory::GetLastError(std::string &error) const {

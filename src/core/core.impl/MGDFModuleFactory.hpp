@@ -11,7 +11,7 @@ typedef HRESULT (*GetCustomArchiveHandlersPtr)(IMGDFArchiveHandler **list,
                                                UINT64 *length,
                                                IMGDFLogger *logger);
 typedef HRESULT (*GetModulePtr)(IMGDFModule **);
-typedef UINT64 (*GetCompatibleFeatureLevelsPtr)(D3D_FEATURE_LEVEL *, UINT64 *);
+typedef HRESULT (*GetGraphicsRequirementsPtr)(MGDFGraphicsRequirements *);
 
 class ModuleFactory {
  public:
@@ -21,8 +21,7 @@ class ModuleFactory {
   HRESULT GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
                                    IMGDFLogger *logger) const;
   HRESULT GetModule(ComObject<IMGDFModule> &module) const;
-  UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                    UINT64 *levelSize) const;
+  HRESULT GetGraphicsRequirements(MGDFGraphicsRequirements &requirements) const;
   bool GetLastError(std::string &error) const;
 
  private:
@@ -32,7 +31,7 @@ class ModuleFactory {
   HINSTANCE _moduleInstance;
   GetCustomArchiveHandlersPtr _getCustomArchiveHandlers;
   GetModulePtr _getModule;
-  GetCompatibleFeatureLevelsPtr _getCompatibleFeatureLevels;
+  GetGraphicsRequirementsPtr _getGraphicsRequirements;
   std::string _lastError;
 };
 

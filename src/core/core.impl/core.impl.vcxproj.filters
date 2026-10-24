@@ -15,6 +15,9 @@
     <ClCompile Include="MGDFGameImpl.cpp">
       <Filter>System</Filter>
     </ClCompile>
+    <ClCompile Include="MGDFGraphicsRequirements.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
     <ClCompile Include="MGDFModuleFactory.cpp">
       <Filter>System</Filter>
     </ClCompile>
@@ -25,6 +28,7 @@
       <Filter>Helpers</Filter>
     </ClCompile>
     <ClCompile Include="MGDFParameterConstants.cpp" />
+    <ClCompile Include="MGDFD3D12Timer.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp">
@@ -39,9 +43,6 @@
     <ClCompile Include="MGDFHostMetrics.cpp" />
     <ClCompile Include="MGDFDebugImpl.cpp">
       <Filter>System</Filter>
-    </ClCompile>
-    <ClCompile Include="MGDFTextStream.cpp">
-      <Filter>Helpers</Filter>
     </ClCompile>
     <ClCompile Include="MGDFSaveManagerImpl.cpp">
       <Filter>System</Filter>
@@ -58,6 +59,9 @@
     <ClInclude Include="MGDFGameImpl.hpp">
       <Filter>System</Filter>
     </ClInclude>
+    <ClInclude Include="MGDFGraphicsRequirements.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
     <ClInclude Include="MGDFModuleFactory.hpp">
       <Filter>System</Filter>
     </ClInclude>
@@ -68,6 +72,7 @@
       <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="MGDFParameterConstants.hpp" />
+    <ClInclude Include="MGDFD3D12Timer.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp">
@@ -82,9 +87,6 @@
     <ClInclude Include="MGDFHostMetrics.hpp" />
     <ClInclude Include="MGDFDebugImpl.hpp">
       <Filter>System</Filter>
-    </ClInclude>
-    <ClInclude Include="MGDFTextStream.hpp">
-      <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="MGDFSaveManagerImpl.hpp">
       <Filter>System</Filter>

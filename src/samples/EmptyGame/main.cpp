@@ -11,27 +11,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
   return TRUE;
 }
 
-// specify to the framework what kind of d3d device features we want/require
-extern "C" __declspec(dllexport) UINT64 GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                        UINT64 *featureLevelsSize) {
-  // if you want to use the default feature support levels
-  // just set featureLevelsSize to 0 and return 0
-
-  // if you want to support a specific feature set (in this example 9_3 only)
-  // then first assert the levels array passed in is of the correct size
-  if (*featureLevelsSize != 1) {
-    // ensure featureLevelsSize is set to the same value as the return value
-    *featureLevelsSize = 1;
-
-    // return how large the featureLevels array should be
-    return 1;
-  } else {
-    // specify all the features in descending order of preference
-    levels[0] = D3D_FEATURE_LEVEL_9_3;
-
-    // then return 0
-    return 0;
-  }
+extern "C" __declspec(dllexport) HRESULT
+GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
+  if (!requirements) return E_POINTER;
+  *requirements = {};
+  requirements->APICount = 1;
+  requirements->APIs[0] = MGDF_GRAPHICS_API_D3D11;
+  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_9_3;
+  return S_OK;
 }
 
 // create a module instance when requested by the host

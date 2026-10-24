@@ -11,6 +11,7 @@
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
+#include "MGDFGraphicsRequirements.hpp"
 #include "MGDFMetrics.hpp"
 #include "MGDFNetworkImpl.hpp"
 #include "MGDFParameterConstants.hpp"
@@ -66,7 +67,6 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _saves(MakeCom<SaveManager>(game, components.VFS, components.Storage)),
       _references(1UL),
       _d3dDevice(nullptr),
-      _d2dDevice(nullptr),
       _depthStencilBuffer(nullptr),
       _backBuffer(nullptr) {
   _shutdownQueued.store(false);
@@ -102,14 +102,29 @@ ULONG Host::Release() {
 }
 HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
   if (!ppvObject) return E_POINTER;
+  *ppvObject = nullptr;
   if (riid == IID_IUnknown || riid == __uuidof(IMGDFLogger) ||
-      riid == __uuidof(IMGDFSimHost) || riid == __uuidof(IMGDFRenderHost) ||
-      riid == __uuidof(IMGDFCommonHost)) {
-    AddRef();
-    *ppvObject = this;
-    return S_OK;
+      riid == __uuidof(IMGDFCommonHost) || riid == __uuidof(IMGDFRenderHost)) {
+    *ppvObject = RenderHost();
+  } else if (riid == __uuidof(IMGDFSimHost)) {
+    *ppvObject = static_cast<IMGDFSimHost *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
+             riid == __uuidof(IMGDFD3D11Host)) {
+    *ppvObject = static_cast<IMGDFD3D11Host *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
+             riid == __uuidof(IMGDFD3D11RenderHost)) {
+    *ppvObject = static_cast<IMGDFD3D11RenderHost *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
+             riid == __uuidof(IMGDFD3D12Host)) {
+    *ppvObject = static_cast<IMGDFD3D12Host *>(this);
+  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
+             riid == __uuidof(IMGDFD3D12RenderHost)) {
+    *ppvObject = static_cast<IMGDFD3D12RenderHost *>(this);
+  } else {
+    return E_NOINTERFACE;
   }
-  return E_NOINTERFACE;
+  AddRef();
+  return S_OK;
 };
 
 HRESULT Host::Init() {
@@ -216,10 +231,38 @@ ComObject<input::IInputManagerComponent> Host::GetInputManagerImpl() {
   return _input;
 }
 
-UINT64 Host::GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                           UINT64 *featureLevelsSize) {
-  return _moduleFactory->GetCompatibleFeatureLevels(levels, featureLevelsSize);
+void Host::InitGraphics() {
+  if (FAILED(_moduleFactory->GetGraphicsRequirements(_graphicsRequirements))) {
+    FATALERROR(this, "Module GetGraphicsRequirements failed");
+    return;
+  }
+  std::string preference;
+  GetPreference(_game.As<IMGDFGame>(), PreferenceConstants::GRAPHICS_API,
+                preference);
+  std::string error;
+  const HRESULT result =
+      SelectGraphicsAPI(_graphicsRequirements, preference, _graphicsAPI, error);
+  if (SUCCEEDED(result)) {
+    LOG("Selected graphics API: "
+            << (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 ? "d3d11" : "d3d12"),
+        MGDF_LOG_LOW);
+  }
+  if (FAILED(result)) {
+    FATALERROR(this, error);
+    return;
+  }
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
+      GetD3D11FeatureLevels(_graphicsRequirements.MinFeatureLevel).empty()) {
+    FATALERROR(this,
+               "The requested minimum feature level is not supported by D3D11");
+  }
 }
+
+const MGDFGraphicsRequirements &Host::GetGraphicsRequirements() const {
+  return _graphicsRequirements;
+}
+
+MGDFGraphicsAPI Host::GetGraphicsAPI() { return _graphicsAPI; }
 
 /**
 create and initialize a new module
@@ -232,12 +275,14 @@ void Host::STCreateModule() {
     }
 
     // create the module
-    if (FAILED(_moduleFactory->GetModule(_module))) {
+    const HRESULT result = _moduleFactory->GetModule(_module);
+    if (result == E_NOINTERFACE) {
+      FATALERROR(this, "The module was built for another interface version");
+      return;
+    } else if (FAILED(result)) {
       FATALERROR(this, "Unable to create module class");
+      return;
     }
-
-    // This is where additional QueryInterface checks should go if
-    // IModule gets extended to determine support for new methods
 
     // init the module
     ClearWorkingDirectory();
@@ -285,7 +330,7 @@ void Host::STDisposeModule() {
 void Host::RTBeforeFirstDraw() {
   if (_module) {
     LOG("Calling module RTBeforeFirstDraw...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBeforeFirstDraw(this)) {
+    if (!_module->RTBeforeFirstDraw(RenderHost())) {
       FATALERROR(this, "Error in before first draw in module");
     }
   }
@@ -294,13 +339,18 @@ void Host::RTBeforeFirstDraw() {
 void Host::RTBeforeDeviceReset() {
   if (_module) {
     LOG("Calling module RTBeforeDeviceReset...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBeforeDeviceReset(this)) {
+    if (!_module->RTBeforeDeviceReset(RenderHost())) {
       FATALERROR(this, "Error in before device reset in module");
     }
   }
   _timer->BeforeDeviceReset();
-  _d2dDevice.Clear();
+  std::lock_guard lock(_deviceMutex);
   _d3dDevice.Clear();
+  _d3d12Device.Clear();
+  _directQueue.Clear();
+  _computeQueue.Clear();
+  _copyQueue.Clear();
+  _frameFence.Clear();
 }
 
 void Host::QueueDeviceReset() {
@@ -311,7 +361,7 @@ void Host::QueueDeviceReset() {
 void Host::RTDeviceReset() {
   if (_module) {
     LOG("Calling module RTDeviceReset...", MGDF_LOG_MEDIUM);
-    if (!_module->RTDeviceReset(this)) {
+    if (!_module->RTDeviceReset(RenderHost())) {
       FATALERROR(this, "Error in device reset in module");
     }
   }
@@ -320,7 +370,7 @@ void Host::RTDeviceReset() {
 void Host::RTShutDown() {
   if (_module) {
     LOG("Calling module RTShutdown...", MGDF_LOG_MEDIUM);
-    _module->RTShutDown(this);
+    _module->RTShutDown(RenderHost());
   }
   // release all device dependent resources now as the app framework will
   // uninitialize D3D (and report any remaining live objects in debug builds)
@@ -328,56 +378,81 @@ void Host::RTShutDown() {
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
   _timer->BeforeDeviceReset();
-  _d2dDevice.Clear();
+  std::lock_guard lock(_deviceMutex);
   _d3dDevice.Clear();
+  _d3d12Device.Clear();
+  _directQueue.Clear();
+  _computeQueue.Clear();
+  _copyQueue.Clear();
+  _frameFence.Clear();
 }
 
-void Host::RTSetDevices(const ComObject<ID3D11Device> &d3dDevice,
-                        const ComObject<ID2D1Device> &d2dDevice) {
-  LOG("Initializing render settings and GPU timers...", MGDF_LOG_LOW);
-  _renderSettings->InitFromDevice(d3dDevice);
-  _timer->InitFromDevice(d3dDevice, GPU_TIMER_BUFFER);
-
-  if (!_d3dDevice) {
-    LOG("Loading Render settings...", MGDF_LOG_LOW);
-    auto game = _game.As<IMGDFGame>();
-    _renderSettings->LoadPreferences(game);
-  }
-
-  _d2dDevice = d2dDevice;
-  _d3dDevice = d3dDevice;
-}
-
-void Host::RTDraw(double alpha) {
-  _timer->Begin();
-  if (_module) {
-    LOG("Calling module RTDraw...", MGDF_LOG_HIGH);
-    if (!_module->RTDraw(this, alpha)) {
-      FATALERROR(this, "Error drawing scene in module");
+void Host::RTSetDevices(IRenderBackend &backend) {
+  _backend = &backend;
+  auto device = backend.RTGetDevice();
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) {
+    auto d3d11 = device.As<ID3D11Device>();
+    _renderSettings->InitFromDevice(d3d11);
+    _timer->InitFromDevice(d3d11, GPU_TIMER_BUFFER);
+    std::lock_guard lock(_deviceMutex);
+    _d3dDevice = d3d11;
+  } else {
+    auto d3d12 = device.As<ID3D12Device10>();
+    auto direct = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    _renderSettings->InitD3D12();
+    if (FAILED(_timer->InitFromDevice12(d3d12, direct, 2))) {
+      FATALERROR(this, "Failed to initialize D3D12 GPU counters");
     }
+    std::lock_guard lock(_deviceMutex);
+    _d3d12Device = d3d12;
+    _directQueue = direct;
+    _computeQueue = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+    _copyQueue = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+    _frameFence = backend.RTGetFrameFence();
   }
-  _timer->End();
+  LOG("Loading Render settings...", MGDF_LOG_LOW);
+  _renderSettings->LoadPreferences(_game.As<IMGDFGame>());
+}
+
+bool Host::RTDraw(double alpha) {
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12) {
+    _timer->BeginD3D12Frame(_backend->RTGetCurrentFrame());
+  } else {
+    _timer->Begin();
+  }
+  const bool drawn = _module && _module->RTDraw(RenderHost(), alpha);
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) _timer->End();
+  return drawn;
+}
+
+void Host::RTAfterPresent() {
+  if (_module) _module->RTAfterPresent(RenderHost());
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
+      FAILED(_timer->EndD3D12Frame()) &&
+      SUCCEEDED(_backend->RTGetDeviceRemovedReason())) {
+    FATALERROR(this, "Failed to resolve D3D12 GPU counters");
+  }
 }
 
 void Host::RTBeforeBackBufferChange() {
+  _backBufferInfo = {};
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
   if (_module) {
     LOG("Calling module RTBeforeBackBufferChange...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBeforeBackBufferChange(this)) {
+    if (!_module->RTBeforeBackBufferChange(RenderHost())) {
       FATALERROR(this, "Error handling before back buffer change in module");
     }
   }
 }
 
-void Host::RTBackBufferChange(
-    const ComObject<ID3D11Texture2D> &backBuffer,
-    const ComObject<ID3D11Texture2D> &depthStencilBuffer) {
-  _backBuffer = backBuffer;
-  _depthStencilBuffer = depthStencilBuffer;
+void Host::RTBackBufferChange(IRenderBackend &backend) {
+  _backBufferInfo = backend.RTGetBackBufferInfo();
+  _backBuffer = backend.RTGetBackBuffer().As<ID3D11Texture2D>();
+  _depthStencilBuffer = backend.RTGetDepthStencilBuffer().As<ID3D11Texture2D>();
   if (_module) {
     LOG("Calling module RTBackBufferChange...", MGDF_LOG_MEDIUM);
-    if (!_module->RTBackBufferChange(this)) {
+    if (!_module->RTBackBufferChange(RenderHost())) {
       FATALERROR(this, "Error handling back buffer change in module");
     }
   }
@@ -401,45 +476,43 @@ void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
   }
 }
 
-void Host::GetD3DDevice(ID3D11Device **device) { _d3dDevice.AddRawRef(device); }
+void Host::GetBackBufferInfo(MGDFBackBufferInfo *info) {
+  *info = _backBufferInfo;
+}
 
-void Host::GetD2DDevice(ID2D1Device **device) { _d2dDevice.AddRawRef(device); }
+void Host::GetD3D11Device(ID3D11Device **device) {
+  std::lock_guard lock(_deviceMutex);
+  _d3dDevice.AddRawRef(device);
+}
+
+void Host::GetD3D12Device(ID3D12Device10 **device) {
+  std::lock_guard lock(_deviceMutex);
+  _d3d12Device.AddRawRef(device);
+}
+void Host::GetDirectQueue(ID3D12CommandQueue **queue) {
+  std::lock_guard lock(_deviceMutex);
+  _directQueue.AddRawRef(queue);
+}
+void Host::GetComputeQueue(ID3D12CommandQueue **queue) {
+  std::lock_guard lock(_deviceMutex);
+  _computeQueue.AddRawRef(queue);
+}
+void Host::GetCopyQueue(ID3D12CommandQueue **queue) {
+  std::lock_guard lock(_deviceMutex);
+  _copyQueue.AddRawRef(queue);
+}
+void Host::GetCurrentFrame(MGDFFrameInfo *frame) {
+  *frame = _backend->RTGetCurrentFrame();
+}
+void Host::GetFrameFence(ID3D12Fence **fence) { _frameFence.AddRawRef(fence); }
+HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
+                               ID3D12GraphicsCommandList *list,
+                               IMGDFPerformanceCounter **counter) {
+  return _timer->CreateGPUCounter(metric, list, counter);
+}
 
 void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
   _renderSettings.AddRawRef(settings);
-}
-
-BOOL Host::SetBackBufferRenderTarget(ID2D1DeviceContext *context) {
-  if (!context) return false;
-
-  D3D11_TEXTURE2D_DESC desc;
-  _backBuffer->GetDesc(&desc);
-
-  LOG("Setting D2D device context render target to backbuffer...",
-      MGDF_LOG_HIGH);
-  D2D1_PIXEL_FORMAT pixelFormat;
-  pixelFormat.format = desc.Format;
-  pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
-
-  D2D1_BITMAP_PROPERTIES1 bitmapProperties;
-  bitmapProperties.bitmapOptions =
-      D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-  bitmapProperties.pixelFormat = pixelFormat;
-  bitmapProperties.dpiX = 0;
-  bitmapProperties.dpiX = 0;
-  bitmapProperties.colorContext = nullptr;
-
-  ComObject<IDXGISurface1> dxgiSurface;
-  if (!FAILED(
-          _backBuffer->QueryInterface<IDXGISurface1>(dxgiSurface.Assign()))) {
-    ComObject<ID2D1Bitmap1> bitmap;
-    if (!FAILED(context->CreateBitmapFromDxgiSurface(
-            dxgiSurface, bitmapProperties, bitmap.Assign()))) {
-      context->SetTarget(bitmap);
-      return true;
-    }
-  }
-  return false;
 }
 
 void Host::FatalError(const char *sender, const char *message) {

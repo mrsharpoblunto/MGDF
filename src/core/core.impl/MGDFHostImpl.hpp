@@ -7,6 +7,7 @@
 #include <mutex>
 #include <sstream>
 
+#include "../MGDFRenderBackend.hpp"
 #include "../audio/MGDFSoundManagerComponent.hpp"
 #include "../input/MGDFInputManagerComponent.hpp"
 #include "../network/MGDFNetworkManagerComponent.hpp"
@@ -36,7 +37,11 @@ struct HostComponents {
  reference implementation of the Host interfaces
 \author gcconner
 */
-class Host : public IMGDFRenderHost, public IMGDFSimHost {
+class Host : public IMGDFD3D11RenderHost,
+             public IMGDFSimHost,
+             public IMGDFD3D11Host,
+             public IMGDFD3D12Host,
+             public IMGDFD3D12RenderHost {
  public:
   static HRESULT TryCreate(ComObject<Game> game, HostComponents &components,
                            ComObject<Host> &host);
@@ -61,18 +66,17 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void STDisposeModule();
 
   void RTBeforeFirstDraw();
-  void RTSetDevices(const ComObject<ID3D11Device> &device,
-                    const ComObject<ID2D1Device> &d2dDevice);
-  void RTDraw(double alpha);
+  void RTSetDevices(IRenderBackend &backend);
+  bool RTDraw(double alpha);
+  void RTAfterPresent();
   void RTBeforeBackBufferChange();
-  void RTBackBufferChange(const ComObject<ID3D11Texture2D> &backBuffer,
-                          const ComObject<ID3D11Texture2D> &depthStencilBuffer);
+  void RTBackBufferChange(IRenderBackend &backend);
   void RTBeforeDeviceReset();
   void RTDeviceReset();
   void RTShutDown();
 
-  UINT64 GetCompatibleD3DFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                                       UINT64 *featureLevelsSize);
+  void InitGraphics();
+  const MGDFGraphicsRequirements &GetGraphicsRequirements() const;
   ComObject<RenderSettingsManager> GetRenderSettingsImpl();
   ComObject<input::IInputManagerComponent> GetInputManagerImpl();
   ComObject<Debug> GetDebugImpl();
@@ -107,10 +111,23 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   void __stdcall GetInput(IMGDFInputManager **manager) final;
   void __stdcall ShutDown() final;
 
+  MGDFGraphicsAPI __stdcall GetGraphicsAPI() final;
+
   // IRenderHost methods
-  void __stdcall GetD3DDevice(ID3D11Device **device) final;
-  void __stdcall GetD2DDevice(ID2D1Device **device) final;
-  BOOL __stdcall SetBackBufferRenderTarget(ID2D1DeviceContext *context) final;
+  void __stdcall GetBackBufferInfo(MGDFBackBufferInfo *info) final;
+
+  void __stdcall GetD3D12Device(ID3D12Device10 **device) final;
+  void __stdcall GetDirectQueue(ID3D12CommandQueue **queue) final;
+  void __stdcall GetComputeQueue(ID3D12CommandQueue **queue) final;
+  void __stdcall GetCopyQueue(ID3D12CommandQueue **queue) final;
+  void __stdcall GetCurrentFrame(MGDFFrameInfo *frame) final;
+  void __stdcall GetFrameFence(ID3D12Fence **fence) final;
+  HRESULT __stdcall CreateGPUCounter(IMGDFMetric *metric,
+                                     ID3D12GraphicsCommandList *list,
+                                     IMGDFPerformanceCounter **counter) final;
+
+  // D3D11 host methods
+  void __stdcall GetD3D11Device(ID3D11Device **device) final;
   void __stdcall GetBackBuffer(ID3D11Texture2D **backbuffer) final;
   void __stdcall GetDepthStencilBuffer(ID3D11Texture2D **depthStencil) final;
   void __stdcall GetBackBufferDescription(
@@ -144,6 +161,9 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                                     IMGDFWebServer **server) final;
 
  private:
+  IMGDFRenderHost *RenderHost() {
+    return static_cast<IMGDFD3D11RenderHost *>(this);
+  }
   HRESULT Init();
   template <typename T>
   HRESULT CreateMetric(const small *name, IMGDFMetric **metric,
@@ -176,8 +196,15 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
 
+  MGDFGraphicsRequirements _graphicsRequirements{};
+  MGDFGraphicsAPI _graphicsAPI = MGDF_GRAPHICS_API_D3D11;
+  MGDFBackBufferInfo _backBufferInfo{};
+  std::mutex _deviceMutex;
+  IRenderBackend *_backend = nullptr;
+  ComObject<ID3D12Device10> _d3d12Device;
+  ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
+  ComObject<ID3D12Fence> _frameFence;
   ComObject<ID3D11Device> _d3dDevice;
-  ComObject<ID2D1Device> _d2dDevice;
   ComObject<ID3D11Texture2D> _backBuffer;
   ComObject<ID3D11Texture2D> _depthStencilBuffer;
 

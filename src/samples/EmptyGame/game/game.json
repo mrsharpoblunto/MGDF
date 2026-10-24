@@ -3,7 +3,7 @@
   "gamename": "Empty Game",
   "version": "1.0.0",
   "developername": "Unknown",
-  "homepage": "http://www.example.com"
+  "homepage": "http://www.example.com",
   "supportemail": "support@example.com",
   "preferences": {
     "simFps": "120"

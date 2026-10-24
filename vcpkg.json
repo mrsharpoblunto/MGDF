@@ -30,12 +30,22 @@
     },
     {
       "name": "curl",
-      "features": ["websockets"],
+      "features": [
+        "websockets"
+      ],
       "version>=": "8.10.1"
     },
     {
       "name": "civetweb",
       "version>=": "1.16"
+    },
+    {
+      "name": "directx12-agility",
+      "version>=": "1.619.5"
+    },
+    {
+      "name": "directx-headers",
+      "version>=": "1.619.5"
     }
   ]
 }

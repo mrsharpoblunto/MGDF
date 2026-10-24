@@ -24,23 +24,21 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
   return S_OK;
 }
 
-// specify to the framework what kind of d3d device features we want/require
-extern "C" __declspec(dllexport) UINT64
-    GetCompatibleFeatureLevels(D3D_FEATURE_LEVEL *levels,
-                               UINT64 *featureLevelsSize) {
-  if (*featureLevelsSize != 1) {
-    *featureLevelsSize = 1;
-    return 1;
-  } else {
-    levels[0] = D3D_FEATURE_LEVEL_9_3;
-    return 0;
-  }
+extern "C" __declspec(dllexport) HRESULT
+GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
+  if (!requirements) return E_POINTER;
+  *requirements = {};
+  requirements->APICount = 2;
+  requirements->APIs[0] = MGDF_GRAPHICS_API_D3D11;
+  requirements->APIs[1] = MGDF_GRAPHICS_API_D3D12;
+  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_9_3;
+  requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
+  return S_OK;
 }
 
 // register custom archive handlers
-extern "C" __declspec(dllexport) HRESULT
-    GetCustomArchiveHandlers(IMGDFArchiveHandler **list, UINT64 *length,
-                             IMGDFLogger *logger) {
+extern "C" __declspec(dllexport) HRESULT GetCustomArchiveHandlers(
+    IMGDFArchiveHandler **list, UINT64 *length, IMGDFLogger *logger) {
   *length = 1;
   if (!list) {
     return S_OK;

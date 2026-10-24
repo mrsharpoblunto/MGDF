@@ -65,7 +65,7 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
       _internalShutDown(false),
       _windowStyle(WS_OVERLAPPEDWINDOW),
       _rtAllowTearing(false),
-      _rtFrameWaitableObject(nullptr) {
+      _hasSwapChain(false) {
   _minimized.store(false);
   _runRenderThread.clear();
 
@@ -168,12 +168,7 @@ void D3DAppFramework::InitWindow(const std::string &caption) {
 
     InitRawInput();
 
-    LOG("Getting compatible D3D feature levels...", MGDF_LOG_LOW);
-    UINT64 levelsSize = 0;
-    if (GetCompatibleD3DFeatureLevels(nullptr, &levelsSize)) {
-      _rtLevels.resize(levelsSize);
-      GetCompatibleD3DFeatureLevels(_rtLevels.data(), &levelsSize);
-    }
+    _rtRenderBackend = CreateRenderBackend(_rtFactory);
 
     if (!RTInitD3D(_window)) {
       FATALERROR(this, "Failed to initialize D3D");
@@ -193,7 +188,8 @@ void D3DAppFramework::InitRawInput() {
       {
           .usUsagePage = 0x01,  // desktop input
           .usUsage = 0x06,      // keyboard
-          .dwFlags = 0,  // Allow application shortcuts while the game has focus.
+          .dwFlags =
+              0,  // Allow application shortcuts while the game has focus.
           .hwndTarget = _window,
       }};
 
@@ -216,138 +212,21 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   }
   _rtAllowTearing = allowTearing == TRUE;
 
-#if defined(DEBUG) || defined(_DEBUG)
-  constexpr const UINT32 createDeviceFlags =
-      D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
-#else
-  constexpr const UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-#endif
-
-  if (!_rtFactory) {
-    // use the default adapter to create the device
-    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-    if (FAILED(::D3D11CreateDevice(
-            nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, createDeviceFlags,
-            _rtLevels.data(), static_cast<UINT>(_rtLevels.size()),
-            D3D11_SDK_VERSION, _rtD3dDevice.Assign(), &featureLevel,
-            _rtImmediateContext.Assign())) ||
-        featureLevel == 0) {
-      LOG("Failed to create device with default adapter", MGDF_LOG_ERROR);
-      return false;
-    }
-  } else {
-    // step through the adapters and ensure we use the best one to create our
-    // device
-    ComObject<IDXGIAdapter1> adapter;
-    ComObject<IDXGIAdapter1> bestAdapter;
-    SIZE_T bestAdapterMemory = 0;
-
-    char videoCardDescription[128];
-    ::SecureZeroMemory(videoCardDescription, sizeof(videoCardDescription));
-    DXGI_ADAPTER_DESC1 adapterDesc = {};
-
-    LOG("Enumerating display adapters...", MGDF_LOG_LOW);
-    for (INT32 i = 0;
-         _rtFactory->EnumAdapters1(i, adapter.Assign()) != DXGI_ERROR_NOT_FOUND;
-         i++) {
-      adapter->GetDesc1(&adapterDesc);
-
-      if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-        LOG("Skipping software adapter", MGDF_LOG_LOW);
-        continue;
-      }
-
-      size_t length = wcslen(adapterDesc.Description);
-#if defined(_DEBUG) || defined(DEBUG)
-      size_t stringLength = 0;
-      const INT32 error = wcstombs_s(&stringLength, videoCardDescription, 128,
-                                     adapterDesc.Description, length);
-      _ASSERTE(!error);
-#endif
-
-      std::string message(videoCardDescription, videoCardDescription + length);
-      message.insert(0, "Attempting to create device for adapter ");
-      LOG(message, MGDF_LOG_LOW);
-
-      if (!bestAdapter ||
-          adapterDesc.DedicatedVideoMemory > bestAdapterMemory) {
-        D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-        ComObject<ID3D11Device> device;
-        ComObject<ID3D11DeviceContext> context;
-
-        if (SUCCEEDED(::D3D11CreateDevice(
-                adapter,
-                D3D_DRIVER_TYPE_UNKNOWN,  // as we're specifying an adapter to
-                                          // use, we must specify that the
-                                          // driver type is unknown!!!
-                0,                        // no software device
-                createDeviceFlags, _rtLevels.data(),
-                static_cast<UINT>(
-                    _rtLevels.size()),  // default feature level array
-                D3D11_SDK_VERSION, device.Assign(), &featureLevel,
-                context.Assign())) &&
-            featureLevel != 0) {
-          // this is the first acceptable adapter, or the best one so far
-          if (!_rtD3dDevice ||
-              featureLevel >= _rtD3dDevice->GetFeatureLevel()) {
-            // store the new best adapter
-            bestAdapter = adapter;
-            bestAdapterMemory = adapterDesc.DedicatedVideoMemory;
-            _rtD3dDevice = device;
-            _rtImmediateContext = context;
-            LOG("Adapter is the best found so far", MGDF_LOG_LOW);
-          }
-          // this adapter is no better than what we already have, so ignore it
-          else {
-            LOG("A better adapter has already been found - Ignoring",
-                MGDF_LOG_LOW);
-          }
-        }
-      }
-    }
-  }
-
-  if (!_rtD3dDevice) {
-    LOG("No adapters found supporting the specified D3D feature set",
-        MGDF_LOG_ERROR);
+  if (!_rtRenderBackend->RTInit()) {
     return false;
-  } else {
-    LOG("Created device with D3D Feature level: "
-            << _rtD3dDevice->GetFeatureLevel(),
-        MGDF_LOG_LOW);
   }
-
-  const D2D1_FACTORY_OPTIONS options{
-#if defined(DEBUG) || defined(_DEBUG)
-      .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION
-#else
-      .debugLevel = D2D1_DEBUG_LEVEL_NONE
-#endif
-  };
-
-  if (FAILED(::D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, options,
-                                 _rtD2dFactory.Assign()))) {
-    FATALERROR(this, "Unable to create ID2DFactory1");
-  }
-
-  ComObject<IDXGIDevice1> dxgiDevice;
-  if (FAILED(_rtD3dDevice->QueryInterface<IDXGIDevice1>(dxgiDevice.Assign()))) {
-    FATALERROR(this, "Unable to acquire IDXGIDevice from ID3D11Device");
-  }
-
-  if (FAILED(_rtD2dFactory->CreateDevice(dxgiDevice, _rtD2dDevice.Assign()))) {
-    FATALERROR(this, "Unable to create ID2D1Device");
-  }
+  _rtAdapter = _rtRenderBackend->RTGetAdapter();
 
   if (!RTCheckForDisplayChanges(window)) {
     return false;
   }
-  RTOnInitDevices(_rtD3dDevice, _rtD2dDevice);
+  RTOnInitDevice(*_rtRenderBackend);
 
   RECT windowSize;
   if (!::GetClientRect(window, &windowSize)) {
     FATALERROR(this, "GetClientRect failed");
   }
+  RTWaitForGpuIdle();
   RTOnBeforeBackBufferChange();
   _rtCurrentFullScreen =
       RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
@@ -358,25 +237,10 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   }
   RTCreateSwapChain(window);
   if (_rtCurrentFullScreen.FullScreen && _rtCurrentFullScreen.ExclusiveMode) {
-    RTSetExclusiveFullscreen();
+    _rtRenderBackend->RTSetExclusiveFullscreen();
   }
   RTResizeBackBuffer();
   return true;
-}
-
-void D3DAppFramework::RTSetExclusiveFullscreen() {
-  // exclusive fullscreen is only supported on the primary output
-  LOG("Switching to exclusive fullscreen on primary output", MGDF_LOG_LOW);
-  ComObject<IDXGIDevice> device = _rtD3dDevice.As<IDXGIDevice>();
-  ComObject<IDXGIAdapter> adapter;
-  device->GetAdapter(adapter.Assign());
-  ComObject<IDXGIOutput> primary;
-  if (FAILED(adapter->EnumOutputs(0, primary.Assign()))) {
-    FATALERROR(this, "Failed to get primary output");
-  }
-  if (FAILED(_rtSwapChain->SetFullscreenState(true, primary))) {
-    FATALERROR(this, "SetFullscreenState failed on primary output");
-  }
 }
 
 void D3DAppFramework::ApplyWindowMode(const HWND window,
@@ -440,64 +304,34 @@ ComObject<IDXGIFactory6> D3DAppFramework::RTCreateDXGIFactory() {
 }
 
 void D3DAppFramework::RTPrepareToReinitD3D() {
-  const HRESULT reason = _rtD3dDevice->GetDeviceRemovedReason();
+  const HRESULT reason = _rtRenderBackend->RTGetDeviceRemovedReason();
   LOG("Device removed! DXGI_ERROR code " << reason, MGDF_LOG_ERROR);
 
+  _rtResetDeadline = GetTickCount64() + 10000;
   _awaitingD3DReset.store(true);
+  RTWaitForGpuIdle();
   RTOnBeforeDeviceReset();
   RTUninitD3D();
 }
 
 void D3DAppFramework::RTUninitD3D() {
   LOG("Cleaning up Direct3D resources...", MGDF_LOG_LOW);
-  if (_rtImmediateContext) {
-    _rtImmediateContext->ClearState();
-    _rtImmediateContext->Flush();
+  RTWaitForGpuIdle();
+  _rtAdapter.Clear();
+  if (_rtRenderBackend) {
+    _rtRenderBackend->RTUninit(_rtCurrentFullScreen.ExclusiveMode);
   }
-
-  if (_rtSwapChain && _rtCurrentFullScreen.ExclusiveMode) {
-    BOOL fullscreen = false;
-    if (FAILED(_rtSwapChain->GetFullscreenState(&fullscreen, nullptr)) &&
-        fullscreen) {
-      // d3d has to be in windowed mode to cleanup correctly
-      _rtSwapChain->SetFullscreenState(false, nullptr);
-    }
-  }
-
-  _rtBackBuffer.Clear();
-  _rtRenderTargetView.Clear();
-  _rtDepthStencilView.Clear();
-  _rtDepthStencilBuffer.Clear();
-  _rtSwapChain.Clear();
+  _hasSwapChain.store(false);
   _rtFactory.Clear();
-  _rtImmediateContext.Clear();
-  _rtD2dDevice.Clear();
-  _rtD2dFactory.Clear();
+}
 
-  if (_rtD3dDevice) {
-#if defined(_DEBUG)
-    ComObject<ID3D11Debug> debug;
-    const bool failed =
-        FAILED(_rtD3dDevice->QueryInterface<ID3D11Debug>(debug.Assign()));
-#endif
-    _rtD3dDevice.Clear();
-#if defined(_DEBUG)
-    if (!failed) {
-      debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL |
-                                     D3D11_RLDO_IGNORE_INTERNAL);
-    }
-#endif
+void D3DAppFramework::RTWaitForGpuIdle() {
+  if (_rtRenderBackend) {
+    _rtRenderBackend->RTWaitForGpuIdle();
   }
 }
 
 bool D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
-  ComObject<IDXGIDevice1> dxgiDevice;
-  if (FAILED(_rtD3dDevice->QueryInterface<IDXGIDevice1>(dxgiDevice.Assign()))) {
-    FATALERROR(this, "Unable to acquire IDXGIDevice from ID3D11Device");
-  }
-  ComObject<IDXGIAdapter> adapter;
-  dxgiDevice->GetAdapter(adapter.Assign());
-
   UINT i = 0;
   ComObject<IDXGIOutput> currentOutput;
   ComObject<IDXGIOutput6> bestOutput;
@@ -510,7 +344,7 @@ bool D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
   // with the app window
   LOG("Checking outputs to find best match for current window...",
       MGDF_LOG_HIGH);
-  while (adapter->EnumOutputs(i, currentOutput.Assign()) !=
+  while (_rtAdapter->EnumOutputs(i, currentOutput.Assign()) !=
          DXGI_ERROR_NOT_FOUND) {
     // Get the rectangle bounds of current output
     DXGI_OUTPUT_DESC desc;
@@ -675,8 +509,8 @@ void D3DAppFramework::RTReinitD3D(const HWND window) {
   constexpr int retryDelayMs = 1000;
   for (int attempt = 0; attempt <= maxRetries; ++attempt) {
     if (attempt > 0) {
-      LOG("D3D reinit attempt " << (attempt + 1) << " of "
-                                << (maxRetries + 1) << "...",
+      LOG("D3D reinit attempt " << (attempt + 1) << " of " << (maxRetries + 1)
+                                << "...",
           MGDF_LOG_LOW);
       RTUninitD3D();
       ::Sleep(retryDelayMs);
@@ -690,76 +524,29 @@ void D3DAppFramework::RTReinitD3D(const HWND window) {
 }
 
 bool D3DAppFramework::RTAllowTearing() {
-  return (_rtAllowTearing && !RTVSyncEnabled() &&
+  return ((_rtSwapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) &&
           !(_rtCurrentFullScreen.FullScreen &&
             _rtCurrentFullScreen.ExclusiveMode) &&
           _rtSwapDesc.SampleDesc.Count == 1);
 }
 
 void D3DAppFramework::RTCreateSwapChain(const HWND window) {
-  if (RTAllowTearing()) {
+  _rtSwapDesc.Flags &= ~DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+  if (_rtAllowTearing && _rtSwapDesc.SampleDesc.Count == 1 &&
+      !(_rtCurrentFullScreen.FullScreen &&
+        _rtCurrentFullScreen.ExclusiveMode)) {
     _rtSwapDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
   }
 
-  // ensure everything referencing the old swapchain is cleaned up
-  RTClearBackBuffer();
-  _rtImmediateContext->ClearState();
-  _rtImmediateContext->Flush();
-
-  // don't use the member _rtFactory as that may have been created later
-  // and isn't associated with the d3d device
-  ComObject<IDXGIDevice> dxgiDevice;
-  if (FAILED(_rtD3dDevice->QueryInterface<IDXGIDevice>(dxgiDevice.Assign()))) {
-    FATALERROR(this, "Unable to acquire IDXGIDevice from ID3D11Device");
-  }
-  ComObject<IDXGIAdapter> adapter;
-  dxgiDevice->GetAdapter(adapter.Assign());
-  ComObject<IDXGIFactory2> factory;
-  adapter->GetParent(IID_PPV_ARGS(factory.Assign()));
-
-  LOG("Creating swapchain...", MGDF_LOG_LOW);
-  if (FAILED(factory->CreateSwapChainForHwnd(_rtD3dDevice, window, &_rtSwapDesc,
-                                             nullptr, nullptr,
-                                             _rtSwapChain.Assign()))) {
-    FATALERROR(this, "Failed to create swap chain");
-  }
-
-  if (_rtSwapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) {
-    _rtFrameWaitableObject =
-        _rtSwapChain.As<IDXGISwapChain2>()->GetFrameLatencyWaitableObject();
-  } else {
-    _rtFrameWaitableObject = nullptr;
-  }
-  RTOnSwapChainCreated(_rtSwapChain);
-
-  if (FAILED(factory->MakeWindowAssociation(
-          window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES))) {
-    FATALERROR(this, "Failed to disable alt-enter");
-  }
-}
-
-void D3DAppFramework::RTClearBackBuffer() {
-  // Release the old views, as they hold references to the buffers we
-  // will be destroying.  Also release the old depth/stencil buffer.
-  _rtBackBuffer.Clear();
-  _rtRenderTargetView.Clear();
-  _rtDepthStencilView.Clear();
-  _rtDepthStencilBuffer.Clear();
+  RTWaitForGpuIdle();
+  _rtRenderBackend->RTCreateSwapChain(window, _rtSwapDesc,
+                                      RTGetMaxFrameLatency());
+  _hasSwapChain.store(true);
 }
 
 void D3DAppFramework::RTResizeBackBuffer() {
-  ID3D11RenderTargetView *nullRTView = nullptr;
-  _rtImmediateContext->OMSetRenderTargets(1, &nullRTView, nullptr);
-
-  RTClearBackBuffer();
-
-  LOG("Setting backbuffer to " << _rtSwapDesc.Width << "x"
-                               << _rtSwapDesc.Height,
-      MGDF_LOG_MEDIUM);
-
-  const HRESULT result =
-      _rtSwapChain->ResizeBuffers(0, _rtSwapDesc.Width, _rtSwapDesc.Height,
-                                  DXGI_FORMAT_UNKNOWN, _rtSwapDesc.Flags);
+  RTWaitForGpuIdle();
+  const HRESULT result = _rtRenderBackend->RTResizeBackBuffer(_rtSwapDesc);
 
   // Resize the swap chain and recreate the render target view.
   if (result == DXGI_ERROR_DEVICE_REMOVED ||
@@ -770,61 +557,7 @@ void D3DAppFramework::RTResizeBackBuffer() {
     FATALERROR(this, "Failed to resize swapchain buffers");
   }
 
-  if (FAILED(_rtSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-                                     (void **)_rtBackBuffer.Assign()))) {
-    FATALERROR(this, "Failed to get swapchain buffer");
-  }
-  if (FAILED(_rtD3dDevice->CreateRenderTargetView(
-          _rtBackBuffer, 0, _rtRenderTargetView.Assign()))) {
-    FATALERROR(this, "Failed to create render target view from backbuffer");
-  }
-
-  // Create the depth/stencil buffer and view.
-  const D3D11_TEXTURE2D_DESC depthStencilDesc{
-      .Width = _rtSwapDesc.Width,
-      .Height = _rtSwapDesc.Height,
-      .MipLevels = 1,
-      .ArraySize = 1,
-      .Format = DXGI_FORMAT_D24_UNORM_S8_UINT,
-      .SampleDesc =
-          {
-              .Count = _rtSwapDesc.SampleDesc.Count,
-              .Quality = _rtSwapDesc.SampleDesc.Quality,
-          },
-      .Usage = D3D11_USAGE_DEFAULT,
-      .BindFlags = D3D11_BIND_DEPTH_STENCIL,
-      .CPUAccessFlags = 0,
-      .MiscFlags = 0,
-  };
-
-  if (FAILED(_rtD3dDevice->CreateTexture2D(&depthStencilDesc, 0,
-                                           _rtDepthStencilBuffer.Assign()))) {
-    FATALERROR(this, "Failed to create texture from depth stencil description");
-  }
-
-  if (FAILED(_rtD3dDevice->CreateDepthStencilView(
-          _rtDepthStencilBuffer, 0, _rtDepthStencilView.Assign()))) {
-    FATALERROR(this,
-               "Failed to create depthStencilView from depth stencil buffer");
-  }
-
-  // Bind the render target view and depth/stencil view to the pipeline.
-  _rtImmediateContext->OMSetRenderTargets(1, _rtRenderTargetView.AsArray(),
-                                          _rtDepthStencilView);
-
-  // Set the viewport transform.
-  const D3D11_VIEWPORT viewPort{
-      .TopLeftX = 0,
-      .TopLeftY = 0,
-      .Width = static_cast<float>(_rtSwapDesc.Width),
-      .Height = static_cast<float>(_rtSwapDesc.Height),
-      .MinDepth = 0.0f,
-      .MaxDepth = 1.0f,
-  };
-
-  _rtImmediateContext->RSSetViewports(1, &viewPort);
-
-  RTOnBackBufferChange(_rtBackBuffer, _rtDepthStencilBuffer);
+  RTOnBackBufferChange(*_rtRenderBackend);
 }
 
 void D3DAppFramework::PushRTMessage(
@@ -863,7 +596,7 @@ void D3DAppFramework::CloseWindow() {
 
 INT32 D3DAppFramework::Run() {
   // if the window or d3d has not been initialised, quit with an error
-  if (!_window && !_rtD3dDevice) {
+  if (!_window && (!_rtRenderBackend || !_rtRenderBackend->RTIsInitialized())) {
     return -1;
   }
 
@@ -890,13 +623,18 @@ INT32 D3DAppFramework::Run() {
         while (_runRenderThread.test_and_set()) {
           const bool awaitingReset = _awaitingD3DReset.load();
           if (awaitingReset) {
+            if (GetTickCount64() >= _rtResetDeadline) {
+              FATALERROR(
+                  this,
+                  "Module did not call QueueDeviceReset within 10 seconds");
+            }
             // waiting for the module to signal that its cleaned up all
             // its D3D resources and is ready for a device reset
             ::Sleep(100);
             continue;
           }
 
-          if (!_rtD3dDevice) {
+          if (!_rtRenderBackend->RTIsInitialized()) {
             if (!awaitingReset) {
               LOG("Reinitializing D3D after Device Reset...", MGDF_LOG_MEDIUM);
               RTReinitD3D(window);
@@ -940,6 +678,7 @@ INT32 D3DAppFramework::Run() {
               LOG("Resizing...", MGDF_LOG_MEDIUM);
               _rtSwapDesc.Width = displayChange->Point.x;
               _rtSwapDesc.Height = displayChange->Point.y;
+              RTWaitForGpuIdle();
               RTOnBeforeBackBufferChange();
               RTOnResize(_rtSwapDesc.Width, _rtSwapDesc.Height);
               RTResizeBackBuffer();
@@ -953,27 +692,13 @@ INT32 D3DAppFramework::Run() {
                 FATALERROR(this, "GetClientRect failed");
               }
 
+              RTWaitForGpuIdle();
               RTOnBeforeBackBufferChange();
               const MGDFFullScreenDesc newFullScreen = RTOnResetSwapChain(
                   _rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
 
-              if (_rtSwapChain && _rtCurrentFullScreen.ExclusiveMode) {
-                // clean up the old swap chain, then recreate it with the new
-                // settings
-                BOOL fullscreen = false;
-                if (FAILED(_rtSwapChain->GetFullscreenState(&fullscreen,
-                                                            nullptr))) {
-                  FATALERROR(this, "GetFullscreenState failed");
-                }
-                if (fullscreen) {
-                  LOG("Switching from exclusive fullscreen to windowed mode",
-                      MGDF_LOG_LOW);
-                  // d3d has to be in windowed mode to cleanup correctly
-                  if (FAILED(
-                          _rtSwapChain->SetFullscreenState(false, nullptr))) {
-                    FATALERROR(this, "SetFullscreenState failed");
-                  }
-                }
+              if (_rtCurrentFullScreen.ExclusiveMode) {
+                _rtRenderBackend->RTSetWindowed();
               }
               _rtCurrentFullScreen = newFullScreen;
 
@@ -986,51 +711,38 @@ INT32 D3DAppFramework::Run() {
               // fullscreen or if this backbuffer change was for a toggle from
               // windowed to fullscreen
               if (newFullScreen.FullScreen && newFullScreen.ExclusiveMode) {
-                RTSetExclusiveFullscreen();
+                _rtRenderBackend->RTSetExclusiveFullscreen();
               }
               RTResizeBackBuffer();
             }
           }
 
-          if (!_minimized.load() && _rtD3dDevice) {
-            if (_rtFrameWaitableObject) {
-              const DWORD wait =
-                  ::WaitForSingleObjectEx(_rtFrameWaitableObject, 1000, true);
-              if (wait == WAIT_ABANDONED || wait == WAIT_TIMEOUT ||
-                  wait == WAIT_FAILED) {
-                LOG("Failed to wait on FrameWaitableObject", MGDF_LOG_ERROR);
-              }
+          if (!_minimized.load() && _rtRenderBackend->RTIsInitialized()) {
+            if (!_rtRenderBackend->RTWaitForFrame()) {
+              if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason()))
+                RTPrepareToReinitD3D();
+              continue;
             }
-
-            const float black[4] = {0.0f, 0.0f, 0.0f, 1.0f};  // RGBA
-            _rtImmediateContext->ClearRenderTargetView(_rtRenderTargetView,
-                                                       &black[0]);
-            _rtImmediateContext->ClearDepthStencilView(
-                _rtDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-                1.0f, 0);
-
-            RTOnDraw();
-
-            HRESULT result = S_OK;
-            {
-              result = _rtSwapChain->Present(
-                  RTVSyncEnabled() ? 1 : 0,
-                  RTAllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0);
+            if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason())) {
+              RTPrepareToReinitD3D();
+              continue;
             }
+            if (!RTOnDraw()) _rtRenderBackend->RTClear();
+
+            HRESULT result = _rtRenderBackend->RTPresent(
+                RTVSyncEnabled() ? 1 : 0,
+                (!RTVSyncEnabled() && RTAllowTearing())
+                    ? DXGI_PRESENT_ALLOW_TEARING
+                    : 0);
+            RTOnAfterPresent();
+            const HRESULT frameResult = _rtRenderBackend->RTEndFrame();
+            if (SUCCEEDED(result)) result = frameResult;
 
             if (result == DXGI_ERROR_DEVICE_REMOVED ||
                 result == DXGI_ERROR_DEVICE_RESET) {
               RTPrepareToReinitD3D();
             } else if (FAILED(result)) {
               FATALERROR(this, "Direct3d Present1 failed");
-            } else if (_rtSwapDesc.SwapEffect ==
-                           DXGI_SWAP_EFFECT_FLIP_DISCARD ||
-                       _rtSwapDesc.SwapEffect ==
-                           DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL) {
-              // using flip modes means we need to re-bind the backbuffer to a
-              // render target after each present
-              _rtImmediateContext->OMSetRenderTargets(
-                  1, _rtRenderTargetView.AsArray(), _rtDepthStencilView);
             }
           }
         }
@@ -1158,7 +870,7 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
           // Track, but don't resize until the user has finished resizing
           _resizing->x = LOWORD(lParam);
           _resizing->y = HIWORD(lParam);
-        } else if (!_rtSwapChain ||
+        } else if (!_hasSwapChain.load() ||
                    _minimized.compare_exchange_strong(exp, false)) {
           // If we are just starting up and haven't initialized d3d yet, or we
           // are simply restoring the window view without changing the size

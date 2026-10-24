@@ -119,6 +119,7 @@
     <ClCompile Include="MGDFNetworkImpl.cpp" />
     <ClCompile Include="MGDFMetrics.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp" />
+    <ClCompile Include="MGDFGraphicsRequirements.cpp" />
     <ClCompile Include="MGDFModuleFactory.cpp" />
     <ClCompile Include="MGDFSaveManagerImpl.cpp" />
     <ClCompile Include="MGDFStatisticsManagerImpl.cpp" />
@@ -127,7 +128,7 @@
     <ClCompile Include="MGDFCurrentDirectoryHelper.cpp" />
     <ClCompile Include="MGDFParameterConstants.cpp" />
     <ClCompile Include="MGDFHostMetrics.cpp" />
-    <ClCompile Include="MGDFTextStream.cpp" />
+    <ClCompile Include="MGDFD3D12Timer.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -141,6 +142,7 @@
     <ClInclude Include="MGDFNetworkImpl.hpp" />
     <ClInclude Include="MGDFMetrics.hpp" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp" />
+    <ClInclude Include="MGDFGraphicsRequirements.hpp" />
     <ClInclude Include="MGDFModuleFactory.hpp" />
     <ClInclude Include="MGDFSaveManagerImpl.hpp" />
     <ClInclude Include="MGDFStatisticsManagerImpl.hpp" />
@@ -149,7 +151,7 @@
     <ClInclude Include="MGDFCurrentDirectoryHelper.hpp" />
     <ClInclude Include="MGDFParameterConstants.hpp" />
     <ClInclude Include="MGDFHostMetrics.hpp" />
-    <ClInclude Include="MGDFTextStream.hpp" />
+    <ClInclude Include="MGDFD3D12Timer.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
