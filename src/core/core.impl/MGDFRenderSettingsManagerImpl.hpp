@@ -33,9 +33,11 @@ class PendingRenderSettingsChange
   void __stdcall SetWindowSize(UINT32 width, UINT32 height) final;
   void __stdcall SetHDREnabled(BOOL enabled) final;
   void __stdcall Cancel() final;
+  void __stdcall SetWindowAspectLock(BOOL enabled) final;
 
  private:
   bool _cancelled;
+  std::optional<BOOL> _newWindowAspectLock;
   std::optional<UINT32> _newMaxFrameLatency;
   std::optional<BOOL> _newVsync;
   std::optional<UINT32> _newBackBufferMultiSampleLevel;
@@ -82,6 +84,11 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 __stdcall GetScreenY() final;
   void __stdcall GetPreferences(IMGDFPreferenceSet **preferences) final;
 
+  BOOL __stdcall GetWindowAspectLock() final;
+  BOOL __stdcall GetWindowResizeEnabled() final;
+  BOOL __stdcall GetWindowSizeLimits(UINT32 *width, UINT32 *height) final;
+  std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
+
   void LoadPreferences(const ComObject<IMGDFGame> &game);
   void InitFromDevice(const ComObject<ID3D11Device> &d3dDevice);
   void InitD3D12();
@@ -97,7 +104,10 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   void Cleanup();
   MGDFDisplayMode GetBestAlternativeDisplayMode();
 
-  std::atomic_bool _changePending;
+  std::atomic_bool _changePending{false};
+  bool _windowAspectLock = false;
+  bool _windowResizeEnabled = false;
+  std::optional<std::pair<UINT32, UINT32>> _pendingWindowSize;
 
   std::vector<MGDFDisplayMode> _primaryDisplayModes;
   MGDFDisplayMode _primaryDisplayMode;

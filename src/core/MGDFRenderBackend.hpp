@@ -31,7 +31,7 @@ class IRenderBackend {
   virtual void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
                                  std::optional<UINT> maxFrameLatency) = 0;
   virtual HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) = 0;
-  virtual void RTSetExclusiveFullscreen() = 0;
+  virtual bool RTSetExclusiveFullscreen() = 0;
   virtual void RTSetWindowed() = 0;
   virtual bool RTWaitForFrame() = 0;
   virtual void RTWaitForGpuIdle() = 0;

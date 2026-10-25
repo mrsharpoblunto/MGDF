@@ -50,8 +50,14 @@ PendingRenderSettingsChange::~PendingRenderSettingsChange() {
   }
   if (_newSize.has_value()) {
     changed = true;
-    _manager._screenX = _newSize.value().first;
-    _manager._screenY = _newSize.value().second;
+    _manager._pendingWindowSize = _newSize;
+  }
+  if (_newPrimaryDisplayMode) {
+    changed = true;
+    _manager._primaryDisplayMode = *_newPrimaryDisplayMode;
+  }
+  if (_newWindowAspectLock) {
+    _manager._windowAspectLock = *_newWindowAspectLock != FALSE;
   }
   if (_newHDREnabled.has_value()) {
     changed = true;
@@ -123,6 +129,42 @@ void PendingRenderSettingsChange::SetWindowSize(UINT32 width, UINT32 height) {
 
 void PendingRenderSettingsChange::SetHDREnabled(BOOL enabled) {
   _newHDREnabled = enabled;
+}
+
+void PendingRenderSettingsChange::SetWindowAspectLock(BOOL enabled) {
+  _newWindowAspectLock = enabled;
+}
+
+BOOL RenderSettingsManager::GetWindowAspectLock() {
+  std::lock_guard lock(_mutex);
+  return _windowAspectLock;
+}
+
+BOOL RenderSettingsManager::GetWindowResizeEnabled() {
+  std::lock_guard lock(_mutex);
+  return _windowResizeEnabled;
+}
+
+BOOL RenderSettingsManager::GetWindowSizeLimits(UINT32 *width, UINT32 *height) {
+  if (!width || !height) return FALSE;
+  RECT workArea{};
+  if (!SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0)) return FALSE;
+  DWORD style = WS_OVERLAPPEDWINDOW;
+  if (!GetWindowResizeEnabled())
+    style &= ~(WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+  RECT frame{};
+  if (!AdjustWindowRect(&frame, style, FALSE)) return FALSE;
+  *width = static_cast<UINT32>((std::max)(1L, workArea.right - workArea.left -
+                                                  (frame.right - frame.left)));
+  *height = static_cast<UINT32>((std::max)(1L, workArea.bottom - workArea.top -
+                                                   (frame.bottom - frame.top)));
+  return TRUE;
+}
+
+std::optional<std::pair<UINT32, UINT32>>
+RenderSettingsManager::TakeWindowSize() {
+  std::lock_guard lock(_mutex);
+  return std::exchange(_pendingWindowSize, std::nullopt);
 }
 
 void PendingRenderSettingsChange::Cancel() { _cancelled = true; }
@@ -401,7 +443,7 @@ void RenderSettingsManager::OnResetSwapChain(
   std::lock_guard<std::mutex> lock(_mutex);
 
   fullscreenDesc.Windowed =
-      !(_fullScreen.FullScreen && !_fullScreen.ExclusiveMode);
+      !(_fullScreen.FullScreen && _fullScreen.ExclusiveMode);
   fullscreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
   fullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
   fullscreenDesc.RefreshRate.Numerator =
@@ -459,6 +501,7 @@ void RenderSettingsManager::Cleanup() {
 }
 
 void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
+  std::lock_guard lock(_mutex);
   ComObject<PreferenceSetImpl> p = MakeCom<PreferenceSetImpl>();
 
   p->Preferences.insert(std::make_pair(PreferenceConstants::FULL_SCREEN,
@@ -488,6 +531,8 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::HDR_BACKBUFFER_FORMAT,
                      ToString(_hdrBackBufferFormat)));
+  p->Preferences.insert(
+      {PreferenceConstants::WINDOW_ASPECT_LOCK, ToString(_windowAspectLock)});
   p.AddRawRef(preferences);
 }
 
@@ -497,6 +542,12 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
 
   bool savePreferences = false;
   std::string pref;
+  if (GetPreference(game, PreferenceConstants::WINDOW_ASPECT_LOCK, pref)) {
+    _windowAspectLock = FromString<bool>(pref);
+  }
+  if (GetPreference(game, PreferenceConstants::WINDOW_RESIZE, pref)) {
+    _windowResizeEnabled = FromString<bool>(pref);
+  }
   if (GetPreference(game, PreferenceConstants::FULL_SCREEN, pref)) {
     _fullScreen.FullScreen = FromString<bool>(pref);
   }

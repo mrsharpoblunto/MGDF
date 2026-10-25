@@ -8,6 +8,7 @@
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFParameterManager.hpp"
 #include "common/MGDFResources.hpp"
+#include "common/MGDFWindowSizing.hpp"
 #include "core.impl/MGDFParameterConstants.hpp"
 #include "windowsx.h"
 
@@ -222,66 +223,88 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   }
   RTOnInitDevice(*_rtRenderBackend);
 
-  RECT windowSize;
+  RTWaitForGpuIdle();
+  RTOnBeforeBackBufferChange();
+  const auto desired = RTGetFullscreen();
+  if (desired.FullScreen && !desired.ExclusiveMode &&
+      !ApplyWindowMode(window, true))
+    RTSetFullscreen({FALSE, FALSE});
+  RECT windowSize{};
   if (!::GetClientRect(window, &windowSize)) {
     FATALERROR(this, "GetClientRect failed");
   }
-  RTWaitForGpuIdle();
-  RTOnBeforeBackBufferChange();
   _rtCurrentFullScreen =
       RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
-  // the window starts windowed: restyle it before the swapchain is created,
-  // or a fullscreen sized swapchain presents into the small window
-  if (_rtCurrentFullScreen.FullScreen && !_rtCurrentFullScreen.ExclusiveMode) {
-    ApplyWindowMode(window, true);
-  }
   RTCreateSwapChain(window);
-  if (_rtCurrentFullScreen.FullScreen && _rtCurrentFullScreen.ExclusiveMode) {
-    _rtRenderBackend->RTSetExclusiveFullscreen();
-  }
+  RTApplyFullscreen(window);
   RTResizeBackBuffer();
   return true;
 }
 
-void D3DAppFramework::ApplyWindowMode(const HWND window,
-                                      const bool fullScreenBorderless) {
-  if (fullScreenBorderless) {
-    LOG("Setting fullscreen-borderless mode", MGDF_LOG_LOW);
-    if (!::SetWindowLongW(
-            window, GWL_STYLE,
-            WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME |
-                                    WS_MINIMIZEBOX | WS_MAXIMIZEBOX))) {
-      FATALERROR(this, "SetWindowLongW failed");
-    }
-    HMONITOR hMonitor = ::MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-    MONITORINFOEX monitorInfo = {};
-    monitorInfo.cbSize = sizeof(MONITORINFOEX);
-    if (!::GetMonitorInfo(hMonitor, &monitorInfo)) {
-      FATALERROR(this, "GetMonitorInfo failed");
-    }
-    if (!::SetWindowPos(
-            window, HWND_TOP, monitorInfo.rcMonitor.left,
-            monitorInfo.rcMonitor.top,
-            monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
-            monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
-            SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
-      FATALERROR(this, "SetWindowPos failed");
-    }
-    ::ShowWindow(window, SW_MAXIMIZE);
-  } else {
-    LOG("Setting windowed mode", MGDF_LOG_LOW);
-    if (!::SetWindowLong(window, GWL_STYLE, _windowStyle)) {
-      FATALERROR(this, "SetWindowLong failed");
-    }
-    if (!::SetWindowPos(window, HWND_NOTOPMOST, _rtWindowRect.left,
-                        _rtWindowRect.top,
-                        _rtWindowRect.right - _rtWindowRect.left,
-                        _rtWindowRect.bottom - _rtWindowRect.top,
-                        SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
-      FATALERROR(this, "SetWindowPos failed");
-    }
-    ::ShowWindow(window, SW_NORMAL);
+void D3DAppFramework::RTApplyFullscreen(HWND window) {
+  if (!_rtCurrentFullScreen.FullScreen || !_rtCurrentFullScreen.ExclusiveMode ||
+      _rtRenderBackend->RTSetExclusiveFullscreen())
+    return;
+  RTSetFullscreen({FALSE, FALSE});
+  ApplyWindowMode(window, false);
+  RECT client{};
+  if (!::GetClientRect(window, &client)) {
+    FATALERROR(this, "GetClientRect failed");
   }
+  _rtCurrentFullScreen =
+      RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, client);
+  RTCreateSwapChain(window);
+}
+
+bool D3DAppFramework::ApplyWindowMode(const HWND window,
+                                      const bool fullScreenBorderless) {
+  const LONG oldStyle = ::GetWindowLong(window, GWL_STYLE);
+  const LONG style =
+      fullScreenBorderless
+          ? WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME |
+                                    WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+          : _windowStyle;
+  RECT target = _rtWindowRect;
+  if (fullScreenBorderless) {
+    MONITORINFO info{.cbSize = sizeof(MONITORINFO)};
+    if (!::GetMonitorInfo(::MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST),
+                          &info)) {
+      LOG("Cannot read monitor bounds: " << GetLastError(), MGDF_LOG_ERROR);
+      return false;
+    }
+    target = info.rcMonitor;
+  }
+  ::SetLastError(0);
+  if (!::SetWindowLong(window, GWL_STYLE, style) && GetLastError()) {
+    LOG("Cannot change window style: " << GetLastError(), MGDF_LOG_ERROR);
+    return false;
+  }
+  if (!::SetWindowPos(window, fullScreenBorderless ? HWND_TOP : HWND_NOTOPMOST,
+                      target.left, target.top, target.right - target.left,
+                      target.bottom - target.top,
+                      SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
+    LOG("Cannot change window bounds: " << GetLastError(), MGDF_LOG_ERROR);
+    ::SetWindowLong(window, GWL_STYLE, oldStyle);
+    return false;
+  }
+  ::ShowWindow(window, SW_SHOWNOACTIVATE);
+  return true;
+}
+
+void D3DAppFramework::ApplyWindowSize(HWND window, UINT32 width,
+                                      UINT32 height) {
+  RECT bounds{0, 0, static_cast<LONG>(width), static_cast<LONG>(height)};
+  if (!::AdjustWindowRect(&bounds, _windowStyle, FALSE)) {
+    LOG("Cannot calculate window bounds: " << GetLastError(), MGDF_LOG_ERROR);
+    return;
+  }
+  if (!::SetWindowPos(window, nullptr, 0, 0, bounds.right - bounds.left,
+                      bounds.bottom - bounds.top,
+                      SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)) {
+    LOG("Cannot set window size: " << GetLastError(), MGDF_LOG_ERROR);
+    return;
+  }
+  ::GetWindowRect(window, &_rtWindowRect);
 }
 
 ComObject<IDXGIFactory6> D3DAppFramework::RTCreateDXGIFactory() {
@@ -676,8 +699,15 @@ INT32 D3DAppFramework::Run() {
             if (displayChange && (displayChange->Type == DC_WINDOW_RESIZE ||
                                   displayChange->Type == DC_WINDOW_MAXIMIZE)) {
               LOG("Resizing...", MGDF_LOG_MEDIUM);
-              _rtSwapDesc.Width = displayChange->Point.x;
-              _rtSwapDesc.Height = displayChange->Point.y;
+              RECT client{};
+              if (!::GetClientRect(window, &client) || client.right <= 0 ||
+                  client.bottom <= 0)
+                continue;
+              if (_rtCurrentFullScreen.FullScreen &&
+                  _rtCurrentFullScreen.ExclusiveMode)
+                continue;
+              _rtSwapDesc.Width = static_cast<UINT>(client.right);
+              _rtSwapDesc.Height = static_cast<UINT>(client.bottom);
               RTWaitForGpuIdle();
               RTOnBeforeBackBufferChange();
               RTOnResize(_rtSwapDesc.Width, _rtSwapDesc.Height);
@@ -687,32 +717,37 @@ INT32 D3DAppFramework::Run() {
               // check
               LOG("Module has scheduled a backbuffer change...", MGDF_LOG_LOW);
 
-              RECT windowSize;
+              RTWaitForGpuIdle();
+              RTOnBeforeBackBufferChange();
+              auto newFullScreen = RTGetFullscreen();
+              if (_rtCurrentFullScreen.FullScreen &&
+                  _rtCurrentFullScreen.ExclusiveMode) {
+                _rtRenderBackend->RTSetWindowed();
+              }
+              const bool wasBorderless = _rtCurrentFullScreen.FullScreen &&
+                                         !_rtCurrentFullScreen.ExclusiveMode;
+              const bool borderless =
+                  newFullScreen.FullScreen && !newFullScreen.ExclusiveMode;
+              if (wasBorderless != borderless &&
+                  !ApplyWindowMode(window, borderless)) {
+                newFullScreen = _rtCurrentFullScreen;
+                RTSetFullscreen(newFullScreen);
+              }
+              const auto size = RTTakeWindowSize();
+              if (size && !newFullScreen.FullScreen)
+                ApplyWindowSize(window, size->first, size->second);
+              RECT windowSize{};
               if (!::GetClientRect(window, &windowSize)) {
                 FATALERROR(this, "GetClientRect failed");
               }
-
-              RTWaitForGpuIdle();
-              RTOnBeforeBackBufferChange();
-              const MGDFFullScreenDesc newFullScreen = RTOnResetSwapChain(
+              _rtCurrentFullScreen = RTOnResetSwapChain(
                   _rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
-
-              if (_rtCurrentFullScreen.ExclusiveMode) {
-                _rtRenderBackend->RTSetWindowed();
-              }
-              _rtCurrentFullScreen = newFullScreen;
-
-              if (!newFullScreen.ExclusiveMode) {
-                ApplyWindowMode(window, newFullScreen.FullScreen);
-              }
               RTCreateSwapChain(window);
 
               // reset the swap chain to fullscreen if it was previously
               // fullscreen or if this backbuffer change was for a toggle from
               // windowed to fullscreen
-              if (newFullScreen.FullScreen && newFullScreen.ExclusiveMode) {
-                _rtRenderBackend->RTSetExclusiveFullscreen();
-              }
+              RTApplyFullscreen(window);
               RTResizeBackBuffer();
             }
           }
@@ -886,9 +921,27 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
       return 0;
 
     // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
-    case WM_ENTERSIZEMOVE:
+    case WM_ENTERSIZEMOVE: {
       _resizing = std::make_unique<POINT>();
+      RECT client{};
+      _resizeAspect = ::GetClientRect(hwnd, &client) && client.bottom > 0
+                          ? static_cast<double>(client.right) / client.bottom
+                          : 0;
       return 0;
+    }
+
+    case WM_SIZING: {
+      if (!OnWindowAspectLock() || _resizeAspect <= 0)
+        return OnHandleMessage(hwnd, msg, wParam, lParam);
+      RECT frame{};
+      if (!::AdjustWindowRect(&frame, _windowStyle, FALSE))
+        return OnHandleMessage(hwnd, msg, wParam, lParam);
+      auto &bounds = *reinterpret_cast<RECT *>(lParam);
+      bounds = KeepClientAspect(bounds, static_cast<UINT>(wParam),
+                                frame.right - frame.left,
+                                frame.bottom - frame.top, _resizeAspect);
+      return TRUE;
+    }
 
     // Here we reset everything based on the new window dimensions.
     case WM_EXITSIZEMOVE:

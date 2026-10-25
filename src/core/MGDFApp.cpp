@@ -100,6 +100,28 @@ bool MGDFApp::RTIsBackBufferChangePending() {
   return _settings->IsBackBufferChangePending();
 }
 
+void MGDFApp::RTSetFullscreen(const MGDFFullScreenDesc &desc) {
+  ComObject<IMGDFPendingRenderSettingsChange> change;
+  _settings->CreatePendingSettingsChange(change.Assign());
+  change->SetFullscreen(&desc);
+}
+
+MGDFFullScreenDesc MGDFApp::RTGetFullscreen() {
+  MGDFFullScreenDesc desc{};
+  _settings->GetFullscreen(&desc);
+  return desc;
+}
+
+std::optional<std::pair<UINT32, UINT32>> MGDFApp::RTTakeWindowSize() {
+  return _settings->TakeWindowSize();
+}
+
+bool MGDFApp::OnWindowAspectLock() {
+  const auto fullscreen = RTGetFullscreen();
+  return !fullscreen.FullScreen && _settings->GetWindowResizeEnabled() &&
+         _settings->GetWindowAspectLock();
+}
+
 bool MGDFApp::RTVSyncEnabled() const { return _settings->GetVSync(); }
 
 MGDFFullScreenDesc MGDFApp::RTOnResetSwapChain(

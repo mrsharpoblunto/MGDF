@@ -682,6 +682,9 @@ the settings will be applied to the render system on the next frame
   Cancels any pending changes
   */
   void Cancel();
+
+  /** Keep the current client aspect ratio during user resizing. */
+  void SetWindowAspectLock(BOOL enabled);
 };
 
 /**
@@ -864,6 +867,11 @@ Provides an interface for getting and setting the hosts various display settings
   IMGDFGame SetPreferences method to set the preferences
   */
   void GetPreferences([out] IMGDFPreferenceSet * *preferences);
+
+  BOOL GetWindowAspectLock();
+  BOOL GetWindowResizeEnabled();
+  /** Maximum client size that fits the primary display work area. */
+  BOOL GetWindowSizeLimits([out] UINT32 *width, [out] UINT32 *height);
 };
 
 /**

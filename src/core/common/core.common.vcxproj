@@ -111,6 +111,7 @@
   <ItemGroup>
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />
+    <ClInclude Include="MGDFWindowSizing.hpp" />
     <ClInclude Include="MGDFPreferenceConstants.hpp" />
     <ClInclude Include="MGDFPreferenceSet.hpp" />
     <ClInclude Include="MGDFResources.hpp" />

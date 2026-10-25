@@ -285,12 +285,25 @@ HRESULT D3D12RenderBackend::RTResizeBackBuffer(
   return S_OK;
 }
 
-void D3D12RenderBackend::RTSetExclusiveFullscreen() {
+bool D3D12RenderBackend::RTSetExclusiveFullscreen() {
   ComObject<IDXGIOutput> primary;
-  Check(_adapter->EnumOutputs(0, primary.Assign()),
-        "Failed to get primary output");
-  Check(_swapChain->SetFullscreenState(TRUE, primary),
-        "Failed to enter exclusive fullscreen");
+
+  if (FAILED(_adapter->EnumOutputs(0, primary.Assign()))) return false;
+  const auto result = _swapChain->SetFullscreenState(TRUE, primary);
+  if (FAILED(result)) {
+    LOG("Exclusive fullscreen is not available: " << result, MGDF_LOG_LOW);
+    return false;
+  }
+  const DXGI_MODE_DESC target{.Width = _swapDesc.Width,
+                              .Height = _swapDesc.Height,
+                              .RefreshRate = {0, 0},
+                              .Format = _swapDesc.Format};
+  if (FAILED(_swapChain->ResizeTarget(&target))) {
+    LOG("Cannot change exclusive display resolution", MGDF_LOG_ERROR);
+    _swapChain->SetFullscreenState(FALSE, nullptr);
+    return false;
+  }
+  return true;
 }
 
 void D3D12RenderBackend::RTSetWindowed() {

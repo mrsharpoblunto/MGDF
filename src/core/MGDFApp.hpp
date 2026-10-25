@@ -22,6 +22,10 @@ class MGDFApp : public D3DAppFramework {
   std::optional<UINT> RTGetMaxFrameLatency() const final;
   void RTOnResize(UINT32 width, UINT32 height) final;
   bool RTIsBackBufferChangePending() final;
+  MGDFFullScreenDesc RTGetFullscreen() final;
+  void RTSetFullscreen(const MGDFFullScreenDesc &desc) final;
+  std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() final;
+  bool OnWindowAspectLock() final;
   bool RTVSyncEnabled() const final;
   void RTOnBeforeBackBufferChange() final;
   void RTOnBackBufferChange(IRenderBackend &backend) final;

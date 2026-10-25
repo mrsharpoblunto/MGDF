@@ -26,6 +26,7 @@ const char *PreferenceConstants::RT_MULTISAMPLE_LEVEL =
 const char *PreferenceConstants::VSYNC = "host.vsync";
 const char *PreferenceConstants::MAX_FRAME_LATENCY = "host.maxFrameLatency";
 const char *PreferenceConstants::WINDOW_RESIZE = "host.windowResize";
+const char *PreferenceConstants::WINDOW_ASPECT_LOCK = "host.windowAspectLock";
 const char *PreferenceConstants::WINDOW_SIZEX = "host.windowSizeX";
 const char *PreferenceConstants::WINDOW_SIZEY = "host.windowSizeY";
 const char *PreferenceConstants::WINDOW_POSITIONX = "host.windowPositionX";
