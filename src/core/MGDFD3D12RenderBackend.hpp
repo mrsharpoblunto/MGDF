@@ -23,7 +23,7 @@ class D3D12RenderBackend : public IRenderBackend {
   void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
                          std::optional<UINT> maxFrameLatency) final;
   HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) final;
-  void RTSetExclusiveFullscreen() final;
+  bool RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
   bool RTWaitForFrame() final;
   void RTWaitForGpuIdle() final;

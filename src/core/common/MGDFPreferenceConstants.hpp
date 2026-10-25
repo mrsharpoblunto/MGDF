@@ -24,6 +24,7 @@ class PreferenceConstants {
   static const char *VSYNC;
   static const char *MAX_FRAME_LATENCY;
   static const char *WINDOW_RESIZE;
+  static const char *WINDOW_ASPECT_LOCK;
   static const char *WINDOW_SIZEX;
   static const char *WINDOW_SIZEY;
   static const char *WINDOW_POSITIONX;

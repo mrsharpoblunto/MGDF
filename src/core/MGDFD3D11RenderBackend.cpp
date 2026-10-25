@@ -126,19 +126,27 @@ bool D3D11RenderBackend::RTInit() {
   return true;
 }
 
-void D3D11RenderBackend::RTSetExclusiveFullscreen() {
-  // exclusive fullscreen is only supported on the primary output
-  LOG("Switching to exclusive fullscreen on primary output", MGDF_LOG_LOW);
+bool D3D11RenderBackend::RTSetExclusiveFullscreen() {
+  ComObject<IDXGIOutput> primary;
   ComObject<IDXGIDevice> device = _rtD3dDevice.As<IDXGIDevice>();
   ComObject<IDXGIAdapter> adapter;
-  device->GetAdapter(adapter.Assign());
-  ComObject<IDXGIOutput> primary;
-  if (FAILED(adapter->EnumOutputs(0, primary.Assign()))) {
-    FATALERROR(this, "Failed to get primary output");
+  if (FAILED(device->GetAdapter(adapter.Assign()))) return false;
+  if (FAILED(adapter->EnumOutputs(0, primary.Assign()))) return false;
+  const auto result = _rtSwapChain->SetFullscreenState(TRUE, primary);
+  if (FAILED(result)) {
+    LOG("Exclusive fullscreen is not available: " << result, MGDF_LOG_LOW);
+    return false;
   }
-  if (FAILED(_rtSwapChain->SetFullscreenState(true, primary))) {
-    FATALERROR(this, "SetFullscreenState failed on primary output");
+  const DXGI_MODE_DESC target{.Width = _rtSwapDesc.Width,
+                              .Height = _rtSwapDesc.Height,
+                              .RefreshRate = {0, 0},
+                              .Format = _rtSwapDesc.Format};
+  if (FAILED(_rtSwapChain->ResizeTarget(&target))) {
+    LOG("Cannot change exclusive display resolution", MGDF_LOG_ERROR);
+    _rtSwapChain->SetFullscreenState(FALSE, nullptr);
+    return false;
   }
+  return true;
 }
 
 void D3D11RenderBackend::RTUninit(bool exclusiveMode) {

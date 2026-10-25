@@ -61,6 +61,10 @@ class D3DAppFramework {
   virtual bool RTOnDraw() = 0;
   virtual void RTOnAfterPresent() = 0;
   virtual bool RTIsBackBufferChangePending() = 0;
+  virtual MGDFFullScreenDesc RTGetFullscreen() = 0;
+  virtual void RTSetFullscreen(const MGDFFullScreenDesc &desc) = 0;
+  virtual std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() = 0;
+  virtual bool OnWindowAspectLock() = 0;
 
   virtual void STOnUpdateSim() = 0;
 
@@ -87,7 +91,9 @@ class D3DAppFramework {
   void RTReinitD3D(const HWND window);
   void RTUninitD3D();
   void RTCreateSwapChain(const HWND window);
-  void ApplyWindowMode(const HWND window, const bool fullScreenBorderless);
+  bool ApplyWindowMode(const HWND window, const bool fullScreenBorderless);
+  void ApplyWindowSize(HWND window, UINT32 width, UINT32 height);
+  void RTApplyFullscreen(HWND window);
   void RTResizeBackBuffer();
   bool RTAllowTearing();
   bool RTCheckForDisplayChanges(const HWND window);
@@ -123,6 +129,7 @@ class D3DAppFramework {
   DWORD _windowStyle;
   POINT _clientOffset;
   std::unique_ptr<POINT> _resizing;
+  double _resizeAspect = 0;
   bool _internalShutDown;
   std::vector<BYTE> _rawInputBuffer;
 };
