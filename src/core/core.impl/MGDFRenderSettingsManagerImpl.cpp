@@ -229,6 +229,7 @@ RenderSettingsManager::RenderSettingsManager()
       _backBufferMultiSampleLevel(1),
       _sdrBackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM),
       _hdrBackBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT),
+      _hdrColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709),
       _hdrEnabled(false),
       _currentOutputDPI(96),
       _vsync(true),
@@ -266,14 +267,18 @@ void RenderSettingsManager::InitFromDevice(
 
   // determine the supported multisampling settings for this device
   for (UINT32 i = 1; i < D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; ++i) {
+    // A level must work for both back buffer formats: HDR can switch on and
+    // off without a device reset.
     UINT32 quality = 0;
-    // TODO do we need to handle cases of support being different for SDR and
-    // HDR render targets?
-    if (FAILED(d3dDevice->CheckMultisampleQualityLevels(
-            DXGI_FORMAT_R16G16B16A16_FLOAT, i, &quality)) ||
-        quality == 0) {
+    UINT32 hdrQuality = 0;
+    if (FAILED(d3dDevice->CheckMultisampleQualityLevels(_sdrBackBufferFormat, i,
+                                                        &quality)) ||
+        FAILED(d3dDevice->CheckMultisampleQualityLevels(_hdrBackBufferFormat, i,
+                                                        &hdrQuality))) {
       continue;
     }
+    quality = (std::min)(quality, hdrQuality);
+    if (quality == 0) continue;
     LOG("Found valid multisample level " << i, MGDF_LOG_MEDIUM);
     _multiSampleLevels.push_back(i);
     _multiSampleQuality[i] = quality;
@@ -311,6 +316,15 @@ DXGI_FORMAT RenderSettingsManager::GetSDRBackBufferFormat() {
 
 DXGI_FORMAT RenderSettingsManager::GetHDRBackBufferFormat() {
   return _hdrBackBufferFormat;
+}
+
+void RenderSettingsManager::SetHDRFormat(MGDFHDRFormat format) {
+  std::lock_guard lock(_mutex);
+  const bool hdr10 = format == MGDF_HDR_FORMAT_HDR10;
+  _hdrBackBufferFormat =
+      hdr10 ? DXGI_FORMAT_R10G10B10A2_UNORM : DXGI_FORMAT_R16G16B16A16_FLOAT;
+  _hdrColorSpace = hdr10 ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+                         : DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
 }
 
 BOOL RenderSettingsManager::GetHDREnabled() {
@@ -494,7 +508,8 @@ void RenderSettingsManager::OnResize(UINT32 width, UINT32 height) {
 
 void RenderSettingsManager::OnResetSwapChain(
     DXGI_SWAP_CHAIN_DESC1 &desc,
-    DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT &windowSize) {
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
+    DXGI_COLOR_SPACE_TYPE &colorSpace, const RECT &windowSize) {
   std::lock_guard<std::mutex> lock(_mutex);
 
   fullscreenDesc.Windowed =
@@ -533,8 +548,10 @@ void RenderSettingsManager::OnResetSwapChain(
 
   if (supportsHDR) {
     desc.Format = _hdrBackBufferFormat;
+    colorSpace = _hdrColorSpace;
   } else {
     desc.Format = _sdrBackBufferFormat;
+    colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
   }
 
   desc.SampleDesc.Count = _backBufferMultiSampleLevel;
@@ -583,9 +600,6 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::SDR_BACKBUFFER_FORMAT,
                      ToString(_sdrBackBufferFormat)));
-  p->Preferences.insert(
-      std::make_pair(PreferenceConstants::HDR_BACKBUFFER_FORMAT,
-                     ToString(_hdrBackBufferFormat)));
   p->Preferences.insert(
       {PreferenceConstants::WINDOW_ASPECT_LOCK, ToString(_windowAspectLock)});
   p->Preferences.insert({PreferenceConstants::LOW_LATENCY_MODE,
@@ -647,10 +661,6 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
 
   if (GetPreference(game, PreferenceConstants::SDR_BACKBUFFER_FORMAT, pref)) {
     _sdrBackBufferFormat = FromString<DXGI_FORMAT>(pref);
-  }
-
-  if (GetPreference(game, PreferenceConstants::HDR_BACKBUFFER_FORMAT, pref)) {
-    _hdrBackBufferFormat = FromString<DXGI_FORMAT>(pref);
   }
 
   std::string xPref;

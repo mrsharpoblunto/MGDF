@@ -98,6 +98,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
   // Clamps the low latency and frame generation settings to the support.
   void SetGraphicsFeatureSupport(const MGDFGraphicsFeatureSupport &support);
+  // Call before InitFromDevice.
+  void SetHDRFormat(MGDFHDRFormat format);
 
   void LoadPreferences(const ComObject<IMGDFGame> &game);
   void InitFromDevice(const ComObject<ID3D11Device> &d3dDevice);
@@ -105,6 +107,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   bool IsBackBufferChangePending();
   void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &desc,
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
+                        DXGI_COLOR_SPACE_TYPE &colorSpace,
                         const RECT &windowSize);
   void OnResize(UINT32 width, UINT32 height);
   void SetOutputProperties(const MGDFOutputDisplayInfo &info, UINT currentDPI,
@@ -128,6 +131,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 _backBufferMultiSampleLevel;
   DXGI_FORMAT _sdrBackBufferFormat;
   DXGI_FORMAT _hdrBackBufferFormat;
+  DXGI_COLOR_SPACE_TYPE _hdrColorSpace;
 
   UINT32 _screenX, _screenY;
   UINT32 _maxFrameLatency;
