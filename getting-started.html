@@ -541,7 +541,7 @@ float3 EncodePQ(float3 nits) {
     <p>For frame generation, <code>HudlessColor</code> and <code>UIColorAndAlpha</code> use the same encoding as the back buffer (PQ with HDR10).</p>
 
     <h4>HDR metadata</h4>
-    <p>Call <code>SetHDRMetadata</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> to tell the display the light levels of the content (<code>MGDFHDRMetadata</code>, in nits). The host keeps the values and applies them to each HDR10 swap chain, also after a resize or a new swap chain. scRGB and SDR swap chains get no metadata. The host reports Rec.709 primaries and a D65 white point, because the content of both HDR formats stays inside Rec.709. Pass null to clear the metadata. A value out of range returns <code>E_INVALIDARG</code>.</p>
+    <p>Call <code>SetHDRMetadata</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> to tell the display the light levels of the content (<a href="{{ site.baseurl }}/api#MGDFHDRMetadata">MGDFHDRMetadata</a>, in nits). The host keeps the values and applies them to each HDR10 swap chain, also after a resize or a new swap chain. scRGB and SDR swap chains get no metadata. The host reports Rec.709 primaries and a D65 white point, because the content of both HDR formats stays inside Rec.709. Pass null to clear the metadata. <code>SetHDRMetadata</code> returns <code>E_INVALIDARG</code> and keeps the old values if a value is out of range: MaxCLL from 0 to 65535, MaxFALL from 0 to MaxCLL, mastering maximum more than 0 and up to 10000, and mastering minimum from 0 to less than the mastering maximum.</p>
 {% highlight c++ %}
 MGDFOutputDisplayInfo display = {};
 settings->GetCurrentOutputDisplayInfo(&display);

@@ -453,7 +453,7 @@ Content-Length: 29
                         <dl>
                             <dt>Values</dt>
                             {% for value in e.Values %}
-                                <dd><span class="param-name">{{ value }}</span></dd>
+                                <dd><span class="param-name">{{ value }}</span> {{ e.ValueDescriptions[value] }}</dd>
                             {% endfor %}
                         </dl>
                     {% endif %}
