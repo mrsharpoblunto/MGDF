@@ -204,11 +204,10 @@ void HostBuilder::LoadEnvironmentFile() {
   }
 }
 
-void HostBuilder::InitLogger(
-    const std::shared_ptr<network::INetworkManagerComponent> &network) {
+void HostBuilder::InitLogLevel() {
   if (ParameterManager::Instance().HasParameter(
           ParameterConstants::LOG_LEVEL)) {
-    const char *level = ParameterManager::Instance().GetParameter(
+    const std::string level = ParameterManager::Instance().GetParameter(
         ParameterConstants::LOG_LEVEL);
 
     if (level == ParameterConstants::VALUE_LOG_LEVEL_ERROR) {
@@ -224,6 +223,11 @@ void HostBuilder::InitLogger(
       Logger::Instance().SetLoggingLevel(MGDF_LOG_HIGH);
     }
   }
+}
+
+void HostBuilder::InitLogger(
+    const std::shared_ptr<network::INetworkManagerComponent> &network) {
+  InitLogLevel();
   if (ParameterManager::Instance().HasParameter(
           ParameterConstants::LOG_ENDPOINT)) {
     const std::string endpoint(ParameterManager::Instance().GetParameter(
