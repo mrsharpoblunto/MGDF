@@ -16,6 +16,7 @@
 
 #include <MGDF/D3D12CommandList.hpp>
 #include <algorithm>
+#include <optional>
 #include <set>
 
 #include "../common/MGDFLoggerImpl.hpp"
@@ -309,13 +310,11 @@ void Streamline::RTInit(ID3D12Device *device, IDXGIAdapter1 *adapter) {
   preferences.numPathsToPlugins = 1;
   preferences.pathToLogsAndData = nullptr;
   preferences.logMessageCallback = StreamlineLog;
-  // OTA lets NGX get models for GPUs newer than this SDK. Downloaded
-  // Streamline plugins stay off so the shipped plugins are the ones that run.
+  // No OTA: the shipped plugins and NGX models are the ones that run.
   preferences.flags = sl::PreferenceFlags::eDisableCLStateTracking |
                       sl::PreferenceFlags::eDisableDebugText |
                       sl::PreferenceFlags::eUseManualHooking |
                       sl::PreferenceFlags::eUseDXGIFactoryProxy |
-                      sl::PreferenceFlags::eAllowOTA |
                       sl::PreferenceFlags::eUseFrameBasedResourceTagging;
   preferences.featuresToLoad = features.data();
   preferences.numFeaturesToLoad = static_cast<uint32_t>(features.size());
@@ -550,7 +549,10 @@ bool Streamline::RTPrepareSwapChain(UINT32 generatedFrames,
   s.FrameGenerationSuspended = false;
   s.FrameGenerationInputs = false;
   s.FrameGenerationTagged = false;
-  s.FrameGenerationMode.reset();
+  // The old swap chain was released with frame generation suspended, so the
+  // plugin keeps eOff; a second eOff call in this frame only adds a warning.
+  if (s.FrameGenerationMode != sl::DLSSGMode::eOff)
+    s.FrameGenerationMode.reset();
   if (!s.Active || !(s.Supported & MGDF_GRAPHICS_FEATURE_FRAME_GENERATION))
     return false;
   bool enable = generatedFrames > 0;
@@ -855,8 +857,16 @@ void Streamline::RTBeforePresent() {
       options.mode = mode;
       options.numFramesToGenerate = (std::max)(s.GeneratedFrames, 1U);
       options.flags = sl::DLSSGFlags::eRetainResourcesWhenOff;
-      if (s.DLSSGSetOptions(Viewport, options) == sl::Result::eOk)
+      const auto result = s.DLSSGSetOptions(Viewport, options);
+      if (result == sl::Result::eOk) {
         s.FrameGenerationMode = mode;
+        LOG("Frame generation " << (run ? "running" : "paused"), MGDF_LOG_HIGH);
+      } else {
+        LogOnce("dlssg-options",
+                "Streamline rejected the frame generation options (" +
+                    std::to_string(static_cast<int>(result)) + ")",
+                MGDF_LOG_ERROR);
+      }
     }
   }
   if (s.PCL) s.PCLSetMarker(sl::PCLMarker::ePresentStart, *s.Token);

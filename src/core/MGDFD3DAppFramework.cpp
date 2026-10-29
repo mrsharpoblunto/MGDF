@@ -975,9 +975,24 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     // caption bar menu, when the host schedules a shutdown
     case WM_CLOSE:
       if (_internalShutDown) {
+        if (_stoppingRenderThread) return 0;
         if (_renderThread) {
           // make sure we stop rendering before disposing of the window
+          _stoppingRenderThread = true;
           _runRenderThread.clear();
+          // A frame generation Present can wait for this thread to process
+          // window messages, so keep the message pump running until the
+          // render thread exits.
+          HANDLE renderThread = _renderThread->native_handle();
+          while (::MsgWaitForMultipleObjects(1, &renderThread, FALSE, INFINITE,
+                                             QS_ALLINPUT) ==
+                 WAIT_OBJECT_0 + 1) {
+            MSG pending{};
+            while (::PeekMessage(&pending, nullptr, 0, 0, PM_REMOVE)) {
+              ::TranslateMessage(&pending);
+              ::DispatchMessage(&pending);
+            }
+          }
           _renderThread->join();
         }
         // if we triggered this, then shut down

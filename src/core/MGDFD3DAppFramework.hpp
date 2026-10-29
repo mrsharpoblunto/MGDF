@@ -133,6 +133,7 @@ class D3DAppFramework {
   std::unique_ptr<POINT> _resizing;
   double _resizeAspect = 0;
   bool _internalShutDown;
+  bool _stoppingRenderThread = false;
   std::vector<BYTE> _rawInputBuffer;
 };
 

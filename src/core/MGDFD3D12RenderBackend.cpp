@@ -122,6 +122,14 @@ bool D3D12RenderBackend::RTInit() {
 #if defined(_DEBUG)
   auto info = _device.As<ID3D12InfoQueue1>();
   if (info) {
+    // Frame generation back buffers belong to Streamline and have no
+    // optimized clear value, so every back buffer clear would warn.
+    D3D12_MESSAGE_ID deny[] = {
+        D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE};
+    D3D12_INFO_QUEUE_FILTER filter{
+        .DenyList = {.NumIDs = _countof(deny), .pIDList = deny}};
+    Check(info->AddStorageFilterEntries(&filter),
+          "Failed to filter debug messages");
     Check(info->RegisterMessageCallback(
               [](D3D12_MESSAGE_CATEGORY, D3D12_MESSAGE_SEVERITY severity,
                  D3D12_MESSAGE_ID, LPCSTR description, void *) {
@@ -251,12 +259,21 @@ void D3D12RenderBackend::RTUninit(bool exclusiveMode) {
   // After every proxy is released and before the device is released.
   _streamline.RTShutdown();
 #if defined(_DEBUG)
-  if (_hasDebugCallback) {
-    _device.As<ID3D12InfoQueue1>()->UnregisterMessageCallback(_debugCallback);
-    _hasDebugCallback = false;
-  }
-#endif
+  // The report goes through the message callback into the log; the debug
+  // device itself keeps one device reference.
+  auto debug = _device.As<ID3D12DebugDevice>();
   _device.Clear();
+  if (debug) {
+    debug->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL |
+                                   D3D12_RLDO_IGNORE_INTERNAL);
+    if (_hasDebugCallback) {
+      debug.As<ID3D12InfoQueue1>()->UnregisterMessageCallback(_debugCallback);
+      _hasDebugCallback = false;
+    }
+  }
+#else
+  _device.Clear();
+#endif
 }
 
 void D3D12RenderBackend::RTCreateSwapChain(HWND window,
