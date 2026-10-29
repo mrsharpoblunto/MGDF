@@ -762,7 +762,12 @@ namespace MatchstickFramework.Docgen
     {
       var value = Regex.Replace(sb.ToString().Trim(), @"\s+", " ");
       sb.Clear();
-      return value;
+      // keep mixed-case first words such as scRGB
+      if (value.Length == 0 || value.Split(' ')[0].Skip(1).Any(char.IsUpper))
+      {
+        return value;
+      }
+      return char.ToUpper(value[0]) + value.Substring(1);
     }
 
     static CommentBlock ParseCommentBlock(StreamReader reader)
