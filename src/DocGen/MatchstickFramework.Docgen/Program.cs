@@ -13,18 +13,6 @@ using MatchstickFramework.Docgen.Model;
 
 namespace MatchstickFramework.Docgen
 {
-  static class StringExtensions
-  {
-    public static string Capitalize(this string input)
-    {
-      if (input.Length == 0)
-      {
-        return input;
-      }
-      return input.First().ToString().ToUpper() + String.Join("", input.Skip(1));
-    }
-  }
-
   class Program
   {
     static void Main(string[] args)
@@ -261,6 +249,7 @@ namespace MatchstickFramework.Docgen
       };
 
       bool sharesType = false;
+      string sharedType = null;
       var lastComment = SkipTrivia(reader, null);
       while (!reader.EndOfStream && reader.Peek() != '}')
       {
@@ -294,7 +283,7 @@ namespace MatchstickFramework.Docgen
           {
             modifierOrType += " " + pointer;
           }
-          prevMember.ReturnType = modifierOrType;
+          prevMember.ReturnType = sharedType = modifierOrType;
         }
         else
         {
@@ -305,11 +294,28 @@ namespace MatchstickFramework.Docgen
             Const = false,
             MemberType = MemberType.Field,
             ReturnTypeRefId = prevMember.ReturnTypeRefId,
-            ReturnType = prevMember.ReturnType,
+            ReturnType = sharedType,
           };
         }
 
         prevMember.Id = prevMember.Name = CaptureWord(reader);
+        // the array size belongs to this declarator, not to the shared type
+        SkipWhitespace(reader);
+        while (reader.Peek() == '[')
+        {
+          var size = new StringBuilder();
+          char sizeChar;
+          do
+          {
+            sizeChar = (char)reader.Read();
+            if (!char.IsWhiteSpace(sizeChar))
+            {
+              size.Append(sizeChar);
+            }
+          } while (sizeChar != ']' && !reader.EndOfStream);
+          prevMember.ReturnType += size.ToString();
+          SkipWhitespace(reader);
+        }
         if (string.IsNullOrEmpty(prevMember.ReturnType) || prevMember.Name == "")
         {
           throw new Exception($"Expected a field declaration in struct {s.Name}");
@@ -754,7 +760,7 @@ namespace MatchstickFramework.Docgen
 
     static string CaptureTidyDescription(StringBuilder sb)
     {
-      var value = Regex.Replace(sb.ToString().Trim(), @"\s+", " ").Capitalize();
+      var value = Regex.Replace(sb.ToString().Trim(), @"\s+", " ");
       sb.Clear();
       return value;
     }
