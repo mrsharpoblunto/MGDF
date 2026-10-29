@@ -278,11 +278,13 @@ void D3D12RenderBackend::RTUninit(bool exclusiveMode) {
 
 void D3D12RenderBackend::RTCreateSwapChain(HWND window,
                                            const DXGI_SWAP_CHAIN_DESC1 &desc,
+                                           DXGI_COLOR_SPACE_TYPE colorSpace,
                                            std::optional<UINT> maxFrameLatency,
                                            UINT32 generatedFrames) {
   RTWaitForGpuIdle();
   RTReleaseSwapChain();
   _swapDesc = desc;
+  _colorSpace = colorSpace;
   _swapDesc.BufferCount = BackBufferCount;
   _swapDesc.SampleDesc = {1, 0};
   _swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -340,6 +342,10 @@ HRESULT D3D12RenderBackend::RTResizeBackBuffer(
                                 DXGI_FORMAT_UNKNOWN, _swapDesc.Flags);
   _streamline.RTResumeFrameGeneration();
   if (FAILED(result)) return result;
+  if (!SetSwapChainColorSpace(_nativeSwapChain, _colorSpace)) {
+    LOG("Swapchain does not support color space " << _colorSpace,
+        MGDF_LOG_ERROR);
+  }
   auto handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
   for (UINT i = 0; i < BackBufferCount; ++i) {
     Check(_swapChain->GetBuffer(i, IID_PPV_ARGS(_backBuffers[i].Assign())),

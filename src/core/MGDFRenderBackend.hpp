@@ -1,7 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
-#include <dxgi1_2.h>
+#include <dxgi1_4.h>
 
 #include <MGDF/ComObject.hpp>
 #include <optional>
@@ -33,6 +33,7 @@ class IRenderBackend {
   virtual bool RTIsInitialized() const = 0;
   virtual void RTUninit(bool exclusiveMode) = 0;
   virtual void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
+                                 DXGI_COLOR_SPACE_TYPE colorSpace,
                                  std::optional<UINT> maxFrameLatency,
                                  UINT32 generatedFrames) = 0;
   virtual HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) = 0;
@@ -44,6 +45,16 @@ class IRenderBackend {
   virtual HRESULT RTPresent(UINT syncInterval, UINT flags) = 0;
   virtual HRESULT RTGetDeviceRemovedReason() const = 0;
 };
+
+// ResizeBuffers does not keep the color space, so call this after each create
+// and resize. Use the native swap chain: Streamline does not hook these calls.
+inline bool SetSwapChainColorSpace(IDXGISwapChain3 *swapChain,
+                                   DXGI_COLOR_SPACE_TYPE colorSpace) {
+  UINT support = 0;
+  return SUCCEEDED(swapChain->CheckColorSpaceSupport(colorSpace, &support)) &&
+         (support & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) &&
+         SUCCEEDED(swapChain->SetColorSpace1(colorSpace));
+}
 
 }  // namespace core
 }  // namespace MGDF

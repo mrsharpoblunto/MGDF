@@ -205,11 +205,13 @@ ComObject<IDXGIAdapter> D3D11RenderBackend::RTGetAdapter() {
 
 void D3D11RenderBackend::RTCreateSwapChain(HWND window,
                                            const DXGI_SWAP_CHAIN_DESC1 &desc,
+                                           DXGI_COLOR_SPACE_TYPE colorSpace,
                                            std::optional<UINT> maxFrameLatency,
                                            UINT32 generatedFrames) {
   std::ignore = generatedFrames;
   RTWaitForGpuIdle();
   _rtSwapDesc = desc;
+  _rtColorSpace = colorSpace;
   if (_rtFrameWaitableObject) {
     CloseHandle(_rtFrameWaitableObject);
     _rtFrameWaitableObject = nullptr;
@@ -282,6 +284,11 @@ HRESULT D3D11RenderBackend::RTResizeBackBuffer(
 
   if (FAILED(result)) {
     return result;
+  }
+  if (!SetSwapChainColorSpace(_rtSwapChain.As<IDXGISwapChain3>(),
+                              _rtColorSpace)) {
+    LOG("Swapchain does not support color space " << _rtColorSpace,
+        MGDF_LOG_ERROR);
   }
 
   if (FAILED(_rtSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),

@@ -251,6 +251,12 @@ void Host::InitGraphics() {
     FATALERROR(this, error);
     return;
   }
+  _renderSettings->SetHDRFormat(_graphicsRequirements.HDRFormat);
+  LOG("HDR output format: "
+          << (_graphicsRequirements.HDRFormat == MGDF_HDR_FORMAT_HDR10
+                  ? "HDR10"
+                  : "scRGB"),
+      MGDF_LOG_LOW);
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
       _graphicsRequirements.Features) {
     LOG("Requested graphics features need D3D12 and are off", MGDF_LOG_LOW);

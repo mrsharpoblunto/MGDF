@@ -27,6 +27,11 @@ HRESULT SelectGraphicsAPI(const MGDFGraphicsRequirements &requirements,
     error = "GetGraphicsRequirements lists an unknown graphics feature";
     return E_INVALIDARG;
   }
+  if (requirements.HDRFormat != MGDF_HDR_FORMAT_SCRGB &&
+      requirements.HDRFormat != MGDF_HDR_FORMAT_HDR10) {
+    error = "GetGraphicsRequirements lists an unknown HDR format";
+    return E_INVALIDARG;
+  }
   if (!preference.empty() && preference != "d3d11" && preference != "d3d12") {
     error = "Unknown host.graphicsAPI preference: " + preference;
     return E_INVALIDARG;

@@ -77,6 +77,18 @@ TEST(GraphicsRequirementsTests, OnlyKnownFeaturesAreAccepted) {
   EXPECT_FALSE(error.empty());
 }
 
+TEST(GraphicsRequirementsTests, OnlyKnownHDRFormatsAreAccepted) {
+  MGDFGraphicsRequirements requirements{
+      1, {MGDF_GRAPHICS_API_D3D12}, D3D_FEATURE_LEVEL_11_0, 0,
+      0, MGDF_HDR_FORMAT_HDR10};
+  MGDFGraphicsAPI api{};
+  std::string error;
+  EXPECT_EQ(S_OK, SelectGraphicsAPI(requirements, "", api, error));
+  requirements.HDRFormat = static_cast<MGDFHDRFormat>(2);
+  EXPECT_EQ(E_INVALIDARG, SelectGraphicsAPI(requirements, "", api, error));
+  EXPECT_FALSE(error.empty());
+}
+
 TEST(GraphicsRequirementsTests, InvalidAPICountIsRejected) {
   MGDFGraphicsRequirements requirements{};
   MGDFGraphicsAPI api{};

@@ -126,8 +126,9 @@ bool MGDFApp::RTVSyncEnabled() const { return _settings->GetVSync(); }
 
 MGDFFullScreenDesc MGDFApp::RTOnResetSwapChain(
     DXGI_SWAP_CHAIN_DESC1 &swapDesc,
-    DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc, const RECT &windowSize) {
-  _settings->OnResetSwapChain(swapDesc, fullscreenDesc, windowSize);
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
+    DXGI_COLOR_SPACE_TYPE &colorSpace, const RECT &windowSize) {
+  _settings->OnResetSwapChain(swapDesc, fullscreenDesc, colorSpace, windowSize);
   MGDFFullScreenDesc desc;
   _settings->GetFullscreen(&desc);
   return desc;

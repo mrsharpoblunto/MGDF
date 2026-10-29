@@ -50,7 +50,7 @@ class D3DAppFramework {
   virtual void RTOnBackBufferChange(IRenderBackend &backend) = 0;
   virtual MGDFFullScreenDesc RTOnResetSwapChain(
       DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
-      const RECT &windowSize) = 0;
+      DXGI_COLOR_SPACE_TYPE &, const RECT &windowSize) = 0;
   virtual std::optional<UINT> RTGetMaxFrameLatency() const = 0;
   virtual UINT32 RTGetFrameGeneration() const = 0;
   virtual MGDFLowLatencyMode RTGetLowLatencyMode() const = 0;
@@ -113,6 +113,7 @@ class D3DAppFramework {
   std::unique_ptr<IRenderBackend> _rtRenderBackend;
   DXGI_SWAP_CHAIN_DESC1 _rtSwapDesc;
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC _rtFullscreenSwapDesc;
+  DXGI_COLOR_SPACE_TYPE _rtColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
   MGDFFullScreenDesc _rtCurrentFullScreen;
   bool _rtAllowTearing;
   ULONGLONG _rtResetDeadline = 0;

@@ -23,6 +23,7 @@ class D3D11RenderBackend : public IRenderBackend {
   bool RTIsInitialized() const final;
   void RTUninit(bool exclusiveMode) final;
   void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
+                         DXGI_COLOR_SPACE_TYPE colorSpace,
                          std::optional<UINT> maxFrameLatency,
                          UINT32 generatedFrames) final;
   HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) final;
@@ -57,6 +58,7 @@ class D3D11RenderBackend : public IRenderBackend {
   ComObject<ID3D11Texture2D> _rtDepthStencilBuffer;
   ComObject<ID3D11Texture2D> _rtBackBuffer;
   DXGI_SWAP_CHAIN_DESC1 _rtSwapDesc{};
+  DXGI_COLOR_SPACE_TYPE _rtColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
   HANDLE _rtFrameWaitableObject;
 };
 

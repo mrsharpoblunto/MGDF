@@ -233,8 +233,8 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   if (!::GetClientRect(window, &windowSize)) {
     FATALERROR(this, "GetClientRect failed");
   }
-  _rtCurrentFullScreen =
-      RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
+  _rtCurrentFullScreen = RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc,
+                                            _rtColorSpace, windowSize);
   RTCreateSwapChain(window);
   RTApplyFullscreen(window);
   RTResizeBackBuffer();
@@ -251,8 +251,8 @@ void D3DAppFramework::RTApplyFullscreen(HWND window) {
   if (!::GetClientRect(window, &client)) {
     FATALERROR(this, "GetClientRect failed");
   }
-  _rtCurrentFullScreen =
-      RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc, client);
+  _rtCurrentFullScreen = RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc,
+                                            _rtColorSpace, client);
   RTCreateSwapChain(window);
 }
 
@@ -562,8 +562,9 @@ void D3DAppFramework::RTCreateSwapChain(const HWND window) {
   }
 
   RTWaitForGpuIdle();
-  _rtRenderBackend->RTCreateSwapChain(
-      window, _rtSwapDesc, RTGetMaxFrameLatency(), RTGetFrameGeneration());
+  _rtRenderBackend->RTCreateSwapChain(window, _rtSwapDesc, _rtColorSpace,
+                                      RTGetMaxFrameLatency(),
+                                      RTGetFrameGeneration());
   _hasSwapChain.store(true);
 }
 
@@ -740,8 +741,9 @@ INT32 D3DAppFramework::Run() {
               if (!::GetClientRect(window, &windowSize)) {
                 FATALERROR(this, "GetClientRect failed");
               }
-              _rtCurrentFullScreen = RTOnResetSwapChain(
-                  _rtSwapDesc, _rtFullscreenSwapDesc, windowSize);
+              _rtCurrentFullScreen =
+                  RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc,
+                                     _rtColorSpace, windowSize);
               RTCreateSwapChain(window);
 
               // reset the swap chain to fullscreen if it was previously

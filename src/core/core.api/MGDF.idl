@@ -28,6 +28,20 @@ typedef enum MGDFGraphicsFeature {
 } MGDFGraphicsFeature;
 
 /**
+The back buffer format and color space the host uses while HDR output is on.
+SDR output does not change
+*/
+typedef enum MGDFHDRFormat {
+  /** scRGB: DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709.
+  Linear Rec.709 primaries, 1.0 is 80 nits. Frame generation is not available */
+  MGDF_HDR_FORMAT_SCRGB = 0,
+  /** HDR10: DXGI_FORMAT_R10G10B10A2_UNORM, DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020.
+  Rec.2020 primaries with ST 2084 (PQ) encoding, 1.0 is 10000 nits. The module
+  writes encoded values, so it must blend in linear light before the encode */
+  MGDF_HDR_FORMAT_HDR10 = 1,
+} MGDFHDRFormat;
+
+/**
 The graphics requirements returned by the module's GetGraphicsRequirements export
 */
 typedef struct MGDFGraphicsRequirements {
@@ -40,6 +54,9 @@ typedef struct MGDFGraphicsRequirements {
   /** MGDFGraphicsFeature flags the module wants to use. The host reads them
   before it creates the device. Unknown flags are an error */
   UINT32 Features;
+  /** The HDR output format the module writes. The host selects the HDR back
+  buffer format and color space from it. An unknown value is an error */
+  MGDFHDRFormat HDRFormat;
 } MGDFGraphicsRequirements;
 
 /**
@@ -784,7 +801,8 @@ Provides an interface for getting and setting the hosts various display settings
   DXGI_FORMAT GetSDRBackBufferFormat();
 
   /**
-  gets the format of the backbuffer when rendering on an HDR display
+  gets the format of the backbuffer when rendering on an HDR display. The
+  MGDFGraphicsRequirements::HDRFormat of the module selects it
   \return the backbuffer format
   */
   DXGI_FORMAT GetHDRBackBufferFormat();
@@ -2472,13 +2490,17 @@ Inputs for frame generation. Each resource must keep its content and State until
 the frame is presented. The default region of Depth and MotionVectors is the
 full resource. HudlessColor and UIColorAndAlpha are optional, but give much
 better results with UI. They must have the back buffer size. UIColorAndAlpha has
-premultiplied color and zero alpha where there is no UI
+premultiplied color and zero alpha where there is no UI. Frame generation needs an
+SDR or MGDF_HDR_FORMAT_HDR10 back buffer
 */
 typedef struct MGDFFrameGenerationDesc {
   MGDFFrameResource Depth;
   MGDFFrameResource MotionVectors;
-  /** The final scene color without UI, in the back buffer color space */
+  /** The final scene color without UI, in the back buffer color space and
+  encoding (PQ with HDR10) */
   MGDFFrameResource HudlessColor;
+  /** In the back buffer encoding: back buffer = UI.rgb + (1 - UI.a) * hudless.
+  The alpha needs more than 2 bits, so do not use DXGI_FORMAT_R10G10B10A2_UNORM */
   MGDFFrameResource UIColorAndAlpha;
 } MGDFFrameGenerationDesc;
 
