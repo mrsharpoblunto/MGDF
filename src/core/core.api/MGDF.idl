@@ -16,8 +16,9 @@ typedef enum MGDFGraphicsAPI {
 The graphics requirements returned by the module's GetGraphicsRequirements export
 */
 typedef struct MGDFGraphicsRequirements {
-  /** APIs the module supports, most preferred first */
+  /** Number of entries in APIs; 1 to 4 */
   UINT32 APICount;
+  /** APIs the module supports, most preferred first */
   MGDFGraphicsAPI APIs[4];
   D3D_FEATURE_LEVEL MinFeatureLevel;
   /** D3D_SHADER_MODEL value; only checked for D3D12 */

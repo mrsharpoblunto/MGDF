@@ -779,19 +779,31 @@ namespace MatchstickFramework.Docgen
       SetComment setter = (StringBuilder b) => { comment.Description = CaptureTidyDescription(b); };
 
       StringBuilder buffer = new StringBuilder();
+      bool lineStart = true;
       while (!reader.EndOfStream)
       {
         var ch = (char)reader.Read();
+        if (ch == '\n')
+        {
+          lineStart = true;
+        }
+        else if (!char.IsWhiteSpace(ch) && ch != '*')
+        {
+          lineStart = false;
+        }
         switch (ch)
         {
           case '*':
+            if (reader.Peek() == '/')
             {
-              if (reader.Peek() == '/')
-              {
-                reader.Read();
-                setter(buffer);
-                return comment;
-              }
+              reader.Read();
+              setter(buffer);
+              return comment;
+            }
+            // a '*' at the start of a line is decoration, not text
+            if (!lineStart)
+            {
+              buffer.Append(ch);
             }
             break;
           case '\\':
