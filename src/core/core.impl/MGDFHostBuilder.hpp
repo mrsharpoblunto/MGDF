@@ -8,6 +8,7 @@ namespace core {
 class HostBuilder {
  public:
   static HRESULT TryCreateHost(ComObject<Host> &host);
+  static void InitLogLevel();
 
  private:
   static bool RegisterBaseComponents(HostComponents &);

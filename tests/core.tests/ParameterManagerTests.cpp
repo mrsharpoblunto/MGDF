@@ -1,6 +1,8 @@
 #include "stdafx.h"
 
+#include "../../src/core/common/MGDFLoggerImpl.hpp"
 #include "../../src/core/common/MGDFParameterManager.hpp"
+#include "../../src/core/core.impl/MGDFHostBuilder.hpp"
 
 using namespace MGDF::core;
 
@@ -67,4 +69,20 @@ TEST(ParameterManagerTests, TestCommandLineOverridesEnvironment) {
                ParameterManager::Instance().GetParameter("envoverride"));
 
   SetEnvironmentVariableA("MGDF_ENVOVERRIDE", nullptr);
+}
+
+TEST(ParameterManagerTests, TestLogLevelParameterSetsLoggerLevel) {
+  const MGDFLogLevel originalLevel = Logger::Instance().GetLoggingLevel();
+
+  ParameterManager::Instance().AddParameterString("-loglevel log_high");
+  HostBuilder::InitLogLevel();
+  EXPECT_EQ(MGDF_LOG_HIGH, Logger::Instance().GetLoggingLevel());
+
+  SetEnvironmentVariableA("MGDF_LOGLEVEL", "log_error");
+  ParameterManager::Instance().AddEnvironmentParameters("MGDF_");
+  HostBuilder::InitLogLevel();
+  EXPECT_EQ(MGDF_LOG_ERROR, Logger::Instance().GetLoggingLevel());
+
+  SetEnvironmentVariableA("MGDF_LOGLEVEL", nullptr);
+  Logger::Instance().SetLoggingLevel(originalLevel);
 }
