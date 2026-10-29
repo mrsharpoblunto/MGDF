@@ -27,6 +27,7 @@ Building Source
 ---------------
 
 * Using Microsoft Visual Studio 2026 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick.sln in x64 debug/release configurations
+* The first build downloads the pinned NVIDIA Streamline SDK into `dependencies/streamline` and checks its SHA-256 (see `Directory.Build.targets`). The build copies the Streamline runtime DLLs next to `core.exe`: the signed production DLLs in Release and the development DLLs in Debug. Without network access, put `streamline-sdk-v<version>.zip` from https://github.com/NVIDIA-RTX/Streamline/releases into `dependencies/streamline` before the build.
 
 Running unit tests
 ------------------

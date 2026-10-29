@@ -5,6 +5,7 @@
 #include <d3d12sdklayers.h>
 
 #include "common/MGDFLoggerImpl.hpp"
+#include "common/MGDFResources.hpp"
 
 namespace MGDF {
 namespace core {
@@ -15,7 +16,8 @@ D3D12RenderBackend::D3D12RenderBackend(
     std::function<void(const char *, const char *)> fatalError)
     : _rtFactory(factory),
       _requirements(requirements),
-      _fatalError(std::move(fatalError)) {}
+      _fatalError(std::move(fatalError)),
+      _streamline(requirements.Features, Resources::Instance().RootDir()) {}
 
 void D3D12RenderBackend::FatalError(const char *sender, const char *message) {
   _fatalError(sender, message);
@@ -45,6 +47,21 @@ ComObject<ID3D12Device10> D3D12RenderBackend::RTTryCreateDevice(
       return {};
   }
   return device;
+}
+
+ComObject<ID3D12CommandQueue> D3D12RenderBackend::RTCreateQueue(
+    ID3D12Device *device, D3D12_COMMAND_LIST_TYPE type,
+    ComObject<ID3D12CommandQueue> &proxy) {
+  const D3D12_COMMAND_QUEUE_DESC desc{.Type = type};
+  ComObject<ID3D12CommandQueue> queue;
+  Check(device->CreateCommandQueue(&desc, IID_PPV_ARGS(queue.Assign())),
+        "Failed to create command queue");
+  if (device == _device.Get()) return queue;
+  // Modules get the native queue; only swap chain creation needs the proxy.
+  auto native = _streamline.RTGetNative<ID3D12CommandQueue>(queue);
+  if (!native) FATALERROR(this, "Failed to get native command queue");
+  proxy = queue;
+  return native;
 }
 
 bool D3D12RenderBackend::RTInit() {
@@ -105,6 +122,14 @@ bool D3D12RenderBackend::RTInit() {
 #if defined(_DEBUG)
   auto info = _device.As<ID3D12InfoQueue1>();
   if (info) {
+    // Frame generation back buffers belong to Streamline and have no
+    // optimized clear value, so every back buffer clear would warn.
+    D3D12_MESSAGE_ID deny[] = {
+        D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE};
+    D3D12_INFO_QUEUE_FILTER filter{
+        .DenyList = {.NumIDs = _countof(deny), .pIDList = deny}};
+    Check(info->AddStorageFilterEntries(&filter),
+          "Failed to filter debug messages");
     Check(info->RegisterMessageCallback(
               [](D3D12_MESSAGE_CATEGORY, D3D12_MESSAGE_SEVERITY severity,
                  D3D12_MESSAGE_ID, LPCSTR description, void *) {
@@ -119,18 +144,17 @@ bool D3D12RenderBackend::RTInit() {
     _hasDebugCallback = true;
   }
 #endif
-  const D3D12_COMMAND_QUEUE_DESC direct{.Type = D3D12_COMMAND_LIST_TYPE_DIRECT};
-  const D3D12_COMMAND_QUEUE_DESC compute{.Type =
-                                             D3D12_COMMAND_LIST_TYPE_COMPUTE};
-  const D3D12_COMMAND_QUEUE_DESC copy{.Type = D3D12_COMMAND_LIST_TYPE_COPY};
-  Check(
-      _device->CreateCommandQueue(&direct, IID_PPV_ARGS(_directQueue.Assign())),
-      "Failed to create direct queue");
-  Check(_device->CreateCommandQueue(&compute,
-                                    IID_PPV_ARGS(_computeQueue.Assign())),
-        "Failed to create compute queue");
-  Check(_device->CreateCommandQueue(&copy, IID_PPV_ARGS(_copyQueue.Assign())),
-        "Failed to create copy queue");
+  _streamline.RTInit(_device, _adapter.As<IDXGIAdapter1>());
+  // Streamline must see every queue, so they come from its proxy device.
+  const auto proxyDevice = _streamline.RTGetProxyDevice();
+  ID3D12Device *queueDevice = proxyDevice ? proxyDevice.Get() : _device.Get();
+  ComObject<ID3D12CommandQueue> unusedProxy;
+  _directQueue = RTCreateQueue(queueDevice, D3D12_COMMAND_LIST_TYPE_DIRECT,
+                               _proxyDirectQueue);
+  _computeQueue =
+      RTCreateQueue(queueDevice, D3D12_COMMAND_LIST_TYPE_COMPUTE, unusedProxy);
+  _copyQueue =
+      RTCreateQueue(queueDevice, D3D12_COMMAND_LIST_TYPE_COPY, unusedProxy);
   Check(_device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
                              IID_PPV_ARGS(_frameFence.Assign())),
         "Failed to create frame fence");
@@ -197,11 +221,13 @@ void D3D12RenderBackend::RTReleaseBackBuffers() {
 }
 
 void D3D12RenderBackend::RTReleaseSwapChain() {
+  _streamline.RTSuspendFrameGeneration();
   RTReleaseBackBuffers();
   if (_frameWaitable) {
     CloseHandle(_frameWaitable);
     _frameWaitable = nullptr;
   }
+  _nativeSwapChain.Clear();
   _swapChain.Clear();
 }
 
@@ -209,9 +235,11 @@ void D3D12RenderBackend::RTUninit(bool exclusiveMode) {
   RTWaitForGpuIdle();
   if (_swapChain && exclusiveMode) {
     BOOL fullscreen = FALSE;
-    if (SUCCEEDED(_swapChain->GetFullscreenState(&fullscreen, nullptr)) &&
-        fullscreen)
+    if (SUCCEEDED(_nativeSwapChain->GetFullscreenState(&fullscreen, nullptr)) &&
+        fullscreen) {
+      _streamline.RTSuspendFrameGeneration();
       _swapChain->SetFullscreenState(FALSE, nullptr);
+    }
   }
   RTReleaseSwapChain();
   for (auto &list : _clearLists) list.Clear();
@@ -219,6 +247,7 @@ void D3D12RenderBackend::RTUninit(bool exclusiveMode) {
   _rtvHeap.Clear();
   _frameFence.Clear();
   _idleFence.Clear();
+  _proxyDirectQueue.Clear();
   _directQueue.Clear();
   _computeQueue.Clear();
   _copyQueue.Clear();
@@ -227,38 +256,73 @@ void D3D12RenderBackend::RTUninit(bool exclusiveMode) {
     CloseHandle(_fenceEvent);
     _fenceEvent = nullptr;
   }
+  // After every proxy is released and before the device is released.
+  _streamline.RTShutdown();
 #if defined(_DEBUG)
-  if (_hasDebugCallback) {
-    _device.As<ID3D12InfoQueue1>()->UnregisterMessageCallback(_debugCallback);
-    _hasDebugCallback = false;
-  }
-#endif
+  // The report goes through the message callback into the log; the debug
+  // device itself keeps one device reference.
+  auto debug = _device.As<ID3D12DebugDevice>();
   _device.Clear();
+  if (debug) {
+    debug->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL |
+                                   D3D12_RLDO_IGNORE_INTERNAL);
+    if (_hasDebugCallback) {
+      debug.As<ID3D12InfoQueue1>()->UnregisterMessageCallback(_debugCallback);
+      _hasDebugCallback = false;
+    }
+  }
+#else
+  _device.Clear();
+#endif
 }
 
-void D3D12RenderBackend::RTCreateSwapChain(
-    HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
-    std::optional<UINT> maxFrameLatency) {
+void D3D12RenderBackend::RTCreateSwapChain(HWND window,
+                                           const DXGI_SWAP_CHAIN_DESC1 &desc,
+                                           std::optional<UINT> maxFrameLatency,
+                                           UINT32 generatedFrames) {
   RTWaitForGpuIdle();
   RTReleaseSwapChain();
   _swapDesc = desc;
   _swapDesc.BufferCount = BackBufferCount;
   _swapDesc.SampleDesc = {1, 0};
   _swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-  _swapDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+  // Frame pacing: without frame generation the frame starts when the swap
+  // chain latency waitable signals, as it does without Streamline; low latency
+  // then also sleeps in Streamline at the frame start. With frame generation
+  // Streamline presents on its own thread and owns the waitable of a swap
+  // chain made without the flag, so the frame waits only for the frame fence
+  // and the Streamline sleep.
+  const bool frameGeneration =
+      _streamline.RTPrepareSwapChain(generatedFrames, _swapDesc.Format);
+  if (frameGeneration)
+    _swapDesc.Flags &= ~DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+  else
+    _swapDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
   ComObject<IDXGIFactory2> factory;
   Check(_adapter->GetParent(IID_PPV_ARGS(factory.Assign())),
         "Failed to get device factory");
+  const auto proxyFactory = _streamline.RTUpgradeFactory(factory);
   ComObject<IDXGISwapChain1> chain;
-  Check(factory->CreateSwapChainForHwnd(_directQueue, window, &_swapDesc,
-                                        nullptr, nullptr, chain.Assign()),
+  Check((proxyFactory ? proxyFactory : factory)
+            ->CreateSwapChainForHwnd(
+                _proxyDirectQueue ? _proxyDirectQueue : _directQueue, window,
+                &_swapDesc, nullptr, nullptr, chain.Assign()),
         "Failed to create D3D12 swapchain");
   _swapChain = chain.As<IDXGISwapChain3>();
-  Check(_swapChain->SetMaximumFrameLatency(
-            maxFrameLatency.value_or(D3D12FrameState::FramesInFlight)),
-        "Failed to set frame latency");
-  _frameWaitable = _swapChain->GetFrameLatencyWaitableObject();
-  if (!_frameWaitable) FATALERROR(this, "Failed to get frame latency handle");
+  _nativeSwapChain = proxyFactory
+                         ? _streamline.RTGetNative<IDXGISwapChain3>(_swapChain)
+                         : _swapChain;
+  if (!_nativeSwapChain) FATALERROR(this, "Failed to get native swapchain");
+  if (!frameGeneration) {
+    Check(_nativeSwapChain->SetMaximumFrameLatency(
+              maxFrameLatency.value_or(D3D12FrameState::FramesInFlight)),
+          "Failed to set frame latency");
+    _frameWaitable = _nativeSwapChain->GetFrameLatencyWaitableObject();
+    if (!_frameWaitable) FATALERROR(this, "Failed to get frame latency handle");
+  }
+  LOG("D3D12 swapchain created, frame generation "
+          << (frameGeneration ? "on" : "off"),
+      MGDF_LOG_LOW);
   Check(factory->MakeWindowAssociation(
             window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES),
         "Failed to disable DXGI alt-enter");
@@ -270,9 +334,11 @@ HRESULT D3D12RenderBackend::RTResizeBackBuffer(
   RTReleaseBackBuffers();
   _swapDesc.Width = desc.Width;
   _swapDesc.Height = desc.Height;
+  _streamline.RTSuspendFrameGeneration();
   const auto result =
       _swapChain->ResizeBuffers(BackBufferCount, desc.Width, desc.Height,
                                 DXGI_FORMAT_UNKNOWN, _swapDesc.Flags);
+  _streamline.RTResumeFrameGeneration();
   if (FAILED(result)) return result;
   auto handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
   for (UINT i = 0; i < BackBufferCount; ++i) {
@@ -289,8 +355,10 @@ bool D3D12RenderBackend::RTSetExclusiveFullscreen() {
   ComObject<IDXGIOutput> primary;
 
   if (FAILED(_adapter->EnumOutputs(0, primary.Assign()))) return false;
+  _streamline.RTSuspendFrameGeneration();
   const auto result = _swapChain->SetFullscreenState(TRUE, primary);
   if (FAILED(result)) {
+    _streamline.RTResumeFrameGeneration();
     LOG("Exclusive fullscreen is not available: " << result, MGDF_LOG_LOW);
     return false;
   }
@@ -298,21 +366,24 @@ bool D3D12RenderBackend::RTSetExclusiveFullscreen() {
                               .Height = _swapDesc.Height,
                               .RefreshRate = {0, 0},
                               .Format = _swapDesc.Format};
-  if (FAILED(_swapChain->ResizeTarget(&target))) {
+  const bool resized = SUCCEEDED(_nativeSwapChain->ResizeTarget(&target));
+  if (!resized) {
     LOG("Cannot change exclusive display resolution", MGDF_LOG_ERROR);
     _swapChain->SetFullscreenState(FALSE, nullptr);
-    return false;
   }
-  return true;
+  _streamline.RTResumeFrameGeneration();
+  return resized;
 }
 
 void D3D12RenderBackend::RTSetWindowed() {
-  if (_swapChain)
-    Check(_swapChain->SetFullscreenState(FALSE, nullptr),
-          "Failed to leave exclusive fullscreen");
+  if (!_swapChain) return;
+  _streamline.RTSuspendFrameGeneration();
+  Check(_swapChain->SetFullscreenState(FALSE, nullptr),
+        "Failed to leave exclusive fullscreen");
+  _streamline.RTResumeFrameGeneration();
 }
 
-bool D3D12RenderBackend::RTWaitForFrame() {
+bool D3D12RenderBackend::RTWaitForFrame(MGDFLowLatencyMode lowLatency) {
   if (_frameWaitable) {
     const auto result = WaitForSingleObject(_frameWaitable, 1000);
     if (result == WAIT_TIMEOUT || FAILED(RTGetDeviceRemovedReason()))
@@ -321,6 +392,7 @@ bool D3D12RenderBackend::RTWaitForFrame() {
       FATALERROR(this, "Failed to wait for swapchain");
   }
   RTWaitForFence(_frameFence, _frames.PreviousFence());
+  _streamline.RTBeginFrame(lowLatency);
   const UINT index = _swapChain->GetCurrentBackBufferIndex();
   auto handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
   handle.ptr += static_cast<SIZE_T>(index) * _rtvSize;
@@ -357,9 +429,13 @@ void D3D12RenderBackend::RTClear() {
 }
 
 HRESULT D3D12RenderBackend::RTPresent(UINT syncInterval, UINT flags) {
+  syncInterval = _streamline.RTGetSyncInterval(syncInterval);
   if (!(_swapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) || syncInterval)
     flags &= ~DXGI_PRESENT_ALLOW_TEARING;
-  return _swapChain->Present(syncInterval, flags);
+  _streamline.RTBeforePresent();
+  const auto result = _swapChain->Present(syncInterval, flags);
+  _streamline.RTAfterPresent();
+  return result;
 }
 
 HRESULT D3D12RenderBackend::RTEndFrame() {
@@ -437,6 +513,7 @@ ComObject<ID3D12Fence> D3D12RenderBackend::RTGetFrameFence() {
   return _frameFence;
 }
 MGDFFrameInfo D3D12RenderBackend::RTGetCurrentFrame() const { return _frame; }
+Streamline *D3D12RenderBackend::GetStreamline() { return &_streamline; }
 
 }  // namespace core
 }  // namespace MGDF

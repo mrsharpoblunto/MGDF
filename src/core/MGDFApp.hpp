@@ -20,6 +20,8 @@ class MGDFApp : public D3DAppFramework {
                                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                         const RECT &windowSize) final;
   std::optional<UINT> RTGetMaxFrameLatency() const final;
+  UINT32 RTGetFrameGeneration() const final;
+  MGDFLowLatencyMode RTGetLowLatencyMode() const final;
   void RTOnResize(UINT32 width, UINT32 height) final;
   bool RTIsBackBufferChangePending() final;
   MGDFFullScreenDesc RTGetFullscreen() final;

@@ -18,6 +18,23 @@ struct D3D12CommandListRecording {
 };
 
 /**
+Returns true if a D3D12CommandList tracks the list and the list is recording.
+\param generation receives the recording generation if not null
+*/
+inline bool D3D12CommandListIsRecording(ID3D12GraphicsCommandList *list,
+                                        UINT64 *generation = nullptr) {
+  if (!list) return false;
+  D3D12CommandListRecording state{};
+  UINT size = sizeof(state);
+  if (FAILED(
+          list->GetPrivateData(D3D12CommandListRecordingID, &size, &state)) ||
+      size != sizeof(state) || !state.Open)
+    return false;
+  if (generation) *generation = state.Generation;
+  return true;
+}
+
+/**
 Owns a native command list used with MGDF GPU counters. Use Reset and Close on
 this object, and Get for recording commands, creating counters and submission.
 Do not call Reset or Close through the native pointer: D3D12 has no public query

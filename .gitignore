@@ -4,6 +4,7 @@ log.txt
 Win32/
 x64/
 !dependencies/x64
+dependencies/streamline/
 ipch/
 src/samples/EmptyGame/user
 dist

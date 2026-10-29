@@ -13,6 +13,21 @@ typedef enum MGDFGraphicsAPI {
 } MGDFGraphicsAPI;
 
 /**
+Optional graphics features a module can request in MGDFGraphicsRequirements.
+The host provides them only with D3D12 and only when the device supports them.
+Use IMGDFRenderSettingsManager::GetGraphicsFeatureSupport to find which are available
+*/
+typedef enum MGDFGraphicsFeature {
+  /** Temporal upscaling and anti-aliasing through IMGDFD3D12RenderHost::Upscale */
+  MGDF_GRAPHICS_FEATURE_UPSCALE = 0x1,
+  /** Generated frames between rendered frames. The host also enables LOW_LATENCY
+  support because frame generation needs it */
+  MGDF_GRAPHICS_FEATURE_FRAME_GENERATION = 0x2,
+  /** Low latency frame pacing and latency markers */
+  MGDF_GRAPHICS_FEATURE_LOW_LATENCY = 0x4,
+} MGDFGraphicsFeature;
+
+/**
 The graphics requirements returned by the module's GetGraphicsRequirements export
 */
 typedef struct MGDFGraphicsRequirements {
@@ -22,6 +37,9 @@ typedef struct MGDFGraphicsRequirements {
   D3D_FEATURE_LEVEL MinFeatureLevel;
   /** D3D_SHADER_MODEL value; only checked for D3D12 */
   UINT32 MinShaderModel;
+  /** MGDFGraphicsFeature flags the module wants to use. The host reads them
+  before it creates the device. Unknown flags are an error */
+  UINT32 Features;
 } MGDFGraphicsRequirements;
 
 /**
@@ -82,6 +100,16 @@ typedef struct MGDFDebugOverlayData {
   UINT64 CounterCount;
   const MGDFDebugEntry *Entries;
   UINT64 EntryCount;
+  /** TRUE when the driver reports low latency figures */
+  BOOL HasLatency;
+  /** Seconds from SIMULATION_START to the end of GPU work for the latest
+  frame the driver reported */
+  double RenderLatency;
+  /** Frames the module rendered since the device was created */
+  UINT64 RenderedFrames;
+  /** Frames sent to the display since the device was created. More than
+  RenderedFrames while frame generation runs */
+  UINT64 PresentedFrames;
 } MGDFDebugOverlayData;
 
 /**
@@ -613,6 +641,29 @@ typedef struct MGDFFullScreenDesc {
 } MGDFFullScreenDesc;
 
 /**
+Low latency modes. Boost also keeps GPU clocks high, which costs power
+*/
+typedef enum MGDFLowLatencyMode {
+  MGDF_LOW_LATENCY_OFF = 0,
+  MGDF_LOW_LATENCY_ON = 1,
+  MGDF_LOW_LATENCY_BOOST = 2,
+} MGDFLowLatencyMode;
+
+/**
+The graphics features the current device supports for this module
+*/
+typedef struct MGDFGraphicsFeatureSupport {
+  /** MGDFGraphicsFeature flags that the module requested and the device supports */
+  UINT32 Features;
+  /** Largest number of generated frames per rendered frame. 0 if frame
+  generation is not supported */
+  UINT32 MaxGeneratedFrames;
+  /** TRUE if vsync works while frame generation runs. If FALSE the host
+  presents without vsync while frame generation runs */
+  BOOL FrameGenerationVSync;
+} MGDFGraphicsFeatureSupport;
+
+/**
 Provides an interface for changing various rendering settings. Once released
 the settings will be applied to the render system on the next frame
 */
@@ -685,6 +736,25 @@ the settings will be applied to the render system on the next frame
 
   /** Keep the current client aspect ratio during user resizing. */
   void SetWindowAspectLock(BOOL enabled);
+
+  /**
+  sets the low latency mode. The change applies on the next frame and does
+  not change the back buffer. While frame generation runs the host uses at
+  least MGDF_LOW_LATENCY_ON
+  \param mode the low latency mode
+  \return false if the mode is unknown, or is not MGDF_LOW_LATENCY_OFF and the
+  device does not support MGDF_GRAPHICS_FEATURE_LOW_LATENCY
+  */
+  BOOL SetLowLatencyMode(MGDFLowLatencyMode mode);
+
+  /**
+  sets the number of generated frames per rendered frame. A change schedules a
+  back buffer change because the host must make a new swap chain
+  \param generatedFrames 0 for no frame generation, otherwise 1 to
+  MGDFGraphicsFeatureSupport::MaxGeneratedFrames
+  \return false if the value is more than the device supports
+  */
+  BOOL SetFrameGeneration(UINT32 generatedFrames);
 };
 
 /**
@@ -872,6 +942,26 @@ Provides an interface for getting and setting the hosts various display settings
   BOOL GetWindowResizeEnabled();
   /** Maximum client size that fits the primary display work area. */
   BOOL GetWindowSizeLimits([out] UINT32 *width, [out] UINT32 *height);
+
+  /**
+  gets the graphics features the current device supports for this module.
+  Every feature reports unsupported before the device exists, with D3D11, and
+  when the module did not request the feature
+  \param support receives the supported features
+  */
+  void GetGraphicsFeatureSupport([out] MGDFGraphicsFeatureSupport * support);
+
+  /**
+  gets the low latency mode the user selected
+  \return the low latency mode
+  */
+  MGDFLowLatencyMode GetLowLatencyMode();
+
+  /**
+  gets the number of generated frames per rendered frame the user selected
+  \return the number of generated frames, 0 if frame generation is off
+  */
+  UINT32 GetFrameGeneration();
 };
 
 /**
@@ -2193,6 +2283,31 @@ Additional methods in this interface are safe to be used ONLY from the render th
 };
 
 /**
+Upscale quality modes. DLAA renders at the output size and only does anti-aliasing
+*/
+typedef enum MGDFUpscaleMode {
+  MGDF_UPSCALE_MODE_DLAA = 0,
+  MGDF_UPSCALE_MODE_QUALITY = 1,
+  MGDF_UPSCALE_MODE_BALANCED = 2,
+  MGDF_UPSCALE_MODE_PERFORMANCE = 3,
+  MGDF_UPSCALE_MODE_ULTRA_PERFORMANCE = 4,
+} MGDFUpscaleMode;
+
+/**
+The render size for an upscale mode and output size. The Min and Max fields
+give the range for dynamic resolution. They equal Width and Height if the
+upscaler gives no range
+*/
+typedef struct MGDFUpscaleRenderSize {
+  UINT32 Width;
+  UINT32 Height;
+  UINT32 MinWidth;
+  UINT32 MinHeight;
+  UINT32 MaxWidth;
+  UINT32 MaxHeight;
+} MGDFUpscaleRenderSize;
+
+/**
 D3D12 device and queues. These methods may be called from any thread. QueryInterface
 returns this interface only when GetGraphicsAPI returns MGDF_GRAPHICS_API_D3D12.
 Release returned references before acknowledging a device reset.
@@ -2221,6 +2336,18 @@ Release returned references before acknowledging a device reset.
   \param queue points to the copy queue
   */
   void GetCopyQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets the render size for an upscale mode and output size
+  \param mode the upscale mode
+  \param displayWidth the output width
+  \param displayHeight the output height
+  \param size receives the render size
+  \return S_OK, E_INVALIDARG for an unknown mode or a zero size, or E_NOTIMPL
+  if MGDF_GRAPHICS_FEATURE_UPSCALE is not supported
+  */
+  HRESULT GetUpscaleRenderSize(MGDFUpscaleMode mode, UINT32 displayWidth,
+                               UINT32 displayHeight,
+                               [out] MGDFUpscaleRenderSize *size);
 };
 
 /**
@@ -2241,6 +2368,119 @@ typedef struct MGDFFrameInfo {
   D3D12_CPU_DESCRIPTOR_HANDLE BackBufferRTV;
   D3D12_RESOURCE_DESC BackBufferDesc;
 } MGDFFrameInfo;
+
+/**
+Points in the current frame that the module reports for latency measurement.
+The host reports the frame start and the present itself
+*/
+typedef enum MGDFFrameMarker {
+  /** The frame starts to use simulation state */
+  MGDF_FRAME_MARKER_SIMULATION_START = 0,
+  /** The frame has the simulation state it needs */
+  MGDF_FRAME_MARKER_SIMULATION_END = 1,
+  /** The module starts to record and submit GPU work for the frame */
+  MGDF_FRAME_MARKER_RENDER_SUBMIT_START = 2,
+  /** The module has submitted all GPU work for the frame */
+  MGDF_FRAME_MARKER_RENDER_SUBMIT_END = 3,
+  /** The module read controller input for the frame */
+  MGDF_FRAME_MARKER_INPUT_SAMPLE = 4,
+} MGDFFrameMarker;
+
+/**
+Camera data for upscaling and frame generation. Matrices are row-major
+(row vectors, v * M) and do not contain the jitter offset
+*/
+typedef struct MGDFFrameConstants {
+  /** View space to clip space */
+  FLOAT ViewToClip[16];
+  /** Clip space to view space */
+  FLOAT ClipToView[16];
+  /** Current clip space to previous frame clip space */
+  FLOAT ClipToPreviousClip[16];
+  /** Previous frame clip space to current clip space */
+  FLOAT PreviousClipToClip[16];
+  /** Jitter offset in render pixels */
+  FLOAT JitterOffset[2];
+  /** Scale that converts motion vector values to the -1 to 1 range */
+  FLOAT MotionVectorScale[2];
+  /** Camera position in world space */
+  FLOAT CameraPosition[3];
+  /** Camera basis vectors in world space; they must be orthonormal */
+  FLOAT CameraUp[3];
+  FLOAT CameraRight[3];
+  FLOAT CameraForward[3];
+  FLOAT Near;
+  FLOAT Far;
+  /** Vertical field of view in radians */
+  FLOAT VerticalFOV;
+  /** View width divided by view height */
+  FLOAT AspectRatio;
+  /** TRUE if depth values closer to the camera are higher */
+  BOOL DepthInverted;
+  /** TRUE if motion vectors contain the jitter */
+  BOOL MotionVectorsJittered;
+  /** TRUE if motion vectors are already dilated */
+  BOOL MotionVectorsDilated;
+  /** TRUE if motion vectors contain camera motion */
+  BOOL CameraMotionIncluded;
+  /** TRUE if this frame has no relation to the previous frame */
+  BOOL ResetHistory;
+} MGDFFrameConstants;
+
+/**
+A texture the host gives to the upscaler or to frame generation. State is the
+state the resource has when the GPU runs the work that uses it. The host does
+not change resource states. A zero Width or Height selects the default region
+*/
+typedef struct MGDFFrameResource {
+  ID3D12Resource *Resource;
+  D3D12_RESOURCE_STATES State;
+  UINT32 Left;
+  UINT32 Top;
+  UINT32 Width;
+  UINT32 Height;
+} MGDFFrameResource;
+
+/**
+Inputs for IMGDFD3D12RenderHost::Upscale. The default region of ColorIn, Depth,
+MotionVectors and BiasCurrentColor is RenderWidth x RenderHeight at the origin.
+The default region of ColorOut is OutputWidth x OutputHeight at the origin.
+Exposure and BiasCurrentColor are optional (null Resource)
+*/
+typedef struct MGDFUpscaleDesc {
+  MGDFUpscaleMode Mode;
+  UINT32 RenderWidth;
+  UINT32 RenderHeight;
+  UINT32 OutputWidth;
+  UINT32 OutputHeight;
+  /** TRUE if the color input is linear HDR, FALSE if it is tonemapped */
+  BOOL ColorHDR;
+  /** Jittered color at render size */
+  MGDFFrameResource ColorIn;
+  /** Upscaled color at output size. Needs unordered access */
+  MGDFFrameResource ColorOut;
+  MGDFFrameResource Depth;
+  MGDFFrameResource MotionVectors;
+  /** 1x1 exposure texture. Without it the upscaler uses automatic exposure */
+  MGDFFrameResource Exposure;
+  /** 0 to 1 per pixel: 1 rejects the history and uses the current color */
+  MGDFFrameResource BiasCurrentColor;
+} MGDFUpscaleDesc;
+
+/**
+Inputs for frame generation. Each resource must keep its content and State until
+the frame is presented. The default region of Depth and MotionVectors is the
+full resource. HudlessColor and UIColorAndAlpha are optional, but give much
+better results with UI. They must have the back buffer size. UIColorAndAlpha has
+premultiplied color and zero alpha where there is no UI
+*/
+typedef struct MGDFFrameGenerationDesc {
+  MGDFFrameResource Depth;
+  MGDFFrameResource MotionVectors;
+  /** The final scene color without UI, in the back buffer color space */
+  MGDFFrameResource HudlessColor;
+  MGDFFrameResource UIColorAndAlpha;
+} MGDFFrameGenerationDesc;
 
 /**
 D3D12 rendering methods, usable only on the render thread. The module records and
@@ -2279,6 +2519,44 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   HRESULT CreateGPUCounter([in] IMGDFMetric *metric,
                            [in] ID3D12GraphicsCommandList *list,
                            [out] IMGDFPerformanceCounter **counter);
+  /**
+  Reports a point in the current frame for latency measurement. Does nothing
+  if the device supports no low latency feature
+  \param marker the point in the frame
+  */
+  void SetFrameMarker(MGDFFrameMarker marker);
+  /**
+  Sets the camera data for the current frame. Call it once per frame before
+  Upscale and before RTDraw returns. Does nothing if the device supports
+  neither upscaling nor frame generation
+  \param constants the camera data
+  */
+  void SetFrameConstants([in] const MGDFFrameConstants *constants);
+  /**
+  Records an upscale of the current frame into a direct-queue command list.
+  The list must be recording and tracked by the SDK MGDF::D3D12CommandList
+  helper. After the call the descriptor heaps, root signatures, pipeline state,
+  render targets and viewports of the list are undefined; set them again before
+  more work. Resource states do not change
+  \param list the command list
+  \param desc the upscale inputs
+  \return S_OK, E_INVALIDARG for an untracked list or missing inputs,
+  E_ILLEGAL_METHOD_CALL if SetFrameConstants was not called this frame,
+  E_NOTIMPL if MGDF_GRAPHICS_FEATURE_UPSCALE is not supported, or E_FAIL if
+  the upscaler failed
+  */
+  HRESULT Upscale([in] ID3D12GraphicsCommandList *list,
+                  [in] const MGDFUpscaleDesc *desc);
+  /**
+  Sets the frame generation inputs for the current frame. Call it before RTDraw
+  returns in each frame that frame generation can use. A frame without inputs,
+  or a null desc, pauses frame generation for that frame: use this for loading,
+  pause and world changes
+  \param desc the inputs, or null to pause frame generation
+  \return S_OK, S_FALSE if frame generation is off, or E_INVALIDARG if Depth
+  or MotionVectors is missing
+  */
+  HRESULT SetFrameGenerationInputs([in] const MGDFFrameGenerationDesc *desc);
 };
 
 /**

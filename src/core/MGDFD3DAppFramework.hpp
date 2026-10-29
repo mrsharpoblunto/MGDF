@@ -52,6 +52,8 @@ class D3DAppFramework {
       DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
       const RECT &windowSize) = 0;
   virtual std::optional<UINT> RTGetMaxFrameLatency() const = 0;
+  virtual UINT32 RTGetFrameGeneration() const = 0;
+  virtual MGDFLowLatencyMode RTGetLowLatencyMode() const = 0;
   virtual void RTOnDisplayChange(
       const DXGI_OUTPUT_DESC1 &currentOutputDesc, UINT currentDPI,
       ULONG currentSDRWhiteLevel,
@@ -131,6 +133,7 @@ class D3DAppFramework {
   std::unique_ptr<POINT> _resizing;
   double _resizeAspect = 0;
   bool _internalShutDown;
+  bool _stoppingRenderThread = false;
   std::vector<BYTE> _rawInputBuffer;
 };
 

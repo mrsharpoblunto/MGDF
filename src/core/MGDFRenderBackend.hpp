@@ -6,6 +6,8 @@
 #include <MGDF/ComObject.hpp>
 #include <optional>
 
+#include "core.impl/MGDFStreamline.hpp"
+
 namespace MGDF {
 namespace core {
 
@@ -25,15 +27,18 @@ class IRenderBackend {
   virtual ComObject<ID3D12Fence> RTGetFrameFence() { return {}; }
   virtual MGDFFrameInfo RTGetCurrentFrame() const { return {}; }
   virtual HRESULT RTEndFrame() { return S_OK; }
+  // Null for backends without Streamline. Any thread may use the object.
+  virtual Streamline *GetStreamline() { return nullptr; }
   virtual bool RTInit() = 0;
   virtual bool RTIsInitialized() const = 0;
   virtual void RTUninit(bool exclusiveMode) = 0;
   virtual void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
-                                 std::optional<UINT> maxFrameLatency) = 0;
+                                 std::optional<UINT> maxFrameLatency,
+                                 UINT32 generatedFrames) = 0;
   virtual HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) = 0;
   virtual bool RTSetExclusiveFullscreen() = 0;
   virtual void RTSetWindowed() = 0;
-  virtual bool RTWaitForFrame() = 0;
+  virtual bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) = 0;
   virtual void RTWaitForGpuIdle() = 0;
   virtual void RTClear() = 0;
   virtual HRESULT RTPresent(UINT syncInterval, UINT flags) = 0;

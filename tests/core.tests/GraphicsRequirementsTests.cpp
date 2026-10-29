@@ -61,6 +61,22 @@ TEST(GraphicsRequirementsTests, UnknownAPIOrPreferenceIsRejected) {
   EXPECT_FALSE(error.empty());
 }
 
+TEST(GraphicsRequirementsTests, OnlyKnownFeaturesAreAccepted) {
+  MGDFGraphicsRequirements requirements{
+      1,
+      {MGDF_GRAPHICS_API_D3D12},
+      D3D_FEATURE_LEVEL_11_0,
+      0,
+      MGDF_GRAPHICS_FEATURE_UPSCALE | MGDF_GRAPHICS_FEATURE_FRAME_GENERATION |
+          MGDF_GRAPHICS_FEATURE_LOW_LATENCY};
+  MGDFGraphicsAPI api{};
+  std::string error;
+  EXPECT_EQ(S_OK, SelectGraphicsAPI(requirements, "", api, error));
+  requirements.Features |= 0x8;
+  EXPECT_EQ(E_INVALIDARG, SelectGraphicsAPI(requirements, "", api, error));
+  EXPECT_FALSE(error.empty());
+}
+
 TEST(GraphicsRequirementsTests, InvalidAPICountIsRejected) {
   MGDFGraphicsRequirements requirements{};
   MGDFGraphicsAPI api{};

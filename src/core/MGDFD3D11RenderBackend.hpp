@@ -23,11 +23,12 @@ class D3D11RenderBackend : public IRenderBackend {
   bool RTIsInitialized() const final;
   void RTUninit(bool exclusiveMode) final;
   void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
-                         std::optional<UINT> maxFrameLatency) final;
+                         std::optional<UINT> maxFrameLatency,
+                         UINT32 generatedFrames) final;
   HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) final;
   bool RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
-  bool RTWaitForFrame() final;
+  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) final;
   void RTWaitForGpuIdle() final;
   void RTClear() final;
   HRESULT RTPresent(UINT syncInterval, UINT flags) final;

@@ -14,5 +14,7 @@
   "host.windowSizeY": "768",
   "host.hdrEnabled": "1",
   "host.sdrBackBufferFormat": "28",
-  "host.hdrBackBufferFormat": "10"
+  "host.hdrBackBufferFormat": "10",
+  "host.lowLatencyMode": "1",
+  "host.frameGeneration": "0"
 }

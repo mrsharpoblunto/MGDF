@@ -157,6 +157,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="RenderSettingsTests.cpp" />
+    <ClCompile Include="StreamlineTests.cpp" />
     <ClCompile Include="SaveManagerTests.cpp" />
     <ClCompile Include="StorageTests.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>

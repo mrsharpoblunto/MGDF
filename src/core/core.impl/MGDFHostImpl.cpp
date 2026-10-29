@@ -252,6 +252,10 @@ void Host::InitGraphics() {
     return;
   }
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
+      _graphicsRequirements.Features) {
+    LOG("Requested graphics features need D3D12 and are off", MGDF_LOG_LOW);
+  }
+  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
       GetD3D11FeatureLevels(_graphicsRequirements.MinFeatureLevel).empty()) {
     FATALERROR(this,
                "The requested minimum feature level is not supported by D3D11");
@@ -379,6 +383,7 @@ void Host::RTShutDown() {
   _depthStencilBuffer.Clear();
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
+  _streamline = nullptr;
   _d3dDevice.Clear();
   _d3d12Device.Clear();
   _directQueue.Clear();
@@ -410,6 +415,12 @@ void Host::RTSetDevices(IRenderBackend &backend) {
     _copyQueue = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_COPY);
     _frameFence = backend.RTGetFrameFence();
   }
+  {
+    std::lock_guard lock(_deviceMutex);
+    _streamline = backend.GetStreamline();
+    _renderSettings->SetGraphicsFeatureSupport(
+        _streamline ? _streamline->GetSupport() : MGDFGraphicsFeatureSupport{});
+  }
   LOG("Loading Render settings...", MGDF_LOG_LOW);
   _renderSettings->LoadPreferences(_game.As<IMGDFGame>());
 }
@@ -426,6 +437,17 @@ bool Host::RTDraw(double alpha) {
 }
 
 void Host::RTAfterPresent() {
+  ++_renderedFrames;
+  {
+    const auto stats =
+        _streamline ? _streamline->GetFrameStats() : StreamlineFrameStats{};
+    _debugOverlay->SetFrameStats({.HasLatency = stats.HasLatency,
+                                  .RenderLatency = stats.RenderLatency,
+                                  .RenderedFrames = _renderedFrames,
+                                  .PresentedFrames = stats.PresentedFrames
+                                                         ? stats.PresentedFrames
+                                                         : _renderedFrames});
+  }
   if (_module) _module->RTAfterPresent(RenderHost());
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
       FAILED(_timer->EndD3D12Frame()) &&
@@ -509,6 +531,28 @@ HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
                                ID3D12GraphicsCommandList *list,
                                IMGDFPerformanceCounter **counter) {
   return _timer->CreateGPUCounter(metric, list, counter);
+}
+
+HRESULT Host::GetUpscaleRenderSize(MGDFUpscaleMode mode, UINT32 displayWidth,
+                                   UINT32 displayHeight,
+                                   MGDFUpscaleRenderSize *size) {
+  std::lock_guard lock(_deviceMutex);
+  return _streamline ? _streamline->GetUpscaleRenderSize(mode, displayWidth,
+                                                         displayHeight, size)
+                     : E_NOTIMPL;
+}
+void Host::SetFrameMarker(MGDFFrameMarker marker) {
+  if (_streamline) _streamline->RTSetFrameMarker(marker);
+}
+void Host::SetFrameConstants(const MGDFFrameConstants *constants) {
+  if (_streamline) _streamline->RTSetFrameConstants(constants);
+}
+HRESULT Host::Upscale(ID3D12GraphicsCommandList *list,
+                      const MGDFUpscaleDesc *desc) {
+  return _streamline ? _streamline->RTUpscale(list, desc) : E_NOTIMPL;
+}
+HRESULT Host::SetFrameGenerationInputs(const MGDFFrameGenerationDesc *desc) {
+  return _streamline ? _streamline->RTSetFrameGenerationInputs(desc) : S_FALSE;
 }
 
 void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {

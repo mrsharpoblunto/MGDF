@@ -1,7 +1,9 @@
 #include "stdafx.h"
 
 #include "../../src/core/common/MGDFWindowSizing.hpp"
+#include "../../src/core/core.impl/MGDFGameImpl.hpp"
 #include "../../src/core/core.impl/MGDFRenderSettingsManagerImpl.hpp"
+#include "../../src/core/storage/jsoncpp/JsonStorageFactoryComponent.hpp"
 
 using namespace MGDF;
 using namespace MGDF::core;
@@ -101,6 +103,86 @@ TEST(RenderSettings, ResetUsesExclusiveModeOrTheActualWindowSize) {
               choice.FullScreen ? (choice.ExclusiveMode ? 720u : 1080u) : 768u);
     EXPECT_FALSE(settings->IsBackBufferChangePending());
   }
+}
+
+TEST(RenderSettings, FrameFeatureChangesNeedDeviceSupport) {
+  auto settings = MakeCom<RenderSettingsManager>();
+  {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    settings->CreatePendingSettingsChange(change.Assign());
+    EXPECT_FALSE(change->SetLowLatencyMode(MGDF_LOW_LATENCY_ON));
+    EXPECT_FALSE(change->SetFrameGeneration(1));
+    EXPECT_TRUE(change->SetLowLatencyMode(MGDF_LOW_LATENCY_OFF));
+    EXPECT_TRUE(change->SetFrameGeneration(0));
+  }
+  EXPECT_FALSE(settings->IsBackBufferChangePending());
+
+  settings->SetGraphicsFeatureSupport(
+      {MGDF_GRAPHICS_FEATURE_LOW_LATENCY |
+           MGDF_GRAPHICS_FEATURE_FRAME_GENERATION,
+       2, TRUE});
+  {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    settings->CreatePendingSettingsChange(change.Assign());
+    EXPECT_FALSE(change->SetFrameGeneration(3));
+    EXPECT_FALSE(change->SetLowLatencyMode(static_cast<MGDFLowLatencyMode>(3)));
+    EXPECT_TRUE(change->SetLowLatencyMode(MGDF_LOW_LATENCY_BOOST));
+  }
+  EXPECT_EQ(MGDF_LOW_LATENCY_BOOST, settings->GetLowLatencyMode());
+  EXPECT_FALSE(settings->IsBackBufferChangePending());
+  {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    settings->CreatePendingSettingsChange(change.Assign());
+    EXPECT_TRUE(change->SetFrameGeneration(2));
+  }
+  EXPECT_EQ(2u, settings->GetFrameGeneration());
+  EXPECT_TRUE(settings->IsBackBufferChangePending());
+
+  settings->SetGraphicsFeatureSupport(
+      {MGDF_GRAPHICS_FEATURE_FRAME_GENERATION, 1, FALSE});
+  EXPECT_EQ(1u, settings->GetFrameGeneration());
+  EXPECT_EQ(MGDF_LOW_LATENCY_OFF, settings->GetLowLatencyMode());
+}
+
+TEST(RenderSettings, FrameFeaturePreferencesPersistWithinSupport) {
+  std::shared_ptr<storage::IStorageFactoryComponent> storage;
+  storage::json::CreateStorageFactoryComponent(storage);
+  auto game = MakeCom<Game>("settings-tests", "Settings tests", "",
+                            MGDFVersion{}, storage);
+  const MGDFDisplayMode mode{1280, 720, 60, 1, FALSE, FALSE};
+  const MGDFGraphicsFeatureSupport full{
+      MGDF_GRAPHICS_FEATURE_LOW_LATENCY |
+          MGDF_GRAPHICS_FEATURE_FRAME_GENERATION,
+      3, TRUE};
+  const auto create = [&](const MGDFGraphicsFeatureSupport &support) {
+    auto settings = MakeCom<RenderSettingsManager>();
+    settings->InitD3D12();
+    settings->SetOutputProperties({}, 96, {mode});
+    settings->SetGraphicsFeatureSupport(support);
+    return settings;
+  };
+  {
+    auto settings = create(full);
+    {
+      ComObject<IMGDFPendingRenderSettingsChange> change;
+      settings->CreatePendingSettingsChange(change.Assign());
+      ASSERT_TRUE(change->SetCurrentPrimaryDisplayMode(&mode));
+      ASSERT_TRUE(change->SetLowLatencyMode(MGDF_LOW_LATENCY_BOOST));
+      ASSERT_TRUE(change->SetFrameGeneration(3));
+    }
+    ComObject<IMGDFPreferenceSet> preferences;
+    settings->GetPreferences(preferences.Assign());
+    game->SetPreferences(preferences);
+  }
+  auto loaded = create(full);
+  loaded->LoadPreferences(game.As<IMGDFGame>());
+  EXPECT_EQ(MGDF_LOW_LATENCY_BOOST, loaded->GetLowLatencyMode());
+  EXPECT_EQ(3u, loaded->GetFrameGeneration());
+
+  auto limited = create({MGDF_GRAPHICS_FEATURE_FRAME_GENERATION, 1, FALSE});
+  limited->LoadPreferences(game.As<IMGDFGame>());
+  EXPECT_EQ(MGDF_LOW_LATENCY_OFF, limited->GetLowLatencyMode());
+  EXPECT_EQ(1u, limited->GetFrameGeneration());
 }
 
 TEST(WindowSizing, EveryEdgeKeepsClientAspectAndTheOppositeAnchor) {
