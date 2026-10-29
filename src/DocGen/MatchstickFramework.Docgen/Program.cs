@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -12,14 +13,6 @@ using MatchstickFramework.Docgen.Model;
 
 namespace MatchstickFramework.Docgen
 {
-  static class StringExtensions
-  {
-    public static string Capitalize(this string input)
-    {
-      return input.First().ToString().ToUpper() + String.Join("", input.Skip(1));
-    }
-  }
-
   class Program
   {
     static void Main(string[] args)
@@ -65,16 +58,7 @@ namespace MatchstickFramework.Docgen
             switch (ch)
             {
               case '/':
-                reader.Read();
-                if (reader.Peek() == '*')
-                {
-                  reader.Read();
-                  if (reader.Peek() == '*')
-                  {
-                    reader.Read();
-                  }
-                  lastComment = ParseCommentBlock(reader);
-                }
+                lastComment = ReadComment(reader) ?? lastComment;
                 break;
               case 'i':
                 {
@@ -187,6 +171,7 @@ namespace MatchstickFramework.Docgen
       EnumDoc e = new EnumDoc
       {
         Values = new List<string>(),
+        ValueDescriptions = new Dictionary<string, string>(),
       };
 
       e.Id = e.Name = CaptureWord(reader);
@@ -194,40 +179,49 @@ namespace MatchstickFramework.Docgen
 
       if (CapturePunctuation(reader) != "{")
       {
-        throw new Exception($"Expected {{ after identifier in enum ${e.Name}");
+        throw new Exception($"Expected {{ after identifier in enum {e.Name}");
+      }
+
+      string prevValue = null;
+      Action<CommentBlock> describe = (valueComment) =>
+      {
+        if (!string.IsNullOrEmpty(valueComment.Description) && !e.ValueDescriptions.ContainsKey(prevValue))
+        {
+          e.ValueDescriptions[prevValue] = valueComment.Description;
+        }
+      };
+
+      var comment = SkipTrivia(reader, null);
+      // A trailing comma leaves the closing brace here, so it adds no value.
+      while (!reader.EndOfStream && reader.Peek() != '}')
+      {
+        prevValue = CaptureWord(reader);
+        if (prevValue == "")
+        {
+          throw new Exception($"Expected a value name in enum {e.Name}");
+        }
+        e.Values.Add(prevValue);
+        if (comment != null)
+        {
+          describe(comment);
+        }
+
+        if (SkipTo(reader, ',', '}') == '}')
+        {
+          break;
+        }
+        comment = SkipTrivia(reader, describe);
       }
 
       char ch;
       do
       {
-        // skip over comment blocks for individual values
-        if (reader.Peek() == '*')
-        {
-          reader.Read();
-          if (reader.Peek() == '*')
-          {
-            reader.Read();
-          }
-          ParseCommentBlock(reader);
-        }
-
-        e.Values.Add(CaptureWord(reader));
-
-        // skip past the enum value
-        do
-        {
-          ch = (char)reader.Read();
-        }
-        while (ch != ',' && ch != '}');
-      } while (ch != '}' && !reader.EndOfStream);
-
-      do
-      {
         ch = (char)reader.Read();
-      } while (ch != ';');
+      } while (ch != ';' && !reader.EndOfStream);
 
       return e;
     }
+
     static ClassDoc ParseStruct(StreamReader reader, Dictionary<string, string> mappings)
     {
       ClassDoc s = new ClassDoc
@@ -236,7 +230,6 @@ namespace MatchstickFramework.Docgen
         InheritsFromUnreferencedType = new List<string>(),
         Members = new List<MemberDoc>(),
       };
-      CommentBlock lastComment = null;
       MemberDoc prevMember = null;
 
       s.Id = s.Name = CaptureWord(reader);
@@ -244,25 +237,23 @@ namespace MatchstickFramework.Docgen
 
       if (CapturePunctuation(reader) != "{")
       {
-        throw new Exception($"Expected {{ after identifier in struct ${s.Name}");
+        throw new Exception($"Expected {{ after identifier in struct {s.Name}");
       }
-      SkipWhitespace(reader);
 
-      char ch;
-      while (reader.Peek() != '}')
+      Action<CommentBlock> describe = (comment) =>
       {
-        // skip over comment blocks for individual values
-        if (reader.Peek() == '*')
+        if (string.IsNullOrEmpty(prevMember.Description))
         {
-          reader.Read();
-          if (reader.Peek() == '*')
-          {
-            reader.Read();
-          }
-          lastComment = ParseCommentBlock(reader);
+          prevMember.Description = comment.Description;
         }
+      };
 
-        if (prevMember == null)
+      bool sharesType = false;
+      string sharedType = null;
+      var lastComment = SkipTrivia(reader, null);
+      while (!reader.EndOfStream && reader.Peek() != '}')
+      {
+        if (!sharesType)
         {
           // struct member with its own type declaration
           prevMember = new MemberDoc
@@ -292,7 +283,7 @@ namespace MatchstickFramework.Docgen
           {
             modifierOrType += " " + pointer;
           }
-          prevMember.ReturnType = modifierOrType;
+          prevMember.ReturnType = sharedType = modifierOrType;
         }
         else
         {
@@ -303,37 +294,172 @@ namespace MatchstickFramework.Docgen
             Const = false,
             MemberType = MemberType.Field,
             ReturnTypeRefId = prevMember.ReturnTypeRefId,
-            ReturnType = prevMember.ReturnType,
+            ReturnType = sharedType,
           };
         }
 
         prevMember.Id = prevMember.Name = CaptureWord(reader);
+        // the array size belongs to this declarator, not to the shared type
+        SkipWhitespace(reader);
+        while (reader.Peek() == '[')
+        {
+          var size = new StringBuilder();
+          char sizeChar;
+          do
+          {
+            sizeChar = (char)reader.Read();
+            if (!char.IsWhiteSpace(sizeChar))
+            {
+              size.Append(sizeChar);
+            }
+          } while (sizeChar != ']' && !reader.EndOfStream);
+          prevMember.ReturnType += size.ToString();
+          SkipWhitespace(reader);
+        }
+        if (string.IsNullOrEmpty(prevMember.ReturnType) || prevMember.Name == "")
+        {
+          throw new Exception($"Expected a field declaration in struct {s.Name}");
+        }
         if (lastComment != null)
         {
           prevMember.Description = lastComment.Description;
         }
         s.Members.Add(prevMember);
-        lastComment = null;
 
-        // skip to the next member
-        do
-        {
-          ch = (char)reader.Read();
-        }
-        while (ch != ',' && ch != ';');
-        if (ch == ';')
-        {
-          lastComment = null;
-          prevMember = null;
-        }
-
-        SkipWhitespace(reader);
+        sharesType = SkipTo(reader, ',', ';') == ',';
+        lastComment = SkipTrivia(reader, describe);
       }
+
+      char ch;
       do
       {
         ch = (char)reader.Read();
-      } while (ch != ';');
+      } while (ch != ';' && !reader.EndOfStream);
       return s;
+    }
+
+    // Skips whitespace and comments. Returns the comment before the next token.
+    // A comment on the same line as the previous token goes to onTrailing.
+    static CommentBlock SkipTrivia(StreamReader reader, Action<CommentBlock> onTrailing)
+    {
+      CommentBlock leading = null;
+      bool newLine = onTrailing == null;
+      while (!reader.EndOfStream)
+      {
+        var ch = (char)reader.Peek();
+        if (ch == '\n')
+        {
+          newLine = true;
+          reader.Read();
+        }
+        else if (char.IsWhiteSpace(ch))
+        {
+          reader.Read();
+        }
+        else if (ch == '/')
+        {
+          var comment = ReadComment(reader, newLine);
+          if (comment == null)
+          {
+            throw new Exception("Unexpected / outside a comment");
+          }
+          if (newLine)
+          {
+            leading = comment;
+          }
+          else
+          {
+            onTrailing(comment);
+          }
+        }
+        else
+        {
+          break;
+        }
+      }
+      return leading;
+    }
+
+    // Reads up to and including the first of the given characters outside a comment.
+    static char SkipTo(StreamReader reader, params char[] terminators)
+    {
+      while (!reader.EndOfStream)
+      {
+        var ch = (char)reader.Peek();
+        if (ch == '/')
+        {
+          ReadComment(reader);
+          continue;
+        }
+        reader.Read();
+        if (terminators.Contains(ch))
+        {
+          return ch;
+        }
+      }
+      throw new Exception($"Expected one of '{new string(terminators)}' before the end of the input");
+    }
+
+    // Reads a comment at a '/'. Returns null and consumes the '/' if no comment starts there.
+    // Line comments on consecutive lines join into one comment when joinLines is set.
+    static CommentBlock ReadComment(StreamReader reader, bool joinLines = true)
+    {
+      reader.Read();
+      if (reader.Peek() == '*')
+      {
+        reader.Read();
+        if (reader.Peek() == '*')
+        {
+          reader.Read();
+        }
+        return ParseCommentBlock(reader);
+      }
+      if (reader.Peek() != '/')
+      {
+        return null;
+      }
+
+      var text = new StringBuilder();
+      while (true)
+      {
+        while (reader.Peek() == '/')
+        {
+          reader.Read();
+        }
+        while (!reader.EndOfStream && reader.Peek() != '\n')
+        {
+          text.Append((char)reader.Read());
+        }
+        text.Append('\n');
+        if (!joinLines)
+        {
+          break;
+        }
+        SkipWhitespace(reader);
+        if (reader.Peek() != '/')
+        {
+          break;
+        }
+        reader.Read();
+        if (reader.Peek() == '*')
+        {
+          // a block comment directly after line comments replaces them
+          reader.Read();
+          if (reader.Peek() == '*')
+          {
+            reader.Read();
+          }
+          return ParseCommentBlock(reader);
+        }
+        if (reader.Peek() != '/')
+        {
+          break;
+        }
+      }
+      using (var lines = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(text.ToString()))))
+      {
+        return ParseCommentBlock(lines);
+      }
     }
 
     static ClassDoc ParseInterface(StreamReader reader, Dictionary<string, string> mappings)
@@ -399,16 +525,7 @@ namespace MatchstickFramework.Docgen
         switch (ch)
         {
           case '/':
-            reader.Read();
-            if (reader.Peek() == '*')
-            {
-              reader.Read();
-              if (reader.Peek() == '*')
-              {
-                reader.Read();
-              }
-              lastComment = ParseCommentBlock(reader);
-            }
+            lastComment = ReadComment(reader) ?? lastComment;
             break;
           case '}':
             reader.Read();
@@ -643,9 +760,14 @@ namespace MatchstickFramework.Docgen
 
     static string CaptureTidyDescription(StringBuilder sb)
     {
-      var value = sb.ToString().Trim().Replace("\r\n", " ").Capitalize();
+      var value = Regex.Replace(sb.ToString().Trim(), @"\s+", " ");
       sb.Clear();
-      return value;
+      // keep mixed-case first words such as scRGB
+      if (value.Length == 0 || value.Split(' ')[0].Skip(1).Any(char.IsUpper))
+      {
+        return value;
+      }
+      return char.ToUpper(value[0]) + value.Substring(1);
     }
 
     static CommentBlock ParseCommentBlock(StreamReader reader)
@@ -657,19 +779,31 @@ namespace MatchstickFramework.Docgen
       SetComment setter = (StringBuilder b) => { comment.Description = CaptureTidyDescription(b); };
 
       StringBuilder buffer = new StringBuilder();
+      bool lineStart = true;
       while (!reader.EndOfStream)
       {
         var ch = (char)reader.Read();
+        if (ch == '\n')
+        {
+          lineStart = true;
+        }
+        else if (!char.IsWhiteSpace(ch) && ch != '*')
+        {
+          lineStart = false;
+        }
         switch (ch)
         {
           case '*':
+            if (reader.Peek() == '/')
             {
-              if (reader.Peek() == '/')
-              {
-                reader.Read();
-                setter(buffer);
-                return comment;
-              }
+              reader.Read();
+              setter(buffer);
+              return comment;
+            }
+            // a '*' at the start of a line is decoration, not text
+            if (!lineStart)
+            {
+              buffer.Append(ch);
             }
             break;
           case '\\':
