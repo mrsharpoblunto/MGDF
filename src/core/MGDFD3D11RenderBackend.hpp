@@ -27,6 +27,8 @@ class D3D11RenderBackend : public IRenderBackend {
                          std::optional<UINT> maxFrameLatency,
                          UINT32 generatedFrames) final;
   HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) final;
+  void RTSetHDRMetadata(
+      const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) final;
   bool RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
   bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) final;
@@ -59,6 +61,7 @@ class D3D11RenderBackend : public IRenderBackend {
   ComObject<ID3D11Texture2D> _rtBackBuffer;
   DXGI_SWAP_CHAIN_DESC1 _rtSwapDesc{};
   DXGI_COLOR_SPACE_TYPE _rtColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+  std::optional<DXGI_HDR_METADATA_HDR10> _rtHDRMetadata;
   HANDLE _rtFrameWaitableObject;
 };
 

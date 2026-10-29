@@ -508,6 +508,18 @@ void Host::GetBackBufferInfo(MGDFBackBufferInfo *info) {
   *info = _backBufferInfo;
 }
 
+HRESULT Host::SetHDRMetadata(const MGDFHDRMetadata *metadata) {
+  _ASSERTE(_backend);
+  if (!metadata) {
+    _backend->RTSetHDRMetadata(std::nullopt);
+    return S_OK;
+  }
+  DXGI_HDR_METADATA_HDR10 hdr10{};
+  const auto result = ToHDR10Metadata(*metadata, hdr10);
+  if (SUCCEEDED(result)) _backend->RTSetHDRMetadata(hdr10);
+  return result;
+}
+
 void Host::GetD3D11Device(ID3D11Device **device) {
   std::lock_guard lock(_deviceMutex);
   _d3dDevice.AddRawRef(device);

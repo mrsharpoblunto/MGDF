@@ -775,6 +775,21 @@ the settings will be applied to the render system on the next frame
 };
 
 /**
+HDR10 content metadata, in nits. The host reports Rec.709 primaries and a D65
+white point, because the content of both HDR formats stays inside Rec.709
+*/
+typedef struct MGDFHDRMetadata {
+  /** Maximum content light level (MaxCLL), 0 to 65535 */
+  FLOAT MaxContentLightLevel;
+  /** Maximum frame-average light level (MaxFALL), 0 to MaxContentLightLevel */
+  FLOAT MaxFrameAverageLightLevel;
+  /** Mastering display maximum luminance, more than 0 and up to 10000 */
+  FLOAT MaxMasteringLuminance;
+  /** Mastering display minimum luminance, 0 or more and less than the maximum */
+  FLOAT MinMasteringLuminance;
+} MGDFHDRMetadata;
+
+/**
 The current outputs HDR display information
 */
 typedef struct MGDFOutputDisplayInfo {
@@ -2237,6 +2252,15 @@ this interface are safe to be used from any thread
   \param info the back buffer properties to populate
   */
   void GetBackBufferInfo([out] MGDFBackBufferInfo * info);
+
+  /**
+  Sets the HDR content metadata. The host keeps it and applies it to each HDR10
+  swap chain (MGDF_HDR_FORMAT_HDR10 with HDR output on). Other swap chains get
+  no metadata
+  \param metadata the metadata, or null to clear it
+  \return S_OK, or E_INVALIDARG if a value is out of range
+  */
+  HRESULT SetHDRMetadata([in] const MGDFHDRMetadata *metadata);
 };
 
 /**

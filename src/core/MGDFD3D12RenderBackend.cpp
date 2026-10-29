@@ -346,6 +346,7 @@ HRESULT D3D12RenderBackend::RTResizeBackBuffer(
     LOG("Swapchain does not support color space " << _colorSpace,
         MGDF_LOG_ERROR);
   }
+  RTSetHDRMetadata(_hdrMetadata);
   auto handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
   for (UINT i = 0; i < BackBufferCount; ++i) {
     Check(_swapChain->GetBuffer(i, IID_PPV_ARGS(_backBuffers[i].Assign())),
@@ -355,6 +356,22 @@ HRESULT D3D12RenderBackend::RTResizeBackBuffer(
   }
   LOG("D3D12 backbuffer: " << desc.Width << "x" << desc.Height, MGDF_LOG_LOW);
   return S_OK;
+}
+
+void D3D12RenderBackend::RTSetHDRMetadata(
+    const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) {
+  _hdrMetadata = metadata;
+  if (!_nativeSwapChain) return;
+  const auto result =
+      SetSwapChainHDRMetadata(_nativeSwapChain, _colorSpace, _hdrMetadata);
+  if (FAILED(result))
+    LOG("Failed to set HDR metadata " << result, MGDF_LOG_ERROR);
+  else if (result == S_OK)
+    LOG("HDR metadata MaxCLL: "
+            << (_hdrMetadata
+                    ? std::to_string(_hdrMetadata->MaxContentLightLevel)
+                    : "none"),
+        MGDF_LOG_LOW);
 }
 
 bool D3D12RenderBackend::RTSetExclusiveFullscreen() {
