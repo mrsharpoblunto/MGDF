@@ -142,6 +142,14 @@ std::optional<UINT> MGDFApp::RTGetMaxFrameLatency() const {
   return std::nullopt;
 }
 
+UINT32 MGDFApp::RTGetFrameGeneration() const {
+  return _settings->GetFrameGeneration();
+}
+
+MGDFLowLatencyMode MGDFApp::RTGetLowLatencyMode() const {
+  return _settings->GetLowLatencyMode();
+}
+
 void MGDFApp::RTOnResize(UINT32 width, UINT32 height) {
   _settings->OnResize(width, height);
 }

@@ -36,6 +36,8 @@ const char *PreferenceConstants::SDR_BACKBUFFER_FORMAT =
     "host.sdrBackBufferFormat";
 const char *PreferenceConstants::HDR_BACKBUFFER_FORMAT =
     "host.hdrBackBufferFormat";
+const char *PreferenceConstants::LOW_LATENCY_MODE = "host.lowLatencyMode";
+const char *PreferenceConstants::FRAME_GENERATION = "host.frameGeneration";
 
 constexpr char S_1[] = "1";
 

@@ -562,8 +562,8 @@ void D3DAppFramework::RTCreateSwapChain(const HWND window) {
   }
 
   RTWaitForGpuIdle();
-  _rtRenderBackend->RTCreateSwapChain(window, _rtSwapDesc,
-                                      RTGetMaxFrameLatency());
+  _rtRenderBackend->RTCreateSwapChain(
+      window, _rtSwapDesc, RTGetMaxFrameLatency(), RTGetFrameGeneration());
   _hasSwapChain.store(true);
 }
 
@@ -753,7 +753,7 @@ INT32 D3DAppFramework::Run() {
           }
 
           if (!_minimized.load() && _rtRenderBackend->RTIsInitialized()) {
-            if (!_rtRenderBackend->RTWaitForFrame()) {
+            if (!_rtRenderBackend->RTWaitForFrame(RTGetLowLatencyMode())) {
               if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason()))
                 RTPrepareToReinitD3D();
               continue;
@@ -1010,8 +1010,17 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
     }
       [[fallthrough]];
 
-    default:
+    default: {
+      // Latency pings from the driver arrive as a registered window message.
+      Streamline *streamline =
+          _rtRenderBackend ? _rtRenderBackend->GetStreamline() : nullptr;
+      if (streamline && msg >= 0xC000 &&
+          msg == streamline->GetLatencyPingMessage()) {
+        streamline->QueueLatencyPing();
+        return 0;
+      }
       return OnHandleMessage(hwnd, msg, wParam, lParam);
+    }
   }
 }
 

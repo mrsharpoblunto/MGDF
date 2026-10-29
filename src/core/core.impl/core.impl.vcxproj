@@ -130,6 +130,7 @@
     <ClCompile Include="MGDFHostMetrics.cpp" />
     <ClCompile Include="MGDFD3D12Timer.cpp" />
     <ClCompile Include="MGDFTimer.cpp" />
+    <ClCompile Include="MGDFStreamline.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -153,6 +154,7 @@
     <ClInclude Include="MGDFHostMetrics.hpp" />
     <ClInclude Include="MGDFD3D12Timer.hpp" />
     <ClInclude Include="MGDFTimer.hpp" />
+    <ClInclude Include="MGDFStreamline.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

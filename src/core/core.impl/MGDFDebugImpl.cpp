@@ -12,12 +12,16 @@
 namespace MGDF {
 namespace core {
 
-Debug::Debug(Timer* timer) : _timer(timer), _metrics(nullptr) {
+Debug::Debug(Timer *timer) : _timer(timer), _metrics(nullptr) {}
+
+void Debug::SetMetrics(const HostMetrics *metrics) { _metrics = metrics; }
+
+void Debug::SetFrameStats(const DebugFrameStats &stats) {
+  std::lock_guard<std::mutex> lock(_dataMutex);
+  _frameStats = stats;
 }
 
-void Debug::SetMetrics(const HostMetrics* metrics) { _metrics = metrics; }
-
-void Debug::Set(const char* section, const char* key, const char* value) {
+void Debug::Set(const char *section, const char *key, const char *value) {
   if (!section || !key || !value) {
     return;
   }
@@ -33,7 +37,7 @@ void Debug::Set(const char* section, const char* key, const char* value) {
   sectionMap->second[key] = value;
 }
 
-void Debug::Clear(const char* section, const char* key) {
+void Debug::Clear(const char *section, const char *key) {
   if (!section) {
     return;
   }
@@ -49,29 +53,37 @@ void Debug::Clear(const char* section, const char* key) {
   }
 }
 
-HRESULT Debug::GetOverlaySnapshot(IMGDFDebugOverlaySnapshot** snapshot) {
+HRESULT Debug::GetOverlaySnapshot(IMGDFDebugOverlaySnapshot **snapshot) {
   if (!snapshot) return E_INVALIDARG;
   DebugSections sections;
+  DebugFrameStats frameStats;
   {
     std::lock_guard<std::mutex> lock(_dataMutex);
     sections = _data;
+    frameStats = _frameStats;
   }
-  auto copy = MakeCom<DebugOverlaySnapshot>(_metrics, _timer, sections);
+  auto copy =
+      MakeCom<DebugOverlaySnapshot>(_metrics, _timer, sections, frameStats);
   copy.AddRawRef(snapshot);
   return S_OK;
 }
 
 MGDFDebugTiming DebugOverlaySnapshot::View(double average,
-                                           const std::vector<double>& samples) {
+                                           const std::vector<double> &samples) {
   return {average, samples.data(), samples.size()};
 }
 
-DebugOverlaySnapshot::DebugOverlaySnapshot(const HostMetrics* metrics,
-                                           const Timer* timer,
-                                           const DebugSections& sections)
+DebugOverlaySnapshot::DebugOverlaySnapshot(const HostMetrics *metrics,
+                                           const Timer *timer,
+                                           const DebugSections &sections,
+                                           const DebugFrameStats &frameStats)
     : _sections(sections), _data{} {
   _data.Version = MGDFVersionInfo::MGDF_VERSION();
   _data.InterfaceVersion = MGDFVersionInfo::MGDF_INTERFACE_VERSION;
+  _data.HasLatency = frameStats.HasLatency ? TRUE : FALSE;
+  _data.RenderLatency = frameStats.RenderLatency;
+  _data.RenderedFrames = frameStats.RenderedFrames;
+  _data.PresentedFrames = frameStats.PresentedFrames;
 
   if (metrics) {
     Timings timings;
@@ -91,7 +103,7 @@ DebugOverlaySnapshot::DebugOverlaySnapshot(const HostMetrics* metrics,
 
   if (timer) timer->GetCounterSnapshots(_counters);
   _counterViews.reserve(_counters.size());
-  for (const auto& c : _counters) {
+  for (const auto &c : _counters) {
     _counterViews.push_back(
         {c.Name.c_str(), c.GPU ? TRUE : FALSE, View(c.Average, c.Samples)});
   }
@@ -99,10 +111,10 @@ DebugOverlaySnapshot::DebugOverlaySnapshot(const HostMetrics* metrics,
   _data.CounterCount = _counterViews.size();
 
   size_t count = 0;
-  for (const auto& section : _sections) count += section.second.size();
+  for (const auto &section : _sections) count += section.second.size();
   _entries.reserve(count);
-  for (const auto& section : _sections) {
-    for (const auto& kvp : section.second) {
+  for (const auto &section : _sections) {
+    for (const auto &kvp : section.second) {
       _entries.push_back(
           {section.first.c_str(), kvp.first.c_str(), kvp.second.c_str()});
     }

@@ -34,9 +34,13 @@ class PendingRenderSettingsChange
   void __stdcall SetHDREnabled(BOOL enabled) final;
   void __stdcall Cancel() final;
   void __stdcall SetWindowAspectLock(BOOL enabled) final;
+  BOOL __stdcall SetLowLatencyMode(MGDFLowLatencyMode mode) final;
+  BOOL __stdcall SetFrameGeneration(UINT32 generatedFrames) final;
 
  private:
   bool _cancelled;
+  std::optional<MGDFLowLatencyMode> _newLowLatencyMode;
+  std::optional<UINT32> _newFrameGeneration;
   std::optional<BOOL> _newWindowAspectLock;
   std::optional<UINT32> _newMaxFrameLatency;
   std::optional<BOOL> _newVsync;
@@ -87,7 +91,13 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   BOOL __stdcall GetWindowAspectLock() final;
   BOOL __stdcall GetWindowResizeEnabled() final;
   BOOL __stdcall GetWindowSizeLimits(UINT32 *width, UINT32 *height) final;
+  void __stdcall GetGraphicsFeatureSupport(
+      MGDFGraphicsFeatureSupport *support) final;
+  MGDFLowLatencyMode __stdcall GetLowLatencyMode() final;
+  UINT32 __stdcall GetFrameGeneration() final;
   std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
+  // Clamps the low latency and frame generation settings to the support.
+  void SetGraphicsFeatureSupport(const MGDFGraphicsFeatureSupport &support);
 
   void LoadPreferences(const ComObject<IMGDFGame> &game);
   void InitFromDevice(const ComObject<ID3D11Device> &d3dDevice);
@@ -121,6 +131,10 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
 
   UINT32 _screenX, _screenY;
   UINT32 _maxFrameLatency;
+
+  MGDFGraphicsFeatureSupport _featureSupport{};
+  MGDFLowLatencyMode _lowLatencyMode = MGDF_LOW_LATENCY_OFF;
+  UINT32 _frameGeneration = 0;
 
   UINT _currentOutputDPI;
   MGDFOutputDisplayInfo _currentOutputDisplayInfo;

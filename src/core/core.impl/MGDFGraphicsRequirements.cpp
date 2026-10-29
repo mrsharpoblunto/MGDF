@@ -20,6 +20,13 @@ HRESULT SelectGraphicsAPI(const MGDFGraphicsRequirements &requirements,
       return E_INVALIDARG;
     }
   }
+  constexpr UINT32 knownFeatures = MGDF_GRAPHICS_FEATURE_UPSCALE |
+                                   MGDF_GRAPHICS_FEATURE_FRAME_GENERATION |
+                                   MGDF_GRAPHICS_FEATURE_LOW_LATENCY;
+  if (requirements.Features & ~knownFeatures) {
+    error = "GetGraphicsRequirements lists an unknown graphics feature";
+    return E_INVALIDARG;
+  }
   if (!preference.empty() && preference != "d3d11" && preference != "d3d12") {
     error = "Unknown host.graphicsAPI preference: " + preference;
     return E_INVALIDARG;

@@ -125,6 +125,16 @@ class Host : public IMGDFD3D11RenderHost,
   HRESULT __stdcall CreateGPUCounter(IMGDFMetric *metric,
                                      ID3D12GraphicsCommandList *list,
                                      IMGDFPerformanceCounter **counter) final;
+  HRESULT __stdcall GetUpscaleRenderSize(MGDFUpscaleMode mode,
+                                         UINT32 displayWidth,
+                                         UINT32 displayHeight,
+                                         MGDFUpscaleRenderSize *size) final;
+  void __stdcall SetFrameMarker(MGDFFrameMarker marker) final;
+  void __stdcall SetFrameConstants(const MGDFFrameConstants *constants) final;
+  HRESULT __stdcall Upscale(ID3D12GraphicsCommandList *list,
+                            const MGDFUpscaleDesc *desc) final;
+  HRESULT __stdcall SetFrameGenerationInputs(
+      const MGDFFrameGenerationDesc *desc) final;
 
   // D3D11 host methods
   void __stdcall GetD3D11Device(ID3D11Device **device) final;
@@ -201,6 +211,9 @@ class Host : public IMGDFD3D11RenderHost,
   MGDFBackBufferInfo _backBufferInfo{};
   std::mutex _deviceMutex;
   IRenderBackend *_backend = nullptr;
+  // Guarded by _deviceMutex: GetUpscaleRenderSize runs on any thread.
+  Streamline *_streamline = nullptr;
+  UINT64 _renderedFrames = 0;
   ComObject<ID3D12Device10> _d3d12Device;
   ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
   ComObject<ID3D12Fence> _frameFence;

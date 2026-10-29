@@ -10,18 +10,6 @@ namespace MGDF {
 namespace core {
 namespace {
 
-bool Recording(ID3D12GraphicsCommandList *list, UINT64 &generation) {
-  if (!list) return false;
-  D3D12CommandListRecording state{};
-  UINT size = sizeof(state);
-  if (FAILED(
-          list->GetPrivateData(D3D12CommandListRecordingID, &size, &state)) ||
-      size != sizeof(state) || !state.Open)
-    return false;
-  generation = state.Generation;
-  return true;
-}
-
 class D3D12CounterScope : public ComBase<IMGDFPerformanceCounterScope> {
  public:
   D3D12CounterScope(D3D12CounterManager &manager,
@@ -156,7 +144,7 @@ HRESULT D3D12CounterManager::Begin(D3D12PerformanceCounter *counter,
   if (!scope) return E_POINTER;
   *scope = nullptr;
   UINT64 generation = 0;
-  if (!_recording || !Recording(counter->List(), generation))
+  if (!_recording || !D3D12CommandListIsRecording(counter->List(), &generation))
     return E_INVALIDARG;
   auto &slot = *_slots[_frame.FrameSlot];
   if (slot.Pending.size() == MaxPairs) return E_OUTOFMEMORY;
@@ -178,7 +166,7 @@ void D3D12CounterManager::End(const std::shared_ptr<Sample> &sample) {
   std::lock_guard frameLock(_frameMutex);
   UINT64 generation = 0;
   if (!_recording || sample->Frame != _frame.FrameOrdinal ||
-      !Recording(sample->Counter->List(), generation) ||
+      !D3D12CommandListIsRecording(sample->Counter->List(), &generation) ||
       generation != sample->Generation) {
     LOG("D3D12 GPU scope ended after its command list closed/reset or its "
         "frame ended; sample discarded",

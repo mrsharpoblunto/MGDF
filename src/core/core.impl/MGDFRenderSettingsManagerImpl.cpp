@@ -2,6 +2,7 @@
 
 #include "MGDFRenderSettingsManagerImpl.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 #include "../common/MGDFLoggerImpl.hpp"
@@ -62,6 +63,14 @@ PendingRenderSettingsChange::~PendingRenderSettingsChange() {
   if (_newHDREnabled.has_value()) {
     changed = true;
     _manager._hdrEnabled = _newHDREnabled.value();
+  }
+  if (_newLowLatencyMode) {
+    _manager._lowLatencyMode = *_newLowLatencyMode;
+  }
+  if (_newFrameGeneration &&
+      *_newFrameGeneration != _manager._frameGeneration) {
+    changed = true;
+    _manager._frameGeneration = *_newFrameGeneration;
   }
 
   if (changed) {
@@ -133,6 +142,52 @@ void PendingRenderSettingsChange::SetHDREnabled(BOOL enabled) {
 
 void PendingRenderSettingsChange::SetWindowAspectLock(BOOL enabled) {
   _newWindowAspectLock = enabled;
+}
+
+BOOL PendingRenderSettingsChange::SetLowLatencyMode(MGDFLowLatencyMode mode) {
+  if (mode != MGDF_LOW_LATENCY_OFF && mode != MGDF_LOW_LATENCY_ON &&
+      mode != MGDF_LOW_LATENCY_BOOST)
+    return FALSE;
+  std::lock_guard lock(_manager._mutex);
+  if (mode != MGDF_LOW_LATENCY_OFF &&
+      !(_manager._featureSupport.Features & MGDF_GRAPHICS_FEATURE_LOW_LATENCY))
+    return FALSE;
+  _newLowLatencyMode = mode;
+  return TRUE;
+}
+
+BOOL PendingRenderSettingsChange::SetFrameGeneration(UINT32 generatedFrames) {
+  std::lock_guard lock(_manager._mutex);
+  if (generatedFrames > _manager._featureSupport.MaxGeneratedFrames)
+    return FALSE;
+  _newFrameGeneration = generatedFrames;
+  return TRUE;
+}
+
+void RenderSettingsManager::GetGraphicsFeatureSupport(
+    MGDFGraphicsFeatureSupport *support) {
+  if (!support) return;
+  std::lock_guard lock(_mutex);
+  *support = _featureSupport;
+}
+
+MGDFLowLatencyMode RenderSettingsManager::GetLowLatencyMode() {
+  std::lock_guard lock(_mutex);
+  return _lowLatencyMode;
+}
+
+UINT32 RenderSettingsManager::GetFrameGeneration() {
+  std::lock_guard lock(_mutex);
+  return _frameGeneration;
+}
+
+void RenderSettingsManager::SetGraphicsFeatureSupport(
+    const MGDFGraphicsFeatureSupport &support) {
+  std::lock_guard lock(_mutex);
+  _featureSupport = support;
+  if (!(support.Features & MGDF_GRAPHICS_FEATURE_LOW_LATENCY))
+    _lowLatencyMode = MGDF_LOW_LATENCY_OFF;
+  _frameGeneration = (std::min)(_frameGeneration, support.MaxGeneratedFrames);
 }
 
 BOOL RenderSettingsManager::GetWindowAspectLock() {
@@ -533,6 +588,10 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
                      ToString(_hdrBackBufferFormat)));
   p->Preferences.insert(
       {PreferenceConstants::WINDOW_ASPECT_LOCK, ToString(_windowAspectLock)});
+  p->Preferences.insert({PreferenceConstants::LOW_LATENCY_MODE,
+                         ToString(static_cast<int>(_lowLatencyMode))});
+  p->Preferences.insert(
+      {PreferenceConstants::FRAME_GENERATION, ToString(_frameGeneration)});
   p.AddRawRef(preferences);
 }
 
@@ -566,6 +625,24 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
 
   if (GetPreference(game, PreferenceConstants::HDR_ENABLED, pref)) {
     _hdrEnabled = FromString<bool>(pref);
+  }
+
+  {
+    std::lock_guard lock(_mutex);
+    if (GetPreference(game, PreferenceConstants::LOW_LATENCY_MODE, pref)) {
+      const int mode = FromString<int>(pref);
+      _lowLatencyMode =
+          mode >= MGDF_LOW_LATENCY_OFF && mode <= MGDF_LOW_LATENCY_BOOST
+              ? static_cast<MGDFLowLatencyMode>(mode)
+              : MGDF_LOW_LATENCY_ON;
+    }
+    if (GetPreference(game, PreferenceConstants::FRAME_GENERATION, pref)) {
+      _frameGeneration = FromString<UINT32>(pref);
+    }
+    if (!(_featureSupport.Features & MGDF_GRAPHICS_FEATURE_LOW_LATENCY))
+      _lowLatencyMode = MGDF_LOW_LATENCY_OFF;
+    _frameGeneration =
+        (std::min)(_frameGeneration, _featureSupport.MaxGeneratedFrames);
   }
 
   if (GetPreference(game, PreferenceConstants::SDR_BACKBUFFER_FORMAT, pref)) {

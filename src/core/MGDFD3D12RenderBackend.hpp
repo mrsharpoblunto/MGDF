@@ -21,11 +21,12 @@ class D3D12RenderBackend : public IRenderBackend {
   bool RTIsInitialized() const final;
   void RTUninit(bool exclusiveMode) final;
   void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
-                         std::optional<UINT> maxFrameLatency) final;
+                         std::optional<UINT> maxFrameLatency,
+                         UINT32 generatedFrames) final;
   HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) final;
   bool RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
-  bool RTWaitForFrame() final;
+  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) final;
   void RTWaitForGpuIdle() final;
   void RTClear() final;
   HRESULT RTPresent(UINT syncInterval, UINT flags) final;
@@ -39,10 +40,14 @@ class D3D12RenderBackend : public IRenderBackend {
   ComObject<ID3D12CommandQueue> RTGetQueue(D3D12_COMMAND_LIST_TYPE type) final;
   ComObject<ID3D12Fence> RTGetFrameFence() final;
   MGDFFrameInfo RTGetCurrentFrame() const final;
+  Streamline *GetStreamline() final;
 
  private:
   static constexpr UINT BackBufferCount = 3;
   ComObject<ID3D12Device10> RTTryCreateDevice(IDXGIAdapter *adapter);
+  ComObject<ID3D12CommandQueue> RTCreateQueue(
+      ID3D12Device *device, D3D12_COMMAND_LIST_TYPE type,
+      ComObject<ID3D12CommandQueue> &proxy);
   void RTReleaseBackBuffers();
   void RTReleaseSwapChain();
   void RTWaitForFence(ID3D12Fence *fence, UINT64 value);
@@ -54,12 +59,19 @@ class D3D12RenderBackend : public IRenderBackend {
   std::function<void(const char *, const char *)> _fatalError;
   ComObject<ID3D12Device10> _device;
   ComObject<IDXGIAdapter> _adapter;
+  Streamline _streamline;
   ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
+  // Streamline proxy of the direct queue; null without Streamline.
+  ComObject<ID3D12CommandQueue> _proxyDirectQueue;
   ComObject<ID3D12Fence> _frameFence, _idleFence;
   UINT64 _idleValue = 0;
   HANDLE _fenceEvent = nullptr;
   HANDLE _frameWaitable = nullptr;
-  ComObject<IDXGISwapChain3> _swapChain;
+  // _swapChain is the Streamline proxy when Streamline is active. Use it for
+  // the calls Streamline hooks (Present, ResizeBuffers, GetBuffer,
+  // GetCurrentBackBufferIndex, SetFullscreenState) and the native one for the
+  // rest.
+  ComObject<IDXGISwapChain3> _swapChain, _nativeSwapChain;
   DXGI_SWAP_CHAIN_DESC1 _swapDesc{};
   ComObject<ID3D12DescriptorHeap> _rtvHeap;
   UINT _rtvSize = 0;

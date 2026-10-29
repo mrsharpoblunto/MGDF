@@ -32,6 +32,8 @@ class PreferenceConstants {
   static const char *HDR_ENABLED;
   static const char *SDR_BACKBUFFER_FORMAT;
   static const char *HDR_BACKBUFFER_FORMAT;
+  static const char *LOW_LATENCY_MODE;
+  static const char *FRAME_GENERATION;
 };
 
 template <typename T>

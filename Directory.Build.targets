@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <StreamlineVersion>2.14.16</StreamlineVersion>
+    <StreamlineSha256>32041e51db0cab709a271b72a352281b690c2abbd669a827809401a5dd23956b</StreamlineSha256>
+    <StreamlineUrl>https://github.com/NVIDIA-RTX/Streamline/releases/download/v$(StreamlineVersion)/streamline-sdk-v$(StreamlineVersion).zip</StreamlineUrl>
+    <StreamlineRoot>$(MSBuildThisFileDirectory)dependencies\streamline\</StreamlineRoot>
+    <StreamlineDir>$(StreamlineRoot)v$(StreamlineVersion)\</StreamlineDir>
+    <StreamlineZip>$(StreamlineRoot)streamline-sdk-v$(StreamlineVersion).zip</StreamlineZip>
+    <!-- Release ships the signed production plugins; Debug uses the unsigned development plugins. -->
+    <StreamlineBin Condition="'$(Configuration)' == 'Debug'">$(StreamlineDir)bin\x64\development\</StreamlineBin>
+    <StreamlineBin Condition="'$(Configuration)' != 'Debug'">$(StreamlineDir)bin\x64\</StreamlineBin>
+  </PropertyGroup>
   <!-- Keep the Agility headers ahead of the Windows SDK, including MIDL imports. -->
   <ItemDefinitionGroup>
     <ClCompile>
@@ -9,6 +20,11 @@
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\include\directx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </Midl>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)' == 'core.impl'">
+    <ClCompile>
+      <AdditionalOptions>/external:I "$(StreamlineDir)include" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Target Name="CopyAgilityRuntime" AfterTargets="Build" Condition="'$(MSBuildProjectName)' == 'core' And '$(Platform)' == 'x64'">
     <PropertyGroup>
       <AgilityBin>$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\bin</AgilityBin>
@@ -16,5 +32,18 @@
     <MakeDir Directories="$(OutDir)D3D12" />
     <Copy SourceFiles="$(AgilityBin)\D3D12Core.dll" DestinationFolder="$(OutDir)D3D12" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(AgilityBin)\..\debug\bin\d3d12SDKLayers.dll" DestinationFolder="$(OutDir)D3D12" SkipUnchangedFiles="true" Condition="'$(Configuration)' == 'Debug'" />
+  </Target>
+  <!-- core.impl compiles against Streamline and shares its output folder with core.exe and core.tests.exe. -->
+  <Target Name="FetchStreamline" BeforeTargets="PrepareForBuild" Condition="'$(MSBuildProjectName)' == 'core.impl' And !Exists('$(StreamlineDir)include\sl.h')">
+    <MakeDir Directories="$(StreamlineRoot)" />
+    <DownloadFile SourceUrl="$(StreamlineUrl)" DestinationFolder="$(StreamlineRoot)" Condition="!Exists('$(StreamlineZip)')" />
+    <VerifyFileHash File="$(StreamlineZip)" Hash="$(StreamlineSha256)" Algorithm="SHA256" />
+    <Unzip SourceFiles="$(StreamlineZip)" DestinationFolder="$(StreamlineDir)" Include="include/**;bin/x64/**;license.txt" />
+  </Target>
+  <Target Name="CopyStreamlineRuntime" AfterTargets="Build" Condition="'$(MSBuildProjectName)' == 'core.impl' And '$(Platform)' == 'x64'">
+    <ItemGroup>
+      <StreamlineRuntime Include="$(StreamlineBin)sl.interposer.dll;$(StreamlineBin)sl.common.dll;$(StreamlineBin)sl.dlss.dll;$(StreamlineBin)sl.dlss_g.dll;$(StreamlineBin)sl.reflex.dll;$(StreamlineBin)sl.pcl.dll;$(StreamlineBin)nvngx_dlss.dll;$(StreamlineBin)nvngx_dlssg.dll;$(StreamlineBin)nvngx_dlss.license.txt;$(StreamlineBin)reflex.license.txt" />
+    </ItemGroup>
+    <Copy SourceFiles="@(StreamlineRuntime)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
 </Project>

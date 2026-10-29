@@ -203,9 +203,11 @@ ComObject<IDXGIAdapter> D3D11RenderBackend::RTGetAdapter() {
   return adapter;
 }
 
-void D3D11RenderBackend::RTCreateSwapChain(
-    HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
-    std::optional<UINT> maxFrameLatency) {
+void D3D11RenderBackend::RTCreateSwapChain(HWND window,
+                                           const DXGI_SWAP_CHAIN_DESC1 &desc,
+                                           std::optional<UINT> maxFrameLatency,
+                                           UINT32 generatedFrames) {
+  std::ignore = generatedFrames;
   RTWaitForGpuIdle();
   _rtSwapDesc = desc;
   if (_rtFrameWaitableObject) {
@@ -357,7 +359,8 @@ void D3D11RenderBackend::RTSetWindowed() {
   }
 }
 
-bool D3D11RenderBackend::RTWaitForFrame() {
+bool D3D11RenderBackend::RTWaitForFrame(MGDFLowLatencyMode lowLatency) {
+  std::ignore = lowLatency;
   if (_rtFrameWaitableObject) {
     const DWORD wait =
         ::WaitForSingleObjectEx(_rtFrameWaitableObject, 1000, true);
