@@ -683,7 +683,13 @@ the settings will be applied to the render system on the next frame
   */
   void Cancel();
 
-  /** Keep the current client aspect ratio during user resizing. */
+  /**
+  sets whether the window keeps its client aspect ratio while the user resizes
+  it. The lock only has an effect in windowed mode when window resizing is
+  enabled. The setting is saved in the host.windowAspectLock preference
+  \param enabled TRUE to keep the client aspect ratio that the window has when
+  the user starts to resize it
+  */
   void SetWindowAspectLock(BOOL enabled);
 };
 
@@ -868,9 +874,28 @@ Provides an interface for getting and setting the hosts various display settings
   */
   void GetPreferences([out] IMGDFPreferenceSet * *preferences);
 
+  /**
+  gets whether the window keeps its client aspect ratio while the user resizes
+  it (see IMGDFPendingRenderSettingsChange SetWindowAspectLock)
+  \return TRUE if the window keeps its client aspect ratio during user resizing
+  */
   BOOL GetWindowAspectLock();
+
+  /**
+  gets whether the user can resize the window in windowed mode. This value
+  comes from the host.windowResize preference
+  \return TRUE if the user can resize the window
+  */
   BOOL GetWindowResizeEnabled();
-  /** Maximum client size that fits the primary display work area. */
+
+  /**
+  gets the largest client size that fits in the work area of the primary
+  display, after the space for the window frame is removed
+  \param width receives the maximum client width in pixels
+  \param height receives the maximum client height in pixels
+  \return FALSE if width or height is null or the work area cannot be read,
+  TRUE otherwise
+  */
   BOOL GetWindowSizeLimits([out] UINT32 *width, [out] UINT32 *height);
 };
 

@@ -57,6 +57,8 @@ namespace MatchstickFramework.Docgen.Model
     public string Description;
     public string Name;
     public List<string> Values;
+    // Keyed by value name; only values with a comment have an entry.
+    public Dictionary<string, string> ValueDescriptions;
   }
 
   public class CommentBlock {
