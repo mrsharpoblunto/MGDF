@@ -18,6 +18,7 @@ class MGDFApp : public D3DAppFramework {
   void RTOnInitDevice(IRenderBackend &backend) final;
   MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
+                                        DXGI_COLOR_SPACE_TYPE &,
                                         const RECT &windowSize) final;
   std::optional<UINT> RTGetMaxFrameLatency() const final;
   UINT32 RTGetFrameGeneration() const final;

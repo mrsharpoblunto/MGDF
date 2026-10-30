@@ -205,11 +205,13 @@ ComObject<IDXGIAdapter> D3D11RenderBackend::RTGetAdapter() {
 
 void D3D11RenderBackend::RTCreateSwapChain(HWND window,
                                            const DXGI_SWAP_CHAIN_DESC1 &desc,
+                                           DXGI_COLOR_SPACE_TYPE colorSpace,
                                            std::optional<UINT> maxFrameLatency,
                                            UINT32 generatedFrames) {
   std::ignore = generatedFrames;
   RTWaitForGpuIdle();
   _rtSwapDesc = desc;
+  _rtColorSpace = colorSpace;
   if (_rtFrameWaitableObject) {
     CloseHandle(_rtFrameWaitableObject);
     _rtFrameWaitableObject = nullptr;
@@ -255,6 +257,22 @@ void D3D11RenderBackend::RTCreateSwapChain(HWND window,
   }
 }
 
+void D3D11RenderBackend::RTSetHDRMetadata(
+    const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) {
+  _rtHDRMetadata = metadata;
+  if (!_rtSwapChain) return;
+  const auto result = SetSwapChainHDRMetadata(
+      _rtSwapChain.As<IDXGISwapChain3>(), _rtColorSpace, _rtHDRMetadata);
+  if (FAILED(result))
+    LOG("Failed to set HDR metadata " << result, MGDF_LOG_ERROR);
+  else if (result == S_OK)
+    LOG("HDR metadata MaxCLL: "
+            << (_rtHDRMetadata
+                    ? std::to_string(_rtHDRMetadata->MaxContentLightLevel)
+                    : "none"),
+        MGDF_LOG_LOW);
+}
+
 void D3D11RenderBackend::RTClearBackBuffer() {
   // Release the old views, as they hold references to the buffers we
   // will be destroying.  Also release the old depth/stencil buffer.
@@ -283,6 +301,12 @@ HRESULT D3D11RenderBackend::RTResizeBackBuffer(
   if (FAILED(result)) {
     return result;
   }
+  if (!SetSwapChainColorSpace(_rtSwapChain.As<IDXGISwapChain3>(),
+                              _rtColorSpace)) {
+    LOG("Swapchain does not support color space " << _rtColorSpace,
+        MGDF_LOG_ERROR);
+  }
+  RTSetHDRMetadata(_rtHDRMetadata);
 
   if (FAILED(_rtSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
                                      (void **)_rtBackBuffer.Assign()))) {

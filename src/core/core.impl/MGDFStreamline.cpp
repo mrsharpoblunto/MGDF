@@ -556,9 +556,9 @@ bool Streamline::RTPrepareSwapChain(UINT32 generatedFrames,
   if (!s.Active || !(s.Supported & MGDF_GRAPHICS_FEATURE_FRAME_GENERATION))
     return false;
   bool enable = generatedFrames > 0;
+  // DLSS-G supports SDR and HDR10 back buffers, but not scRGB.
   if (enable && format == DXGI_FORMAT_R16G16B16A16_FLOAT) {
-    LogOnce("fp16",
-            "Frame generation does not support a 16 bit float back buffer",
+    LogOnce("fp16", "Frame generation does not support scRGB HDR output",
             MGDF_LOG_LOW);
     enable = false;
   }

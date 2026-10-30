@@ -278,11 +278,13 @@ void D3D12RenderBackend::RTUninit(bool exclusiveMode) {
 
 void D3D12RenderBackend::RTCreateSwapChain(HWND window,
                                            const DXGI_SWAP_CHAIN_DESC1 &desc,
+                                           DXGI_COLOR_SPACE_TYPE colorSpace,
                                            std::optional<UINT> maxFrameLatency,
                                            UINT32 generatedFrames) {
   RTWaitForGpuIdle();
   RTReleaseSwapChain();
   _swapDesc = desc;
+  _colorSpace = colorSpace;
   _swapDesc.BufferCount = BackBufferCount;
   _swapDesc.SampleDesc = {1, 0};
   _swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -340,6 +342,11 @@ HRESULT D3D12RenderBackend::RTResizeBackBuffer(
                                 DXGI_FORMAT_UNKNOWN, _swapDesc.Flags);
   _streamline.RTResumeFrameGeneration();
   if (FAILED(result)) return result;
+  if (!SetSwapChainColorSpace(_nativeSwapChain, _colorSpace)) {
+    LOG("Swapchain does not support color space " << _colorSpace,
+        MGDF_LOG_ERROR);
+  }
+  RTSetHDRMetadata(_hdrMetadata);
   auto handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
   for (UINT i = 0; i < BackBufferCount; ++i) {
     Check(_swapChain->GetBuffer(i, IID_PPV_ARGS(_backBuffers[i].Assign())),
@@ -349,6 +356,22 @@ HRESULT D3D12RenderBackend::RTResizeBackBuffer(
   }
   LOG("D3D12 backbuffer: " << desc.Width << "x" << desc.Height, MGDF_LOG_LOW);
   return S_OK;
+}
+
+void D3D12RenderBackend::RTSetHDRMetadata(
+    const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) {
+  _hdrMetadata = metadata;
+  if (!_nativeSwapChain) return;
+  const auto result =
+      SetSwapChainHDRMetadata(_nativeSwapChain, _colorSpace, _hdrMetadata);
+  if (FAILED(result))
+    LOG("Failed to set HDR metadata " << result, MGDF_LOG_ERROR);
+  else if (result == S_OK)
+    LOG("HDR metadata MaxCLL: "
+            << (_hdrMetadata
+                    ? std::to_string(_hdrMetadata->MaxContentLightLevel)
+                    : "none"),
+        MGDF_LOG_LOW);
 }
 
 bool D3D12RenderBackend::RTSetExclusiveFullscreen() {

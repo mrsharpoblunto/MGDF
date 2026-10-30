@@ -115,6 +115,7 @@ class Host : public IMGDFD3D11RenderHost,
 
   // IRenderHost methods
   void __stdcall GetBackBufferInfo(MGDFBackBufferInfo *info) final;
+  HRESULT __stdcall SetHDRMetadata(const MGDFHDRMetadata *metadata) final;
 
   void __stdcall GetD3D12Device(ID3D12Device10 **device) final;
   void __stdcall GetDirectQueue(ID3D12CommandQueue **queue) final;

@@ -84,6 +84,7 @@ TEST(RenderSettings, ResetUsesExclusiveModeOrTheActualWindowSize) {
   settings->SetOutputProperties({.Width = 1920, .Height = 1080}, 96, {mode});
   DXGI_SWAP_CHAIN_DESC1 swap{};
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreen{};
+  DXGI_COLOR_SPACE_TYPE colorSpace{};
   const RECT client{0, 0, 1024, 768};
   for (const MGDFFullScreenDesc choice :
        {MGDFFullScreenDesc{TRUE, TRUE}, {TRUE, FALSE}, {FALSE, FALSE}}) {
@@ -93,7 +94,7 @@ TEST(RenderSettings, ResetUsesExclusiveModeOrTheActualWindowSize) {
       change->SetFullscreen(&choice);
       ASSERT_TRUE(change->SetCurrentPrimaryDisplayMode(&mode));
     }
-    settings->OnResetSwapChain(swap, fullscreen, client);
+    settings->OnResetSwapChain(swap, fullscreen, colorSpace, client);
     EXPECT_EQ(fullscreen.Windowed,
               !(choice.FullScreen && choice.ExclusiveMode));
     EXPECT_EQ(swap.Width, choice.FullScreen
@@ -102,6 +103,43 @@ TEST(RenderSettings, ResetUsesExclusiveModeOrTheActualWindowSize) {
     EXPECT_EQ(swap.Height,
               choice.FullScreen ? (choice.ExclusiveMode ? 720u : 1080u) : 768u);
     EXPECT_FALSE(settings->IsBackBufferChangePending());
+  }
+}
+
+TEST(RenderSettings, HDRFormatSelectsTheHDRBackBufferAndColorSpace) {
+  struct Case {
+    MGDFHDRFormat Format;
+    BOOL OutputHDR;
+    DXGI_FORMAT ExpectedFormat;
+    DXGI_COLOR_SPACE_TYPE ExpectedColorSpace;
+  };
+  const Case cases[] = {
+      {MGDF_HDR_FORMAT_SCRGB, TRUE, DXGI_FORMAT_R16G16B16A16_FLOAT,
+       DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709},
+      {MGDF_HDR_FORMAT_HDR10, TRUE, DXGI_FORMAT_R10G10B10A2_UNORM,
+       DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020},
+      {MGDF_HDR_FORMAT_HDR10, FALSE, DXGI_FORMAT_R8G8B8A8_UNORM,
+       DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709},
+  };
+  for (const auto &c : cases) {
+    SCOPED_TRACE(c.Format);
+    auto settings = MakeCom<RenderSettingsManager>();
+    settings->SetHDRFormat(c.Format);
+    settings->InitD3D12();
+    const MGDFDisplayMode mode{1280, 720, 60, 1, c.OutputHDR, FALSE};
+    settings->SetOutputProperties(
+        {.SupportsHDR = c.OutputHDR, .Width = 1280, .Height = 720}, 96, {mode});
+    {
+      ComObject<IMGDFPendingRenderSettingsChange> change;
+      settings->CreatePendingSettingsChange(change.Assign());
+      change->SetHDREnabled(TRUE);
+    }
+    DXGI_SWAP_CHAIN_DESC1 swap{};
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreen{};
+    DXGI_COLOR_SPACE_TYPE colorSpace{};
+    settings->OnResetSwapChain(swap, fullscreen, colorSpace, {0, 0, 640, 480});
+    EXPECT_EQ(c.ExpectedFormat, swap.Format);
+    EXPECT_EQ(c.ExpectedColorSpace, colorSpace);
   }
 }
 
