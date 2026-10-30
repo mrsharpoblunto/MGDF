@@ -14,10 +14,6 @@ using namespace MGDF::core;
 
 namespace {
 
-constexpr UINT32 AllFeatures = MGDF_GRAPHICS_FEATURE_UPSCALE |
-                               MGDF_GRAPHICS_FEATURE_FRAME_GENERATION |
-                               MGDF_GRAPHICS_FEATURE_LOW_LATENCY;
-
 struct TestDevice {
   ComObject<IDXGIAdapter1> Adapter;
   ComObject<ID3D12Device> Device;
@@ -100,10 +96,12 @@ MGDFFrameConstants StaticCamera(bool reset) {
 }  // namespace
 
 TEST(StreamlineTests, InactiveStreamlineReportsNoSupportAndIgnoresFrameCalls) {
-  Streamline streamline(AllFeatures, L"");
-  const auto support = streamline.GetSupport();
-  EXPECT_EQ(0u, support.Features);
+  Streamline streamline(L"");
+  GraphicsSupport support;
+  streamline.GetSupport(support);
+  EXPECT_TRUE(support.UpscaleModes.empty());
   EXPECT_EQ(0u, support.MaxGeneratedFrames);
+  EXPECT_EQ(std::vector{MGDF_LOW_LATENCY_OFF}, support.LowLatencyModes);
   MGDFUpscaleRenderSize size{};
   EXPECT_EQ(E_NOTIMPL, streamline.GetUpscaleRenderSize(MGDF_UPSCALE_MODE_DLAA,
                                                        1920, 1080, &size));
@@ -131,11 +129,14 @@ TEST(StreamlineIntegrationTests, MissingPluginsLeaveStreamlineInactive) {
       ("mgdf-streamline-" + std::to_string(GetCurrentProcessId()));
   std::filesystem::create_directories(empty);
   {
-    Streamline streamline(AllFeatures, empty.wstring() + L"\\");
+    Streamline streamline(empty.wstring() + L"\\");
     streamline.RTInit(device->Device, device->Adapter);
     EXPECT_FALSE(streamline.RTIsActive());
     EXPECT_FALSE(streamline.RTGetProxyDevice());
-    EXPECT_EQ(0u, streamline.GetSupport().Features);
+    GraphicsSupport support;
+    streamline.GetSupport(support);
+    EXPECT_TRUE(support.UpscaleModes.empty());
+    EXPECT_EQ(std::vector{MGDF_LOW_LATENCY_OFF}, support.LowLatencyModes);
     MGDFUpscaleRenderSize size{};
     EXPECT_EQ(E_NOTIMPL, streamline.GetUpscaleRenderSize(
                              MGDF_UPSCALE_MODE_QUALITY, 1920, 1080, &size));
@@ -153,9 +154,11 @@ TEST(StreamlineIntegrationTests, UpscaleReproducesAConstantImage) {
   const auto device = CreateDevice(true);
   if (!device) GTEST_SKIP() << "No NVIDIA D3D12 adapter";
 
-  Streamline streamline(MGDF_GRAPHICS_FEATURE_UPSCALE, directory);
+  Streamline streamline(directory);
   streamline.RTInit(device->Device, device->Adapter);
-  ASSERT_TRUE(streamline.GetSupport().Features & MGDF_GRAPHICS_FEATURE_UPSCALE);
+  GraphicsSupport support;
+  streamline.GetSupport(support);
+  ASSERT_FALSE(support.UpscaleModes.empty());
 
   MGDFUpscaleRenderSize size{};
   ASSERT_EQ(S_OK, streamline.GetUpscaleRenderSize(MGDF_UPSCALE_MODE_DLAA, 1920,

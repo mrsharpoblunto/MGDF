@@ -33,6 +33,7 @@ class PreferenceConstants {
   static const char *SDR_BACKBUFFER_FORMAT;
   static const char *LOW_LATENCY_MODE;
   static const char *FRAME_GENERATION;
+  static const char *RAY_TRACING;
 };
 
 template <typename T>

@@ -258,10 +258,6 @@ void Host::InitGraphics() {
                   : "scRGB"),
       MGDF_LOG_LOW);
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
-      _graphicsRequirements.Features) {
-    LOG("Requested graphics features need D3D12 and are off", MGDF_LOG_LOW);
-  }
-  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
       GetD3D11FeatureLevels(_graphicsRequirements.MinFeatureLevel).empty()) {
     FATALERROR(this,
                "The requested minimum feature level is not supported by D3D11");
@@ -424,9 +420,8 @@ void Host::RTSetDevices(IRenderBackend &backend) {
   {
     std::lock_guard lock(_deviceMutex);
     _streamline = backend.GetStreamline();
-    _renderSettings->SetGraphicsFeatureSupport(
-        _streamline ? _streamline->GetSupport() : MGDFGraphicsFeatureSupport{});
   }
+  _renderSettings->SetGraphicsSupport(backend.RTGetGraphicsSupport());
   LOG("Loading Render settings...", MGDF_LOG_LOW);
   _renderSettings->LoadPreferences(_game.As<IMGDFGame>());
 }

@@ -9,6 +9,17 @@
 namespace MGDF {
 namespace core {
 
+// What the current device supports. Empty before the device exists and with
+// D3D11.
+struct GraphicsSupport {
+  std::vector<MGDFUpscaleMode> UpscaleModes;
+  UINT32 MaxGeneratedFrames = 0;
+  // Always starts with MGDF_LOW_LATENCY_OFF.
+  std::vector<MGDFLowLatencyMode> LowLatencyModes{MGDF_LOW_LATENCY_OFF};
+  bool RayTracing = false;
+  bool ShaderExecutionReordering = false;
+};
+
 HRESULT SelectGraphicsAPI(const MGDFGraphicsRequirements &requirements,
                           const std::string &preference, MGDFGraphicsAPI &api,
                           std::string &error);

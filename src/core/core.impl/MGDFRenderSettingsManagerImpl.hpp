@@ -11,6 +11,8 @@
 #include <optional>
 #include <vector>
 
+#include "MGDFGraphicsRequirements.hpp"
+
 namespace MGDF {
 namespace core {
 
@@ -36,11 +38,13 @@ class PendingRenderSettingsChange
   void __stdcall SetWindowAspectLock(BOOL enabled) final;
   BOOL __stdcall SetLowLatencyMode(MGDFLowLatencyMode mode) final;
   BOOL __stdcall SetFrameGeneration(UINT32 generatedFrames) final;
+  BOOL __stdcall SetRayTracing(BOOL enabled) final;
 
  private:
   bool _cancelled;
   std::optional<MGDFLowLatencyMode> _newLowLatencyMode;
   std::optional<UINT32> _newFrameGeneration;
+  std::optional<bool> _newRayTracing;
   std::optional<BOOL> _newWindowAspectLock;
   std::optional<UINT32> _newMaxFrameLatency;
   std::optional<BOOL> _newVsync;
@@ -91,13 +95,19 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   BOOL __stdcall GetWindowAspectLock() final;
   BOOL __stdcall GetWindowResizeEnabled() final;
   BOOL __stdcall GetWindowSizeLimits(UINT32 *width, UINT32 *height) final;
-  void __stdcall GetGraphicsFeatureSupport(
-      MGDFGraphicsFeatureSupport *support) final;
-  MGDFLowLatencyMode __stdcall GetLowLatencyMode() final;
+  UINT64 __stdcall GetUpscaleModeCount() final;
+  BOOL __stdcall GetUpscaleMode(UINT64 index, MGDFUpscaleMode *mode) final;
+  UINT32 __stdcall GetMaxGeneratedFrames() final;
+  UINT64 __stdcall GetLowLatencyModeCount() final;
+  BOOL __stdcall GetLowLatencyMode(UINT64 index,
+                                   MGDFLowLatencyMode *mode) final;
+  MGDFLowLatencyMode __stdcall GetCurrentLowLatencyMode() final;
   UINT32 __stdcall GetFrameGeneration() final;
+  BOOL __stdcall GetRayTracingSupport(MGDFRayTracingSupport *support) final;
+  BOOL __stdcall GetRayTracing() final;
   std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
-  // Clamps the low latency and frame generation settings to the support.
-  void SetGraphicsFeatureSupport(const MGDFGraphicsFeatureSupport &support);
+  // Call after each device creation. Clamps the settings to the support.
+  void SetGraphicsSupport(GraphicsSupport support);
   // Call before InitFromDevice.
   void SetHDRFormat(MGDFHDRFormat format);
 
@@ -115,6 +125,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
 
  private:
   void Cleanup();
+  void ClampToSupportLocked();
   MGDFDisplayMode GetBestAlternativeDisplayMode();
 
   std::atomic_bool _changePending{false};
@@ -136,9 +147,10 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 _screenX, _screenY;
   UINT32 _maxFrameLatency;
 
-  MGDFGraphicsFeatureSupport _featureSupport{};
+  GraphicsSupport _support;
   MGDFLowLatencyMode _lowLatencyMode = MGDF_LOW_LATENCY_OFF;
   UINT32 _frameGeneration = 0;
+  bool _rayTracing = false;
 
   UINT _currentOutputDPI;
   MGDFOutputDisplayInfo _currentOutputDisplayInfo;

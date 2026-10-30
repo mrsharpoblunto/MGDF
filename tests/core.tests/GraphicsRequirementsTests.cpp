@@ -61,26 +61,12 @@ TEST(GraphicsRequirementsTests, UnknownAPIOrPreferenceIsRejected) {
   EXPECT_FALSE(error.empty());
 }
 
-TEST(GraphicsRequirementsTests, OnlyKnownFeaturesAreAccepted) {
-  MGDFGraphicsRequirements requirements{
-      1,
-      {MGDF_GRAPHICS_API_D3D12},
-      D3D_FEATURE_LEVEL_11_0,
-      0,
-      MGDF_GRAPHICS_FEATURE_UPSCALE | MGDF_GRAPHICS_FEATURE_FRAME_GENERATION |
-          MGDF_GRAPHICS_FEATURE_LOW_LATENCY};
-  MGDFGraphicsAPI api{};
-  std::string error;
-  EXPECT_EQ(S_OK, SelectGraphicsAPI(requirements, "", api, error));
-  requirements.Features |= 0x8;
-  EXPECT_EQ(E_INVALIDARG, SelectGraphicsAPI(requirements, "", api, error));
-  EXPECT_FALSE(error.empty());
-}
-
 TEST(GraphicsRequirementsTests, OnlyKnownHDRFormatsAreAccepted) {
-  MGDFGraphicsRequirements requirements{
-      1, {MGDF_GRAPHICS_API_D3D12}, D3D_FEATURE_LEVEL_11_0, 0,
-      0, MGDF_HDR_FORMAT_HDR10};
+  MGDFGraphicsRequirements requirements{1,
+                                        {MGDF_GRAPHICS_API_D3D12},
+                                        D3D_FEATURE_LEVEL_11_0,
+                                        0,
+                                        MGDF_HDR_FORMAT_HDR10};
   MGDFGraphicsAPI api{};
   std::string error;
   EXPECT_EQ(S_OK, SelectGraphicsAPI(requirements, "", api, error));
@@ -168,12 +154,22 @@ TEST(GraphicsRequirementsTests, D3D11LevelsAreDescendingAndRespectMinimum) {
 }
 
 TEST(GraphicsRequirementsTests, D3D12AdapterScoring) {
-  EXPECT_TRUE(PreferD3D12Adapter(false, true, 0, std::nullopt));
-  EXPECT_FALSE(PreferD3D12Adapter(true, true, 8192, 1024));
-  EXPECT_FALSE(PreferD3D12Adapter(false, false, 8192, 1024));
-  EXPECT_FALSE(PreferD3D12Adapter(false, true, 1024, 1024));
-  EXPECT_FALSE(PreferD3D12Adapter(false, true, 512, 1024));
-  EXPECT_TRUE(PreferD3D12Adapter(false, true, 8192, 1024));
+  const D3D12AdapterScore low{false, 1024};
+  const D3D12AdapterScore high{false, 8192};
+  EXPECT_TRUE(PreferD3D12Adapter(false, true, {}, std::nullopt));
+  EXPECT_FALSE(PreferD3D12Adapter(true, true, high, low));
+  EXPECT_FALSE(PreferD3D12Adapter(false, false, high, low));
+  EXPECT_FALSE(PreferD3D12Adapter(false, true, low, low));
+  EXPECT_FALSE(PreferD3D12Adapter(false, true, {false, 512}, low));
+  EXPECT_TRUE(PreferD3D12Adapter(false, true, high, low));
+}
+
+TEST(GraphicsRequirementsTests, D3D12AdapterWithRayTracingWinsOverMemory) {
+  const D3D12AdapterScore rayTracing{true, 1024};
+  const D3D12AdapterScore high{false, 8192};
+  EXPECT_TRUE(PreferD3D12Adapter(false, true, rayTracing, high));
+  EXPECT_FALSE(PreferD3D12Adapter(false, true, high, rayTracing));
+  EXPECT_TRUE(PreferD3D12Adapter(false, true, {true, 2048}, rayTracing));
 }
 
 TEST(GraphicsRequirementsTests, FrameSlotsWaitForTheirOwnPreviousSubmission) {

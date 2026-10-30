@@ -72,6 +72,9 @@ PendingRenderSettingsChange::~PendingRenderSettingsChange() {
     changed = true;
     _manager._frameGeneration = *_newFrameGeneration;
   }
+  if (_newRayTracing) {
+    _manager._rayTracing = *_newRayTracing;
+  }
 
   if (changed) {
     _manager._changePending.store(true);
@@ -145,12 +148,9 @@ void PendingRenderSettingsChange::SetWindowAspectLock(BOOL enabled) {
 }
 
 BOOL PendingRenderSettingsChange::SetLowLatencyMode(MGDFLowLatencyMode mode) {
-  if (mode != MGDF_LOW_LATENCY_OFF && mode != MGDF_LOW_LATENCY_ON &&
-      mode != MGDF_LOW_LATENCY_BOOST)
-    return FALSE;
   std::lock_guard lock(_manager._mutex);
-  if (mode != MGDF_LOW_LATENCY_OFF &&
-      !(_manager._featureSupport.Features & MGDF_GRAPHICS_FEATURE_LOW_LATENCY))
+  if (std::ranges::find(_manager._support.LowLatencyModes, mode) ==
+      _manager._support.LowLatencyModes.end())
     return FALSE;
   _newLowLatencyMode = mode;
   return TRUE;
@@ -158,20 +158,50 @@ BOOL PendingRenderSettingsChange::SetLowLatencyMode(MGDFLowLatencyMode mode) {
 
 BOOL PendingRenderSettingsChange::SetFrameGeneration(UINT32 generatedFrames) {
   std::lock_guard lock(_manager._mutex);
-  if (generatedFrames > _manager._featureSupport.MaxGeneratedFrames)
-    return FALSE;
+  if (generatedFrames > _manager._support.MaxGeneratedFrames) return FALSE;
   _newFrameGeneration = generatedFrames;
   return TRUE;
 }
 
-void RenderSettingsManager::GetGraphicsFeatureSupport(
-    MGDFGraphicsFeatureSupport *support) {
-  if (!support) return;
-  std::lock_guard lock(_mutex);
-  *support = _featureSupport;
+BOOL PendingRenderSettingsChange::SetRayTracing(BOOL enabled) {
+  std::lock_guard lock(_manager._mutex);
+  if (enabled && !_manager._support.RayTracing) return FALSE;
+  _newRayTracing = enabled != FALSE;
+  return TRUE;
 }
 
-MGDFLowLatencyMode RenderSettingsManager::GetLowLatencyMode() {
+UINT64 RenderSettingsManager::GetUpscaleModeCount() {
+  std::lock_guard lock(_mutex);
+  return _support.UpscaleModes.size();
+}
+
+BOOL RenderSettingsManager::GetUpscaleMode(UINT64 index,
+                                           MGDFUpscaleMode *mode) {
+  std::lock_guard lock(_mutex);
+  if (!mode || index >= _support.UpscaleModes.size()) return FALSE;
+  *mode = _support.UpscaleModes[index];
+  return TRUE;
+}
+
+UINT32 RenderSettingsManager::GetMaxGeneratedFrames() {
+  std::lock_guard lock(_mutex);
+  return _support.MaxGeneratedFrames;
+}
+
+UINT64 RenderSettingsManager::GetLowLatencyModeCount() {
+  std::lock_guard lock(_mutex);
+  return _support.LowLatencyModes.size();
+}
+
+BOOL RenderSettingsManager::GetLowLatencyMode(UINT64 index,
+                                              MGDFLowLatencyMode *mode) {
+  std::lock_guard lock(_mutex);
+  if (!mode || index >= _support.LowLatencyModes.size()) return FALSE;
+  *mode = _support.LowLatencyModes[index];
+  return TRUE;
+}
+
+MGDFLowLatencyMode RenderSettingsManager::GetCurrentLowLatencyMode() {
   std::lock_guard lock(_mutex);
   return _lowLatencyMode;
 }
@@ -181,13 +211,35 @@ UINT32 RenderSettingsManager::GetFrameGeneration() {
   return _frameGeneration;
 }
 
-void RenderSettingsManager::SetGraphicsFeatureSupport(
-    const MGDFGraphicsFeatureSupport &support) {
+BOOL RenderSettingsManager::GetRayTracingSupport(
+    MGDFRayTracingSupport *support) {
   std::lock_guard lock(_mutex);
-  _featureSupport = support;
-  if (!(support.Features & MGDF_GRAPHICS_FEATURE_LOW_LATENCY))
+  if (support) {
+    support->ShaderExecutionReordering =
+        _support.RayTracing && _support.ShaderExecutionReordering;
+  }
+  return _support.RayTracing;
+}
+
+BOOL RenderSettingsManager::GetRayTracing() {
+  std::lock_guard lock(_mutex);
+  return _rayTracing;
+}
+
+void RenderSettingsManager::SetGraphicsSupport(GraphicsSupport support) {
+  _ASSERTE(!support.LowLatencyModes.empty() &&
+           support.LowLatencyModes.front() == MGDF_LOW_LATENCY_OFF);
+  std::lock_guard lock(_mutex);
+  _support = std::move(support);
+  ClampToSupportLocked();
+}
+
+void RenderSettingsManager::ClampToSupportLocked() {
+  if (std::ranges::find(_support.LowLatencyModes, _lowLatencyMode) ==
+      _support.LowLatencyModes.end())
     _lowLatencyMode = MGDF_LOW_LATENCY_OFF;
-  _frameGeneration = (std::min)(_frameGeneration, support.MaxGeneratedFrames);
+  _frameGeneration = (std::min)(_frameGeneration, _support.MaxGeneratedFrames);
+  _rayTracing = _rayTracing && _support.RayTracing;
 }
 
 BOOL RenderSettingsManager::GetWindowAspectLock() {
@@ -606,6 +658,8 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
                          ToString(static_cast<int>(_lowLatencyMode))});
   p->Preferences.insert(
       {PreferenceConstants::FRAME_GENERATION, ToString(_frameGeneration)});
+  p->Preferences.insert(
+      {PreferenceConstants::RAY_TRACING, ToString(_rayTracing)});
   p.AddRawRef(preferences);
 }
 
@@ -653,10 +707,10 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
     if (GetPreference(game, PreferenceConstants::FRAME_GENERATION, pref)) {
       _frameGeneration = FromString<UINT32>(pref);
     }
-    if (!(_featureSupport.Features & MGDF_GRAPHICS_FEATURE_LOW_LATENCY))
-      _lowLatencyMode = MGDF_LOW_LATENCY_OFF;
-    _frameGeneration =
-        (std::min)(_frameGeneration, _featureSupport.MaxGeneratedFrames);
+    _rayTracing =
+        !GetPreference(game, PreferenceConstants::RAY_TRACING, pref) ||
+        FromString<bool>(pref);
+    ClampToSupportLocked();
   }
 
   if (GetPreference(game, PreferenceConstants::SDR_BACKBUFFER_FORMAT, pref)) {

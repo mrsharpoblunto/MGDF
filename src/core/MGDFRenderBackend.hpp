@@ -29,6 +29,7 @@ class IRenderBackend {
   virtual HRESULT RTEndFrame() { return S_OK; }
   // Null for backends without Streamline. Any thread may use the object.
   virtual Streamline *GetStreamline() { return nullptr; }
+  virtual GraphicsSupport RTGetGraphicsSupport() const { return {}; }
   virtual bool RTInit() = 0;
   virtual bool RTIsInitialized() const = 0;
   virtual void RTUninit(bool exclusiveMode) = 0;

@@ -9,6 +9,8 @@
 #include <mutex>
 #include <string>
 
+#include "MGDFGraphicsRequirements.hpp"
+
 namespace MGDF {
 namespace core {
 
@@ -28,7 +30,7 @@ on the render thread; the others may run on any thread.
 */
 class Streamline {
  public:
-  Streamline(UINT32 requestedFeatures, std::wstring pluginDirectory);
+  explicit Streamline(std::wstring pluginDirectory);
   ~Streamline();
   Streamline(const Streamline &) = delete;
   Streamline &operator=(const Streamline &) = delete;
@@ -52,7 +54,8 @@ class Streamline {
     return native ? native.As<T>() : ComObject<T>();
   }
 
-  MGDFGraphicsFeatureSupport GetSupport() const;
+  // Fills the upscale, frame generation and low latency fields.
+  void GetSupport(GraphicsSupport &support) const;
   HRESULT GetUpscaleRenderSize(MGDFUpscaleMode mode, UINT32 displayWidth,
                                UINT32 displayHeight,
                                MGDFUpscaleRenderSize *size) const;
@@ -85,7 +88,6 @@ class Streamline {
   void LogOnce(const std::string &key, const std::string &message,
                MGDFLogLevel level) const;
 
-  const UINT32 _requested;
   const std::wstring _directory;
   HMODULE _interposer = nullptr;
   std::unique_ptr<StreamlineState> _state;

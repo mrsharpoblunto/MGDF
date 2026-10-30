@@ -15,5 +15,6 @@
   "host.hdrEnabled": "1",
   "host.sdrBackBufferFormat": "28",
   "host.lowLatencyMode": "1",
-  "host.frameGeneration": "0"
+  "host.frameGeneration": "0",
+  "host.rayTracing": "1"
 }
