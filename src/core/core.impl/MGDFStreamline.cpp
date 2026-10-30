@@ -161,7 +161,8 @@ struct StreamlineState {
   PFun_slPCLGetState *PCLGetState = nullptr;
 
   bool Active = false;
-  UINT32 Supported = 0;
+  bool Upscale = false;
+  bool LowLatency = false;
   UINT32 MaxGeneratedFrames = 0;
   bool FrameGenerationVSync = false;
   bool Reflex = false;
@@ -198,9 +199,8 @@ struct StreamlineState {
   }
 };
 
-Streamline::Streamline(UINT32 requestedFeatures, std::wstring pluginDirectory)
-    : _requested(requestedFeatures),
-      _directory(std::move(pluginDirectory)),
+Streamline::Streamline(std::wstring pluginDirectory)
+    : _directory(std::move(pluginDirectory)),
       _state(std::make_unique<StreamlineState>()) {}
 
 Streamline::~Streamline() {
@@ -273,7 +273,7 @@ bool Streamline::LoadInterposer() {
 void Streamline::RTInit(ID3D12Device *device, IDXGIAdapter1 *adapter) {
   std::lock_guard lock(_mutex);
   ShutdownLocked();
-  if (!_requested || !device || !adapter) return;
+  if (!device || !adapter) return;
 
   DXGI_ADAPTER_DESC1 adapterDesc{};
   if (FAILED(adapter->GetDesc1(&adapterDesc))) return;
@@ -290,16 +290,8 @@ void Streamline::RTInit(ID3D12Device *device, IDXGIAdapter1 *adapter) {
   if (!LoadInterposer()) return;
   auto &s = *_state;
 
-  std::vector<sl::Feature> features;
-  const bool frameGeneration =
-      (_requested & MGDF_GRAPHICS_FEATURE_FRAME_GENERATION) != 0;
-  if (_requested & MGDF_GRAPHICS_FEATURE_UPSCALE)
-    features.push_back(sl::kFeatureDLSS);
-  if (frameGeneration) features.push_back(sl::kFeatureDLSS_G);
-  if (frameGeneration || (_requested & MGDF_GRAPHICS_FEATURE_LOW_LATENCY)) {
-    features.push_back(sl::kFeatureReflex);
-    features.push_back(sl::kFeaturePCL);
-  }
+  sl::Feature features[] = {sl::kFeatureDLSS, sl::kFeatureDLSS_G,
+                            sl::kFeatureReflex, sl::kFeaturePCL};
 
   const wchar_t *paths[] = {_directory.c_str()};
   const std::string version = MGDFVersionInfo::MGDF_VERSION();
@@ -316,8 +308,8 @@ void Streamline::RTInit(ID3D12Device *device, IDXGIAdapter1 *adapter) {
                       sl::PreferenceFlags::eUseManualHooking |
                       sl::PreferenceFlags::eUseDXGIFactoryProxy |
                       sl::PreferenceFlags::eUseFrameBasedResourceTagging;
-  preferences.featuresToLoad = features.data();
-  preferences.numFeaturesToLoad = static_cast<uint32_t>(features.size());
+  preferences.featuresToLoad = features;
+  preferences.numFeaturesToLoad = _countof(features);
   preferences.engine = sl::EngineType::eCustom;
   preferences.engineVersion = version.c_str();
   preferences.projectId = ProjectId;
@@ -359,15 +351,11 @@ void Streamline::RTInit(ID3D12Device *device, IDXGIAdapter1 *adapter) {
     return true;
   };
 
-  if ((_requested & MGDF_GRAPHICS_FEATURE_UPSCALE) &&
-      supported(sl::kFeatureDLSS, "DLSS") &&
-      s.Import(sl::kFeatureDLSS, "slDLSSGetOptimalSettings",
-               s.DLSSGetOptimalSettings) &&
-      s.Import(sl::kFeatureDLSS, "slDLSSSetOptions", s.DLSSSetOptions)) {
-    s.Supported |= MGDF_GRAPHICS_FEATURE_UPSCALE;
-  }
-  s.PCL = std::ranges::find(features, sl::kFeaturePCL) != features.end() &&
-          supported(sl::kFeaturePCL, "PCL") &&
+  s.Upscale = supported(sl::kFeatureDLSS, "DLSS") &&
+              s.Import(sl::kFeatureDLSS, "slDLSSGetOptimalSettings",
+                       s.DLSSGetOptimalSettings) &&
+              s.Import(sl::kFeatureDLSS, "slDLSSSetOptions", s.DLSSSetOptions);
+  s.PCL = supported(sl::kFeaturePCL, "PCL") &&
           s.Import(sl::kFeaturePCL, "slPCLSetMarker", s.PCLSetMarker) &&
           s.Import(sl::kFeaturePCL, "slPCLGetState", s.PCLGetState);
   s.Reflex =
@@ -377,32 +365,28 @@ void Streamline::RTInit(ID3D12Device *device, IDXGIAdapter1 *adapter) {
       s.Import(sl::kFeatureReflex, "slReflexGetState", s.ReflexGetState);
   if (s.Reflex) {
     sl::ReflexState reflex{};
-    if ((_requested & MGDF_GRAPHICS_FEATURE_LOW_LATENCY) &&
-        s.ReflexGetState(reflex) == sl::Result::eOk &&
-        reflex.lowLatencyAvailable) {
-      s.Supported |= MGDF_GRAPHICS_FEATURE_LOW_LATENCY;
-    }
+    s.LowLatency = s.ReflexGetState(reflex) == sl::Result::eOk &&
+                   reflex.lowLatencyAvailable;
     // Reflex must have options once, even when it stays off.
     sl::ReflexOptions options{};
     options.mode = sl::ReflexMode::eOff;
     if (s.ReflexSetOptions(options) == sl::Result::eOk)
       s.ReflexMode = sl::ReflexMode::eOff;
   }
-  if (frameGeneration && s.Reflex && supported(sl::kFeatureDLSS_G, "DLSS-G") &&
+  if (s.Reflex && supported(sl::kFeatureDLSS_G, "DLSS-G") &&
       s.Import(sl::kFeatureDLSS_G, "slDLSSGSetOptions", s.DLSSGSetOptions) &&
       s.Import(sl::kFeatureDLSS_G, "slDLSSGGetState", s.DLSSGGetState)) {
     sl::DLSSGState state{};
     if (s.DLSSGGetState(Viewport, state, nullptr) == sl::Result::eOk &&
         state.numFramesToGenerateMax > 0) {
-      s.Supported |= MGDF_GRAPHICS_FEATURE_FRAME_GENERATION;
       s.MaxGeneratedFrames = state.numFramesToGenerateMax;
       s.FrameGenerationVSync =
           state.bIsVsyncSupportAvailable == sl::Boolean::eTrue;
     }
   }
 
-  if (!s.Supported) {
-    LogOnce("none", "Streamline supports none of the requested features",
+  if (!s.Upscale && !s.LowLatency && !s.MaxGeneratedFrames) {
+    LogOnce("none", "Streamline supports no feature on this device",
             MGDF_LOG_LOW);
     ShutdownLocked();
     return;
@@ -427,10 +411,9 @@ void Streamline::RTInit(ID3D12Device *device, IDXGIAdapter1 *adapter) {
       _pingMessage.store(pcl.statsWindowMessage);
   }
   LOG("Streamline active: upscale "
-          << ((s.Supported & MGDF_GRAPHICS_FEATURE_UPSCALE) ? "yes" : "no")
-          << ", low latency "
-          << ((s.Supported & MGDF_GRAPHICS_FEATURE_LOW_LATENCY) ? "yes" : "no")
-          << ", generated frames " << s.MaxGeneratedFrames,
+          << (s.Upscale ? "yes" : "no") << ", low latency "
+          << (s.LowLatency ? "yes" : "no") << ", generated frames "
+          << s.MaxGeneratedFrames,
       MGDF_LOG_LOW);
 }
 
@@ -488,12 +471,22 @@ ComObject<IUnknown> Streamline::RTGetNativeUnknown(IUnknown *proxy) {
   return ComObject<IUnknown>(static_cast<IUnknown *>(native));
 }
 
-MGDFGraphicsFeatureSupport Streamline::GetSupport() const {
+void Streamline::GetSupport(GraphicsSupport &support) const {
   std::lock_guard lock(_mutex);
   const auto &s = *_state;
-  return {.Features = s.Supported,
-          .MaxGeneratedFrames = s.MaxGeneratedFrames,
-          .FrameGenerationVSync = s.FrameGenerationVSync ? TRUE : FALSE};
+  support.UpscaleModes.clear();
+  if (s.Upscale) {
+    support.UpscaleModes = {MGDF_UPSCALE_MODE_DLAA, MGDF_UPSCALE_MODE_QUALITY,
+                            MGDF_UPSCALE_MODE_BALANCED,
+                            MGDF_UPSCALE_MODE_PERFORMANCE,
+                            MGDF_UPSCALE_MODE_ULTRA_PERFORMANCE};
+  }
+  support.MaxGeneratedFrames = s.MaxGeneratedFrames;
+  support.LowLatencyModes = {MGDF_LOW_LATENCY_OFF};
+  if (s.LowLatency) {
+    support.LowLatencyModes.push_back(MGDF_LOW_LATENCY_ON);
+    support.LowLatencyModes.push_back(MGDF_LOW_LATENCY_BOOST);
+  }
 }
 
 HRESULT Streamline::GetUpscaleRenderSize(MGDFUpscaleMode mode,
@@ -502,7 +495,7 @@ HRESULT Streamline::GetUpscaleRenderSize(MGDFUpscaleMode mode,
                                          MGDFUpscaleRenderSize *size) const {
   std::lock_guard lock(_mutex);
   const auto &s = *_state;
-  if (!(s.Supported & MGDF_GRAPHICS_FEATURE_UPSCALE)) return E_NOTIMPL;
+  if (!s.Upscale) return E_NOTIMPL;
   const auto dlssMode = ToDLSSMode(mode);
   if (!size || !dlssMode || !displayWidth || !displayHeight)
     return E_INVALIDARG;
@@ -553,8 +546,7 @@ bool Streamline::RTPrepareSwapChain(UINT32 generatedFrames,
   // plugin keeps eOff; a second eOff call in this frame only adds a warning.
   if (s.FrameGenerationMode != sl::DLSSGMode::eOff)
     s.FrameGenerationMode.reset();
-  if (!s.Active || !(s.Supported & MGDF_GRAPHICS_FEATURE_FRAME_GENERATION))
-    return false;
+  if (!s.Active || !s.MaxGeneratedFrames) return false;
   bool enable = generatedFrames > 0;
   // DLSS-G supports SDR and HDR10 back buffers, but not scRGB.
   if (enable && format == DXGI_FORMAT_R16G16B16A16_FLOAT) {
@@ -637,9 +629,8 @@ void Streamline::RTBeginFrame(MGDFLowLatencyMode lowLatency) {
     }
     token = s.Token;
     if (s.Reflex) {
-      auto mode = (s.Supported & MGDF_GRAPHICS_FEATURE_LOW_LATENCY)
-                      ? ToReflexMode(lowLatency)
-                      : sl::ReflexMode::eOff;
+      auto mode =
+          s.LowLatency ? ToReflexMode(lowLatency) : sl::ReflexMode::eOff;
       // Frame generation fails without Reflex low latency.
       if (s.FrameGeneration && mode == sl::ReflexMode::eOff)
         mode = sl::ReflexMode::eLowLatency;
@@ -668,10 +659,7 @@ void Streamline::RTSetFrameMarker(MGDFFrameMarker marker) {
 void Streamline::RTSetFrameConstants(const MGDFFrameConstants *constants) {
   std::lock_guard lock(_mutex);
   auto &s = *_state;
-  if (!constants || !s.Token ||
-      !(s.Supported & (MGDF_GRAPHICS_FEATURE_UPSCALE |
-                       MGDF_GRAPHICS_FEATURE_FRAME_GENERATION)))
-    return;
+  if (!constants || !s.Token || (!s.Upscale && !s.MaxGeneratedFrames)) return;
   if (s.ConstantsSet) {
     LogOnce("constants",
             "SetFrameConstants was called more than once in a frame",
@@ -719,8 +707,7 @@ HRESULT Streamline::RTUpscale(ID3D12GraphicsCommandList *list,
                               const MGDFUpscaleDesc *desc) {
   std::lock_guard lock(_mutex);
   auto &s = *_state;
-  if (!(s.Supported & MGDF_GRAPHICS_FEATURE_UPSCALE) || !s.Token)
-    return E_NOTIMPL;
+  if (!s.Upscale || !s.Token) return E_NOTIMPL;
   if (!list || !desc || list->GetType() != D3D12_COMMAND_LIST_TYPE_DIRECT ||
       !D3D12CommandListIsRecording(list) || !desc->ColorIn.Resource ||
       !desc->ColorOut.Resource || !desc->Depth.Resource ||

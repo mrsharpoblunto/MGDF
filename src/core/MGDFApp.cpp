@@ -148,7 +148,7 @@ UINT32 MGDFApp::RTGetFrameGeneration() const {
 }
 
 MGDFLowLatencyMode MGDFApp::RTGetLowLatencyMode() const {
-  return _settings->GetLowLatencyMode();
+  return _settings->GetCurrentLowLatencyMode();
 }
 
 void MGDFApp::RTOnResize(UINT32 width, UINT32 height) {

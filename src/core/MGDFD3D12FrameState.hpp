@@ -1,16 +1,24 @@
 #pragma once
 
 #include <array>
+#include <compare>
 #include <cstdint>
 #include <optional>
 
 namespace MGDF {
 namespace core {
 
-inline constexpr bool PreferD3D12Adapter(bool software, bool supported,
-                                         uint64_t memory,
-                                         std::optional<uint64_t> bestMemory) {
-  return !software && supported && (!bestMemory || memory > *bestMemory);
+// Ray tracing support ranks before dedicated memory.
+struct D3D12AdapterScore {
+  bool RayTracing = false;
+  uint64_t Memory = 0;
+  auto operator<=>(const D3D12AdapterScore &) const = default;
+};
+
+inline constexpr bool PreferD3D12Adapter(
+    bool software, bool supported, D3D12AdapterScore score,
+    std::optional<D3D12AdapterScore> best) {
+  return !software && supported && (!best || score > *best);
 }
 
 class D3D12FrameState {

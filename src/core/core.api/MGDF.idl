@@ -13,21 +13,6 @@ typedef enum MGDFGraphicsAPI {
 } MGDFGraphicsAPI;
 
 /**
-Optional graphics features a module can request in MGDFGraphicsRequirements.
-The host provides them only with D3D12 and only when the device supports them.
-Use IMGDFRenderSettingsManager::GetGraphicsFeatureSupport to find which are available
-*/
-typedef enum MGDFGraphicsFeature {
-  /** Temporal upscaling and anti-aliasing through IMGDFD3D12RenderHost::Upscale */
-  MGDF_GRAPHICS_FEATURE_UPSCALE = 0x1,
-  /** Generated frames between rendered frames. The host also enables LOW_LATENCY
-  support because frame generation needs it */
-  MGDF_GRAPHICS_FEATURE_FRAME_GENERATION = 0x2,
-  /** Low latency frame pacing and latency markers */
-  MGDF_GRAPHICS_FEATURE_LOW_LATENCY = 0x4,
-} MGDFGraphicsFeature;
-
-/**
 The back buffer format and color space the host uses while HDR output is on.
 SDR output does not change
 */
@@ -52,9 +37,6 @@ typedef struct MGDFGraphicsRequirements {
   D3D_FEATURE_LEVEL MinFeatureLevel;
   /** D3D_SHADER_MODEL value; only checked for D3D12 */
   UINT32 MinShaderModel;
-  /** MGDFGraphicsFeature flags the module wants to use. The host reads them
-  before it creates the device. Unknown flags are an error */
-  UINT32 Features;
   /** The HDR output format the module writes. The host selects the HDR back
   buffer format and color space from it. An unknown value is an error */
   MGDFHDRFormat HDRFormat;
@@ -668,18 +650,24 @@ typedef enum MGDFLowLatencyMode {
 } MGDFLowLatencyMode;
 
 /**
-The graphics features the current device supports for this module
+Upscale quality modes. DLAA renders at the output size and only does anti-aliasing
 */
-typedef struct MGDFGraphicsFeatureSupport {
-  /** MGDFGraphicsFeature flags that the module requested and the device supports */
-  UINT32 Features;
-  /** Largest number of generated frames per rendered frame. 0 if frame
-  generation is not supported */
-  UINT32 MaxGeneratedFrames;
-  /** TRUE if vsync works while frame generation runs. If FALSE the host
-  presents without vsync while frame generation runs */
-  BOOL FrameGenerationVSync;
-} MGDFGraphicsFeatureSupport;
+typedef enum MGDFUpscaleMode {
+  MGDF_UPSCALE_MODE_DLAA = 0,
+  MGDF_UPSCALE_MODE_QUALITY = 1,
+  MGDF_UPSCALE_MODE_BALANCED = 2,
+  MGDF_UPSCALE_MODE_PERFORMANCE = 3,
+  MGDF_UPSCALE_MODE_ULTRA_PERFORMANCE = 4,
+} MGDFUpscaleMode;
+
+/**
+Ray tracing properties of the device
+*/
+typedef struct MGDFRayTracingSupport {
+  /** TRUE when shader execution reordering does real work (D3D12 raytracing
+  tier 1.2 or higher). Without it MaybeReorderThread does nothing */
+  BOOL ShaderExecutionReordering;
+} MGDFRayTracingSupport;
 
 /**
 Provides an interface for changing various rendering settings. Once released
@@ -766,8 +754,8 @@ the settings will be applied to the render system on the next frame
   not change the back buffer. While frame generation runs the host uses at
   least MGDF_LOW_LATENCY_ON
   \param mode the low latency mode
-  \return false if the mode is unknown, or is not MGDF_LOW_LATENCY_OFF and the
-  device does not support MGDF_GRAPHICS_FEATURE_LOW_LATENCY
+  \return false if IMGDFRenderSettingsManager::GetLowLatencyMode does not list
+  the mode
   */
   BOOL SetLowLatencyMode(MGDFLowLatencyMode mode);
 
@@ -775,10 +763,20 @@ the settings will be applied to the render system on the next frame
   sets the number of generated frames per rendered frame. A change schedules a
   back buffer change because the host must make a new swap chain
   \param generatedFrames 0 for no frame generation, otherwise 1 to
-  MGDFGraphicsFeatureSupport::MaxGeneratedFrames
+  IMGDFRenderSettingsManager::GetMaxGeneratedFrames
   \return false if the value is more than the device supports
   */
   BOOL SetFrameGeneration(UINT32 generatedFrames);
+
+  /**
+  sets whether the module uses ray tracing. The host saves the value in the
+  host.rayTracing preference and does nothing else with it. The change does not
+  change the back buffer
+  \param enabled TRUE to use ray tracing
+  \return false if enabled is TRUE and
+  IMGDFRenderSettingsManager::GetRayTracingSupport returns FALSE
+  */
+  BOOL SetRayTracing(BOOL enabled);
 };
 
 /**
@@ -1003,24 +1001,79 @@ Provides an interface for getting and setting the hosts various display settings
   BOOL GetWindowSizeLimits([out] UINT32 *width, [out] UINT32 *height);
 
   /**
-  gets the graphics features the current device supports for this module.
-  Every feature reports unsupported before the device exists, with D3D11, and
-  when the module did not request the feature
-  \param support receives the supported features
+  get the number of upscale modes the device supports. The list is valid from
+  RTBeforeFirstDraw and can change after a device reset. It is empty with
+  D3D11 and when the device has no upscaler
+  \return the number of supported upscale modes
   */
-  void GetGraphicsFeatureSupport([out] MGDFGraphicsFeatureSupport * support);
+  UINT64 GetUpscaleModeCount();
+
+  /**
+  get a supported upscale mode at the given index (0 to
+  GetUpscaleModeCount() - 1). Use the mode with
+  IMGDFD3D12Host::GetUpscaleRenderSize and IMGDFD3D12RenderHost::Upscale
+  \param index the upscale mode index
+  \param mode receives the upscale mode at the given index
+  \return true if an upscale mode exists at the given index
+  */
+  BOOL GetUpscaleMode(UINT64 index, [out] MGDFUpscaleMode * mode);
+
+  /**
+  get the largest number of generated frames per rendered frame that the
+  device supports. Valid from RTBeforeFirstDraw; can change after a device
+  reset
+  \return the largest number of generated frames, or 0 if frame generation
+  is not supported
+  */
+  UINT32 GetMaxGeneratedFrames();
+
+  /**
+  get the number of low latency modes the device supports. The list always
+  contains MGDF_LOW_LATENCY_OFF. Valid from RTBeforeFirstDraw; can change after
+  a device reset
+  \return the number of supported low latency modes
+  */
+  UINT64 GetLowLatencyModeCount();
+
+  /**
+  get a supported low latency mode at the given index (0 to
+  GetLowLatencyModeCount() - 1)
+  \param index the low latency mode index
+  \param mode receives the low latency mode at the given index
+  \return true if a low latency mode exists at the given index
+  */
+  BOOL GetLowLatencyMode(UINT64 index, [out] MGDFLowLatencyMode * mode);
 
   /**
   gets the low latency mode the user selected
   \return the low latency mode
   */
-  MGDFLowLatencyMode GetLowLatencyMode();
+  MGDFLowLatencyMode GetCurrentLowLatencyMode();
 
   /**
   gets the number of generated frames per rendered frame the user selected
   \return the number of generated frames, 0 if frame generation is off
   */
   UINT32 GetFrameGeneration();
+
+  /**
+  gets whether the device supports ray tracing: D3D12 raytracing tier 1.1 or
+  higher and shader model 6.9 or higher (for HitObject and
+  MaybeReorderThread). Valid from RTBeforeFirstDraw; can change after a device
+  reset. Always FALSE with D3D11
+  \param support if not null, receives the ray tracing properties. All fields
+  are FALSE when ray tracing is not supported
+  \return TRUE if ray tracing is supported
+  */
+  BOOL GetRayTracingSupport([ in, out ] MGDFRayTracingSupport * support);
+
+  /**
+  gets whether the user selected ray tracing. Always FALSE while
+  GetRayTracingSupport returns FALSE. The default is TRUE when ray tracing is
+  supported
+  \return TRUE if the module should use ray tracing
+  */
+  BOOL GetRayTracing();
 };
 
 /**
@@ -2351,17 +2404,6 @@ Additional methods in this interface are safe to be used ONLY from the render th
 };
 
 /**
-Upscale quality modes. DLAA renders at the output size and only does anti-aliasing
-*/
-typedef enum MGDFUpscaleMode {
-  MGDF_UPSCALE_MODE_DLAA = 0,
-  MGDF_UPSCALE_MODE_QUALITY = 1,
-  MGDF_UPSCALE_MODE_BALANCED = 2,
-  MGDF_UPSCALE_MODE_PERFORMANCE = 3,
-  MGDF_UPSCALE_MODE_ULTRA_PERFORMANCE = 4,
-} MGDFUpscaleMode;
-
-/**
 The render size for an upscale mode and output size. The Min and Max fields
 give the range for dynamic resolution. They equal Width and Height if the
 upscaler gives no range
@@ -2411,7 +2453,7 @@ Release returned references before acknowledging a device reset.
   \param displayHeight the output height
   \param size receives the render size
   \return S_OK, E_INVALIDARG for an unknown mode or a zero size, or E_NOTIMPL
-  if MGDF_GRAPHICS_FEATURE_UPSCALE is not supported
+  if IMGDFRenderSettingsManager::GetUpscaleMode does not list the mode
   */
   HRESULT GetUpscaleRenderSize(MGDFUpscaleMode mode, UINT32 displayWidth,
                                UINT32 displayHeight,
@@ -2593,14 +2635,14 @@ joined to the direct queue by the module if it is to be covered by that frame fe
                            [out] IMGDFPerformanceCounter **counter);
   /**
   Reports a point in the current frame for latency measurement. Does nothing
-  if the device supports no low latency feature
+  if the host has no latency measurement for the device
   \param marker the point in the frame
   */
   void SetFrameMarker(MGDFFrameMarker marker);
   /**
   Sets the camera data for the current frame. Call it once per frame before
-  Upscale and before RTDraw returns. Does nothing if the device supports
-  neither upscaling nor frame generation
+  Upscale and before RTDraw returns. Does nothing if GetUpscaleModeCount
+  and GetMaxGeneratedFrames on IMGDFRenderSettingsManager both return 0
   \param constants the camera data
   */
   void SetFrameConstants([in] const MGDFFrameConstants *constants);
@@ -2614,7 +2656,8 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   \param desc the upscale inputs
   \return S_OK, E_INVALIDARG for an untracked list or missing inputs,
   E_ILLEGAL_METHOD_CALL if SetFrameConstants was not called this frame,
-  E_NOTIMPL if MGDF_GRAPHICS_FEATURE_UPSCALE is not supported, or E_FAIL if
+  E_NOTIMPL if IMGDFRenderSettingsManager::GetUpscaleMode does not list the
+  mode, or E_FAIL if
   the upscaler failed
   */
   HRESULT Upscale([in] ID3D12GraphicsCommandList *list,

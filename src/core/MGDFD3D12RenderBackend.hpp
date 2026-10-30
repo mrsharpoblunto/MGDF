@@ -44,6 +44,7 @@ class D3D12RenderBackend : public IRenderBackend {
   ComObject<ID3D12Fence> RTGetFrameFence() final;
   MGDFFrameInfo RTGetCurrentFrame() const final;
   Streamline *GetStreamline() final;
+  GraphicsSupport RTGetGraphicsSupport() const final;
 
  private:
   static constexpr UINT BackBufferCount = 3;
@@ -63,6 +64,8 @@ class D3D12RenderBackend : public IRenderBackend {
   ComObject<ID3D12Device10> _device;
   ComObject<IDXGIAdapter> _adapter;
   Streamline _streamline;
+  bool _rayTracing = false;
+  bool _shaderExecutionReordering = false;
   ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
   // Streamline proxy of the direct queue; null without Streamline.
   ComObject<ID3D12CommandQueue> _proxyDirectQueue;

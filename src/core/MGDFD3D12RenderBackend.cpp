@@ -10,6 +10,31 @@
 namespace MGDF {
 namespace core {
 
+namespace {
+
+struct RayTracingSupport {
+  bool RayTracing = false;
+  bool ShaderExecutionReordering = false;
+};
+
+// Modules use HitObject and MaybeReorderThread, which need shader model 6.9.
+RayTracingSupport GetRayTracingSupport(ID3D12Device *device) {
+  D3D12_FEATURE_DATA_D3D12_OPTIONS5 options{};
+  D3D12_FEATURE_DATA_SHADER_MODEL model{D3D_SHADER_MODEL_6_9};
+  if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options,
+                                         sizeof(options))) ||
+      FAILED(device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &model,
+                                         sizeof(model))) ||
+      options.RaytracingTier < D3D12_RAYTRACING_TIER_1_1 ||
+      model.HighestShaderModel < D3D_SHADER_MODEL_6_9)
+    return {};
+  return {.RayTracing = true,
+          .ShaderExecutionReordering =
+              options.RaytracingTier >= D3D12_RAYTRACING_TIER_1_2};
+}
+
+}  // namespace
+
 D3D12RenderBackend::D3D12RenderBackend(
     const ComObject<IDXGIFactory6> &factory,
     const MGDFGraphicsRequirements &requirements,
@@ -17,7 +42,7 @@ D3D12RenderBackend::D3D12RenderBackend(
     : _rtFactory(factory),
       _requirements(requirements),
       _fatalError(std::move(fatalError)),
-      _streamline(requirements.Features, Resources::Instance().RootDir()) {}
+      _streamline(Resources::Instance().RootDir()) {}
 
 void D3D12RenderBackend::FatalError(const char *sender, const char *message) {
   _fatalError(sender, message);
@@ -87,7 +112,7 @@ bool D3D12RenderBackend::RTInit() {
             "Failed to find default adapter");
     }
   } else {
-    std::optional<uint64_t> bestMemory;
+    std::optional<D3D12AdapterScore> best;
     for (UINT i = 0;; ++i) {
       ComObject<IDXGIAdapter1> adapter;
       const auto result = _rtFactory->EnumAdapters1(i, adapter.Assign());
@@ -97,11 +122,13 @@ bool D3D12RenderBackend::RTInit() {
       Check(adapter->GetDesc1(&desc), "Failed to describe adapter");
       if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) continue;
       auto device = RTTryCreateDevice(adapter);
-      if (PreferD3D12Adapter(false, static_cast<bool>(device),
-                             desc.DedicatedVideoMemory, bestMemory)) {
+      const D3D12AdapterScore score{
+          .RayTracing = device && GetRayTracingSupport(device).RayTracing,
+          .Memory = desc.DedicatedVideoMemory};
+      if (PreferD3D12Adapter(false, static_cast<bool>(device), score, best)) {
         _device = device;
         _adapter = adapter;
-        bestMemory = desc.DedicatedVideoMemory;
+        best = score;
       }
     }
   }
@@ -116,8 +143,14 @@ bool D3D12RenderBackend::RTInit() {
   char name[256]{};
   size_t converted = 0;
   wcstombs_s(&converted, name, desc.Description, _TRUNCATE);
+  const auto rayTracing = GetRayTracingSupport(_device);
+  _rayTracing = rayTracing.RayTracing;
+  _shaderExecutionReordering = rayTracing.ShaderExecutionReordering;
   LOG("D3D12 adapter: " << name << ", dedicated memory "
-                        << desc.DedicatedVideoMemory,
+                        << desc.DedicatedVideoMemory << ", ray tracing "
+                        << (_rayTracing ? "yes" : "no")
+                        << ", shader execution reordering "
+                        << (_shaderExecutionReordering ? "yes" : "no"),
       MGDF_LOG_LOW);
 #if defined(_DEBUG)
   auto info = _device.As<ID3D12InfoQueue1>();
@@ -537,6 +570,14 @@ ComObject<ID3D12Fence> D3D12RenderBackend::RTGetFrameFence() {
 }
 MGDFFrameInfo D3D12RenderBackend::RTGetCurrentFrame() const { return _frame; }
 Streamline *D3D12RenderBackend::GetStreamline() { return &_streamline; }
+
+GraphicsSupport D3D12RenderBackend::RTGetGraphicsSupport() const {
+  GraphicsSupport support{
+      .RayTracing = _rayTracing,
+      .ShaderExecutionReordering = _shaderExecutionReordering};
+  _streamline.GetSupport(support);
+  return support;
+}
 
 }  // namespace core
 }  // namespace MGDF

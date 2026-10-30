@@ -22,13 +22,6 @@ HRESULT SelectGraphicsAPI(const MGDFGraphicsRequirements &requirements,
       return E_INVALIDARG;
     }
   }
-  constexpr UINT32 knownFeatures = MGDF_GRAPHICS_FEATURE_UPSCALE |
-                                   MGDF_GRAPHICS_FEATURE_FRAME_GENERATION |
-                                   MGDF_GRAPHICS_FEATURE_LOW_LATENCY;
-  if (requirements.Features & ~knownFeatures) {
-    error = "GetGraphicsRequirements lists an unknown graphics feature";
-    return E_INVALIDARG;
-  }
   if (requirements.HDRFormat != MGDF_HDR_FORMAT_SCRGB &&
       requirements.HDRFormat != MGDF_HDR_FORMAT_HDR10) {
     error = "GetGraphicsRequirements lists an unknown HDR format";
