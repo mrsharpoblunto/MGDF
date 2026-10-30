@@ -139,9 +139,11 @@ Installer package created
             <dt>host.vsync</dt>
             <dd>Whether or not to use vsync on the render thread ("1"), or whether to render frames fast as possible ("0"). Defaults to "1"</dd>
             <dt>host.lowLatencyMode</dt>
-            <dd>The low latency mode: "0" (off), "1" (on) or "2" (on with boost). The host uses it only when the device supports <code>MGDF_GRAPHICS_FEATURE_LOW_LATENCY</code> for the module. Defaults to "1"</dd>
+            <dd>The low latency mode: "0" (off), "1" (on) or "2" (on with boost). The host uses "0" when <code>GetLowLatencyMode</code> on <a href="#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a> does not list the mode. Defaults to "1"</dd>
             <dt>host.frameGeneration</dt>
-            <dd>The number of generated frames per rendered frame. "0" turns frame generation off. The host limits the value to <code>MaxGeneratedFrames</code> of <a href="#MGDFGraphicsFeatureSupport">MGDFGraphicsFeatureSupport</a>. Defaults to "0"</dd>
+            <dd>The number of generated frames per rendered frame. "0" turns frame generation off. The host limits the value to <code>GetMaxGeneratedFrames</code> on <a href="#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>. Defaults to "0"</dd>
+            <dt>host.rayTracing</dt>
+            <dd>Whether the module should use ray tracing ("1") or not ("0"). The host uses "0" when <code>GetRayTracingSupport</code> on <a href="#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a> returns <code>FALSE</code>. The host does nothing else with it; the module reads it with <code>GetRayTracing</code>. Defaults to "1"</dd>
             <dt>host.windowResize</dt>
             <dd>Whether to allow resizing of the game window in windowed mode ("1") or to have a fixed size window ("0"). This setting is provided as resizing the window may cause a D3D device reset. Because of this, having a resizable window means your game will have to be able to handle this. If you don't want to worry about this, leave it at the default of "0"</dd>
             <dt>host.windowSizeX</dt>
