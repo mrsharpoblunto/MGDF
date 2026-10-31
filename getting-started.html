@@ -362,6 +362,203 @@ HRESULT DrawTimedClear(IMGDFD3D12RenderHost *host,
     <h4>Build requirements</h4>
     <p>Build D3D12 modules with Windows SDK 10.0.26100 or later. The MGDF headers need no other D3D12 headers. The redistributable includes the D3D12 Agility SDK runtime (1.619.5) in the <code>D3D12</code> folder beside <code>core.exe</code>, so modules don't distribute it. A module needs the <a href="https://devblogs.microsoft.com/directx/directx12agility/">Agility SDK</a> headers only to use D3D12 APIs that its Windows SDK doesn't declare. Use headers no newer than 1.619.5, because the host loads that runtime.</p>
 
+    <h2 id="upscaling">Upscaling, frame generation and low latency</h2>
+    <p>A D3D12 module can use NVIDIA DLSS upscaling and DLAA, DLSS frame generation (DLSS-G) and Reflex low latency through the MGDF API. The module uses only MGDF types. D3D11 modules cannot use these features.</p>
+    <p>The module does not request these features. The host starts them when the device supports them, and tells the module what is supported. The module:</p>
+    <ul>
+        <li>Reads the supported modes from the render settings manager.</li>
+        <li>Selects the upscale mode and the render size.</li>
+        <li>Renders the inputs: jittered color, depth and motion vectors. Frame generation can also use a color image without UI (hudless) and a UI image.</li>
+        <li>Supplies the camera data for each frame.</li>
+        <li>Reports the frame markers inside its frame: simulation, input and render submit.</li>
+        <li>Shows the settings to the user, and keeps a path that works without the features.</li>
+    </ul>
+
+    <h4>Find what the device supports</h4>
+    <p>Read the support from <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>:</p>
+    <ul>
+        <li><code>GetUpscaleModeCount</code> and <code>GetUpscaleMode</code> give the <a href="{{ site.baseurl }}/api#MGDFUpscaleMode">MGDFUpscaleMode</a> values that the device supports. The list is empty when the device has no upscaler.</li>
+        <li><code>GetMaxGeneratedFrames</code> gives the largest number of generated frames per rendered frame. It is 0 when frame generation is not supported.</li>
+        <li><code>GetLowLatencyModeCount</code> and <code>GetLowLatencyMode</code> give the supported <a href="{{ site.baseurl }}/api#MGDFLowLatencyMode">MGDFLowLatencyMode</a> values. <code>MGDF_LOW_LATENCY_OFF</code> is always in the list.</li>
+    </ul>
+    <p>The host gets the support when it creates the device. Before that, the lists report no support. Read them in <code>RTBeforeFirstDraw</code>, and read them again in <code>RTDeviceReset</code>, because a new device can have different support. Use the same lists to show the settings to the user: show only the modes in the lists.</p>
+{% highlight c++ %}
+BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
+  MGDF::ComObject<IMGDFRenderSettingsManager> settings;
+  host->GetRenderSettings(settings.Assign());
+  _upscaleModes.clear();
+  for (UINT64 i = 0; i < settings->GetUpscaleModeCount(); ++i) {
+    MGDFUpscaleMode mode;
+    if (settings->GetUpscaleMode(i, &mode)) _upscaleModes.push_back(mode);
+  }
+  _maxGeneratedFrames = settings->GetMaxGeneratedFrames();
+  _lowLatencyModes.clear();
+  for (UINT64 i = 0; i < settings->GetLowLatencyModeCount(); ++i) {
+    MGDFLowLatencyMode mode;
+    if (settings->GetLowLatencyMode(i, &mode)) _lowLatencyModes.push_back(mode);
+  }
+  return TRUE;
+}
+{% endhighlight %}
+    <p>While frame generation runs, the low latency mode is at least <code>MGDF_LOW_LATENCY_ON</code>. Frame generation does not work with an scRGB back buffer. Set <code>HDRFormat</code> in <code>GetGraphicsRequirements</code> to <code>MGDF_HDR_FORMAT_HDR10</code> if the module supports HDR output and frame generation (see <a href="#hdroutput">HDR output</a>).</p>
+
+    <h4>Select a render size</h4>
+    <p>The module selects the upscale mode. Use a mode from the list. Call <code>IMGDFD3D12Host::GetUpscaleRenderSize</code> with that mode and the output size. Render the scene at the size it returns. DLAA renders at the output size. <code>MinWidth</code> to <code>MaxWidth</code> and <code>MinHeight</code> to <code>MaxHeight</code> give the range for dynamic resolution. The output size changes with the back buffer, so select the render size again in <code>RTBackBufferChange</code>.</p>
+{% highlight c++ %}
+BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
+  _upscale = std::find(_upscaleModes.begin(), _upscaleModes.end(),
+                       _upscaleMode) != _upscaleModes.end();
+
+  MGDFBackBufferInfo info = {};
+  host->GetBackBufferInfo(&info);
+  _renderSize = {info.Width, info.Height, info.Width,
+                 info.Height, info.Width, info.Height};
+  if (_upscale) {
+    MGDF::ComObject<IMGDFD3D12Host> d3d12;
+    if (FAILED(host->QueryInterface(__uuidof(IMGDFD3D12Host),
+            reinterpret_cast<void **>(d3d12.Assign())))) return FALSE;
+    if (FAILED(d3d12->GetUpscaleRenderSize(_upscaleMode, info.Width,
+                                           info.Height, &_renderSize)))
+      _upscale = false;
+  }
+  return CreateRenderTargets(_renderSize.Width, _renderSize.Height,
+                             info.Width, info.Height);
+}
+{% endhighlight %}
+
+    <h4>Low latency and frame generation settings</h4>
+    <p>The user selects the low latency mode and the number of generated frames. Use <code>SetLowLatencyMode</code> and <code>SetFrameGeneration</code> on <a href="{{ site.baseurl }}/api#IMGDFPendingRenderSettingsChange">IMGDFPendingRenderSettingsChange</a>, then release the change to apply it. <code>SetLowLatencyMode</code> returns <code>FALSE</code> for a mode that is not in the list. <code>SetFrameGeneration</code> returns <code>FALSE</code> for a value more than <code>GetMaxGeneratedFrames</code>. Read the current values with <code>GetCurrentLowLatencyMode</code> and <code>GetFrameGeneration</code>.</p>
+    <p>A low latency change applies on the next frame. A frame generation change makes a new swap chain, so the module gets <code>RTBeforeBackBufferChange</code> and <code>RTBackBufferChange</code>. The host keeps both values in the <a href="{{ site.baseurl }}/api#hostpreferences">host.lowLatencyMode and host.frameGeneration</a> preferences. When the device does not support a saved value, the host uses off. On some devices, vsync does not work with frame generation. On these devices the host presents without vsync while frame generation runs.</p>
+
+    <h4>Each frame</h4>
+    <p>In <code>RTDraw</code> the module does these steps on <a href="{{ site.baseurl }}/api#IMGDFD3D12RenderHost">IMGDFD3D12RenderHost</a>:</p>
+    <ol>
+        <li>Call <code>SetFrameMarker</code> with <code>MGDF_FRAME_MARKER_SIMULATION_START</code> before it reads the simulation state, and with <code>MGDF_FRAME_MARKER_SIMULATION_END</code> after it has the state. Report <code>MGDF_FRAME_MARKER_INPUT_SAMPLE</code> when it reads controller input. Report <code>MGDF_FRAME_MARKER_RENDER_SUBMIT_START</code> before it records the first command list.</li>
+        <li>Call <code>SetFrameConstants</code> one time with the camera data of the frame (<a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a>). The matrices are row-major for row vectors (<code>v * M</code>) and do not contain the jitter. <code>JitterOffset</code> is in render pixels. Set <code>ResetHistory</code> to <code>TRUE</code> after a camera cut. Frame generation also needs these constants.</li>
+        <li>Render the scene at the render size with jitter. Then call <code>Upscale</code> to record the upscale into a command list.</li>
+        <li>Render the post-processing and the UI at the output size. Call <code>SetFrameGenerationInputs</code>.</li>
+        <li>Execute the command lists. Call <code>SetFrameMarker</code> with <code>MGDF_FRAME_MARKER_RENDER_SUBMIT_END</code> after the last submit.</li>
+    </ol>
+    <p>Each <a href="{{ site.baseurl }}/api#MGDFFrameResource">MGDFFrameResource</a> has a <code>State</code>. This is the state that the resource has when the GPU runs the work that uses it. The calls do not add barriers and do not change resource states. Add the barriers before the call. A zero <code>Width</code> or <code>Height</code> selects the default region.</p>
+    <p><code>Upscale</code> has these rules:</p>
+    <ul>
+        <li>The list must be a direct list that is recording. Create it with the SDK <code>MGDF::D3D12CommandList</code> helper (see GPU counters in <a href="#d3d12module">Writing a D3D12 module</a>). An untracked list returns <code>E_INVALIDARG</code>.</li>
+        <li><code>ColorIn</code>, <code>Depth</code> and <code>MotionVectors</code> are at the render size. <code>ColorOut</code> is at the output size and needs unordered access. <code>Exposure</code> and <code>BiasCurrentColor</code> are optional. Without <code>Exposure</code> the upscaler uses automatic exposure. Set <code>ColorHDR</code> to <code>TRUE</code> if <code>ColorIn</code> is linear HDR color before tonemapping.</li>
+        <li>After the call, the descriptor heaps, root signature, pipeline state, render targets and viewports of the list are undefined. Set them again before you record more work.</li>
+        <li>It returns <code>E_ILLEGAL_METHOD_CALL</code> if <code>SetFrameConstants</code> was not called in this frame, and <code>E_FAIL</code> if the upscaler failed.</li>
+    </ul>
+{% highlight c++ %}
+render->SetFrameConstants(&constants);
+DrawScene(list);  // Jittered, at the render size.
+TransitionUpscaleInputs(list);
+
+MGDFUpscaleDesc upscale = {};
+upscale.Mode = _upscaleMode;
+upscale.RenderWidth = _renderSize.Width;
+upscale.RenderHeight = _renderSize.Height;
+upscale.OutputWidth = _outputWidth;
+upscale.OutputHeight = _outputHeight;
+upscale.ColorHDR = TRUE;
+upscale.ColorIn = {_color.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+upscale.ColorOut = {_upscaled.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS};
+upscale.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+upscale.MotionVectors = {_motion.Get(),
+                         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+if (FAILED(render->Upscale(list, &upscale))) return FALSE;
+
+list->SetDescriptorHeaps(1, _heaps.AsArray());  // Bind again after Upscale.
+{% endhighlight %}
+    <p><code>SetFrameGenerationInputs</code> has these rules:</p>
+    <ul>
+        <li>Call it before <code>RTDraw</code> returns in each frame that frame generation can use. <code>Depth</code> and <code>MotionVectors</code> are necessary. Their default region is the full resource.</li>
+        <li><code>HudlessColor</code> and <code>UIColorAndAlpha</code> are optional, but frame generation gives much better results with UI when you supply them. They have the back buffer size and the back buffer encoding. <code>UIColorAndAlpha</code> has premultiplied color and zero alpha where there is no UI, so that the back buffer is <code>UI.rgb + (1 - UI.a) * hudless</code>. Its alpha needs more than 2 bits, so do not use <code>DXGI_FORMAT_R10G10B10A2_UNORM</code> for it.</li>
+        <li>Frame generation runs at present. Put each input in its <code>State</code> at the end of the frame's command lists. Keep its content and state until the frame is presented.</li>
+        <li>Pass null, or do not call it, while the game loads, is paused, or changes the world. Frame generation then stops for that frame.</li>
+        <li>It returns <code>S_FALSE</code> when frame generation is off.</li>
+    </ul>
+{% highlight c++ %}
+if (_loading || _paused) {
+  render->SetFrameGenerationInputs(nullptr);
+} else {
+  MGDFFrameGenerationDesc generation = {};
+  generation.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+  generation.MotionVectors = {_motion.Get(),
+                              D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+  generation.HudlessColor = {_hudless.Get(),
+                             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+  generation.UIColorAndAlpha = {_ui.Get(),
+                                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+  render->SetFrameGenerationInputs(&generation);
+}
+{% endhighlight %}
+
+    <h4>When the features are not available</h4>
+    <p>The features are not available on a non-NVIDIA adapter, on WARP or another software adapter, or when the driver does not support them. In these cases:</p>
+    <ul>
+        <li>The upscale mode list is empty, <code>GetMaxGeneratedFrames</code> returns 0, and the low latency mode list has only <code>MGDF_LOW_LATENCY_OFF</code>. <code>SetLowLatencyMode</code> and <code>SetFrameGeneration</code> return <code>FALSE</code> for any value other than off.</li>
+        <li><code>GetUpscaleRenderSize</code> and <code>Upscale</code> return <code>E_NOTIMPL</code>.</li>
+        <li><code>SetFrameMarker</code> and <code>SetFrameConstants</code> do nothing. <code>SetFrameGenerationInputs</code> returns <code>S_FALSE</code>.</li>
+    </ul>
+    <p>The log gives the reason. You can call the frame methods on each frame without a check, but keep a render path without <code>Upscale</code>. For example, render at the output size and use your own anti-aliasing.</p>
+    <p>The debug overlay data (<a href="{{ site.baseurl }}/api#MGDFDebugOverlayData">MGDFDebugOverlayData</a>) contains the render latency and the numbers of rendered and presented frames. While frame generation runs, the presented frames are more than the rendered frames.</p>
+
+    <h2 id="raytracing">Ray tracing</h2>
+    <p>A D3D12 module that uses DXR can ask the host if the device supports ray tracing. Call <code>GetRayTracingSupport</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>. It returns <code>TRUE</code> when the device supports D3D12 raytracing tier 1.1 and shader model 6.9, which <code>HitObject</code> and <code>MaybeReorderThread</code> need. It also fills <a href="{{ site.baseurl }}/api#MGDFRayTracingSupport">MGDFRayTracingSupport</a>. <code>ShaderExecutionReordering</code> is <code>TRUE</code> when the device reorders shader execution (raytracing tier 1.2). Without it, <code>MaybeReorderThread</code> does nothing. The support follows the same rules as the upscaling lists: read it in <code>RTBeforeFirstDraw</code> and again in <code>RTDeviceReset</code>. With D3D11 it is always <code>FALSE</code>.</p>
+    <p>The user can turn ray tracing off. <code>GetRayTracing</code> returns the setting, and <code>SetRayTracing</code> on <a href="{{ site.baseurl }}/api#IMGDFPendingRenderSettingsChange">IMGDFPendingRenderSettingsChange</a> changes it. <code>SetRayTracing(TRUE)</code> returns <code>FALSE</code> when the device does not support ray tracing. The host keeps the setting in the <a href="{{ site.baseurl }}/api#hostpreferences">host.rayTracing</a> preference. It is on by default, and the host turns it off when the device does not support ray tracing. The host does not change the back buffer or the device for this setting. The module reads it and selects its own render path.</p>
+{% highlight c++ %}
+MGDFRayTracingSupport support = {};
+_rayTracing = settings->GetRayTracingSupport(&support) &&
+              settings->GetRayTracing();
+_reorder = _rayTracing && support.ShaderExecutionReordering;
+{% endhighlight %}
+    <p>When several adapters meet the module's requirements, the host selects an adapter that supports ray tracing before an adapter with more dedicated memory.</p>
+
+    <h2 id="hdroutput">HDR output</h2>
+    <p>The host turns on HDR output when <code>SetHDREnabled</code> (or the <code>host.hdrEnabled</code> preference) is on and the display supports HDR. The module selects the HDR format with <code>HDRFormat</code> in <a href="{{ site.baseurl }}/api#MGDFGraphicsRequirements">MGDFGraphicsRequirements</a>. SDR output does not change.</p>
+    <table class="table">
+        <thead><tr><th></th><th><code>MGDF_HDR_FORMAT_SCRGB</code> (default)</th><th><code>MGDF_HDR_FORMAT_HDR10</code></th></tr></thead>
+        <tbody>
+            <tr><td>Back buffer</td><td><code>DXGI_FORMAT_R16G16B16A16_FLOAT</code></td><td><code>DXGI_FORMAT_R10G10B10A2_UNORM</code></td></tr>
+            <tr><td>Color space</td><td><code>DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709</code></td><td><code>DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020</code></td></tr>
+            <tr><td>Values</td><td>Linear, Rec.709 primaries, 1.0 is 80 nits</td><td>PQ (ST 2084) encoded, Rec.2020 primaries, 1.0 is 10000 nits</td></tr>
+            <tr><td>Frame generation</td><td>Not available</td><td>Available</td></tr>
+        </tbody>
+    </table>
+    <p>To find the current output, compare the <code>Format</code> from <code>GetBackBufferInfo</code> with <code>GetHDRBackBufferFormat</code> in <code>RTBackBufferChange</code>. <code>GetCurrentOutputDisplayInfo</code> gives the luminance range of the display.</p>
+    <p>With HDR10 the module writes encoded values. Do these steps in the last pass that writes the back buffer:</p>
+    <ol>
+        <li>Blend the scene and the UI in linear light. Blending into the back buffer mixes encoded values, so do not use it for the UI.</li>
+        <li>Tonemap to the luminance range of the display.</li>
+        <li>Convert the color from Rec.709 to Rec.2020 primaries.</li>
+        <li>Divide by 10000 nits and apply the PQ encode.</li>
+    </ol>
+{% highlight c++ %}
+// HLSL. nits: linear Rec.2020 color in nits.
+float3 EncodePQ(float3 nits) {
+  const float m1 = 0.1593017578125f, m2 = 78.84375f;
+  const float c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
+  const float3 y = pow(saturate(nits / 10000.0f), m1);
+  return pow((c1 + c2 * y) / (1.0f + c3 * y), m2);
+}
+{% endhighlight %}
+    <p>For frame generation, <code>HudlessColor</code> and <code>UIColorAndAlpha</code> use the same encoding as the back buffer (PQ with HDR10).</p>
+
+    <h4>HDR metadata</h4>
+    <p>Call <code>SetHDRMetadata</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> to tell the display the light levels of the content (<a href="{{ site.baseurl }}/api#MGDFHDRMetadata">MGDFHDRMetadata</a>, in nits). The values stay in effect after resizes and back buffer changes. They apply only to HDR10 output. Pass null to clear the metadata. <code>SetHDRMetadata</code> returns <code>E_INVALIDARG</code> and keeps the old values if a value is out of range: MaxCLL from 0 to 65535, MaxFALL from 0 to MaxCLL, mastering maximum more than 0 and up to 10000, and mastering minimum from 0 to less than the mastering maximum.</p>
+{% highlight c++ %}
+MGDFOutputDisplayInfo display = {};
+settings->GetCurrentOutputDisplayInfo(&display);
+// The tonemapper limits the output to this peak.
+const float peak = display.MaxLuminance > 0.0f ? display.MaxLuminance : 1000.0f;
+
+MGDFHDRMetadata metadata = {};
+metadata.MaxContentLightLevel = peak;
+metadata.MaxFrameAverageLightLevel = (std::min)(display.MaxFullFrameLuminance, peak);
+metadata.MaxMasteringLuminance = peak;
+metadata.MinMasteringLuminance = display.MinLuminance;
+host->SetHDRMetadata(&metadata);
+{% endhighlight %}
+
     <h1 id="running" class="page-header">Running a game</h1>
     <p>When distributing a game to users, one simply has to put the game content and module in the prescribed locations inside the framework redistributable (as shown <a href="#folderstructure">here</a>). Users can then run the game by running GamesManager.exe.</p>
     <p>However, having to keep your game inside the redistributable folder can be annoying during development, so there are a few other options available to make running the game in development easier.</p>
@@ -551,6 +748,9 @@ FunctionEnd
                         <li><a href="#gamemanifest">Game.json</a></li>
                         <li><a href="#gamemodule">Module.dll</a></li>
                         <li><a href="#d3d12module">Writing a D3D12 module</a></li>
+                        <li><a href="#upscaling">Upscaling and frame generation</a></li>
+                        <li><a href="#raytracing">Ray tracing</a></li>
+                        <li><a href="#hdroutput">HDR output</a></li>
                     </ul>
                 </li>
                 <li>
