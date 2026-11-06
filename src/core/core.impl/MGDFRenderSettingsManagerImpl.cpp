@@ -201,7 +201,7 @@ BOOL RenderSettingsManager::GetVRSupport() {
 
 BOOL RenderSettingsManager::GetVR() {
   std::lock_guard lock(_mutex);
-  return _vrRunning;
+  return _vrActive;
 }
 
 std::optional<bool> RenderSettingsManager::TakeVRRequest() {
@@ -209,10 +209,9 @@ std::optional<bool> RenderSettingsManager::TakeVRRequest() {
   return std::exchange(_vrRequest, std::nullopt);
 }
 
-void RenderSettingsManager::SetVRState(bool active, bool running) {
+void RenderSettingsManager::SetVRState(bool active) {
   std::lock_guard lock(_mutex);
   _vrActive = active;
-  _vrRunning = running;
 }
 
 UINT64 RenderSettingsManager::GetUpscaleModeCount() {

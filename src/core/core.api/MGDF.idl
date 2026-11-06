@@ -1095,9 +1095,10 @@ Provides an interface for getting and setting the hosts various display settings
   BOOL GetVRSupport();
 
   /**
-  Reports whether a headset session runs. A request can stay FALSE while the
-  headset is unavailable or the runtime waits to start the session
-  \return TRUE while the session runs, including frames with no eye views
+  Reports whether VR mode has a headset session. Stays TRUE while the runtime
+  pauses the session; draw only the window while GetViewCount returns zero.
+  A failed VR request leaves this FALSE
+  \return TRUE while VR mode is active, including an idle headset session
   */
   BOOL GetVR();
 };

@@ -111,7 +111,7 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   BOOL __stdcall GetVR() final;
   void InitVR(bool moduleVR, MGDFGraphicsAPI api, bool saved, bool commandLine);
   std::optional<bool> TakeVRRequest();
-  void SetVRState(bool active, bool running);
+  void SetVRState(bool active);
   std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
   // Call after each device creation. Clamps the settings to the support.
   void SetGraphicsSupport(GraphicsSupport support);
@@ -157,7 +157,6 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   bool _vrSupport = false;
   bool _vrPreference = false;
   bool _vrActive = false;
-  bool _vrRunning = false;
   std::optional<bool> _vrRequest;
   GraphicsSupport _support;
   MGDFLowLatencyMode _lowLatencyMode = MGDF_LOW_LATENCY_OFF;

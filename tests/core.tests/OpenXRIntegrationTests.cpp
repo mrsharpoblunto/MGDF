@@ -221,9 +221,7 @@ class FrameLoop final : public D3DAppFramework {
   std::optional<bool> RTTakeVRRequest() override {
     return Settings->TakeVRRequest();
   }
-  void RTOnVRState(bool active, bool running) override {
-    Settings->SetVRState(active, running);
-  }
+  void RTOnVRState(bool active) override { Settings->SetVRState(active); }
   MGDFFullScreenDesc RTGetFullscreen() override { return {}; }
   void RTSetFullscreen(const MGDFFullScreenDesc &) override {}
   std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() override {
@@ -345,6 +343,8 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
         ++phase;
       } else if (phase == 5 && count == 2) {
         runtime.Push(XR_SESSION_STATE_STOPPING);
+        runtime.Push(XR_SESSION_STATE_IDLE);
+        runtime.Push(XR_SESSION_STATE_EXITING);
         ++phase;
       } else if (phase == 6 && !host.Settings->GetVR()) {
         EXPECT_EQ(0U, count);
@@ -359,7 +359,7 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
     EXPECT_EQ(7U, phase);
     expectedImages = std::accumulate(loop.Views.begin(), loop.Views.end(), 0U);
     EXPECT_EQ(loop.BeforeChanges, loop.AfterChanges);
-    EXPECT_GE(loop.AfterChanges, 5U);
+    EXPECT_GE(loop.AfterChanges, 4U);
   }
   const auto stats = runtime.Stats();
   EXPECT_EQ(expectedImages, stats.SubmittedImages);
@@ -370,6 +370,89 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
   EXPECT_EQ(0U,
             stats.LiveInstances + stats.LiveSessions + stats.LiveSwapchains);
   EXPECT_EQ(0U, stats.Errors);
+}
+
+TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0;
+  UINT32 changes = 0;
+  UINT32 swapchains = 0;
+  UINT32 idleFrames = 0;
+  UINT32 completedFrames = 0;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      const auto stats = runtime.Stats();
+      if (phase > 0 && phase < 5) {
+        EXPECT_TRUE(host.Settings->GetVR());
+        EXPECT_TRUE(vr.HasSession());
+        EXPECT_FALSE(vr.NeedsFallback());
+        EXPECT_EQ(changes, host.BeforeChanges);
+        EXPECT_EQ(changes, host.AfterChanges);
+        EXPECT_EQ(swapchains, stats.SwapchainsCreated);
+        EXPECT_EQ(1U, stats.SessionsCreated);
+        EXPECT_EQ(0U, host.Settings->GetMaxGeneratedFrames());
+        EXPECT_EQ(0U, host.Settings->GetFrameGeneration());
+        EXPECT_EQ(MGDF_LOW_LATENCY_OFF,
+                  host.Settings->GetCurrentLowLatencyMode());
+      }
+      if (phase == 0 && vr.ViewCount() == 2) {
+        EXPECT_TRUE(vr.Focused());
+        changes = host.AfterChanges;
+        swapchains = stats.SwapchainsCreated;
+        host.Settings->SetGraphicsSupport({.MaxGeneratedFrames = 3});
+        runtime.Push(XR_SESSION_STATE_STOPPING);
+        ++phase;
+      } else if (phase == 1) {
+        EXPECT_FALSE(vr.Running());
+        EXPECT_FALSE(vr.Focused());
+        EXPECT_EQ(0U, vr.ViewCount());
+        EXPECT_EQ(1U, stats.SessionsEnded);
+        completedFrames = stats.Frames;
+        runtime.Push(XR_SESSION_STATE_IDLE);
+        ++phase;
+      } else if (phase == 2) {
+        EXPECT_FALSE(vr.Running());
+        EXPECT_EQ(0U, vr.ViewCount());
+        EXPECT_EQ(completedFrames, stats.Frames);
+        if (++idleFrames == 3) {
+          runtime.Push(XR_SESSION_STATE_READY);
+          runtime.Push(XR_SESSION_STATE_FOCUSED);
+          ++phase;
+        }
+      } else if (phase == 3 && vr.ViewCount() == 2) {
+        EXPECT_TRUE(vr.Focused());
+        EXPECT_EQ(2U, stats.SessionsBegun);
+        runtime.Push(XR_SESSION_STATE_STOPPING);
+        runtime.Push(XR_SESSION_STATE_IDLE);
+        ++phase;
+      } else if (phase == 4) {
+        EXPECT_FALSE(vr.Running());
+        EXPECT_EQ(0U, vr.ViewCount());
+        host.RequestVR(false);
+        ++phase;
+      } else if (phase == 5 && !host.Settings->GetVR()) {
+        EXPECT_FALSE(vr.HasSession());
+        EXPECT_GT(host.AfterChanges, changes);
+        ++phase;
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(6U, phase);
+  EXPECT_EQ(2U, runtime.Stats().SessionsEnded);
+  EXPECT_EQ(0U, runtime.Stats().ExitRequests);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+  EXPECT_EQ(0U, runtime.Stats().LiveSwapchains + runtime.Stats().LiveSessions +
+                    runtime.Stats().LiveInstances);
 }
 
 TEST_P(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {
@@ -510,7 +593,7 @@ TEST_P(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
     ASSERT_TRUE(change->SetFrameGeneration(2));
     ASSERT_TRUE(change->SetLowLatencyMode(MGDF_LOW_LATENCY_BOOST));
   }
-  settings->SetVRState(true, true);
+  settings->SetVRState(true);
   EXPECT_EQ(0U, settings->GetMaxGeneratedFrames());
   EXPECT_EQ(0U, settings->GetFrameGeneration());
   EXPECT_EQ(MGDF_LOW_LATENCY_OFF, settings->GetCurrentLowLatencyMode());
@@ -520,7 +603,7 @@ TEST_P(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
       static_cast<PreferenceSetImpl *>(preferences.Get())->Preferences;
   EXPECT_EQ("0", saved.at("host.vr"));
   EXPECT_EQ("2", saved.at("host.frameGeneration"));
-  settings->SetVRState(false, false);
+  settings->SetVRState(false);
   EXPECT_EQ(3U, settings->GetMaxGeneratedFrames());
   EXPECT_EQ(2U, settings->GetFrameGeneration());
   EXPECT_EQ(MGDF_LOW_LATENCY_BOOST, settings->GetCurrentLowLatencyMode());

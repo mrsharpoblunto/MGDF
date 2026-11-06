@@ -57,13 +57,14 @@ TEST(OpenXRTests, EyeFormatPrefersSRGBAndSkipsUnsupportedFormats) {
             SelectOpenXRFormat({DXGI_FORMAT_D32_FLOAT}, renderable));
 }
 
-TEST(OpenXRTests, SessionStatesSelectStartRunStopAndFallback) {
+TEST(OpenXRTests, SessionStatesSeparateEndingTheFrameLoopFromFallback) {
   EXPECT_EQ(OpenXRAction::Wait, GetOpenXRAction(XR_SESSION_STATE_IDLE));
   EXPECT_EQ(OpenXRAction::Start, GetOpenXRAction(XR_SESSION_STATE_READY));
   for (const auto state : {XR_SESSION_STATE_SYNCHRONIZED,
                            XR_SESSION_STATE_VISIBLE, XR_SESSION_STATE_FOCUSED})
     EXPECT_EQ(OpenXRAction::Run, GetOpenXRAction(state));
-  EXPECT_EQ(OpenXRAction::Stop, GetOpenXRAction(XR_SESSION_STATE_STOPPING));
+  EXPECT_EQ(OpenXRAction::EndSession,
+            GetOpenXRAction(XR_SESSION_STATE_STOPPING));
   EXPECT_EQ(OpenXRAction::FallBack,
             GetOpenXRAction(XR_SESSION_STATE_LOSS_PENDING));
   EXPECT_EQ(OpenXRAction::FallBack, GetOpenXRAction(XR_SESSION_STATE_EXITING));

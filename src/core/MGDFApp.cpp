@@ -99,9 +99,7 @@ void MGDFApp::RTOnInitDevice(IRenderBackend &backend) {
 std::optional<bool> MGDFApp::RTTakeVRRequest() {
   return _settings->TakeVRRequest();
 }
-void MGDFApp::RTOnVRState(bool active, bool running) {
-  _settings->SetVRState(active, running);
-}
+void MGDFApp::RTOnVRState(bool active) { _settings->SetVRState(active); }
 
 bool MGDFApp::RTIsBackBufferChangePending() {
   return _settings->IsBackBufferChangePending();
@@ -184,7 +182,7 @@ bool MGDFApp::OnInitWindow(RECT &window) {
 }
 
 void MGDFApp::RTOnBeforeDeviceReset() {
-  _settings->SetVRState(false, false);
+  _settings->SetVRState(false);
   RTOnBeforeBackBufferChange();
   _host->RTBeforeDeviceReset();
 }

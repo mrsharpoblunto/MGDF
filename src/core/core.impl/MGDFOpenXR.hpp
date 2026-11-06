@@ -15,7 +15,7 @@ struct OpenXRGraphicsRequirements {
   D3D_FEATURE_LEVEL MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 };
 
-enum class OpenXRAction { Wait, Start, Run, Stop, FallBack };
+enum class OpenXRAction { Wait, Start, Run, EndSession, FallBack };
 OpenXRAction GetOpenXRAction(XrSessionState state);
 MGDFView ConvertOpenXRView(const XrView &view, UINT32 width, UINT32 height,
                            DXGI_FORMAT format);

@@ -19,10 +19,15 @@ The preference is `host.vr`, with a default value of `0`. Start `core.exe` with
 `-vr` to request VR for that run without changing the saved value. A module
 that did not opt in ignores both the preference and the flag.
 
-`GetVR()` returns `TRUE` while the headset session runs. If the headset is
-unavailable, startup fails, or the runtime ends the session, the game continues
-in the window. The saved preference stays unchanged. A new `SetVR(TRUE)` request
-can retry after the headset becomes available.
+`GetVR()` returns `TRUE` while VR mode has a headset session, including when the
+runtime pauses it. During a pause, the window sets the frame rate and
+`GetViewCount()` returns `0`. When the runtime is ready again, eye rendering
+resumes with the same targets and no back buffer change.
+
+If the headset is unavailable, startup fails, or the runtime exits or loses the
+session, VR mode ends and the game continues in the window. The saved preference
+stays unchanged. A new `SetVR(TRUE)` request can retry after the headset becomes
+available.
 
 Frame generation is off in VR, and `GetMaxGeneratedFrames()` returns `0`.
 Low latency sleep and frame markers have no effect in VR. The saved frame

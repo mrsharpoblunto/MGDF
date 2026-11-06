@@ -25,7 +25,7 @@ class MGDFApp : public D3DAppFramework {
   MGDFLowLatencyMode RTGetLowLatencyMode() const final;
   void RTOnResize(UINT32 width, UINT32 height) final;
   std::optional<bool> RTTakeVRRequest() final;
-  void RTOnVRState(bool active, bool running) final;
+  void RTOnVRState(bool active) final;
   bool RTIsBackBufferChangePending() final;
   MGDFFullScreenDesc RTGetFullscreen() final;
   void RTSetFullscreen(const MGDFFullScreenDesc &desc) final;

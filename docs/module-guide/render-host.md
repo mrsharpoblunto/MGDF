@@ -6,6 +6,10 @@ rendering. A count of `0` means that only the window needs rendering. This can
 occur during an active session when the runtime does not request an eye frame.
 Always draw the window.
 
+The runtime can pause and resume the headset session. While it is idle,
+`GetVR()` stays `TRUE`, focus is `FALSE`, and there are no eye views. The eye
+targets are kept, and resuming the session causes no back buffer change.
+
 For each index from zero to `GetViewCount() - 1`, call `GetView(index, &view)`.
 Index `0` is the left eye and index `1` is the right eye. The pose is at this
 frame's predicted display time in LOCAL space, in metres. It uses +X right,

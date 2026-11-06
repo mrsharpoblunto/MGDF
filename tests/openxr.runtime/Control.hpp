@@ -22,6 +22,7 @@ struct FakeXRStats {
   UINT32 EmptyFrames = 0;
   UINT32 SubmittedImages = 0;
   UINT32 ExitRequests = 0;
+  UINT32 SessionsBegun = 0;
   UINT32 SessionsEnded = 0;
   UINT32 Errors = 0;
 };

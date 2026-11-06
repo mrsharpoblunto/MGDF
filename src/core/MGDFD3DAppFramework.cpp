@@ -591,7 +591,7 @@ bool D3DAppFramework::RTUpdateVR() {
   vr.PollEvents();
   if (vr.NeedsFallback()) _rtVRRequested = false;
   if (vr.TakeChange()) _rtVRChangePending = true;
-  RTOnVRState(vr.HasSession() && !vr.NeedsFallback(), RTIsVRRunning());
+  RTOnVRState(vr.HasSession() && !vr.NeedsFallback());
   return true;
 }
 
@@ -604,7 +604,7 @@ void D3DAppFramework::RTApplyVR() {
   }
   vr.TakeChange();
   _rtVRChangePending = false;
-  RTOnVRState(vr.HasSession(), RTIsVRRunning());
+  RTOnVRState(vr.HasSession());
 }
 
 bool D3DAppFramework::RTAllowTearing() {
@@ -646,7 +646,7 @@ void D3DAppFramework::RTResizeBackBuffer() {
   if (vr.HasSession() && !vr.RecreateSwapchains()) {
     vr.Destroy();
     _rtVRRequested = false;
-    RTOnVRState(false, false);
+    RTOnVRState(false);
     _rtVRChangePending = true;
   }
   RTOnBackBufferChange(*_rtRenderBackend);

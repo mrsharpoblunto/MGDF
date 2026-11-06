@@ -64,7 +64,7 @@ class D3DAppFramework {
   virtual void RTOnAfterPresent() = 0;
   virtual bool RTIsBackBufferChangePending() = 0;
   virtual std::optional<bool> RTTakeVRRequest() = 0;
-  virtual void RTOnVRState(bool active, bool running) = 0;
+  virtual void RTOnVRState(bool active) = 0;
   virtual MGDFFullScreenDesc RTGetFullscreen() = 0;
   virtual void RTSetFullscreen(const MGDFFullScreenDesc &desc) = 0;
   virtual std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() = 0;

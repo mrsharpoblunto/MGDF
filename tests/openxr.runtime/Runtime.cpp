@@ -270,15 +270,17 @@ XrResult XRAPI_CALL Poll(XrInstance, XrEventDataBuffer *buffer) {
 }
 XrResult XRAPI_CALL BeginSession(XrSession session,
                                  const XrSessionBeginInfo *info) {
-  if (session->State != XR_SESSION_STATE_READY ||
+  if (session->Running || session->State != XR_SESSION_STATE_READY ||
       info->primaryViewConfigurationType !=
           XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO)
     return Reject();
   session->Running = true;
+  ++Stats.SessionsBegun;
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL EndSession(XrSession session) {
-  if (session->State != XR_SESSION_STATE_STOPPING || !session->Running)
+  if (session->State != XR_SESSION_STATE_STOPPING || !session->Running ||
+      session->Begun || session->Waited)
     return Reject();
   session->Running = false;
   ++Stats.SessionsEnded;

@@ -17,7 +17,7 @@ OpenXRAction GetOpenXRAction(XrSessionState state) {
     case XR_SESSION_STATE_FOCUSED:
       return OpenXRAction::Run;
     case XR_SESSION_STATE_STOPPING:
-      return OpenXRAction::Stop;
+      return OpenXRAction::EndSession;
     case XR_SESSION_STATE_LOSS_PENDING:
     case XR_SESSION_STATE_EXITING:
       return OpenXRAction::FallBack;
@@ -241,16 +241,20 @@ void OpenXR::PollEvents() {
               XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO};
           if (!Check(xrBeginSession(_session, &info), "begin session")) return;
           _running = true;
-          _changed = true;
         }
         if (_stopRequested) RequestStop();
         break;
       }
-      case OpenXRAction::Stop:
-        if (_running) Check(xrEndSession(_session), "end session");
+      case OpenXRAction::EndSession:
+        if (_running && !Check(xrEndSession(_session), "end session")) return;
         _running = false;
-        Fail("session stopped", XR_SUCCESS);
-        return;
+        _viewCount = 0;
+        if (_stopRequested) {
+          _fallback = true;
+          _changed = true;
+          return;
+        }
+        break;
       case OpenXRAction::FallBack:
         Fail("session ended", XR_SUCCESS);
         return;
