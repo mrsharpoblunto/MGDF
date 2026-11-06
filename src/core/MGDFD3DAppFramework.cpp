@@ -47,11 +47,9 @@ static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam,
 
   const auto it = windowMappings.find(hwnd);
   if (it != windowMappings.end()) {
-    return it->second->MsgProc(hwnd, msg, wParam, lParam);
-  }
-
-  if (msg == WM_NCDESTROY) {
-    windowMappings.erase(hwnd);
+    const auto result = it->second->MsgProc(hwnd, msg, wParam, lParam);
+    if (msg == WM_NCDESTROY) windowMappings.erase(hwnd);
+    return result;
   }
 
   return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -79,10 +77,7 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
 }
 
 D3DAppFramework::~D3DAppFramework() {
-  if (_window != nullptr) {
-    ::UnregisterClass(WINDOW_CLASS_NAME, GetModuleHandle(nullptr));
-  }
-
+  ::UnregisterClass(WINDOW_CLASS_NAME, _applicationInstance);
   RTUninitD3D();
 }
 
@@ -363,7 +358,27 @@ void D3DAppFramework::RTWaitForGpuIdle() {
 
 bool D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
   UINT i = 0;
-  ComObject<IDXGIOutput> currentOutput;
+  std::vector<ComObject<IDXGIOutput>> outputs;
+  const auto appendOutputs = [&outputs](IDXGIAdapter *adapter) {
+    for (UINT index = 0;; ++index) {
+      ComObject<IDXGIOutput> output;
+      if (FAILED(adapter->EnumOutputs(index, output.Assign()))) break;
+      outputs.push_back(output);
+    }
+  };
+  appendOutputs(_rtAdapter);
+  // A headset adapter need not have a desktop output.
+  if (outputs.empty()) {
+    ComObject<IDXGIFactory6> factory = _rtFactory;
+    if (!factory) CreateDXGIFactory2(0, IID_PPV_ARGS(factory.Assign()));
+    if (factory) {
+      for (UINT index = 0;; ++index) {
+        ComObject<IDXGIAdapter1> adapter;
+        if (FAILED(factory->EnumAdapters1(index, adapter.Assign()))) break;
+        appendOutputs(adapter);
+      }
+    }
+  }
   ComObject<IDXGIOutput6> bestOutput;
   ComObject<IDXGIOutput6> primaryOutput;
   float bestIntersectArea = -1;
@@ -374,8 +389,7 @@ bool D3DAppFramework::RTCheckForDisplayChanges(const HWND window) {
   // with the app window
   LOG("Checking outputs to find best match for current window...",
       MGDF_LOG_HIGH);
-  while (_rtAdapter->EnumOutputs(i, currentOutput.Assign()) !=
-         DXGI_ERROR_NOT_FOUND) {
+  for (auto currentOutput : outputs) {
     // Get the rectangle bounds of current output
     DXGI_OUTPUT_DESC desc;
     if (FAILED(currentOutput->GetDesc(&desc))) {

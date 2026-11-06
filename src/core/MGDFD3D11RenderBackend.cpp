@@ -20,10 +20,12 @@ namespace core {
 D3D11RenderBackend::D3D11RenderBackend(
     const ComObject<IDXGIFactory6> &factory,
     std::vector<D3D_FEATURE_LEVEL> levels,
-    std::function<void(const char *, const char *)> fatalError)
+    std::function<void(const char *, const char *)> fatalError,
+    bool allowSoftwareAdapter)
     : _rtFactory(factory),
       _rtLevels(std::move(levels)),
       _fatalError(std::move(fatalError)),
+      _allowSoftwareAdapter(allowSoftwareAdapter),
       _rtFrameWaitableObject(nullptr) {}
 
 bool D3D11RenderBackend::RTPrepareVR() {
@@ -191,6 +193,16 @@ bool D3D11RenderBackend::RTInit() {
     }
   }
 
+  if (!_rtD3dDevice && _allowSoftwareAdapter && _rtFactory) {
+    ComObject<IDXGIAdapter> warp;
+    if (SUCCEEDED(_rtFactory->EnumWarpAdapter(IID_PPV_ARGS(warp.Assign())))) {
+      D3D11CreateDevice(warp, D3D_DRIVER_TYPE_UNKNOWN, nullptr,
+                        createDeviceFlags, _rtLevels.data(),
+                        static_cast<UINT>(_rtLevels.size()), D3D11_SDK_VERSION,
+                        _rtD3dDevice.Assign(), nullptr,
+                        _rtImmediateContext.Assign());
+    }
+  }
   if (!_rtD3dDevice) {
     LOG("No adapters found supporting the specified D3D feature set",
         MGDF_LOG_ERROR);

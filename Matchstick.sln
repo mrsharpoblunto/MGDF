@@ -158,6 +158,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network", "src\core\ne
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network.impl", "src\core\network\impl\core.network.impl.vcxproj", "{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openxr.runtime", "tests\openxr.runtime\openxr.runtime.vcxproj", "{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -166,6 +168,18 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Debug|Mixed Platforms.ActiveCfg = Debug|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Debug|Mixed Platforms.Build.0 = Debug|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Debug|x64.ActiveCfg = Debug|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Debug|x64.Build.0 = Debug|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Debug|x86.ActiveCfg = Debug|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Release|Any CPU.ActiveCfg = Release|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Release|Mixed Platforms.ActiveCfg = Release|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Release|Mixed Platforms.Build.0 = Release|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Release|x64.ActiveCfg = Release|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Release|x64.Build.0 = Release|x64
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}.Release|x86.ActiveCfg = Release|x64
 		{762B44B2-4615-4C7D-9418-DC604A6D930A}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{762B44B2-4615-4C7D-9418-DC604A6D930A}.Debug|x64.ActiveCfg = Debug|x64
 		{762B44B2-4615-4C7D-9418-DC604A6D930A}.Debug|x64.Build.0 = Debug|x64
@@ -341,6 +355,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388} = {B2911380-5E76-457A-AC80-A24B1EECA0BB}
 		{321FBA19-5BBD-44E5-BDA3-C5E6838DEBF6} = {B2911380-5E76-457A-AC80-A24B1EECA0BB}
 		{92937010-1E2A-4928-A03A-49F6AD1C9927} = {5656FE26-2995-4842-B088-D8E29338C13E}
 		{46E01EE4-7FBE-4A1C-A5EF-B14FB01AAC5D} = {7DB53567-CA6D-4F58-A2AB-337764CAFF55}

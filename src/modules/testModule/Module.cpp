@@ -456,7 +456,7 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
       MGDFView view{};
       host->GetView(eye, &view);
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
-      rtv.ptr += static_cast<SIZE_T>(slot * 2 + eye) *
+      rtv.ptr += (static_cast<SIZE_T>(slot) * 2 + eye) *
                  _d3d12Device->GetDescriptorHandleIncrementSize(
                      D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
       const D3D12_RENDER_TARGET_VIEW_DESC desc{

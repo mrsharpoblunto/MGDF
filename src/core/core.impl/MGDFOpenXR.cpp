@@ -323,7 +323,7 @@ void OpenXR::ReleaseImages() {
 void OpenXR::EndFrame(bool rendered) {
   if (!_begun) return;
   const bool submit = rendered && _viewCount == 2 && !_fallback;
-  std::array<XrCompositionLayerProjectionView, 2> views;
+  std::array<XrCompositionLayerProjectionView, 2> views{};
   for (size_t i = 0; i < views.size(); ++i) {
     const auto &eye = _eyes[i];
     views[i] = {

@@ -42,10 +42,12 @@ RayTracingSupport GetRayTracingSupport(ID3D12Device *device) {
 D3D12RenderBackend::D3D12RenderBackend(
     const ComObject<IDXGIFactory6> &factory,
     const MGDFGraphicsRequirements &requirements,
-    std::function<void(const char *, const char *)> fatalError)
+    std::function<void(const char *, const char *)> fatalError,
+    bool allowSoftwareAdapter)
     : _rtFactory(factory),
       _requirements(requirements),
       _fatalError(std::move(fatalError)),
+      _allowSoftwareAdapter(allowSoftwareAdapter),
       _streamline(Resources::Instance().RootDir()) {}
 
 void D3D12RenderBackend::FatalError(const char *sender, const char *message) {
@@ -117,7 +119,7 @@ bool D3D12RenderBackend::RTPrepareVR() {
 
 bool D3D12RenderBackend::RTStartVR() {
   if (!VR().Prepared() || VR().NeedsFallback()) return false;
-  D3D_FEATURE_LEVEL level = VR().Requirements().MinFeatureLevel;
+  const D3D_FEATURE_LEVEL level = VR().Requirements().MinFeatureLevel;
   D3D12_FEATURE_DATA_FEATURE_LEVELS levels{1, &level, D3D_FEATURE_LEVEL_11_0};
   if (FAILED(_device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &levels,
                                           sizeof(levels))) ||
@@ -211,6 +213,9 @@ bool D3D12RenderBackend::RTInit() {
       }
     }
   }
+  if (!_device && _allowSoftwareAdapter && _rtFactory &&
+      SUCCEEDED(_rtFactory->EnumWarpAdapter(IID_PPV_ARGS(_adapter.Assign()))))
+    _device = RTTryCreateDevice(_adapter);
   if (!_device) {
     LOG("No adapter supports the requested D3D12 feature level and shader "
         "model",
