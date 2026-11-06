@@ -9,8 +9,8 @@ It returns `FALSE` if the module did not opt in or no active OpenXR runtime
 supports its graphics API. A `TRUE` result does not mean a headset is connected.
 
 To change VR, create an `IMGDFPendingRenderSettingsChange`, call `SetVR(TRUE)`
-or `SetVR(FALSE)`, then release the change. `SetVR` returns `S_OK` when accepted,
-or `E_NOTIMPL` if VR is unavailable. The change uses `RTBeforeBackBufferChange` and
+or `SetVR(FALSE)`, then release the change. `SetVR` returns `TRUE` when accepted,
+or `FALSE` if VR is unavailable. The change uses `RTBeforeBackBufferChange` and
 `RTBackBufferChange`. A change of graphics adapter can also cause a device
 reset. Release device resources in `RTBeforeDeviceReset`, then call
 `QueueDeviceReset` as usual.

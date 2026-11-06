@@ -522,7 +522,7 @@ bool Host::RTCanCallVR(bool eyeFrame) const {
 UINT32 Host::GetViewCount() {
   return RTCanCallVR(true) ? _backend->VR().ViewCount() : 0;
 }
-HRESULT Host::GetView(UINT32 index, MGDFView *view) {
+HRESULT Host::GetView(UINT32 index, MGDFVREye *view) {
   if (!view) return E_INVALIDARG;
   *view = {};
   if (index >= 2) return E_INVALIDARG;
@@ -546,7 +546,7 @@ HRESULT Host::GetVRGaze(MGDFVRPose *pose) {
   return RTCanCallVR(true) ? _backend->VR().GetGaze(pose)
                            : E_ILLEGAL_METHOD_CALL;
 }
-HRESULT Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
+HRESULT Host::GetVREyeTarget(UINT32 index, ID3D12Resource **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;
@@ -556,7 +556,7 @@ HRESULT Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
   if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
   return result;
 }
-HRESULT Host::GetViewTarget(UINT32 index, ID3D11Texture2D **target) {
+HRESULT Host::GetVREyeTarget(UINT32 index, ID3D11Texture2D **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;
@@ -567,8 +567,8 @@ HRESULT Host::GetViewTarget(UINT32 index, ID3D11Texture2D **target) {
   return result;
 }
 
-HRESULT Host::GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
-                          UINT32 *indexCount, UINT32 *indices) {
+HRESULT Host::GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                           UINT32 *indexCount, UINT32 *indices) {
   if (!vertexCount || !indexCount || index >= 2) {
     if (vertexCount) *vertexCount = 0;
     if (indexCount) *indexCount = 0;
@@ -578,25 +578,25 @@ HRESULT Host::GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
     *vertexCount = *indexCount = 0;
     return E_ILLEGAL_METHOD_CALL;
   }
-  return _backend->VR().GetViewMask(index, vertexCount, xy, indexCount,
-                                    indices);
+  return _backend->VR().GetVREyeMask(index, vertexCount, xy, indexCount,
+                                     indices);
 }
-HRESULT Host::GetViewMaskVersion(UINT64 *version) {
+HRESULT Host::GetVREyeMaskVersion(UINT64 *version) {
   if (!version) return E_INVALIDARG;
   *version = 0;
-  return RTCanCallVR() ? _backend->VR().GetViewMaskVersion(version)
+  return RTCanCallVR() ? _backend->VR().GetVREyeMaskVersion(version)
                        : E_ILLEGAL_METHOD_CALL;
 }
-HRESULT Host::SetViewDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ) {
+HRESULT Host::SetVREyeDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ) {
   return RTCanCallVR(true)
-             ? _backend->VR().SetViewDepthRange(index, nearZ, farZ)
+             ? _backend->VR().SetVREyeDepthRange(index, nearZ, farZ)
              : E_ILLEGAL_METHOD_CALL;
 }
 HRESULT Host::SetVRPanel(const MGDFVRPanel *panel) {
   return RTCanCallVR() ? _backend->VR().SetVRPanel(panel)
                        : E_ILLEGAL_METHOD_CALL;
 }
-HRESULT Host::GetViewDepthTarget(UINT32 index, ID3D11Texture2D **target) {
+HRESULT Host::GetVREyeDepthTarget(UINT32 index, ID3D11Texture2D **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;
@@ -616,7 +616,7 @@ HRESULT Host::GetVRPanelTarget(ID3D11Texture2D **target) {
   if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
   return result;
 }
-HRESULT Host::GetViewDepthTarget(UINT32 index, ID3D12Resource **target) {
+HRESULT Host::GetVREyeDepthTarget(UINT32 index, ID3D12Resource **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;

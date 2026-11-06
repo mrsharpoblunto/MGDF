@@ -23,8 +23,8 @@ struct OpenXRGraphicsRequirements {
 enum class OpenXRAction { Wait, Start, Run, EndSession, FallBack };
 OpenXRAction GetOpenXRAction(XrSessionState state);
 MGDFVRPose ConvertOpenXRPose(const XrPosef &pose, XrSpaceLocationFlags flags);
-MGDFView ConvertOpenXRView(const XrView &view, UINT32 width, UINT32 height,
-                           DXGI_FORMAT format);
+MGDFVREye ConvertOpenXRView(const XrView &view, UINT32 width, UINT32 height,
+                            DXGI_FORMAT format);
 DXGI_FORMAT SelectOpenXRFormat(
     const std::vector<int64_t> &formats,
     const std::function<bool(DXGI_FORMAT)> &canRender);
@@ -67,16 +67,16 @@ class OpenXR {
     return _requirements;
   }
   UINT32 ViewCount() const { return _viewCount; }
-  MGDFView View(UINT32 index) const;
+  MGDFVREye View(UINT32 index) const;
   ComObject<IUnknown> Target(UINT32 index) const;
-  HRESULT GetView(UINT32 index, MGDFView *view, bool eyeFrame = false) const;
+  HRESULT GetView(UINT32 index, MGDFVREye *view, bool eyeFrame = false) const;
   HRESULT GetTarget(UINT32 index, ComObject<IUnknown> &target) const;
 
-  HRESULT GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
-                      UINT32 *indexCount, UINT32 *indices) const;
-  HRESULT GetViewMaskVersion(UINT64 *version) const;
+  HRESULT GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                       UINT32 *indexCount, UINT32 *indices) const;
+  HRESULT GetVREyeMaskVersion(UINT64 *version) const;
   HRESULT GetDepthTarget(UINT32 index, ComObject<IUnknown> &target) const;
-  HRESULT SetViewDepthRange(UINT32 index, float nearZ, float farZ);
+  HRESULT SetVREyeDepthRange(UINT32 index, float nearZ, float farZ);
   HRESULT SetVRPanel(const MGDFVRPanel *panel);
   HRESULT GetPanelTarget(ComObject<IUnknown> &target) const;
 

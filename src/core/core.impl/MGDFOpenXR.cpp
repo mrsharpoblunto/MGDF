@@ -30,8 +30,8 @@ OpenXRAction GetOpenXRAction(XrSessionState state) {
   }
 }
 
-MGDFView ConvertOpenXRView(const XrView &view, UINT32 width, UINT32 height,
-                           DXGI_FORMAT format) {
+MGDFVREye ConvertOpenXRView(const XrView &view, UINT32 width, UINT32 height,
+                            DXGI_FORMAT format) {
   const auto pose =
       ConvertOpenXRPose(view.pose, XR_SPACE_LOCATION_POSITION_VALID_BIT |
                                        XR_SPACE_LOCATION_ORIENTATION_VALID_BIT);
@@ -535,7 +535,7 @@ HRESULT OpenXR::SessionStatus() const {
   return _fallback ? E_FAIL : S_OK;
 }
 
-HRESULT OpenXR::GetView(UINT32 index, MGDFView *view, bool eyeFrame) const {
+HRESULT OpenXR::GetView(UINT32 index, MGDFVREye *view, bool eyeFrame) const {
   if (!view) return E_INVALIDARG;
   *view = {};
   if (index >= _eyes.size()) return E_INVALIDARG;
@@ -566,7 +566,7 @@ HRESULT OpenXR::GetTarget(UINT32 index, ComObject<IUnknown> &target) const {
 
 bool OpenXR::TakeChange() { return std::exchange(_changed, false); }
 
-MGDFView OpenXR::View(UINT32 index) const {
+MGDFVREye OpenXR::View(UINT32 index) const {
   if (index >= _eyes.size()) return {};
   _ASSERTE(index < _eyes.size());
   const auto &eye = _eyes[index];
@@ -722,8 +722,8 @@ void OpenXR::RefreshMasks() {
   }
 }
 
-HRESULT OpenXR::GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
-                            UINT32 *indexCount, UINT32 *indices) const {
+HRESULT OpenXR::GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                             UINT32 *indexCount, UINT32 *indices) const {
   const auto vertices = vertexCount && xy ? *vertexCount : 0;
   const auto count = indexCount && indices ? *indexCount : 0;
   if (vertexCount) *vertexCount = 0;
@@ -751,7 +751,7 @@ HRESULT OpenXR::GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
   return S_OK;
 }
 
-HRESULT OpenXR::GetViewMaskVersion(UINT64 *version) const {
+HRESULT OpenXR::GetVREyeMaskVersion(UINT64 *version) const {
   if (!version) return E_INVALIDARG;
   *version = 0;
   const auto status = SessionStatus();
@@ -776,7 +776,7 @@ HRESULT OpenXR::GetDepthTarget(UINT32 index,
   return S_OK;
 }
 
-HRESULT OpenXR::SetViewDepthRange(UINT32 index, float nearZ, float farZ) {
+HRESULT OpenXR::SetVREyeDepthRange(UINT32 index, float nearZ, float farZ) {
   if (index >= _eyes.size() || !(nearZ > 0) || !(farZ > 0) || nearZ == farZ)
     return E_INVALIDARG;
   const auto status = SessionStatus();

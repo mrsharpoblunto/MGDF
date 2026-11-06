@@ -19,7 +19,7 @@ namespace Test {
 
 namespace {
 std::array<float, 4> EyeColor(IMGDFRenderHost *host, UINT32 index) {
-  MGDFView view{};
+  MGDFVREye view{};
   if (host->GetView(index, &view) != S_OK) return {0, 0, 0, 1};
   const auto &q = view.Orientation;
   const float yaw = std::atan2(2 * (q[3] * q[1] + q[0] * q[2]),
@@ -338,7 +338,7 @@ BOOL Module::RTDraw(IMGDFRenderHost *host, double alpha) {
 }
 
 BOOL Module::RTBackBufferChange(IMGDFRenderHost *host) {
-  MGDFView view{};
+  MGDFVREye view{};
   if (_vrTest && host->GetView(0, &view) == S_OK && view.Width) {
     const MGDFVRPanel panel{512,  256,   {0, 0, 1.5f},      {0, 0, 0, 1},
                             0.7f, 0.35f, MGDF_VR_SPACE_VIEW};
@@ -497,8 +497,8 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime + 4)), 1};
     for (UINT32 eye = 0; eye < host->GetViewCount(); ++eye) {
       ComObject<ID3D12Resource> target;
-      MGDFView view{};
-      if (renderHost->GetViewTarget(eye, target.Assign()) != S_OK ||
+      MGDFVREye view{};
+      if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK ||
           host->GetView(eye, &view) != S_OK)
         return false;
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
@@ -515,7 +515,7 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
     }
     ComObject<ID3D12Resource> panel;
     if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
-      MGDFView view{};
+      MGDFVREye view{};
       if (host->GetView(0, &view) != S_OK) return false;
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + 2) *
@@ -567,8 +567,8 @@ bool Module::DrawVRD3D11(IMGDFRenderHost *host) {
   device->GetImmediateContext(context.Assign());
   for (UINT32 eye = 0; eye < host->GetViewCount(); ++eye) {
     ComObject<ID3D11Texture2D> target;
-    MGDFView view{};
-    if (renderHost->GetViewTarget(eye, target.Assign()) != S_OK ||
+    MGDFVREye view{};
+    if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK ||
         host->GetView(eye, &view) != S_OK)
       return false;
     const D3D11_RENDER_TARGET_VIEW_DESC desc{
@@ -582,7 +582,7 @@ bool Module::DrawVRD3D11(IMGDFRenderHost *host) {
   }
   ComObject<ID3D11Texture2D> panel;
   if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
-    MGDFView view{};
+    MGDFVREye view{};
     if (host->GetView(0, &view) != S_OK) return false;
     const D3D11_RENDER_TARGET_VIEW_DESC desc{
         .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};

@@ -39,7 +39,7 @@ class PendingRenderSettingsChange
   BOOL __stdcall SetLowLatencyMode(MGDFLowLatencyMode mode) final;
   BOOL __stdcall SetFrameGeneration(UINT32 generatedFrames) final;
   BOOL __stdcall SetRayTracing(BOOL enabled) final;
-  HRESULT __stdcall SetVR(BOOL enabled) final;
+  BOOL __stdcall SetVR(BOOL enabled) final;
 
  private:
   std::optional<bool> _newVR;

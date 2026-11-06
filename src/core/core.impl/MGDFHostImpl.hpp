@@ -114,25 +114,26 @@ class Host : public IMGDFD3D11RenderHost,
   MGDFGraphicsAPI __stdcall GetGraphicsAPI() final;
 
   UINT32 __stdcall GetViewCount() final;
-  HRESULT __stdcall GetView(UINT32 index, MGDFView *view) final;
+  HRESULT __stdcall GetView(UINT32 index, MGDFVREye *view) final;
   BOOL __stdcall GetVRFocused() final;
   HRESULT __stdcall GetVRControllerPose(MGDFVRHand hand,
                                         MGDFVRControllerPose kind,
                                         MGDFVRPose *pose) final;
   HRESULT __stdcall GetVRGaze(MGDFVRPose *pose) final;
-  HRESULT __stdcall GetViewTarget(UINT32 index, ID3D12Resource **target) final;
-  HRESULT __stdcall GetViewTarget(UINT32 index, ID3D11Texture2D **target) final;
+  HRESULT __stdcall GetVREyeTarget(UINT32 index, ID3D12Resource **target) final;
+  HRESULT __stdcall GetVREyeTarget(UINT32 index,
+                                   ID3D11Texture2D **target) final;
 
-  HRESULT __stdcall GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
-                                UINT32 *indexCount, UINT32 *indices) final;
-  HRESULT __stdcall GetViewMaskVersion(UINT64 *version) final;
-  HRESULT __stdcall SetViewDepthRange(UINT32 index, FLOAT nearZ,
-                                      FLOAT farZ) final;
+  HRESULT __stdcall GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                                 UINT32 *indexCount, UINT32 *indices) final;
+  HRESULT __stdcall GetVREyeMaskVersion(UINT64 *version) final;
+  HRESULT __stdcall SetVREyeDepthRange(UINT32 index, FLOAT nearZ,
+                                       FLOAT farZ) final;
   HRESULT __stdcall SetVRPanel(const MGDFVRPanel *panel) final;
-  HRESULT __stdcall GetViewDepthTarget(UINT32 index,
-                                       ID3D11Texture2D **target) final;
-  HRESULT __stdcall GetViewDepthTarget(UINT32 index,
-                                       ID3D12Resource **target) final;
+  HRESULT __stdcall GetVREyeDepthTarget(UINT32 index,
+                                        ID3D11Texture2D **target) final;
+  HRESULT __stdcall GetVREyeDepthTarget(UINT32 index,
+                                        ID3D12Resource **target) final;
   HRESULT __stdcall GetVRPanelTarget(ID3D11Texture2D **target) final;
   HRESULT __stdcall GetVRPanelTarget(ID3D12Resource **target) final;
 

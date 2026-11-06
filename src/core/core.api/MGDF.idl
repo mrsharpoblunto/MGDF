@@ -877,9 +877,9 @@ the settings will be applied to the render system on the next frame
   can also require RTBeforeDeviceReset and RTDeviceReset. A missing headset or
   a runtime failure leaves the window running. Check GetVR for the session state
   \param enabled TRUE to request VR, FALSE to return to the window
-  \return S_OK when accepted; E_NOTIMPL if GetVRSupport returns FALSE
+  \return TRUE when accepted; FALSE if GetVRSupport returns FALSE
   */
-  HRESULT SetVR(BOOL enabled);
+  BOOL SetVR(BOOL enabled);
 };
 
 /**
@@ -2441,7 +2441,7 @@ metres, with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w.
 Write linear color to an sRGB target. Release target references and descriptors
 in RTBeforeBackBufferChange
 */
-typedef struct MGDFView {
+typedef struct MGDFVREye {
   FLOAT Position[3];
   FLOAT Orientation[4];
   /** Field of view in radians; left and down are negative */
@@ -2454,7 +2454,7 @@ typedef struct MGDFView {
   DXGI_FORMAT Format;
   /** UNKNOWN when reprojection depth is unavailable */
   DXGI_FORMAT DepthFormat;
-} MGDFView;
+} MGDFVREye;
 
 /** Reference frame for a headset panel */
 typedef enum MGDFVRSpace {
@@ -2465,7 +2465,7 @@ typedef enum MGDFVRSpace {
 /**
 One headset panel. Pose uses +X right, +Y up, +Z forward and metres, with
 quaternion x, y, z, w. VIEW is relative to the head; LOCAL is fixed in the room.
-The image format is MGDFView::Format; write linear color with premultiplied alpha
+The image format is MGDFVREye::Format; write linear color with premultiplied alpha
 */
 typedef struct MGDFVRPanel {
   UINT32 PixelWidth;
@@ -2519,7 +2519,7 @@ typedef struct MGDFVRPanel {
   RTDraw without an eye frame; E_FAIL after a runtime failure. Outside RTDraw
   only target properties are filled
   */
-  HRESULT GetView(UINT32 index, [out] MGDFView *view);
+  HRESULT GetView(UINT32 index, [out] MGDFVREye *view);
 
   /**
   Reports headset input focus. Pause headset input when this is FALSE
@@ -2558,7 +2558,7 @@ typedef struct MGDFVRPanel {
   or on the wrong thread; E_FAIL on runtime failure. Counts are zero on error
   except for insufficient capacity
   */
-  HRESULT GetViewMask(UINT32 index, [in, out] UINT32 *vertexCount,
+  HRESULT GetVREyeMask(UINT32 index, [in, out] UINT32 *vertexCount,
                       [out] FLOAT *xy, [in, out] UINT32 *indexCount,
                       [out] UINT32 *indices);
   /**
@@ -2568,7 +2568,7 @@ typedef struct MGDFVRPanel {
   E_ILLEGAL_METHOD_CALL without a session or on the wrong thread; E_FAIL on
   runtime failure. The output is zero on error
   */
-  HRESULT GetViewMaskVersion([out] UINT64 *version);
+  HRESULT GetVREyeMaskVersion([out] UINT64 *version);
   /**
   Enables reprojection depth for this eye in this RTDraw. Call for both eyes
   after writing their depth targets; otherwise no depth is submitted this frame.
@@ -2579,7 +2579,7 @@ typedef struct MGDFVRPanel {
   index or range; E_ILLEGAL_METHOD_CALL without a session, outside an eye frame
   or on the wrong thread; E_FAIL on runtime failure
   */
-  HRESULT SetViewDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ);
+  HRESULT SetVREyeDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ);
   /**
   Shows one panel. The host copies the description. Changes apply next eye frame;
   null hides it immediately. Resizing invalidates old panel targets at the next
@@ -2627,22 +2627,22 @@ Additional methods in this interface are safe to be used ONLY from the render th
   E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
   thread; E_FAIL after a runtime failure. The output is null on error
   */
-  HRESULT GetViewTarget(UINT32 index, [out] ID3D11Texture2D **target);
+  HRESULT GetVREyeTarget(UINT32 index, [out] ID3D11Texture2D **target);
 
   /**
   Gets an owned reference to eye 0 or 1's depth image for this RTDraw.
-  Size matches the eye target; use MGDFView::DepthFormat for a depth view.
+  Size matches the eye target; use MGDFVREye::DepthFormat for a depth view.
   Release references and descriptors in RTBeforeBackBufferChange. Submit work on the immediate context before RTDraw returns.
   \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
   index or null output; E_ILLEGAL_METHOD_CALL without a session, outside an eye
   frame or on the wrong thread; E_FAIL on runtime or resource failure.
   The output is null on error
   */
-  HRESULT GetViewDepthTarget(UINT32 index, [out] ID3D11Texture2D **target);
+  HRESULT GetVREyeDepthTarget(UINT32 index, [out] ID3D11Texture2D **target);
 
   /**
   Gets an owned reference to this frame's panel image during RTDraw. Write
-  premultiplied alpha in MGDFView::Format. Release references and descriptors
+  premultiplied alpha in MGDFVREye::Format. Release references and descriptors
   before a panel size change takes effect and in RTBeforeBackBufferChange.
    Submit work on the immediate context.
   \return S_OK; S_FALSE while hidden or before the first panel frame;
@@ -2910,22 +2910,22 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
   thread; E_FAIL after a runtime failure. The output is null on error
   */
-  HRESULT GetViewTarget(UINT32 index, [out] ID3D12Resource **target);
+  HRESULT GetVREyeTarget(UINT32 index, [out] ID3D12Resource **target);
 
   /**
   Gets an owned reference to eye 0 or 1's depth image for this RTDraw.
-  Size matches the eye target; use MGDFView::DepthFormat for a depth view.
+  Size matches the eye target; use MGDFVREye::DepthFormat for a depth view.
   Release references and descriptors in RTBeforeBackBufferChange. The state is DEPTH_WRITE; leave it in that state. Submit work on the direct queue before RTDraw returns.
   \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
   index or null output; E_ILLEGAL_METHOD_CALL without a session, outside an eye
   frame or on the wrong thread; E_FAIL on runtime or resource failure.
   The output is null on error
   */
-  HRESULT GetViewDepthTarget(UINT32 index, [out] ID3D12Resource **target);
+  HRESULT GetVREyeDepthTarget(UINT32 index, [out] ID3D12Resource **target);
 
   /**
   Gets an owned reference to this frame's panel image during RTDraw. Write
-  premultiplied alpha in MGDFView::Format. Release references and descriptors
+  premultiplied alpha in MGDFVREye::Format. Release references and descriptors
   before a panel size change takes effect and in RTBeforeBackBufferChange.
    The state is RENDER_TARGET; leave it in that state. Submit work on the direct queue.
   \return S_OK; S_FALSE while hidden or before the first panel frame;

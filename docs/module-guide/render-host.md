@@ -25,7 +25,7 @@ no eye targets. Pose and field of view are valid only during `RTDraw` when
 Call `GetVRFocused()` to check headset input focus. Pause headset input when
 it returns `FALSE`; do not stop the frame loop for this reason.
 
-Use `GetViewTarget(index, &target)` on the selected D3D11 or D3D12 render host.
+Use `GetVREyeTarget(index, &target)` on the selected D3D11 or D3D12 render host.
 The call returns an owned COM reference. Release it when it is no longer
 needed. The target is valid for rendering during this `RTDraw`. The same images
 rotate until the next back buffer change, so descriptors can be cached by
@@ -56,7 +56,7 @@ with `-vr` to test startup in a headset.
 VR resources and features are owned by the host. Modules use MGDF types and
 calls; they do not call OpenXR or manage its handles or events.
 
-`GetView` and `GetViewTarget` return `S_OK` on success. Invalid indices or null
+`GetView` and `GetVREyeTarget` return `S_OK` on success. Invalid indices or null
 outputs return `E_INVALIDARG`. No session, a wrong thread, or a target request
 outside an eye frame returns `E_ILLEGAL_METHOD_CALL`. A runtime failure returns
 `E_FAIL`. Outputs are zero or null on error. `GetView` can also report target
@@ -65,15 +65,15 @@ with no eye frame, it returns `E_ILLEGAL_METHOD_CALL`.
 
 ## Hidden area masks
 
-Call `GetViewMaskVersion(&version)` on the render thread. Reload both masks
+Call `GetVREyeMaskVersion(&version)` on the render thread. Reload both masks
 when the version changes. It changes after a mask event or recreation of the
-session or eye targets. `GetViewMask(index, &vertexCount, xy, &indexCount,
+session or eye targets. `GetVREyeMask(index, &vertexCount, xy, &indexCount,
 indices)` uses two calls: null buffers return counts; provide those capacities
 and buffers on the second call. Each vertex has two floats, and each triangle
 has three 32-bit indices. The mesh covers the hidden area. It is counter-clockwise
 in coordinates with x right and y up. Vertices are tangents at z=+1. Map x with
 `ndc.x = (2*x - (tanRight + tanLeft)) / (tanRight - tanLeft)` and map y with
-up and down in the same way, using the tangents of the `MGDFView` FOV angles.
+up and down in the same way, using the tangents of the `MGDFVREye` FOV angles.
 
 A missing mask extension returns `E_NOTIMPL`; an empty mask returns `S_FALSE`
 and zero counts. Invalid indices, null count pointers or insufficient capacity
@@ -84,14 +84,14 @@ returns `E_FAIL`. The version getter returns `S_OK`, `E_NOTIMPL`,
 
 ## Reprojection depth
 
-`MGDFView::DepthFormat` describes the optional depth target. `UNKNOWN` means
-there is no depth target. `GetViewDepthTarget` returns an owned reference during
+`MGDFVREye::DepthFormat` describes the optional depth target. `UNKNOWN` means
+there is no depth target. `GetVREyeDepthTarget` returns an owned reference during
 `RTDraw`, with the eye's dimensions. Release references and descriptors in
 `RTBeforeBackBufferChange`. For D3D12 the image starts and must finish in
 `D3D12_RESOURCE_STATE_DEPTH_WRITE`; submit work on the host's direct queue.
 For D3D11 use the immediate context. Use `DepthFormat` to create a depth view.
 
-After writing depth, call `SetViewDepthRange(index, nearZ, farZ)` for both eyes
+After writing depth, call `SetVREyeDepthRange(index, nearZ, farZ)` for both eyes
 in that frame. No depth is submitted unless both calls succeed. The distances
 are in metres at depth values 0 and 1. For reverse-Z pass the distant plane
 as `nearZ` and the close plane as `farZ`. Either distance can be positive
@@ -106,14 +106,14 @@ on error.
 Set one `MGDFVRPanel` with `SetVRPanel(&panel)` on the render thread. Give its
 pixel dimensions, pose, size in metres, and `LOCAL` or `VIEW` space. LOCAL
 stays in the room; VIEW follows the head. A panel at positive z is in front of
-the user. Pose uses the same axes and quaternion order as `MGDFView`. The host
+the user. Pose uses the same axes and quaternion order as `MGDFVREye`. The host
 copies the description. Changes take effect on the next eye frame; null hides
 it immediately. A size change invalidates the old panel images at the next
 `RTDraw`, so release references and cached descriptors by this `RTAfterPresent`.
 Release them also in `RTBeforeBackBufferChange`.
 
 Call `GetVRPanelTarget` during `RTDraw`. It returns an owned reference to the
-current image, in `MGDFView::Format`. Write premultiplied alpha; transparent
+current image, in `MGDFVREye::Format`. Write premultiplied alpha; transparent
 pixels must have zero color. D3D12 images start and must finish in
 `D3D12_RESOURCE_STATE_RENDER_TARGET`; use the direct queue. D3D11 uses the
 immediate context. The visible panel is submitted after the eye projection.

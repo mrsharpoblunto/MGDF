@@ -111,7 +111,7 @@ class FrameLoop final : public D3DAppFramework {
   void RequestVR(bool enabled) {
     ComObject<IMGDFPendingRenderSettingsChange> change;
     Settings->CreatePendingSettingsChange(change.Assign());
-    EXPECT_EQ(S_OK, change->SetVR(enabled));
+    EXPECT_TRUE(change->SetVR(enabled));
   }
   void Execute() {
     Deadline = GetTickCount64() + 15000;
@@ -515,7 +515,7 @@ TEST_P(OpenXRIntegrationTests, ViewCallsReportInvalidArgumentsAndSessionState) {
     FrameLoop loop(GetParam(), true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
-      MGDFView view{};
+      MGDFVREye view{};
       ComObject<IUnknown> image;
       EXPECT_EQ(E_INVALIDARG, vr.GetView(2, &view));
       EXPECT_EQ(E_INVALIDARG, vr.GetView(0, nullptr));
@@ -533,7 +533,7 @@ TEST_P(OpenXRIntegrationTests, ViewCallsReportInvalidArgumentsAndSessionState) {
         EXPECT_EQ(S_OK, vr.GetTarget(0, image));
         EXPECT_TRUE(image);
         std::thread wrongThread([&] {
-          MGDFView wrong{};
+          MGDFVREye wrong{};
           ComObject<IUnknown> target;
           EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetView(0, &wrong));
           EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetTarget(0, target));
@@ -573,22 +573,23 @@ TEST_P(OpenXRIntegrationTests,
       UINT64 current = 0;
       if (!vr.ViewCount()) return false;
       EXPECT_EQ(E_INVALIDARG,
-                vr.GetViewMask(2, &vertices, nullptr, &count, nullptr));
+                vr.GetVREyeMask(2, &vertices, nullptr, &count, nullptr));
       EXPECT_EQ(E_INVALIDARG,
-                vr.GetViewMask(0, nullptr, nullptr, &count, nullptr));
-      EXPECT_EQ(E_INVALIDARG, vr.GetViewMaskVersion(nullptr));
+                vr.GetVREyeMask(0, nullptr, nullptr, &count, nullptr));
+      EXPECT_EQ(E_INVALIDARG, vr.GetVREyeMaskVersion(nullptr));
       if (phase < 3) {
-        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&current));
-        EXPECT_EQ(S_OK, vr.GetViewMask(0, &vertices, nullptr, &count, nullptr));
+        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&current));
+        EXPECT_EQ(S_OK,
+                  vr.GetVREyeMask(0, &vertices, nullptr, &count, nullptr));
         EXPECT_EQ(3U, vertices);
         EXPECT_EQ(3U, count);
         FLOAT xy[6]{};
         UINT32 indices[3]{};
         vertices = 2;
         EXPECT_EQ(E_INVALIDARG,
-                  vr.GetViewMask(0, &vertices, xy, &count, indices));
+                  vr.GetVREyeMask(0, &vertices, xy, &count, indices));
         EXPECT_EQ(3U, vertices);
-        EXPECT_EQ(S_OK, vr.GetViewMask(0, &vertices, xy, &count, indices));
+        EXPECT_EQ(S_OK, vr.GetVREyeMask(0, &vertices, xy, &count, indices));
         EXPECT_FLOAT_EQ(phase == 2 ? -0.7f : -0.8f, xy[0]);
         EXPECT_FLOAT_EQ(-0.6f, xy[1]);
         EXPECT_FLOAT_EQ(0.4f, xy[5]);
@@ -615,15 +616,15 @@ TEST_P(OpenXRIntegrationTests,
         ++phase;
       } else if (phase == 3) {
         EXPECT_EQ(S_FALSE,
-                  vr.GetViewMask(0, &vertices, nullptr, &count, nullptr));
+                  vr.GetVREyeMask(0, &vertices, nullptr, &count, nullptr));
         EXPECT_EQ(0U, vertices);
         EXPECT_EQ(0U, count);
         runtime.ChangeMask(3);
         ++phase;
       } else if (phase == 4) {
         EXPECT_EQ(E_FAIL,
-                  vr.GetViewMask(0, &vertices, nullptr, &count, nullptr));
-        EXPECT_EQ(E_FAIL, vr.GetViewMaskVersion(&current));
+                  vr.GetVREyeMask(0, &vertices, nullptr, &count, nullptr));
+        EXPECT_EQ(E_FAIL, vr.GetVREyeMaskVersion(&current));
         EXPECT_EQ(0U, vertices);
         EXPECT_EQ(0U, current);
         ++phase;
@@ -656,13 +657,13 @@ TEST_P(OpenXRIntegrationTests,
       EXPECT_TRUE(target);
       EXPECT_EQ(E_INVALIDARG, vr.GetDepthTarget(2, target));
       EXPECT_FALSE(target);
-      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(2, 1, 10));
-      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(0, 0, 10));
-      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(0, 1, 1));
-      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(0, NAN, 10));
+      EXPECT_EQ(E_INVALIDARG, vr.SetVREyeDepthRange(2, 1, 10));
+      EXPECT_EQ(E_INVALIDARG, vr.SetVREyeDepthRange(0, 0, 10));
+      EXPECT_EQ(E_INVALIDARG, vr.SetVREyeDepthRange(0, 1, 1));
+      EXPECT_EQ(E_INVALIDARG, vr.SetVREyeDepthRange(0, NAN, 10));
       if (phase == 0) {
-        EXPECT_EQ(S_OK, vr.SetViewDepthRange(0, INFINITY, 0.1f));
-        EXPECT_EQ(S_OK, vr.SetViewDepthRange(1, 0.2f, INFINITY));
+        EXPECT_EQ(S_OK, vr.SetVREyeDepthRange(0, INFINITY, 0.1f));
+        EXPECT_EQ(S_OK, vr.SetVREyeDepthRange(1, 0.2f, INFINITY));
       } else if (phase == 1) {
         const auto stats = runtime.Stats();
         EXPECT_NE(0U, stats.LastViewNext[0]);
@@ -675,7 +676,7 @@ TEST_P(OpenXRIntegrationTests,
       } else if (phase == 2) {
         EXPECT_EQ(0U, runtime.Stats().LastViewNext[0]);
         EXPECT_EQ(0U, runtime.Stats().LastViewNext[1]);
-        EXPECT_EQ(S_OK, vr.SetViewDepthRange(0, 100, 0.1f));
+        EXPECT_EQ(S_OK, vr.SetVREyeDepthRange(0, 100, 0.1f));
       } else if (phase == 3) {
         EXPECT_EQ(0U, runtime.Stats().LastViewNext[0]);
         EXPECT_EQ(0U, runtime.Stats().LastViewNext[1]);
@@ -776,15 +777,16 @@ TEST_P(OpenXRIntegrationTests,
         UINT32 vertices = 9, indices = 9;
         UINT64 version = 9;
         EXPECT_EQ(E_NOTIMPL,
-                  vr.GetViewMask(0, &vertices, nullptr, &indices, nullptr));
+                  vr.GetVREyeMask(0, &vertices, nullptr, &indices, nullptr));
         EXPECT_EQ(0U, vertices);
         EXPECT_EQ(0U, indices);
-        EXPECT_EQ(E_NOTIMPL, vr.GetViewMaskVersion(&version));
+        EXPECT_EQ(E_NOTIMPL, vr.GetVREyeMaskVersion(&version));
         EXPECT_EQ(0U, version);
         ComObject<IUnknown> target;
         EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL, vr.GetDepthTarget(0, target));
         EXPECT_FALSE(target);
-        EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL, vr.SetViewDepthRange(0, 1, 10));
+        EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL,
+                  vr.SetVREyeDepthRange(0, 1, 10));
         EXPECT_EQ(DXGI_FORMAT_UNKNOWN, vr.View(0).DepthFormat);
         if (phase == 0) {
           MGDFVRPanel panel{80, 32, {0, 0, 2},          {0, 0, 0, 1},
@@ -1024,7 +1026,7 @@ TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
       const MGDFVRPanel panel{80, 32, {0, 0, 2},          {0, 0, 0, 1},
                               1,  1,  MGDF_VR_SPACE_LOCAL};
       const auto check = [&](HRESULT expected, bool cached) {
-        MGDFView view{};
+        MGDFVREye view{};
         MGDFVRPose pose{};
         ComObject<IUnknown> target;
         EXPECT_EQ(expected, vr.GetView(0, &view, true));
@@ -1033,7 +1035,7 @@ TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
         EXPECT_FALSE(target);
         EXPECT_EQ(expected, vr.GetDepthTarget(0, target));
         EXPECT_FALSE(target);
-        EXPECT_EQ(expected, vr.SetViewDepthRange(0, 1, 10));
+        EXPECT_EQ(expected, vr.SetVREyeDepthRange(0, 1, 10));
         EXPECT_EQ(expected, vr.GetPanelTarget(target));
         EXPECT_FALSE(target);
         EXPECT_EQ(expected,
@@ -1044,8 +1046,8 @@ TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
         UINT32 vertices = 9, indices = 9;
         UINT64 version = 9;
         EXPECT_EQ(cached ? S_OK : expected,
-                  vr.GetViewMask(0, &vertices, nullptr, &indices, nullptr));
-        EXPECT_EQ(cached ? S_OK : expected, vr.GetViewMaskVersion(&version));
+                  vr.GetVREyeMask(0, &vertices, nullptr, &indices, nullptr));
+        EXPECT_EQ(cached ? S_OK : expected, vr.GetVREyeMaskVersion(&version));
         EXPECT_EQ(cached ? S_OK : expected, vr.SetVRPanel(&panel));
         if (!cached) {
           EXPECT_EQ(0U, vertices);
@@ -1097,14 +1099,14 @@ TEST_P(OpenXRIntegrationTests,
       auto &vr = host.Backend->VR();
       UINT64 current = 0;
       if (phase == 0 && vr.ViewCount()) {
-        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&revision));
+        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&revision));
         changes = host.AfterChanges;
         ComObject<IMGDFPendingRenderSettingsChange> change;
         host.Settings->CreatePendingSettingsChange(change.Assign());
         change->SetVSync(FALSE);
         ++phase;
       } else if (phase == 1 && vr.ViewCount() && host.AfterChanges > changes) {
-        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&current));
+        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&current));
         EXPECT_NE(revision, current);
         revision = current;
         EXPECT_EQ(1U, runtime.Stats().SessionsCreated);
@@ -1115,7 +1117,7 @@ TEST_P(OpenXRIntegrationTests,
         host.RequestVR(true);
         ++phase;
       } else if (phase == 3 && vr.ViewCount()) {
-        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&current));
+        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&current));
         EXPECT_NE(revision, current);
         EXPECT_EQ(2U, runtime.Stats().SessionsCreated);
         EXPECT_EQ(2U, runtime.Stats().ActionSetsAttached);
@@ -1166,7 +1168,7 @@ TEST_P(OpenXRIntegrationTests, ModuleWithoutVRNeverStartsRuntimeOrSession) {
     EXPECT_FALSE(loop.Settings->GetVRSupport());
     ComObject<IMGDFPendingRenderSettingsChange> change;
     loop.Settings->CreatePendingSettingsChange(change.Assign());
-    EXPECT_EQ(E_NOTIMPL, change->SetVR(TRUE));
+    EXPECT_FALSE(change->SetVR(TRUE));
     change.Clear();
     loop.Step = [](auto &host) { return host.Views.size() >= 3; };
     loop.Execute();
@@ -1287,7 +1289,7 @@ TEST_P(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
   {
     ComObject<IMGDFPendingRenderSettingsChange> change;
     settings->CreatePendingSettingsChange(change.Assign());
-    ASSERT_EQ(S_OK, change->SetVR(TRUE));
+    ASSERT_TRUE(change->SetVR(TRUE));
     change->Cancel();
   }
   EXPECT_FALSE(settings->TakeVRRequest());
