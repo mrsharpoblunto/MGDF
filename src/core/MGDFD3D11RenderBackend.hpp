@@ -14,11 +14,13 @@ namespace core {
 
 class D3D11RenderBackend : public IRenderBackend {
  public:
-  D3D11RenderBackend(
-      const ComObject<IDXGIFactory6> &factory,
-      std::vector<D3D_FEATURE_LEVEL> levels,
-      std::function<void(const char *, const char *)> fatalError);
+  D3D11RenderBackend(const ComObject<IDXGIFactory6> &factory,
+                     std::vector<D3D_FEATURE_LEVEL> levels,
+                     std::function<void(const char *, const char *)> fatalError,
+                     bool allowSoftwareAdapter = false);
 
+  bool RTPrepareVR(const char *applicationName) final;
+  bool RTStartVR() final;
   bool RTInit() final;
   bool RTIsInitialized() const final;
   void RTUninit(bool exclusiveMode) final;
@@ -31,10 +33,12 @@ class D3D11RenderBackend : public IRenderBackend {
       const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) final;
   bool RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
-  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) final;
+  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency,
+                      bool headsetPaced = false) final;
   void RTWaitForGpuIdle() final;
   void RTClear() final;
   HRESULT RTPresent(UINT syncInterval, UINT flags) final;
+  void RTFlushVR() final;
   HRESULT RTGetDeviceRemovedReason() const final;
 
   ComObject<IUnknown> RTGetDevice() final;
@@ -52,6 +56,7 @@ class D3D11RenderBackend : public IRenderBackend {
   const ComObject<IDXGIFactory6> &_rtFactory;
   std::vector<D3D_FEATURE_LEVEL> _rtLevels;
   std::function<void(const char *, const char *)> _fatalError;
+  bool _allowSoftwareAdapter = false;
   ComObject<ID3D11Device> _rtD3dDevice;
   ComObject<ID3D11DeviceContext> _rtImmediateContext;
   ComObject<IDXGISwapChain1> _rtSwapChain;

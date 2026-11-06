@@ -78,6 +78,14 @@ class Module : public ComBase<IMGDFModule> {
   void __stdcall Panic() final;
 
  private:
+  bool DrawVRD3D11(IMGDFRenderHost *host);
+  bool _vrTest = false;
+  std::array<bool, 2> _profileLogged{};
+  std::array<bool, 2> _triggerPressed{};
+  std::array<double, 2> _vibrationSeconds{};
+  ComArray<IMGDFVRController> _vrControllers;
+  std::array<float, 4> _leftEyeColor{0.1f, 0.2f, 0.3f, 1.0f};
+  ComObject<ID3D12DescriptorHeap> _eyeRTVs;
   bool InitD3D12(IMGDFRenderHost *host);
   bool DrawD3D12(IMGDFRenderHost *host, double elapsed);
   void ReleaseD3D12();

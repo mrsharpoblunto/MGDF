@@ -6,6 +6,7 @@
 #include <MGDF/ComObject.hpp>
 #include <optional>
 
+#include "core.impl/MGDFOpenXR.hpp"
 #include "core.impl/MGDFStreamline.hpp"
 
 namespace MGDF {
@@ -15,6 +16,17 @@ namespace core {
 class IRenderBackend {
  public:
   virtual ~IRenderBackend() = default;
+  OpenXR &VR() { return _vr; }
+  virtual bool RTPrepareVR(const char *) { return false; }
+  virtual bool RTStartVR() { return false; }
+  bool RTMatchesVRAdapter() {
+    const auto adapter = RTGetAdapter();
+    DXGI_ADAPTER_DESC desc{};
+    if (!adapter || FAILED(adapter->GetDesc(&desc))) return false;
+    const auto luid = _vr.Requirements().Adapter;
+    return luid.LowPart == desc.AdapterLuid.LowPart &&
+           luid.HighPart == desc.AdapterLuid.HighPart;
+  }
 
   virtual ComObject<IUnknown> RTGetDevice() = 0;
   virtual ComObject<IUnknown> RTGetBackBuffer() = 0;
@@ -26,6 +38,7 @@ class IRenderBackend {
   }
   virtual ComObject<ID3D12Fence> RTGetFrameFence() { return {}; }
   virtual MGDFFrameInfo RTGetCurrentFrame() const { return {}; }
+  virtual void RTFlushVR() {}
   virtual HRESULT RTEndFrame() { return S_OK; }
   // Null for backends without Streamline. Any thread may use the object.
   virtual Streamline *GetStreamline() { return nullptr; }
@@ -43,11 +56,15 @@ class IRenderBackend {
       const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) = 0;
   virtual bool RTSetExclusiveFullscreen() = 0;
   virtual void RTSetWindowed() = 0;
-  virtual bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) = 0;
+  virtual bool RTWaitForFrame(MGDFLowLatencyMode lowLatency,
+                              bool headsetPaced = false) = 0;
   virtual void RTWaitForGpuIdle() = 0;
   virtual void RTClear() = 0;
   virtual HRESULT RTPresent(UINT syncInterval, UINT flags) = 0;
   virtual HRESULT RTGetDeviceRemovedReason() const = 0;
+
+ private:
+  OpenXR _vr;
 };
 
 // ResizeBuffers does not keep the color space, so call this after each create

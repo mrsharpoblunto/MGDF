@@ -96,6 +96,13 @@ void MGDFApp::RTOnInitDevice(IRenderBackend &backend) {
   _host->RTSetDevices(backend);
 }
 
+std::optional<bool> MGDFApp::RTTakeVRRequest() {
+  return _settings->TakeVRRequest();
+}
+void MGDFApp::RTOnVRState(bool active) { _settings->SetVRState(active); }
+
+const char *MGDFApp::RTGetApplicationName() const { return _game->GetName(); }
+
 bool MGDFApp::RTIsBackBufferChangePending() {
   return _settings->IsBackBufferChangePending();
 }
@@ -177,6 +184,7 @@ bool MGDFApp::OnInitWindow(RECT &window) {
 }
 
 void MGDFApp::RTOnBeforeDeviceReset() {
+  _settings->SetVRState(false);
   RTOnBeforeBackBufferChange();
   _host->RTBeforeDeviceReset();
 }
@@ -204,7 +212,7 @@ void MGDFApp::RTOnBeforeFirstDraw() {
 
 bool MGDFApp::RTOnDraw() {
   bool didLimit = false;
-  const LARGE_INTEGER currentTime = _rtFrameLimiter
+  const LARGE_INTEGER currentTime = _rtFrameLimiter && !RTIsVRRunning()
                                         ? _rtFrameLimiter->LimitFps(didLimit)
                                         : _timer->GetCurrentTimeTicks();
 

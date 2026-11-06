@@ -2,6 +2,8 @@
 
 #include "MGDFStreamline.hpp"
 
+#include <array>
+
 // The CRT debug heap defines free as a macro; Streamline declares a free
 // method.
 #pragma push_macro("free")
@@ -170,9 +172,10 @@ struct StreamlineState {
   ComObject<ID3D12Device> ProxyDevice;
 
   sl::FrameToken *Token = nullptr;
-  bool ConstantsSet = false;
+  bool VR = false;
+  std::array<bool, 2> ConstantsSet{};
   std::optional<sl::ReflexMode> ReflexMode;
-  std::optional<sl::DLSSOptions> DLSSOptions;
+  std::array<std::optional<sl::DLSSOptions>, 2> DLSSOptions;
 
   bool FrameGeneration = false;
   bool FrameGenerationFailed = false;
@@ -612,14 +615,15 @@ UINT Streamline::RTGetSyncInterval(UINT requested) const {
   return (std::min)(requested, 1U);
 }
 
-void Streamline::RTBeginFrame(MGDFLowLatencyMode lowLatency) {
+void Streamline::RTBeginFrame(MGDFLowLatencyMode lowLatency, bool vr) {
   sl::FrameToken *token = nullptr;
   bool sleep = false;
   {
     std::lock_guard lock(_mutex);
     auto &s = *_state;
     if (!s.Active) return;
-    s.ConstantsSet = false;
+    s.VR = vr;
+    s.ConstantsSet.fill(false);
     s.FrameGenerationInputs = false;
     if (s.Api.GetNewFrameToken(s.Token, nullptr) != sl::Result::eOk) {
       s.Token = nullptr;
@@ -639,9 +643,9 @@ void Streamline::RTBeginFrame(MGDFLowLatencyMode lowLatency) {
         options.mode = mode;
         if (s.ReflexSetOptions(options) == sl::Result::eOk) s.ReflexMode = mode;
       }
-      sleep = true;
+      sleep = !vr;
     }
-    if (s.PCL && _ping.exchange(false))
+    if (!vr && s.PCL && _ping.exchange(false))
       s.PCLSetMarker(sl::PCLMarker::ePCLatencyPing, *token);
   }
   // Reflex expects the sleep in every frame, also when its mode is off.
@@ -652,7 +656,7 @@ void Streamline::RTSetFrameMarker(MGDFFrameMarker marker) {
   std::lock_guard lock(_mutex);
   auto &s = *_state;
   const auto pcl = ToPCLMarker(marker);
-  if (!s.PCL || !s.Token || !pcl) return;
+  if (s.VR || !s.PCL || !s.Token || !pcl) return;
   s.PCLSetMarker(*pcl, *s.Token);
 }
 
@@ -660,9 +664,12 @@ void Streamline::RTSetFrameConstants(const MGDFFrameConstants *constants) {
   std::lock_guard lock(_mutex);
   auto &s = *_state;
   if (!constants || !s.Token || (!s.Upscale && !s.MaxGeneratedFrames)) return;
-  if (s.ConstantsSet) {
+  if (constants->View >= s.ConstantsSet.size()) return;
+  const UINT32 viewportIndex = constants->View;
+  const sl::ViewportHandle viewport{viewportIndex};
+  if (s.ConstantsSet[viewportIndex]) {
     LogOnce("constants",
-            "SetFrameConstants was called more than once in a frame",
+            "SetFrameConstants was called more than once for a view in a frame",
             MGDF_LOG_ERROR);
     return;
   }
@@ -695,8 +702,8 @@ void Streamline::RTSetFrameConstants(const MGDFFrameConstants *constants) {
   c.orthographicProjection = sl::Boolean::eFalse;
   c.motionVectorsDilated = ToBoolean(constants->MotionVectorsDilated);
   c.motionVectorsJittered = ToBoolean(constants->MotionVectorsJittered);
-  if (s.Api.SetConstants(c, *s.Token, Viewport) == sl::Result::eOk) {
-    s.ConstantsSet = true;
+  if (s.Api.SetConstants(c, *s.Token, viewport) == sl::Result::eOk) {
+    s.ConstantsSet[viewportIndex] = true;
   } else {
     LogOnce("constants-failed", "Streamline rejected the frame constants",
             MGDF_LOG_ERROR);
@@ -716,7 +723,11 @@ HRESULT Streamline::RTUpscale(ID3D12GraphicsCommandList *list,
     return E_INVALIDARG;
   const auto mode = ToDLSSMode(desc->Mode);
   if (!mode) return E_INVALIDARG;
-  if (!s.ConstantsSet) return E_ILLEGAL_METHOD_CALL;
+  if (desc->View >= s.ConstantsSet.size()) return E_INVALIDARG;
+  const UINT32 viewportIndex = desc->View;
+  const sl::ViewportHandle viewport{viewportIndex};
+  if (!s.ConstantsSet[viewportIndex]) return E_ILLEGAL_METHOD_CALL;
+  auto &dlssOptions = s.DLSSOptions[viewportIndex];
 
   sl::DLSSOptions options{};
   options.mode = *mode;
@@ -724,17 +735,17 @@ HRESULT Streamline::RTUpscale(ID3D12GraphicsCommandList *list,
   options.outputHeight = desc->OutputHeight;
   options.colorBuffersHDR = ToBoolean(desc->ColorHDR);
   options.useAutoExposure = ToBoolean(!desc->Exposure.Resource);
-  if (!s.DLSSOptions || s.DLSSOptions->mode != options.mode ||
-      s.DLSSOptions->outputWidth != options.outputWidth ||
-      s.DLSSOptions->outputHeight != options.outputHeight ||
-      s.DLSSOptions->colorBuffersHDR != options.colorBuffersHDR ||
-      s.DLSSOptions->useAutoExposure != options.useAutoExposure) {
-    if (s.DLSSSetOptions(Viewport, options) != sl::Result::eOk) {
+  if (!dlssOptions || dlssOptions->mode != options.mode ||
+      dlssOptions->outputWidth != options.outputWidth ||
+      dlssOptions->outputHeight != options.outputHeight ||
+      dlssOptions->colorBuffersHDR != options.colorBuffersHDR ||
+      dlssOptions->useAutoExposure != options.useAutoExposure) {
+    if (s.DLSSSetOptions(viewport, options) != sl::Result::eOk) {
       LogOnce("dlss-options", "Streamline rejected the DLSS options",
               MGDF_LOG_ERROR);
       return E_FAIL;
     }
-    s.DLSSOptions = options;
+    dlssOptions = options;
   }
 
   struct Input {
@@ -767,7 +778,7 @@ HRESULT Streamline::RTUpscale(ID3D12GraphicsCommandList *list,
     tags.emplace_back(&resources.back(), input.Type,
                       sl::ResourceLifecycle::eValidUntilEvaluate, &extent);
   }
-  std::vector<const sl::BaseStructure *> evaluateInputs{&Viewport};
+  std::vector<const sl::BaseStructure *> evaluateInputs{&viewport};
   for (const auto &tag : tags) evaluateInputs.push_back(&tag);
   const auto result =
       s.Api.EvaluateFeature(sl::kFeatureDLSS, *s.Token, evaluateInputs.data(),
@@ -835,7 +846,7 @@ void Streamline::RTBeforePresent() {
   auto &s = *_state;
   if (!s.Active || !s.Token) return;
   if (s.FrameGeneration) {
-    const bool run = s.FrameGenerationInputs && s.ConstantsSet &&
+    const bool run = s.FrameGenerationInputs && s.ConstantsSet[0] &&
                      !s.FrameGenerationSuspended && !s.FrameGenerationFailed;
     if (!run) ClearFrameGenerationTagsLocked();
     const auto mode = run ? sl::DLSSGMode::eOn : sl::DLSSGMode::eOff;
@@ -856,14 +867,14 @@ void Streamline::RTBeforePresent() {
       }
     }
   }
-  if (s.PCL) s.PCLSetMarker(sl::PCLMarker::ePresentStart, *s.Token);
+  if (!s.VR && s.PCL) s.PCLSetMarker(sl::PCLMarker::ePresentStart, *s.Token);
 }
 
 void Streamline::RTAfterPresent() {
   std::lock_guard lock(_mutex);
   auto &s = *_state;
   if (!s.Active || !s.Token) return;
-  if (s.PCL) s.PCLSetMarker(sl::PCLMarker::ePresentEnd, *s.Token);
+  if (!s.VR && s.PCL) s.PCLSetMarker(sl::PCLMarker::ePresentEnd, *s.Token);
   ++s.RenderedFrames;
   if (s.FrameGeneration) {
     sl::DLSSGState state{};
@@ -880,7 +891,7 @@ void Streamline::RTAfterPresent() {
   } else {
     ++s.PresentedFrames;
   }
-  if (s.Reflex && s.RenderedFrames % 30 == 0) {
+  if (!s.VR && s.Reflex && s.RenderedFrames % 30 == 0) {
     sl::ReflexState reflex{};
     if (s.ReflexGetState(reflex) == sl::Result::eOk &&
         reflex.latencyReportAvailable) {

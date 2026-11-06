@@ -251,6 +251,13 @@ void Host::InitGraphics() {
     FATALERROR(this, error);
     return;
   }
+  std::string vr;
+  const bool savedVR =
+      GetPreference(_game.As<IMGDFGame>(), PreferenceConstants::VR, vr) &&
+      FromString<bool>(vr);
+  _renderSettings->InitVR(
+      _graphicsRequirements.VR != FALSE, _graphicsAPI, savedVR,
+      ParameterManager::Instance().HasParameter(ParameterConstants::VR));
   _renderSettings->SetHDRFormat(_graphicsRequirements.HDRFormat);
   LOG("HDR output format: "
           << (_graphicsRequirements.HDRFormat == MGDF_HDR_FORMAT_HDR10
@@ -334,6 +341,7 @@ void Host::STDisposeModule() {
 }
 
 void Host::RTBeforeFirstDraw() {
+  _vrThreadId = GetCurrentThreadId();
   if (_module) {
     LOG("Calling module RTBeforeFirstDraw...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeFirstDraw(RenderHost())) {
@@ -395,7 +403,9 @@ void Host::RTShutDown() {
 }
 
 void Host::RTSetDevices(IRenderBackend &backend) {
+  _vrThreadId = GetCurrentThreadId();
   _backend = &backend;
+  backend.VR().SetInputState(_input->GetVRInputState());
   auto device = backend.RTGetDevice();
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) {
     auto d3d11 = device.As<ID3D11Device>();
@@ -427,12 +437,15 @@ void Host::RTSetDevices(IRenderBackend &backend) {
 }
 
 bool Host::RTDraw(double alpha) {
+  _vrThreadId = GetCurrentThreadId();
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12) {
     _timer->BeginD3D12Frame(_backend->RTGetCurrentFrame());
   } else {
     _timer->Begin();
   }
+  _vrDrawing = true;
   const bool drawn = _module && _module->RTDraw(RenderHost(), alpha);
+  _vrDrawing = false;
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) _timer->End();
   return drawn;
 }
@@ -458,6 +471,7 @@ void Host::RTAfterPresent() {
 }
 
 void Host::RTBeforeBackBufferChange() {
+  _vrThreadId = GetCurrentThreadId();
   _backBufferInfo = {};
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
@@ -470,6 +484,7 @@ void Host::RTBeforeBackBufferChange() {
 }
 
 void Host::RTBackBufferChange(IRenderBackend &backend) {
+  _vrThreadId = GetCurrentThreadId();
   _backBufferInfo = backend.RTGetBackBufferInfo();
   _backBuffer = backend.RTGetBackBuffer().As<ID3D11Texture2D>();
   _depthStencilBuffer = backend.RTGetDepthStencilBuffer().As<ID3D11Texture2D>();
@@ -497,6 +512,102 @@ void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
   if (depthStencilDesc) {
     _depthStencilBuffer->GetDesc(depthStencilDesc);
   }
+}
+
+bool Host::RTCanCallVR(bool eyeFrame) const {
+  return _vrThreadId == GetCurrentThreadId() && _backend &&
+         (!eyeFrame || _vrDrawing);
+}
+
+HRESULT Host::GetVRFrame(MGDFVRFrame *frame) {
+  if (!frame) return E_INVALIDARG;
+  *frame = {};
+  return RTCanCallVR() ? _backend->VR().GetVRFrame(frame, _vrDrawing)
+                       : E_ILLEGAL_METHOD_CALL;
+}
+HRESULT Host::GetVREyeTarget(UINT32 index, ID3D12Resource **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
+  return result;
+}
+HRESULT Host::GetVREyeTarget(UINT32 index, ID3D11Texture2D **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  return result;
+}
+
+HRESULT Host::GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                           UINT32 *indexCount, UINT32 *indices) {
+  if (!vertexCount || !indexCount || index >= 2) {
+    if (vertexCount) *vertexCount = 0;
+    if (indexCount) *indexCount = 0;
+    return E_INVALIDARG;
+  }
+  if (!RTCanCallVR()) {
+    *vertexCount = *indexCount = 0;
+    return E_ILLEGAL_METHOD_CALL;
+  }
+  return _backend->VR().GetVREyeMask(index, vertexCount, xy, indexCount,
+                                     indices);
+}
+HRESULT Host::SetVREyeDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ) {
+  return RTCanCallVR(true)
+             ? _backend->VR().SetVREyeDepthRange(index, nearZ, farZ)
+             : E_ILLEGAL_METHOD_CALL;
+}
+HRESULT Host::SetVRPanel(const MGDFVRPanel *panel) {
+  return RTCanCallVR() ? _backend->VR().SetVRPanel(panel)
+                       : E_ILLEGAL_METHOD_CALL;
+}
+HRESULT Host::GetVREyeDepthTarget(UINT32 index, ID3D11Texture2D **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetDepthTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  return result;
+}
+HRESULT Host::GetVRPanelTarget(ID3D11Texture2D **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetPanelTarget(resource);
+  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  return result;
+}
+HRESULT Host::GetVREyeDepthTarget(UINT32 index, ID3D12Resource **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetDepthTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
+  return result;
+}
+HRESULT Host::GetVRPanelTarget(ID3D12Resource **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetPanelTarget(resource);
+  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
+  return result;
 }
 
 void Host::GetBackBufferInfo(MGDFBackBufferInfo *info) {

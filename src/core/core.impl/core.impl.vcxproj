@@ -119,6 +119,8 @@
     <ClCompile Include="MGDFNetworkImpl.cpp" />
     <ClCompile Include="MGDFMetrics.cpp" />
     <ClCompile Include="MGDFRenderSettingsManagerImpl.cpp" />
+    <ClCompile Include="MGDFOpenXR.cpp" />
+    <ClCompile Include="MGDFOpenXRInput.cpp" />
     <ClCompile Include="MGDFGraphicsRequirements.cpp" />
     <ClCompile Include="MGDFModuleFactory.cpp" />
     <ClCompile Include="MGDFSaveManagerImpl.cpp" />
@@ -143,6 +145,8 @@
     <ClInclude Include="MGDFNetworkImpl.hpp" />
     <ClInclude Include="MGDFMetrics.hpp" />
     <ClInclude Include="MGDFRenderSettingsManagerImpl.hpp" />
+    <ClInclude Include="MGDFOpenXR.hpp" />
+    <ClInclude Include="MGDFVRInput.hpp" />
     <ClInclude Include="MGDFGraphicsRequirements.hpp" />
     <ClInclude Include="MGDFModuleFactory.hpp" />
     <ClInclude Include="MGDFSaveManagerImpl.hpp" />

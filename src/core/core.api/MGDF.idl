@@ -40,8 +40,55 @@ typedef struct MGDFGraphicsRequirements {
   /** The HDR output format the module writes. The host selects the HDR back
   buffer format and color space from it. An unknown value is an error */
   MGDFHDRFormat HDRFormat;
+  /** TRUE if the module renders headset views. FALSE makes VR unavailable */
+  BOOL VR;
 } MGDFGraphicsRequirements;
 
+/** VR hands; other values are invalid */
+typedef enum MGDFVRHand {
+  MGDF_VR_HAND_LEFT = 0,
+  MGDF_VR_HAND_RIGHT = 1,
+} MGDFVRHand;
+typedef enum MGDFVRControllerProfile {
+  MGDF_VR_PROFILE_NONE = 0,
+  MGDF_VR_PROFILE_TOUCH = 1,
+  MGDF_VR_PROFILE_INDEX = 2,
+  MGDF_VR_PROFILE_VIVE = 3,
+  MGDF_VR_PROFILE_WMR = 4,
+  MGDF_VR_PROFILE_SIMPLE = 5,
+  MGDF_VR_PROFILE_OTHER = 6,
+} MGDFVRControllerProfile;
+typedef enum MGDFVRButton {
+  MGDF_VR_BUTTON_A = 1,
+  MGDF_VR_BUTTON_B = 2,
+  MGDF_VR_BUTTON_X = 4,
+  MGDF_VR_BUTTON_Y = 8,
+  MGDF_VR_BUTTON_STICK = 16,
+  MGDF_VR_BUTTON_MENU = 32,
+  MGDF_VR_BUTTON_TRACKPAD = 16384,
+} MGDFVRButton;
+/** Capacitive touch controls, separate from pressed buttons */
+typedef enum MGDFVRTouch {
+  MGDF_VR_TOUCH_A = 64,
+  MGDF_VR_TOUCH_B = 128,
+  MGDF_VR_TOUCH_X = 256,
+  MGDF_VR_TOUCH_Y = 512,
+  MGDF_VR_TOUCH_STICK = 1024,
+  MGDF_VR_TOUCH_TRIGGER = 2048,
+  MGDF_VR_TOUCH_THUMBREST = 4096,
+  MGDF_VR_TOUCH_TRACKPAD = 8192,
+} MGDFVRTouch;
+/**
+Pose in LOCAL space, in metres: +X right, +Y up, +Z forward. Quaternion is
+x, y, z, w. Check validity separately for position and orientation. Invalid
+components are zero. Gaze and aim point along the pose's rotated +Z axis
+*/
+typedef struct MGDFVRPose {
+  FLOAT Position[3];
+  FLOAT Orientation[4];
+  BOOL PositionValid;
+  BOOL OrientationValid;
+} MGDFVRPose;
 /**
 The current back buffer properties, independent of the graphics API
 */
@@ -354,6 +401,52 @@ XInput compatible gamepad connected to the PC
 };
 
 /**
+One VR controller on the sim thread. Objects stay valid for the input manager's
+lifetime, including VR off and session changes. Without focus or connection,
+buttons are up, analog values are zero, profile is NONE and poses are invalid.
+Calls are safe with no session. Missing controls are zero or FALSE
+*/
+[
+  uuid("EDB23A73-9C5C-436A-8845-BD687CA9C6C3"), object,
+  local
+] interface IMGDFVRController : IUnknown {
+  /** Gets the hand assigned to this object */
+  MGDFVRHand GetHand();
+  /** TRUE when connected with headset input focus */
+  BOOL IsConnected();
+  /** Gets the current interaction profile, or NONE when disconnected */
+  MGDFVRControllerProfile GetProfile();
+  /** TRUE while the button is held */
+  BOOL IsButtonDown(MGDFVRButton button);
+  /** TRUE while the button is not held, including when disconnected */
+  BOOL IsButtonUp(MGDFVRButton button);
+  /** TRUE once after a button was pressed and released, like IMGDFGamepad.
+  Presses observed between sim updates are kept for the next update */
+  BOOL IsButtonPress(MGDFVRButton button);
+  /** TRUE while the named control is touched */
+  BOOL IsTouched(MGDFVRTouch touch);
+  /** Trigger level, 0..1 */
+  FLOAT GetTrigger();
+  /** Grip squeeze level, 0..1 */
+  FLOAT GetSqueeze();
+  /** Thumbstick or Vive trackpad X, -1..1; positive is right */
+  FLOAT GetThumbX();
+  /** Thumbstick or Vive trackpad Y, -1..1; positive is up.
+  This differs from the IMGDFGamepad Y convention */
+  FLOAT GetThumbY();
+  /** Gets the sim sample's LOCAL grip pose; invalid components are zero.
+  A null output is ignored */
+  void GetGripPose([out] MGDFVRPose *pose);
+  /** Gets the sim sample's LOCAL aim pose; invalid components are zero.
+  A null output is ignored */
+  void GetAimPose([out] MGDFVRPose *pose);
+  /** Sets vibration level until changed; 0 stops. Values are clamped to 0..1;
+  NaN means 0. Output stops without focus, connection or a session, and resumes
+  at the stored level when these return. Safe with VR off */
+  void SetVibration(FLOAT amplitude);
+};
+
+/**
 The OS cursor shapes a module can ask for while the cursor is shown
 */
 typedef enum MGDFCursor {
@@ -373,6 +466,20 @@ from the mouse, keyboard, and xinput controllers
   uuid("98EC499D-5359-4902-8BA9-6E36686E9898"), object,
   local
 ] interface IMGDFInputManager : IUnknown {
+  /** Returns 2 controller objects: left and right, including with VR off */
+  UINT64 GetVRControllerCount();
+  /** Fills GetVRControllerCount entries in hand order with owned COM references.
+  Release each reference when no longer needed. Objects can be kept across
+  session changes. Safe with VR off; a null array is ignored */
+  void GetVRControllers([out] IMGDFVRController **controllers);
+  /**
+  Gets the current sim update's eye gaze sample. Safe with VR off
+  \return TRUE with position and orientation; FALSE for no session, no input
+  focus, unavailable eye tracking, no current sample or null output.
+  Non-null output is zero on FALSE
+  */
+  BOOL GetVRGaze([out] MGDFVRPose *pose);
+
   /**
   determines whether the OS cursor is displayed or not
   \param show Whether to show the cursor or not
@@ -777,6 +884,16 @@ the settings will be applied to the render system on the next frame
   IMGDFRenderSettingsManager::GetRayTracingSupport returns FALSE
   */
   BOOL SetRayTracing(BOOL enabled);
+
+  /**
+  Requests headset output and saves the value in host.vr. Applying the change
+  schedules RTBeforeBackBufferChange and RTBackBufferChange. A device change
+  can also require RTBeforeDeviceReset and RTDeviceReset. A missing headset or
+  a runtime failure leaves the window running. Check GetVR for the session state
+  \param enabled TRUE to request VR, FALSE to return to the window
+  \return TRUE when accepted; FALSE if GetVRSupport returns FALSE
+  */
+  BOOL SetVR(BOOL enabled);
 };
 
 /**
@@ -1074,6 +1191,21 @@ Provides an interface for getting and setting the hosts various display settings
   \return TRUE if the module should use ray tracing
   */
   BOOL GetRayTracing();
+
+  /**
+  Reports whether the module supports VR and an active OpenXR runtime is
+  available for its graphics API. This query does not start a headset session
+  \return TRUE if VR can be requested; a connected headset is not required
+  */
+  BOOL GetVRSupport();
+
+  /**
+  Reports whether VR mode has a headset session. Stays TRUE while the runtime
+  pauses the session; draw only the window while GetVRFrame reports EyeCount zero.
+  A failed VR request leaves this FALSE
+  \return TRUE while VR mode is active, including an idle headset session
+  */
+  BOOL GetVR();
 };
 
 /**
@@ -2318,6 +2450,80 @@ this interface are safe to be used from any thread
 };
 
 /**
+One eye at this frame's predicted display time. Pose is in LOCAL space, in
+metres, with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w.
+Write linear color to an sRGB target. Release target references and descriptors
+in RTBeforeBackBufferChange
+*/
+typedef struct MGDFVREye {
+  FLOAT Position[3];
+  FLOAT Orientation[4];
+  /** Field of view in radians; left and down are negative */
+  FLOAT AngleLeft;
+  FLOAT AngleRight;
+  FLOAT AngleUp;
+  FLOAT AngleDown;
+  UINT32 Width;
+  UINT32 Height;
+  DXGI_FORMAT Format;
+  /** UNKNOWN when reprojection depth is unavailable */
+  DXGI_FORMAT DepthFormat;
+} MGDFVREye;
+
+/** Optional VR features supported by this session. Individual calls can fail */
+typedef enum MGDFVRFeature {
+  MGDF_VR_FEATURE_MASK = 1,
+  MGDF_VR_FEATURE_DEPTH = 2,
+  MGDF_VR_FEATURE_PANEL = 4,
+  MGDF_VR_FEATURE_GAZE = 8,
+} MGDFVRFeature;
+
+/**
+VR data for one display frame. Eye 0 is left and eye 1 is right. Index Grip and
+Aim with MGDFVRHand. Poses use LOCAL space and the MGDFVRPose convention.
+Pose and FOV data are valid only during RTDraw with EyeCount 2; otherwise they
+are zero. Unsupported or untracked controller and gaze poses are invalid
+*/
+typedef struct MGDFVRFrame {
+  UINT32 EyeCount;
+  BOOL Focused;
+  MGDFVREye Eyes[2];
+  MGDFVRPose Grip[2];
+  MGDFVRPose Aim[2];
+  MGDFVRPose Gaze;
+  /** Reload masks when this changes, including after session or eye target
+  recreation. Zero without mask support */
+  UINT64 MaskVersion;
+  /** Reset temporal history when this counter changes. It advances when a
+  session starts and on the first frame at or after a LOCAL space change time,
+  including frames with no eye output. Compare with the last rendered frame */
+  UINT64 PoseEpoch;
+  /** Bit set of MGDFVRFeature values */
+  UINT32 Features;
+} MGDFVRFrame;
+
+/** Reference frame for a headset panel */
+typedef enum MGDFVRSpace {
+  MGDF_VR_SPACE_LOCAL = 0,
+  MGDF_VR_SPACE_VIEW = 1,
+} MGDFVRSpace;
+
+/**
+One headset panel. Pose uses +X right, +Y up, +Z forward and metres, with
+quaternion x, y, z, w. VIEW is relative to the head; LOCAL is fixed in the room.
+The image format is MGDFVREye::Format; write linear color with premultiplied alpha
+*/
+typedef struct MGDFVRPanel {
+  UINT32 PixelWidth;
+  UINT32 PixelHeight;
+  FLOAT Position[3];
+  FLOAT Orientation[4];
+  FLOAT Width;
+  FLOAT Height;
+  MGDFVRSpace Space;
+} MGDFVRPanel;
+
+/**
  Provides an entrypoint for a module to interact with the MGDF host. This
  interface inherits from ICommonHost and provides additional methods which are
  safe to be used ONLY from the render thread.
@@ -2340,6 +2546,60 @@ this interface are safe to be used from any thread
   \return S_OK, or E_INVALIDARG if a value is out of range
   */
   HRESULT SetHDRMetadata([in] const MGDFHDRMetadata *metadata);
+
+  /**
+  Gets VR data on the render thread. Draw the window every frame. In RTDraw,
+  S_OK provides two eyes and poses at this frame's predicted display time.
+  Outside an eye frame, including RTBackBufferChange, S_FALSE provides target
+  properties, focus, mask revision and feature flags; EyeCount is zero and
+  poses and FOV angles are zero. Use Eyes to size resources at a back buffer
+  change. Check pose validity and Features before using optional data
+  \return S_OK with an eye frame; S_FALSE with a session but no eye frame;
+  E_INVALIDARG for null output; E_ILLEGAL_METHOD_CALL without a session or on
+  the wrong thread; E_FAIL after a runtime failure. Output is zero on error
+  */
+  HRESULT GetVRFrame([out] MGDFVRFrame *frame);
+
+  /**
+  Gets the hidden triangle mesh for eye 0 or 1 on the render thread. Counts are
+  vertex and index capacities on input and required counts on output. Null
+  buffers query counts; xy has two floats per vertex, indices are a UINT32
+  triangle list. Winding is counter-clockwise in x-right, y-up coordinates.
+  Vertices are view-angle tangents at z=+1. Map to your projection with
+  ndc.x = (2*x - (tan(AngleRight) + tan(AngleLeft))) /
+          (tan(AngleRight) - tan(AngleLeft)); use up/down in the same way for y.
+  \return S_OK; S_FALSE for an empty mesh; E_NOTIMPL without mask support;
+  E_INVALIDARG for invalid index, null counts or insufficient buffer capacity
+  (required counts are still returned); E_ILLEGAL_METHOD_CALL without a session
+  or on the wrong thread; E_FAIL on runtime failure. Counts are zero on error
+  except for insufficient capacity
+  */
+  HRESULT GetVREyeMask(UINT32 index, [in, out] UINT32 *vertexCount,
+                      [out] FLOAT *xy, [in, out] UINT32 *indexCount,
+                      [out] UINT32 *indices);
+  /**
+  Enables reprojection depth for this eye in this RTDraw. Call for both eyes
+  after writing their depth targets; otherwise no depth is submitted this frame.
+  nearZ and farZ are positive distances in metres at depth values 0 and 1.
+  For reverse-Z pass the distant plane as nearZ and the close plane as farZ.
+  Positive infinity is allowed for either plane, but the two must differ.
+  \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
+  index or range; E_ILLEGAL_METHOD_CALL without a session, outside an eye frame
+  or on the wrong thread; E_FAIL on runtime failure
+  */
+  HRESULT SetVREyeDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ);
+  /**
+  Shows one panel. The host copies the description. Changes apply next eye frame;
+  null hides it immediately. Resizing invalidates old panel targets at the next
+  RTDraw: release their references and descriptors by this RTAfterPresent.
+  Release them also in RTBeforeBackBufferChange. Color is premultiplied alpha.
+  \return S_OK; E_NOTIMPL if the runtime cannot show a panel; E_INVALIDARG for
+  an invalid size, space or pose; E_ILLEGAL_METHOD_CALL without a session or on
+  the wrong thread; E_FAIL on runtime failure. Deferred creation errors are
+  reported by GetVRPanelTarget
+  */
+  HRESULT SetVRPanel([in] const MGDFVRPanel *panel);
+
 };
 
 /**
@@ -2365,6 +2625,41 @@ Additional methods in this interface are safe to be used ONLY from the render th
   uuid("756E8862-E68C-4796-AD6C-00667632F33B"), object,
   local
 ] interface IMGDFD3D11RenderHost : IMGDFRenderHost {
+  /**
+  Gets an owned reference to this frame's eye texture during RTDraw. Submit
+  eye rendering on the immediate context before RTDraw returns. Textures rotate
+  until RTBeforeBackBufferChange, when all references must be released
+  \param index less than MGDFVRFrame::EyeCount
+  \param target receives the texture; Release it when no longer needed
+  \return S_OK; E_INVALIDARG for an invalid index or null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL after a runtime failure. The output is null on error
+  */
+  HRESULT GetVREyeTarget(UINT32 index, [out] ID3D11Texture2D **target);
+
+  /**
+  Gets an owned reference to eye 0 or 1's depth image for this RTDraw.
+  Size matches the eye target; use MGDFVREye::DepthFormat for a depth view.
+  Release references and descriptors in RTBeforeBackBufferChange. Submit work on the immediate context before RTDraw returns.
+  \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
+  index or null output; E_ILLEGAL_METHOD_CALL without a session, outside an eye
+  frame or on the wrong thread; E_FAIL on runtime or resource failure.
+  The output is null on error
+  */
+  HRESULT GetVREyeDepthTarget(UINT32 index, [out] ID3D11Texture2D **target);
+
+  /**
+  Gets an owned reference to this frame's panel image during RTDraw. Write
+  premultiplied alpha in MGDFVREye::Format. Release references and descriptors
+  before a panel size change takes effect and in RTBeforeBackBufferChange.
+   Submit work on the immediate context.
+  \return S_OK; S_FALSE while hidden or before the first panel frame;
+  E_NOTIMPL without panel support; E_INVALIDARG for a null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL on runtime or resource failure. The output is null except on S_OK
+  */
+  HRESULT GetVRPanelTarget([out] ID3D11Texture2D **target);
+
   /**
   Gets the current back buffer texture.
   \param backbuffer the current back buffer texture. The pointer returned by this method
@@ -2535,6 +2830,8 @@ typedef struct MGDFFrameConstants {
   BOOL CameraMotionIncluded;
   /** TRUE if this frame has no relation to the previous frame */
   BOOL ResetHistory;
+  /** View index, 0 or 1, with or without VR. Each view has its own history */
+  UINT32 View;
 } MGDFFrameConstants;
 
 /**
@@ -2575,6 +2872,8 @@ typedef struct MGDFUpscaleDesc {
   MGDFFrameResource Exposure;
   /** 0 to 1 per pixel: 1 rejects the history and uses the current color */
   MGDFFrameResource BiasCurrentColor;
+  /** View index, 0 or 1, with or without VR. Each view has its own history */
+  UINT32 View;
 } MGDFUpscaleDesc;
 
 /**
@@ -2608,6 +2907,43 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   local
 ] interface IMGDFD3D12RenderHost : IMGDFRenderHost {
   /**
+  Gets an owned reference to this frame's eye texture during RTDraw. Its state
+  is RENDER_TARGET. Leave it in that state when the frame's lists finish.
+  Execute eye work on the direct queue before RTDraw returns; join work from
+  other queues to it. The host records no work on the texture. Textures rotate
+  until RTBeforeBackBufferChange; descriptors can be kept by resource until then
+  \param index less than MGDFVRFrame::EyeCount
+  \param target receives the texture; release all references before a change
+  \return S_OK; E_INVALIDARG for an invalid index or null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL after a runtime failure. The output is null on error
+  */
+  HRESULT GetVREyeTarget(UINT32 index, [out] ID3D12Resource **target);
+
+  /**
+  Gets an owned reference to eye 0 or 1's depth image for this RTDraw.
+  Size matches the eye target; use MGDFVREye::DepthFormat for a depth view.
+  Release references and descriptors in RTBeforeBackBufferChange. The state is DEPTH_WRITE; leave it in that state. Submit work on the direct queue before RTDraw returns.
+  \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
+  index or null output; E_ILLEGAL_METHOD_CALL without a session, outside an eye
+  frame or on the wrong thread; E_FAIL on runtime or resource failure.
+  The output is null on error
+  */
+  HRESULT GetVREyeDepthTarget(UINT32 index, [out] ID3D12Resource **target);
+
+  /**
+  Gets an owned reference to this frame's panel image during RTDraw. Write
+  premultiplied alpha in MGDFVREye::Format. Release references and descriptors
+  before a panel size change takes effect and in RTBeforeBackBufferChange.
+   The state is RENDER_TARGET; leave it in that state. Submit work on the direct queue.
+  \return S_OK; S_FALSE while hidden or before the first panel frame;
+  E_NOTIMPL without panel support; E_INVALIDARG for a null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL on runtime or resource failure. The output is null except on S_OK
+  */
+  HRESULT GetVRPanelTarget([out] ID3D12Resource **target);
+
+  /**
   Gets the current frame. Its ordinal and slot stay fixed through RTAfterPresent
   \param frame receives the current frame
   */
@@ -2635,14 +2971,16 @@ joined to the direct queue by the module if it is to be covered by that frame fe
                            [out] IMGDFPerformanceCounter **counter);
   /**
   Reports a point in the current frame for latency measurement. Does nothing
-  if the host has no latency measurement for the device
+  while VR is on or if the host has no latency measurement for the device
   \param marker the point in the frame
   */
   void SetFrameMarker(MGDFFrameMarker marker);
   /**
-  Sets the camera data for the current frame. Call it once per frame before
-  Upscale and before RTDraw returns. Does nothing if GetUpscaleModeCount
-  and GetMaxGeneratedFrames on IMGDFRenderSettingsManager both return 0
+  Sets the camera data for View 0 or 1, with or without VR. Call it once per
+  used view per frame before Upscale and before RTDraw returns. Each view has
+  separate history; either view may be omitted from a frame. Does nothing if
+  GetUpscaleModeCount and GetMaxGeneratedFrames on IMGDFRenderSettingsManager
+  both return 0
   \param constants the camera data
   */
   void SetFrameConstants([in] const MGDFFrameConstants *constants);
@@ -2651,11 +2989,11 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   The list must be recording and tracked by the SDK MGDF::D3D12CommandList
   helper. After the call the descriptor heaps, root signatures, pipeline state,
   render targets and viewports of the list are undefined; set them again before
-  more work. Resource states do not change
+  more work. Resource states do not change. View must be 0 or 1, with or without VR
   \param list the command list
   \param desc the upscale inputs
-  \return S_OK, E_INVALIDARG for an untracked list or missing inputs,
-  E_ILLEGAL_METHOD_CALL if SetFrameConstants was not called this frame,
+  \return S_OK, E_INVALIDARG for an untracked list, missing inputs or invalid View,
+  E_ILLEGAL_METHOD_CALL if SetFrameConstants was not called for this View this frame,
   E_NOTIMPL if IMGDFRenderSettingsManager::GetUpscaleMode does not list the
   mode, or E_FAIL if
   the upscaler failed

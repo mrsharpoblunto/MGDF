@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+#include <algorithm>
 #include <cmath>
 #include <sstream>
 
@@ -15,6 +16,20 @@
 
 namespace MGDF {
 namespace Test {
+
+namespace {
+std::array<float, 4> EyeColor(const MGDFVREye &view, UINT32 index) {
+  const auto &q = view.Orientation;
+  const float yaw = std::atan2(2 * (q[3] * q[1] + q[0] * q[2]),
+                               1 - 2 * (q[0] * q[0] + q[1] * q[1]));
+  const float pitch =
+      std::asin(std::clamp(2 * (q[3] * q[0] - q[1] * q[2]), -1.0f, 1.0f));
+  const float brightness = 0.5f + 0.25f * std::sin(pitch);
+  return {brightness * (0.5f + 0.4f * std::sin(yaw)),
+          brightness * (index ? 0.35f : 0.85f),
+          brightness * (0.5f + 0.4f * std::cos(yaw)), 1.0f};
+}
+}  // namespace
 
 TestState::TestState(const TestState &state) : Text(state.Text) {}
 
@@ -111,6 +126,16 @@ BOOL Module::STNew(IMGDFSimHost *host) {
     host->Log("TestModule", line.c_str(), MGDF_LOG_LOW);
   };
   host->GetRenderSettings(_renderSettings.Assign());
+  _vrTest = _renderSettings->GetVRSupport() != FALSE;
+  if (_vrTest) {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    _renderSettings->CreatePendingSettingsChange(change.Assign());
+    change->SetVR(TRUE);
+    host->Log("TestModule", "VR display test: F9 toggles VR; ESC exits",
+              MGDF_LOG_LOW);
+    _currentModule = _testModules.end();
+    return true;
+  }
   _testModules.push_back(std::make_unique<DisplayTests>());
   _testModules.push_back(std::make_unique<LoadSaveTests>());
   _testModules.push_back(std::make_unique<NetworkTests>());
@@ -131,8 +156,55 @@ BOOL Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {
   _ASSERTE(_testModuleCounter);
   if (!_input) {
     host->GetInput(_input.Assign());
+    _vrControllers =
+        ComArray<IMGDFVRController>(_input->GetVRControllerCount());
+    _input->GetVRControllers(_vrControllers.Data());
   }
 
+  if (_vrTest) {
+    for (UINT32 i = 0; i < 2; ++i) {
+      const auto controller = _vrControllers[i];
+      const bool connected = controller->IsConnected() != FALSE;
+      if (connected && !_profileLogged[i]) {
+        const char *profile = "Other";
+        switch (controller->GetProfile()) {
+          case MGDF_VR_PROFILE_TOUCH:
+            profile = "Touch";
+            break;
+          case MGDF_VR_PROFILE_INDEX:
+            profile = "Index";
+            break;
+          case MGDF_VR_PROFILE_VIVE:
+            profile = "Vive";
+            break;
+          case MGDF_VR_PROFILE_WMR:
+            profile = "WMR";
+            break;
+          case MGDF_VR_PROFILE_SIMPLE:
+            profile = "Simple";
+            break;
+          default:
+            break;
+        }
+        const auto message =
+            std::string(i ? "Right VR controller: " : "Left VR controller: ") +
+            profile;
+        host->Log("TestModule", message.c_str(), MGDF_LOG_LOW);
+        _profileLogged[i] = true;
+      }
+      const bool pressed = connected && controller->GetTrigger() > 0.7f;
+      if (pressed && !_triggerPressed[i]) _vibrationSeconds[i] = 0.2;
+      controller->SetVibration(_vibrationSeconds[i] > 0 ? 0.6f : 0);
+      _vibrationSeconds[i] -= elapsedTime;
+      _triggerPressed[i] = pressed;
+    }
+  }
+
+  if (_input->IsKeyPress(VK_F9)) {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    _renderSettings->CreatePendingSettingsChange(change.Assign());
+    change->SetVR(!_renderSettings->GetVR());
+  }
   if (_input->IsKeyPress(VK_F11)) {
     MGDFFullScreenDesc desc{};
     _renderSettings->GetFullscreen(&desc);
@@ -247,11 +319,13 @@ BOOL Module::RTDraw(IMGDFRenderHost *host, double alpha) {
   if (_awaitingPresent) return false;
   _awaitingPresent = true;
   if (host->GetGraphicsAPI() == MGDF_GRAPHICS_API_D3D12) {
-    if (_presentedFrames && _presentedFrames % 240 == 0) return false;
+    if (!_vrTest && _presentedFrames && _presentedFrames % 240 == 0)
+      return false;
     if (!DrawD3D12(host, alpha))
       host->FatalError("TestModule", "D3D12 frame validation failed");
     return true;
   }
+  if (_vrTest) return DrawVRD3D11(host);
   std::shared_ptr<TestState> state = _stateBuffer.Interpolate(alpha);
   if (state) {
     ComObject<IMGDFPerformanceCounterScope> counter;
@@ -264,7 +338,12 @@ BOOL Module::RTDraw(IMGDFRenderHost *host, double alpha) {
 }
 
 BOOL Module::RTBackBufferChange(IMGDFRenderHost *host) {
-  std::ignore = host;
+  MGDFVRFrame frame{};
+  if (_vrTest && SUCCEEDED(host->GetVRFrame(&frame)) && frame.Eyes[0].Width) {
+    const MGDFVRPanel panel{512,  256,   {0, 0, 1.5f},      {0, 0, 0, 1},
+                            0.7f, 0.35f, MGDF_VR_SPACE_VIEW};
+    host->SetVRPanel(&panel);
+  }
   if (_textManager) _textManager->BackBufferChange();
   return true;
 }
@@ -275,7 +354,7 @@ void Module::RTAfterPresent(IMGDFRenderHost *host) {
     return;
   }
   _awaitingPresent = false;
-  if (_presentedFrames == 120) {
+  if (!_vrTest && _presentedFrames == 120) {
     ComObject<IMGDFDebug> debug;
     host->GetDebug(debug.Assign());
     ComObject<IMGDFDebugOverlaySnapshot> snapshot;
@@ -346,6 +425,11 @@ bool Module::InitD3D12(IMGDFRenderHost *host) {
   deviceHost->GetCopyQueue(copy.Assign());
   if (!_d3d12Device || !_directQueue || !_frameFence || !compute || !copy)
     return false;
+  const D3D12_DESCRIPTOR_HEAP_DESC heap{.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+                                        .NumDescriptors = 6};
+  if (FAILED(_d3d12Device->CreateDescriptorHeap(
+          &heap, IID_PPV_ARGS(_eyeRTVs.Assign()))))
+    return false;
   ComObject<IMGDFMetric> metric;
   host->CreateGaugeMetric("d3d12_clear", "D3D12 backbuffer clear time",
                           metric.Assign());
@@ -411,7 +495,42 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime)),
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime + 2)),
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime + 4)), 1};
-    list->ClearRenderTargetView(frame.BackBufferRTV, color, 0, nullptr);
+    MGDFVRFrame vr{};
+    host->GetVRFrame(&vr);
+    for (UINT32 eye = 0; eye < vr.EyeCount; ++eye) {
+      ComObject<ID3D12Resource> target;
+      const auto &view = vr.Eyes[eye];
+      if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK)
+        return false;
+      auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
+      rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + eye) *
+                 _d3d12Device->GetDescriptorHandleIncrementSize(
+                     D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+      const D3D12_RENDER_TARGET_VIEW_DESC desc{
+          .Format = view.Format,
+          .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D};
+      _d3d12Device->CreateRenderTargetView(target, &desc, rtv);
+      const auto eyeColor = EyeColor(view, eye);
+      list->ClearRenderTargetView(rtv, eyeColor.data(), 0, nullptr);
+      if (!eye) _leftEyeColor = eyeColor;
+    }
+    ComObject<ID3D12Resource> panel;
+    if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
+      const auto &view = vr.Eyes[0];
+      auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
+      rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + 2) *
+                 _d3d12Device->GetDescriptorHandleIncrementSize(
+                     D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+      const D3D12_RENDER_TARGET_VIEW_DESC desc{
+          .Format = view.Format,
+          .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D};
+      _d3d12Device->CreateRenderTargetView(panel, &desc, rtv);
+      const float panelColor[4]{0.08f, 0.4f, 0.16f, 0.8f};
+      list->ClearRenderTargetView(rtv, panelColor, 0, nullptr);
+    }
+    list->ClearRenderTargetView(frame.BackBufferRTV,
+                                _vrTest ? _leftEyeColor.data() : color, 0,
+                                nullptr);
     std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
     list->ResourceBarrier(1, &barrier);
   }
@@ -432,10 +551,54 @@ void Module::ReleaseD3D12() {
   for (auto &counter : _gpuCounters) counter.Clear();
   for (auto &list : _lists) list.Clear();
   for (auto &allocator : _allocators) allocator.Clear();
+  _eyeRTVs.Clear();
   _frameFence.Clear();
   _directQueue.Clear();
   _d3d12Device.Clear();
   _slotFences = {};
+}
+
+bool Module::DrawVRD3D11(IMGDFRenderHost *host) {
+  auto common = MakeComFromPtr<IMGDFRenderHost>(host);
+  const auto renderHost = common.As<IMGDFD3D11RenderHost>();
+  ComObject<ID3D11Device> device;
+  common.As<IMGDFD3D11Host>()->GetD3D11Device(device.Assign());
+  ComObject<ID3D11DeviceContext> context;
+  device->GetImmediateContext(context.Assign());
+  MGDFVRFrame vr{};
+  host->GetVRFrame(&vr);
+  for (UINT32 eye = 0; eye < vr.EyeCount; ++eye) {
+    ComObject<ID3D11Texture2D> target;
+    const auto &view = vr.Eyes[eye];
+    if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK) return false;
+    const D3D11_RENDER_TARGET_VIEW_DESC desc{
+        .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
+    ComObject<ID3D11RenderTargetView> rtv;
+    if (FAILED(device->CreateRenderTargetView(target, &desc, rtv.Assign())))
+      return false;
+    const auto color = EyeColor(view, eye);
+    context->ClearRenderTargetView(rtv, color.data());
+    if (!eye) _leftEyeColor = color;
+  }
+  ComObject<ID3D11Texture2D> panel;
+  if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
+    const auto &view = vr.Eyes[0];
+    const D3D11_RENDER_TARGET_VIEW_DESC desc{
+        .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
+    ComObject<ID3D11RenderTargetView> panelView;
+    if (FAILED(
+            device->CreateRenderTargetView(panel, &desc, panelView.Assign())))
+      return false;
+    const float panelColor[4]{0.08f, 0.4f, 0.16f, 0.8f};
+    context->ClearRenderTargetView(panelView, panelColor);
+  }
+  ComObject<ID3D11Texture2D> window;
+  renderHost->GetBackBuffer(window.Assign());
+  ComObject<ID3D11RenderTargetView> rtv;
+  if (FAILED(device->CreateRenderTargetView(window, nullptr, rtv.Assign())))
+    return false;
+  context->ClearRenderTargetView(rtv, _leftEyeColor.data());
+  return true;
 }
 
 void Module::Panic() {}

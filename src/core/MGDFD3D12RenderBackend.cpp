@@ -4,6 +4,10 @@
 
 #include <d3d12sdklayers.h>
 
+#define XR_USE_PLATFORM_WIN32
+#define XR_USE_GRAPHICS_API_D3D12
+#include <openxr/openxr_platform.h>
+
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFResources.hpp"
 
@@ -38,11 +42,14 @@ RayTracingSupport GetRayTracingSupport(ID3D12Device *device) {
 D3D12RenderBackend::D3D12RenderBackend(
     const ComObject<IDXGIFactory6> &factory,
     const MGDFGraphicsRequirements &requirements,
-    std::function<void(const char *, const char *)> fatalError)
+    std::function<void(const char *, const char *)> fatalError,
+    bool allowSoftwareAdapter, std::optional<std::wstring> streamlineDirectory)
     : _rtFactory(factory),
       _requirements(requirements),
       _fatalError(std::move(fatalError)),
-      _streamline(Resources::Instance().RootDir()) {}
+      _allowSoftwareAdapter(allowSoftwareAdapter),
+      _streamline(
+          streamlineDirectory.value_or(Resources::Instance().RootDir())) {}
 
 void D3D12RenderBackend::FatalError(const char *sender, const char *message) {
   _fatalError(sender, message);
@@ -59,7 +66,10 @@ ComObject<ID3D12Device10> D3D12RenderBackend::RTTryCreateDevice(
     IDXGIAdapter *adapter) {
   ComObject<ID3D12Device10> device;
   if (FAILED(D3D12CreateDevice(
-          adapter, max(_requirements.MinFeatureLevel, D3D_FEATURE_LEVEL_11_0),
+          adapter,
+          max(max(_requirements.MinFeatureLevel, D3D_FEATURE_LEVEL_11_0),
+              VR().Prepared() ? VR().Requirements().MinFeatureLevel
+                              : D3D_FEATURE_LEVEL_11_0),
           IID_PPV_ARGS(device.Assign()))))
     return {};
   if (_requirements.MinShaderModel) {
@@ -89,6 +99,67 @@ ComObject<ID3D12CommandQueue> D3D12RenderBackend::RTCreateQueue(
   return native;
 }
 
+bool D3D12RenderBackend::RTPrepareVR(const char *applicationName) {
+  return VR().Prepare(
+      XR_KHR_D3D12_ENABLE_EXTENSION_NAME, applicationName,
+      [](XrInstance instance, XrSystemId system,
+         OpenXRGraphicsRequirements &result) {
+        PFN_xrGetD3D12GraphicsRequirementsKHR query = nullptr;
+        const auto found = xrGetInstanceProcAddr(
+            instance, "xrGetD3D12GraphicsRequirementsKHR",
+            reinterpret_cast<PFN_xrVoidFunction *>(&query));
+        if (XR_FAILED(found)) return found;
+        XrGraphicsRequirementsD3D12KHR requirements{
+            XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR};
+        const auto status = query(instance, system, &requirements);
+        if (XR_SUCCEEDED(status))
+          result = {requirements.adapterLuid, requirements.minFeatureLevel};
+        return status;
+      });
+}
+
+bool D3D12RenderBackend::RTStartVR() {
+  if (!VR().Prepared() || VR().NeedsFallback()) return false;
+  const D3D_FEATURE_LEVEL level = VR().Requirements().MinFeatureLevel;
+  D3D12_FEATURE_DATA_FEATURE_LEVELS levels{1, &level, D3D_FEATURE_LEVEL_11_0};
+  if (FAILED(_device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &levels,
+                                          sizeof(levels))) ||
+      levels.MaxSupportedFeatureLevel < level) {
+    VR().Fail("device feature level", XR_ERROR_GRAPHICS_DEVICE_INVALID);
+    return false;
+  }
+  const XrGraphicsBindingD3D12KHR binding{XR_TYPE_GRAPHICS_BINDING_D3D12_KHR,
+                                          nullptr, _device.Get(),
+                                          _directQueue.Get()};
+  return VR().CreateSession(
+      &binding,
+      [this](DXGI_FORMAT format, bool depth) {
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT support{format};
+        return SUCCEEDED(_device->CheckFeatureSupport(
+                   D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support))) &&
+               (support.Support1 &
+                (depth ? D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL
+                       : D3D12_FORMAT_SUPPORT1_RENDER_TARGET));
+      },
+      [](XrSwapchain swapchain, std::vector<ComObject<IUnknown>> &resources) {
+        uint32_t count = 0;
+        auto result = xrEnumerateSwapchainImages(swapchain, 0, &count, nullptr);
+        if (XR_FAILED(result)) return result;
+        std::vector<XrSwapchainImageD3D12KHR> images(
+            count, {XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR});
+        result = xrEnumerateSwapchainImages(
+            swapchain, count, &count,
+            reinterpret_cast<XrSwapchainImageBaseHeader *>(images.data()));
+        if (XR_SUCCEEDED(result)) {
+          resources.clear();
+          for (const auto &image : images)
+            resources.push_back(MakeComFromPtr<IUnknown>(image.texture));
+        }
+        return result;
+      },
+      [this] { RTWaitForGpuIdle(); });
+}
+
 bool D3D12RenderBackend::RTInit() {
 #if defined(_DEBUG)
   ComObject<ID3D12Debug> debug;
@@ -101,7 +172,21 @@ bool D3D12RenderBackend::RTInit() {
   dred->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
   dred->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
 #endif
-  if (!_rtFactory) {
+  if (VR().Prepared()) {
+    ComObject<IDXGIFactory6> factory = _rtFactory;
+    if (!factory) CreateDXGIFactory2(0, IID_PPV_ARGS(factory.Assign()));
+    if (factory &&
+        SUCCEEDED(factory->EnumAdapterByLuid(VR().Requirements().Adapter,
+                                             IID_PPV_ARGS(_adapter.Assign()))))
+      _device = RTTryCreateDevice(_adapter);
+    if (!_device) {
+      VR().Fail("cannot use headset adapter", XR_ERROR_GRAPHICS_DEVICE_INVALID);
+      VR().Destroy();
+    }
+  }
+  if (_device) {
+    // The runtime adapter meets both sets of requirements.
+  } else if (!_rtFactory) {
     _device = RTTryCreateDevice(nullptr);
     if (_device) {
       ComObject<IDXGIFactory6> factory;
@@ -132,6 +217,9 @@ bool D3D12RenderBackend::RTInit() {
       }
     }
   }
+  if (!_device && _allowSoftwareAdapter && _rtFactory &&
+      SUCCEEDED(_rtFactory->EnumWarpAdapter(IID_PPV_ARGS(_adapter.Assign()))))
+    _device = RTTryCreateDevice(_adapter);
   if (!_device) {
     LOG("No adapter supports the requested D3D12 feature level and shader "
         "model",
@@ -265,6 +353,7 @@ void D3D12RenderBackend::RTReleaseSwapChain() {
 }
 
 void D3D12RenderBackend::RTUninit(bool exclusiveMode) {
+  VR().Destroy();
   RTWaitForGpuIdle();
   if (_swapChain && exclusiveMode) {
     BOOL fullscreen = FALSE;
@@ -439,8 +528,9 @@ void D3D12RenderBackend::RTSetWindowed() {
   _streamline.RTResumeFrameGeneration();
 }
 
-bool D3D12RenderBackend::RTWaitForFrame(MGDFLowLatencyMode lowLatency) {
-  if (_frameWaitable) {
+bool D3D12RenderBackend::RTWaitForFrame(MGDFLowLatencyMode lowLatency,
+                                        bool headsetPaced) {
+  if (_frameWaitable && !headsetPaced) {
     const auto result = WaitForSingleObject(_frameWaitable, 1000);
     if (result == WAIT_TIMEOUT || FAILED(RTGetDeviceRemovedReason()))
       return false;
@@ -448,7 +538,7 @@ bool D3D12RenderBackend::RTWaitForFrame(MGDFLowLatencyMode lowLatency) {
       FATALERROR(this, "Failed to wait for swapchain");
   }
   RTWaitForFence(_frameFence, _frames.PreviousFence());
-  _streamline.RTBeginFrame(lowLatency);
+  _streamline.RTBeginFrame(lowLatency, VR().HasSession());
   const UINT index = _swapChain->GetCurrentBackBufferIndex();
   auto handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
   handle.ptr += static_cast<SIZE_T>(index) * _rtvSize;

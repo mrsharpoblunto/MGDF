@@ -98,7 +98,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d11.lib;d3d12.lib;winmm.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -129,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d11.lib;d3d12.lib;winmm.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -141,6 +141,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="OpenXRTests.cpp" />
+    <ClCompile Include="OpenXRIntegrationTests.cpp" />
+    <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Include="..\..\src\core\MGDFD3D11RenderBackend.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />
@@ -177,6 +182,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\core\audio\openal\core.audio.openal.vcxproj">
       <Project>{f3930f29-c621-41ea-892c-8b5d48c5d2bb}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\openxr.runtime\openxr.runtime.vcxproj">
+      <Project>{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\src\core\common\core.common.vcxproj">

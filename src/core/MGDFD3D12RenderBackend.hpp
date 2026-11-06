@@ -16,7 +16,11 @@ class D3D12RenderBackend : public IRenderBackend {
   D3D12RenderBackend(
       const ComObject<IDXGIFactory6> &factory,
       const MGDFGraphicsRequirements &requirements,
-      std::function<void(const char *, const char *)> fatalError);
+      std::function<void(const char *, const char *)> fatalError,
+      bool allowSoftwareAdapter = false,
+      std::optional<std::wstring> streamlineDirectory = std::nullopt);
+  bool RTPrepareVR(const char *applicationName) final;
+  bool RTStartVR() final;
   bool RTInit() final;
   bool RTIsInitialized() const final;
   void RTUninit(bool exclusiveMode) final;
@@ -29,7 +33,8 @@ class D3D12RenderBackend : public IRenderBackend {
       const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) final;
   bool RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
-  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) final;
+  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency,
+                      bool headsetPaced = false) final;
   void RTWaitForGpuIdle() final;
   void RTClear() final;
   HRESULT RTPresent(UINT syncInterval, UINT flags) final;
@@ -61,6 +66,7 @@ class D3D12RenderBackend : public IRenderBackend {
   const ComObject<IDXGIFactory6> &_rtFactory;
   MGDFGraphicsRequirements _requirements;
   std::function<void(const char *, const char *)> _fatalError;
+  bool _allowSoftwareAdapter = false;
   ComObject<ID3D12Device10> _device;
   ComObject<IDXGIAdapter> _adapter;
   Streamline _streamline;

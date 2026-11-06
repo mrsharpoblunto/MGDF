@@ -46,6 +46,7 @@
     {
       "name": "directx-headers",
       "version>=": "1.619.5"
-    }
+    },
+    "openxr-loader"
   ]
 }

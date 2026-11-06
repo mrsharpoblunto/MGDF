@@ -39,8 +39,10 @@ class PendingRenderSettingsChange
   BOOL __stdcall SetLowLatencyMode(MGDFLowLatencyMode mode) final;
   BOOL __stdcall SetFrameGeneration(UINT32 generatedFrames) final;
   BOOL __stdcall SetRayTracing(BOOL enabled) final;
+  BOOL __stdcall SetVR(BOOL enabled) final;
 
  private:
+  std::optional<bool> _newVR;
   bool _cancelled;
   std::optional<MGDFLowLatencyMode> _newLowLatencyMode;
   std::optional<UINT32> _newFrameGeneration;
@@ -105,6 +107,11 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 __stdcall GetFrameGeneration() final;
   BOOL __stdcall GetRayTracingSupport(MGDFRayTracingSupport *support) final;
   BOOL __stdcall GetRayTracing() final;
+  BOOL __stdcall GetVRSupport() final;
+  BOOL __stdcall GetVR() final;
+  void InitVR(bool moduleVR, MGDFGraphicsAPI api, bool saved, bool commandLine);
+  std::optional<bool> TakeVRRequest();
+  void SetVRState(bool active);
   std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
   // Call after each device creation. Clamps the settings to the support.
   void SetGraphicsSupport(GraphicsSupport support);
@@ -147,6 +154,10 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 _screenX, _screenY;
   UINT32 _maxFrameLatency;
 
+  bool _vrSupport = false;
+  bool _vrPreference = false;
+  bool _vrActive = false;
+  std::optional<bool> _vrRequest;
   GraphicsSupport _support;
   MGDFLowLatencyMode _lowLatencyMode = MGDF_LOW_LATENCY_OFF;
   UINT32 _frameGeneration = 0;
