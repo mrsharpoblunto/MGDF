@@ -230,7 +230,8 @@ XrResult XRAPI_CALL CreateSwapchain(XrSession session,
           info->height,
           1,
           1,
-          static_cast<DXGI_FORMAT>(info->format),
+          depth ? DXGI_FORMAT_R32_TYPELESS
+                : static_cast<DXGI_FORMAT>(info->format),
           {1, 0},
           D3D11_USAGE_DEFAULT,
           static_cast<UINT>(

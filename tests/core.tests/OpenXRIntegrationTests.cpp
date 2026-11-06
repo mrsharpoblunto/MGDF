@@ -769,7 +769,13 @@ TEST_P(OpenXRIntegrationTests,
           EXPECT_EQ(XR_SUCCESS,
                     create(reinterpret_cast<XrSession>(state.Session), &info,
                            &chains[i]));
-          if (!chains[i]) return true;
+          if (!chains[i]) {
+            for (auto &chain : chains) {
+              if (chain) EXPECT_EQ(XR_SUCCESS, destroy(chain));
+              chain = XR_NULL_HANDLE;
+            }
+            return true;
+          }
           const XrSwapchainImageAcquireInfo acquireInfo{
               XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
           const XrSwapchainImageWaitInfo waitInfo{
@@ -820,6 +826,7 @@ TEST_P(OpenXRIntegrationTests,
           EXPECT_EQ(reinterpret_cast<UINT64>(&quads[i]), stats.LastLayers[i]);
           EXPECT_FLOAT_EQ(static_cast<float>(i + 1),
                           stats.LastQuads[i].pose.position.x);
+          EXPECT_FLOAT_EQ(-2.0f, stats.LastQuads[i].pose.position.z);
           EXPECT_EQ(chains[0], stats.LastQuads[i].subImage.swapchain);
         }
         for (UINT32 i = 0; i < depths.size(); ++i) {
