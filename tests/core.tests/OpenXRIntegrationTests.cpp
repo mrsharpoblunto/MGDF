@@ -161,7 +161,11 @@ class FrameLoop final : public D3DAppFramework {
     Settings->SetGraphicsSupport(backend.RTGetGraphicsSupport());
   }
   void RTOnBeforeBackBufferChange() override { ++BeforeChanges; }
-  void RTOnBackBufferChange(IRenderBackend &) override { ++AfterChanges; }
+  void RTOnBackBufferChange(IRenderBackend &backend) override {
+    ++AfterChanges;
+    EXPECT_EQ(backend.VR().HasSession() ? 48U : 0U, backend.VR().View(0).Width);
+    EXPECT_EQ(backend.VR().HasSession() ? 64U : 0U, backend.VR().View(1).Width);
+  }
   MGDFFullScreenDesc RTOnResetSwapChain(
       DXGI_SWAP_CHAIN_DESC1 &desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen,
       DXGI_COLOR_SPACE_TYPE &color, const RECT &size) override {
@@ -477,6 +481,72 @@ TEST_P(OpenXRIntegrationTests, SwitchesToTheRuntimeAdapterThroughDeviceReset) {
   }
   EXPECT_GE(runtime.Stats().SubmittedImages, 2U);
   EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  auto settings = MakeCom<RenderSettingsManager>();
+  settings->InitVR(true, GetParam(), false, true);
+  EXPECT_TRUE(settings->GetVRSupport());
+  EXPECT_EQ(std::optional<bool>(true), settings->TakeVRRequest());
+  EXPECT_EQ(0U, runtime.Stats().InstancesCreated);
+  settings->SetGraphicsSupport(
+      {.MaxGeneratedFrames = 3,
+       .LowLatencyModes = {MGDF_LOW_LATENCY_OFF, MGDF_LOW_LATENCY_BOOST}});
+  {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    settings->CreatePendingSettingsChange(change.Assign());
+    ASSERT_TRUE(change->SetFrameGeneration(2));
+    ASSERT_TRUE(change->SetLowLatencyMode(MGDF_LOW_LATENCY_BOOST));
+  }
+  settings->SetVRState(true, true);
+  EXPECT_EQ(0U, settings->GetMaxGeneratedFrames());
+  EXPECT_EQ(0U, settings->GetFrameGeneration());
+  EXPECT_EQ(MGDF_LOW_LATENCY_OFF, settings->GetCurrentLowLatencyMode());
+  ComObject<IMGDFPreferenceSet> preferences;
+  settings->GetPreferences(preferences.Assign());
+  const auto &saved =
+      static_cast<PreferenceSetImpl *>(preferences.Get())->Preferences;
+  EXPECT_EQ("0", saved.at("host.vr"));
+  EXPECT_EQ("2", saved.at("host.frameGeneration"));
+  settings->SetVRState(false, false);
+  EXPECT_EQ(3U, settings->GetMaxGeneratedFrames());
+  EXPECT_EQ(2U, settings->GetFrameGeneration());
+  EXPECT_EQ(MGDF_LOW_LATENCY_BOOST, settings->GetCurrentLowLatencyMode());
+  {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    settings->CreatePendingSettingsChange(change.Assign());
+    ASSERT_TRUE(change->SetVR(TRUE));
+    change->Cancel();
+  }
+  EXPECT_FALSE(settings->TakeVRRequest());
+}
+
+TEST_P(OpenXRIntegrationTests,
+       SuccessfulAcquireAndWaitStatusesKeepImageOwnership) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  const FakeXRConfig config{TestAdapter(), false, true, true, true};
+  runtime.Configure(&config);
+  bool rendered = false;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      if (host.Backend->VR().ViewCount() == 2) rendered = true;
+      return rendered && !host.Settings->GetVR();
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_TRUE(rendered);
+  EXPECT_EQ(2U, runtime.Stats().SubmittedImages);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+  EXPECT_EQ(0U, runtime.Stats().LiveSwapchains + runtime.Stats().LiveSessions +
+                    runtime.Stats().LiveInstances);
 }
 
 INSTANTIATE_TEST_SUITE_P(Backends, OpenXRIntegrationTests,

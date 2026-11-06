@@ -273,6 +273,28 @@ TEST(StreamlineIntegrationTests, UpscaleReproducesAConstantImage) {
       execute(list);
     }
 
+    // Each eye needs its own constants in the same frame.
+    streamline.RTBeginFrame(MGDF_LOW_LATENCY_OFF, true);
+    ASSERT_EQ(S_OK, list.Reset(allocator));
+    auto leftConstants = StaticCamera(true);
+    streamline.RTSetFrameConstants(&leftConstants);
+    auto right = desc;
+    right.View = 1;
+    EXPECT_EQ(E_ILLEGAL_METHOD_CALL, streamline.RTUpscale(list.Get(), &right));
+    auto rightConstants = leftConstants;
+    rightConstants.View = 1;
+    streamline.RTSetFrameConstants(&rightConstants);
+    ASSERT_EQ(S_OK, streamline.RTUpscale(list.Get(), &right));
+    ASSERT_EQ(S_OK, streamline.RTUpscale(list.Get(), &desc));
+    execute(list);
+    streamline.RTBeginFrame(MGDF_LOW_LATENCY_OFF);
+    ASSERT_EQ(S_OK, list.Reset(allocator));
+    EXPECT_EQ(E_INVALIDARG, streamline.RTUpscale(list.Get(), &right));
+    EXPECT_EQ(E_ILLEGAL_METHOD_CALL, streamline.RTUpscale(list.Get(), &desc));
+    streamline.RTSetFrameConstants(&leftConstants);
+    ASSERT_EQ(S_OK, streamline.RTUpscale(list.Get(), &desc));
+    execute(list);
+
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
     UINT64 bytes = 0;
     const auto outputDesc = output->GetDesc();

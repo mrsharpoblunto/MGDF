@@ -7,6 +7,8 @@ struct FakeXRConfig {
   LUID Adapter{};
   bool NoHeadset = false;
   bool ShouldRender = true;
+  bool LossPendingOnAcquire = false;
+  bool TimeoutFirstWait = false;
 };
 struct FakeXRStats {
   UINT32 InstancesCreated = 0;

@@ -30,6 +30,9 @@ class OpenXR {
       XrInstance, XrSystemId, OpenXRGraphicsRequirements &)>;
   using ImageQuery =
       std::function<XrResult(XrSwapchain, std::vector<ComObject<IUnknown>> &)>;
+  OpenXR() = default;
+  OpenXR(const OpenXR &) = delete;
+  OpenXR &operator=(const OpenXR &) = delete;
   ~OpenXR();
   static bool Available(const char *extension);
   bool Prepare(const char *extension, const RequirementsQuery &query);

@@ -154,6 +154,7 @@ Task("Dist")
 		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
+		DeleteFiles(GetFiles("../dist/tmp/**/openxr.runtime.dll"));
 		DeleteFiles(GetFiles("../dist/tmp/**/gmock.dll"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));
 

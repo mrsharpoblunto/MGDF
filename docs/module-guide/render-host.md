@@ -13,6 +13,11 @@ frame's predicted display time in LOCAL space, in metres. It uses +X right,
 view angles are in radians, with left and down negative. `Width`, `Height`,
 and `Format` describe that eye's target. Write linear color to an sRGB format.
 
+In `RTBackBufferChange`, call `GetView` for indices 0 and 1 to read the new eye
+sizes and formats and make eye-sized resources. Zero dimensions mean there are
+no eye targets. Pose and field of view are valid only during `RTDraw` when
+`GetViewCount()` is `2`.
+
 Call `GetVRFocused()` to check headset input focus. Pause headset input when
 it returns `FALSE`; do not stop the frame loop for this reason.
 

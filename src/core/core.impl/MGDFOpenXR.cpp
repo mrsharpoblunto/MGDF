@@ -86,7 +86,7 @@ void OpenXR::Fail(const char *operation, XrResult result) {
 }
 
 bool OpenXR::Check(XrResult result, const char *operation) {
-  if (XR_FAILED(result) || result == XR_SESSION_LOSS_PENDING) {
+  if (XR_FAILED(result)) {
     Fail(operation, result);
     return false;
   }
@@ -113,9 +113,13 @@ bool OpenXR::Prepare(const char *extension, const RequirementsQuery &query) {
   if (!Check(xrEnumerateEnvironmentBlendModes(
                  _instance, _system, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
                  0, &count, nullptr),
-             "get blend modes") ||
-      !count)
+             "get blend modes"))
     return false;
+  if (!count) {
+    Fail("no environment blend mode",
+         XR_ERROR_ENVIRONMENT_BLEND_MODE_UNSUPPORTED);
+    return false;
+  }
   std::vector<XrEnvironmentBlendMode> modes(count);
   if (!Check(xrEnumerateEnvironmentBlendModes(
                  _instance, _system, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
@@ -297,8 +301,11 @@ bool OpenXR::BeginFrame() {
     eye.Acquired = true;
     const XrSwapchainImageWaitInfo imageWait{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO,
                                              nullptr, XR_INFINITE_DURATION};
-    if (!Check(xrWaitSwapchainImage(eye.Swapchain, &imageWait), "wait eye"))
-      return true;
+    XrResult waited;
+    do {
+      waited = xrWaitSwapchainImage(eye.Swapchain, &imageWait);
+    } while (waited == XR_TIMEOUT_EXPIRED);
+    if (!Check(waited, "wait eye")) return true;
     eye.Waited = true;
     if (eye.Image >= eye.Images.size()) {
       Fail("invalid image index", XR_ERROR_RUNTIME_FAILURE);
@@ -385,8 +392,9 @@ void OpenXR::Destroy() {
 bool OpenXR::TakeChange() { return std::exchange(_changed, false); }
 
 MGDFView OpenXR::View(UINT32 index) const {
-  _ASSERTE(index < _viewCount);
+  _ASSERTE(index < _eyes.size());
   const auto &eye = _eyes[index];
+  if (!eye.Swapchain) return {};
   return ConvertOpenXRView(_views[index], eye.Config.recommendedImageRectWidth,
                            eye.Config.recommendedImageRectHeight, _format);
 }

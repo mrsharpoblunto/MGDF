@@ -330,11 +330,20 @@ XrResult XRAPI_CALL Acquire(XrSwapchain swapchain,
   *index = swapchain->Index;
   swapchain->Acquired = true;
   swapchain->Released = false;
+  if (Config.LossPendingOnAcquire) {
+    Config.LossPendingOnAcquire = false;
+    Events.push_back(XR_SESSION_STATE_LOSS_PENDING);
+    return XR_SESSION_LOSS_PENDING;
+  }
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL WaitImage(XrSwapchain swapchain,
                               const XrSwapchainImageWaitInfo *) {
   if (!swapchain->Acquired || swapchain->Waited) return Reject();
+  if (Config.TimeoutFirstWait) {
+    Config.TimeoutFirstWait = false;
+    return XR_TIMEOUT_EXPIRED;
+  }
   swapchain->Waited = true;
   return XR_SUCCESS;
 }

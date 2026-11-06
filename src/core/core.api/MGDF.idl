@@ -2393,8 +2393,11 @@ typedef struct MGDFView {
   UINT32 GetViewCount();
 
   /**
-  Gets an eye pose, field of view and target size for this RTDraw call
-  \param index 0 for the left eye, 1 for the right eye; less than GetViewCount
+  Gets eye target properties. In RTBackBufferChange, Width, Height and Format
+  describe the new targets; zero dimensions mean that eye targets are unavailable.
+  Pose and field of view are valid only during RTDraw when index is less than
+  GetViewCount. Use them for this frame only
+  \param index 0 for the left eye, 1 for the right eye
   \param view receives the eye data
   */
   void GetView(UINT32 index, [out] MGDFView *view);
