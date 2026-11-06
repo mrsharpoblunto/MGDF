@@ -120,3 +120,35 @@ Panel calls return `S_OK`, `E_NOTIMPL` if the runtime cannot show a panel,
 or on the wrong thread, or `E_FAIL` on runtime failure. The target getter also
 requires an eye frame. It returns `S_FALSE` and null while hidden or before
 the first panel frame, and `E_FAIL` if deferred image creation failed.
+
+## Controllers, haptics, and gaze
+
+On the sim thread, use `IMGDFInputManager::GetVRController(hand, &controller)`.
+It returns `TRUE` when that hand is connected and has input focus. The result
+has grip and aim poses, separate position and orientation validity, trigger
+and squeeze values in 0..1, stick values in -1..1, button and touch bits, and
+the active profile. Vive uses its trackpad for stick values. Missing controls
+are zero. The host supports Touch, Index, Vive, WMR, and simple controller
+bindings. A runtime can remap these controls.
+
+`VibrateVRController(hand, amplitude, seconds)` queues vibration, with amplitude
+in 0..1 and duration in (0,60] seconds. `StopVRControllerVibration(hand)` queues
+a stop. The last request for each hand before the next display frame wins.
+`TRUE` means queued; a later runtime failure is logged. Both return `FALSE`
+for invalid arguments, no session, no focus, or a disconnected controller.
+Queued vibration is discarded when focus or connection is lost.
+
+`IMGDFInputManager::GetVRGaze(&pose)` returns `TRUE` only for a current gaze
+sample with valid position and orientation. All four input-manager calls are
+safe with VR off. Failed reads return `FALSE` and zero their output. Gaze is
+unavailable when the runtime or headset lacks eye tracking.
+
+During `RTDraw`, use `GetVRControllerPose(hand, gripOrAim, &pose)` and
+`IMGDFRenderHost::GetVRGaze(&pose)` for this frame's predicted display time.
+All poses use LOCAL space, metres, +X right, +Y up, +Z forward, and quaternion
+x, y, z, w. Aim and gaze point along the rotated +Z direction. The calls return
+`S_OK`, `S_FALSE` for no tracked sample or focus, `E_INVALIDARG` for invalid
+inputs, `E_ILLEGAL_METHOD_CALL` without a session, outside an eye frame or on
+the wrong thread, or `E_FAIL` on runtime failure. Gaze returns `E_NOTIMPL`
+without eye tracking. Outputs are zero except on `S_OK`; check each validity
+flag on a controller pose.

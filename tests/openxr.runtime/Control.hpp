@@ -1,5 +1,6 @@
 #pragma once
 
+#include <MGDF/MGDF.h>
 #include <openxr/openxr.h>
 #include <windows.h>
 
@@ -14,12 +15,40 @@ struct FakeXRConfig {
   bool PanelSupport = true;
   bool FailDepth = false;
   UINT32 FailWidth = 0;
+  bool GazeExtension = false;
+  bool EyeTracking = false;
+};
+struct FakeXRInput {
+  bool Connected[2]{true, true};
+  FLOAT Trigger[2]{0.75f, 0.25f};
+  FLOAT Squeeze[2]{0.4f, 0.6f};
+  XrVector2f Stick[2]{{0.2f, -0.3f}, {-0.4f, 0.5f}};
+  UINT32 Buttons[2]{MGDF_VR_BUTTON_X | MGDF_VR_TOUCH_X | MGDF_VR_TOUCH_TRIGGER,
+                    MGDF_VR_BUTTON_A | MGDF_VR_TOUCH_A | MGDF_VR_BUTTON_STICK};
+  XrPosef Grip[2]{{{0, 0.6f, 0, 0.8f}, {-0.3f, 1.2f, -0.5f}},
+                  {{0, -0.6f, 0, 0.8f}, {0.3f, 1.2f, -0.5f}}};
+  XrPosef Aim[2]{{{0.6f, 0, 0, 0.8f}, {-0.3f, 1.3f, -0.6f}},
+                 {{0.6f, 0, 0, 0.8f}, {0.3f, 1.3f, -0.6f}}};
+  XrSpaceLocationFlags PoseFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT |
+                                   XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
+  bool GazeActive = true;
+  XrPosef Gaze{{0, 0.6f, 0, 0.8f}, {0.1f, 1.7f, -0.2f}};
+  bool FailSync = false;
 };
 struct FakeXRStats {
   XrApplicationInfo ApplicationInfo{};
   UINT32 EnabledExtensions = 0;
   bool DepthEnabled = false;
   bool MaskEnabled = false;
+  bool GazeEnabled = false;
+  UINT32 ActionSetsCreated = 0;
+  UINT32 ActionSetsAttached = 0;
+  UINT32 SuggestedProfiles = 0;
+  UINT32 ActionsSynced = 0;
+  UINT32 HapticsApplied = 0;
+  UINT32 HapticsStopped = 0;
+  UINT32 LastHapticHand = 0;
+  XrHapticVibration LastHaptic{};
   UINT32 MaskReads = 0;
   XrReferenceSpaceType PanelSpace = XR_REFERENCE_SPACE_TYPE_LOCAL;
   UINT32 LastLayerCount = 0;
@@ -49,3 +78,5 @@ using FakeXRChangeMask = void (*)(UINT32);
 using FakeXRShouldRender = void (*)(bool);
 using FakeXRGetStats = void (*)(FakeXRStats *);
 using FakeXRInstanceLoss = void (*)();
+
+using FakeXRSetInput = void (*)(const FakeXRInput *);

@@ -404,6 +404,7 @@ void Host::RTShutDown() {
 void Host::RTSetDevices(IRenderBackend &backend) {
   _vrThreadId = GetCurrentThreadId();
   _backend = &backend;
+  backend.VR().SetInputState(_input->GetVRInputState());
   auto device = backend.RTGetDevice();
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) {
     auto d3d11 = device.As<ID3D11Device>();
@@ -528,6 +529,22 @@ HRESULT Host::GetView(UINT32 index, MGDFView *view) {
                        : E_ILLEGAL_METHOD_CALL;
 }
 BOOL Host::GetVRFocused() { return RTCanCallVR() && _backend->VR().Focused(); }
+HRESULT Host::GetVRControllerPose(MGDFVRHand hand, MGDFVRControllerPose kind,
+                                  MGDFVRPose *pose) {
+  if (!pose) return E_INVALIDARG;
+  *pose = {};
+  if ((hand != MGDF_VR_HAND_LEFT && hand != MGDF_VR_HAND_RIGHT) ||
+      (kind != MGDF_VR_CONTROLLER_GRIP && kind != MGDF_VR_CONTROLLER_AIM))
+    return E_INVALIDARG;
+  return RTCanCallVR(true) ? _backend->VR().GetControllerPose(hand, kind, pose)
+                           : E_ILLEGAL_METHOD_CALL;
+}
+HRESULT Host::GetVRGaze(MGDFVRPose *pose) {
+  if (!pose) return E_INVALIDARG;
+  *pose = {};
+  return RTCanCallVR(true) ? _backend->VR().GetGaze(pose)
+                           : E_ILLEGAL_METHOD_CALL;
+}
 HRESULT Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;

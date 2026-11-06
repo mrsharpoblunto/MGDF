@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include "MGDFVRInput.hpp"
+
 namespace MGDF::core {
 
 struct OpenXRGraphicsRequirements {
@@ -20,6 +22,7 @@ struct OpenXRGraphicsRequirements {
 
 enum class OpenXRAction { Wait, Start, Run, EndSession, FallBack };
 OpenXRAction GetOpenXRAction(XrSessionState state);
+MGDFVRPose ConvertOpenXRPose(const XrPosef &pose, XrSpaceLocationFlags flags);
 MGDFView ConvertOpenXRView(const XrView &view, UINT32 width, UINT32 height,
                            DXGI_FORMAT format);
 DXGI_FORMAT SelectOpenXRFormat(
@@ -76,7 +79,54 @@ class OpenXR {
   HRESULT SetVRPanel(const MGDFVRPanel *panel);
   HRESULT GetPanelTarget(ComObject<IUnknown> &target) const;
 
+  void SetInputState(std::shared_ptr<VRInputState> input) {
+    _input = std::move(input);
+  }
+  HRESULT GetControllerPose(MGDFVRHand hand, MGDFVRControllerPose kind,
+                            MGDFVRPose *pose) const;
+  HRESULT GetGaze(MGDFVRPose *pose) const;
+
  private:
+  enum Action {
+    GripAction,
+    AimAction,
+    TriggerAction,
+    SqueezeAction,
+    StickAction,
+    AAction,
+    BAction,
+    XAction,
+    YAction,
+    StickClickAction,
+    MenuAction,
+    ATouchAction,
+    BTouchAction,
+    XTouchAction,
+    YTouchAction,
+    StickTouchAction,
+    TriggerTouchAction,
+    ThumbrestTouchAction,
+    TrackpadTouchAction,
+    TrackpadClickAction,
+    HapticAction,
+    GazeAction,
+    ActionCount
+  };
+  void CreateActions();
+  void DestroyActions();
+  void UpdateInput();
+  std::shared_ptr<VRInputState> _input = std::make_shared<VRInputState>();
+  VRInputSnapshot _inputFrame;
+  XrActionSet _actionSet = XR_NULL_HANDLE;
+  std::array<XrAction, ActionCount> _actions{};
+  std::array<XrPath, 2> _hands{};
+  std::array<XrPath, 5> _profilePaths{};
+  std::array<std::array<XrSpace, 2>, 2> _controllerSpaces{};
+  XrSpace _gazeSpace = XR_NULL_HANDLE;
+  bool _gazeSupported = false;
+  HRESULT _inputStatus = E_ILLEGAL_METHOD_CALL;
+  bool _inputErrorLogged = false;
+  bool _hapticErrorLogged = false;
   bool ExtensionEnabled(const char *name) const;
   HRESULT SessionStatus() const;
   bool Check(XrResult result, const char *operation);

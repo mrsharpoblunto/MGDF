@@ -44,6 +44,69 @@ typedef struct MGDFGraphicsRequirements {
   BOOL VR;
 } MGDFGraphicsRequirements;
 
+/** VR hands; other values are invalid */
+typedef enum MGDFVRHand {
+  MGDF_VR_HAND_LEFT = 0,
+  MGDF_VR_HAND_RIGHT = 1,
+} MGDFVRHand;
+typedef enum MGDFVRControllerPose {
+  MGDF_VR_CONTROLLER_GRIP = 0,
+  MGDF_VR_CONTROLLER_AIM = 1,
+} MGDFVRControllerPose;
+typedef enum MGDFVRControllerProfile {
+  MGDF_VR_PROFILE_NONE = 0,
+  MGDF_VR_PROFILE_TOUCH = 1,
+  MGDF_VR_PROFILE_INDEX = 2,
+  MGDF_VR_PROFILE_VIVE = 3,
+  MGDF_VR_PROFILE_WMR = 4,
+  MGDF_VR_PROFILE_SIMPLE = 5,
+  MGDF_VR_PROFILE_OTHER = 6,
+} MGDFVRControllerProfile;
+typedef enum MGDFVRButton {
+  MGDF_VR_BUTTON_A = 1,
+  MGDF_VR_BUTTON_B = 2,
+  MGDF_VR_BUTTON_X = 4,
+  MGDF_VR_BUTTON_Y = 8,
+  MGDF_VR_BUTTON_STICK = 16,
+  MGDF_VR_BUTTON_MENU = 32,
+  MGDF_VR_TOUCH_A = 64,
+  MGDF_VR_TOUCH_B = 128,
+  MGDF_VR_TOUCH_X = 256,
+  MGDF_VR_TOUCH_Y = 512,
+  MGDF_VR_TOUCH_STICK = 1024,
+  MGDF_VR_TOUCH_TRIGGER = 2048,
+  MGDF_VR_TOUCH_THUMBREST = 4096,
+  MGDF_VR_TOUCH_TRACKPAD = 8192,
+  MGDF_VR_BUTTON_TRACKPAD = 16384,
+} MGDFVRButton;
+/**
+Pose in LOCAL space, in metres: +X right, +Y up, +Z forward. Quaternion is
+x, y, z, w. Check validity separately for position and orientation. Invalid
+components are zero. Gaze and aim point along the pose's rotated +Z axis
+*/
+typedef struct MGDFVRPose {
+  FLOAT Position[3];
+  FLOAT Orientation[4];
+  BOOL PositionValid;
+  BOOL OrientationValid;
+} MGDFVRPose;
+/**
+Latest controller sample. Disconnected state is all zero. Analog controls
+not present in the active profile are zero, and missing buttons have no bits set
+*/
+typedef struct MGDFVRController {
+  BOOL Connected;
+  MGDFVRControllerProfile Profile;
+  MGDFVRPose Grip;
+  MGDFVRPose Aim;
+  FLOAT Trigger;
+  FLOAT Squeeze;
+  /** -1 to 1; Vive uses its trackpad */
+  FLOAT StickX;
+  FLOAT StickY;
+  UINT32 Buttons;
+} MGDFVRController;
+
 /**
 The current back buffer properties, independent of the graphics API
 */
@@ -375,6 +438,34 @@ from the mouse, keyboard, and xinput controllers
   uuid("98EC499D-5359-4902-8BA9-6E36686E9898"), object,
   local
 ] interface IMGDFInputManager : IUnknown {
+  /**
+  Gets the latest controller sample for the sim thread. Safe with VR off.
+  \return TRUE when connected with input focus; FALSE for no session, missing
+  input, no focus, invalid hand or null output. Non-null output is zero on FALSE
+  */
+  BOOL GetVRController(MGDFVRHand hand, [out] MGDFVRController *controller);
+  /**
+  Queues controller vibration. Amplitude is 0..1; duration is (0,60] seconds.
+  The most recent vibration or stop request for a hand before the next display
+  frame replaces earlier requests for that hand. Safe with VR off
+  \return TRUE when queued; FALSE for invalid values, no session, no input focus
+  or no connected controller. Runtime failure after queuing is logged
+  */
+  BOOL VibrateVRController(MGDFVRHand hand, FLOAT amplitude, FLOAT seconds);
+  /**
+  Queues a stop of controller vibration. Safe with VR off
+  \return TRUE when queued; FALSE for invalid hand, no session, no input focus
+  or no connected controller. Runtime failure after queuing is logged
+  */
+  BOOL StopVRControllerVibration(MGDFVRHand hand);
+  /**
+  Gets the latest valid eye gaze sample for the sim thread. Safe with VR off
+  \return TRUE with position and orientation; FALSE for no session, no input
+  focus, unavailable eye tracking, no current sample or null output.
+  Non-null output is zero on FALSE
+  */
+  BOOL GetVRGaze([out] MGDFVRPose *pose);
+
   /**
   determines whether the OS cursor is displayed or not
   \param show Whether to show the cursor or not
@@ -2434,6 +2525,23 @@ typedef struct MGDFVRPanel {
   \return TRUE only while the headset session has input focus
   */
   BOOL GetVRFocused();
+  /**
+  Gets a grip or aim pose at this RTDraw's predicted display time, in LOCAL space
+  \return S_OK with valid components; S_FALSE if disconnected, unfocused or
+  untracked; E_INVALIDARG for invalid hand, pose kind or null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL on runtime failure. The output is zero except on S_OK
+  */
+  HRESULT GetVRControllerPose(MGDFVRHand hand, MGDFVRControllerPose kind,
+                              [out] MGDFVRPose *pose);
+  /**
+  Gets eye gaze at this RTDraw's predicted display time, in LOCAL space
+  \return S_OK with position and orientation; S_FALSE for no current sample or
+  no focus; E_NOTIMPL without eye tracking; E_INVALIDARG for a null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL on runtime failure. The output is zero except on S_OK
+  */
+  HRESULT GetVRGaze([out] MGDFVRPose *pose);
 
   /**
   Gets the hidden triangle mesh for eye 0 or 1 on the render thread. Counts are

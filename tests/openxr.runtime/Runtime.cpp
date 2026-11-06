@@ -11,6 +11,7 @@
 #include <array>
 #include <cstring>
 #include <deque>
+#include <string>
 #include <vector>
 
 #include "Control.hpp"
@@ -18,10 +19,19 @@
 using namespace MGDF;
 
 struct XrInstance_T {};
+struct XrAction_T {
+  std::string Name;
+  XrActionType Type;
+  bool TouchHands[2]{};
+};
+struct XrActionSet_T {
+  std::vector<std::unique_ptr<XrAction_T>> Actions;
+};
 struct XrSession_T {
   ComObject<ID3D11Device> Device11;
   ComObject<ID3D12Device> Device12;
   ComObject<ID3D12CommandQueue> Queue;
+  bool Attached = false;
   bool Running = false;
   bool Waited = false;
   bool Begun = false;
@@ -30,6 +40,8 @@ struct XrSession_T {
 struct XrSpace_T {
   XrSession Session;
   XrReferenceSpaceType Type = XR_REFERENCE_SPACE_TYPE_LOCAL;
+  XrAction Action = XR_NULL_HANDLE;
+  XrPath Hand = XR_NULL_PATH;
 };
 struct XrSwapchain_T {
   XrSwapchainCreateInfo Info{};
@@ -43,6 +55,8 @@ struct XrSwapchain_T {
 
 namespace {
 FakeXRConfig Config;
+FakeXRInput Input;
+std::vector<std::string> Paths;
 FakeXRStats Stats;
 XrSession Session = XR_NULL_HANDLE;
 struct Event {
@@ -82,6 +96,8 @@ XrResult XRAPI_CALL EnumerateExtensions(const char *, uint32_t capacity,
     names.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
   if (Config.MaskExtension)
     names.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
+  if (Config.GazeExtension)
+    names.push_back(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME);
   *count = static_cast<UINT32>(names.size());
   if (!capacity) return XR_SUCCESS;
   if (capacity < *count) return XR_ERROR_SIZE_INSUFFICIENT;
@@ -96,7 +112,7 @@ XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
                                    XrInstance *instance) {
   Stats.ApplicationInfo = info->applicationInfo;
   Stats.EnabledExtensions = info->enabledExtensionCount;
-  Stats.DepthEnabled = Stats.MaskEnabled = false;
+  Stats.DepthEnabled = Stats.MaskEnabled = Stats.GazeEnabled = false;
   for (UINT32 i = 0; i < info->enabledExtensionCount; ++i) {
     const auto name = info->enabledExtensionNames[i];
     if (strcmp(name, XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME) == 0 &&
@@ -105,6 +121,9 @@ XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
     } else if (strcmp(name, XR_KHR_VISIBILITY_MASK_EXTENSION_NAME) == 0 &&
                Config.MaskExtension) {
       Stats.MaskEnabled = true;
+    } else if (strcmp(name, XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME) == 0 &&
+               Config.GazeExtension) {
+      Stats.GazeEnabled = true;
     } else if (strcmp(name, XR_KHR_D3D11_ENABLE_EXTENSION_NAME) != 0 &&
                strcmp(name, XR_KHR_D3D12_ENABLE_EXTENSION_NAME) != 0) {
       return XR_ERROR_EXTENSION_NOT_PRESENT;
@@ -474,6 +493,187 @@ XrResult XRAPI_CALL EndFrame(XrSession session, const XrFrameEndInfo *info) {
   return XR_SUCCESS;
 }
 
+XrResult XRAPI_CALL StringToPath(XrInstance, const char *text, XrPath *path) {
+  for (size_t i = 0; i < Paths.size(); ++i)
+    if (Paths[i] == text) {
+      *path = i + 1;
+      return XR_SUCCESS;
+    }
+  Paths.emplace_back(text);
+  *path = Paths.size();
+  return XR_SUCCESS;
+}
+const std::string &PathText(XrPath path) {
+  static const std::string empty;
+  return path && path <= Paths.size() ? Paths[path - 1] : empty;
+}
+UINT32 Hand(XrPath path) {
+  return PathText(path) == "/user/hand/right" ? 1U : 0U;
+}
+XrResult XRAPI_CALL CreateActionSet(XrInstance, const XrActionSetCreateInfo *,
+                                    XrActionSet *set) {
+  *set = new XrActionSet_T;
+  ++Stats.ActionSetsCreated;
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL DestroyActionSet(XrActionSet set) {
+  delete set;
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL CreateAction(XrActionSet set,
+                                 const XrActionCreateInfo *info,
+                                 XrAction *action) {
+  auto item = std::make_unique<XrAction_T>();
+  item->Name = info->actionName;
+  item->Type = info->actionType;
+  if (info->countSubactionPaths != (item->Name == "gaze" ? 0U : 2U))
+    return Reject();
+  *action = item.get();
+  set->Actions.push_back(std::move(item));
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL DestroyAction(XrAction) { return Reject(); }
+XrResult XRAPI_CALL
+SuggestBindings(XrInstance, const XrInteractionProfileSuggestedBinding *info) {
+  if (!info->countSuggestedBindings) return Reject();
+  const auto &profile = PathText(info->interactionProfile);
+  ++Stats.SuggestedProfiles;
+  for (UINT32 i = 0; i < info->countSuggestedBindings; ++i) {
+    const auto &binding = info->suggestedBindings[i];
+    const auto &path = PathText(binding.binding);
+    if (!binding.action || path.empty()) return Reject();
+    if (profile == "/interaction_profiles/oculus/touch_controller") {
+      // The Touch profile has X/Y/menu only on the left and A/B only on the
+      // right.
+      const bool left = path.starts_with("/user/hand/left/");
+      if ((left &&
+           (path.ends_with("/a/click") || path.ends_with("/b/click") ||
+            path.ends_with("/a/touch") || path.ends_with("/b/touch"))) ||
+          (!left && (path.ends_with("/x/click") || path.ends_with("/y/click") ||
+                     path.ends_with("/x/touch") || path.ends_with("/y/touch") ||
+                     path.ends_with("/menu/click"))))
+        return Reject();
+      binding.action->TouchHands[left ? 0 : 1] = true;
+    }
+  }
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL AttachActions(XrSession session,
+                                  const XrSessionActionSetsAttachInfo *info) {
+  if (session->Attached || info->countActionSets != 1) return Reject();
+  session->Attached = true;
+  ++Stats.ActionSetsAttached;
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL CreateActionSpace(XrSession session,
+                                      const XrActionSpaceCreateInfo *info,
+                                      XrSpace *space) {
+  if (!session->Attached || !info->action ||
+      info->action->Type != XR_ACTION_TYPE_POSE_INPUT)
+    return Reject();
+  *space = new XrSpace_T{session, XR_REFERENCE_SPACE_TYPE_LOCAL, info->action,
+                         info->subactionPath};
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL SyncActions(XrSession session,
+                                const XrActionsSyncInfo *info) {
+  if (!session->Attached || !session->Begun || info->countActiveActionSets != 1)
+    return Reject();
+  if (Input.FailSync) return XR_ERROR_RUNTIME_FAILURE;
+  if (session->State != XR_SESSION_STATE_FOCUSED) return XR_SESSION_NOT_FOCUSED;
+  ++Stats.ActionsSynced;
+  return XR_SUCCESS;
+}
+bool Active(const XrActionStateGetInfo *info) {
+  return info->action && Input.Connected[Hand(info->subactionPath)] &&
+         info->action->TouchHands[Hand(info->subactionPath)];
+}
+XrResult XRAPI_CALL ActionPose(XrSession, const XrActionStateGetInfo *info,
+                               XrActionStatePose *state) {
+  if (!info->action || info->action->Type != XR_ACTION_TYPE_POSE_INPUT)
+    return Reject();
+  state->isActive =
+      info->action->Name == "gaze" ? Input.GazeActive : Active(info);
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL ActionFloat(XrSession, const XrActionStateGetInfo *info,
+                                XrActionStateFloat *state) {
+  if (!info->action || info->action->Type != XR_ACTION_TYPE_FLOAT_INPUT)
+    return Reject();
+  state->isActive = Active(info);
+  state->currentState = info->action->Name == "trigger"
+                            ? Input.Trigger[Hand(info->subactionPath)]
+                            : Input.Squeeze[Hand(info->subactionPath)];
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL ActionVector(XrSession, const XrActionStateGetInfo *info,
+                                 XrActionStateVector2f *state) {
+  if (!info->action || info->action->Type != XR_ACTION_TYPE_VECTOR2F_INPUT)
+    return Reject();
+  state->isActive = Active(info);
+  state->currentState = Input.Stick[Hand(info->subactionPath)];
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL ActionBool(XrSession, const XrActionStateGetInfo *info,
+                               XrActionStateBoolean *state) {
+  if (!info->action || info->action->Type != XR_ACTION_TYPE_BOOLEAN_INPUT)
+    return Reject();
+  static const std::pair<const char *, UINT32> bits[] = {
+      {"a", MGDF_VR_BUTTON_A},
+      {"b", MGDF_VR_BUTTON_B},
+      {"x", MGDF_VR_BUTTON_X},
+      {"y", MGDF_VR_BUTTON_Y},
+      {"stick_click", MGDF_VR_BUTTON_STICK},
+      {"menu", MGDF_VR_BUTTON_MENU},
+      {"a_touch", MGDF_VR_TOUCH_A},
+      {"b_touch", MGDF_VR_TOUCH_B},
+      {"x_touch", MGDF_VR_TOUCH_X},
+      {"y_touch", MGDF_VR_TOUCH_Y},
+      {"stick_touch", MGDF_VR_TOUCH_STICK},
+      {"trigger_touch", MGDF_VR_TOUCH_TRIGGER},
+      {"thumbrest_touch", MGDF_VR_TOUCH_THUMBREST},
+      {"trackpad_touch", MGDF_VR_TOUCH_TRACKPAD},
+      {"trackpad_click", MGDF_VR_BUTTON_TRACKPAD}};
+  state->isActive = Active(info);
+  state->currentState = XR_FALSE;
+  for (const auto &[name, bit] : bits)
+    if (info->action->Name == name)
+      state->currentState =
+          (Input.Buttons[Hand(info->subactionPath)] & bit) != 0;
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL CurrentProfile(XrSession, XrPath hand,
+                                   XrInteractionProfileState *state) {
+  if (!Input.Connected[Hand(hand)]) {
+    state->interactionProfile = XR_NULL_PATH;
+    return XR_SUCCESS;
+  }
+  return StringToPath(XR_NULL_HANDLE,
+                      "/interaction_profiles/oculus/touch_controller",
+                      &state->interactionProfile);
+}
+XrResult XRAPI_CALL ApplyHaptic(XrSession session,
+                                const XrHapticActionInfo *info,
+                                const XrHapticBaseHeader *header) {
+  if (session->State != XR_SESSION_STATE_FOCUSED || !info->action ||
+      info->action->Type != XR_ACTION_TYPE_VIBRATION_OUTPUT ||
+      header->type != XR_TYPE_HAPTIC_VIBRATION)
+    return Reject();
+  Stats.LastHaptic = *reinterpret_cast<const XrHapticVibration *>(header);
+  Stats.LastHapticHand = Hand(info->subactionPath);
+  ++Stats.HapticsApplied;
+  return XR_SUCCESS;
+}
+XrResult XRAPI_CALL StopHaptic(XrSession session,
+                               const XrHapticActionInfo *info) {
+  if (session->State != XR_SESSION_STATE_FOCUSED || !info->action ||
+      info->action->Type != XR_ACTION_TYPE_VIBRATION_OUTPUT)
+    return Reject();
+  Stats.LastHapticHand = Hand(info->subactionPath);
+  ++Stats.HapticsStopped;
+  return XR_SUCCESS;
+}
+
 XrResult XRAPI_CALL LocateSpace(XrSpace space, XrSpace base, XrTime time,
                                 XrSpaceLocation *location) {
   if (!space || !base || space->Session != Session ||
@@ -483,6 +683,13 @@ XrResult XRAPI_CALL LocateSpace(XrSpace space, XrSpace base, XrTime time,
   location->locationFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT |
                             XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
   location->pose = {{0, 0, 0, 1}, {0, 0, 0}};
+  if (space->Action) {
+    location->locationFlags = Input.PoseFlags;
+    const auto hand = Hand(space->Hand);
+    location->pose = space->Action->Name == "gaze"   ? Input.Gaze
+                     : space->Action->Name == "grip" ? Input.Grip[hand]
+                                                     : Input.Aim[hand];
+  }
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL GetSystemProperties(XrInstance, XrSystemId system,
@@ -490,6 +697,14 @@ XrResult XRAPI_CALL GetSystemProperties(XrInstance, XrSystemId system,
   if (system != 1) return Reject();
   properties->systemId = system;
   strcpy_s(properties->systemName, "MGDF integration headset");
+  if (properties->next) {
+    auto gaze = static_cast<XrSystemEyeGazeInteractionPropertiesEXT *>(
+        properties->next);
+    if (!Stats.GazeEnabled ||
+        gaze->type != XR_TYPE_SYSTEM_EYE_GAZE_INTERACTION_PROPERTIES_EXT)
+      return Reject();
+    gaze->supportsEyeGazeInteraction = Config.EyeTracking;
+  }
   properties->graphicsProperties = {1024, 1024, Config.PanelSupport ? 4U : 1U};
   return XR_SUCCESS;
 }
@@ -560,6 +775,22 @@ XrResult XRAPI_CALL GetProc(XrInstance, const char *name,
   ENTRY("xrWaitSwapchainImage", WaitImage)
   ENTRY("xrReleaseSwapchainImage", Release)
   ENTRY("xrEndFrame", EndFrame)
+  ENTRY("xrStringToPath", StringToPath)
+  ENTRY("xrCreateActionSet", CreateActionSet)
+  ENTRY("xrDestroyActionSet", DestroyActionSet)
+  ENTRY("xrCreateAction", CreateAction)
+  ENTRY("xrDestroyAction", DestroyAction)
+  ENTRY("xrSuggestInteractionProfileBindings", SuggestBindings)
+  ENTRY("xrAttachSessionActionSets", AttachActions)
+  ENTRY("xrCreateActionSpace", CreateActionSpace)
+  ENTRY("xrSyncActions", SyncActions)
+  ENTRY("xrGetActionStatePose", ActionPose)
+  ENTRY("xrGetActionStateFloat", ActionFloat)
+  ENTRY("xrGetActionStateVector2f", ActionVector)
+  ENTRY("xrGetActionStateBoolean", ActionBool)
+  ENTRY("xrGetCurrentInteractionProfile", CurrentProfile)
+  ENTRY("xrApplyHapticFeedback", ApplyHaptic)
+  ENTRY("xrStopHapticFeedback", StopHaptic)
 #undef ENTRY
   *function = nullptr;
   return XR_ERROR_FUNCTION_UNSUPPORTED;
@@ -597,6 +828,8 @@ extern "C" __declspec(dllexport) void Configure(const FakeXRConfig *config) {
   RetiredSessions.clear();
   RetiredSpaces.clear();
   Config = *config;
+  Input = {};
+  Paths.clear();
   Stats = {};
   Events.clear();
   InstanceLost = false;
@@ -616,4 +849,8 @@ extern "C" __declspec(dllexport) void LoseInstance() { InstanceLost = true; }
 extern "C" __declspec(dllexport) void ChangeMask(UINT32 mode) {
   MaskMode = mode;
   Events.push_back({XR_SESSION_STATE_UNKNOWN, true});
+}
+
+extern "C" __declspec(dllexport) void SetInput(const FakeXRInput *input) {
+  Input = *input;
 }

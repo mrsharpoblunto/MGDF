@@ -12,6 +12,7 @@
 #include "../../src/core/common/MGDFVersionHelper.hpp"
 #include "../../src/core/common/MGDFVersionInfo.hpp"
 #include "../../src/core/core.impl/MGDFRenderSettingsManagerImpl.hpp"
+#include "../../src/core/input/xinput/XInputManagerComponent.hpp"
 #include "../openxr.runtime/Control.hpp"
 
 using namespace MGDF;
@@ -44,6 +45,8 @@ class Runtime {
         reinterpret_cast<FakeXRGetStats>(GetProcAddress(Library, "GetStats"));
     ChangeMask = reinterpret_cast<FakeXRChangeMask>(
         GetProcAddress(Library, "ChangeMask"));
+    SetInput =
+        reinterpret_cast<FakeXRSetInput>(GetProcAddress(Library, "SetInput"));
     LoseInstance = reinterpret_cast<FakeXRInstanceLoss>(
         GetProcAddress(Library, "LoseInstance"));
   }
@@ -63,6 +66,7 @@ class Runtime {
   FakeXRShouldRender ShouldRender = nullptr;
   FakeXRGetStats Read = nullptr;
   FakeXRInstanceLoss LoseInstance = nullptr;
+  FakeXRSetInput SetInput = nullptr;
 
  private:
   std::string Previous;
@@ -114,6 +118,7 @@ class FrameLoop final : public D3DAppFramework {
   std::function<bool(FrameLoop &)> Step;
   std::string ApplicationName = "MGDF OpenXR integration test";
   IRenderBackend *Backend = nullptr;
+  ComObject<input::IInputManagerComponent> Input;
   const MGDFGraphicsAPI API;
   ComObject<RenderSettingsManager> Settings;
   std::vector<UINT32> Views;
@@ -155,6 +160,7 @@ class FrameLoop final : public D3DAppFramework {
   void RTOnDeviceReset() override { ++DeviceResets; }
   void RTOnInitDevice(IRenderBackend &backend) override {
     Backend = &backend;
+    if (Input) backend.VR().SetInputState(Input->GetVRInputState());
     if (API == MGDF_GRAPHICS_API_D3D12) {
       Settings->InitD3D12();
       Device12 = backend.RTGetDevice().As<ID3D12Device>();
@@ -797,6 +803,207 @@ TEST_P(OpenXRIntegrationTests,
       EXPECT_EQ(0U, loop.FatalErrors.load());
     }
     EXPECT_EQ(2U, phase);
+    EXPECT_EQ(0U, runtime.Stats().Errors);
+  }
+}
+
+TEST_P(OpenXRIntegrationTests,
+       ControllersPublishConvertedStateAndDeliverQueuedHaptics) {
+  Runtime runtime;
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  FakeXRInput input;
+  UINT32 phase = 0;
+  {
+    FrameLoop loop(GetParam(), true);
+    ASSERT_TRUE(input::xinput::CreateInputManagerComponent(loop.Input));
+    MGDFVRController disconnected{};
+    MGDFVRPose noGaze{};
+    EXPECT_FALSE(loop.Input->GetVRController(MGDF_VR_HAND_LEFT, &disconnected));
+    EXPECT_FALSE(loop.Input->GetVRGaze(&noGaze));
+    EXPECT_FALSE(loop.Input->VibrateVRController(MGDF_VR_HAND_LEFT, 1, 0.1f));
+    EXPECT_FALSE(loop.Input->StopVRControllerVibration(MGDF_VR_HAND_LEFT));
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      MGDFVRController controller{};
+      MGDFVRPose pose{};
+      EXPECT_EQ(E_INVALIDARG,
+                vr.GetControllerPose(static_cast<MGDFVRHand>(2),
+                                     MGDF_VR_CONTROLLER_GRIP, &pose));
+      EXPECT_EQ(E_INVALIDARG,
+                vr.GetControllerPose(MGDF_VR_HAND_LEFT, MGDF_VR_CONTROLLER_GRIP,
+                                     nullptr));
+      EXPECT_EQ(E_INVALIDARG, vr.GetGaze(nullptr));
+      EXPECT_FALSE(
+          host.Input->GetVRController(static_cast<MGDFVRHand>(2), &controller));
+      EXPECT_FALSE(host.Input->GetVRController(MGDF_VR_HAND_LEFT, nullptr));
+      EXPECT_FALSE(host.Input->GetVRGaze(nullptr));
+      if (phase == 0) {
+        EXPECT_EQ(E_ILLEGAL_METHOD_CALL,
+                  vr.GetControllerPose(MGDF_VR_HAND_LEFT,
+                                       MGDF_VR_CONTROLLER_GRIP, &pose));
+        EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetGaze(&pose));
+        host.RequestVR(true);
+        ++phase;
+      } else if (phase == 1 && vr.ViewCount()) {
+        EXPECT_TRUE(
+            host.Input->GetVRController(MGDF_VR_HAND_LEFT, &controller));
+        EXPECT_EQ(MGDF_VR_PROFILE_TOUCH, controller.Profile);
+        EXPECT_TRUE(controller.Grip.PositionValid);
+        EXPECT_TRUE(controller.Aim.OrientationValid);
+        EXPECT_FLOAT_EQ(0.5f, controller.Grip.Position[2]);
+        EXPECT_FLOAT_EQ(-0.6f, controller.Grip.Orientation[1]);
+        EXPECT_FLOAT_EQ(0.75f, controller.Trigger);
+        EXPECT_FLOAT_EQ(0.4f, controller.Squeeze);
+        EXPECT_FLOAT_EQ(0.2f, controller.StickX);
+        EXPECT_FLOAT_EQ(-0.3f, controller.StickY);
+        EXPECT_EQ(input.Buttons[0], controller.Buttons);
+        EXPECT_EQ(S_OK, vr.GetControllerPose(MGDF_VR_HAND_LEFT,
+                                             MGDF_VR_CONTROLLER_AIM, &pose));
+        EXPECT_FLOAT_EQ(0.6f, pose.Position[2]);
+        EXPECT_FLOAT_EQ(-0.6f, pose.Orientation[0]);
+        EXPECT_EQ(E_NOTIMPL, vr.GetGaze(&pose));
+        EXPECT_FALSE(host.Input->GetVRGaze(&pose));
+        EXPECT_FALSE(
+            host.Input->VibrateVRController(MGDF_VR_HAND_LEFT, 2, 0.1f));
+        EXPECT_FALSE(host.Input->VibrateVRController(MGDF_VR_HAND_LEFT, 1, 0));
+        EXPECT_FALSE(
+            host.Input->VibrateVRController(MGDF_VR_HAND_LEFT, NAN, 0.1f));
+        std::thread sim([&] {
+          MGDFVRController right{};
+          EXPECT_TRUE(host.Input->GetVRController(MGDF_VR_HAND_RIGHT, &right));
+          EXPECT_EQ(input.Buttons[1], right.Buttons);
+          EXPECT_TRUE(
+              host.Input->VibrateVRController(MGDF_VR_HAND_RIGHT, 0.6f, 0.25f));
+          MGDFVRPose wrong{};
+          EXPECT_EQ(E_ILLEGAL_METHOD_CALL,
+                    vr.GetControllerPose(MGDF_VR_HAND_LEFT,
+                                         MGDF_VR_CONTROLLER_GRIP, &wrong));
+          EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetGaze(&wrong));
+        });
+        sim.join();
+        ++phase;
+      } else if (phase == 2) {
+        const auto stats = runtime.Stats();
+        EXPECT_EQ(1U, stats.HapticsApplied);
+        EXPECT_EQ(1U, stats.LastHapticHand);
+        EXPECT_FLOAT_EQ(0.6f, stats.LastHaptic.amplitude);
+        EXPECT_EQ(250000000, stats.LastHaptic.duration);
+        EXPECT_TRUE(host.Input->StopVRControllerVibration(MGDF_VR_HAND_RIGHT));
+        ++phase;
+      } else if (phase == 3) {
+        EXPECT_EQ(1U, runtime.Stats().HapticsStopped);
+        runtime.Push(XR_SESSION_STATE_VISIBLE);
+        ++phase;
+      } else if (phase == 4) {
+        EXPECT_FALSE(
+            host.Input->GetVRController(MGDF_VR_HAND_LEFT, &controller));
+        EXPECT_EQ(0U, controller.Buttons);
+        EXPECT_FALSE(controller.Grip.PositionValid);
+        EXPECT_EQ(S_FALSE,
+                  vr.GetControllerPose(MGDF_VR_HAND_LEFT,
+                                       MGDF_VR_CONTROLLER_GRIP, &pose));
+        EXPECT_FALSE(
+            host.Input->VibrateVRController(MGDF_VR_HAND_LEFT, 1, 0.1f));
+        EXPECT_FALSE(host.Input->StopVRControllerVibration(MGDF_VR_HAND_LEFT));
+        runtime.Push(XR_SESSION_STATE_FOCUSED);
+        input.Connected[0] = false;
+        runtime.SetInput(&input);
+        ++phase;
+      } else if (phase == 5) {
+        EXPECT_FALSE(
+            host.Input->GetVRController(MGDF_VR_HAND_LEFT, &controller));
+        EXPECT_TRUE(
+            host.Input->GetVRController(MGDF_VR_HAND_RIGHT, &controller));
+        EXPECT_EQ(S_FALSE,
+                  vr.GetControllerPose(MGDF_VR_HAND_LEFT,
+                                       MGDF_VR_CONTROLLER_GRIP, &pose));
+        input.FailSync = true;
+        runtime.SetInput(&input);
+        ++phase;
+      } else if (phase == 6) {
+        EXPECT_EQ(E_FAIL, vr.GetControllerPose(MGDF_VR_HAND_RIGHT,
+                                               MGDF_VR_CONTROLLER_GRIP, &pose));
+        EXPECT_FALSE(
+            host.Input->GetVRController(MGDF_VR_HAND_RIGHT, &controller));
+        EXPECT_EQ(0U, controller.Buttons);
+        ++phase;
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+    EXPECT_EQ(1U, runtime.Stats().ActionSetsAttached);
+    EXPECT_EQ(5U, runtime.Stats().SuggestedProfiles);
+  }
+  EXPECT_EQ(7U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests,
+       GazeRequiresDeviceSupportAndAValidCurrentSample) {
+  Runtime runtime;
+  for (const bool tracking : {false, true}) {
+    FakeXRConfig config{TestAdapter()};
+    config.GazeExtension = true;
+    config.EyeTracking = tracking;
+    runtime.Configure(&config);
+    FakeXRInput input;
+    UINT32 phase = 0;
+    {
+      FrameLoop loop(GetParam(), true, true);
+      ASSERT_TRUE(input::xinput::CreateInputManagerComponent(loop.Input));
+      loop.Step = [&](auto &host) {
+        auto &vr = host.Backend->VR();
+        if (!vr.ViewCount()) return false;
+        MGDFVRPose pose{};
+        if (!tracking) {
+          EXPECT_EQ(E_NOTIMPL, vr.GetGaze(&pose));
+          EXPECT_FALSE(host.Input->GetVRGaze(&pose));
+          ++phase;
+          return true;
+        }
+        if (phase == 0) {
+          EXPECT_EQ(S_OK, vr.GetGaze(&pose));
+          EXPECT_TRUE(pose.OrientationValid);
+          EXPECT_FLOAT_EQ(0.2f, pose.Position[2]);
+          EXPECT_FLOAT_EQ(-0.6f, pose.Orientation[1]);
+          EXPECT_TRUE(host.Input->GetVRGaze(&pose));
+          EXPECT_FLOAT_EQ(0.2f, pose.Position[2]);
+          input.GazeActive = false;
+          runtime.SetInput(&input);
+        } else if (phase == 1) {
+          EXPECT_EQ(S_FALSE, vr.GetGaze(&pose));
+          EXPECT_FALSE(host.Input->GetVRGaze(&pose));
+          EXPECT_FALSE(pose.PositionValid);
+          input.GazeActive = true;
+          input.PoseFlags = XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
+          runtime.SetInput(&input);
+        } else if (phase == 2) {
+          EXPECT_EQ(S_FALSE, vr.GetGaze(&pose));
+          EXPECT_FALSE(host.Input->GetVRGaze(&pose));
+          EXPECT_EQ(S_OK, vr.GetControllerPose(MGDF_VR_HAND_LEFT,
+                                               MGDF_VR_CONTROLLER_GRIP, &pose));
+          EXPECT_FALSE(pose.PositionValid);
+          EXPECT_TRUE(pose.OrientationValid);
+          input.FailSync = true;
+          runtime.SetInput(&input);
+        } else if (phase == 3) {
+          EXPECT_EQ(E_FAIL, vr.GetGaze(&pose));
+          EXPECT_FALSE(host.Input->GetVRGaze(&pose));
+          ++phase;
+          return true;
+        }
+        ++phase;
+        return false;
+      };
+      loop.Execute();
+      EXPECT_FALSE(loop.TimedOut);
+      EXPECT_EQ(0U, loop.FatalErrors.load());
+    }
+    EXPECT_EQ(tracking ? 4U : 1U, phase);
     EXPECT_EQ(0U, runtime.Stats().Errors);
   }
 }

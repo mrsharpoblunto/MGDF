@@ -32,9 +32,12 @@ OpenXRAction GetOpenXRAction(XrSessionState state) {
 
 MGDFView ConvertOpenXRView(const XrView &view, UINT32 width, UINT32 height,
                            DXGI_FORMAT format) {
-  return {{view.pose.position.x, view.pose.position.y, -view.pose.position.z},
-          {-view.pose.orientation.x, -view.pose.orientation.y,
-           view.pose.orientation.z, view.pose.orientation.w},
+  const auto pose =
+      ConvertOpenXRPose(view.pose, XR_SPACE_LOCATION_POSITION_VALID_BIT |
+                                       XR_SPACE_LOCATION_ORIENTATION_VALID_BIT);
+  return {{pose.Position[0], pose.Position[1], pose.Position[2]},
+          {pose.Orientation[0], pose.Orientation[1], pose.Orientation[2],
+           pose.Orientation[3]},
           view.fov.angleLeft,
           view.fov.angleRight,
           view.fov.angleUp,
@@ -85,6 +88,8 @@ void OpenXR::Fail(const char *operation, XrResult result) {
         MGDF_LOG_LOW);
   }
   _fallback = true;
+  _inputFrame = {};
+  _input->Publish(_inputFrame);
   _changed = true;
   _viewCount = 0;
 }
@@ -135,7 +140,8 @@ bool OpenXR::Prepare(const char *extension, const char *applicationName,
     return false;
   _extensions = {extension};
   for (const auto name : {XR_KHR_VISIBILITY_MASK_EXTENSION_NAME,
-                          XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME}) {
+                          XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME,
+                          XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME}) {
     if (std::ranges::any_of(properties, [name](const auto &property) {
           return strcmp(property.extensionName, name) == 0;
         }))
@@ -152,9 +158,16 @@ bool OpenXR::Prepare(const char *extension, const char *applicationName,
   if (!Check(xrGetSystem(_instance, &system, &_system), "get headset") ||
       !Check(query(_instance, _system, _requirements), "graphics requirements"))
     return false;
+  XrSystemEyeGazeInteractionPropertiesEXT gaze{
+      XR_TYPE_SYSTEM_EYE_GAZE_INTERACTION_PROPERTIES_EXT};
+  _systemProperties.next =
+      ExtensionEnabled(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME) ? &gaze
+                                                                   : nullptr;
   if (!Check(xrGetSystemProperties(_instance, _system, &_systemProperties),
              "get system properties"))
     return false;
+  _systemProperties.next = nullptr;
+  _gazeSupported = gaze.supportsEyeGazeInteraction != XR_FALSE;
   if (ExtensionEnabled(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME)) {
     FeatureCheck(xrGetInstanceProcAddr(
                      _instance, "xrGetVisibilityMaskKHR",
@@ -209,6 +222,7 @@ bool OpenXR::CreateSession(const void *binding,
   _waitIdle = std::move(waitIdle);
   _canRender = std::move(canRender);
   _images = std::move(images);
+  CreateActions();
   _changed = true;
   return true;
 }
@@ -311,6 +325,12 @@ void OpenXR::PollEvents() {
         reinterpret_cast<const XrEventDataSessionStateChanged &>(event);
     if (change.session != _session) continue;
     _state = change.state;
+    if (!Focused()) {
+      _inputFrame = {};
+      _inputFrame.ControllersStatus = S_FALSE;
+      _inputFrame.GazeStatus = _gazeSupported ? S_FALSE : E_NOTIMPL;
+      _input->Publish(_inputFrame);
+    }
     switch (GetOpenXRAction(_state)) {
       case OpenXRAction::Start: {
         if (!_running) {
@@ -365,6 +385,7 @@ bool OpenXR::BeginFrame() {
   const XrFrameBeginInfo begin{XR_TYPE_FRAME_BEGIN_INFO};
   if (!Check(xrBeginFrame(_session, &begin), "begin frame")) return false;
   _begun = true;
+  UpdateInput();
   if (!_frame.shouldRender || _stopRequested) return true;
   const XrViewLocateInfo locate{XR_TYPE_VIEW_LOCATE_INFO, nullptr,
                                 XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
@@ -479,6 +500,7 @@ void OpenXR::DestroySwapchains() {
 void OpenXR::Destroy() {
   if (_begun) EndFrame(false);
   DestroySwapchains();
+  DestroyActions();
   if (_space) xrDestroySpace(_space);
   if (_viewSpace) xrDestroySpace(_viewSpace);
   if (_session) xrDestroySession(_session);
@@ -493,6 +515,7 @@ void OpenXR::Destroy() {
   _images = {};
   _extensions.clear();
   _getMask = nullptr;
+  _gazeSupported = false;
   _maskStatus = _depthStatus = E_NOTIMPL;
   _depthFormat = DXGI_FORMAT_UNKNOWN;
   _panel.reset();

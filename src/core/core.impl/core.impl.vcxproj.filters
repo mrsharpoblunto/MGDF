@@ -16,6 +16,7 @@
       <Filter>System</Filter>
     </ClCompile>
     <ClCompile Include="MGDFOpenXR.cpp" />
+    <ClCompile Include="MGDFOpenXRInput.cpp" />
     <ClCompile Include="MGDFGraphicsRequirements.cpp">
       <Filter>System</Filter>
     </ClCompile>
@@ -62,6 +63,7 @@
       <Filter>System</Filter>
     </ClInclude>
     <ClInclude Include="MGDFOpenXR.hpp" />
+    <ClInclude Include="MGDFVRInput.hpp" />
     <ClInclude Include="MGDFGraphicsRequirements.hpp">
       <Filter>System</Filter>
     </ClInclude>

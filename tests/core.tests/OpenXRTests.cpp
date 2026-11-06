@@ -69,3 +69,21 @@ TEST(OpenXRTests, SessionStatesSeparateEndingTheFrameLoopFromFallback) {
             GetOpenXRAction(XR_SESSION_STATE_LOSS_PENDING));
   EXPECT_EQ(OpenXRAction::FallBack, GetOpenXRAction(XR_SESSION_STATE_EXITING));
 }
+
+TEST(OpenXRTests, PoseValidityClearsUnavailableComponents) {
+  const XrPosef pose{{0, 0.6f, 0, 0.8f}, {0.25f, 1.6f, -2}};
+  const auto orientation =
+      ConvertOpenXRPose(pose, XR_SPACE_LOCATION_ORIENTATION_VALID_BIT);
+  EXPECT_FALSE(orientation.PositionValid);
+  EXPECT_FLOAT_EQ(0, orientation.Position[0]);
+  EXPECT_FLOAT_EQ(0, orientation.Position[2]);
+  EXPECT_TRUE(orientation.OrientationValid);
+  EXPECT_FLOAT_EQ(-0.6f, orientation.Orientation[1]);
+  const auto position =
+      ConvertOpenXRPose(pose, XR_SPACE_LOCATION_POSITION_VALID_BIT);
+  EXPECT_TRUE(position.PositionValid);
+  EXPECT_FLOAT_EQ(2, position.Position[2]);
+  EXPECT_FALSE(position.OrientationValid);
+  EXPECT_FLOAT_EQ(0, position.Orientation[1]);
+  EXPECT_FLOAT_EQ(0, position.Orientation[3]);
+}
