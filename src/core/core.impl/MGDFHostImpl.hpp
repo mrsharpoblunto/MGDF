@@ -113,6 +113,12 @@ class Host : public IMGDFD3D11RenderHost,
 
   MGDFGraphicsAPI __stdcall GetGraphicsAPI() final;
 
+  UINT32 __stdcall GetViewCount() final;
+  void __stdcall GetView(UINT32 index, MGDFView *view) final;
+  BOOL __stdcall GetVRFocused() final;
+  void __stdcall GetViewTarget(UINT32 index, ID3D12Resource **target) final;
+  void __stdcall GetViewTarget(UINT32 index, ID3D11Texture2D **target) final;
+
   // IRenderHost methods
   void __stdcall GetBackBufferInfo(MGDFBackBufferInfo *info) final;
   HRESULT __stdcall SetHDRMetadata(const MGDFHDRMetadata *metadata) final;

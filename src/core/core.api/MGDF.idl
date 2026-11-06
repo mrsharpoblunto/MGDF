@@ -40,6 +40,8 @@ typedef struct MGDFGraphicsRequirements {
   /** The HDR output format the module writes. The host selects the HDR back
   buffer format and color space from it. An unknown value is an error */
   MGDFHDRFormat HDRFormat;
+  /** TRUE if the module renders headset views. FALSE makes VR unavailable */
+  BOOL VR;
 } MGDFGraphicsRequirements;
 
 /**
@@ -777,6 +779,16 @@ the settings will be applied to the render system on the next frame
   IMGDFRenderSettingsManager::GetRayTracingSupport returns FALSE
   */
   BOOL SetRayTracing(BOOL enabled);
+
+  /**
+  Requests headset output and saves the value in host.vr. Applying the change
+  schedules RTBeforeBackBufferChange and RTBackBufferChange. A device change
+  can also require RTBeforeDeviceReset and RTDeviceReset. A missing headset or
+  a runtime failure leaves the window running. Check GetVR for the session state
+  \param enabled TRUE to request VR, FALSE to return to the window
+  \return FALSE if GetVRSupport returns FALSE
+  */
+  BOOL SetVR(BOOL enabled);
 };
 
 /**
@@ -1074,6 +1086,20 @@ Provides an interface for getting and setting the hosts various display settings
   \return TRUE if the module should use ray tracing
   */
   BOOL GetRayTracing();
+
+  /**
+  Reports whether the module supports VR and an active OpenXR runtime is
+  available for its graphics API. This query does not start a headset session
+  \return TRUE if VR can be requested; a connected headset is not required
+  */
+  BOOL GetVRSupport();
+
+  /**
+  Reports whether a headset session runs. A request can stay FALSE while the
+  headset is unavailable or the runtime waits to start the session
+  \return TRUE while the session runs, including frames with no eye views
+  */
+  BOOL GetVR();
 };
 
 /**
@@ -2318,6 +2344,25 @@ this interface are safe to be used from any thread
 };
 
 /**
+One eye at this frame's predicted display time. Pose is in LOCAL space, in
+metres, with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w.
+Write linear color to an sRGB target. Release target references and descriptors
+in RTBeforeBackBufferChange
+*/
+typedef struct MGDFView {
+  FLOAT Position[3];
+  FLOAT Orientation[4];
+  /** Field of view in radians; left and down are negative */
+  FLOAT AngleLeft;
+  FLOAT AngleRight;
+  FLOAT AngleUp;
+  FLOAT AngleDown;
+  UINT32 Width;
+  UINT32 Height;
+  DXGI_FORMAT Format;
+} MGDFView;
+
+/**
  Provides an entrypoint for a module to interact with the MGDF host. This
  interface inherits from ICommonHost and provides additional methods which are
  safe to be used ONLY from the render thread.
@@ -2340,6 +2385,25 @@ this interface are safe to be used from any thread
   \return S_OK, or E_INVALIDARG if a value is out of range
   */
   HRESULT SetHDRMetadata([in] const MGDFHDRMetadata *metadata);
+
+  /**
+  Gets the eye count during RTDraw. Draw the window in every frame
+  \return 2 when the headset requests eye rendering; 0 otherwise
+  */
+  UINT32 GetViewCount();
+
+  /**
+  Gets an eye pose, field of view and target size for this RTDraw call
+  \param index 0 for the left eye, 1 for the right eye; less than GetViewCount
+  \param view receives the eye data
+  */
+  void GetView(UINT32 index, [out] MGDFView *view);
+
+  /**
+  Reports headset input focus. Pause headset input when this is FALSE
+  \return TRUE only while the headset session has input focus
+  */
+  BOOL GetVRFocused();
 };
 
 /**
@@ -2365,6 +2429,15 @@ Additional methods in this interface are safe to be used ONLY from the render th
   uuid("756E8862-E68C-4796-AD6C-00667632F33B"), object,
   local
 ] interface IMGDFD3D11RenderHost : IMGDFRenderHost {
+  /**
+  Gets an owned reference to this frame's eye texture during RTDraw. Submit
+  eye rendering on the immediate context before RTDraw returns. Textures rotate
+  until RTBeforeBackBufferChange, when all references must be released
+  \param index less than GetViewCount
+  \param target receives the texture; Release it when no longer needed
+  */
+  void GetViewTarget(UINT32 index, [out] ID3D11Texture2D **target);
+
   /**
   Gets the current back buffer texture.
   \param backbuffer the current back buffer texture. The pointer returned by this method
@@ -2535,6 +2608,8 @@ typedef struct MGDFFrameConstants {
   BOOL CameraMotionIncluded;
   /** TRUE if this frame has no relation to the previous frame */
   BOOL ResetHistory;
+  /** Eye index for VR upscaling; must be 0 when VR is off */
+  UINT32 View;
 } MGDFFrameConstants;
 
 /**
@@ -2575,6 +2650,8 @@ typedef struct MGDFUpscaleDesc {
   MGDFFrameResource Exposure;
   /** 0 to 1 per pixel: 1 rejects the history and uses the current color */
   MGDFFrameResource BiasCurrentColor;
+  /** Eye index for VR upscaling; must be 0 when VR is off */
+  UINT32 View;
 } MGDFUpscaleDesc;
 
 /**
@@ -2608,6 +2685,17 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   local
 ] interface IMGDFD3D12RenderHost : IMGDFRenderHost {
   /**
+  Gets an owned reference to this frame's eye texture during RTDraw. Its state
+  is RENDER_TARGET. Leave it in that state when the frame's lists finish.
+  Execute eye work on the direct queue before RTDraw returns; join work from
+  other queues to it. The host records no work on the texture. Textures rotate
+  until RTBeforeBackBufferChange; descriptors can be kept by resource until then
+  \param index less than GetViewCount
+  \param target receives the texture; release all references before a change
+  */
+  void GetViewTarget(UINT32 index, [out] ID3D12Resource **target);
+
+  /**
   Gets the current frame. Its ordinal and slot stay fixed through RTAfterPresent
   \param frame receives the current frame
   */
@@ -2635,12 +2723,12 @@ joined to the direct queue by the module if it is to be covered by that frame fe
                            [out] IMGDFPerformanceCounter **counter);
   /**
   Reports a point in the current frame for latency measurement. Does nothing
-  if the host has no latency measurement for the device
+  while VR is on or if the host has no latency measurement for the device
   \param marker the point in the frame
   */
   void SetFrameMarker(MGDFFrameMarker marker);
   /**
-  Sets the camera data for the current frame. Call it once per frame before
+  Sets the camera data for one view. Call it once per view per frame before
   Upscale and before RTDraw returns. Does nothing if GetUpscaleModeCount
   and GetMaxGeneratedFrames on IMGDFRenderSettingsManager both return 0
   \param constants the camera data
@@ -2655,7 +2743,7 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   \param list the command list
   \param desc the upscale inputs
   \return S_OK, E_INVALIDARG for an untracked list or missing inputs,
-  E_ILLEGAL_METHOD_CALL if SetFrameConstants was not called this frame,
+  E_ILLEGAL_METHOD_CALL if SetFrameConstants was not called for this View this frame,
   E_NOTIMPL if IMGDFRenderSettingsManager::GetUpscaleMode does not list the
   mode, or E_FAIL if
   the upscaler failed

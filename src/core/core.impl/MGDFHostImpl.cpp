@@ -251,6 +251,13 @@ void Host::InitGraphics() {
     FATALERROR(this, error);
     return;
   }
+  std::string vr;
+  const bool savedVR =
+      GetPreference(_game.As<IMGDFGame>(), PreferenceConstants::VR, vr) &&
+      FromString<bool>(vr);
+  _renderSettings->InitVR(
+      _graphicsRequirements.VR != FALSE, _graphicsAPI, savedVR,
+      ParameterManager::Instance().HasParameter(ParameterConstants::VR));
   _renderSettings->SetHDRFormat(_graphicsRequirements.HDRFormat);
   LOG("HDR output format: "
           << (_graphicsRequirements.HDRFormat == MGDF_HDR_FORMAT_HDR10
@@ -497,6 +504,21 @@ void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
   if (depthStencilDesc) {
     _depthStencilBuffer->GetDesc(depthStencilDesc);
   }
+}
+
+UINT32 Host::GetViewCount() {
+  return _backend ? _backend->VR().ViewCount() : 0;
+}
+void Host::GetView(UINT32 index, MGDFView *view) {
+  _ASSERTE(view && _backend);
+  *view = _backend->VR().View(index);
+}
+BOOL Host::GetVRFocused() { return _backend && _backend->VR().Focused(); }
+void Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
+  _backend->VR().Target(index).As<ID3D12Resource>().AddRawRef(target);
+}
+void Host::GetViewTarget(UINT32 index, ID3D11Texture2D **target) {
+  _backend->VR().Target(index).As<ID3D11Texture2D>().AddRawRef(target);
 }
 
 void Host::GetBackBufferInfo(MGDFBackBufferInfo *info) {

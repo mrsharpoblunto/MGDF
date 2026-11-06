@@ -98,7 +98,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>openxr_loader.lib;d3d12.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d12.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -129,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalDependencies>openxr_loader.lib;d3d12.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d12.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -141,6 +141,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="OpenXRTests.cpp" />
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />

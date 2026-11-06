@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <OpenXRLoaderLibrary>openxr_loader.lib</OpenXRLoaderLibrary>
+    <OpenXRLoaderLibrary Condition="'$(Configuration)' == 'Debug'">openxr_loaderd.lib</OpenXRLoaderLibrary>
+    <OpenXRLoaderDLL>openxr_loader.dll</OpenXRLoaderDLL>
+    <OpenXRLoaderDLL Condition="'$(Configuration)' == 'Debug'">openxr_loaderd.dll</OpenXRLoaderDLL>
     <StreamlineVersion>2.14.16</StreamlineVersion>
     <StreamlineSha256>32041e51db0cab709a271b72a352281b690c2abbd669a827809401a5dd23956b</StreamlineSha256>
     <StreamlineUrl>https://github.com/NVIDIA-RTX/Streamline/releases/download/v$(StreamlineVersion)/streamline-sdk-v$(StreamlineVersion).zip</StreamlineUrl>
@@ -38,7 +42,7 @@
       <OpenXRBin>$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\bin</OpenXRBin>
       <OpenXRBin Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\debug\bin</OpenXRBin>
     </PropertyGroup>
-    <Copy SourceFiles="$(OpenXRBin)\openxr_loader.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(OpenXRBin)\$(OpenXRLoaderDLL)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
   <!-- core.impl compiles against Streamline and shares its output folder with core.exe and core.tests.exe. -->
   <Target Name="FetchStreamline" BeforeTargets="PrepareForBuild" Condition="'$(MSBuildProjectName)' == 'core.impl' And !Exists('$(StreamlineDir)include\sl.h')">

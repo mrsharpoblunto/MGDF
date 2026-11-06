@@ -213,10 +213,17 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   }
   _rtAllowTearing = allowTearing == TRUE;
 
+  if (const auto request = RTTakeVRRequest()) _rtVRRequested = *request;
+  if (_rtVRRequested && !_rtRenderBackend->RTPrepareVR()) {
+    _rtVRRequested = false;
+    _rtRenderBackend->VR().Destroy();
+  }
   if (!_rtRenderBackend->RTInit()) {
     return false;
   }
   _rtAdapter = _rtRenderBackend->RTGetAdapter();
+  _rtVRRequested = _rtVRRequested && _rtRenderBackend->VR().Prepared();
+  RTApplyVR();
 
   if (!RTCheckForDisplayChanges(window)) {
     return false;
@@ -546,6 +553,46 @@ void D3DAppFramework::RTReinitD3D(const HWND window) {
   FATALERROR(this, "Failed to reinitialize D3D after multiple attempts");
 }
 
+bool D3DAppFramework::RTIsVRRunning() const {
+  return _rtRenderBackend && _rtRenderBackend->VR().Running() &&
+         !_rtRenderBackend->VR().NeedsFallback();
+}
+
+bool D3DAppFramework::RTUpdateVR() {
+  auto &vr = _rtRenderBackend->VR();
+  if (const auto request = RTTakeVRRequest()) {
+    _rtVRRequested = *request;
+    _rtVRChangePending = true;
+    if (*request) {
+      if (!_rtRenderBackend->RTPrepareVR()) {
+        _rtVRRequested = false;
+      } else if (!_rtRenderBackend->RTMatchesVRAdapter()) {
+        RTPrepareToReinitD3D();
+        return false;
+      }
+    } else {
+      vr.RequestStop();
+    }
+  }
+  vr.PollEvents();
+  if (vr.NeedsFallback()) _rtVRRequested = false;
+  if (vr.TakeChange()) _rtVRChangePending = true;
+  RTOnVRState(vr.HasSession() && !vr.NeedsFallback(), RTIsVRRunning());
+  return true;
+}
+
+void D3DAppFramework::RTApplyVR() {
+  auto &vr = _rtRenderBackend->VR();
+  if (vr.NeedsFallback()) vr.Destroy();
+  if (_rtVRRequested && !vr.HasSession() && !_rtRenderBackend->RTStartVR()) {
+    _rtVRRequested = false;
+    vr.Destroy();
+  }
+  vr.TakeChange();
+  _rtVRChangePending = false;
+  RTOnVRState(vr.HasSession(), RTIsVRRunning());
+}
+
 bool D3DAppFramework::RTAllowTearing() {
   return ((_rtSwapDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) &&
           !(_rtCurrentFullScreen.FullScreen &&
@@ -581,6 +628,13 @@ void D3DAppFramework::RTResizeBackBuffer() {
     FATALERROR(this, "Failed to resize swapchain buffers");
   }
 
+  auto &vr = _rtRenderBackend->VR();
+  if (vr.HasSession() && !vr.RecreateSwapchains()) {
+    vr.Destroy();
+    _rtVRRequested = false;
+    RTOnVRState(false, false);
+    _rtVRChangePending = true;
+  }
   RTOnBackBufferChange(*_rtRenderBackend);
 }
 
@@ -674,6 +728,8 @@ INT32 D3DAppFramework::Run() {
               _rtFactory = RTCreateDXGIFactory();
             }
 
+            if (!RTUpdateVR()) continue;
+
             // get the most recent display change message (if any)
             std::optional<DisplayChangeMessage> displayChange;
             if (PopRTMessage(displayChange) || !dxgiFactoryIsCurrent) {
@@ -713,13 +769,14 @@ INT32 D3DAppFramework::Run() {
               RTOnBeforeBackBufferChange();
               RTOnResize(_rtSwapDesc.Width, _rtSwapDesc.Height);
               RTResizeBackBuffer();
-            } else if (RTIsBackBufferChangePending()) {
+            } else if (RTIsBackBufferChangePending() || _rtVRChangePending) {
               // the game logic step may force the device to reset, so lets
               // check
               LOG("Module has scheduled a backbuffer change...", MGDF_LOG_LOW);
 
               RTWaitForGpuIdle();
               RTOnBeforeBackBufferChange();
+              RTApplyVR();
               auto newFullScreen = RTGetFullscreen();
               if (_rtCurrentFullScreen.FullScreen &&
                   _rtCurrentFullScreen.ExclusiveMode) {
@@ -754,21 +811,33 @@ INT32 D3DAppFramework::Run() {
             }
           }
 
-          if (!_minimized.load() && _rtRenderBackend->RTIsInitialized()) {
-            if (!_rtRenderBackend->RTWaitForFrame(RTGetLowLatencyMode())) {
+          if ((!_minimized.load() || RTIsVRRunning()) &&
+              _rtRenderBackend->RTIsInitialized()) {
+            auto &vr = _rtRenderBackend->VR();
+            const bool headsetPaced = RTIsVRRunning();
+            if (headsetPaced && !vr.BeginFrame()) continue;
+            if (!_rtRenderBackend->RTWaitForFrame(RTGetLowLatencyMode(),
+                                                  headsetPaced)) {
+              vr.EndFrame(false);
               if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason()))
                 RTPrepareToReinitD3D();
               continue;
             }
             if (FAILED(_rtRenderBackend->RTGetDeviceRemovedReason())) {
+              vr.EndFrame(false);
               RTPrepareToReinitD3D();
               continue;
             }
-            if (!RTOnDraw()) _rtRenderBackend->RTClear();
+            const bool drawn = RTOnDraw();
+            if (!drawn) _rtRenderBackend->RTClear();
+            if (headsetPaced) {
+              _rtRenderBackend->RTFlushVR();
+              vr.EndFrame(drawn);
+            }
 
             HRESULT result = _rtRenderBackend->RTPresent(
-                RTVSyncEnabled() ? 1 : 0,
-                (!RTVSyncEnabled() && RTAllowTearing())
+                !headsetPaced && RTVSyncEnabled() ? 1 : 0,
+                ((headsetPaced || !RTVSyncEnabled()) && RTAllowTearing())
                     ? DXGI_PRESENT_ALLOW_TEARING
                     : 0);
             RTOnAfterPresent();

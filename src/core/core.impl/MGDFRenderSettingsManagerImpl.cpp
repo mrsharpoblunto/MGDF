@@ -9,6 +9,7 @@
 #include "../common/MGDFPreferenceConstants.hpp"
 #include "../common/MGDFPreferenceSet.hpp"
 #include "../common/MGDFResources.hpp"
+#include "MGDFOpenXR.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -71,6 +72,11 @@ PendingRenderSettingsChange::~PendingRenderSettingsChange() {
       *_newFrameGeneration != _manager._frameGeneration) {
     changed = true;
     _manager._frameGeneration = *_newFrameGeneration;
+  }
+  if (_newVR) {
+    _manager._vrPreference = *_newVR;
+    _manager._vrRequest = *_newVR;
+    changed = true;
   }
   if (_newRayTracing) {
     _manager._rayTracing = *_newRayTracing;
@@ -170,6 +176,45 @@ BOOL PendingRenderSettingsChange::SetRayTracing(BOOL enabled) {
   return TRUE;
 }
 
+BOOL PendingRenderSettingsChange::SetVR(BOOL enabled) {
+  if (!_manager.GetVRSupport()) return FALSE;
+  _newVR = enabled != FALSE;
+  return TRUE;
+}
+
+void RenderSettingsManager::InitVR(bool moduleVR, MGDFGraphicsAPI api,
+                                   bool saved, bool commandLine) {
+  const bool support =
+      moduleVR &&
+      OpenXR::Available(api == MGDF_GRAPHICS_API_D3D12 ? "XR_KHR_D3D12_enable"
+                                                       : "XR_KHR_D3D11_enable");
+  std::lock_guard lock(_mutex);
+  _vrSupport = support;
+  _vrPreference = saved;
+  if (support && (saved || commandLine)) _vrRequest = true;
+}
+
+BOOL RenderSettingsManager::GetVRSupport() {
+  std::lock_guard lock(_mutex);
+  return _vrSupport;
+}
+
+BOOL RenderSettingsManager::GetVR() {
+  std::lock_guard lock(_mutex);
+  return _vrRunning;
+}
+
+std::optional<bool> RenderSettingsManager::TakeVRRequest() {
+  std::lock_guard lock(_mutex);
+  return std::exchange(_vrRequest, std::nullopt);
+}
+
+void RenderSettingsManager::SetVRState(bool active, bool running) {
+  std::lock_guard lock(_mutex);
+  _vrActive = active;
+  _vrRunning = running;
+}
+
 UINT64 RenderSettingsManager::GetUpscaleModeCount() {
   std::lock_guard lock(_mutex);
   return _support.UpscaleModes.size();
@@ -185,7 +230,7 @@ BOOL RenderSettingsManager::GetUpscaleMode(UINT64 index,
 
 UINT32 RenderSettingsManager::GetMaxGeneratedFrames() {
   std::lock_guard lock(_mutex);
-  return _support.MaxGeneratedFrames;
+  return _vrActive ? 0 : _support.MaxGeneratedFrames;
 }
 
 UINT64 RenderSettingsManager::GetLowLatencyModeCount() {
@@ -203,12 +248,12 @@ BOOL RenderSettingsManager::GetLowLatencyMode(UINT64 index,
 
 MGDFLowLatencyMode RenderSettingsManager::GetCurrentLowLatencyMode() {
   std::lock_guard lock(_mutex);
-  return _lowLatencyMode;
+  return _vrActive ? MGDF_LOW_LATENCY_OFF : _lowLatencyMode;
 }
 
 UINT32 RenderSettingsManager::GetFrameGeneration() {
   std::lock_guard lock(_mutex);
-  return _frameGeneration;
+  return _vrActive ? 0 : _frameGeneration;
 }
 
 BOOL RenderSettingsManager::GetRayTracingSupport(
@@ -660,6 +705,7 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
       {PreferenceConstants::FRAME_GENERATION, ToString(_frameGeneration)});
   p->Preferences.insert(
       {PreferenceConstants::RAY_TRACING, ToString(_rayTracing)});
+  p->Preferences.insert({PreferenceConstants::VR, ToString(_vrPreference)});
   p.AddRawRef(preferences);
 }
 

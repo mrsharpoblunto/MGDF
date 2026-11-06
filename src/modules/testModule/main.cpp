@@ -32,6 +32,7 @@ GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
   requirements->APIs[0] = MGDF_GRAPHICS_API_D3D11;
   requirements->APIs[1] = MGDF_GRAPHICS_API_D3D12;
   requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_9_3;
+  requirements->VR = TRUE;
   requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
   return S_OK;
 }

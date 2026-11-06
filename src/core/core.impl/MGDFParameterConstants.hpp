@@ -18,6 +18,7 @@ class ParameterConstants {
   static const char *LOG_ENDPOINT;
   static const char *STATISTICS_ENDPOINT_OVERRIDE;
   static const char *STATISTICS_ENABLED;
+  static const char *VR;
   static const char *USE_DEFAULT_ADAPTER;
 
   static const char *VALUE_LOG_LEVEL_LOW;

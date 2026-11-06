@@ -63,6 +63,8 @@ class D3DAppFramework {
   virtual bool RTOnDraw() = 0;
   virtual void RTOnAfterPresent() = 0;
   virtual bool RTIsBackBufferChangePending() = 0;
+  virtual std::optional<bool> RTTakeVRRequest() = 0;
+  virtual void RTOnVRState(bool active, bool running) = 0;
   virtual MGDFFullScreenDesc RTGetFullscreen() = 0;
   virtual void RTSetFullscreen(const MGDFFullScreenDesc &desc) = 0;
   virtual std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() = 0;
@@ -85,6 +87,7 @@ class D3DAppFramework {
   void CloseWindow();
   void QueueResetDevice();
   void RTWaitForGpuIdle();
+  bool RTIsVRRunning() const;
 
  private:
   ComObject<IDXGIFactory6> RTCreateDXGIFactory();
@@ -98,6 +101,10 @@ class D3DAppFramework {
   void RTApplyFullscreen(HWND window);
   void RTResizeBackBuffer();
   bool RTAllowTearing();
+  bool RTUpdateVR();
+  void RTApplyVR();
+  bool _rtVRRequested = false;
+  bool _rtVRChangePending = false;
   bool RTCheckForDisplayChanges(const HWND window);
 
   void InitRawInput();

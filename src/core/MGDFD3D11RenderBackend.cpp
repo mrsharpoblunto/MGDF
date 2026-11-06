@@ -2,7 +2,12 @@
 
 #include "MGDFD3D11RenderBackend.hpp"
 
+#define XR_USE_PLATFORM_WIN32
+#define XR_USE_GRAPHICS_API_D3D11
+#include <openxr/openxr_platform.h>
+
 #include "common/MGDFLoggerImpl.hpp"
+#include "core.impl/MGDFGraphicsRequirements.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -21,6 +26,58 @@ D3D11RenderBackend::D3D11RenderBackend(
       _fatalError(std::move(fatalError)),
       _rtFrameWaitableObject(nullptr) {}
 
+bool D3D11RenderBackend::RTPrepareVR() {
+  return VR().Prepare(
+      XR_KHR_D3D11_ENABLE_EXTENSION_NAME,
+      [](XrInstance instance, XrSystemId system,
+         OpenXRGraphicsRequirements &result) {
+        PFN_xrGetD3D11GraphicsRequirementsKHR query = nullptr;
+        const auto found = xrGetInstanceProcAddr(
+            instance, "xrGetD3D11GraphicsRequirementsKHR",
+            reinterpret_cast<PFN_xrVoidFunction *>(&query));
+        if (XR_FAILED(found)) return found;
+        XrGraphicsRequirementsD3D11KHR requirements{
+            XR_TYPE_GRAPHICS_REQUIREMENTS_D3D11_KHR};
+        const auto status = query(instance, system, &requirements);
+        if (XR_SUCCEEDED(status))
+          result = {requirements.adapterLuid, requirements.minFeatureLevel};
+        return status;
+      });
+}
+
+bool D3D11RenderBackend::RTStartVR() {
+  if (!VR().Prepared() || VR().NeedsFallback()) return false;
+  if (_rtD3dDevice->GetFeatureLevel() < VR().Requirements().MinFeatureLevel) {
+    VR().Fail("device feature level", XR_ERROR_GRAPHICS_DEVICE_INVALID);
+    return false;
+  }
+  const XrGraphicsBindingD3D11KHR binding{XR_TYPE_GRAPHICS_BINDING_D3D11_KHR,
+                                          nullptr, _rtD3dDevice.Get()};
+  return VR().CreateSession(
+      &binding,
+      [this](DXGI_FORMAT format) {
+        UINT support = 0;
+        return SUCCEEDED(_rtD3dDevice->CheckFormatSupport(format, &support)) &&
+               (support & D3D11_FORMAT_SUPPORT_RENDER_TARGET);
+      },
+      [](XrSwapchain swapchain, std::vector<ComObject<IUnknown>> &resources) {
+        uint32_t count = 0;
+        auto result = xrEnumerateSwapchainImages(swapchain, 0, &count, nullptr);
+        if (XR_FAILED(result)) return result;
+        std::vector<XrSwapchainImageD3D11KHR> images(
+            count, {XR_TYPE_SWAPCHAIN_IMAGE_D3D11_KHR});
+        result = xrEnumerateSwapchainImages(
+            swapchain, count, &count,
+            reinterpret_cast<XrSwapchainImageBaseHeader *>(images.data()));
+        if (XR_SUCCEEDED(result)) {
+          resources.clear();
+          for (const auto &image : images)
+            resources.push_back(MakeComFromPtr<IUnknown>(image.texture));
+        }
+        return result;
+      });
+}
+
 bool D3D11RenderBackend::RTInit() {
 #if defined(DEBUG) || defined(_DEBUG)
   constexpr const UINT32 createDeviceFlags =
@@ -29,7 +86,28 @@ bool D3D11RenderBackend::RTInit() {
   constexpr const UINT32 createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #endif
 
-  if (!_rtFactory) {
+  if (VR().Prepared()) {
+    ComObject<IDXGIFactory6> factory = _rtFactory;
+    if (!factory) CreateDXGIFactory2(0, IID_PPV_ARGS(factory.Assign()));
+    ComObject<IDXGIAdapter> adapter;
+    const auto levels = GetD3D11FeatureLevels(
+        max(_rtLevels.back(), VR().Requirements().MinFeatureLevel));
+    if (factory && !levels.empty() &&
+        SUCCEEDED(factory->EnumAdapterByLuid(VR().Requirements().Adapter,
+                                             IID_PPV_ARGS(adapter.Assign())))) {
+      D3D11CreateDevice(
+          adapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, createDeviceFlags,
+          levels.data(), static_cast<UINT>(levels.size()), D3D11_SDK_VERSION,
+          _rtD3dDevice.Assign(), nullptr, _rtImmediateContext.Assign());
+    }
+    if (!_rtD3dDevice) {
+      VR().Fail("cannot use headset adapter", XR_ERROR_GRAPHICS_DEVICE_INVALID);
+      VR().Destroy();
+    }
+  }
+  if (_rtD3dDevice) {
+    // The runtime adapter meets both sets of requirements.
+  } else if (!_rtFactory) {
     // use the default adapter to create the device
     D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
     if (FAILED(::D3D11CreateDevice(
@@ -150,6 +228,7 @@ bool D3D11RenderBackend::RTSetExclusiveFullscreen() {
 }
 
 void D3D11RenderBackend::RTUninit(bool exclusiveMode) {
+  VR().Destroy();
   if (_rtImmediateContext) {
     _rtImmediateContext->ClearState();
     _rtImmediateContext->Flush();
@@ -383,9 +462,12 @@ void D3D11RenderBackend::RTSetWindowed() {
   }
 }
 
-bool D3D11RenderBackend::RTWaitForFrame(MGDFLowLatencyMode lowLatency) {
+void D3D11RenderBackend::RTFlushVR() { _rtImmediateContext->Flush(); }
+
+bool D3D11RenderBackend::RTWaitForFrame(MGDFLowLatencyMode lowLatency,
+                                        bool headsetPaced) {
   std::ignore = lowLatency;
-  if (_rtFrameWaitableObject) {
+  if (_rtFrameWaitableObject && !headsetPaced) {
     const DWORD wait =
         ::WaitForSingleObjectEx(_rtFrameWaitableObject, 1000, true);
     if (wait == WAIT_TIMEOUT || wait == WAIT_IO_COMPLETION) return false;

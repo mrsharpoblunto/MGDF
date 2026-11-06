@@ -17,6 +17,8 @@ class D3D12RenderBackend : public IRenderBackend {
       const ComObject<IDXGIFactory6> &factory,
       const MGDFGraphicsRequirements &requirements,
       std::function<void(const char *, const char *)> fatalError);
+  bool RTPrepareVR() final;
+  bool RTStartVR() final;
   bool RTInit() final;
   bool RTIsInitialized() const final;
   void RTUninit(bool exclusiveMode) final;
@@ -29,7 +31,8 @@ class D3D12RenderBackend : public IRenderBackend {
       const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) final;
   bool RTSetExclusiveFullscreen() final;
   void RTSetWindowed() final;
-  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency) final;
+  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency,
+                      bool headsetPaced = false) final;
   void RTWaitForGpuIdle() final;
   void RTClear() final;
   HRESULT RTPresent(UINT syncInterval, UINT flags) final;

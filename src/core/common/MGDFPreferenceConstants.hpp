@@ -10,6 +10,7 @@ namespace core {
 
 class PreferenceConstants {
  public:
+  static const char *VR;
   static const char *GRAPHICS_API;
   static const char *SCREEN_X;
   static const char *SCREEN_Y;
