@@ -83,11 +83,17 @@ class FrameLoop final : public D3DAppFramework {
       : D3DAppFramework(GetModuleHandleW(nullptr)),
         API(api),
         Settings(MakeCom<RenderSettingsManager>()) {
+    // OpenXR lifecycle tests do not need the separate vendor upscaler runtime.
+    _pluginDirectory = std::filesystem::temp_directory_path() /
+                       ("mgdf-openxr-" + std::to_string(GetCurrentProcessId()));
+    std::filesystem::create_directories(_pluginDirectory);
     Settings->InitVR(moduleVR, api, saved, false);
   }
   ~FrameLoop() {
     RTWaitForGpuIdle();
     ReleaseDevice();
+    std::error_code error;
+    std::filesystem::remove_all(_pluginDirectory, error);
   }
   void RequestVR(bool enabled) {
     ComObject<IMGDFPendingRenderSettingsChange> change;
@@ -119,8 +125,9 @@ class FrameLoop final : public D3DAppFramework {
     if (API == MGDF_GRAPHICS_API_D3D12) {
       const MGDFGraphicsRequirements requirements{
           1, {MGDF_GRAPHICS_API_D3D12}, D3D_FEATURE_LEVEL_11_0};
-      return std::make_unique<D3D12RenderBackend>(factory, requirements, fail,
-                                                  true);
+      return std::make_unique<D3D12RenderBackend>(
+          factory, requirements, fail, true,
+          _pluginDirectory.wstring() + L"\\");
     }
     return std::make_unique<D3D11RenderBackend>(
         factory, GetD3D11FeatureLevels(D3D_FEATURE_LEVEL_11_0), fail, true);
@@ -250,6 +257,7 @@ class FrameLoop final : public D3DAppFramework {
   }
 
  private:
+  std::filesystem::path _pluginDirectory;
   void DrawEyes() {
     const float color[4]{0.2f, 0.4f, 0.6f, 1};
     if (Device11) {

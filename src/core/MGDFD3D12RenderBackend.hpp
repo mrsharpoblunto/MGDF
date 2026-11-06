@@ -13,10 +13,12 @@ namespace core {
 
 class D3D12RenderBackend : public IRenderBackend {
  public:
-  D3D12RenderBackend(const ComObject<IDXGIFactory6> &factory,
-                     const MGDFGraphicsRequirements &requirements,
-                     std::function<void(const char *, const char *)> fatalError,
-                     bool allowSoftwareAdapter = false);
+  D3D12RenderBackend(
+      const ComObject<IDXGIFactory6> &factory,
+      const MGDFGraphicsRequirements &requirements,
+      std::function<void(const char *, const char *)> fatalError,
+      bool allowSoftwareAdapter = false,
+      std::optional<std::wstring> streamlineDirectory = std::nullopt);
   bool RTPrepareVR() final;
   bool RTStartVR() final;
   bool RTInit() final;

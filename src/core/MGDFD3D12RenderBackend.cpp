@@ -43,12 +43,13 @@ D3D12RenderBackend::D3D12RenderBackend(
     const ComObject<IDXGIFactory6> &factory,
     const MGDFGraphicsRequirements &requirements,
     std::function<void(const char *, const char *)> fatalError,
-    bool allowSoftwareAdapter)
+    bool allowSoftwareAdapter, std::optional<std::wstring> streamlineDirectory)
     : _rtFactory(factory),
       _requirements(requirements),
       _fatalError(std::move(fatalError)),
       _allowSoftwareAdapter(allowSoftwareAdapter),
-      _streamline(Resources::Instance().RootDir()) {}
+      _streamline(
+          streamlineDirectory.value_or(Resources::Instance().RootDir())) {}
 
 void D3D12RenderBackend::FatalError(const char *sender, const char *message) {
   _fatalError(sender, message);
