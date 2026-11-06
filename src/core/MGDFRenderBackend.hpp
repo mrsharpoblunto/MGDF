@@ -17,7 +17,7 @@ class IRenderBackend {
  public:
   virtual ~IRenderBackend() = default;
   OpenXR &VR() { return _vr; }
-  virtual bool RTPrepareVR() { return false; }
+  virtual bool RTPrepareVR(const char *) { return false; }
   virtual bool RTStartVR() { return false; }
   bool RTMatchesVRAdapter() {
     const auto adapter = RTGetAdapter();

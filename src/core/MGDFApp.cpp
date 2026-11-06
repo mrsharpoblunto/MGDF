@@ -101,6 +101,8 @@ std::optional<bool> MGDFApp::RTTakeVRRequest() {
 }
 void MGDFApp::RTOnVRState(bool active) { _settings->SetVRState(active); }
 
+const char *MGDFApp::RTGetApplicationName() const { return _game->GetName(); }
+
 bool MGDFApp::RTIsBackBufferChangePending() {
   return _settings->IsBackBufferChangePending();
 }

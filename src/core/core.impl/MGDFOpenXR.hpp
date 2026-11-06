@@ -35,7 +35,8 @@ class OpenXR {
   OpenXR &operator=(const OpenXR &) = delete;
   ~OpenXR();
   static bool Available(const char *extension);
-  bool Prepare(const char *extension, const RequirementsQuery &query);
+  bool Prepare(const char *extension, const char *applicationName,
+               const RequirementsQuery &query);
   bool CreateSession(const void *binding,
                      std::function<bool(DXGI_FORMAT)> canRender,
                      ImageQuery images);

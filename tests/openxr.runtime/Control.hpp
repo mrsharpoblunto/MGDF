@@ -11,6 +11,7 @@ struct FakeXRConfig {
   bool TimeoutFirstWait = false;
 };
 struct FakeXRStats {
+  XrApplicationInfo ApplicationInfo{};
   UINT32 InstancesCreated = 0;
   UINT32 LiveInstances = 0;
   UINT32 SessionsCreated = 0;

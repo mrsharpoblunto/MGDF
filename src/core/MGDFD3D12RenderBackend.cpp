@@ -99,9 +99,9 @@ ComObject<ID3D12CommandQueue> D3D12RenderBackend::RTCreateQueue(
   return native;
 }
 
-bool D3D12RenderBackend::RTPrepareVR() {
+bool D3D12RenderBackend::RTPrepareVR(const char *applicationName) {
   return VR().Prepare(
-      XR_KHR_D3D12_ENABLE_EXTENSION_NAME,
+      XR_KHR_D3D12_ENABLE_EXTENSION_NAME, applicationName,
       [](XrInstance instance, XrSystemId system,
          OpenXRGraphicsRequirements &result) {
         PFN_xrGetD3D12GraphicsRequirementsKHR query = nullptr;

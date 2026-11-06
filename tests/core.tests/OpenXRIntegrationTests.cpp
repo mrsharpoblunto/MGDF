@@ -8,6 +8,8 @@
 #include "../../src/core/MGDFD3DAppFramework.hpp"
 #include "../../src/core/common/MGDFPreferenceSet.hpp"
 #include "../../src/core/common/MGDFResources.hpp"
+#include "../../src/core/common/MGDFVersionHelper.hpp"
+#include "../../src/core/common/MGDFVersionInfo.hpp"
 #include "../../src/core/core.impl/MGDFRenderSettingsManagerImpl.hpp"
 #include "../openxr.runtime/Control.hpp"
 
@@ -106,6 +108,7 @@ class FrameLoop final : public D3DAppFramework {
     Run();
   }
   std::function<bool(FrameLoop &)> Step;
+  std::string ApplicationName = "MGDF OpenXR integration test";
   IRenderBackend *Backend = nullptr;
   const MGDFGraphicsAPI API;
   ComObject<RenderSettingsManager> Settings;
@@ -117,6 +120,9 @@ class FrameLoop final : public D3DAppFramework {
   bool TimedOut = false;
 
  protected:
+  const char *RTGetApplicationName() const override {
+    return ApplicationName.c_str();
+  }
   std::unique_ptr<IRenderBackend> CreateRenderBackend(
       const ComObject<IDXGIFactory6> &factory) override {
     const auto fail = [this](const char *sender, const char *message) {
@@ -453,6 +459,38 @@ TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
   EXPECT_EQ(0U, runtime.Stats().Errors);
   EXPECT_EQ(0U, runtime.Stats().LiveSwapchains + runtime.Stats().LiveSessions +
                     runtime.Stats().LiveInstances);
+}
+
+TEST_P(OpenXRIntegrationTests, InstanceIdentifiesTheGameAndEngine) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  const std::array<std::pair<std::string, std::string>, 2> names{{
+      {"Junkship \xc3\xa9", "Junkship \xc3\xa9"},
+      {std::string(126, 'x') + "\xc3\xa9", std::string(126, 'x')},
+  }};
+  for (const auto &[name, expected] : names) {
+    const FakeXRConfig config{TestAdapter()};
+    runtime.Configure(&config);
+    {
+      FrameLoop loop(GetParam(), true, true);
+      loop.ApplicationName = name;
+      loop.Step = [](auto &host) {
+        return host.Backend->VR().ViewCount() == 2;
+      };
+      loop.Execute();
+      EXPECT_FALSE(loop.TimedOut);
+      EXPECT_EQ(0U, loop.FatalErrors.load());
+    }
+    const auto info = runtime.Stats().ApplicationInfo;
+    EXPECT_STREQ(expected.c_str(), info.applicationName);
+    EXPECT_STREQ("MGDF", info.engineName);
+    const auto version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION());
+    EXPECT_EQ(version.Major, info.engineVersion >> 24);
+    EXPECT_EQ(version.Minor, (info.engineVersion >> 16) & 255);
+    EXPECT_EQ((std::max)(0, version.Build), (info.engineVersion >> 8) & 255);
+    EXPECT_EQ((std::max)(0, version.Revision), info.engineVersion & 255);
+    EXPECT_EQ(0U, runtime.Stats().Errors);
+  }
 }
 
 TEST_P(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {

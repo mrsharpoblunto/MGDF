@@ -71,8 +71,9 @@ XrResult XRAPI_CALL EnumerateExtensions(const char *, uint32_t capacity,
   extensions[1].extensionVersion = XR_KHR_D3D12_enable_SPEC_VERSION;
   return Enumerate(extensions, capacity, count, output);
 }
-XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *,
+XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
                                    XrInstance *instance) {
+  Stats.ApplicationInfo = info->applicationInfo;
   *instance = new XrInstance_T;
   ++Stats.InstancesCreated;
   ++Stats.LiveInstances;

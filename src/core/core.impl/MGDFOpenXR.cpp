@@ -3,8 +3,11 @@
 #include "MGDFOpenXR.hpp"
 
 #include <algorithm>
+#include <string_view>
 
 #include "../common/MGDFLoggerImpl.hpp"
+#include "../common/MGDFVersionHelper.hpp"
+#include "../common/MGDFVersionInfo.hpp"
 
 namespace MGDF::core {
 
@@ -93,12 +96,29 @@ bool OpenXR::Check(XrResult result, const char *operation) {
   return true;
 }
 
-bool OpenXR::Prepare(const char *extension, const RequirementsQuery &query) {
+bool OpenXR::Prepare(const char *extension, const char *applicationName,
+                     const RequirementsQuery &query) {
   if (Prepared()) return !_fallback;
   _fallback = false;
   XrInstanceCreateInfo info{XR_TYPE_INSTANCE_CREATE_INFO};
-  strcpy_s(info.applicationInfo.applicationName, "MGDF");
+  const std::string_view name(applicationName);
+  auto length =
+      (std::min)(name.size(), sizeof(info.applicationInfo.applicationName) - 1);
+  // A truncated name must end at a UTF-8 character boundary.
+  while (length && length < name.size() &&
+         (static_cast<unsigned char>(name[length]) & 0xC0) == 0x80)
+    --length;
+  memcpy(info.applicationInfo.applicationName, name.data(), length);
   strcpy_s(info.applicationInfo.engineName, "MGDF");
+  const auto version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION());
+  // Pack MGDF's four version components into OpenXR's 32-bit field.
+  for (const auto component :
+       {version.Major, version.Minor, version.Build, version.Revision}) {
+    _ASSERTE(component >= -1 && component <= 255);
+    info.applicationInfo.engineVersion =
+        (info.applicationInfo.engineVersion << 8) |
+        static_cast<uint32_t>((std::max)(0, component));
+  }
   info.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);
   info.enabledExtensionCount = 1;
   info.enabledExtensionNames = &extension;

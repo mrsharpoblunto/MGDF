@@ -28,9 +28,9 @@ D3D11RenderBackend::D3D11RenderBackend(
       _allowSoftwareAdapter(allowSoftwareAdapter),
       _rtFrameWaitableObject(nullptr) {}
 
-bool D3D11RenderBackend::RTPrepareVR() {
+bool D3D11RenderBackend::RTPrepareVR(const char *applicationName) {
   return VR().Prepare(
-      XR_KHR_D3D11_ENABLE_EXTENSION_NAME,
+      XR_KHR_D3D11_ENABLE_EXTENSION_NAME, applicationName,
       [](XrInstance instance, XrSystemId system,
          OpenXRGraphicsRequirements &result) {
         PFN_xrGetD3D11GraphicsRequirementsKHR query = nullptr;
