@@ -47,6 +47,7 @@ class OpenXR {
                      std::function<bool(DXGI_FORMAT, bool)> canRender,
                      ImageQuery images, std::function<void()> waitIdle);
   bool RecreateSwapchains();
+  void BindRenderThread() { _threadId = GetCurrentThreadId(); }
   void PollEvents();
   void RequestStop();
   bool BeginFrame();
@@ -68,7 +69,7 @@ class OpenXR {
   UINT32 ViewCount() const { return _viewCount; }
   MGDFView View(UINT32 index) const;
   ComObject<IUnknown> Target(UINT32 index) const;
-  HRESULT GetView(UINT32 index, MGDFView *view) const;
+  HRESULT GetView(UINT32 index, MGDFView *view, bool eyeFrame = false) const;
   HRESULT GetTarget(UINT32 index, ComObject<IUnknown> &target) const;
 
   HRESULT GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,

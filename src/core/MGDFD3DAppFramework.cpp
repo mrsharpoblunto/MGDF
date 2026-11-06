@@ -711,6 +711,7 @@ INT32 D3DAppFramework::Run() {
   _renderThread = std::make_unique<std::thread>(
       [this](const HWND window) {
         LOG("Starting render thread...", MGDF_LOG_LOW);
+        _rtRenderBackend->VR().BindRenderThread();
         RTOnBeforeFirstDraw();
 
         while (_runRenderThread.test_and_set()) {

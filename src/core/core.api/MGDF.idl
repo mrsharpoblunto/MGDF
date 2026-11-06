@@ -877,9 +877,9 @@ the settings will be applied to the render system on the next frame
   can also require RTBeforeDeviceReset and RTDeviceReset. A missing headset or
   a runtime failure leaves the window running. Check GetVR for the session state
   \param enabled TRUE to request VR, FALSE to return to the window
-  \return FALSE if GetVRSupport returns FALSE
+  \return S_OK when accepted; E_NOTIMPL if GetVRSupport returns FALSE
   */
-  BOOL SetVR(BOOL enabled);
+  HRESULT SetVR(BOOL enabled);
 };
 
 /**
@@ -2515,8 +2515,9 @@ typedef struct MGDFVRPanel {
   \param index 0 for the left eye, 1 for the right eye
   \param view receives the eye data; zeroed on error
   \return S_OK; E_INVALIDARG for an invalid index or null output;
-  E_ILLEGAL_METHOD_CALL without a session or on the wrong thread; E_FAIL
-  after a runtime failure. Outside RTDraw only target properties are filled
+  E_ILLEGAL_METHOD_CALL without a session, on the wrong thread, or during
+  RTDraw without an eye frame; E_FAIL after a runtime failure. Outside RTDraw
+  only target properties are filled
   */
   HRESULT GetView(UINT32 index, [out] MGDFView *view);
 

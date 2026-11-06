@@ -45,6 +45,8 @@ class Runtime {
         reinterpret_cast<FakeXRGetStats>(GetProcAddress(Library, "GetStats"));
     ChangeMask = reinterpret_cast<FakeXRChangeMask>(
         GetProcAddress(Library, "ChangeMask"));
+    FailAcquire = reinterpret_cast<FakeXRFailAcquire>(
+        GetProcAddress(Library, "FailAcquire"));
     SetInput =
         reinterpret_cast<FakeXRSetInput>(GetProcAddress(Library, "SetInput"));
     LoseInstance = reinterpret_cast<FakeXRInstanceLoss>(
@@ -67,6 +69,7 @@ class Runtime {
   FakeXRGetStats Read = nullptr;
   FakeXRInstanceLoss LoseInstance = nullptr;
   FakeXRSetInput SetInput = nullptr;
+  FakeXRFailAcquire FailAcquire = nullptr;
 
  private:
   std::string Previous;
@@ -108,7 +111,7 @@ class FrameLoop final : public D3DAppFramework {
   void RequestVR(bool enabled) {
     ComObject<IMGDFPendingRenderSettingsChange> change;
     Settings->CreatePendingSettingsChange(change.Assign());
-    EXPECT_TRUE(change->SetVR(enabled));
+    EXPECT_EQ(S_OK, change->SetVR(enabled));
   }
   void Execute() {
     Deadline = GetTickCount64() + 15000;
@@ -1008,6 +1011,127 @@ TEST_P(OpenXRIntegrationTests,
   }
 }
 
+TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.FailAcquire);
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0;
+  {
+    FrameLoop loop(GetParam(), true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      const MGDFVRPanel panel{80, 32, {0, 0, 2},          {0, 0, 0, 1},
+                              1,  1,  MGDF_VR_SPACE_LOCAL};
+      const auto check = [&](HRESULT expected, bool cached) {
+        MGDFView view{};
+        MGDFVRPose pose{};
+        ComObject<IUnknown> target;
+        EXPECT_EQ(expected, vr.GetView(0, &view, true));
+        EXPECT_EQ(0U, view.Width);
+        EXPECT_EQ(expected, vr.GetTarget(0, target));
+        EXPECT_FALSE(target);
+        EXPECT_EQ(expected, vr.GetDepthTarget(0, target));
+        EXPECT_FALSE(target);
+        EXPECT_EQ(expected, vr.SetViewDepthRange(0, 1, 10));
+        EXPECT_EQ(expected, vr.GetPanelTarget(target));
+        EXPECT_FALSE(target);
+        EXPECT_EQ(expected,
+                  vr.GetControllerPose(MGDF_VR_HAND_LEFT,
+                                       MGDF_VR_CONTROLLER_GRIP, &pose));
+        EXPECT_EQ(expected, vr.GetGaze(&pose));
+        EXPECT_FALSE(pose.OrientationValid);
+        UINT32 vertices = 9, indices = 9;
+        UINT64 version = 9;
+        EXPECT_EQ(cached ? S_OK : expected,
+                  vr.GetViewMask(0, &vertices, nullptr, &indices, nullptr));
+        EXPECT_EQ(cached ? S_OK : expected, vr.GetViewMaskVersion(&version));
+        EXPECT_EQ(cached ? S_OK : expected, vr.SetVRPanel(&panel));
+        if (!cached) {
+          EXPECT_EQ(0U, vertices);
+          EXPECT_EQ(0U, indices);
+          EXPECT_EQ(0U, version);
+        }
+      };
+      if (phase == 0) {
+        check(E_ILLEGAL_METHOD_CALL, false);
+        host.RequestVR(true);
+        ++phase;
+      } else if (phase == 1 && vr.ViewCount()) {
+        std::thread wrongThread([&] { check(E_ILLEGAL_METHOD_CALL, false); });
+        wrongThread.join();
+        runtime.ShouldRender(false);
+        ++phase;
+      } else if (phase == 2 && !vr.ViewCount()) {
+        // Gaze has no extension, but an eye-frame violation still takes
+        // priority.
+        check(E_ILLEGAL_METHOD_CALL, true);
+        runtime.ShouldRender(true);
+        runtime.FailAcquire();
+        ++phase;
+      } else if (phase == 3) {
+        check(E_FAIL, false);
+        ++phase;
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(4U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests,
+       MaskRevisionAndActionsFollowRecreationBoundaries) {
+  Runtime runtime;
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0, changes = 0;
+  UINT64 revision = 0;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      UINT64 current = 0;
+      if (phase == 0 && vr.ViewCount()) {
+        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&revision));
+        changes = host.AfterChanges;
+        ComObject<IMGDFPendingRenderSettingsChange> change;
+        host.Settings->CreatePendingSettingsChange(change.Assign());
+        change->SetVSync(FALSE);
+        ++phase;
+      } else if (phase == 1 && vr.ViewCount() && host.AfterChanges > changes) {
+        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&current));
+        EXPECT_NE(revision, current);
+        revision = current;
+        EXPECT_EQ(1U, runtime.Stats().SessionsCreated);
+        EXPECT_EQ(1U, runtime.Stats().ActionSetsAttached);
+        host.RequestVR(false);
+        ++phase;
+      } else if (phase == 2 && !host.Settings->GetVR()) {
+        host.RequestVR(true);
+        ++phase;
+      } else if (phase == 3 && vr.ViewCount()) {
+        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&current));
+        EXPECT_NE(revision, current);
+        EXPECT_EQ(2U, runtime.Stats().SessionsCreated);
+        EXPECT_EQ(2U, runtime.Stats().ActionSetsAttached);
+        ++phase;
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(4U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
 TEST_P(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
@@ -1042,7 +1166,7 @@ TEST_P(OpenXRIntegrationTests, ModuleWithoutVRNeverStartsRuntimeOrSession) {
     EXPECT_FALSE(loop.Settings->GetVRSupport());
     ComObject<IMGDFPendingRenderSettingsChange> change;
     loop.Settings->CreatePendingSettingsChange(change.Assign());
-    EXPECT_FALSE(change->SetVR(TRUE));
+    EXPECT_EQ(E_NOTIMPL, change->SetVR(TRUE));
     change.Clear();
     loop.Step = [](auto &host) { return host.Views.size() >= 3; };
     loop.Execute();
@@ -1163,7 +1287,7 @@ TEST_P(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
   {
     ComObject<IMGDFPendingRenderSettingsChange> change;
     settings->CreatePendingSettingsChange(change.Assign());
-    ASSERT_TRUE(change->SetVR(TRUE));
+    ASSERT_EQ(S_OK, change->SetVR(TRUE));
     change->Cancel();
   }
   EXPECT_FALSE(settings->TakeVRRequest());

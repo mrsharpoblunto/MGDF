@@ -71,6 +71,7 @@ std::vector<std::unique_ptr<XrSession_T>> RetiredSessions;
 std::vector<std::unique_ptr<XrSpace_T>> RetiredSpaces;
 bool InstanceLost = false;
 UINT32 MaskMode = 0;
+bool FailNextAcquire = false;
 
 XrResult Reject() {
   ++Stats.Errors;
@@ -408,6 +409,7 @@ XrResult XRAPI_CALL Acquire(XrSwapchain swapchain,
                             const XrSwapchainImageAcquireInfo *,
                             uint32_t *index) {
   if (!Session->Begun || swapchain->Acquired) return Reject();
+  if (std::exchange(FailNextAcquire, false)) return XR_ERROR_RUNTIME_FAILURE;
   swapchain->Index = (swapchain->Index + 1) % 3;
   *index = swapchain->Index;
   swapchain->Acquired = true;
@@ -834,6 +836,7 @@ extern "C" __declspec(dllexport) void Configure(const FakeXRConfig *config) {
   Events.clear();
   InstanceLost = false;
   MaskMode = 0;
+  FailNextAcquire = false;
 }
 extern "C" __declspec(dllexport) void PushState(XrSessionState state) {
   Events.push_back({state});
@@ -854,3 +857,5 @@ extern "C" __declspec(dllexport) void ChangeMask(UINT32 mode) {
 extern "C" __declspec(dllexport) void SetInput(const FakeXRInput *input) {
   Input = *input;
 }
+
+extern "C" __declspec(dllexport) void FailAcquire() { FailNextAcquire = true; }

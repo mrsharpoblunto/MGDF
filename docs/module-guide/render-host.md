@@ -47,7 +47,9 @@ the window without a headset. Frame generation and low latency sleep are disable
 in VR; their saved preferences are kept.
 
 The test module requests VR when it is available. Each eye shows a color from
-its pose, and the window shows the left eye color. F9 toggles VR. Escape exits.
+its pose, and the window shows the left eye color. A green panel follows the
+head. Press a controller trigger to feel a short vibration; the active profile
+is logged once per hand. F9 toggles VR. Escape exits.
 Select D3D12 or D3D11 with the module's `host.graphicsAPI` preference, and start
 with `-vr` to test startup in a headset.
 
@@ -58,7 +60,8 @@ calls; they do not call OpenXR or manage its handles or events.
 outputs return `E_INVALIDARG`. No session, a wrong thread, or a target request
 outside an eye frame returns `E_ILLEGAL_METHOD_CALL`. A runtime failure returns
 `E_FAIL`. Outputs are zero or null on error. `GetView` can also report target
-properties outside `RTDraw`; its pose and field of view are then zero.
+properties outside `RTDraw`; its pose and field of view are then zero. During `RTDraw`
+with no eye frame, it returns `E_ILLEGAL_METHOD_CALL`.
 
 ## Hidden area masks
 

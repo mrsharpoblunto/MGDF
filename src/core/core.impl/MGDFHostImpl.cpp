@@ -341,6 +341,7 @@ void Host::STDisposeModule() {
 }
 
 void Host::RTBeforeFirstDraw() {
+  _vrThreadId = GetCurrentThreadId();
   if (_module) {
     LOG("Calling module RTBeforeFirstDraw...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeFirstDraw(RenderHost())) {
@@ -525,7 +526,7 @@ HRESULT Host::GetView(UINT32 index, MGDFView *view) {
   if (!view) return E_INVALIDARG;
   *view = {};
   if (index >= 2) return E_INVALIDARG;
-  return RTCanCallVR() ? _backend->VR().GetView(index, view)
+  return RTCanCallVR() ? _backend->VR().GetView(index, view, _vrDrawing)
                        : E_ILLEGAL_METHOD_CALL;
 }
 BOOL Host::GetVRFocused() { return RTCanCallVR() && _backend->VR().Focused(); }

@@ -176,10 +176,10 @@ BOOL PendingRenderSettingsChange::SetRayTracing(BOOL enabled) {
   return TRUE;
 }
 
-BOOL PendingRenderSettingsChange::SetVR(BOOL enabled) {
-  if (!_manager.GetVRSupport()) return FALSE;
+HRESULT PendingRenderSettingsChange::SetVR(BOOL enabled) {
+  if (!_manager.GetVRSupport()) return E_NOTIMPL;
   _newVR = enabled != FALSE;
-  return TRUE;
+  return S_OK;
 }
 
 void RenderSettingsManager::InitVR(bool moduleVR, MGDFGraphicsAPI api,

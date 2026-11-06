@@ -535,12 +535,13 @@ HRESULT OpenXR::SessionStatus() const {
   return _fallback ? E_FAIL : S_OK;
 }
 
-HRESULT OpenXR::GetView(UINT32 index, MGDFView *view) const {
+HRESULT OpenXR::GetView(UINT32 index, MGDFView *view, bool eyeFrame) const {
   if (!view) return E_INVALIDARG;
   *view = {};
   if (index >= _eyes.size()) return E_INVALIDARG;
   const auto status = SessionStatus();
   if (FAILED(status)) return status;
+  if (eyeFrame && (!_begun || !_viewCount)) return E_ILLEGAL_METHOD_CALL;
   *view = View(index);
   if (!_begun || !_viewCount) {
     std::fill(std::begin(view->Position), std::end(view->Position), 0.0f);
@@ -820,6 +821,7 @@ HRESULT OpenXR::SetVRPanel(const MGDFVRPanel *panel) {
   } else {
     _panel.reset();
     _framePanel.reset();
+    _panelStatus = S_FALSE;
   }
   return S_OK;
 }

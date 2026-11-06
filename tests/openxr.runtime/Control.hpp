@@ -80,3 +80,5 @@ using FakeXRGetStats = void (*)(FakeXRStats *);
 using FakeXRInstanceLoss = void (*)();
 
 using FakeXRSetInput = void (*)(const FakeXRInput *);
+
+using FakeXRFailAcquire = void (*)();

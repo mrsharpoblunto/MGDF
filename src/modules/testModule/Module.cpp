@@ -20,7 +20,7 @@ namespace Test {
 namespace {
 std::array<float, 4> EyeColor(IMGDFRenderHost *host, UINT32 index) {
   MGDFView view{};
-  host->GetView(index, &view);
+  if (host->GetView(index, &view) != S_OK) return {0, 0, 0, 1};
   const auto &q = view.Orientation;
   const float yaw = std::atan2(2 * (q[3] * q[1] + q[0] * q[2]),
                                1 - 2 * (q[0] * q[0] + q[1] * q[1]));
@@ -158,6 +158,46 @@ BOOL Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {
   _ASSERTE(_testModuleCounter);
   if (!_input) {
     host->GetInput(_input.Assign());
+  }
+
+  if (_vrTest) {
+    for (UINT32 i = 0; i < 2; ++i) {
+      const auto hand = static_cast<MGDFVRHand>(i);
+      MGDFVRController controller{};
+      const bool connected =
+          _input->GetVRController(hand, &controller) != FALSE;
+      if (connected && !_profileLogged[i]) {
+        const char *profile = "Other";
+        switch (controller.Profile) {
+          case MGDF_VR_PROFILE_TOUCH:
+            profile = "Touch";
+            break;
+          case MGDF_VR_PROFILE_INDEX:
+            profile = "Index";
+            break;
+          case MGDF_VR_PROFILE_VIVE:
+            profile = "Vive";
+            break;
+          case MGDF_VR_PROFILE_WMR:
+            profile = "WMR";
+            break;
+          case MGDF_VR_PROFILE_SIMPLE:
+            profile = "Simple";
+            break;
+          default:
+            break;
+        }
+        const auto message =
+            std::string(i ? "Right VR controller: " : "Left VR controller: ") +
+            profile;
+        host->Log("TestModule", message.c_str(), MGDF_LOG_LOW);
+        _profileLogged[i] = true;
+      }
+      const bool pressed = connected && controller.Trigger > 0.7f;
+      if (pressed && !_triggerPressed[i])
+        _input->VibrateVRController(hand, 0.6f, 0.2f);
+      _triggerPressed[i] = pressed;
+    }
   }
 
   if (_input->IsKeyPress(VK_F9)) {
@@ -298,7 +338,12 @@ BOOL Module::RTDraw(IMGDFRenderHost *host, double alpha) {
 }
 
 BOOL Module::RTBackBufferChange(IMGDFRenderHost *host) {
-  std::ignore = host;
+  MGDFView view{};
+  if (_vrTest && host->GetView(0, &view) == S_OK && view.Width) {
+    const MGDFVRPanel panel{512,  256,   {0, 0, 1.5f},      {0, 0, 0, 1},
+                            0.7f, 0.35f, MGDF_VR_SPACE_VIEW};
+    host->SetVRPanel(&panel);
+  }
   if (_textManager) _textManager->BackBufferChange();
   return true;
 }
@@ -381,7 +426,7 @@ bool Module::InitD3D12(IMGDFRenderHost *host) {
   if (!_d3d12Device || !_directQueue || !_frameFence || !compute || !copy)
     return false;
   const D3D12_DESCRIPTOR_HEAP_DESC heap{.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-                                        .NumDescriptors = 4};
+                                        .NumDescriptors = 6};
   if (FAILED(_d3d12Device->CreateDescriptorHeap(
           &heap, IID_PPV_ARGS(_eyeRTVs.Assign()))))
     return false;
@@ -452,11 +497,12 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime + 4)), 1};
     for (UINT32 eye = 0; eye < host->GetViewCount(); ++eye) {
       ComObject<ID3D12Resource> target;
-      renderHost->GetViewTarget(eye, target.Assign());
       MGDFView view{};
-      host->GetView(eye, &view);
+      if (renderHost->GetViewTarget(eye, target.Assign()) != S_OK ||
+          host->GetView(eye, &view) != S_OK)
+        return false;
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
-      rtv.ptr += (static_cast<SIZE_T>(slot) * 2 + eye) *
+      rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + eye) *
                  _d3d12Device->GetDescriptorHandleIncrementSize(
                      D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
       const D3D12_RENDER_TARGET_VIEW_DESC desc{
@@ -466,6 +512,21 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
       const auto eyeColor = EyeColor(host, eye);
       list->ClearRenderTargetView(rtv, eyeColor.data(), 0, nullptr);
       if (!eye) _leftEyeColor = eyeColor;
+    }
+    ComObject<ID3D12Resource> panel;
+    if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
+      MGDFView view{};
+      if (host->GetView(0, &view) != S_OK) return false;
+      auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
+      rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + 2) *
+                 _d3d12Device->GetDescriptorHandleIncrementSize(
+                     D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+      const D3D12_RENDER_TARGET_VIEW_DESC desc{
+          .Format = view.Format,
+          .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D};
+      _d3d12Device->CreateRenderTargetView(panel, &desc, rtv);
+      const float panelColor[4]{0.08f, 0.4f, 0.16f, 0.8f};
+      list->ClearRenderTargetView(rtv, panelColor, 0, nullptr);
     }
     list->ClearRenderTargetView(frame.BackBufferRTV,
                                 _vrTest ? _leftEyeColor.data() : color, 0,
@@ -506,9 +567,10 @@ bool Module::DrawVRD3D11(IMGDFRenderHost *host) {
   device->GetImmediateContext(context.Assign());
   for (UINT32 eye = 0; eye < host->GetViewCount(); ++eye) {
     ComObject<ID3D11Texture2D> target;
-    renderHost->GetViewTarget(eye, target.Assign());
     MGDFView view{};
-    host->GetView(eye, &view);
+    if (renderHost->GetViewTarget(eye, target.Assign()) != S_OK ||
+        host->GetView(eye, &view) != S_OK)
+      return false;
     const D3D11_RENDER_TARGET_VIEW_DESC desc{
         .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
     ComObject<ID3D11RenderTargetView> rtv;
@@ -517,6 +579,19 @@ bool Module::DrawVRD3D11(IMGDFRenderHost *host) {
     const auto color = EyeColor(host, eye);
     context->ClearRenderTargetView(rtv, color.data());
     if (!eye) _leftEyeColor = color;
+  }
+  ComObject<ID3D11Texture2D> panel;
+  if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
+    MGDFView view{};
+    if (host->GetView(0, &view) != S_OK) return false;
+    const D3D11_RENDER_TARGET_VIEW_DESC desc{
+        .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
+    ComObject<ID3D11RenderTargetView> panelView;
+    if (FAILED(
+            device->CreateRenderTargetView(panel, &desc, panelView.Assign())))
+      return false;
+    const float panelColor[4]{0.08f, 0.4f, 0.16f, 0.8f};
+    context->ClearRenderTargetView(panelView, panelColor);
   }
   ComObject<ID3D11Texture2D> window;
   renderHost->GetBackBuffer(window.Assign());
