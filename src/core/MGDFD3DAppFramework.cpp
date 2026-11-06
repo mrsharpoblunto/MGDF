@@ -209,8 +209,8 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   _rtAllowTearing = allowTearing == TRUE;
 
   if (const auto request = RTTakeVRRequest()) _rtVRRequested = *request;
-  if (_rtVRRequested && !_rtRenderBackend->RTPrepareVR(
-                            RTGetApplicationName(), RTGetOpenXRExtensions())) {
+  if (_rtVRRequested &&
+      !_rtRenderBackend->RTPrepareVR(RTGetApplicationName())) {
     _rtVRRequested = false;
     _rtRenderBackend->VR().Destroy();
   }
@@ -579,8 +579,7 @@ bool D3DAppFramework::RTUpdateVR() {
     _rtVRRequested = *request;
     _rtVRChangePending = true;
     if (*request) {
-      if (!_rtRenderBackend->RTPrepareVR(RTGetApplicationName(),
-                                         RTGetOpenXRExtensions())) {
+      if (!_rtRenderBackend->RTPrepareVR(RTGetApplicationName())) {
         _rtVRRequested = false;
       } else if (!_rtRenderBackend->RTMatchesVRAdapter()) {
         RTPrepareToReinitD3D();

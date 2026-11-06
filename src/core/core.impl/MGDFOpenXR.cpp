@@ -97,9 +97,9 @@ bool OpenXR::Check(XrResult result, const char *operation) {
 }
 
 bool OpenXR::Prepare(const char *extension, const char *applicationName,
-                     const RequirementsQuery &query,
-                     std::span<const char *const> extensions) {
+                     const RequirementsQuery &query) {
   if (Prepared()) return !_fallback;
+  _threadId = GetCurrentThreadId();
   _fallback = false;
   XrInstanceCreateInfo info{XR_TYPE_INSTANCE_CREATE_INFO};
   const std::string_view appName(applicationName);
@@ -133,14 +133,6 @@ bool OpenXR::Prepare(const char *extension, const char *applicationName,
              "list extensions"))
     return false;
   _extensions = {extension};
-  for (const auto name : extensions) {
-    if (!name || std::ranges::find(_extensions, name) != _extensions.end())
-      continue;
-    if (std::ranges::any_of(properties, [name](const auto &property) {
-          return strcmp(property.extensionName, name) == 0;
-        }))
-      _extensions.emplace_back(name);
-  }
   std::vector<const char *> enabled;
   for (const auto &name : _extensions) enabled.push_back(name.c_str());
   info.enabledExtensionCount = static_cast<uint32_t>(enabled.size());
@@ -260,44 +252,14 @@ bool OpenXR::RecreateSwapchains() {
   return true;
 }
 
-namespace {
-void CopyEvent(const XrEventDataBuffer &source, void *destination) {
-  memcpy(destination, &source, sizeof(source));
-  // OpenXR requires event next chains to fit inside the event buffer. Rebase
-  // those links when moving the full buffer, without interpreting event types.
-  auto header = static_cast<XrBaseOutStructure *>(destination);
-  while (header->next) {
-    const auto offset = reinterpret_cast<uintptr_t>(header->next) -
-                        reinterpret_cast<uintptr_t>(&source);
-    _ASSERTE(offset <= sizeof(source) - sizeof(XrBaseOutStructure));
-    if (offset > sizeof(source) - sizeof(XrBaseOutStructure)) {
-      header->next = nullptr;
-      break;
-    }
-    header->next = reinterpret_cast<XrBaseOutStructure *>(
-        static_cast<char *>(destination) + offset);
-    header = header->next;
-  }
-}
-}  // namespace
-
 void OpenXR::PollEvents() {
+  _threadId = GetCurrentThreadId();
   if (!_instance || _fallback) return;
   for (;;) {
     XrEventDataBuffer event{XR_TYPE_EVENT_DATA_BUFFER};
     const auto result = xrPollEvent(_instance, &event);
     if (result == XR_EVENT_UNAVAILABLE) break;
     if (!Check(result, "poll events")) return;
-    if (_events.size() == 64) {
-      _events.pop_front();
-      if (!_eventOverflowLogged) {
-        LOG("OpenXR module event queue full; dropping oldest events",
-            MGDF_LOG_LOW);
-        _eventOverflowLogged = true;
-      }
-    }
-    _events.emplace_back();
-    CopyEvent(event, &_events.back());
     if (event.type == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
       Fail("instance loss", XR_ERROR_INSTANCE_LOST);
       return;
@@ -477,19 +439,7 @@ void OpenXR::Destroy() {
   _canRender = {};
   _images = {};
   _extensions.clear();
-  _events.clear();
-  _eventOverflowLogged = false;
   _changed = true;
-}
-
-MGDFOpenXRState OpenXR::State() const {
-  if (!_session) return {};
-  return {reinterpret_cast<UINT64>(_instance),
-          _system,
-          reinterpret_cast<UINT64>(_session),
-          reinterpret_cast<UINT64>(_space),
-          reinterpret_cast<void *>(xrGetInstanceProcAddr),
-          _begun ? _frame.predictedDisplayTime : 0};
 }
 
 bool OpenXR::ExtensionEnabled(const char *name) const {
@@ -497,35 +447,44 @@ bool OpenXR::ExtensionEnabled(const char *name) const {
          std::ranges::find(_extensions, name) != _extensions.end();
 }
 
-bool OpenXR::PollEvent(void *buffer, UINT32 size) {
-  if (!buffer || size < sizeof(XrEventDataBuffer) || _events.empty())
-    return false;
-  CopyEvent(_events.front(), buffer);
-  _events.pop_front();
-  return true;
+HRESULT OpenXR::SessionStatus() const {
+  if (_threadId != GetCurrentThreadId()) return E_ILLEGAL_METHOD_CALL;
+  if (!_session) return E_ILLEGAL_METHOD_CALL;
+  return _fallback ? E_FAIL : S_OK;
 }
 
-HRESULT OpenXR::AddCompositionLayers(UINT32 count, const void *const *layers) {
-  if (!_begun || _viewCount != 2 || _fallback) return E_UNEXPECTED;
-  if (count && !layers) return E_INVALIDARG;
-  for (UINT32 i = 0; i < count; ++i)
-    if (!layers[i]) return E_INVALIDARG;
-  for (UINT32 i = 0; i < count; ++i)
-    _layers.push_back(
-        static_cast<const XrCompositionLayerBaseHeader *>(layers[i]));
+HRESULT OpenXR::GetView(UINT32 index, MGDFView *view) const {
+  if (!view) return E_INVALIDARG;
+  *view = {};
+  if (index >= _eyes.size()) return E_INVALIDARG;
+  const auto status = SessionStatus();
+  if (FAILED(status)) return status;
+  *view = View(index);
+  if (!_begun || !_viewCount) {
+    std::fill(std::begin(view->Position), std::end(view->Position), 0.0f);
+    std::fill(std::begin(view->Orientation), std::end(view->Orientation), 0.0f);
+    view->AngleLeft = view->AngleRight = view->AngleUp = view->AngleDown = 0;
+  }
   return S_OK;
 }
 
-HRESULT OpenXR::SetProjectionViewNext(UINT32 index, const void *next) {
-  if (index >= _viewNext.size()) return E_INVALIDARG;
-  if (!_begun || _viewCount != 2 || _fallback) return E_UNEXPECTED;
-  _viewNext[index] = next;
+HRESULT OpenXR::GetTarget(UINT32 index, ComObject<IUnknown> &target) const {
+  target.Clear();
+  if (index >= _eyes.size()) return E_INVALIDARG;
+  const auto status = SessionStatus();
+  if (FAILED(status)) return status;
+  if (!_begun || index >= _viewCount) return E_ILLEGAL_METHOD_CALL;
+  const auto &eye = _eyes[index];
+  _ASSERTE(eye.Waited && eye.Image < eye.Images.size());
+  if (!eye.Waited || eye.Image >= eye.Images.size()) return E_FAIL;
+  target = eye.Images[eye.Image];
   return S_OK;
 }
 
 bool OpenXR::TakeChange() { return std::exchange(_changed, false); }
 
 MGDFView OpenXR::View(UINT32 index) const {
+  if (index >= _eyes.size()) return {};
   _ASSERTE(index < _eyes.size());
   const auto &eye = _eyes[index];
   if (!eye.Swapchain) return {};
@@ -534,8 +493,9 @@ MGDFView OpenXR::View(UINT32 index) const {
 }
 
 ComObject<IUnknown> OpenXR::Target(UINT32 index) const {
-  _ASSERTE(index < _viewCount);
-  return _eyes[index].Images[_eyes[index].Image];
+  ComObject<IUnknown> target;
+  GetTarget(index, target);
+  return target;
 }
 
 }  // namespace MGDF::core

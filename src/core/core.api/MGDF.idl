@@ -42,12 +42,6 @@ typedef struct MGDFGraphicsRequirements {
   MGDFHDRFormat HDRFormat;
   /** TRUE if the module renders headset views. FALSE makes VR unavailable */
   BOOL VR;
-  /** Optional OpenXR extension names. The host enables each name the runtime
-  lists and ignores unavailable names. Zero means no extra extensions */
-  UINT32 OpenXRExtensionCount;
-  /** Array and null-terminated names belong to the module and must remain valid
-  for its lifetime. May be null only when OpenXRExtensionCount is zero */
-  const small **OpenXRExtensions;
 } MGDFGraphicsRequirements;
 
 /**
@@ -2370,21 +2364,6 @@ typedef struct MGDFView {
 } MGDFView;
 
 /**
-Borrowed OpenXR state. Cast the integer values to the matching OpenXR types.
-All fields are zero when no session exists. GetInstanceProcAddr is the loader's
-PFN_xrGetInstanceProcAddr; modules need OpenXR headers but no loader link.
-PredictedDisplayTime is XrTime for this RTDraw, or zero outside an OpenXR frame
-*/
-typedef struct MGDFOpenXRState {
-  UINT64 Instance;
-  UINT64 SystemId;
-  UINT64 Session;
-  UINT64 LocalSpace;
-  void *GetInstanceProcAddr;
-  INT64 PredictedDisplayTime;
-} MGDFOpenXRState;
-
-/**
  Provides an entrypoint for a module to interact with the MGDF host. This
  interface inherits from ICommonHost and provides additional methods which are
  safe to be used ONLY from the render thread.
@@ -2420,9 +2399,12 @@ typedef struct MGDFOpenXRState {
   Pose and field of view are valid only during RTDraw when index is less than
   GetViewCount. Use them for this frame only
   \param index 0 for the left eye, 1 for the right eye
-  \param view receives the eye data
+  \param view receives the eye data; zeroed on error
+  \return S_OK; E_INVALIDARG for an invalid index or null output;
+  E_ILLEGAL_METHOD_CALL without a session or on the wrong thread; E_FAIL
+  after a runtime failure. Outside RTDraw only target properties are filled
   */
-  void GetView(UINT32 index, [out] MGDFView *view);
+  HRESULT GetView(UINT32 index, [out] MGDFView *view);
 
   /**
   Reports headset input focus. Pause headset input when this is FALSE
@@ -2430,70 +2412,6 @@ typedef struct MGDFOpenXRState {
   */
   BOOL GetVRFocused();
 
-  /**
-  Gets borrowed OpenXR handles on either graphics backend. Reacquire them in
-  RTBackBufferChange; their lifetime ends at the next RTBeforeBackBufferChange
-  or device reset. If a new session is created, rebuild session resources and
-  attach action sets again. A resize can keep the same session; do not attach
-  action sets twice to that session. Destroy only module-owned OpenXR objects,
-  while their parent handles are still valid.
-  Make all module OpenXR calls on the render thread. Raw OpenXR poses use a
-  right-handed frame with -Z forward, unlike MGDFView. LocalSpace is the LOCAL
-  space used for the eye poses. Do not call xrWaitFrame, xrBeginFrame, xrEndFrame,
-  xrBeginSession, xrEndSession, xrRequestExitSession, xrPollEvent, xrDestroy* on
-  host-owned objects, or acquire/wait/release on host swapchains. Do not change
-  the host's instance, session, graphics binding or eye swapchains.
-  \param state receives the handles, function pointer and current frame time
-  */
-  void GetOpenXRState([out] MGDFOpenXRState *state);
-
-  /**
-  Reports whether an extension is enabled for the current OpenXR instance,
-  including extensions required by the host. Recheck after a back buffer change
-  \param name null-terminated extension name
-  \return FALSE if there is no instance, name is null, or it is not enabled
-  */
-  BOOL IsOpenXRExtensionEnabled([in, string] const small *name);
-
-  /**
-  Removes the oldest copied OpenXR event. Call until FALSE, on the render thread,
-  including in RTBeforeBackBufferChange before releasing OpenXR resources.
-  Session events are also handled by the host. The queue holds 64 events; overflow
-  drops the oldest and logs once per instance. Remaining events are discarded
-  when the instance is destroyed. Event next chains point into the output buffer;
-  process them before reusing that buffer. Event data keeps OpenXR conventions.
-  \param eventBuffer storage for a whole XrEventDataBuffer
-  \param bufferSize sizeof(XrEventDataBuffer), or a larger buffer
-  \return TRUE if an event was copied; FALSE if empty, null, or too small
-  */
-  BOOL PollOpenXREvent([out] void *eventBuffer, UINT32 bufferSize);
-
-  /**
-  Appends module layers after the host projection layer, in call and array order.
-  Call only during RTDraw with GetViewCount() == 2. The module must enable required
-  extensions, obey the runtime layer limit (including the host layer), and finish
-  rendering and release its own swapchain images before RTDraw returns. The host
-  copies the pointer array; keep every layer and referenced next chain valid until
-  RTAfterPresent. All additions are cleared each frame. Raw data uses OpenXR
-  conventions. No layers are submitted if this frame is discarded
-  \param count number of XrCompositionLayerBaseHeader pointers
-  \param layers pointer array; may be null only when count is zero
-  \return S_OK, E_INVALIDARG for a null array/entry, or E_UNEXPECTED outside an
-  eye frame
-  */
-  HRESULT AddOpenXRCompositionLayers(UINT32 count, [in] const void **layers);
-
-  /**
-  Sets one eye's XrCompositionLayerProjectionView::next for this frame, for
-  example XrCompositionLayerDepthInfoKHR. Call during RTDraw with two views.
-  Keep the chain and its data valid until RTAfterPresent. Raw data uses OpenXR
-  conventions. The pointer is cleared each frame; repeated calls replace it
-  \param index 0 for the left eye, 1 for the right eye
-  \param next chain pointer, or null to clear it
-  \return S_OK, E_INVALIDARG for an invalid index, or E_UNEXPECTED outside an
-  eye frame
-  */
-  HRESULT SetOpenXRProjectionViewNext(UINT32 index, [in] const void *next);
 };
 
 /**
@@ -2525,8 +2443,11 @@ Additional methods in this interface are safe to be used ONLY from the render th
   until RTBeforeBackBufferChange, when all references must be released
   \param index less than GetViewCount
   \param target receives the texture; Release it when no longer needed
+  \return S_OK; E_INVALIDARG for an invalid index or null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL after a runtime failure. The output is null on error
   */
-  void GetViewTarget(UINT32 index, [out] ID3D11Texture2D **target);
+  HRESULT GetViewTarget(UINT32 index, [out] ID3D11Texture2D **target);
 
   /**
   Gets the current back buffer texture.
@@ -2782,8 +2703,11 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   until RTBeforeBackBufferChange; descriptors can be kept by resource until then
   \param index less than GetViewCount
   \param target receives the texture; release all references before a change
+  \return S_OK; E_INVALIDARG for an invalid index or null output;
+  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
+  thread; E_FAIL after a runtime failure. The output is null on error
   */
-  void GetViewTarget(UINT32 index, [out] ID3D12Resource **target);
+  HRESULT GetViewTarget(UINT32 index, [out] ID3D12Resource **target);
 
   /**
   Gets the current frame. Its ordinal and slot stay fixed through RTAfterPresent

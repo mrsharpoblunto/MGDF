@@ -19,8 +19,7 @@ class D3D11RenderBackend : public IRenderBackend {
                      std::function<void(const char *, const char *)> fatalError,
                      bool allowSoftwareAdapter = false);
 
-  bool RTPrepareVR(const char *applicationName,
-                   std::span<const char *const> extensions) final;
+  bool RTPrepareVR(const char *applicationName) final;
   bool RTStartVR() final;
   bool RTInit() final;
   bool RTIsInitialized() const final;

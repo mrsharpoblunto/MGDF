@@ -99,8 +99,7 @@ ComObject<ID3D12CommandQueue> D3D12RenderBackend::RTCreateQueue(
   return native;
 }
 
-bool D3D12RenderBackend::RTPrepareVR(const char *applicationName,
-                                     std::span<const char *const> extensions) {
+bool D3D12RenderBackend::RTPrepareVR(const char *applicationName) {
   return VR().Prepare(
       XR_KHR_D3D12_ENABLE_EXTENSION_NAME, applicationName,
       [](XrInstance instance, XrSystemId system,
@@ -116,8 +115,7 @@ bool D3D12RenderBackend::RTPrepareVR(const char *applicationName,
         if (XR_SUCCEEDED(status))
           result = {requirements.adapterLuid, requirements.minFeatureLevel};
         return status;
-      },
-      extensions);
+      });
 }
 
 bool D3D12RenderBackend::RTStartVR() {

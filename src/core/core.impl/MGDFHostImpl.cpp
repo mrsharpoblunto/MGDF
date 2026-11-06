@@ -509,34 +509,32 @@ void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
 UINT32 Host::GetViewCount() {
   return _backend ? _backend->VR().ViewCount() : 0;
 }
-void Host::GetView(UINT32 index, MGDFView *view) {
-  _ASSERTE(view && _backend);
-  *view = _backend->VR().View(index);
+HRESULT Host::GetView(UINT32 index, MGDFView *view) {
+  if (!view) return E_INVALIDARG;
+  *view = {};
+  if (index >= 2) return E_INVALIDARG;
+  return _backend ? _backend->VR().GetView(index, view) : E_ILLEGAL_METHOD_CALL;
 }
 BOOL Host::GetVRFocused() { return _backend && _backend->VR().Focused(); }
-void Host::GetOpenXRState(MGDFOpenXRState *state) {
-  _ASSERTE(state);
-  *state = _backend ? _backend->VR().State() : MGDFOpenXRState{};
+HRESULT Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!_backend) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
+  return result;
 }
-BOOL Host::IsOpenXRExtensionEnabled(const char *name) {
-  return _backend && _backend->VR().ExtensionEnabled(name);
-}
-BOOL Host::PollOpenXREvent(void *eventBuffer, UINT32 bufferSize) {
-  return _backend && _backend->VR().PollEvent(eventBuffer, bufferSize);
-}
-HRESULT Host::AddOpenXRCompositionLayers(UINT32 count, const void **layers) {
-  return _backend ? _backend->VR().AddCompositionLayers(count, layers)
-                  : E_UNEXPECTED;
-}
-HRESULT Host::SetOpenXRProjectionViewNext(UINT32 index, const void *next) {
-  return _backend ? _backend->VR().SetProjectionViewNext(index, next)
-                  : E_UNEXPECTED;
-}
-void Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
-  _backend->VR().Target(index).As<ID3D12Resource>().AddRawRef(target);
-}
-void Host::GetViewTarget(UINT32 index, ID3D11Texture2D **target) {
-  _backend->VR().Target(index).As<ID3D11Texture2D>().AddRawRef(target);
+HRESULT Host::GetViewTarget(UINT32 index, ID3D11Texture2D **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!_backend) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  return result;
 }
 
 void Host::GetBackBufferInfo(MGDFBackBufferInfo *info) {
