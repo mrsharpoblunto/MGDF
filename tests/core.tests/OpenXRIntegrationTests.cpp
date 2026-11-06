@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include <cmath>
 #include <filesystem>
 #include <numeric>
 
@@ -41,8 +42,8 @@ class Runtime {
         GetProcAddress(Library, "SetShouldRender"));
     Read =
         reinterpret_cast<FakeXRGetStats>(GetProcAddress(Library, "GetStats"));
-    PushEvent =
-        reinterpret_cast<FakeXRPushEvent>(GetProcAddress(Library, "PushEvent"));
+    ChangeMask = reinterpret_cast<FakeXRChangeMask>(
+        GetProcAddress(Library, "ChangeMask"));
     LoseInstance = reinterpret_cast<FakeXRInstanceLoss>(
         GetProcAddress(Library, "LoseInstance"));
   }
@@ -58,7 +59,7 @@ class Runtime {
   HMODULE Library = nullptr;
   FakeXRConfigure Configure = nullptr;
   FakeXRPushState Push = nullptr;
-  FakeXRPushEvent PushEvent = nullptr;
+  FakeXRChangeMask ChangeMask = nullptr;
   FakeXRShouldRender ShouldRender = nullptr;
   FakeXRGetStats Read = nullptr;
   FakeXRInstanceLoss LoseInstance = nullptr;
@@ -546,6 +547,258 @@ TEST_P(OpenXRIntegrationTests, ViewCallsReportInvalidArgumentsAndSessionState) {
   }
   EXPECT_EQ(3U, phase);
   EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests,
+       HiddenMaskIsCachedAndChangesOnlyWithItsRevision) {
+  Runtime runtime;
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0, reads = 0;
+  UINT64 version = 0;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      UINT32 vertices = 0, count = 0;
+      UINT64 current = 0;
+      if (!vr.ViewCount()) return false;
+      EXPECT_EQ(E_INVALIDARG,
+                vr.GetViewMask(2, &vertices, nullptr, &count, nullptr));
+      EXPECT_EQ(E_INVALIDARG,
+                vr.GetViewMask(0, nullptr, nullptr, &count, nullptr));
+      EXPECT_EQ(E_INVALIDARG, vr.GetViewMaskVersion(nullptr));
+      if (phase < 3) {
+        EXPECT_EQ(S_OK, vr.GetViewMaskVersion(&current));
+        EXPECT_EQ(S_OK, vr.GetViewMask(0, &vertices, nullptr, &count, nullptr));
+        EXPECT_EQ(3U, vertices);
+        EXPECT_EQ(3U, count);
+        FLOAT xy[6]{};
+        UINT32 indices[3]{};
+        vertices = 2;
+        EXPECT_EQ(E_INVALIDARG,
+                  vr.GetViewMask(0, &vertices, xy, &count, indices));
+        EXPECT_EQ(3U, vertices);
+        EXPECT_EQ(S_OK, vr.GetViewMask(0, &vertices, xy, &count, indices));
+        EXPECT_FLOAT_EQ(phase == 2 ? -0.7f : -0.8f, xy[0]);
+        EXPECT_FLOAT_EQ(-0.6f, xy[1]);
+        EXPECT_FLOAT_EQ(0.4f, xy[5]);
+        EXPECT_EQ(0U, indices[0]);
+        EXPECT_EQ(1U, indices[1]);
+        EXPECT_EQ(2U, indices[2]);
+        EXPECT_GT((xy[2] - xy[0]) * (xy[5] - xy[1]) -
+                      (xy[3] - xy[1]) * (xy[4] - xy[0]),
+                  0);
+      }
+      if (phase == 0) {
+        version = current;
+        reads = runtime.Stats().MaskReads;
+        ++phase;
+      } else if (phase == 1) {
+        EXPECT_EQ(version, current);
+        EXPECT_EQ(reads, runtime.Stats().MaskReads);
+        runtime.ChangeMask(1);
+        ++phase;
+      } else if (phase == 2) {
+        EXPECT_NE(version, current);
+        EXPECT_GT(runtime.Stats().MaskReads, reads);
+        runtime.ChangeMask(2);
+        ++phase;
+      } else if (phase == 3) {
+        EXPECT_EQ(S_FALSE,
+                  vr.GetViewMask(0, &vertices, nullptr, &count, nullptr));
+        EXPECT_EQ(0U, vertices);
+        EXPECT_EQ(0U, count);
+        runtime.ChangeMask(3);
+        ++phase;
+      } else if (phase == 4) {
+        EXPECT_EQ(E_FAIL,
+                  vr.GetViewMask(0, &vertices, nullptr, &count, nullptr));
+        EXPECT_EQ(E_FAIL, vr.GetViewMaskVersion(&current));
+        EXPECT_EQ(0U, vertices);
+        EXPECT_EQ(0U, current);
+        ++phase;
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(5U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests,
+       DepthIsSubmittedOnlyWhenBothEyesHaveCurrentRanges) {
+  Runtime runtime;
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      if (!vr.ViewCount()) return false;
+      ComObject<IUnknown> target;
+      EXPECT_EQ(DXGI_FORMAT_D32_FLOAT, vr.View(0).DepthFormat);
+      EXPECT_EQ(S_OK, vr.GetDepthTarget(0, target));
+      EXPECT_TRUE(target);
+      EXPECT_EQ(E_INVALIDARG, vr.GetDepthTarget(2, target));
+      EXPECT_FALSE(target);
+      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(2, 1, 10));
+      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(0, 0, 10));
+      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(0, 1, 1));
+      EXPECT_EQ(E_INVALIDARG, vr.SetViewDepthRange(0, NAN, 10));
+      if (phase == 0) {
+        EXPECT_EQ(S_OK, vr.SetViewDepthRange(0, INFINITY, 0.1f));
+        EXPECT_EQ(S_OK, vr.SetViewDepthRange(1, 0.2f, INFINITY));
+      } else if (phase == 1) {
+        const auto stats = runtime.Stats();
+        EXPECT_NE(0U, stats.LastViewNext[0]);
+        EXPECT_NE(0U, stats.LastViewNext[1]);
+        EXPECT_EQ(INFINITY, stats.LastDepth[0].nearZ);
+        EXPECT_FLOAT_EQ(0.1f, stats.LastDepth[0].farZ);
+        EXPECT_EQ(INFINITY, stats.LastDepth[1].farZ);
+        EXPECT_EQ(48, stats.LastDepth[0].subImage.imageRect.extent.width);
+        EXPECT_EQ(64, stats.LastDepth[1].subImage.imageRect.extent.width);
+      } else if (phase == 2) {
+        EXPECT_EQ(0U, runtime.Stats().LastViewNext[0]);
+        EXPECT_EQ(0U, runtime.Stats().LastViewNext[1]);
+        EXPECT_EQ(S_OK, vr.SetViewDepthRange(0, 100, 0.1f));
+      } else if (phase == 3) {
+        EXPECT_EQ(0U, runtime.Stats().LastViewNext[0]);
+        EXPECT_EQ(0U, runtime.Stats().LastViewNext[1]);
+        ++phase;
+        return true;
+      }
+      ++phase;
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(4U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests, PanelUsesNativePoseSpaceAndDeferredSize) {
+  Runtime runtime;
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0, swapchains = 0;
+  MGDFVRPanel panel{80, 32,   {0.25f, 0.5f, 2},  {0, 0.6f, 0, 0.8f},
+                    1,  0.4f, MGDF_VR_SPACE_VIEW};
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      if (!vr.ViewCount()) return false;
+      ComObject<IUnknown> target;
+      if (phase == 0) {
+        EXPECT_EQ(S_FALSE, vr.GetPanelTarget(target));
+        EXPECT_FALSE(target);
+        auto invalid = panel;
+        invalid.PixelWidth = 0;
+        EXPECT_EQ(E_INVALIDARG, vr.SetVRPanel(&invalid));
+        EXPECT_EQ(S_OK, vr.SetVRPanel(&panel));
+        EXPECT_EQ(S_FALSE, vr.GetPanelTarget(target));
+      } else if (phase == 1) {
+        EXPECT_EQ(S_OK, vr.GetPanelTarget(target));
+        EXPECT_TRUE(target);
+      } else if (phase == 2) {
+        const auto stats = runtime.Stats();
+        swapchains = stats.SwapchainsCreated;
+        EXPECT_EQ(2U, stats.LastLayerCount);
+        EXPECT_EQ(XR_REFERENCE_SPACE_TYPE_VIEW, stats.PanelSpace);
+        EXPECT_FLOAT_EQ(-2, stats.LastQuads[0].pose.position.z);
+        EXPECT_FLOAT_EQ(-0.6f, stats.LastQuads[0].pose.orientation.y);
+        EXPECT_FLOAT_EQ(0.25f, stats.LastQuads[0].pose.position.x);
+        EXPECT_EQ(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+                  stats.LastQuads[0].layerFlags);
+        panel.Space = MGDF_VR_SPACE_LOCAL;
+        panel.PixelWidth = 96;
+        EXPECT_EQ(S_OK, vr.SetVRPanel(&panel));
+      } else if (phase == 3) {
+        EXPECT_EQ(swapchains + 1, runtime.Stats().SwapchainsCreated);
+        EXPECT_EQ(S_OK, vr.GetPanelTarget(target));
+      } else if (phase == 4) {
+        EXPECT_EQ(XR_REFERENCE_SPACE_TYPE_LOCAL, runtime.Stats().PanelSpace);
+        EXPECT_EQ(96,
+                  runtime.Stats().LastQuads[0].subImage.imageRect.extent.width);
+        EXPECT_EQ(S_OK, vr.SetVRPanel(nullptr));
+        EXPECT_EQ(S_FALSE, vr.GetPanelTarget(target));
+        EXPECT_FALSE(target);
+      } else if (phase == 5) {
+        EXPECT_EQ(1U, runtime.Stats().LastLayerCount);
+        ++phase;
+        return true;
+      }
+      ++phase;
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(6U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests,
+       MissingFeaturesAndCreationFailuresHaveDistinctResults) {
+  Runtime runtime;
+  for (const bool failure : {false, true}) {
+    FakeXRConfig config{TestAdapter()};
+    config.MaskExtension = false;
+    config.DepthExtension = failure;
+    config.PanelSupport = failure;
+    config.FailDepth = failure;
+    config.FailWidth = failure ? 80 : 0;
+    runtime.Configure(&config);
+    UINT32 phase = 0;
+    {
+      FrameLoop loop(GetParam(), true, true);
+      loop.Step = [&](auto &host) {
+        auto &vr = host.Backend->VR();
+        if (!vr.ViewCount()) return false;
+        UINT32 vertices = 9, indices = 9;
+        UINT64 version = 9;
+        EXPECT_EQ(E_NOTIMPL,
+                  vr.GetViewMask(0, &vertices, nullptr, &indices, nullptr));
+        EXPECT_EQ(0U, vertices);
+        EXPECT_EQ(0U, indices);
+        EXPECT_EQ(E_NOTIMPL, vr.GetViewMaskVersion(&version));
+        EXPECT_EQ(0U, version);
+        ComObject<IUnknown> target;
+        EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL, vr.GetDepthTarget(0, target));
+        EXPECT_FALSE(target);
+        EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL, vr.SetViewDepthRange(0, 1, 10));
+        EXPECT_EQ(DXGI_FORMAT_UNKNOWN, vr.View(0).DepthFormat);
+        if (phase == 0) {
+          MGDFVRPanel panel{80, 32, {0, 0, 2},          {0, 0, 0, 1},
+                            1,  1,  MGDF_VR_SPACE_LOCAL};
+          EXPECT_EQ(failure ? S_OK : E_NOTIMPL, vr.SetVRPanel(&panel));
+        } else {
+          EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL, vr.GetPanelTarget(target));
+          EXPECT_FALSE(target);
+          EXPECT_EQ(0U, runtime.Stats().LastViewNext[0]);
+          EXPECT_EQ(0U, runtime.Stats().LastViewNext[1]);
+          ++phase;
+          return true;
+        }
+        ++phase;
+        return false;
+      };
+      loop.Execute();
+      EXPECT_FALSE(loop.TimedOut);
+      EXPECT_EQ(0U, loop.FatalErrors.load());
+    }
+    EXPECT_EQ(2U, phase);
+    EXPECT_EQ(0U, runtime.Stats().Errors);
+  }
 }
 
 TEST_P(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {

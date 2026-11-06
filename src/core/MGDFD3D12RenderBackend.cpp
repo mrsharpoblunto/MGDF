@@ -133,11 +133,13 @@ bool D3D12RenderBackend::RTStartVR() {
                                           _directQueue.Get()};
   return VR().CreateSession(
       &binding,
-      [this](DXGI_FORMAT format) {
+      [this](DXGI_FORMAT format, bool depth) {
         D3D12_FEATURE_DATA_FORMAT_SUPPORT support{format};
         return SUCCEEDED(_device->CheckFeatureSupport(
                    D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support))) &&
-               (support.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET);
+               (support.Support1 &
+                (depth ? D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL
+                       : D3D12_FORMAT_SUPPORT1_RENDER_TARGET));
       },
       [](XrSwapchain swapchain, std::vector<ComObject<IUnknown>> &resources) {
         uint32_t count = 0;
@@ -154,7 +156,8 @@ bool D3D12RenderBackend::RTStartVR() {
             resources.push_back(MakeComFromPtr<IUnknown>(image.texture));
         }
         return result;
-      });
+      },
+      [this] { RTWaitForGpuIdle(); });
 }
 
 bool D3D12RenderBackend::RTInit() {

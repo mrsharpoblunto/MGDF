@@ -29,6 +29,7 @@ struct XrSession_T {
 };
 struct XrSpace_T {
   XrSession Session;
+  XrReferenceSpaceType Type = XR_REFERENCE_SPACE_TYPE_LOCAL;
 };
 struct XrSwapchain_T {
   XrSwapchainCreateInfo Info{};
@@ -46,7 +47,7 @@ FakeXRStats Stats;
 XrSession Session = XR_NULL_HANDLE;
 struct Event {
   XrSessionState State = XR_SESSION_STATE_UNKNOWN;
-  UINT32 Marker = 0;
+  bool MaskChanged = false;
 };
 std::deque<Event> Events;
 // Keep retired handle storage until test reset so recreation cannot reuse a
@@ -55,6 +56,7 @@ std::vector<std::unique_ptr<XrInstance_T>> RetiredInstances;
 std::vector<std::unique_ptr<XrSession_T>> RetiredSessions;
 std::vector<std::unique_ptr<XrSpace_T>> RetiredSpaces;
 bool InstanceLost = false;
+UINT32 MaskMode = 0;
 
 XrResult Reject() {
   ++Stats.Errors;
@@ -74,32 +76,35 @@ XrResult Enumerate(const std::array<T, N> &values, uint32_t capacity,
 XrResult XRAPI_CALL EnumerateExtensions(const char *, uint32_t capacity,
                                         uint32_t *count,
                                         XrExtensionProperties *output) {
-  std::array<XrExtensionProperties, 3> extensions{
-      {{XR_TYPE_EXTENSION_PROPERTIES},
-       {XR_TYPE_EXTENSION_PROPERTIES},
-       {XR_TYPE_EXTENSION_PROPERTIES}}};
-  strcpy_s(extensions[0].extensionName, XR_KHR_D3D11_ENABLE_EXTENSION_NAME);
-  extensions[0].extensionVersion = XR_KHR_D3D11_enable_SPEC_VERSION;
-  strcpy_s(extensions[1].extensionName, XR_KHR_D3D12_ENABLE_EXTENSION_NAME);
-  extensions[1].extensionVersion = XR_KHR_D3D12_enable_SPEC_VERSION;
-  strcpy_s(extensions[2].extensionName,
-           XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
-  extensions[2].extensionVersion = XR_KHR_composition_layer_depth_SPEC_VERSION;
+  std::vector<const char *> names{XR_KHR_D3D11_ENABLE_EXTENSION_NAME,
+                                  XR_KHR_D3D12_ENABLE_EXTENSION_NAME};
   if (Config.DepthExtension)
-    return Enumerate(extensions, capacity, count, output);
-  return Enumerate(std::array{extensions[0], extensions[1]}, capacity, count,
-                   output);
+    names.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
+  if (Config.MaskExtension)
+    names.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
+  *count = static_cast<UINT32>(names.size());
+  if (!capacity) return XR_SUCCESS;
+  if (capacity < *count) return XR_ERROR_SIZE_INSUFFICIENT;
+  for (UINT32 i = 0; i < *count; ++i) {
+    output[i] = {XR_TYPE_EXTENSION_PROPERTIES};
+    strcpy_s(output[i].extensionName, names[i]);
+    output[i].extensionVersion = 1;
+  }
+  return XR_SUCCESS;
 }
 XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
                                    XrInstance *instance) {
   Stats.ApplicationInfo = info->applicationInfo;
   Stats.EnabledExtensions = info->enabledExtensionCount;
-  Stats.DepthEnabled = false;
+  Stats.DepthEnabled = Stats.MaskEnabled = false;
   for (UINT32 i = 0; i < info->enabledExtensionCount; ++i) {
     const auto name = info->enabledExtensionNames[i];
     if (strcmp(name, XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME) == 0 &&
         Config.DepthExtension) {
       Stats.DepthEnabled = true;
+    } else if (strcmp(name, XR_KHR_VISIBILITY_MASK_EXTENSION_NAME) == 0 &&
+               Config.MaskExtension) {
+      Stats.MaskEnabled = true;
     } else if (strcmp(name, XR_KHR_D3D11_ENABLE_EXTENSION_NAME) != 0 &&
                strcmp(name, XR_KHR_D3D12_ENABLE_EXTENSION_NAME) != 0) {
       return XR_ERROR_EXTENSION_NOT_PRESENT;
@@ -185,9 +190,10 @@ XrResult XRAPI_CALL DestroySession(XrSession session) {
 XrResult XRAPI_CALL CreateSpace(XrSession session,
                                 const XrReferenceSpaceCreateInfo *info,
                                 XrSpace *space) {
-  if (info->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_LOCAL)
+  if (info->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_LOCAL &&
+      info->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_VIEW)
     return Reject();
-  *space = new XrSpace_T{session};
+  *space = new XrSpace_T{session, info->referenceSpaceType};
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL DestroySpace(XrSpace space) {
@@ -214,6 +220,9 @@ XrResult XRAPI_CALL CreateSwapchain(XrSession session,
                                     const XrSwapchainCreateInfo *info,
                                     XrSwapchain *swapchain) {
   const bool depth = info->format == DXGI_FORMAT_D32_FLOAT;
+  if ((depth && Config.FailDepth) ||
+      (Config.FailWidth && info->width == Config.FailWidth))
+    return XR_ERROR_RUNTIME_FAILURE;
   const auto usage = (depth ? XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
                             : XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT) |
                      XR_SWAPCHAIN_USAGE_SAMPLED_BIT |
@@ -306,17 +315,11 @@ XrResult XRAPI_CALL Poll(XrInstance, XrEventDataBuffer *buffer) {
   if (Events.empty()) return XR_EVENT_UNAVAILABLE;
   const auto item = Events.front();
   Events.pop_front();
-  if (item.Marker) {
-    const XrEventDataEventsLost event{XR_TYPE_EVENT_DATA_EVENTS_LOST, nullptr,
-                                      item.Marker};
+  if (item.MaskChanged) {
+    const XrEventDataVisibilityMaskChangedKHR event{
+        XR_TYPE_EVENT_DATA_VISIBILITY_MASK_CHANGED_KHR, nullptr, Session,
+        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 0};
     memcpy(buffer, &event, sizeof(event));
-    // A synthetic extension chain exercises whole-buffer copies and relocation.
-    auto chain = reinterpret_cast<XrBaseOutStructure *>(
-        reinterpret_cast<char *>(buffer) + 128);
-    *chain = {static_cast<XrStructureType>(1000999000), nullptr};
-    buffer->next = chain;
-    buffer->varying[sizeof(buffer->varying) - 1] =
-        static_cast<uint8_t>(item.Marker);
     return XR_SUCCESS;
   }
   const auto state = item.State;
@@ -459,6 +462,7 @@ XrResult XRAPI_CALL EndFrame(XrSession session, const XrFrameEndInfo *info) {
         return Reject();
       Stats.LastLayers[i - 1] = reinterpret_cast<UINT64>(quad);
       Stats.LastQuads[i - 1] = *quad;
+      Stats.PanelSpace = quad->space->Type;
     }
     if (info->layerCount > 1) ++Stats.ExtraLayerFrames;
     ++Stats.ProjectionFrames;
@@ -486,7 +490,34 @@ XrResult XRAPI_CALL GetSystemProperties(XrInstance, XrSystemId system,
   if (system != 1) return Reject();
   properties->systemId = system;
   strcpy_s(properties->systemName, "MGDF integration headset");
-  properties->graphicsProperties = {128, 128, 4};
+  properties->graphicsProperties = {1024, 1024, Config.PanelSupport ? 4U : 1U};
+  return XR_SUCCESS;
+}
+
+XrResult XRAPI_CALL GetVisibilityMask(XrSession session,
+                                      XrViewConfigurationType type, UINT32 view,
+                                      XrVisibilityMaskTypeKHR maskType,
+                                      XrVisibilityMaskKHR *mask) {
+  if (!Stats.MaskEnabled || session != Session || view >= 2 ||
+      type != XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO ||
+      maskType != XR_VISIBILITY_MASK_TYPE_HIDDEN_TRIANGLE_MESH_KHR)
+    return Reject();
+  ++Stats.MaskReads;
+  if (MaskMode == 3) return XR_ERROR_RUNTIME_FAILURE;
+  mask->vertexCountOutput = mask->indexCountOutput = MaskMode == 2 ? 0 : 3;
+  if (!mask->vertexCapacityInput || !mask->indexCapacityInput)
+    return XR_SUCCESS;
+  if (mask->vertexCapacityInput < mask->vertexCountOutput ||
+      mask->indexCapacityInput < mask->indexCountOutput)
+    return XR_ERROR_SIZE_INSUFFICIENT;
+  if (MaskMode != 2) {
+    mask->vertices[0] = {MaskMode == 1 ? -0.7f : -0.8f, -0.6f};
+    mask->vertices[1] = {-0.2f, -0.6f};
+    mask->vertices[2] = {-0.8f, 0.4f};
+    mask->indices[0] = 0;
+    mask->indices[1] = 1;
+    mask->indices[2] = 2;
+  }
   return XR_SUCCESS;
 }
 
@@ -505,6 +536,7 @@ XrResult XRAPI_CALL GetProc(XrInstance, const char *name,
   ENTRY("xrGetSystem", GetSystem)
   ENTRY("xrGetSystemProperties", GetSystemProperties)
   ENTRY("xrLocateSpace", LocateSpace)
+  ENTRY("xrGetVisibilityMaskKHR", GetVisibilityMask)
   ENTRY("xrGetD3D11GraphicsRequirementsKHR", Requirements11)
   ENTRY("xrGetD3D12GraphicsRequirementsKHR", Requirements12)
   ENTRY("xrEnumerateEnvironmentBlendModes", BlendModes)
@@ -568,6 +600,7 @@ extern "C" __declspec(dllexport) void Configure(const FakeXRConfig *config) {
   Stats = {};
   Events.clear();
   InstanceLost = false;
+  MaskMode = 0;
 }
 extern "C" __declspec(dllexport) void PushState(XrSessionState state) {
   Events.push_back({state});
@@ -580,6 +613,7 @@ extern "C" __declspec(dllexport) void GetStats(FakeXRStats *stats) {
 }
 extern "C" __declspec(dllexport) void LoseInstance() { InstanceLost = true; }
 
-extern "C" __declspec(dllexport) void PushEvent(UINT32 marker) {
-  Events.push_back({XR_SESSION_STATE_UNKNOWN, marker});
+extern "C" __declspec(dllexport) void ChangeMask(UINT32 mode) {
+  MaskMode = mode;
+  Events.push_back({XR_SESSION_STATE_UNKNOWN, true});
 }

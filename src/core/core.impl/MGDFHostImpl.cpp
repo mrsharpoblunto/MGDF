@@ -402,6 +402,7 @@ void Host::RTShutDown() {
 }
 
 void Host::RTSetDevices(IRenderBackend &backend) {
+  _vrThreadId = GetCurrentThreadId();
   _backend = &backend;
   auto device = backend.RTGetDevice();
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) {
@@ -434,12 +435,15 @@ void Host::RTSetDevices(IRenderBackend &backend) {
 }
 
 bool Host::RTDraw(double alpha) {
+  _vrThreadId = GetCurrentThreadId();
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12) {
     _timer->BeginD3D12Frame(_backend->RTGetCurrentFrame());
   } else {
     _timer->Begin();
   }
+  _vrDrawing = true;
   const bool drawn = _module && _module->RTDraw(RenderHost(), alpha);
+  _vrDrawing = false;
   if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) _timer->End();
   return drawn;
 }
@@ -465,6 +469,7 @@ void Host::RTAfterPresent() {
 }
 
 void Host::RTBeforeBackBufferChange() {
+  _vrThreadId = GetCurrentThreadId();
   _backBufferInfo = {};
   _backBuffer.Clear();
   _depthStencilBuffer.Clear();
@@ -477,6 +482,7 @@ void Host::RTBeforeBackBufferChange() {
 }
 
 void Host::RTBackBufferChange(IRenderBackend &backend) {
+  _vrThreadId = GetCurrentThreadId();
   _backBufferInfo = backend.RTGetBackBufferInfo();
   _backBuffer = backend.RTGetBackBuffer().As<ID3D11Texture2D>();
   _depthStencilBuffer = backend.RTGetDepthStencilBuffer().As<ID3D11Texture2D>();
@@ -506,21 +512,27 @@ void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
   }
 }
 
+bool Host::RTCanCallVR(bool eyeFrame) const {
+  return _vrThreadId == GetCurrentThreadId() && _backend &&
+         (!eyeFrame || _vrDrawing);
+}
+
 UINT32 Host::GetViewCount() {
-  return _backend ? _backend->VR().ViewCount() : 0;
+  return RTCanCallVR(true) ? _backend->VR().ViewCount() : 0;
 }
 HRESULT Host::GetView(UINT32 index, MGDFView *view) {
   if (!view) return E_INVALIDARG;
   *view = {};
   if (index >= 2) return E_INVALIDARG;
-  return _backend ? _backend->VR().GetView(index, view) : E_ILLEGAL_METHOD_CALL;
+  return RTCanCallVR() ? _backend->VR().GetView(index, view)
+                       : E_ILLEGAL_METHOD_CALL;
 }
-BOOL Host::GetVRFocused() { return _backend && _backend->VR().Focused(); }
+BOOL Host::GetVRFocused() { return RTCanCallVR() && _backend->VR().Focused(); }
 HRESULT Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;
-  if (!_backend) return E_ILLEGAL_METHOD_CALL;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
   ComObject<IUnknown> resource;
   const auto result = _backend->VR().GetTarget(index, resource);
   if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
@@ -530,10 +542,80 @@ HRESULT Host::GetViewTarget(UINT32 index, ID3D11Texture2D **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;
-  if (!_backend) return E_ILLEGAL_METHOD_CALL;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
   ComObject<IUnknown> resource;
   const auto result = _backend->VR().GetTarget(index, resource);
   if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  return result;
+}
+
+HRESULT Host::GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                          UINT32 *indexCount, UINT32 *indices) {
+  if (!vertexCount || !indexCount || index >= 2) {
+    if (vertexCount) *vertexCount = 0;
+    if (indexCount) *indexCount = 0;
+    return E_INVALIDARG;
+  }
+  if (!RTCanCallVR()) {
+    *vertexCount = *indexCount = 0;
+    return E_ILLEGAL_METHOD_CALL;
+  }
+  return _backend->VR().GetViewMask(index, vertexCount, xy, indexCount,
+                                    indices);
+}
+HRESULT Host::GetViewMaskVersion(UINT64 *version) {
+  if (!version) return E_INVALIDARG;
+  *version = 0;
+  return RTCanCallVR() ? _backend->VR().GetViewMaskVersion(version)
+                       : E_ILLEGAL_METHOD_CALL;
+}
+HRESULT Host::SetViewDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ) {
+  return RTCanCallVR(true)
+             ? _backend->VR().SetViewDepthRange(index, nearZ, farZ)
+             : E_ILLEGAL_METHOD_CALL;
+}
+HRESULT Host::SetVRPanel(const MGDFVRPanel *panel) {
+  return RTCanCallVR() ? _backend->VR().SetVRPanel(panel)
+                       : E_ILLEGAL_METHOD_CALL;
+}
+HRESULT Host::GetViewDepthTarget(UINT32 index, ID3D11Texture2D **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetDepthTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  return result;
+}
+HRESULT Host::GetVRPanelTarget(ID3D11Texture2D **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetPanelTarget(resource);
+  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  return result;
+}
+HRESULT Host::GetViewDepthTarget(UINT32 index, ID3D12Resource **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+  if (index >= 2) return E_INVALIDARG;
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetDepthTarget(index, resource);
+  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
+  return result;
+}
+HRESULT Host::GetVRPanelTarget(ID3D12Resource **target) {
+  if (!target) return E_INVALIDARG;
+  *target = nullptr;
+
+  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
+  ComObject<IUnknown> resource;
+  const auto result = _backend->VR().GetPanelTarget(resource);
+  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
   return result;
 }
 

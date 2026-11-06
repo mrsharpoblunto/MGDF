@@ -57,10 +57,11 @@ bool D3D11RenderBackend::RTStartVR() {
                                           nullptr, _rtD3dDevice.Get()};
   return VR().CreateSession(
       &binding,
-      [this](DXGI_FORMAT format) {
+      [this](DXGI_FORMAT format, bool depth) {
         UINT support = 0;
         return SUCCEEDED(_rtD3dDevice->CheckFormatSupport(format, &support)) &&
-               (support & D3D11_FORMAT_SUPPORT_RENDER_TARGET);
+               (support & (depth ? D3D11_FORMAT_SUPPORT_DEPTH_STENCIL
+                                 : D3D11_FORMAT_SUPPORT_RENDER_TARGET));
       },
       [](XrSwapchain swapchain, std::vector<ComObject<IUnknown>> &resources) {
         uint32_t count = 0;
@@ -77,7 +78,8 @@ bool D3D11RenderBackend::RTStartVR() {
             resources.push_back(MakeComFromPtr<IUnknown>(image.texture));
         }
         return result;
-      });
+      },
+      [this] { RTWaitForGpuIdle(); });
 }
 
 bool D3D11RenderBackend::RTInit() {

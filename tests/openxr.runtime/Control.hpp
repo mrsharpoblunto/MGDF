@@ -10,11 +10,18 @@ struct FakeXRConfig {
   bool LossPendingOnAcquire = false;
   bool TimeoutFirstWait = false;
   bool DepthExtension = true;
+  bool MaskExtension = true;
+  bool PanelSupport = true;
+  bool FailDepth = false;
+  UINT32 FailWidth = 0;
 };
 struct FakeXRStats {
   XrApplicationInfo ApplicationInfo{};
   UINT32 EnabledExtensions = 0;
   bool DepthEnabled = false;
+  bool MaskEnabled = false;
+  UINT32 MaskReads = 0;
+  XrReferenceSpaceType PanelSpace = XR_REFERENCE_SPACE_TYPE_LOCAL;
   UINT32 LastLayerCount = 0;
   UINT32 ExtraLayerFrames = 0;
   UINT64 LastLayers[3]{};
@@ -38,7 +45,7 @@ struct FakeXRStats {
 };
 using FakeXRConfigure = void (*)(const FakeXRConfig *);
 using FakeXRPushState = void (*)(XrSessionState);
-using FakeXRPushEvent = void (*)(UINT32);
+using FakeXRChangeMask = void (*)(UINT32);
 using FakeXRShouldRender = void (*)(bool);
 using FakeXRGetStats = void (*)(FakeXRStats *);
 using FakeXRInstanceLoss = void (*)();

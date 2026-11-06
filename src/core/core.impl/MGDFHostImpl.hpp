@@ -119,6 +119,19 @@ class Host : public IMGDFD3D11RenderHost,
   HRESULT __stdcall GetViewTarget(UINT32 index, ID3D12Resource **target) final;
   HRESULT __stdcall GetViewTarget(UINT32 index, ID3D11Texture2D **target) final;
 
+  HRESULT __stdcall GetViewMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                                UINT32 *indexCount, UINT32 *indices) final;
+  HRESULT __stdcall GetViewMaskVersion(UINT64 *version) final;
+  HRESULT __stdcall SetViewDepthRange(UINT32 index, FLOAT nearZ,
+                                      FLOAT farZ) final;
+  HRESULT __stdcall SetVRPanel(const MGDFVRPanel *panel) final;
+  HRESULT __stdcall GetViewDepthTarget(UINT32 index,
+                                       ID3D11Texture2D **target) final;
+  HRESULT __stdcall GetViewDepthTarget(UINT32 index,
+                                       ID3D12Resource **target) final;
+  HRESULT __stdcall GetVRPanelTarget(ID3D11Texture2D **target) final;
+  HRESULT __stdcall GetVRPanelTarget(ID3D12Resource **target) final;
+
   // IRenderHost methods
   void __stdcall GetBackBufferInfo(MGDFBackBufferInfo *info) final;
   HRESULT __stdcall SetHDRMetadata(const MGDFHDRMetadata *metadata) final;
@@ -218,6 +231,9 @@ class Host : public IMGDFD3D11RenderHost,
   MGDFBackBufferInfo _backBufferInfo{};
   std::mutex _deviceMutex;
   IRenderBackend *_backend = nullptr;
+  std::atomic<DWORD> _vrThreadId{0};
+  bool _vrDrawing = false;
+  bool RTCanCallVR(bool eyeFrame = false) const;
   // Guarded by _deviceMutex: GetUpscaleRenderSize runs on any thread.
   Streamline *_streamline = nullptr;
   UINT64 _renderedFrames = 0;
