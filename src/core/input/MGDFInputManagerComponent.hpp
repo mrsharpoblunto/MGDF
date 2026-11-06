@@ -16,16 +16,10 @@ class IInputManagerComponent : public ComBase<IMGDFInputManager> {
  public:
   virtual ~IInputManagerComponent() {}
   std::shared_ptr<VRInputState> GetVRInputState() const { return _vr; }
-  BOOL __stdcall GetVRController(MGDFVRHand hand,
-                                 MGDFVRController *controller) final {
-    return _vr->GetController(hand, controller);
-  }
-  BOOL __stdcall VibrateVRController(MGDFVRHand hand, FLOAT amplitude,
-                                     FLOAT seconds) final {
-    return _vr->QueueHaptic(hand, amplitude, seconds, false);
-  }
-  BOOL __stdcall StopVRControllerVibration(MGDFVRHand hand) final {
-    return _vr->QueueHaptic(hand, 0, 0, true);
+  UINT64 __stdcall GetVRControllerCount() final { return _controllers.size(); }
+  void __stdcall GetVRControllers(IMGDFVRController **controllers) final {
+    if (!controllers) return;
+    for (auto &controller : _controllers) controller.AddRawRef(controllers++);
   }
   BOOL __stdcall GetVRGaze(MGDFVRPose *pose) final {
     return _vr->GetGaze(pose);
@@ -43,6 +37,9 @@ class IInputManagerComponent : public ComBase<IMGDFInputManager> {
 
  private:
   const std::shared_ptr<VRInputState> _vr = std::make_shared<VRInputState>();
+  std::array<ComObject<VRController>, 2> _controllers{
+      MakeCom<VRController>(_vr, MGDF_VR_HAND_LEFT),
+      MakeCom<VRController>(_vr, MGDF_VR_HAND_RIGHT)};
 };
 
 }  // namespace input

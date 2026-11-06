@@ -10,6 +10,7 @@ struct ActionDefinition {
   const char *Name;
   XrActionType Type;
   UINT32 Button = 0;
+  UINT32 Touch = 0;
 };
 const ActionDefinition Actions[] = {
     {"grip", XR_ACTION_TYPE_POSE_INPUT},
@@ -23,14 +24,15 @@ const ActionDefinition Actions[] = {
     {"y", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_BUTTON_Y},
     {"stick_click", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_BUTTON_STICK},
     {"menu", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_BUTTON_MENU},
-    {"a_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_A},
-    {"b_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_B},
-    {"x_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_X},
-    {"y_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_Y},
-    {"stick_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_STICK},
-    {"trigger_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_TRIGGER},
-    {"thumbrest_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_THUMBREST},
-    {"trackpad_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_TOUCH_TRACKPAD},
+    {"a_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0, MGDF_VR_TOUCH_A},
+    {"b_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0, MGDF_VR_TOUCH_B},
+    {"x_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0, MGDF_VR_TOUCH_X},
+    {"y_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0, MGDF_VR_TOUCH_Y},
+    {"stick_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0, MGDF_VR_TOUCH_STICK},
+    {"trigger_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0, MGDF_VR_TOUCH_TRIGGER},
+    {"thumbrest_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0,
+     MGDF_VR_TOUCH_THUMBREST},
+    {"trackpad_touch", XR_ACTION_TYPE_BOOLEAN_INPUT, 0, MGDF_VR_TOUCH_TRACKPAD},
     {"trackpad_click", XR_ACTION_TYPE_BOOLEAN_INPUT, MGDF_VR_BUTTON_TRACKPAD},
     {"haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
     {"gaze", XR_ACTION_TYPE_POSE_INPUT}};
@@ -150,7 +152,7 @@ void OpenXR::CreateActions() {
     if (result != XR_ERROR_PATH_UNSUPPORTED && !check(result)) return;
   }
   if (_gazeSupported) {
-    XrPath profile, path;
+    XrPath profile = XR_NULL_PATH, path = XR_NULL_PATH;
     if (!check(xrStringToPath(_instance,
                               "/interaction_profiles/ext/eye_gaze_interaction",
                               &profile)) ||
@@ -190,6 +192,7 @@ void OpenXR::CreateActions() {
 }
 
 void OpenXR::DestroyActions() {
+  StopHaptics();
   for (auto &hand : _controllerSpaces)
     for (auto &space : hand) {
       if (space) xrDestroySpace(space);
@@ -210,7 +213,10 @@ void OpenXR::UpdateInput() {
   _inputFrame = {};
   _inputFrame.ControllersStatus = _inputStatus;
   _inputFrame.GazeStatus = _gazeSupported ? _inputStatus : E_NOTIMPL;
-  const auto publishEmpty = [&] { _input->Publish(_inputFrame); };
+  const auto publishEmpty = [&] {
+    _input->Publish(_inputFrame);
+    StopHaptics();
+  };
   if (FAILED(_inputStatus)) {
     publishEmpty();
     return;
@@ -289,8 +295,10 @@ void OpenXR::UpdateInput() {
       if (!check(xrGetActionStateBoolean(_session, &info, &state)))
         valid = false;
       connected |= state.isActive != XR_FALSE;
-      if (state.isActive && state.currentState)
+      if (state.isActive && state.currentState) {
         controller.Buttons |= Actions[i].Button;
+        controller.Touches |= Actions[i].Touch;
+      }
     }
     if (connected) {
       controller.Connected = TRUE;
@@ -321,53 +329,42 @@ void OpenXR::UpdateInput() {
   } else
     _inputFrame.ControllersStatus = S_OK;
   _input->Publish(_inputFrame);
-  const auto haptics = _input->TakeHaptics();
-  for (UINT32 hand = 0; hand < 2; ++hand) {
-    if (!haptics[hand] || !_inputFrame.Controllers[hand].Connected) continue;
-    const auto &haptic = *haptics[hand];
+  UpdateHaptics();
+}
+
+void OpenXR::StopHaptics() {
+  for (UINT32 hand = 0; hand < _hapticsActive.size(); ++hand) {
+    if (!_hapticsActive[hand]) continue;
     const XrHapticActionInfo info{XR_TYPE_HAPTIC_ACTION_INFO, nullptr,
                                   _actions[HapticAction], _hands[hand]};
-    const XrHapticVibration vibration{
-        XR_TYPE_HAPTIC_VIBRATION, nullptr,
-        static_cast<XrDuration>(static_cast<double>(haptic.Seconds) *
-                                1000000000.0),
-        XR_FREQUENCY_UNSPECIFIED, haptic.Amplitude};
-    FeatureCheck(
-        haptic.Stop
-            ? xrStopHapticFeedback(_session, &info)
-            : xrApplyHapticFeedback(
-                  _session, &info,
-                  reinterpret_cast<const XrHapticBaseHeader *>(&vibration)),
-        "controller haptics", _hapticErrorLogged);
+    FeatureCheck(xrStopHapticFeedback(_session, &info),
+                 "stop controller haptics", _hapticErrorLogged);
+    _hapticsActive[hand] = false;
   }
 }
 
-HRESULT OpenXR::GetControllerPose(MGDFVRHand hand, MGDFVRControllerPose kind,
-                                  MGDFVRPose *pose) const {
-  if (!pose) return E_INVALIDARG;
-  *pose = {};
-  if ((hand != MGDF_VR_HAND_LEFT && hand != MGDF_VR_HAND_RIGHT) ||
-      (kind != MGDF_VR_CONTROLLER_GRIP && kind != MGDF_VR_CONTROLLER_AIM))
-    return E_INVALIDARG;
-  const auto status = SessionStatus();
-  if (FAILED(status)) return status;
-  if (!_begun || !_viewCount) return E_ILLEGAL_METHOD_CALL;
-  if (FAILED(_inputFrame.ControllersStatus))
-    return _inputFrame.ControllersStatus;
-  const auto &controller = _inputFrame.Controllers[hand];
-  if (!controller.Connected) return S_FALSE;
-  *pose = kind == MGDF_VR_CONTROLLER_GRIP ? controller.Grip : controller.Aim;
-  return pose->PositionValid || pose->OrientationValid ? S_OK : S_FALSE;
-}
-
-HRESULT OpenXR::GetGaze(MGDFVRPose *pose) const {
-  if (!pose) return E_INVALIDARG;
-  *pose = {};
-  const auto status = SessionStatus();
-  if (FAILED(status)) return status;
-  if (!_begun || !_viewCount) return E_ILLEGAL_METHOD_CALL;
-  if (_inputFrame.GazeStatus == S_OK) *pose = _inputFrame.Gaze;
-  return _inputFrame.GazeStatus;
+void OpenXR::UpdateHaptics() {
+  const auto levels = _input->Vibration();
+  for (UINT32 hand = 0; hand < levels.size(); ++hand) {
+    const XrHapticActionInfo info{XR_TYPE_HAPTIC_ACTION_INFO, nullptr,
+                                  _actions[HapticAction], _hands[hand]};
+    if (!_stopRequested && Focused() &&
+        _inputFrame.Controllers[hand].Connected && levels[hand] > 0) {
+      const XrHapticVibration vibration{XR_TYPE_HAPTIC_VIBRATION, nullptr,
+                                        100000000, XR_FREQUENCY_UNSPECIFIED,
+                                        levels[hand]};
+      const auto result = xrApplyHapticFeedback(
+          _session, &info,
+          reinterpret_cast<const XrHapticBaseHeader *>(&vibration));
+      FeatureCheck(result, "controller haptics", _hapticErrorLogged);
+      if (XR_SUCCEEDED(result) && result != XR_SESSION_NOT_FOCUSED)
+        _hapticsActive[hand] = true;
+    } else if (_hapticsActive[hand]) {
+      FeatureCheck(xrStopHapticFeedback(_session, &info),
+                   "stop controller haptics", _hapticErrorLogged);
+      _hapticsActive[hand] = false;
+    }
+  }
 }
 
 }  // namespace MGDF::core

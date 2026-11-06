@@ -156,17 +156,18 @@ BOOL Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {
   _ASSERTE(_testModuleCounter);
   if (!_input) {
     host->GetInput(_input.Assign());
+    _vrControllers =
+        ComArray<IMGDFVRController>(_input->GetVRControllerCount());
+    _input->GetVRControllers(_vrControllers.Data());
   }
 
   if (_vrTest) {
     for (UINT32 i = 0; i < 2; ++i) {
-      const auto hand = static_cast<MGDFVRHand>(i);
-      MGDFVRController controller{};
-      const bool connected =
-          _input->GetVRController(hand, &controller) != FALSE;
+      const auto controller = _vrControllers[i];
+      const bool connected = controller->IsConnected() != FALSE;
       if (connected && !_profileLogged[i]) {
         const char *profile = "Other";
-        switch (controller.Profile) {
+        switch (controller->GetProfile()) {
           case MGDF_VR_PROFILE_TOUCH:
             profile = "Touch";
             break;
@@ -191,9 +192,10 @@ BOOL Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {
         host->Log("TestModule", message.c_str(), MGDF_LOG_LOW);
         _profileLogged[i] = true;
       }
-      const bool pressed = connected && controller.Trigger > 0.7f;
-      if (pressed && !_triggerPressed[i])
-        _input->VibrateVRController(hand, 0.6f, 0.2f);
+      const bool pressed = connected && controller->GetTrigger() > 0.7f;
+      if (pressed && !_triggerPressed[i]) _vibrationSeconds[i] = 0.2;
+      controller->SetVibration(_vibrationSeconds[i] > 0 ? 0.6f : 0);
+      _vibrationSeconds[i] -= elapsedTime;
       _triggerPressed[i] = pressed;
     }
   }

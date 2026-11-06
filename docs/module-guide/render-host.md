@@ -126,25 +126,33 @@ the first panel frame, and `E_FAIL` if deferred image creation failed.
 
 ## Controllers, haptics, and gaze
 
-On the sim thread, use `IMGDFInputManager::GetVRController(hand, &controller)`.
-It returns `TRUE` when that hand is connected and has input focus. The result
-has grip and aim poses, separate position and orientation validity, trigger
-and squeeze values in 0..1, stick values in -1..1, button and touch bits, and
-the active profile. Vive uses its trackpad for stick values. Missing controls
-are zero. The host supports Touch, Index, Vive, WMR, and simple controller
-bindings. A runtime can remap these controls.
+On the sim thread, call `IMGDFInputManager::GetVRControllerCount()` and
+`GetVRControllers(controllers)`. The count is always 2, in left/right hand
+order, including with VR off. Each returned `IMGDFVRController` is an owned
+COM reference; release it when done. Keep these objects across session changes.
 
-`VibrateVRController(hand, amplitude, seconds)` queues vibration, with amplitude
-in 0..1 and duration in (0,60] seconds. `StopVRControllerVibration(hand)` queues
-a stop. The last request for each hand before the next display frame wins.
-`TRUE` means queued; a later runtime failure is logged. Both return `FALSE`
-for invalid arguments, no session, no focus, or a disconnected controller.
-Queued vibration is discarded when focus or connection is lost.
+`GetHand` identifies the controller. `IsConnected` is false without input
+focus or connection. `GetProfile` reports Touch, Index, Vive, WMR, simple,
+other, or none. `IsButtonDown` and `IsButtonUp` read pressed buttons;
+`IsTouched` reads the separate `MGDFVRTouch` enum. `IsButtonPress` returns true
+once after a button is pressed and released, like the gamepad call. A press
+observed between sim updates is kept for the next update.
 
-`IMGDFInputManager::GetVRGaze(&pose)` returns `TRUE` only for a current gaze
-sample with valid position and orientation. All four input-manager calls are
-safe with VR off. Failed reads return `FALSE` and zero their output. Gaze is
-unavailable when the runtime or headset lacks eye tracking.
+`GetTrigger` and `GetSqueeze` return 0..1. `GetThumbX` and `GetThumbY` return
+-1..1, with positive X right and positive Y up. The Y convention differs from
+`IMGDFGamepad`. Vive uses its trackpad. `GetGripPose` and `GetAimPose` return
+the current sim sample's LOCAL poses. Missing controls are zero. Without
+focus, connection or a session, buttons are up, analog values are zero,
+profile is none and poses are invalid. All controller calls are safe with VR off.
+
+`SetVibration(amplitude)` stores a level until changed. Values are clamped to
+0..1; NaN means zero. Set zero to stop. Output stops when focus, connection or
+the session is lost, and resumes at the stored level when they return. Set
+zero while inactive to prevent vibration from resuming.
+
+`IMGDFInputManager::GetVRGaze(&pose)` returns `TRUE` only for a valid gaze
+sample in the current sim update. It is safe with VR off. Without eye tracking,
+focus, a session or a current sample, it returns `FALSE` and zeroes the output.
 
 During `RTDraw`, use `MGDFVRFrame::Grip`, `Aim` and `Gaze` for poses at this
 frame's predicted display time. All poses use LOCAL space, metres, +X right,

@@ -82,9 +82,6 @@ class OpenXR {
   void SetInputState(std::shared_ptr<VRInputState> input) {
     _input = std::move(input);
   }
-  HRESULT GetControllerPose(MGDFVRHand hand, MGDFVRControllerPose kind,
-                            MGDFVRPose *pose) const;
-  HRESULT GetGaze(MGDFVRPose *pose) const;
 
  private:
   enum Action {
@@ -115,6 +112,9 @@ class OpenXR {
   void CreateActions();
   void DestroyActions();
   void UpdateInput();
+  void UpdateHaptics();
+  void StopHaptics();
+  std::array<bool, 2> _hapticsActive{};
   std::shared_ptr<VRInputState> _input = std::make_shared<VRInputState>();
   VRInputSnapshot _inputFrame;
   XrActionSet _actionSet = XR_NULL_HANDLE;

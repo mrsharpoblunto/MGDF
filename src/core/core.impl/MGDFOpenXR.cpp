@@ -88,6 +88,7 @@ void OpenXR::Fail(const char *operation, XrResult result) {
         MGDF_LOG_LOW);
   }
   _fallback = true;
+  StopHaptics();
   _inputFrame = {};
   _input->Publish(_inputFrame);
   _changed = true;
@@ -326,6 +327,7 @@ void OpenXR::PollEvents() {
     if (change.session != _session) continue;
     _state = change.state;
     if (!Focused()) {
+      StopHaptics();
       _inputFrame = {};
       _inputFrame.ControllersStatus = S_FALSE;
       _inputFrame.GazeStatus = _gazeSupported ? S_FALSE : E_NOTIMPL;
@@ -364,6 +366,7 @@ void OpenXR::PollEvents() {
 
 void OpenXR::RequestStop() {
   _stopRequested = true;
+  StopHaptics();
   if (!_running) {
     _fallback = true;
     _changed = true;

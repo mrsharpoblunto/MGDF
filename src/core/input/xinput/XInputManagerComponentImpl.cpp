@@ -13,7 +13,8 @@ namespace input {
 namespace xinput {
 
 XInputManagerComponent::XInputManagerComponent()
-    : _showCursor(true), _cursor(MGDF_CURSOR_ARROW),
+    : _showCursor(true),
+      _cursor(MGDF_CURSOR_ARROW),
       _pendingMouseX(0),
       _pendingMouseY(0),
       _pendingMouseDX(0L),
@@ -63,6 +64,7 @@ XInputManagerComponent::~XInputManagerComponent(void) {
 }
 
 void XInputManagerComponent::ClearInput() {
+  GetVRInputState()->ClearPresses();
   ZeroMemory(_pendingMouseButtonDown, sizeof(_pendingMouseButtonDown));
   ZeroMemory(_pendingMouseButtonClick, sizeof(_pendingMouseButtonClick));
   ZeroMemory(_mouseButtonDown, sizeof(_mouseButtonDown));
@@ -154,6 +156,7 @@ void XInputManagerComponent::HandleInput(std::function<RAWINPUT *()> getInput) {
 }
 
 void XInputManagerComponent::ProcessSim() {
+  GetVRInputState()->ProcessSim();
   // handleinput occurs on a different thread to processinput so
   // we need to sync any access to the pending input state
   {

@@ -23,8 +23,8 @@ struct FakeXRInput {
   FLOAT Trigger[2]{0.75f, 0.25f};
   FLOAT Squeeze[2]{0.4f, 0.6f};
   XrVector2f Stick[2]{{0.2f, -0.3f}, {-0.4f, 0.5f}};
-  UINT32 Buttons[2]{MGDF_VR_BUTTON_X | MGDF_VR_TOUCH_X | MGDF_VR_TOUCH_TRIGGER,
-                    MGDF_VR_BUTTON_A | MGDF_VR_TOUCH_A | MGDF_VR_BUTTON_STICK};
+  UINT32 Buttons[2]{MGDF_VR_BUTTON_X, MGDF_VR_BUTTON_A | MGDF_VR_BUTTON_STICK};
+  UINT32 Touches[2]{MGDF_VR_TOUCH_X | MGDF_VR_TOUCH_TRIGGER, MGDF_VR_TOUCH_A};
   XrPosef Grip[2]{{{0, 0.6f, 0, 0.8f}, {-0.3f, 1.2f, -0.5f}},
                   {{0, -0.6f, 0, 0.8f}, {0.3f, 1.2f, -0.5f}}};
   XrPosef Aim[2]{{{0.6f, 0, 0, 0.8f}, {-0.3f, 1.3f, -0.6f}},

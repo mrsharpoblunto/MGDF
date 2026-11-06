@@ -49,10 +49,6 @@ typedef enum MGDFVRHand {
   MGDF_VR_HAND_LEFT = 0,
   MGDF_VR_HAND_RIGHT = 1,
 } MGDFVRHand;
-typedef enum MGDFVRControllerPose {
-  MGDF_VR_CONTROLLER_GRIP = 0,
-  MGDF_VR_CONTROLLER_AIM = 1,
-} MGDFVRControllerPose;
 typedef enum MGDFVRControllerProfile {
   MGDF_VR_PROFILE_NONE = 0,
   MGDF_VR_PROFILE_TOUCH = 1,
@@ -69,6 +65,10 @@ typedef enum MGDFVRButton {
   MGDF_VR_BUTTON_Y = 8,
   MGDF_VR_BUTTON_STICK = 16,
   MGDF_VR_BUTTON_MENU = 32,
+  MGDF_VR_BUTTON_TRACKPAD = 16384,
+} MGDFVRButton;
+/** Capacitive touch controls, separate from pressed buttons */
+typedef enum MGDFVRTouch {
   MGDF_VR_TOUCH_A = 64,
   MGDF_VR_TOUCH_B = 128,
   MGDF_VR_TOUCH_X = 256,
@@ -77,8 +77,7 @@ typedef enum MGDFVRButton {
   MGDF_VR_TOUCH_TRIGGER = 2048,
   MGDF_VR_TOUCH_THUMBREST = 4096,
   MGDF_VR_TOUCH_TRACKPAD = 8192,
-  MGDF_VR_BUTTON_TRACKPAD = 16384,
-} MGDFVRButton;
+} MGDFVRTouch;
 /**
 Pose in LOCAL space, in metres: +X right, +Y up, +Z forward. Quaternion is
 x, y, z, w. Check validity separately for position and orientation. Invalid
@@ -90,23 +89,6 @@ typedef struct MGDFVRPose {
   BOOL PositionValid;
   BOOL OrientationValid;
 } MGDFVRPose;
-/**
-Latest controller sample. Disconnected state is all zero. Analog controls
-not present in the active profile are zero, and missing buttons have no bits set
-*/
-typedef struct MGDFVRController {
-  BOOL Connected;
-  MGDFVRControllerProfile Profile;
-  MGDFVRPose Grip;
-  MGDFVRPose Aim;
-  FLOAT Trigger;
-  FLOAT Squeeze;
-  /** -1 to 1; Vive uses its trackpad */
-  FLOAT StickX;
-  FLOAT StickY;
-  UINT32 Buttons;
-} MGDFVRController;
-
 /**
 The current back buffer properties, independent of the graphics API
 */
@@ -419,6 +401,52 @@ XInput compatible gamepad connected to the PC
 };
 
 /**
+One VR controller on the sim thread. Objects stay valid for the input manager's
+lifetime, including VR off and session changes. Without focus or connection,
+buttons are up, analog values are zero, profile is NONE and poses are invalid.
+Calls are safe with no session. Missing controls are zero or FALSE
+*/
+[
+  uuid("EDB23A73-9C5C-436A-8845-BD687CA9C6C3"), object,
+  local
+] interface IMGDFVRController : IUnknown {
+  /** Gets the hand assigned to this object */
+  MGDFVRHand GetHand();
+  /** TRUE when connected with headset input focus */
+  BOOL IsConnected();
+  /** Gets the current interaction profile, or NONE when disconnected */
+  MGDFVRControllerProfile GetProfile();
+  /** TRUE while the button is held */
+  BOOL IsButtonDown(MGDFVRButton button);
+  /** TRUE while the button is not held, including when disconnected */
+  BOOL IsButtonUp(MGDFVRButton button);
+  /** TRUE once after a button was pressed and released, like IMGDFGamepad.
+  Presses observed between sim updates are kept for the next update */
+  BOOL IsButtonPress(MGDFVRButton button);
+  /** TRUE while the named control is touched */
+  BOOL IsTouched(MGDFVRTouch touch);
+  /** Trigger level, 0..1 */
+  FLOAT GetTrigger();
+  /** Grip squeeze level, 0..1 */
+  FLOAT GetSqueeze();
+  /** Thumbstick or Vive trackpad X, -1..1; positive is right */
+  FLOAT GetThumbX();
+  /** Thumbstick or Vive trackpad Y, -1..1; positive is up.
+  This differs from the IMGDFGamepad Y convention */
+  FLOAT GetThumbY();
+  /** Gets the sim sample's LOCAL grip pose; invalid components are zero.
+  A null output is ignored */
+  void GetGripPose([out] MGDFVRPose *pose);
+  /** Gets the sim sample's LOCAL aim pose; invalid components are zero.
+  A null output is ignored */
+  void GetAimPose([out] MGDFVRPose *pose);
+  /** Sets vibration level until changed; 0 stops. Values are clamped to 0..1;
+  NaN means 0. Output stops without focus, connection or a session, and resumes
+  at the stored level when these return. Safe with VR off */
+  void SetVibration(FLOAT amplitude);
+};
+
+/**
 The OS cursor shapes a module can ask for while the cursor is shown
 */
 typedef enum MGDFCursor {
@@ -438,28 +466,14 @@ from the mouse, keyboard, and xinput controllers
   uuid("98EC499D-5359-4902-8BA9-6E36686E9898"), object,
   local
 ] interface IMGDFInputManager : IUnknown {
+  /** Returns 2 controller objects: left and right, including with VR off */
+  UINT64 GetVRControllerCount();
+  /** Fills GetVRControllerCount entries in hand order with owned COM references.
+  Release each reference when no longer needed. Objects can be kept across
+  session changes. Safe with VR off; a null array is ignored */
+  void GetVRControllers([out] IMGDFVRController **controllers);
   /**
-  Gets the latest controller sample for the sim thread. Safe with VR off.
-  \return TRUE when connected with input focus; FALSE for no session, missing
-  input, no focus, invalid hand or null output. Non-null output is zero on FALSE
-  */
-  BOOL GetVRController(MGDFVRHand hand, [out] MGDFVRController *controller);
-  /**
-  Queues controller vibration. Amplitude is 0..1; duration is (0,60] seconds.
-  The most recent vibration or stop request for a hand before the next display
-  frame replaces earlier requests for that hand. Safe with VR off
-  \return TRUE when queued; FALSE for invalid values, no session, no input focus
-  or no connected controller. Runtime failure after queuing is logged
-  */
-  BOOL VibrateVRController(MGDFVRHand hand, FLOAT amplitude, FLOAT seconds);
-  /**
-  Queues a stop of controller vibration. Safe with VR off
-  \return TRUE when queued; FALSE for invalid hand, no session, no input focus
-  or no connected controller. Runtime failure after queuing is logged
-  */
-  BOOL StopVRControllerVibration(MGDFVRHand hand);
-  /**
-  Gets the latest valid eye gaze sample for the sim thread. Safe with VR off
+  Gets the current sim update's eye gaze sample. Safe with VR off
   \return TRUE with position and orientation; FALSE for no session, no input
   focus, unavailable eye tracking, no current sample or null output.
   Non-null output is zero on FALSE

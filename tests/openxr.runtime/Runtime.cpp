@@ -640,8 +640,10 @@ XrResult XRAPI_CALL ActionBool(XrSession, const XrActionStateGetInfo *info,
   state->currentState = XR_FALSE;
   for (const auto &[name, bit] : bits)
     if (info->action->Name == name)
-      state->currentState =
-          (Input.Buttons[Hand(info->subactionPath)] & bit) != 0;
+      state->currentState = ((info->action->Name.ends_with("_touch")
+                                  ? Input.Touches[Hand(info->subactionPath)]
+                                  : Input.Buttons[Hand(info->subactionPath)]) &
+                             bit) != 0;
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL CurrentProfile(XrSession, XrPath hand,
@@ -668,12 +670,12 @@ XrResult XRAPI_CALL ApplyHaptic(XrSession session,
 }
 XrResult XRAPI_CALL StopHaptic(XrSession session,
                                const XrHapticActionInfo *info) {
-  if (session->State != XR_SESSION_STATE_FOCUSED || !info->action ||
-      info->action->Type != XR_ACTION_TYPE_VIBRATION_OUTPUT)
+  if (!info->action || info->action->Type != XR_ACTION_TYPE_VIBRATION_OUTPUT)
     return Reject();
   Stats.LastHapticHand = Hand(info->subactionPath);
   ++Stats.HapticsStopped;
-  return XR_SUCCESS;
+  return session->State == XR_SESSION_STATE_FOCUSED ? XR_SUCCESS
+                                                    : XR_SESSION_NOT_FOCUSED;
 }
 
 XrResult XRAPI_CALL LocateSpace(XrSpace space, XrSpace base, XrTime time,
