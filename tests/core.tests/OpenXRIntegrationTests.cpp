@@ -189,8 +189,12 @@ class FrameLoop final : public D3DAppFramework {
   void RTOnBeforeBackBufferChange() override { ++BeforeChanges; }
   void RTOnBackBufferChange(IRenderBackend &backend) override {
     ++AfterChanges;
-    EXPECT_EQ(backend.VR().HasSession() ? 48U : 0U, backend.VR().View(0).Width);
-    EXPECT_EQ(backend.VR().HasSession() ? 64U : 0U, backend.VR().View(1).Width);
+    MGDFVRFrame frame{};
+    EXPECT_EQ(backend.VR().HasSession() ? S_FALSE : E_ILLEGAL_METHOD_CALL,
+              backend.VR().GetVRFrame(&frame, false));
+    EXPECT_EQ(0U, frame.EyeCount);
+    EXPECT_EQ(backend.VR().HasSession() ? 48U : 0U, frame.Eyes[0].Width);
+    EXPECT_EQ(backend.VR().HasSession() ? 64U : 0U, frame.Eyes[1].Width);
   }
   MGDFFullScreenDesc RTOnResetSwapChain(
       DXGI_SWAP_CHAIN_DESC1 &desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen,
@@ -506,7 +510,8 @@ TEST_P(OpenXRIntegrationTests, InstanceIdentifiesTheGameAndEngine) {
   }
 }
 
-TEST_P(OpenXRIntegrationTests, ViewCallsReportInvalidArgumentsAndSessionState) {
+TEST_P(OpenXRIntegrationTests,
+       FrameReportsTargetsWithoutAnEyeFrameAndChecksSessionState) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
@@ -515,27 +520,33 @@ TEST_P(OpenXRIntegrationTests, ViewCallsReportInvalidArgumentsAndSessionState) {
     FrameLoop loop(GetParam(), true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
-      MGDFVREye view{};
+      MGDFVRFrame frame{};
       ComObject<IUnknown> image;
-      EXPECT_EQ(E_INVALIDARG, vr.GetView(2, &view));
-      EXPECT_EQ(E_INVALIDARG, vr.GetView(0, nullptr));
+      EXPECT_EQ(E_INVALIDARG, vr.GetVRFrame(nullptr));
       EXPECT_EQ(E_INVALIDARG, vr.GetTarget(2, image));
       if (phase == 0) {
-        EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetView(0, &view));
-        EXPECT_EQ(0U, view.Width);
+        EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetVRFrame(&frame));
+        EXPECT_EQ(0U, frame.Eyes[0].Width);
         EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetTarget(0, image));
         EXPECT_FALSE(image);
         host.RequestVR(true);
         ++phase;
       } else if (phase == 1 && vr.ViewCount() == 2) {
-        EXPECT_EQ(S_OK, vr.GetView(0, &view));
-        EXPECT_EQ(48U, view.Width);
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        EXPECT_EQ(48U, frame.Eyes[0].Width);
+        EXPECT_EQ(2U, frame.EyeCount);
+        EXPECT_TRUE(frame.Focused);
+        EXPECT_FLOAT_EQ(1.0f, frame.Eyes[0].Position[2]);
+        EXPECT_EQ(S_FALSE, vr.GetVRFrame(&frame, false));
+        EXPECT_EQ(0U, frame.EyeCount);
+        EXPECT_EQ(48U, frame.Eyes[0].Width);
+        EXPECT_FLOAT_EQ(0, frame.Eyes[0].Position[2]);
         EXPECT_EQ(S_OK, vr.GetTarget(0, image));
         EXPECT_TRUE(image);
         std::thread wrongThread([&] {
-          MGDFVREye wrong{};
+          MGDFVRFrame wrong{};
           ComObject<IUnknown> target;
-          EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetView(0, &wrong));
+          EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetVRFrame(&wrong));
           EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetTarget(0, target));
           EXPECT_FALSE(target);
         });
@@ -543,6 +554,15 @@ TEST_P(OpenXRIntegrationTests, ViewCallsReportInvalidArgumentsAndSessionState) {
         runtime.ShouldRender(false);
         ++phase;
       } else if (phase == 2 && !vr.ViewCount()) {
+        EXPECT_EQ(S_FALSE, vr.GetVRFrame(&frame));
+        EXPECT_EQ(0U, frame.EyeCount);
+        EXPECT_EQ(48U, frame.Eyes[0].Width);
+        EXPECT_EQ(64U, frame.Eyes[1].Width);
+        EXPECT_EQ(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, frame.Eyes[0].Format);
+        EXPECT_FLOAT_EQ(0, frame.Eyes[0].Position[2]);
+        EXPECT_FLOAT_EQ(0, frame.Eyes[0].AngleLeft);
+        EXPECT_FALSE(frame.Grip[0].PositionValid);
+        EXPECT_FALSE(frame.Gaze.PositionValid);
         EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetTarget(0, image));
         EXPECT_FALSE(image);
         ++phase;
@@ -576,9 +596,10 @@ TEST_P(OpenXRIntegrationTests,
                 vr.GetVREyeMask(2, &vertices, nullptr, &count, nullptr));
       EXPECT_EQ(E_INVALIDARG,
                 vr.GetVREyeMask(0, nullptr, nullptr, &count, nullptr));
-      EXPECT_EQ(E_INVALIDARG, vr.GetVREyeMaskVersion(nullptr));
       if (phase < 3) {
-        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&current));
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        current = frame.MaskVersion;
         EXPECT_EQ(S_OK,
                   vr.GetVREyeMask(0, &vertices, nullptr, &count, nullptr));
         EXPECT_EQ(3U, vertices);
@@ -624,7 +645,9 @@ TEST_P(OpenXRIntegrationTests,
       } else if (phase == 4) {
         EXPECT_EQ(E_FAIL,
                   vr.GetVREyeMask(0, &vertices, nullptr, &count, nullptr));
-        EXPECT_EQ(E_FAIL, vr.GetVREyeMaskVersion(&current));
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        EXPECT_NE(version, frame.MaskVersion);
         EXPECT_EQ(0U, vertices);
         EXPECT_EQ(0U, current);
         ++phase;
@@ -775,13 +798,14 @@ TEST_P(OpenXRIntegrationTests,
         auto &vr = host.Backend->VR();
         if (!vr.ViewCount()) return false;
         UINT32 vertices = 9, indices = 9;
-        UINT64 version = 9;
+        MGDFVRFrame frame{};
         EXPECT_EQ(E_NOTIMPL,
                   vr.GetVREyeMask(0, &vertices, nullptr, &indices, nullptr));
         EXPECT_EQ(0U, vertices);
         EXPECT_EQ(0U, indices);
-        EXPECT_EQ(E_NOTIMPL, vr.GetVREyeMaskVersion(&version));
-        EXPECT_EQ(0U, version);
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        EXPECT_EQ(0U, frame.MaskVersion);
+        EXPECT_EQ(0U, frame.Features & MGDF_VR_FEATURE_MASK);
         ComObject<IUnknown> target;
         EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL, vr.GetDepthTarget(0, target));
         EXPECT_FALSE(target);
@@ -1026,11 +1050,11 @@ TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
       const MGDFVRPanel panel{80, 32, {0, 0, 2},          {0, 0, 0, 1},
                               1,  1,  MGDF_VR_SPACE_LOCAL};
       const auto check = [&](HRESULT expected, bool cached) {
-        MGDFVREye view{};
+        MGDFVRFrame frame{};
         MGDFVRPose pose{};
         ComObject<IUnknown> target;
-        EXPECT_EQ(expected, vr.GetView(0, &view, true));
-        EXPECT_EQ(0U, view.Width);
+        EXPECT_EQ(cached ? S_FALSE : expected, vr.GetVRFrame(&frame));
+        EXPECT_EQ(cached ? 48U : 0U, frame.Eyes[0].Width);
         EXPECT_EQ(expected, vr.GetTarget(0, target));
         EXPECT_FALSE(target);
         EXPECT_EQ(expected, vr.GetDepthTarget(0, target));
@@ -1044,15 +1068,13 @@ TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
         EXPECT_EQ(expected, vr.GetGaze(&pose));
         EXPECT_FALSE(pose.OrientationValid);
         UINT32 vertices = 9, indices = 9;
-        UINT64 version = 9;
         EXPECT_EQ(cached ? S_OK : expected,
                   vr.GetVREyeMask(0, &vertices, nullptr, &indices, nullptr));
-        EXPECT_EQ(cached ? S_OK : expected, vr.GetVREyeMaskVersion(&version));
         EXPECT_EQ(cached ? S_OK : expected, vr.SetVRPanel(&panel));
         if (!cached) {
           EXPECT_EQ(0U, vertices);
           EXPECT_EQ(0U, indices);
-          EXPECT_EQ(0U, version);
+          EXPECT_EQ(0U, frame.MaskVersion);
         }
       };
       if (phase == 0) {
@@ -1099,14 +1121,18 @@ TEST_P(OpenXRIntegrationTests,
       auto &vr = host.Backend->VR();
       UINT64 current = 0;
       if (phase == 0 && vr.ViewCount()) {
-        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&revision));
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        revision = frame.MaskVersion;
         changes = host.AfterChanges;
         ComObject<IMGDFPendingRenderSettingsChange> change;
         host.Settings->CreatePendingSettingsChange(change.Assign());
         change->SetVSync(FALSE);
         ++phase;
       } else if (phase == 1 && vr.ViewCount() && host.AfterChanges > changes) {
-        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&current));
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        current = frame.MaskVersion;
         EXPECT_NE(revision, current);
         revision = current;
         EXPECT_EQ(1U, runtime.Stats().SessionsCreated);
@@ -1117,7 +1143,9 @@ TEST_P(OpenXRIntegrationTests,
         host.RequestVR(true);
         ++phase;
       } else if (phase == 3 && vr.ViewCount()) {
-        EXPECT_EQ(S_OK, vr.GetVREyeMaskVersion(&current));
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        current = frame.MaskVersion;
         EXPECT_NE(revision, current);
         EXPECT_EQ(2U, runtime.Stats().SessionsCreated);
         EXPECT_EQ(2U, runtime.Stats().ActionSetsAttached);

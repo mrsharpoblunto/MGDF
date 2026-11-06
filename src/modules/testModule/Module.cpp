@@ -18,9 +18,7 @@ namespace MGDF {
 namespace Test {
 
 namespace {
-std::array<float, 4> EyeColor(IMGDFRenderHost *host, UINT32 index) {
-  MGDFVREye view{};
-  if (host->GetView(index, &view) != S_OK) return {0, 0, 0, 1};
+std::array<float, 4> EyeColor(const MGDFVREye &view, UINT32 index) {
   const auto &q = view.Orientation;
   const float yaw = std::atan2(2 * (q[3] * q[1] + q[0] * q[2]),
                                1 - 2 * (q[0] * q[0] + q[1] * q[1]));
@@ -338,8 +336,8 @@ BOOL Module::RTDraw(IMGDFRenderHost *host, double alpha) {
 }
 
 BOOL Module::RTBackBufferChange(IMGDFRenderHost *host) {
-  MGDFVREye view{};
-  if (_vrTest && host->GetView(0, &view) == S_OK && view.Width) {
+  MGDFVRFrame frame{};
+  if (_vrTest && SUCCEEDED(host->GetVRFrame(&frame)) && frame.Eyes[0].Width) {
     const MGDFVRPanel panel{512,  256,   {0, 0, 1.5f},      {0, 0, 0, 1},
                             0.7f, 0.35f, MGDF_VR_SPACE_VIEW};
     host->SetVRPanel(&panel);
@@ -495,11 +493,12 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime)),
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime + 2)),
         0.25f + 0.2f * static_cast<float>(std::sin(_renderTime + 4)), 1};
-    for (UINT32 eye = 0; eye < host->GetViewCount(); ++eye) {
+    MGDFVRFrame vr{};
+    host->GetVRFrame(&vr);
+    for (UINT32 eye = 0; eye < vr.EyeCount; ++eye) {
       ComObject<ID3D12Resource> target;
-      MGDFVREye view{};
-      if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK ||
-          host->GetView(eye, &view) != S_OK)
+      const auto &view = vr.Eyes[eye];
+      if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK)
         return false;
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + eye) *
@@ -509,14 +508,13 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
           .Format = view.Format,
           .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D};
       _d3d12Device->CreateRenderTargetView(target, &desc, rtv);
-      const auto eyeColor = EyeColor(host, eye);
+      const auto eyeColor = EyeColor(view, eye);
       list->ClearRenderTargetView(rtv, eyeColor.data(), 0, nullptr);
       if (!eye) _leftEyeColor = eyeColor;
     }
     ComObject<ID3D12Resource> panel;
     if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
-      MGDFVREye view{};
-      if (host->GetView(0, &view) != S_OK) return false;
+      const auto &view = vr.Eyes[0];
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + 2) *
                  _d3d12Device->GetDescriptorHandleIncrementSize(
@@ -565,25 +563,24 @@ bool Module::DrawVRD3D11(IMGDFRenderHost *host) {
   common.As<IMGDFD3D11Host>()->GetD3D11Device(device.Assign());
   ComObject<ID3D11DeviceContext> context;
   device->GetImmediateContext(context.Assign());
-  for (UINT32 eye = 0; eye < host->GetViewCount(); ++eye) {
+  MGDFVRFrame vr{};
+  host->GetVRFrame(&vr);
+  for (UINT32 eye = 0; eye < vr.EyeCount; ++eye) {
     ComObject<ID3D11Texture2D> target;
-    MGDFVREye view{};
-    if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK ||
-        host->GetView(eye, &view) != S_OK)
-      return false;
+    const auto &view = vr.Eyes[eye];
+    if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK) return false;
     const D3D11_RENDER_TARGET_VIEW_DESC desc{
         .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
     ComObject<ID3D11RenderTargetView> rtv;
     if (FAILED(device->CreateRenderTargetView(target, &desc, rtv.Assign())))
       return false;
-    const auto color = EyeColor(host, eye);
+    const auto color = EyeColor(view, eye);
     context->ClearRenderTargetView(rtv, color.data());
     if (!eye) _leftEyeColor = color;
   }
   ComObject<ID3D11Texture2D> panel;
   if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
-    MGDFVREye view{};
-    if (host->GetView(0, &view) != S_OK) return false;
+    const auto &view = vr.Eyes[0];
     const D3D11_RENDER_TARGET_VIEW_DESC desc{
         .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
     ComObject<ID3D11RenderTargetView> panelView;

@@ -535,20 +535,39 @@ HRESULT OpenXR::SessionStatus() const {
   return _fallback ? E_FAIL : S_OK;
 }
 
-HRESULT OpenXR::GetView(UINT32 index, MGDFVREye *view, bool eyeFrame) const {
-  if (!view) return E_INVALIDARG;
-  *view = {};
-  if (index >= _eyes.size()) return E_INVALIDARG;
+HRESULT OpenXR::GetVRFrame(MGDFVRFrame *frame, bool eyeFrame) const {
+  if (!frame) return E_INVALIDARG;
+  *frame = {};
   const auto status = SessionStatus();
   if (FAILED(status)) return status;
-  if (eyeFrame && (!_begun || !_viewCount)) return E_ILLEGAL_METHOD_CALL;
-  *view = View(index);
-  if (!_begun || !_viewCount) {
-    std::fill(std::begin(view->Position), std::end(view->Position), 0.0f);
-    std::fill(std::begin(view->Orientation), std::end(view->Orientation), 0.0f);
-    view->AngleLeft = view->AngleRight = view->AngleUp = view->AngleDown = 0;
+  frame->EyeCount = eyeFrame && _begun ? _viewCount : 0;
+  frame->Focused = Focused();
+  if (_getMask) {
+    frame->Features |= MGDF_VR_FEATURE_MASK;
+    frame->MaskVersion = _maskVersion;
   }
-  return S_OK;
+  if (_depthStatus != E_NOTIMPL) frame->Features |= MGDF_VR_FEATURE_DEPTH;
+  if (_systemProperties.graphicsProperties.maxLayerCount >= 2)
+    frame->Features |= MGDF_VR_FEATURE_PANEL;
+  if (_gazeSupported) frame->Features |= MGDF_VR_FEATURE_GAZE;
+  for (UINT32 i = 0; i < _eyes.size(); ++i) {
+    auto &eye = frame->Eyes[i];
+    if (frame->EyeCount) {
+      eye = View(i);
+      if (_inputFrame.Controllers[i].Connected) {
+        frame->Grip[i] = _inputFrame.Controllers[i].Grip;
+        frame->Aim[i] = _inputFrame.Controllers[i].Aim;
+      }
+    } else {
+      eye.Width = _eyes[i].Width;
+      eye.Height = _eyes[i].Height;
+      eye.Format = _format;
+      eye.DepthFormat = _depthFormat;
+    }
+  }
+  if (frame->EyeCount && _inputFrame.GazeStatus == S_OK)
+    frame->Gaze = _inputFrame.Gaze;
+  return frame->EyeCount ? S_OK : S_FALSE;
 }
 
 HRESULT OpenXR::GetTarget(UINT32 index, ComObject<IUnknown> &target) const {
@@ -748,16 +767,6 @@ HRESULT OpenXR::GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
   }
   if (indices)
     std::copy(eye.MaskIndices.begin(), eye.MaskIndices.end(), indices);
-  return S_OK;
-}
-
-HRESULT OpenXR::GetVREyeMaskVersion(UINT64 *version) const {
-  if (!version) return E_INVALIDARG;
-  *version = 0;
-  const auto status = SessionStatus();
-  if (FAILED(status)) return status;
-  if (FAILED(_maskStatus)) return _maskStatus;
-  *version = _maskVersion;
   return S_OK;
 }
 

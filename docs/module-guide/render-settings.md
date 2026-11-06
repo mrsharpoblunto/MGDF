@@ -21,7 +21,7 @@ that did not opt in ignores both the preference and the flag.
 
 `GetVR()` returns `TRUE` while VR mode has a headset session, including when the
 runtime pauses it. During a pause, the window sets the frame rate and
-`GetViewCount()` returns `0`. When the runtime is ready again, eye rendering
+`GetVRFrame` returns `S_FALSE` with `EyeCount` zero. When the runtime is ready again, eye rendering
 resumes with the same targets and no back buffer change.
 
 If the headset is unavailable, startup fails, or the runtime exits or loses the

@@ -519,32 +519,11 @@ bool Host::RTCanCallVR(bool eyeFrame) const {
          (!eyeFrame || _vrDrawing);
 }
 
-UINT32 Host::GetViewCount() {
-  return RTCanCallVR(true) ? _backend->VR().ViewCount() : 0;
-}
-HRESULT Host::GetView(UINT32 index, MGDFVREye *view) {
-  if (!view) return E_INVALIDARG;
-  *view = {};
-  if (index >= 2) return E_INVALIDARG;
-  return RTCanCallVR() ? _backend->VR().GetView(index, view, _vrDrawing)
+HRESULT Host::GetVRFrame(MGDFVRFrame *frame) {
+  if (!frame) return E_INVALIDARG;
+  *frame = {};
+  return RTCanCallVR() ? _backend->VR().GetVRFrame(frame, _vrDrawing)
                        : E_ILLEGAL_METHOD_CALL;
-}
-BOOL Host::GetVRFocused() { return RTCanCallVR() && _backend->VR().Focused(); }
-HRESULT Host::GetVRControllerPose(MGDFVRHand hand, MGDFVRControllerPose kind,
-                                  MGDFVRPose *pose) {
-  if (!pose) return E_INVALIDARG;
-  *pose = {};
-  if ((hand != MGDF_VR_HAND_LEFT && hand != MGDF_VR_HAND_RIGHT) ||
-      (kind != MGDF_VR_CONTROLLER_GRIP && kind != MGDF_VR_CONTROLLER_AIM))
-    return E_INVALIDARG;
-  return RTCanCallVR(true) ? _backend->VR().GetControllerPose(hand, kind, pose)
-                           : E_ILLEGAL_METHOD_CALL;
-}
-HRESULT Host::GetVRGaze(MGDFVRPose *pose) {
-  if (!pose) return E_INVALIDARG;
-  *pose = {};
-  return RTCanCallVR(true) ? _backend->VR().GetGaze(pose)
-                           : E_ILLEGAL_METHOD_CALL;
 }
 HRESULT Host::GetVREyeTarget(UINT32 index, ID3D12Resource **target) {
   if (!target) return E_INVALIDARG;
@@ -580,12 +559,6 @@ HRESULT Host::GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
   }
   return _backend->VR().GetVREyeMask(index, vertexCount, xy, indexCount,
                                      indices);
-}
-HRESULT Host::GetVREyeMaskVersion(UINT64 *version) {
-  if (!version) return E_INVALIDARG;
-  *version = 0;
-  return RTCanCallVR() ? _backend->VR().GetVREyeMaskVersion(version)
-                       : E_ILLEGAL_METHOD_CALL;
 }
 HRESULT Host::SetVREyeDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ) {
   return RTCanCallVR(true)

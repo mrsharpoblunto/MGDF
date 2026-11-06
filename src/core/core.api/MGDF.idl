@@ -1187,7 +1187,7 @@ Provides an interface for getting and setting the hosts various display settings
 
   /**
   Reports whether VR mode has a headset session. Stays TRUE while the runtime
-  pauses the session; draw only the window while GetViewCount returns zero.
+  pauses the session; draw only the window while GetVRFrame reports EyeCount zero.
   A failed VR request leaves this FALSE
   \return TRUE while VR mode is active, including an idle headset session
   */
@@ -2456,6 +2456,34 @@ typedef struct MGDFVREye {
   DXGI_FORMAT DepthFormat;
 } MGDFVREye;
 
+/** Optional VR features supported by this session. Individual calls can fail */
+typedef enum MGDFVRFeature {
+  MGDF_VR_FEATURE_MASK = 1,
+  MGDF_VR_FEATURE_DEPTH = 2,
+  MGDF_VR_FEATURE_PANEL = 4,
+  MGDF_VR_FEATURE_GAZE = 8,
+} MGDFVRFeature;
+
+/**
+VR data for one display frame. Eye 0 is left and eye 1 is right. Index Grip and
+Aim with MGDFVRHand. Poses use LOCAL space and the MGDFVRPose convention.
+Pose and FOV data are valid only during RTDraw with EyeCount 2; otherwise they
+are zero. Unsupported or untracked controller and gaze poses are invalid
+*/
+typedef struct MGDFVRFrame {
+  UINT32 EyeCount;
+  BOOL Focused;
+  MGDFVREye Eyes[2];
+  MGDFVRPose Grip[2];
+  MGDFVRPose Aim[2];
+  MGDFVRPose Gaze;
+  /** Reload masks when this changes, including after session or eye target
+  recreation. Zero without mask support */
+  UINT64 MaskVersion;
+  /** Bit set of MGDFVRFeature values */
+  UINT32 Features;
+} MGDFVRFrame;
+
 /** Reference frame for a headset panel */
 typedef enum MGDFVRSpace {
   MGDF_VR_SPACE_LOCAL = 0,
@@ -2502,47 +2530,17 @@ typedef struct MGDFVRPanel {
   HRESULT SetHDRMetadata([in] const MGDFHDRMetadata *metadata);
 
   /**
-  Gets the eye count during RTDraw. Draw the window in every frame
-  \return 2 when the headset requests eye rendering; 0 otherwise
+  Gets VR data on the render thread. Draw the window every frame. In RTDraw,
+  S_OK provides two eyes and poses at this frame's predicted display time.
+  Outside an eye frame, including RTBackBufferChange, S_FALSE provides target
+  properties, focus, mask revision and feature flags; EyeCount is zero and
+  poses and FOV angles are zero. Use Eyes to size resources at a back buffer
+  change. Check pose validity and Features before using optional data
+  \return S_OK with an eye frame; S_FALSE with a session but no eye frame;
+  E_INVALIDARG for null output; E_ILLEGAL_METHOD_CALL without a session or on
+  the wrong thread; E_FAIL after a runtime failure. Output is zero on error
   */
-  UINT32 GetViewCount();
-
-  /**
-  Gets eye target properties. In RTBackBufferChange, Width, Height and Format
-  describe the new targets; zero dimensions mean that eye targets are unavailable.
-  Pose and field of view are valid only during RTDraw when index is less than
-  GetViewCount. Use them for this frame only
-  \param index 0 for the left eye, 1 for the right eye
-  \param view receives the eye data; zeroed on error
-  \return S_OK; E_INVALIDARG for an invalid index or null output;
-  E_ILLEGAL_METHOD_CALL without a session, on the wrong thread, or during
-  RTDraw without an eye frame; E_FAIL after a runtime failure. Outside RTDraw
-  only target properties are filled
-  */
-  HRESULT GetView(UINT32 index, [out] MGDFVREye *view);
-
-  /**
-  Reports headset input focus. Pause headset input when this is FALSE
-  \return TRUE only while the headset session has input focus
-  */
-  BOOL GetVRFocused();
-  /**
-  Gets a grip or aim pose at this RTDraw's predicted display time, in LOCAL space
-  \return S_OK with valid components; S_FALSE if disconnected, unfocused or
-  untracked; E_INVALIDARG for invalid hand, pose kind or null output;
-  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
-  thread; E_FAIL on runtime failure. The output is zero except on S_OK
-  */
-  HRESULT GetVRControllerPose(MGDFVRHand hand, MGDFVRControllerPose kind,
-                              [out] MGDFVRPose *pose);
-  /**
-  Gets eye gaze at this RTDraw's predicted display time, in LOCAL space
-  \return S_OK with position and orientation; S_FALSE for no current sample or
-  no focus; E_NOTIMPL without eye tracking; E_INVALIDARG for a null output;
-  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
-  thread; E_FAIL on runtime failure. The output is zero except on S_OK
-  */
-  HRESULT GetVRGaze([out] MGDFVRPose *pose);
+  HRESULT GetVRFrame([out] MGDFVRFrame *frame);
 
   /**
   Gets the hidden triangle mesh for eye 0 or 1 on the render thread. Counts are
@@ -2561,14 +2559,6 @@ typedef struct MGDFVRPanel {
   HRESULT GetVREyeMask(UINT32 index, [in, out] UINT32 *vertexCount,
                       [out] FLOAT *xy, [in, out] UINT32 *indexCount,
                       [out] UINT32 *indices);
-  /**
-  Gets the mask revision on the render thread. Reload masks when it changes,
-  including after a session or eye target change. The revision is shared by both eyes
-  \return S_OK; E_NOTIMPL without mask support; E_INVALIDARG for a null output;
-  E_ILLEGAL_METHOD_CALL without a session or on the wrong thread; E_FAIL on
-  runtime failure. The output is zero on error
-  */
-  HRESULT GetVREyeMaskVersion([out] UINT64 *version);
   /**
   Enables reprojection depth for this eye in this RTDraw. Call for both eyes
   after writing their depth targets; otherwise no depth is submitted this frame.
@@ -2621,7 +2611,7 @@ Additional methods in this interface are safe to be used ONLY from the render th
   Gets an owned reference to this frame's eye texture during RTDraw. Submit
   eye rendering on the immediate context before RTDraw returns. Textures rotate
   until RTBeforeBackBufferChange, when all references must be released
-  \param index less than GetViewCount
+  \param index less than MGDFVRFrame::EyeCount
   \param target receives the texture; Release it when no longer needed
   \return S_OK; E_INVALIDARG for an invalid index or null output;
   E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
@@ -2904,7 +2894,7 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   Execute eye work on the direct queue before RTDraw returns; join work from
   other queues to it. The host records no work on the texture. Textures rotate
   until RTBeforeBackBufferChange; descriptors can be kept by resource until then
-  \param index less than GetViewCount
+  \param index less than MGDFVRFrame::EyeCount
   \param target receives the texture; release all references before a change
   \return S_OK; E_INVALIDARG for an invalid index or null output;
   E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong

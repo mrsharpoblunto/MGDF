@@ -1,29 +1,26 @@
 # Render host and VR
 
-Opt in through the [VR render setting](render-settings.md). In each `RTDraw`,
-call `IMGDFRenderHost::GetViewCount()`. A count of `2` means that both eyes need
-rendering. A count of `0` means that only the window needs rendering. This can
-occur during an active session when the runtime does not request an eye frame.
-Always draw the window.
+Opt in through the [VR render setting](render-settings.md). On the render
+thread, call `IMGDFRenderHost::GetVRFrame(&frame)`. During `RTDraw`, `S_OK`
+means `frame.EyeCount` is 2 and both eyes need rendering. `S_FALSE` means a VR
+session exists but no eye frame is available; draw only the window. Always
+draw the window, including when VR is off.
 
-The runtime can pause and resume the headset session. While it is idle,
-`GetVR()` stays `TRUE`, focus is `FALSE`, and there are no eye views. The eye
-targets are kept, and resuming the session causes no back buffer change.
+`MGDFVRFrame::Eyes[0]` is the left eye and `Eyes[1]` is the right eye. Their
+poses are at this frame's predicted display time in LOCAL space, in metres,
+with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w. FOV
+angles are in radians; left and down are negative. Width, Height, Format and
+DepthFormat describe each target. Write linear color to an sRGB target.
 
-For each index from zero to `GetViewCount() - 1`, call `GetView(index, &view)`.
-Index `0` is the left eye and index `1` is the right eye. The pose is at this
-frame's predicted display time in LOCAL space, in metres. It uses +X right,
-+Y up, and +Z forward. The orientation quaternion is x, y, z, w. The field of
-view angles are in radians, with left and down negative. `Width`, `Height`,
-and `Format` describe that eye's target. Write linear color to an sRGB format.
+In `RTBackBufferChange`, `GetVRFrame` returns `S_FALSE` with the target sizes
+and formats, so the module can size resources. Outside an eye frame, EyeCount
+is zero and all poses and FOV angles are zero. Check the validity flags of
+Grip, Aim and Gaze during eye frames. Index Grip and Aim with `MGDFVRHand`.
 
-In `RTBackBufferChange`, call `GetView` for indices 0 and 1 to read the new eye
-sizes and formats and make eye-sized resources. Zero dimensions mean there are
-no eye targets. Pose and field of view are valid only during `RTDraw` when
-`GetViewCount()` is `2`.
-
-Call `GetVRFocused()` to check headset input focus. Pause headset input when
-it returns `FALSE`; do not stop the frame loop for this reason.
+The runtime can pause and resume the session. While idle, `GetVR()` stays
+`TRUE`, Focused is `FALSE`, and EyeCount is zero. Targets are kept, and resume
+causes no back buffer change. Pause headset input when Focused is `FALSE`;
+continue rendering frames requested by the host.
 
 Use `GetVREyeTarget(index, &target)` on the selected D3D11 or D3D12 render host.
 The call returns an owned COM reference. Release it when it is no longer
@@ -56,17 +53,21 @@ with `-vr` to test startup in a headset.
 VR resources and features are owned by the host. Modules use MGDF types and
 calls; they do not call OpenXR or manage its handles or events.
 
-`GetView` and `GetVREyeTarget` return `S_OK` on success. Invalid indices or null
-outputs return `E_INVALIDARG`. No session, a wrong thread, or a target request
-outside an eye frame returns `E_ILLEGAL_METHOD_CALL`. A runtime failure returns
-`E_FAIL`. Outputs are zero or null on error. `GetView` can also report target
-properties outside `RTDraw`; its pose and field of view are then zero. During `RTDraw`
-with no eye frame, it returns `E_ILLEGAL_METHOD_CALL`.
+`GetVRFrame` returns `E_INVALIDARG` for a null output,
+`E_ILLEGAL_METHOD_CALL` without a session or on the wrong thread, and `E_FAIL`
+after a runtime failure. Output is zero on error. `GetVREyeTarget` returns
+`S_OK`, or the same errors; an invalid index returns `E_INVALIDARG`, and a
+request outside an eye frame returns `E_ILLEGAL_METHOD_CALL`. Error targets
+are null.
+
+`MGDFVRFrame::Features` is a bit set of `MGDF_VR_FEATURE_MASK`, `_DEPTH`,
+`_PANEL` and `_GAZE` for supported session features. Individual feature calls
+can still fail. Gaze is invalid without a current sample or eye tracking.
 
 ## Hidden area masks
 
-Call `GetVREyeMaskVersion(&version)` on the render thread. Reload both masks
-when the version changes. It changes after a mask event or recreation of the
+Read `MGDFVRFrame::MaskVersion` on the render thread. Reload both masks
+when it changes. It changes after a mask event or recreation of the
 session or eye targets. `GetVREyeMask(index, &vertexCount, xy, &indexCount,
 indices)` uses two calls: null buffers return counts; provide those capacities
 and buffers on the second call. Each vertex has two floats, and each triangle
@@ -79,8 +80,7 @@ A missing mask extension returns `E_NOTIMPL`; an empty mask returns `S_FALSE`
 and zero counts. Invalid indices, null count pointers or insufficient capacity
 return `E_INVALIDARG`; insufficient capacity still returns the required counts.
 No session or the wrong thread returns `E_ILLEGAL_METHOD_CALL`. Runtime failure
-returns `E_FAIL`. The version getter returns `S_OK`, `E_NOTIMPL`,
-`E_INVALIDARG` for null output, `E_ILLEGAL_METHOD_CALL`, or `E_FAIL`.
+returns `E_FAIL`. MaskVersion is zero without mask support.
 
 ## Reprojection depth
 
@@ -146,12 +146,7 @@ sample with valid position and orientation. All four input-manager calls are
 safe with VR off. Failed reads return `FALSE` and zero their output. Gaze is
 unavailable when the runtime or headset lacks eye tracking.
 
-During `RTDraw`, use `GetVRControllerPose(hand, gripOrAim, &pose)` and
-`IMGDFRenderHost::GetVRGaze(&pose)` for this frame's predicted display time.
-All poses use LOCAL space, metres, +X right, +Y up, +Z forward, and quaternion
-x, y, z, w. Aim and gaze point along the rotated +Z direction. The calls return
-`S_OK`, `S_FALSE` for no tracked sample or focus, `E_INVALIDARG` for invalid
-inputs, `E_ILLEGAL_METHOD_CALL` without a session, outside an eye frame or on
-the wrong thread, or `E_FAIL` on runtime failure. Gaze returns `E_NOTIMPL`
-without eye tracking. Outputs are zero except on `S_OK`; check each validity
-flag on a controller pose.
+During `RTDraw`, use `MGDFVRFrame::Grip`, `Aim` and `Gaze` for poses at this
+frame's predicted display time. All poses use LOCAL space, metres, +X right,
++Y up, +Z forward, and quaternion x, y, z, w. Aim and gaze point along rotated
++Z. Untracked or unavailable samples are invalid; check each validity flag.

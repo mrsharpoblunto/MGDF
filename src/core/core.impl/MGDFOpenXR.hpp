@@ -69,12 +69,11 @@ class OpenXR {
   UINT32 ViewCount() const { return _viewCount; }
   MGDFVREye View(UINT32 index) const;
   ComObject<IUnknown> Target(UINT32 index) const;
-  HRESULT GetView(UINT32 index, MGDFVREye *view, bool eyeFrame = false) const;
+  HRESULT GetVRFrame(MGDFVRFrame *frame, bool eyeFrame = true) const;
   HRESULT GetTarget(UINT32 index, ComObject<IUnknown> &target) const;
 
   HRESULT GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
                        UINT32 *indexCount, UINT32 *indices) const;
-  HRESULT GetVREyeMaskVersion(UINT64 *version) const;
   HRESULT GetDepthTarget(UINT32 index, ComObject<IUnknown> &target) const;
   HRESULT SetVREyeDepthRange(UINT32 index, float nearZ, float farZ);
   HRESULT SetVRPanel(const MGDFVRPanel *panel);
