@@ -2494,6 +2494,10 @@ typedef struct MGDFVRFrame {
   /** Reload masks when this changes, including after session or eye target
   recreation. Zero without mask support */
   UINT64 MaskVersion;
+  /** Reset temporal history when this counter changes. It advances when a
+  session starts and on the first frame at or after a LOCAL space change time,
+  including frames with no eye output. Compare with the last rendered frame */
+  UINT64 PoseEpoch;
   /** Bit set of MGDFVRFeature values */
   UINT32 Features;
 } MGDFVRFrame;

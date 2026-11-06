@@ -170,6 +170,8 @@ class OpenXR {
   DXGI_FORMAT _format = DXGI_FORMAT_UNKNOWN;
   XrEnvironmentBlendMode _blendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
   XrFrameState _frame{XR_TYPE_FRAME_STATE};
+  UINT64 _poseEpoch = 0;
+  std::vector<XrTime> _poseChanges;
   std::function<bool(DXGI_FORMAT, bool)> _canRender;
   std::function<void()> _waitIdle;
   ImageQuery _images;

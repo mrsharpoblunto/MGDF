@@ -62,6 +62,8 @@ XrSession Session = XR_NULL_HANDLE;
 struct Event {
   XrSessionState State = XR_SESSION_STATE_UNKNOWN;
   bool MaskChanged = false;
+  XrReferenceSpaceType Space = XR_REFERENCE_SPACE_TYPE_MAX_ENUM;
+  XrTime ChangeTime = 0;
 };
 std::deque<Event> Events;
 // Keep retired handle storage until test reset so recreation cannot reuse a
@@ -335,6 +337,18 @@ XrResult XRAPI_CALL Poll(XrInstance, XrEventDataBuffer *buffer) {
   if (Events.empty()) return XR_EVENT_UNAVAILABLE;
   const auto item = Events.front();
   Events.pop_front();
+  if (item.Space != XR_REFERENCE_SPACE_TYPE_MAX_ENUM) {
+    const XrEventDataReferenceSpaceChangePending event{
+        XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING,
+        nullptr,
+        Session,
+        item.Space,
+        item.ChangeTime,
+        XR_FALSE,
+        {}};
+    memcpy(buffer, &event, sizeof(event));
+    return XR_SUCCESS;
+  }
   if (item.MaskChanged) {
     const XrEventDataVisibilityMaskChangedKHR event{
         XR_TYPE_EVENT_DATA_VISIBILITY_MASK_CHANGED_KHR, nullptr, Session,
@@ -842,6 +856,10 @@ extern "C" __declspec(dllexport) void Configure(const FakeXRConfig *config) {
 }
 extern "C" __declspec(dllexport) void PushState(XrSessionState state) {
   Events.push_back({state});
+}
+extern "C" __declspec(dllexport) void ChangeSpace(XrReferenceSpaceType space,
+                                                  XrTime time) {
+  Events.push_back({XR_SESSION_STATE_UNKNOWN, false, space, time});
 }
 extern "C" __declspec(dllexport) void SetShouldRender(bool render) {
   Config.ShouldRender = render;

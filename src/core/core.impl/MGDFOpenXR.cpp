@@ -321,6 +321,14 @@ void OpenXR::PollEvents() {
               XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO)
         RefreshMasks();
     }
+    if (event.type == XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING) {
+      const auto &change =
+          reinterpret_cast<const XrEventDataReferenceSpaceChangePending &>(
+              event);
+      if (change.session == _session &&
+          change.referenceSpaceType == XR_REFERENCE_SPACE_TYPE_LOCAL)
+        _poseChanges.push_back(change.changeTime);
+    }
     if (event.type != XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) continue;
     const auto &change =
         reinterpret_cast<const XrEventDataSessionStateChanged &>(event);
@@ -341,6 +349,7 @@ void OpenXR::PollEvents() {
               XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO};
           if (!Check(xrBeginSession(_session, &info), "begin session")) return;
           _running = true;
+          ++_poseEpoch;
         }
         if (_stopRequested) RequestStop();
         break;
@@ -348,6 +357,7 @@ void OpenXR::PollEvents() {
       case OpenXRAction::EndSession:
         if (_running && !Check(xrEndSession(_session), "end session")) return;
         _running = false;
+        _poseChanges.clear();
         _viewCount = 0;
         if (_stopRequested) {
           _fallback = true;
@@ -388,6 +398,11 @@ bool OpenXR::BeginFrame() {
   const XrFrameBeginInfo begin{XR_TYPE_FRAME_BEGIN_INFO};
   if (!Check(xrBeginFrame(_session, &begin), "begin frame")) return false;
   _begun = true;
+  std::erase_if(_poseChanges, [this](XrTime time) {
+    if (time > _frame.predictedDisplayTime) return false;
+    ++_poseEpoch;
+    return true;
+  });
   UpdateInput();
   if (!_frame.shouldRender || _stopRequested) return true;
   const XrViewLocateInfo locate{XR_TYPE_VIEW_LOCATE_INFO, nullptr,
@@ -512,6 +527,7 @@ void OpenXR::Destroy() {
   _session = XR_NULL_HANDLE;
   _instance = XR_NULL_HANDLE;
   _system = XR_NULL_SYSTEM_ID;
+  _poseChanges.clear();
   _state = XR_SESSION_STATE_UNKNOWN;
   _running = _begun = _stopRequested = _exitRequested = _fallback = false;
   _canRender = {};
@@ -545,6 +561,7 @@ HRESULT OpenXR::GetVRFrame(MGDFVRFrame *frame, bool eyeFrame) const {
   if (FAILED(status)) return status;
   frame->EyeCount = eyeFrame && _begun ? _viewCount : 0;
   frame->Focused = Focused();
+  frame->PoseEpoch = _poseEpoch;
   if (_getMask) {
     frame->Features |= MGDF_VR_FEATURE_MASK;
     frame->MaskVersion = _maskVersion;

@@ -74,6 +74,7 @@ struct FakeXRStats {
 };
 using FakeXRConfigure = void (*)(const FakeXRConfig *);
 using FakeXRPushState = void (*)(XrSessionState);
+using FakeXRChangeSpace = void (*)(XrReferenceSpaceType, XrTime);
 using FakeXRChangeMask = void (*)(UINT32);
 using FakeXRShouldRender = void (*)(bool);
 using FakeXRGetStats = void (*)(FakeXRStats *);

@@ -12,6 +12,12 @@ with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w. FOV
 angles are in radians; left and down are negative. Width, Height, Format and
 DepthFormat describe each target. Write linear color to an sRGB target.
 
+Compare `MGDFVRFrame::PoseEpoch` with the last rendered frame. Reset temporal
+history for both eyes when it differs. The counter advances when a session
+starts and on the first frame whose predicted display time reaches a LOCAL
+space change, such as recentring. It also advances on frames with no eye
+output, so a module that skips frames still detects the change.
+
 In `RTBackBufferChange`, `GetVRFrame` returns `S_FALSE` with the target sizes
 and formats, so the module can size resources. Outside an eye frame, EyeCount
 is zero and all poses and FOV angles are zero. Check the validity flags of

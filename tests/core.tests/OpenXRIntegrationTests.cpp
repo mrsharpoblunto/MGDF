@@ -39,6 +39,8 @@ class Runtime {
         reinterpret_cast<FakeXRConfigure>(GetProcAddress(Library, "Configure"));
     Push =
         reinterpret_cast<FakeXRPushState>(GetProcAddress(Library, "PushState"));
+    ChangeSpace = reinterpret_cast<FakeXRChangeSpace>(
+        GetProcAddress(Library, "ChangeSpace"));
     ShouldRender = reinterpret_cast<FakeXRShouldRender>(
         GetProcAddress(Library, "SetShouldRender"));
     Read =
@@ -64,6 +66,7 @@ class Runtime {
   HMODULE Library = nullptr;
   FakeXRConfigure Configure = nullptr;
   FakeXRPushState Push = nullptr;
+  FakeXRChangeSpace ChangeSpace = nullptr;
   FakeXRChangeMask ChangeMask = nullptr;
   FakeXRShouldRender ShouldRender = nullptr;
   FakeXRGetStats Read = nullptr;
@@ -329,6 +332,45 @@ class FrameLoop final : public D3DAppFramework {
 class OpenXRIntegrationTests : public testing::TestWithParam<MGDFGraphicsAPI> {
 };
 
+TEST_P(OpenXRIntegrationTests,
+       PoseEpochChangesAtDisplayTimeAndSurvivesSkippedEyes) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  ASSERT_NE(nullptr, runtime.ChangeSpace);
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT64 firstEpoch = 0;
+  UINT32 checked = 0;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      if (!vr.Running()) return false;
+      const auto frameNumber = runtime.Stats().Frames + 1;
+      MGDFVRFrame frame{};
+      EXPECT_EQ(frameNumber == 3 ? S_FALSE : S_OK, vr.GetVRFrame(&frame));
+      if (frameNumber == 1) {
+        firstEpoch = frame.PoseEpoch;
+        // Deliver out of time order; STAGE must not affect LOCAL poses.
+        runtime.ChangeSpace(XR_REFERENCE_SPACE_TYPE_LOCAL, 44000001);
+        runtime.ChangeSpace(XR_REFERENCE_SPACE_TYPE_STAGE, 22000000);
+        runtime.ChangeSpace(XR_REFERENCE_SPACE_TYPE_LOCAL, 33000000);
+      }
+      const UINT64 changes = frameNumber >= 5 ? 2 : frameNumber >= 3 ? 1 : 0;
+      EXPECT_EQ(firstEpoch + changes, frame.PoseEpoch);
+      if (frameNumber == 2) runtime.ShouldRender(false);
+      if (frameNumber == 3) runtime.ShouldRender(true);
+      ++checked;
+      return frameNumber == 6;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(6U, checked);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
 TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
@@ -336,6 +378,7 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
   runtime.Configure(&config);
   UINT32 phase = 0;
   UINT32 expectedImages = 0;
+  UINT64 firstEpoch = 0;
   {
     FrameLoop loop(GetParam(), true);
     ASSERT_TRUE(loop.Settings->GetVRSupport());
@@ -349,6 +392,9 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
       } else if (phase == 1 && count == 2 &&
                  runtime.Stats().ProjectionFrames >= 3) {
         EXPECT_TRUE(host.Backend->VR().Focused());
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, host.Backend->VR().GetVRFrame(&frame));
+        firstEpoch = frame.PoseEpoch;
         runtime.ShouldRender(false);
         ++phase;
       } else if (phase == 2 && !count) {
@@ -365,6 +411,9 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
         host.RequestVR(true);
         ++phase;
       } else if (phase == 5 && count == 2) {
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, host.Backend->VR().GetVRFrame(&frame));
+        EXPECT_GT(frame.PoseEpoch, firstEpoch);
         runtime.Push(XR_SESSION_STATE_STOPPING);
         runtime.Push(XR_SESSION_STATE_IDLE);
         runtime.Push(XR_SESSION_STATE_EXITING);
@@ -405,6 +454,7 @@ TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
   UINT32 swapchains = 0;
   UINT32 idleFrames = 0;
   UINT32 completedFrames = 0;
+  UINT64 firstEpoch = 0;
   {
     FrameLoop loop(GetParam(), true, true);
     loop.Step = [&](auto &host) {
@@ -424,6 +474,9 @@ TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
                   host.Settings->GetCurrentLowLatencyMode());
       }
       if (phase == 0 && vr.ViewCount() == 2) {
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        firstEpoch = frame.PoseEpoch;
         EXPECT_TRUE(vr.Focused());
         changes = host.AfterChanges;
         swapchains = stats.SwapchainsCreated;
@@ -455,6 +508,9 @@ TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
           ++phase;
         }
       } else if (phase == 3 && vr.ViewCount() == 2) {
+        MGDFVRFrame frame{};
+        EXPECT_EQ(S_OK, vr.GetVRFrame(&frame));
+        EXPECT_GT(frame.PoseEpoch, firstEpoch);
         EXPECT_TRUE(vr.Focused());
         EXPECT_EQ(2U, stats.SessionsBegun);
         runtime.Push(XR_SESSION_STATE_STOPPING);
