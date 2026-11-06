@@ -48,3 +48,63 @@ The test module requests VR when it is available. Each eye shows a color from
 its pose, and the window shows the left eye color. F9 toggles VR. Escape exits.
 Select D3D12 or D3D11 with the module's `host.graphicsAPI` preference, and start
 with `-vr` to test startup in a headset.
+
+## OpenXR access
+
+Set `MGDFGraphicsRequirements::OpenXRExtensionCount` and `OpenXRExtensions` to
+request extra extensions. Keep the array and its null-terminated names valid
+for the module lifetime. The host enables listed names that the runtime supports
+and ignores the rest. Use `IsOpenXRExtensionEnabled(name)` to check what the
+current instance enabled, including host requirements. Recheck after back buffer
+changes. This supports input, visibility masks, eye gaze and other extensions
+without separate MGDF wrappers.
+
+Call `GetOpenXRState(&state)` on either render backend. Cast `Instance`,
+`SystemId`, `Session` and `LocalSpace` to their OpenXR types. Cast
+`GetInstanceProcAddr` to `PFN_xrGetInstanceProcAddr` and use it to obtain OpenXR
+functions. It is the loader's function; the module needs OpenXR headers and does
+not link the loader. All fields are zero without a session. During an OpenXR
+`RTDraw`, `PredictedDisplayTime` is the current `XrTime`; it is zero when no
+OpenXR frame has begun. `LocalSpace` is the LOCAL space used for the eye poses.
+Raw OpenXR data uses right-handed coordinates with -Z forward. It is not
+converted to the left-handed `MGDFView` convention.
+
+Make all module OpenXR calls on the render thread. Borrowed handles are valid
+until the next `RTBeforeBackBufferChange` or device reset. Reacquire them in
+`RTBackBufferChange`. A new session has new handles: rebuild session resources
+and attach action sets again. A resize can keep the session; do not attach
+sets twice to that session. Destroy only objects that the module owns, while
+their parent handles are valid. Parent destruction also invalidates child
+handles. Release eye target references at the back buffer boundary as above.
+
+The host owns instance and session lifetime, graphics binding, adapter choice,
+frame timing and eye swapchains. Do not call `xrWaitFrame`, `xrBeginFrame`,
+`xrEndFrame`, `xrBeginSession`, `xrEndSession`, `xrRequestExitSession`,
+`xrPollEvent`, or `xrDestroy*` on host-owned objects. Do not acquire, wait for,
+or release host swapchain images. The module can create and manage its own
+actions, spaces and swapchains through the supplied OpenXR functions.
+
+Drain `PollOpenXREvent(&event, sizeof(event))` until it returns `FALSE`, where
+`event` is an `XrEventDataBuffer`. Events arrive in poll order, including those
+that the host also handles. Drain in `RTBeforeBackBufferChange` too, before
+releasing OpenXR resources. The queue holds 64 whole buffers. On overflow the
+oldest event is dropped, with one log line per instance. Undrained events are
+discarded when the instance is destroyed. Event next chains point into the
+output buffer; process them before reusing that buffer. A null or undersized
+buffer returns `FALSE` without removing an event.
+
+During `RTDraw` with two views, call `AddOpenXRCompositionLayers(count, layers)`
+with an array of `const void*` pointing to `XrCompositionLayerBaseHeader`
+structures. Calls append layers after the host projection layer, in call and
+array order. Use `SetOpenXRProjectionViewNext(index, next)` to set each eye's
+projection-view next chain, such as `XrCompositionLayerDepthInfoKHR`. A later
+call for the same eye replaces the pointer; null clears it. Enable the required
+extensions and obey the runtime's layer limit, including the host layer.
+Finish rendering and release module swapchain images before `RTDraw` returns.
+Keep layer structures, next chains and their data valid until `RTAfterPresent`.
+All pointers are cleared each frame. Discarded frames submit no layers.
+
+Both submission calls return `S_OK` on success and `E_UNEXPECTED` outside an
+eye frame. Invalid indices, a null layer entry, or a null array with a nonzero
+count return `E_INVALIDARG`. The layer pointer array is copied; its structures
+and next chains remain owned by the module.

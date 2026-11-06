@@ -97,18 +97,19 @@ bool OpenXR::Check(XrResult result, const char *operation) {
 }
 
 bool OpenXR::Prepare(const char *extension, const char *applicationName,
-                     const RequirementsQuery &query) {
+                     const RequirementsQuery &query,
+                     std::span<const char *const> extensions) {
   if (Prepared()) return !_fallback;
   _fallback = false;
   XrInstanceCreateInfo info{XR_TYPE_INSTANCE_CREATE_INFO};
-  const std::string_view name(applicationName);
-  auto length =
-      (std::min)(name.size(), sizeof(info.applicationInfo.applicationName) - 1);
+  const std::string_view appName(applicationName);
+  auto length = (std::min)(appName.size(),
+                           sizeof(info.applicationInfo.applicationName) - 1);
   // A truncated name must end at a UTF-8 character boundary.
-  while (length && length < name.size() &&
-         (static_cast<unsigned char>(name[length]) & 0xC0) == 0x80)
+  while (length && length < appName.size() &&
+         (static_cast<unsigned char>(appName[length]) & 0xC0) == 0x80)
     --length;
-  memcpy(info.applicationInfo.applicationName, name.data(), length);
+  memcpy(info.applicationInfo.applicationName, appName.data(), length);
   strcpy_s(info.applicationInfo.engineName, "MGDF");
   const auto version = VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION());
   // Pack MGDF's four version components into OpenXR's 32-bit field.
@@ -120,8 +121,30 @@ bool OpenXR::Prepare(const char *extension, const char *applicationName,
         static_cast<uint32_t>((std::max)(0, component));
   }
   info.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);
-  info.enabledExtensionCount = 1;
-  info.enabledExtensionNames = &extension;
+  uint32_t extensionCount = 0;
+  if (!Check(xrEnumerateInstanceExtensionProperties(nullptr, 0, &extensionCount,
+                                                    nullptr),
+             "list extensions"))
+    return false;
+  std::vector<XrExtensionProperties> properties(extensionCount,
+                                                {XR_TYPE_EXTENSION_PROPERTIES});
+  if (!Check(xrEnumerateInstanceExtensionProperties(
+                 nullptr, extensionCount, &extensionCount, properties.data()),
+             "list extensions"))
+    return false;
+  _extensions = {extension};
+  for (const auto name : extensions) {
+    if (!name || std::ranges::find(_extensions, name) != _extensions.end())
+      continue;
+    if (std::ranges::any_of(properties, [name](const auto &property) {
+          return strcmp(property.extensionName, name) == 0;
+        }))
+      _extensions.emplace_back(name);
+  }
+  std::vector<const char *> enabled;
+  for (const auto &name : _extensions) enabled.push_back(name.c_str());
+  info.enabledExtensionCount = static_cast<uint32_t>(enabled.size());
+  info.enabledExtensionNames = enabled.data();
   if (!Check(xrCreateInstance(&info, &_instance), "create instance"))
     return false;
   const XrSystemGetInfo system{XR_TYPE_SYSTEM_GET_INFO, nullptr,
@@ -237,6 +260,27 @@ bool OpenXR::RecreateSwapchains() {
   return true;
 }
 
+namespace {
+void CopyEvent(const XrEventDataBuffer &source, void *destination) {
+  memcpy(destination, &source, sizeof(source));
+  // OpenXR requires event next chains to fit inside the event buffer. Rebase
+  // those links when moving the full buffer, without interpreting event types.
+  auto header = static_cast<XrBaseOutStructure *>(destination);
+  while (header->next) {
+    const auto offset = reinterpret_cast<uintptr_t>(header->next) -
+                        reinterpret_cast<uintptr_t>(&source);
+    _ASSERTE(offset <= sizeof(source) - sizeof(XrBaseOutStructure));
+    if (offset > sizeof(source) - sizeof(XrBaseOutStructure)) {
+      header->next = nullptr;
+      break;
+    }
+    header->next = reinterpret_cast<XrBaseOutStructure *>(
+        static_cast<char *>(destination) + offset);
+    header = header->next;
+  }
+}
+}  // namespace
+
 void OpenXR::PollEvents() {
   if (!_instance || _fallback) return;
   for (;;) {
@@ -244,6 +288,16 @@ void OpenXR::PollEvents() {
     const auto result = xrPollEvent(_instance, &event);
     if (result == XR_EVENT_UNAVAILABLE) break;
     if (!Check(result, "poll events")) return;
+    if (_events.size() == 64) {
+      _events.pop_front();
+      if (!_eventOverflowLogged) {
+        LOG("OpenXR module event queue full; dropping oldest events",
+            MGDF_LOG_LOW);
+        _eventOverflowLogged = true;
+      }
+    }
+    _events.emplace_back();
+    CopyEvent(event, &_events.back());
     if (event.type == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
       Fail("instance loss", XR_ERROR_INSTANCE_LOST);
       return;
@@ -296,6 +350,8 @@ void OpenXR::RequestStop() {
 }
 
 bool OpenXR::BeginFrame() {
+  _layers.clear();
+  _viewNext.fill(nullptr);
   _viewCount = 0;
   if (!_running || _fallback) return false;
   _frame = {XR_TYPE_FRAME_STATE};
@@ -359,7 +415,7 @@ void OpenXR::EndFrame(bool rendered) {
     const auto &eye = _eyes[i];
     views[i] = {
         XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-        nullptr,
+        _viewNext[i],
         _views[i].pose,
         _views[i].fov,
         {eye.Swapchain,
@@ -376,13 +432,23 @@ void OpenXR::EndFrame(bool rendered) {
       _space,
       2,
       views.data()};
-  const auto layer =
-      reinterpret_cast<const XrCompositionLayerBaseHeader *>(&projection);
-  const XrFrameEndInfo end{XR_TYPE_FRAME_END_INFO,         nullptr,
-                           _frame.predictedDisplayTime,    _blendMode,
-                           submit && !_fallback ? 1U : 0U, &layer};
+  if (submit && !_fallback) {
+    _layers.insert(
+        _layers.begin(),
+        reinterpret_cast<const XrCompositionLayerBaseHeader *>(&projection));
+  } else {
+    _layers.clear();
+  }
+  const XrFrameEndInfo end{XR_TYPE_FRAME_END_INFO,
+                           nullptr,
+                           _frame.predictedDisplayTime,
+                           _blendMode,
+                           static_cast<uint32_t>(_layers.size()),
+                           _layers.data()};
   Check(xrEndFrame(_session, &end), "end frame");
   _begun = false;
+  _layers.clear();
+  _viewNext.fill(nullptr);
   _viewCount = 0;
 }
 
@@ -410,7 +476,51 @@ void OpenXR::Destroy() {
   _running = _begun = _stopRequested = _exitRequested = _fallback = false;
   _canRender = {};
   _images = {};
+  _extensions.clear();
+  _events.clear();
+  _eventOverflowLogged = false;
   _changed = true;
+}
+
+MGDFOpenXRState OpenXR::State() const {
+  if (!_session) return {};
+  return {reinterpret_cast<UINT64>(_instance),
+          _system,
+          reinterpret_cast<UINT64>(_session),
+          reinterpret_cast<UINT64>(_space),
+          reinterpret_cast<void *>(xrGetInstanceProcAddr),
+          _begun ? _frame.predictedDisplayTime : 0};
+}
+
+bool OpenXR::ExtensionEnabled(const char *name) const {
+  return _instance && name &&
+         std::ranges::find(_extensions, name) != _extensions.end();
+}
+
+bool OpenXR::PollEvent(void *buffer, UINT32 size) {
+  if (!buffer || size < sizeof(XrEventDataBuffer) || _events.empty())
+    return false;
+  CopyEvent(_events.front(), buffer);
+  _events.pop_front();
+  return true;
+}
+
+HRESULT OpenXR::AddCompositionLayers(UINT32 count, const void *const *layers) {
+  if (!_begun || _viewCount != 2 || _fallback) return E_UNEXPECTED;
+  if (count && !layers) return E_INVALIDARG;
+  for (UINT32 i = 0; i < count; ++i)
+    if (!layers[i]) return E_INVALIDARG;
+  for (UINT32 i = 0; i < count; ++i)
+    _layers.push_back(
+        static_cast<const XrCompositionLayerBaseHeader *>(layers[i]));
+  return S_OK;
+}
+
+HRESULT OpenXR::SetProjectionViewNext(UINT32 index, const void *next) {
+  if (index >= _viewNext.size()) return E_INVALIDARG;
+  if (!_begun || _viewCount != 2 || _fallback) return E_UNEXPECTED;
+  _viewNext[index] = next;
+  return S_OK;
 }
 
 bool OpenXR::TakeChange() { return std::exchange(_changed, false); }

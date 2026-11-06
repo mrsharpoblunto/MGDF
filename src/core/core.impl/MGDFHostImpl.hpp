@@ -116,6 +116,13 @@ class Host : public IMGDFD3D11RenderHost,
   UINT32 __stdcall GetViewCount() final;
   void __stdcall GetView(UINT32 index, MGDFView *view) final;
   BOOL __stdcall GetVRFocused() final;
+  void __stdcall GetOpenXRState(MGDFOpenXRState *state) final;
+  BOOL __stdcall IsOpenXRExtensionEnabled(const char *name) final;
+  BOOL __stdcall PollOpenXREvent(void *eventBuffer, UINT32 bufferSize) final;
+  HRESULT __stdcall AddOpenXRCompositionLayers(UINT32 count,
+                                               const void **layers) final;
+  HRESULT __stdcall SetOpenXRProjectionViewNext(UINT32 index,
+                                                const void *next) final;
   void __stdcall GetViewTarget(UINT32 index, ID3D12Resource **target) final;
   void __stdcall GetViewTarget(UINT32 index, ID3D11Texture2D **target) final;
 

@@ -19,7 +19,8 @@ class D3D12RenderBackend : public IRenderBackend {
       std::function<void(const char *, const char *)> fatalError,
       bool allowSoftwareAdapter = false,
       std::optional<std::wstring> streamlineDirectory = std::nullopt);
-  bool RTPrepareVR(const char *applicationName) final;
+  bool RTPrepareVR(const char *applicationName,
+                   std::span<const char *const> extensions) final;
   bool RTStartVR() final;
   bool RTInit() final;
   bool RTIsInitialized() const final;

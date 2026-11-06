@@ -27,6 +27,7 @@ class MGDFApp : public D3DAppFramework {
   std::optional<bool> RTTakeVRRequest() final;
   void RTOnVRState(bool active) final;
   const char *RTGetApplicationName() const final;
+  std::span<const char *const> RTGetOpenXRExtensions() const final;
   bool RTIsBackBufferChangePending() final;
   MGDFFullScreenDesc RTGetFullscreen() final;
   void RTSetFullscreen(const MGDFFullScreenDesc &desc) final;

@@ -103,6 +103,11 @@ void MGDFApp::RTOnVRState(bool active) { _settings->SetVRState(active); }
 
 const char *MGDFApp::RTGetApplicationName() const { return _game->GetName(); }
 
+std::span<const char *const> MGDFApp::RTGetOpenXRExtensions() const {
+  const auto &requirements = _host->GetGraphicsRequirements();
+  return {requirements.OpenXRExtensions, requirements.OpenXRExtensionCount};
+}
+
 bool MGDFApp::RTIsBackBufferChangePending() {
   return _settings->IsBackBufferChangePending();
 }

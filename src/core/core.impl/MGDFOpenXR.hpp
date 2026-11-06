@@ -5,7 +5,10 @@
 
 #include <MGDF/ComObject.hpp>
 #include <array>
+#include <deque>
 #include <functional>
+#include <span>
+#include <string>
 #include <vector>
 
 namespace MGDF::core {
@@ -36,7 +39,8 @@ class OpenXR {
   ~OpenXR();
   static bool Available(const char *extension);
   bool Prepare(const char *extension, const char *applicationName,
-               const RequirementsQuery &query);
+               const RequirementsQuery &query,
+               std::span<const char *const> extensions = {});
   bool CreateSession(const void *binding,
                      std::function<bool(DXGI_FORMAT)> canRender,
                      ImageQuery images);
@@ -62,6 +66,11 @@ class OpenXR {
   UINT32 ViewCount() const { return _viewCount; }
   MGDFView View(UINT32 index) const;
   ComObject<IUnknown> Target(UINT32 index) const;
+  MGDFOpenXRState State() const;
+  bool ExtensionEnabled(const char *name) const;
+  bool PollEvent(void *buffer, UINT32 size);
+  HRESULT AddCompositionLayers(UINT32 count, const void *const *layers);
+  HRESULT SetProjectionViewNext(UINT32 index, const void *next);
 
  private:
   bool Check(XrResult result, const char *operation);
@@ -88,6 +97,11 @@ class OpenXR {
   XrFrameState _frame{XR_TYPE_FRAME_STATE};
   std::function<bool(DXGI_FORMAT)> _canRender;
   ImageQuery _images;
+  std::vector<std::string> _extensions;
+  std::deque<XrEventDataBuffer> _events;
+  bool _eventOverflowLogged = false;
+  std::vector<const XrCompositionLayerBaseHeader *> _layers;
+  std::array<const void *, 2> _viewNext{};
   UINT32 _viewCount = 0;
   bool _running = false;
   bool _begun = false;

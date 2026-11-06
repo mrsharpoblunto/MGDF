@@ -514,6 +514,24 @@ void Host::GetView(UINT32 index, MGDFView *view) {
   *view = _backend->VR().View(index);
 }
 BOOL Host::GetVRFocused() { return _backend && _backend->VR().Focused(); }
+void Host::GetOpenXRState(MGDFOpenXRState *state) {
+  _ASSERTE(state);
+  *state = _backend ? _backend->VR().State() : MGDFOpenXRState{};
+}
+BOOL Host::IsOpenXRExtensionEnabled(const char *name) {
+  return _backend && _backend->VR().ExtensionEnabled(name);
+}
+BOOL Host::PollOpenXREvent(void *eventBuffer, UINT32 bufferSize) {
+  return _backend && _backend->VR().PollEvent(eventBuffer, bufferSize);
+}
+HRESULT Host::AddOpenXRCompositionLayers(UINT32 count, const void **layers) {
+  return _backend ? _backend->VR().AddCompositionLayers(count, layers)
+                  : E_UNEXPECTED;
+}
+HRESULT Host::SetOpenXRProjectionViewNext(UINT32 index, const void *next) {
+  return _backend ? _backend->VR().SetProjectionViewNext(index, next)
+                  : E_UNEXPECTED;
+}
 void Host::GetViewTarget(UINT32 index, ID3D12Resource **target) {
   _backend->VR().Target(index).As<ID3D12Resource>().AddRawRef(target);
 }
