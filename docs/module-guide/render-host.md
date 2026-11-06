@@ -40,9 +40,11 @@ eye work on the immediate context before `RTDraw` returns.
 
 For DLSS, set `View` to the eye index in both `MGDFFrameConstants` and
 `MGDFUpscaleDesc`. Call `SetFrameConstants` once for each view in each frame,
-then call `Upscale` for the same view. The two eyes have separate histories.
-When VR is off, `View` must be `0`. Frame generation and low latency sleep are
-disabled in VR; their saved preferences are kept.
+then call `Upscale` for the same view. Views `0` and `1` are valid with or without
+VR, each with a separate history. Either view may be omitted from a frame;
+set constants for each view used in that frame. This also supports stereo in
+the window without a headset. Frame generation and low latency sleep are disabled
+in VR; their saved preferences are kept.
 
 The test module requests VR when it is available. Each eye shows a color from
 its pose, and the window shows the left eye color. F9 toggles VR. Escape exits.

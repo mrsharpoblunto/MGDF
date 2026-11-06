@@ -173,9 +173,9 @@ struct StreamlineState {
 
   sl::FrameToken *Token = nullptr;
   bool VR = false;
-  std::array<bool, 3> ConstantsSet{};
+  std::array<bool, 2> ConstantsSet{};
   std::optional<sl::ReflexMode> ReflexMode;
-  std::array<std::optional<sl::DLSSOptions>, 3> DLSSOptions;
+  std::array<std::optional<sl::DLSSOptions>, 2> DLSSOptions;
 
   bool FrameGeneration = false;
   bool FrameGenerationFailed = false;
@@ -664,8 +664,8 @@ void Streamline::RTSetFrameConstants(const MGDFFrameConstants *constants) {
   std::lock_guard lock(_mutex);
   auto &s = *_state;
   if (!constants || !s.Token || (!s.Upscale && !s.MaxGeneratedFrames)) return;
-  if (constants->View >= (s.VR ? 2U : 1U)) return;
-  const UINT32 viewportIndex = constants->View + (s.VR ? 1U : 0U);
+  if (constants->View >= s.ConstantsSet.size()) return;
+  const UINT32 viewportIndex = constants->View;
   const sl::ViewportHandle viewport{viewportIndex};
   if (s.ConstantsSet[viewportIndex]) {
     LogOnce("constants",
@@ -723,8 +723,8 @@ HRESULT Streamline::RTUpscale(ID3D12GraphicsCommandList *list,
     return E_INVALIDARG;
   const auto mode = ToDLSSMode(desc->Mode);
   if (!mode) return E_INVALIDARG;
-  if (desc->View >= (s.VR ? 2U : 1U)) return E_INVALIDARG;
-  const UINT32 viewportIndex = desc->View + (s.VR ? 1U : 0U);
+  if (desc->View >= s.ConstantsSet.size()) return E_INVALIDARG;
+  const UINT32 viewportIndex = desc->View;
   const sl::ViewportHandle viewport{viewportIndex};
   if (!s.ConstantsSet[viewportIndex]) return E_ILLEGAL_METHOD_CALL;
   auto &dlssOptions = s.DLSSOptions[viewportIndex];

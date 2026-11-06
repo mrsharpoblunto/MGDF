@@ -2698,7 +2698,7 @@ typedef struct MGDFFrameConstants {
   BOOL CameraMotionIncluded;
   /** TRUE if this frame has no relation to the previous frame */
   BOOL ResetHistory;
-  /** Eye index for VR upscaling; must be 0 when VR is off */
+  /** View index, 0 or 1, with or without VR. Each view has its own history */
   UINT32 View;
 } MGDFFrameConstants;
 
@@ -2740,7 +2740,7 @@ typedef struct MGDFUpscaleDesc {
   MGDFFrameResource Exposure;
   /** 0 to 1 per pixel: 1 rejects the history and uses the current color */
   MGDFFrameResource BiasCurrentColor;
-  /** Eye index for VR upscaling; must be 0 when VR is off */
+  /** View index, 0 or 1, with or without VR. Each view has its own history */
   UINT32 View;
 } MGDFUpscaleDesc;
 
@@ -2818,9 +2818,11 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   */
   void SetFrameMarker(MGDFFrameMarker marker);
   /**
-  Sets the camera data for one view. Call it once per view per frame before
-  Upscale and before RTDraw returns. Does nothing if GetUpscaleModeCount
-  and GetMaxGeneratedFrames on IMGDFRenderSettingsManager both return 0
+  Sets the camera data for View 0 or 1, with or without VR. Call it once per
+  used view per frame before Upscale and before RTDraw returns. Each view has
+  separate history; either view may be omitted from a frame. Does nothing if
+  GetUpscaleModeCount and GetMaxGeneratedFrames on IMGDFRenderSettingsManager
+  both return 0
   \param constants the camera data
   */
   void SetFrameConstants([in] const MGDFFrameConstants *constants);
@@ -2829,10 +2831,10 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   The list must be recording and tracked by the SDK MGDF::D3D12CommandList
   helper. After the call the descriptor heaps, root signatures, pipeline state,
   render targets and viewports of the list are undefined; set them again before
-  more work. Resource states do not change
+  more work. Resource states do not change. View must be 0 or 1, with or without VR
   \param list the command list
   \param desc the upscale inputs
-  \return S_OK, E_INVALIDARG for an untracked list or missing inputs,
+  \return S_OK, E_INVALIDARG for an untracked list, missing inputs or invalid View,
   E_ILLEGAL_METHOD_CALL if SetFrameConstants was not called for this View this frame,
   E_NOTIMPL if IMGDFRenderSettingsManager::GetUpscaleMode does not list the
   mode, or E_FAIL if
