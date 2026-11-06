@@ -41,6 +41,8 @@ class Runtime {
         GetProcAddress(Library, "SetShouldRender"));
     Read =
         reinterpret_cast<FakeXRGetStats>(GetProcAddress(Library, "GetStats"));
+    PushEvent =
+        reinterpret_cast<FakeXRPushEvent>(GetProcAddress(Library, "PushEvent"));
     LoseInstance = reinterpret_cast<FakeXRInstanceLoss>(
         GetProcAddress(Library, "LoseInstance"));
   }
@@ -56,6 +58,7 @@ class Runtime {
   HMODULE Library = nullptr;
   FakeXRConfigure Configure = nullptr;
   FakeXRPushState Push = nullptr;
+  FakeXRPushEvent PushEvent = nullptr;
   FakeXRShouldRender ShouldRender = nullptr;
   FakeXRGetStats Read = nullptr;
   FakeXRInstanceLoss LoseInstance = nullptr;
@@ -108,6 +111,7 @@ class FrameLoop final : public D3DAppFramework {
     Run();
   }
   std::function<bool(FrameLoop &)> Step;
+  std::vector<const char *> Extensions;
   std::string ApplicationName = "MGDF OpenXR integration test";
   IRenderBackend *Backend = nullptr;
   const MGDFGraphicsAPI API;
@@ -120,6 +124,9 @@ class FrameLoop final : public D3DAppFramework {
   bool TimedOut = false;
 
  protected:
+  std::span<const char *const> RTGetOpenXRExtensions() const override {
+    return Extensions;
+  }
   const char *RTGetApplicationName() const override {
     return ApplicationName.c_str();
   }
@@ -491,6 +498,370 @@ TEST_P(OpenXRIntegrationTests, InstanceIdentifiesTheGameAndEngine) {
     EXPECT_EQ((std::max)(0, version.Revision), info.engineVersion & 255);
     EXPECT_EQ(0U, runtime.Stats().Errors);
   }
+}
+
+template <typename T>
+T OpenXRFunction(const MGDFOpenXRState &state, const char *name) {
+  T function = nullptr;
+  const auto getProc =
+      reinterpret_cast<PFN_xrGetInstanceProcAddr>(state.GetInstanceProcAddr);
+  EXPECT_NE(nullptr, getProc);
+  if (getProc)
+    EXPECT_EQ(XR_SUCCESS,
+              getProc(reinterpret_cast<XrInstance>(state.Instance), name,
+                      reinterpret_cast<PFN_xrVoidFunction *>(&function)));
+  return function;
+}
+
+TEST_P(OpenXRIntegrationTests, ModuleExtensionsEnableOnlyAvailableNames) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  for (const bool available : {true, false}) {
+    FakeXRConfig config{TestAdapter()};
+    config.DepthExtension = available;
+    runtime.Configure(&config);
+    {
+      FrameLoop loop(GetParam(), true, true);
+      const auto graphics = GetParam() == MGDF_GRAPHICS_API_D3D12
+                                ? "XR_KHR_D3D12_enable"
+                                : "XR_KHR_D3D11_enable";
+      loop.Extensions = {XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME,
+                         XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME,
+                         XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME,
+                         graphics};
+      loop.Step = [&](auto &host) {
+        auto &vr = host.Backend->VR();
+        if (vr.ViewCount() != 2) return false;
+        EXPECT_TRUE(vr.ExtensionEnabled(graphics));
+        EXPECT_EQ(
+            available,
+            vr.ExtensionEnabled(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME));
+        EXPECT_FALSE(
+            vr.ExtensionEnabled(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME));
+        EXPECT_FALSE(vr.ExtensionEnabled(nullptr));
+        EXPECT_EQ(available, runtime.Stats().DepthEnabled);
+        EXPECT_EQ(available ? 2U : 1U, runtime.Stats().EnabledExtensions);
+        return true;
+      };
+      loop.Execute();
+      EXPECT_FALSE(loop.TimedOut);
+      EXPECT_EQ(0U, loop.FatalErrors.load());
+    }
+    EXPECT_EQ(0U, runtime.Stats().Errors);
+  }
+}
+
+TEST_P(OpenXRIntegrationTests,
+       ModuleHandlesTrackSessionRecreationAndFrameTime) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0;
+  UINT32 changes = 0;
+  MGDFOpenXRState first{};
+  {
+    FrameLoop loop(GetParam(), true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      const auto state = vr.State();
+      if (phase == 0 || (phase == 2 && !host.Settings->GetVR())) {
+        EXPECT_EQ(0U, state.Instance);
+        EXPECT_EQ(0U, state.SystemId);
+        EXPECT_EQ(0U, state.Session);
+        EXPECT_EQ(0U, state.LocalSpace);
+        EXPECT_EQ(nullptr, state.GetInstanceProcAddr);
+        EXPECT_EQ(0, state.PredictedDisplayTime);
+        EXPECT_FALSE(vr.ExtensionEnabled("XR_KHR_D3D11_enable"));
+        EXPECT_EQ(E_UNEXPECTED, vr.AddCompositionLayers(0, nullptr));
+        EXPECT_EQ(E_UNEXPECTED, vr.SetProjectionViewNext(0, nullptr));
+        host.RequestVR(true);
+        ++phase;
+      } else if ((phase == 1 || phase == 3) && vr.ViewCount() == 2) {
+        EXPECT_NE(0U, state.Instance);
+        EXPECT_NE(0U, state.SystemId);
+        EXPECT_NE(0U, state.Session);
+        EXPECT_NE(0U, state.LocalSpace);
+        EXPECT_EQ(reinterpret_cast<void *>(xrGetInstanceProcAddr),
+                  state.GetInstanceProcAddr);
+        EXPECT_EQ((static_cast<INT64>(runtime.Stats().Frames) + 1) * 11000000,
+                  state.PredictedDisplayTime);
+        const auto properties = OpenXRFunction<PFN_xrGetSystemProperties>(
+            state, "xrGetSystemProperties");
+        const auto locate =
+            OpenXRFunction<PFN_xrLocateSpace>(state, "xrLocateSpace");
+        const auto formats = OpenXRFunction<PFN_xrEnumerateSwapchainFormats>(
+            state, "xrEnumerateSwapchainFormats");
+        if (!properties || !locate || !formats) return true;
+        XrSystemProperties system{XR_TYPE_SYSTEM_PROPERTIES};
+        EXPECT_EQ(XR_SUCCESS,
+                  properties(reinterpret_cast<XrInstance>(state.Instance),
+                             state.SystemId, &system));
+        EXPECT_STREQ("MGDF integration headset", system.systemName);
+        UINT32 count = 0;
+        EXPECT_EQ(XR_SUCCESS,
+                  formats(reinterpret_cast<XrSession>(state.Session), 0, &count,
+                          nullptr));
+        EXPECT_GT(count, 0U);
+        XrSpaceLocation location{XR_TYPE_SPACE_LOCATION};
+        const auto space = reinterpret_cast<XrSpace>(state.LocalSpace);
+        EXPECT_EQ(XR_SUCCESS,
+                  locate(space, space, state.PredictedDisplayTime, &location));
+        EXPECT_TRUE(location.locationFlags &
+                    XR_SPACE_LOCATION_POSITION_VALID_BIT);
+        if (phase == 1) {
+          first = state;
+          changes = host.AfterChanges;
+          host.RequestVR(false);
+          ++phase;
+        } else {
+          EXPECT_NE(first.Instance, state.Instance);
+          EXPECT_NE(first.Session, state.Session);
+          EXPECT_NE(first.LocalSpace, state.LocalSpace);
+          EXPECT_GT(host.AfterChanges, changes);
+          ++phase;
+          return true;
+        }
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(4U, phase);
+  EXPECT_EQ(2U, runtime.Stats().SessionsCreated);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests,
+       ModuleEventsKeepOrderAndChainsWhileHostHandlesStates) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.PushEvent);
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0;
+  UINT32 changes = 0;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      XrEventDataBuffer event{XR_TYPE_EVENT_DATA_BUFFER};
+      const auto stateEvent = [&](XrSessionState state) {
+        EXPECT_TRUE(vr.PollEvent(&event, sizeof(event)));
+        EXPECT_EQ(XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED, event.type);
+        const auto &changed =
+            reinterpret_cast<const XrEventDataSessionStateChanged &>(event);
+        EXPECT_EQ(state, changed.state);
+        EXPECT_EQ(vr.State().Session,
+                  reinterpret_cast<UINT64>(changed.session));
+      };
+      const auto customEvent = [&](UINT32 marker) {
+        EXPECT_TRUE(vr.PollEvent(&event, sizeof(event)));
+        EXPECT_EQ(XR_TYPE_EVENT_DATA_EVENTS_LOST, event.type);
+        EXPECT_EQ(marker, reinterpret_cast<const XrEventDataEventsLost &>(event)
+                              .lostEventCount);
+        EXPECT_EQ(static_cast<uint8_t>(marker),
+                  event.varying[sizeof(event.varying) - 1]);
+        const auto expected = reinterpret_cast<const char *>(&event) + 128;
+        EXPECT_EQ(expected, event.next);
+        if (event.next == expected) {
+          const auto chain = static_cast<const XrBaseInStructure *>(event.next);
+          EXPECT_EQ(static_cast<XrStructureType>(1000999000), chain->type);
+          EXPECT_EQ(nullptr, chain->next);
+        }
+      };
+      if (phase == 0 && vr.ViewCount() == 2) {
+        stateEvent(XR_SESSION_STATE_READY);
+        stateEvent(XR_SESSION_STATE_FOCUSED);
+        EXPECT_FALSE(vr.PollEvent(&event, sizeof(event)));
+        changes = host.AfterChanges;
+        runtime.PushEvent(10);
+        runtime.Push(XR_SESSION_STATE_STOPPING);
+        runtime.PushEvent(11);
+        runtime.Push(XR_SESSION_STATE_IDLE);
+        ++phase;
+      } else if (phase == 1) {
+        EXPECT_FALSE(vr.Running());
+        EXPECT_TRUE(host.Settings->GetVR());
+        EXPECT_EQ(0U, vr.ViewCount());
+        EXPECT_EQ(0, vr.State().PredictedDisplayTime);
+        EXPECT_FALSE(vr.PollEvent(nullptr, sizeof(event)));
+        EXPECT_FALSE(vr.PollEvent(&event, sizeof(event) - 1));
+        customEvent(10);
+        stateEvent(XR_SESSION_STATE_STOPPING);
+        customEvent(11);
+        stateEvent(XR_SESSION_STATE_IDLE);
+        EXPECT_FALSE(vr.PollEvent(&event, sizeof(event)));
+        for (UINT32 i = 100; i < 180; ++i) runtime.PushEvent(i);
+        ++phase;
+      } else if (phase == 2) {
+        for (UINT32 i = 116; i < 180; ++i) customEvent(i);
+        EXPECT_FALSE(vr.PollEvent(&event, sizeof(event)));
+        runtime.Push(XR_SESSION_STATE_READY);
+        runtime.Push(XR_SESSION_STATE_FOCUSED);
+        ++phase;
+      } else if (phase == 3 && vr.ViewCount() == 2) {
+        stateEvent(XR_SESSION_STATE_READY);
+        stateEvent(XR_SESSION_STATE_FOCUSED);
+        EXPECT_TRUE(vr.Focused());
+        EXPECT_EQ(changes, host.AfterChanges);
+        EXPECT_EQ(2U, runtime.Stats().SessionsBegun);
+        EXPECT_EQ(1U, runtime.Stats().SessionsEnded);
+        ++phase;
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(4U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
+TEST_P(OpenXRIntegrationTests,
+       ModuleLayersAndDepthChainsReachOnlyTheCurrentFrame) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  const FakeXRConfig config{TestAdapter()};
+  runtime.Configure(&config);
+  UINT32 phase = 0;
+  std::array<XrCompositionLayerQuad, 3> quads{};
+  std::array<XrCompositionLayerDepthInfoKHR, 2> depths{};
+  std::array<XrSwapchain, 2> chains{};
+  PFN_xrDestroySwapchain destroy = nullptr;
+  {
+    FrameLoop loop(GetParam(), true, true);
+    loop.Extensions = {XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME};
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      if (phase == 0 && vr.ViewCount() == 2) {
+        const auto state = vr.State();
+        const auto create =
+            OpenXRFunction<PFN_xrCreateSwapchain>(state, "xrCreateSwapchain");
+        const auto acquire = OpenXRFunction<PFN_xrAcquireSwapchainImage>(
+            state, "xrAcquireSwapchainImage");
+        const auto wait = OpenXRFunction<PFN_xrWaitSwapchainImage>(
+            state, "xrWaitSwapchainImage");
+        const auto release = OpenXRFunction<PFN_xrReleaseSwapchainImage>(
+            state, "xrReleaseSwapchainImage");
+        destroy =
+            OpenXRFunction<PFN_xrDestroySwapchain>(state, "xrDestroySwapchain");
+        if (!create || !acquire || !wait || !release || !destroy) return true;
+        for (UINT32 i = 0; i < chains.size(); ++i) {
+          const XrSwapchainCreateInfo info{
+              XR_TYPE_SWAPCHAIN_CREATE_INFO,
+              nullptr,
+              0,
+              (i ? XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+                 : XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT) |
+                  XR_SWAPCHAIN_USAGE_SAMPLED_BIT |
+                  XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT,
+              i ? DXGI_FORMAT_D32_FLOAT : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+              1,
+              48,
+              48,
+              1,
+              1,
+              1};
+          EXPECT_EQ(XR_SUCCESS,
+                    create(reinterpret_cast<XrSession>(state.Session), &info,
+                           &chains[i]));
+          if (!chains[i]) return true;
+          const XrSwapchainImageAcquireInfo acquireInfo{
+              XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+          const XrSwapchainImageWaitInfo waitInfo{
+              XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO, nullptr, XR_INFINITE_DURATION};
+          const XrSwapchainImageReleaseInfo releaseInfo{
+              XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+          UINT32 index = 0;
+          EXPECT_EQ(XR_SUCCESS, acquire(chains[i], &acquireInfo, &index));
+          EXPECT_EQ(XR_SUCCESS, wait(chains[i], &waitInfo));
+          EXPECT_EQ(XR_SUCCESS, release(chains[i], &releaseInfo));
+        }
+        for (UINT32 i = 0; i < quads.size(); ++i) {
+          quads[i] = {XR_TYPE_COMPOSITION_LAYER_QUAD,
+                      nullptr,
+                      0,
+                      reinterpret_cast<XrSpace>(state.LocalSpace),
+                      XR_EYE_VISIBILITY_BOTH,
+                      {chains[0], {{0, 0}, {48, 48}}, 0},
+                      {{0, 0, 0, 1}, {static_cast<float>(i + 1), 0, -2}},
+                      {1, 1}};
+        }
+        const void *invalid[]{&quads[0], nullptr};
+        EXPECT_EQ(E_INVALIDARG, vr.AddCompositionLayers(2, invalid));
+        EXPECT_EQ(E_INVALIDARG, vr.AddCompositionLayers(1, nullptr));
+        EXPECT_EQ(S_OK, vr.AddCompositionLayers(0, nullptr));
+        const void *layers[]{&quads[0], &quads[1], &quads[2]};
+        EXPECT_EQ(S_OK, vr.AddCompositionLayers(2, layers));
+        EXPECT_EQ(S_OK, vr.AddCompositionLayers(1, layers + 2));
+        EXPECT_EQ(E_INVALIDARG, vr.SetProjectionViewNext(2, nullptr));
+        for (UINT32 i = 0; i < depths.size(); ++i) {
+          depths[i] = {XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR,
+                       nullptr,
+                       {chains[1], {{0, 0}, {48, 48}}, 0},
+                       0,
+                       1,
+                       static_cast<float>(i + 1),
+                       static_cast<float>((i + 1) * 10)};
+          EXPECT_EQ(S_OK, vr.SetProjectionViewNext(i, &depths[i]));
+        }
+        EXPECT_EQ(S_OK, vr.SetProjectionViewNext(1, nullptr));
+        EXPECT_EQ(S_OK, vr.SetProjectionViewNext(1, &depths[1]));
+        ++phase;
+      } else if (phase == 1) {
+        const auto stats = runtime.Stats();
+        EXPECT_EQ(4U, stats.LastLayerCount);
+        EXPECT_EQ(1U, stats.ExtraLayerFrames);
+        for (UINT32 i = 0; i < quads.size(); ++i) {
+          EXPECT_EQ(reinterpret_cast<UINT64>(&quads[i]), stats.LastLayers[i]);
+          EXPECT_FLOAT_EQ(static_cast<float>(i + 1),
+                          stats.LastQuads[i].pose.position.x);
+          EXPECT_EQ(chains[0], stats.LastQuads[i].subImage.swapchain);
+        }
+        for (UINT32 i = 0; i < depths.size(); ++i) {
+          EXPECT_EQ(reinterpret_cast<UINT64>(&depths[i]),
+                    stats.LastViewNext[i]);
+          EXPECT_FLOAT_EQ(depths[i].nearZ, stats.LastDepth[i].nearZ);
+          EXPECT_FLOAT_EQ(depths[i].farZ, stats.LastDepth[i].farZ);
+          EXPECT_EQ(chains[1], stats.LastDepth[i].subImage.swapchain);
+        }
+        for (auto &chain : chains) {
+          EXPECT_EQ(XR_SUCCESS, destroy(chain));
+          chain = XR_NULL_HANDLE;
+        }
+        ++phase;
+      } else if (phase == 2) {
+        const auto stats = runtime.Stats();
+        EXPECT_EQ(1U, stats.LastLayerCount);
+        EXPECT_EQ(1U, stats.ExtraLayerFrames);
+        EXPECT_EQ(0U, stats.LastViewNext[0]);
+        EXPECT_EQ(0U, stats.LastViewNext[1]);
+        runtime.ShouldRender(false);
+        ++phase;
+      } else if (phase == 3 && vr.ViewCount() == 0) {
+        const void *layers[]{&quads[0]};
+        EXPECT_EQ(E_UNEXPECTED, vr.AddCompositionLayers(1, layers));
+        EXPECT_EQ(E_UNEXPECTED, vr.SetProjectionViewNext(0, &depths[0]));
+        ++phase;
+      } else if (phase == 4) {
+        EXPECT_EQ(0U, runtime.Stats().LastLayerCount);
+        ++phase;
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(5U, phase);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+  EXPECT_EQ(0U, runtime.Stats().LiveSwapchains + runtime.Stats().LiveSessions +
+                    runtime.Stats().LiveInstances);
 }
 
 TEST_P(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {
