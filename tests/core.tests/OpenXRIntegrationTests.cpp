@@ -376,12 +376,13 @@ TEST_P(OpenXRIntegrationTests, FloorHeightTracksValidityAndReferenceChanges) {
   ASSERT_NE(nullptr, runtime.Configure);
   ASSERT_NE(nullptr, runtime.SetInput);
   const auto adapter = TestAdapter();
-  for (int mode = 0; mode < 3; ++mode) {
+  for (int mode = 0; mode < 4; ++mode) {
     SCOPED_TRACE(mode);
     FakeXRConfig config{adapter};
     config.Stage = mode == 1;
     config.LocalFloor = mode >= 2;
     config.LocalFloorExtension = mode == 2;
+    config.Api11 = mode == 3;
     runtime.Configure(&config);
     FakeXRInput input;
     UINT64 epoch = 0;
