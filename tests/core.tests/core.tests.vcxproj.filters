@@ -12,6 +12,9 @@
     <ClCompile Include="StreamlineTests.cpp" />
     <ClCompile Include="SaveManagerTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
+    <ClCompile Include="..\..\src\core\StdAfx.cpp" />
+    <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp" />
+    <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ReadOnlyVFSTests.cpp" />

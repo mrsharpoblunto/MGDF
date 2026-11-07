@@ -27,6 +27,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <WarningLevel>Level4</WarningLevel>
@@ -36,7 +38,15 @@
     </ClCompile>
     <Link><AdditionalDependencies>d3d12.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="Runtime.cpp" /><ClInclude Include="Control.hpp" /><None Include="runtime.json" /></ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Runtime.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Control.hpp" />
+    <None Include="runtime.json" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyRuntimeManifest" AfterTargets="Build">
     <Copy SourceFiles="$(ProjectDir)runtime.json" DestinationFiles="$(OutDir)openxr.runtime.json" SkipUnchangedFiles="true" />
