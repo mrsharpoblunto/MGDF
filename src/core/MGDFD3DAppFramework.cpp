@@ -847,7 +847,6 @@ INT32 D3DAppFramework::Run() {
             const bool drawn = RTOnDraw();
             if (!drawn) _rtRenderBackend->RTClear();
             if (headsetPaced) {
-              _rtRenderBackend->RTFlushVR();
               vr.EndFrame(drawn);
             }
 

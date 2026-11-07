@@ -1,16 +1,7 @@
 import "oaidl.idl";
 import "ocidl.idl";
-import "d3d11.idl";
 import "d3d12.idl";
 import "dxgi.idl";
-
-/**
-The graphics APIs a module can request
-*/
-typedef enum MGDFGraphicsAPI {
-  MGDF_GRAPHICS_API_D3D11 = 0,
-  MGDF_GRAPHICS_API_D3D12 = 1,
-} MGDFGraphicsAPI;
 
 /**
 The back buffer format and color space the host uses while HDR output is on.
@@ -30,12 +21,8 @@ typedef enum MGDFHDRFormat {
 The graphics requirements returned by the module's GetGraphicsRequirements export
 */
 typedef struct MGDFGraphicsRequirements {
-  /** Number of entries in APIs; 1 to 4 */
-  UINT32 APICount;
-  /** APIs the module supports, most preferred first */
-  MGDFGraphicsAPI APIs[4];
   D3D_FEATURE_LEVEL MinFeatureLevel;
-  /** D3D_SHADER_MODEL value; only checked for D3D12 */
+  /** Minimum D3D_SHADER_MODEL value */
   UINT32 MinShaderModel;
   /** The HDR output format the module writes. The host selects the HDR back
   buffer format and color space from it. An unknown value is an error */
@@ -803,21 +790,9 @@ the settings will be applied to the render system on the next frame
   */
   void SetFullscreen(const MGDFFullScreenDesc *fullscreen);
 
-  /**
-  set the display devices current multisample level
-  \param multisampleLevel the desired multisample level for the backbuffer
-  \return returns false if the desired multisample level cannot be set.
-  */
-  BOOL SetBackBufferMultiSampleLevel(UINT32 multisampleLevel);
 
-  /**
-  set the desired multisample level for off screen render targets. This setting
-  is not used directly by the framework but any client code should query this
-  property when creating render targets that may require multisampling (see also
-  \param multisampleLevel the desired multisample level for off screen render targets
-  \return returns false if the desired multisample level cannot be set.
-  */
-  BOOL SetCurrentMultiSampleLevel(UINT32 multisampleLevel);
+
+
 
   /**
   sets the display mode of the primary display output when running in
@@ -963,35 +938,13 @@ Provides an interface for getting and setting the hosts various display settings
   */
   void GetFullscreen([ in, out ] MGDFFullScreenDesc * fullscreen);
 
-  /**
-  get the number of supported multisample levels
-  \return the number of supported multisample levels
-  */
-  UINT64 GetMultiSampleLevelCount();
 
-  /**
-  get the available multisample level supported by the display device at the
-  given index ( 0 to GetMultiSampleLevelCount() - 1 )
-  \param index the multisample index
-  \param level returns the multisample level at the given index
-  \return true if a supported multisample level is present at the given
-  index, false otherwise.
-  */
-  BOOL GetMultiSampleLevel(UINT64 index, [out] UINT32 * level);
 
-  /**
-  get the current multisample level in use by the device
-  \return the current multisample level in use by the device
-  */
-  UINT32 GetBackBufferMultiSampleLevel();
 
-  /**
-  get the current desired multisample level for off screen render targets
-  \param quality if specified this parameter will be initialized with the
-  maximum multisampling quality setting for the current multisample level
-  \return the current desired multisample level for off screen render targets
-  */
-  UINT32 GetCurrentMultiSampleLevel([out] UINT32 * quality);
+
+
+
+
 
   /**
   get the number of supported display modes on the primary output
@@ -1120,7 +1073,7 @@ Provides an interface for getting and setting the hosts various display settings
   /**
   get the number of upscale modes the device supports. The list is valid from
   RTBeforeFirstDraw and can change after a device reset. It is empty with
-  D3D11 and when the device has no upscaler
+  when the device has no upscaler
   \return the number of supported upscale modes
   */
   UINT64 GetUpscaleModeCount();
@@ -1128,7 +1081,7 @@ Provides an interface for getting and setting the hosts various display settings
   /**
   get a supported upscale mode at the given index (0 to
   GetUpscaleModeCount() - 1). Use the mode with
-  IMGDFD3D12Host::GetUpscaleRenderSize and IMGDFD3D12RenderHost::Upscale
+  IMGDFCommonHost::GetUpscaleRenderSize and IMGDFRenderHost::Upscale
   \param index the upscale mode index
   \param mode receives the upscale mode at the given index
   \return true if an upscale mode exists at the given index
@@ -1177,7 +1130,7 @@ Provides an interface for getting and setting the hosts various display settings
   gets whether the device supports ray tracing: D3D12 raytracing tier 1.1 or
   higher and shader model 6.9 or higher (for HitObject and
   MaybeReorderThread). Valid from RTBeforeFirstDraw; can change after a device
-  reset. Always FALSE with D3D11
+  reset
   \param support if not null, receives the ray tracing properties. All fields
   are FALSE when ray tracing is not supported
   \return TRUE if ray tracing is supported
@@ -2339,371 +2292,6 @@ An interface for creating and managing a websocket server
 };
 
 /**
-Provides an entrypoint for a module to interact with the MGDF host. Methods in
-this interface are safe to be used from any thread
-*/
-[
-  uuid("D5772E20-668C-43BC-B803-453ACF6D74AF"), object,
-  local
-] interface IMGDFCommonHost : IMGDFLogger {
-  /**
-   * This method should be invoked when a fatal error is encountered
-   * \param sender the location or component the error occurred in
-   * \param message details of the fatal error
-   */
-  void FatalError([in] const small *sender, [in] const small *message);
-
-  /**
-  get the render settings manager
-  \param settings the render settings manager
-  */
-  void GetRenderSettings([out] IMGDFRenderSettingsManager * *settings);
-
-  /**
-  get the host timer
-  \param timer pointer to the host timer
-  */
-  void GetTimer([out] IMGDFTimer * *timer);
-
-  /**
-  gets the current version of the framework
-  \return the current version of the framework
-  */
-  const MGDFVersion *GetMGDFVersion();
-
-  /**
-  get the readonly content filesystem
-  \param vfs the readonly filesystem
-  */
-  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
-
-  /**
-  get the read/write working folder
-  \param vfs the writeable filesystem
-  */
-  void GetWorkingVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
-
-  /**
-  get the graphics API selected by the host
-  \return the selected graphics API
-  */
-  MGDFGraphicsAPI GetGraphicsAPI();
-
-  /**
-  get the debug overlay data and visibility interface
-  \param debug pointer to a debug overlay object
-  */
-  void GetDebug([out] IMGDFDebug * *debug);
-
-  /**
-   create a performance counter for profiling CPU time taken. When no longer
-   used it should be released
-  \param metric the metric the counter should update
-  \param counter points to the created counter
-  \return S_OK if the counter could be created, otherwise an error code is returned
-   */
-  HRESULT CreateCPUCounter([in] IMGDFMetric * metric,
-                           [out] IMGDFPerformanceCounter * *counter);
-
-  /**
-  create or get an existing metric for a monotonically increasing counter
-  \param name the name of the metric
-  \param description a description of what the metric is measuring
-  \param metric points to the created metric
-  \return S_OK if the metric could be created, otherwise an error code is returned
-  */
-  HRESULT
-  CreateCounterMetric([in] const small *name, [in] const small *description,
-                      [out] IMGDFMetric **metric);
-
-  /**
-  create or get an existing metric that can go up and down over time
-  \param name the name of the metric
-  \param description a description of what the metric is measuring
-  \param metric points to the created metric
-  \return S_OK if the metric could be created, otherwise an error code is returned
-  */
-  HRESULT
-  CreateGaugeMetric([in] const small *name, [in] const small *description,
-                    [out] IMGDFMetric **metric);
-
-  /**
-  create or get an existing metric that can go up and down over time
-  \param name the name of the metric
-  \param description a description of what the metric is measuring
-  \param buckets pointer to an array of buckets used in the histogram
-  \param bucketCount the length of the buckets array parameter
-  \param metric points to the created metric
-  \return S_OK if the metric could be created, otherwise an error code is returned
-  */
-  HRESULT CreateHistogramMetric(
-      [in] const small *name, [in] const small *description,
-      [in] const double *buckets, [in] const UINT64 bucketCount,
-      [out] IMGDFMetric **metric);
-
-  /**
-  After a module receives an RTOnBeforeDeviceReset callback, calling this
-  tells the host that all references to the previous D3D device have been
-  cleaned up and that the device can be safely reset
-  */
-  void QueueDeviceReset();
-};
-
-/**
-One eye at this frame's predicted display time. Pose is in LOCAL space, in
-metres, with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w.
-Write linear color to an sRGB target. Release target references and descriptors
-in RTBeforeBackBufferChange
-*/
-typedef struct MGDFVREye {
-  FLOAT Position[3];
-  FLOAT Orientation[4];
-  /** Field of view in radians; left and down are negative */
-  FLOAT AngleLeft;
-  FLOAT AngleRight;
-  FLOAT AngleUp;
-  FLOAT AngleDown;
-  UINT32 Width;
-  UINT32 Height;
-  DXGI_FORMAT Format;
-  /** UNKNOWN when reprojection depth is unavailable */
-  DXGI_FORMAT DepthFormat;
-} MGDFVREye;
-
-/** Optional VR features supported by this session. Individual calls can fail */
-typedef enum MGDFVRFeature {
-  MGDF_VR_FEATURE_MASK = 1,
-  MGDF_VR_FEATURE_DEPTH = 2,
-  MGDF_VR_FEATURE_PANEL = 4,
-  MGDF_VR_FEATURE_GAZE = 8,
-} MGDFVRFeature;
-
-/**
-VR data for one display frame. Eye 0 is left and eye 1 is right. Index Grip and
-Aim with MGDFVRHand. Poses use LOCAL space and the MGDFVRPose convention.
-Pose and FOV data are valid only during RTDraw with EyeCount 2; otherwise they
-are zero. Unsupported or untracked controller and gaze poses are invalid
-*/
-typedef struct MGDFVRFrame {
-  UINT32 EyeCount;
-  BOOL Focused;
-  MGDFVREye Eyes[2];
-  MGDFVRPose Grip[2];
-  MGDFVRPose Aim[2];
-  MGDFVRPose Gaze;
-  /** Reload masks when this changes, including after session or eye target
-  recreation. Zero without mask support */
-  UINT64 MaskVersion;
-  /** Reset temporal history when this counter changes. It advances when a
-  session starts and on the first frame at or after a LOCAL or floor space change time,
-  including frames with no eye output. Compare with the last rendered frame */
-  UINT64 PoseEpoch;
-  /** Floor Y in LOCAL space, in metres. Sampled at the eye display time.
-  Subtract this from a LOCAL head Y to get height above the floor */
-  FLOAT FloorHeight;
-  /** FALSE without STAGE or LOCAL_FLOOR support, or while the floor pose is invalid */
-  BOOL FloorHeightValid;
-  /** Bit set of MGDFVRFeature values */
-  UINT32 Features;
-} MGDFVRFrame;
-
-/** Reference frame for a headset panel */
-typedef enum MGDFVRSpace {
-  MGDF_VR_SPACE_LOCAL = 0,
-  MGDF_VR_SPACE_VIEW = 1,
-} MGDFVRSpace;
-
-/**
-One headset panel. Pose uses +X right, +Y up, +Z forward and metres, with
-quaternion x, y, z, w. VIEW is relative to the head; LOCAL is fixed in the room.
-The image format is MGDFVREye::Format; write linear color with premultiplied alpha
-*/
-typedef struct MGDFVRPanel {
-  UINT32 PixelWidth;
-  UINT32 PixelHeight;
-  FLOAT Position[3];
-  FLOAT Orientation[4];
-  FLOAT Width;
-  FLOAT Height;
-  MGDFVRSpace Space;
-} MGDFVRPanel;
-
-/**
- Provides an entrypoint for a module to interact with the MGDF host. This
- interface inherits from ICommonHost and provides additional methods which are
- safe to be used ONLY from the render thread.
-*/
-[
-  uuid("E7616E80-733E-4E33-8A71-CCF53161508B"), object,
-  local
-] interface IMGDFRenderHost : IMGDFCommonHost {
-  /**
-  Gets the current back buffer properties
-  \param info the back buffer properties to populate
-  */
-  void GetBackBufferInfo([out] MGDFBackBufferInfo * info);
-
-  /**
-  Sets the HDR content metadata. The host keeps it and applies it to each HDR10
-  swap chain (MGDF_HDR_FORMAT_HDR10 with HDR output on). Other swap chains get
-  no metadata
-  \param metadata the metadata, or null to clear it
-  \return S_OK, or E_INVALIDARG if a value is out of range
-  */
-  HRESULT SetHDRMetadata([in] const MGDFHDRMetadata *metadata);
-
-  /**
-  Gets VR data on the render thread. Draw the window every frame. In RTDraw,
-  S_OK provides two eyes and poses at this frame's predicted display time.
-  Outside an eye frame, including RTBackBufferChange, S_FALSE provides target
-  properties, focus, mask revision and feature flags; EyeCount is zero and
-  poses and FOV angles are zero. Use Eyes to size resources at a back buffer
-  change. Check pose validity and Features before using optional data
-  \return S_OK with an eye frame; S_FALSE with a session but no eye frame;
-  E_INVALIDARG for null output; E_ILLEGAL_METHOD_CALL without a session or on
-  the wrong thread; E_FAIL after a runtime failure. Output is zero on error
-  */
-  HRESULT GetVRFrame([out] MGDFVRFrame *frame);
-
-  /**
-  Gets the hidden triangle mesh for eye 0 or 1 on the render thread. Counts are
-  vertex and index capacities on input and required counts on output. Null
-  buffers query counts; xy has two floats per vertex, indices are a UINT32
-  triangle list. Winding is counter-clockwise in x-right, y-up coordinates.
-  Vertices are view-angle tangents at z=+1. Map to your projection with
-  ndc.x = (2*x - (tan(AngleRight) + tan(AngleLeft))) /
-          (tan(AngleRight) - tan(AngleLeft)); use up/down in the same way for y.
-  \return S_OK; S_FALSE for an empty mesh; E_NOTIMPL without mask support;
-  E_INVALIDARG for invalid index, null counts or insufficient buffer capacity
-  (required counts are still returned); E_ILLEGAL_METHOD_CALL without a session
-  or on the wrong thread; E_FAIL on runtime failure. Counts are zero on error
-  except for insufficient capacity
-  */
-  HRESULT GetVREyeMask(UINT32 index, [in, out] UINT32 *vertexCount,
-                      [out] FLOAT *xy, [in, out] UINT32 *indexCount,
-                      [out] UINT32 *indices);
-  /**
-  Enables reprojection depth for this eye in this RTDraw. Call for both eyes
-  after writing their depth targets; otherwise no depth is submitted this frame.
-  nearZ and farZ are positive distances in metres at depth values 0 and 1.
-  For reverse-Z pass the distant plane as nearZ and the close plane as farZ.
-  Positive infinity is allowed for either plane, but the two must differ.
-  \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
-  index or range; E_ILLEGAL_METHOD_CALL without a session, outside an eye frame
-  or on the wrong thread; E_FAIL on runtime failure
-  */
-  HRESULT SetVREyeDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ);
-  /**
-  Shows one panel. The host copies the description. Changes apply next eye frame;
-  null hides it immediately. Resizing invalidates old panel targets at the next
-  RTDraw: release their references and descriptors by this RTAfterPresent.
-  Release them also in RTBeforeBackBufferChange. Color is premultiplied alpha.
-  \return S_OK; E_NOTIMPL if the runtime cannot show a panel; E_INVALIDARG for
-  an invalid size, space or pose; E_ILLEGAL_METHOD_CALL without a session or on
-  the wrong thread; E_FAIL on runtime failure. Deferred creation errors are
-  reported by GetVRPanelTarget
-  */
-  HRESULT SetVRPanel([in] const MGDFVRPanel *panel);
-
-};
-
-/**
-Provides D3D11 device access through QueryInterface on any host interface.
-Methods in this interface are safe to be used from any thread
-*/
-[
-  uuid("33357B0B-E626-450E-90F2-C017D52AB911"), object,
-  local
-] interface IMGDFD3D11Host : IUnknown {
-  /**
-  get the direct3d 11 device object from the host
-  \param device the direct3d 11 device object from the host
-  */
-  void GetD3D11Device([out] ID3D11Device * *device);
-};
-
-/**
-Provides D3D11 rendering access through QueryInterface on the render host.
-Additional methods in this interface are safe to be used ONLY from the render thread
-*/
-[
-  uuid("756E8862-E68C-4796-AD6C-00667632F33B"), object,
-  local
-] interface IMGDFD3D11RenderHost : IMGDFRenderHost {
-  /**
-  Gets an owned reference to this frame's eye texture during RTDraw. Submit
-  eye rendering on the immediate context before RTDraw returns. Textures rotate
-  until RTBeforeBackBufferChange, when all references must be released
-  \param index less than MGDFVRFrame::EyeCount
-  \param target receives the texture; Release it when no longer needed
-  \return S_OK; E_INVALIDARG for an invalid index or null output;
-  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
-  thread; E_FAIL after a runtime failure. The output is null on error
-  */
-  HRESULT GetVREyeTarget(UINT32 index, [out] ID3D11Texture2D **target);
-
-  /**
-  Gets an owned reference to eye 0 or 1's depth image for this RTDraw.
-  Size matches the eye target; use MGDFVREye::DepthFormat for a depth view.
-  Release references and descriptors in RTBeforeBackBufferChange. Submit work on the immediate context before RTDraw returns.
-  \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
-  index or null output; E_ILLEGAL_METHOD_CALL without a session, outside an eye
-  frame or on the wrong thread; E_FAIL on runtime or resource failure.
-  The output is null on error
-  */
-  HRESULT GetVREyeDepthTarget(UINT32 index, [out] ID3D11Texture2D **target);
-
-  /**
-  Gets an owned reference to this frame's panel image during RTDraw. Write
-  premultiplied alpha in MGDFVREye::Format. Release references and descriptors
-  before a panel size change takes effect and in RTBeforeBackBufferChange.
-   Submit work on the immediate context.
-  \return S_OK; S_FALSE while hidden or before the first panel frame;
-  E_NOTIMPL without panel support; E_INVALIDARG for a null output;
-  E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
-  thread; E_FAIL on runtime or resource failure. The output is null except on S_OK
-  */
-  HRESULT GetVRPanelTarget([out] ID3D11Texture2D **target);
-
-  /**
-  Gets the current back buffer texture.
-  \param backbuffer the current back buffer texture. The pointer returned by this method
-  becomes invalid when the modules OnReset event is fired
-  */
-  void GetBackBuffer([out] ID3D11Texture2D * *backbuffer);
-
-  /**
-  Gets the current depth stencil buffer texture.
-  \param stencilBuffer the current stencil buffer texture. The pointer returned by this method
-  becomes invalid when the modules OnReset event is fired
-  */
-  void GetDepthStencilBuffer([out] ID3D11Texture2D * *stencilBuffer);
-
-  /**
-  Gets the description of the backbuffer and depthStencilBuffer textures.
-  \param backBufferDesc the backbuffer description to populate. If null is
-  passed, this field is not populated
-  \param depthStencilBufferDesc the backbuffer description to populate. If
-  null is passed, this field is not populated
-  */
-  void GetBackBufferDescription(D3D11_TEXTURE2D_DESC * backBufferDesc,
-                                D3D11_TEXTURE2D_DESC * depthStencilBufferDesc);
-
-  /**
-   create a performance counter for profiling GPU time taken in DirectX API
-   calls. When no longer used it should be Released
-   \param metric the metric the counter should update
-   \param context the device context this counter measures
-   \param counter points to the created counter
-   \return E_FAIL if GPU counters are unsupported (using D3D_FEATURE_LEVEL_9_3 or less)
-   otherwise returns S_OK
-   */
-  HRESULT CreateGPUCounter([in] IMGDFMetric * metric,
-                           [in] ID3D11DeviceContext * context,
-                           [out] IMGDFPerformanceCounter * *counter);
-};
-
-/**
 The render size for an upscale mode and output size. The Min and Max fields
 give the range for dynamic resolution. They equal Width and Height if the
 upscaler gives no range
@@ -2717,48 +2305,6 @@ typedef struct MGDFUpscaleRenderSize {
   UINT32 MaxHeight;
 } MGDFUpscaleRenderSize;
 
-/**
-D3D12 device and queues. These methods may be called from any thread. QueryInterface
-returns this interface only when GetGraphicsAPI returns MGDF_GRAPHICS_API_D3D12.
-Release returned references before acknowledging a device reset.
-*/
-[
-  uuid("EFCB361F-5317-40DC-B58E-82CE1CDA79D5"), object,
-  local
-] interface IMGDFD3D12Host : IUnknown {
-  /**
-  Gets an owned reference to the device, or null during device reset
-  \param device points to the device
-  */
-  void GetD3D12Device([out] ID3D12Device10 **device);
-  /**
-  Gets an owned reference to the direct queue
-  \param queue points to the direct queue
-  */
-  void GetDirectQueue([out] ID3D12CommandQueue **queue);
-  /**
-  Gets an owned reference to the compute queue
-  \param queue points to the compute queue
-  */
-  void GetComputeQueue([out] ID3D12CommandQueue **queue);
-  /**
-  Gets an owned reference to the copy queue
-  \param queue points to the copy queue
-  */
-  void GetCopyQueue([out] ID3D12CommandQueue **queue);
-  /**
-  Gets the render size for an upscale mode and output size
-  \param mode the upscale mode
-  \param displayWidth the output width
-  \param displayHeight the output height
-  \param size receives the render size
-  \return S_OK, E_INVALIDARG for an unknown mode or a zero size, or E_NOTIMPL
-  if IMGDFRenderSettingsManager::GetUpscaleMode does not list the mode
-  */
-  HRESULT GetUpscaleRenderSize(MGDFUpscaleMode mode, UINT32 displayWidth,
-                               UINT32 displayHeight,
-                               [out] MGDFUpscaleRenderSize *size);
-};
 
 /**
 The current D3D12 frame. BackBuffer is borrowed until RTBeforeBackBufferChange;
@@ -2854,7 +2400,7 @@ typedef struct MGDFFrameResource {
 } MGDFFrameResource;
 
 /**
-Inputs for IMGDFD3D12RenderHost::Upscale. The default region of ColorIn, Depth,
+Inputs for IMGDFRenderHost::Upscale. The default region of ColorIn, Depth,
 MotionVectors and BiasCurrentColor is RenderWidth x RenderHeight at the origin.
 The default region of ColorOut is OutputWidth x OutputHeight at the origin.
 Exposure and BiasCurrentColor are optional (null Resource)
@@ -2901,16 +2447,305 @@ typedef struct MGDFFrameGenerationDesc {
 } MGDFFrameGenerationDesc;
 
 /**
-D3D12 rendering methods, usable only on the render thread. The module records and
-executes its own lists on the direct queue during RTDraw and may submit background
-work during RTAfterPresent. The host resolves GPU counters and signals the frame
-fence with FrameOrdinal after RTAfterPresent. Work on compute/copy queues must be
-joined to the direct queue by the module if it is to be covered by that frame fence.
+Provides an entrypoint for a module to interact with the MGDF host. Methods in
+this interface are safe to be used from any thread. Release device and queue
+references before acknowledging a device reset
 */
 [
-  uuid("46AA223E-991D-4272-A30E-9E9F3DCB0F38"), object,
+  uuid("D5772E20-668C-43BC-B803-453ACF6D74AF"), object,
   local
-] interface IMGDFD3D12RenderHost : IMGDFRenderHost {
+] interface IMGDFCommonHost : IMGDFLogger {
+  /**
+   * This method should be invoked when a fatal error is encountered
+   * \param sender the location or component the error occurred in
+   * \param message details of the fatal error
+   */
+  void FatalError([in] const small *sender, [in] const small *message);
+
+  /**
+  get the render settings manager
+  \param settings the render settings manager
+  */
+  void GetRenderSettings([out] IMGDFRenderSettingsManager * *settings);
+
+  /**
+  get the host timer
+  \param timer pointer to the host timer
+  */
+  void GetTimer([out] IMGDFTimer * *timer);
+
+  /**
+  gets the current version of the framework
+  \return the current version of the framework
+  */
+  const MGDFVersion *GetMGDFVersion();
+
+  /**
+  get the readonly content filesystem
+  \param vfs the readonly filesystem
+  */
+  void GetVFS([out] IMGDFReadOnlyVirtualFileSystem * *vfs);
+
+  /**
+  get the read/write working folder
+  \param vfs the writeable filesystem
+  */
+  void GetWorkingVFS([out] IMGDFWriteableVirtualFileSystem * *vfs);
+
+  /**
+  get the debug overlay data and visibility interface
+  \param debug pointer to a debug overlay object
+  */
+  void GetDebug([out] IMGDFDebug * *debug);
+
+  /**
+   create a performance counter for profiling CPU time taken. When no longer
+   used it should be released
+  \param metric the metric the counter should update
+  \param counter points to the created counter
+  \return S_OK if the counter could be created, otherwise an error code is returned
+   */
+  HRESULT CreateCPUCounter([in] IMGDFMetric * metric,
+                           [out] IMGDFPerformanceCounter * *counter);
+
+  /**
+  create or get an existing metric for a monotonically increasing counter
+  \param name the name of the metric
+  \param description a description of what the metric is measuring
+  \param metric points to the created metric
+  \return S_OK if the metric could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateCounterMetric([in] const small *name, [in] const small *description,
+                      [out] IMGDFMetric **metric);
+
+  /**
+  create or get an existing metric that can go up and down over time
+  \param name the name of the metric
+  \param description a description of what the metric is measuring
+  \param metric points to the created metric
+  \return S_OK if the metric could be created, otherwise an error code is returned
+  */
+  HRESULT
+  CreateGaugeMetric([in] const small *name, [in] const small *description,
+                    [out] IMGDFMetric **metric);
+
+  /**
+  create or get an existing metric that can go up and down over time
+  \param name the name of the metric
+  \param description a description of what the metric is measuring
+  \param buckets pointer to an array of buckets used in the histogram
+  \param bucketCount the length of the buckets array parameter
+  \param metric points to the created metric
+  \return S_OK if the metric could be created, otherwise an error code is returned
+  */
+  HRESULT CreateHistogramMetric(
+      [in] const small *name, [in] const small *description,
+      [in] const double *buckets, [in] const UINT64 bucketCount,
+      [out] IMGDFMetric **metric);
+
+  /**
+  After a module receives an RTOnBeforeDeviceReset callback, calling this
+  tells the host that all references to the previous D3D device have been
+  cleaned up and that the device can be safely reset
+  */
+  void QueueDeviceReset();
+
+  /**
+  Gets an owned reference to the device, or null during device reset
+  \param device points to the device
+  */
+  void GetD3D12Device([out] ID3D12Device10 **device);
+  /**
+  Gets an owned reference to the direct queue
+  \param queue points to the direct queue
+  */
+  void GetDirectQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets an owned reference to the compute queue
+  \param queue points to the compute queue
+  */
+  void GetComputeQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets an owned reference to the copy queue
+  \param queue points to the copy queue
+  */
+  void GetCopyQueue([out] ID3D12CommandQueue **queue);
+  /**
+  Gets the render size for an upscale mode and output size
+  \param mode the upscale mode
+  \param displayWidth the output width
+  \param displayHeight the output height
+  \param size receives the render size
+  \return S_OK, E_INVALIDARG for an unknown mode or a zero size, or E_NOTIMPL
+  if IMGDFRenderSettingsManager::GetUpscaleMode does not list the mode
+  */
+  HRESULT GetUpscaleRenderSize(MGDFUpscaleMode mode, UINT32 displayWidth,
+                               UINT32 displayHeight,
+                               [out] MGDFUpscaleRenderSize *size);
+};
+
+/**
+One eye at this frame's predicted display time. Pose is in LOCAL space, in
+metres, with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w.
+Write linear color to an sRGB target. Release target references and descriptors
+in RTBeforeBackBufferChange
+*/
+typedef struct MGDFVREye {
+  FLOAT Position[3];
+  FLOAT Orientation[4];
+  /** Field of view in radians; left and down are negative */
+  FLOAT AngleLeft;
+  FLOAT AngleRight;
+  FLOAT AngleUp;
+  FLOAT AngleDown;
+  UINT32 Width;
+  UINT32 Height;
+  DXGI_FORMAT Format;
+  /** UNKNOWN when reprojection depth is unavailable */
+  DXGI_FORMAT DepthFormat;
+} MGDFVREye;
+
+/** Optional VR features supported by this session. Individual calls can fail */
+typedef enum MGDFVRFeature {
+  MGDF_VR_FEATURE_MASK = 1,
+  MGDF_VR_FEATURE_DEPTH = 2,
+  MGDF_VR_FEATURE_PANEL = 4,
+  MGDF_VR_FEATURE_GAZE = 8,
+} MGDFVRFeature;
+
+/**
+VR data for one display frame. Eye 0 is left and eye 1 is right. Index Grip and
+Aim with MGDFVRHand. Poses use LOCAL space and the MGDFVRPose convention.
+Pose and FOV data are valid only during RTDraw with EyeCount 2; otherwise they
+are zero. Unsupported or untracked controller and gaze poses are invalid
+*/
+typedef struct MGDFVRFrame {
+  UINT32 EyeCount;
+  BOOL Focused;
+  MGDFVREye Eyes[2];
+  MGDFVRPose Grip[2];
+  MGDFVRPose Aim[2];
+  MGDFVRPose Gaze;
+  /** Reload masks when this changes, including after session or eye target
+  recreation. Zero without mask support */
+  UINT64 MaskVersion;
+  /** Reset temporal history when this counter changes. It advances when a
+  session starts and on the first frame at or after a LOCAL or floor space change time,
+  including frames with no eye output. Compare with the last rendered frame */
+  UINT64 PoseEpoch;
+  /** Floor Y in LOCAL space, in metres. Sampled at the eye display time.
+  Subtract this from a LOCAL head Y to get height above the floor */
+  FLOAT FloorHeight;
+  /** FALSE without STAGE or LOCAL_FLOOR support, or while the floor pose is invalid */
+  BOOL FloorHeightValid;
+  /** Bit set of MGDFVRFeature values */
+  UINT32 Features;
+} MGDFVRFrame;
+
+/** Reference frame for a headset panel */
+typedef enum MGDFVRSpace {
+  MGDF_VR_SPACE_LOCAL = 0,
+  MGDF_VR_SPACE_VIEW = 1,
+} MGDFVRSpace;
+
+/**
+One headset panel. Pose uses +X right, +Y up, +Z forward and metres, with
+quaternion x, y, z, w. VIEW is relative to the head; LOCAL is fixed in the room.
+The image format is MGDFVREye::Format; write linear color with premultiplied alpha
+*/
+typedef struct MGDFVRPanel {
+  UINT32 PixelWidth;
+  UINT32 PixelHeight;
+  FLOAT Position[3];
+  FLOAT Orientation[4];
+  FLOAT Width;
+  FLOAT Height;
+  MGDFVRSpace Space;
+} MGDFVRPanel;
+
+/**
+ Provides an entrypoint for a module to interact with the MGDF host. This
+ interface inherits from ICommonHost and provides additional methods which are
+ safe to be used ONLY from the render thread. The module executes its command
+ lists on the direct queue during RTDraw and may submit background work during
+ RTAfterPresent. The host resolves GPU counters and signals the frame fence
+ after RTAfterPresent. Join compute and copy work to the direct queue if the
+ frame fence must cover it.
+*/
+[
+  uuid("E7616E80-733E-4E33-8A71-CCF53161508B"), object,
+  local
+] interface IMGDFRenderHost : IMGDFCommonHost {
+  /**
+  Gets the current back buffer properties
+  \param info the back buffer properties to populate
+  */
+  void GetBackBufferInfo([out] MGDFBackBufferInfo * info);
+
+  /**
+  Sets the HDR content metadata. The host keeps it and applies it to each HDR10
+  swap chain (MGDF_HDR_FORMAT_HDR10 with HDR output on). Other swap chains get
+  no metadata
+  \param metadata the metadata, or null to clear it
+  \return S_OK, or E_INVALIDARG if a value is out of range
+  */
+  HRESULT SetHDRMetadata([in] const MGDFHDRMetadata *metadata);
+
+  /**
+  Gets VR data on the render thread. Draw the window every frame. In RTDraw,
+  S_OK provides two eyes and poses at this frame's predicted display time.
+  Outside an eye frame, including RTBackBufferChange, S_FALSE provides target
+  properties, focus, mask revision and feature flags; EyeCount is zero and
+  poses and FOV angles are zero. Use Eyes to size resources at a back buffer
+  change. Check pose validity and Features before using optional data
+  \return S_OK with an eye frame; S_FALSE with a session but no eye frame;
+  E_INVALIDARG for null output; E_ILLEGAL_METHOD_CALL without a session or on
+  the wrong thread; E_FAIL after a runtime failure. Output is zero on error
+  */
+  HRESULT GetVRFrame([out] MGDFVRFrame *frame);
+
+  /**
+  Gets the hidden triangle mesh for eye 0 or 1 on the render thread. Counts are
+  vertex and index capacities on input and required counts on output. Null
+  buffers query counts; xy has two floats per vertex, indices are a UINT32
+  triangle list. Winding is counter-clockwise in x-right, y-up coordinates.
+  Vertices are view-angle tangents at z=+1. Map to your projection with
+  ndc.x = (2*x - (tan(AngleRight) + tan(AngleLeft))) /
+          (tan(AngleRight) - tan(AngleLeft)); use up/down in the same way for y.
+  \return S_OK; S_FALSE for an empty mesh; E_NOTIMPL without mask support;
+  E_INVALIDARG for invalid index, null counts or insufficient buffer capacity
+  (required counts are still returned); E_ILLEGAL_METHOD_CALL without a session
+  or on the wrong thread; E_FAIL on runtime failure. Counts are zero on error
+  except for insufficient capacity
+  */
+  HRESULT GetVREyeMask(UINT32 index, [in, out] UINT32 *vertexCount,
+                      [out] FLOAT *xy, [in, out] UINT32 *indexCount,
+                      [out] UINT32 *indices);
+  /**
+  Enables reprojection depth for this eye in this RTDraw. Call for both eyes
+  after writing their depth targets; otherwise no depth is submitted this frame.
+  nearZ and farZ are positive distances in metres at depth values 0 and 1.
+  For reverse-Z pass the distant plane as nearZ and the close plane as farZ.
+  Positive infinity is allowed for either plane, but the two must differ.
+  \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
+  index or range; E_ILLEGAL_METHOD_CALL without a session, outside an eye frame
+  or on the wrong thread; E_FAIL on runtime failure
+  */
+  HRESULT SetVREyeDepthRange(UINT32 index, FLOAT nearZ, FLOAT farZ);
+  /**
+  Shows one panel. The host copies the description. Changes apply next eye frame;
+  null hides it immediately. Resizing invalidates old panel targets at the next
+  RTDraw: release their references and descriptors by this RTAfterPresent.
+  Release them also in RTBeforeBackBufferChange. Color is premultiplied alpha.
+  \return S_OK; E_NOTIMPL if the runtime cannot show a panel; E_INVALIDARG for
+  an invalid size, space or pose; E_ILLEGAL_METHOD_CALL without a session or on
+  the wrong thread; E_FAIL on runtime failure. Deferred creation errors are
+  reported by GetVRPanelTarget
+  */
+  HRESULT SetVRPanel([in] const MGDFVRPanel *panel);
+
+
   /**
   Gets an owned reference to this frame's eye texture during RTDraw. Its state
   is RENDER_TARGET. Leave it in that state when the frame's lists finish.
@@ -3016,6 +2851,7 @@ joined to the direct queue by the module if it is to be covered by that frame fe
   */
   HRESULT SetFrameGenerationInputs([in] const MGDFFrameGenerationDesc *desc);
 };
+
 
 /**
  A saved game state and its associated metadata

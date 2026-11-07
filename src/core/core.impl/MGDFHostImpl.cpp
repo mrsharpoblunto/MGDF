@@ -65,10 +65,7 @@ Host::Host(ComObject<Game> game, HostComponents &components)
       _metricsServer(components.Network),
       _renderSettings(MakeCom<RenderSettingsManager>()),
       _saves(MakeCom<SaveManager>(game, components.VFS, components.Storage)),
-      _references(1UL),
-      _d3dDevice(nullptr),
-      _depthStencilBuffer(nullptr),
-      _backBuffer(nullptr) {
+      _references(1UL) {
   _shutdownQueued.store(false);
   _ASSERTE(game);
 
@@ -108,18 +105,6 @@ HRESULT Host::QueryInterface(REFIID riid, void **ppvObject) {
     *ppvObject = RenderHost();
   } else if (riid == __uuidof(IMGDFSimHost)) {
     *ppvObject = static_cast<IMGDFSimHost *>(this);
-  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
-             riid == __uuidof(IMGDFD3D11Host)) {
-    *ppvObject = static_cast<IMGDFD3D11Host *>(this);
-  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
-             riid == __uuidof(IMGDFD3D11RenderHost)) {
-    *ppvObject = static_cast<IMGDFD3D11RenderHost *>(this);
-  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
-             riid == __uuidof(IMGDFD3D12Host)) {
-    *ppvObject = static_cast<IMGDFD3D12Host *>(this);
-  } else if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
-             riid == __uuidof(IMGDFD3D12RenderHost)) {
-    *ppvObject = static_cast<IMGDFD3D12RenderHost *>(this);
   } else {
     return E_NOINTERFACE;
   }
@@ -236,17 +221,9 @@ void Host::InitGraphics() {
     FATALERROR(this, "Module GetGraphicsRequirements failed");
     return;
   }
-  std::string preference;
-  GetPreference(_game.As<IMGDFGame>(), PreferenceConstants::GRAPHICS_API,
-                preference);
   std::string error;
   const HRESULT result =
-      SelectGraphicsAPI(_graphicsRequirements, preference, _graphicsAPI, error);
-  if (SUCCEEDED(result)) {
-    LOG("Selected graphics API: "
-            << (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 ? "d3d11" : "d3d12"),
-        MGDF_LOG_LOW);
-  }
+      ValidateGraphicsRequirements(_graphicsRequirements, error);
   if (FAILED(result)) {
     FATALERROR(this, error);
     return;
@@ -256,7 +233,7 @@ void Host::InitGraphics() {
       GetPreference(_game.As<IMGDFGame>(), PreferenceConstants::VR, vr) &&
       FromString<bool>(vr);
   _renderSettings->InitVR(
-      _graphicsRequirements.VR != FALSE, _graphicsAPI, savedVR,
+      _graphicsRequirements.VR != FALSE, savedVR,
       ParameterManager::Instance().HasParameter(ParameterConstants::VR));
   _renderSettings->SetHDRFormat(_graphicsRequirements.HDRFormat);
   LOG("HDR output format: "
@@ -264,18 +241,11 @@ void Host::InitGraphics() {
                   ? "HDR10"
                   : "scRGB"),
       MGDF_LOG_LOW);
-  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11 &&
-      GetD3D11FeatureLevels(_graphicsRequirements.MinFeatureLevel).empty()) {
-    FATALERROR(this,
-               "The requested minimum feature level is not supported by D3D11");
-  }
 }
 
 const MGDFGraphicsRequirements &Host::GetGraphicsRequirements() const {
   return _graphicsRequirements;
 }
-
-MGDFGraphicsAPI Host::GetGraphicsAPI() { return _graphicsAPI; }
 
 /**
 create and initialize a new module
@@ -359,7 +329,6 @@ void Host::RTBeforeDeviceReset() {
   }
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
-  _d3dDevice.Clear();
   _d3d12Device.Clear();
   _directQueue.Clear();
   _computeQueue.Clear();
@@ -389,12 +358,9 @@ void Host::RTShutDown() {
   // release all device dependent resources now as the app framework will
   // uninitialize D3D (and report any remaining live objects in debug builds)
   // before this host is destroyed
-  _backBuffer.Clear();
-  _depthStencilBuffer.Clear();
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
   _streamline = nullptr;
-  _d3dDevice.Clear();
   _d3d12Device.Clear();
   _directQueue.Clear();
   _computeQueue.Clear();
@@ -402,21 +368,13 @@ void Host::RTShutDown() {
   _frameFence.Clear();
 }
 
-void Host::RTSetDevices(IRenderBackend &backend) {
+void Host::RTSetDevices(D3D12RenderBackend &backend) {
   _vrThreadId = GetCurrentThreadId();
   _backend = &backend;
   backend.VR().SetInputState(_input->GetVRInputState());
-  auto device = backend.RTGetDevice();
-  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) {
-    auto d3d11 = device.As<ID3D11Device>();
-    _renderSettings->InitFromDevice(d3d11);
-    _timer->InitFromDevice(d3d11, GPU_TIMER_BUFFER);
-    std::lock_guard lock(_deviceMutex);
-    _d3dDevice = d3d11;
-  } else {
-    auto d3d12 = device.As<ID3D12Device10>();
+  {
+    const auto d3d12 = backend.RTGetDevice();
     auto direct = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    _renderSettings->InitD3D12();
     if (FAILED(_timer->InitFromDevice12(d3d12, direct, 2))) {
       FATALERROR(this, "Failed to initialize D3D12 GPU counters");
     }
@@ -438,15 +396,10 @@ void Host::RTSetDevices(IRenderBackend &backend) {
 
 bool Host::RTDraw(double alpha) {
   _vrThreadId = GetCurrentThreadId();
-  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12) {
-    _timer->BeginD3D12Frame(_backend->RTGetCurrentFrame());
-  } else {
-    _timer->Begin();
-  }
+  _timer->BeginD3D12Frame(_backend->RTGetCurrentFrame());
   _vrDrawing = true;
   const bool drawn = _module && _module->RTDraw(RenderHost(), alpha);
   _vrDrawing = false;
-  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D11) _timer->End();
   return drawn;
 }
 
@@ -463,8 +416,7 @@ void Host::RTAfterPresent() {
                                                          : _renderedFrames});
   }
   if (_module) _module->RTAfterPresent(RenderHost());
-  if (_graphicsAPI == MGDF_GRAPHICS_API_D3D12 &&
-      FAILED(_timer->EndD3D12Frame()) &&
+  if (FAILED(_timer->EndD3D12Frame()) &&
       SUCCEEDED(_backend->RTGetDeviceRemovedReason())) {
     FATALERROR(this, "Failed to resolve D3D12 GPU counters");
   }
@@ -473,8 +425,6 @@ void Host::RTAfterPresent() {
 void Host::RTBeforeBackBufferChange() {
   _vrThreadId = GetCurrentThreadId();
   _backBufferInfo = {};
-  _backBuffer.Clear();
-  _depthStencilBuffer.Clear();
   if (_module) {
     LOG("Calling module RTBeforeBackBufferChange...", MGDF_LOG_MEDIUM);
     if (!_module->RTBeforeBackBufferChange(RenderHost())) {
@@ -483,34 +433,14 @@ void Host::RTBeforeBackBufferChange() {
   }
 }
 
-void Host::RTBackBufferChange(IRenderBackend &backend) {
+void Host::RTBackBufferChange(D3D12RenderBackend &backend) {
   _vrThreadId = GetCurrentThreadId();
   _backBufferInfo = backend.RTGetBackBufferInfo();
-  _backBuffer = backend.RTGetBackBuffer().As<ID3D11Texture2D>();
-  _depthStencilBuffer = backend.RTGetDepthStencilBuffer().As<ID3D11Texture2D>();
   if (_module) {
     LOG("Calling module RTBackBufferChange...", MGDF_LOG_MEDIUM);
     if (!_module->RTBackBufferChange(RenderHost())) {
       FATALERROR(this, "Error handling back buffer change in module");
     }
-  }
-}
-
-void Host::GetBackBuffer(ID3D11Texture2D **backBuffer) {
-  _backBuffer.AddRawRef(backBuffer);
-}
-
-void Host::GetDepthStencilBuffer(ID3D11Texture2D **stencilBuffer) {
-  _depthStencilBuffer.AddRawRef(stencilBuffer);
-}
-
-void Host::GetBackBufferDescription(D3D11_TEXTURE2D_DESC *backBufferDesc,
-                                    D3D11_TEXTURE2D_DESC *depthStencilDesc) {
-  if (backBufferDesc) {
-    _backBuffer->GetDesc(backBufferDesc);
-  }
-  if (depthStencilDesc) {
-    _depthStencilBuffer->GetDesc(depthStencilDesc);
   }
 }
 
@@ -530,19 +460,9 @@ HRESULT Host::GetVREyeTarget(UINT32 index, ID3D12Resource **target) {
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;
   if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
-  ComObject<IUnknown> resource;
+  ComObject<ID3D12Resource> resource;
   const auto result = _backend->VR().GetTarget(index, resource);
-  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
-  return result;
-}
-HRESULT Host::GetVREyeTarget(UINT32 index, ID3D11Texture2D **target) {
-  if (!target) return E_INVALIDARG;
-  *target = nullptr;
-  if (index >= 2) return E_INVALIDARG;
-  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
-  ComObject<IUnknown> resource;
-  const auto result = _backend->VR().GetTarget(index, resource);
-  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
+  if (result == S_OK) resource.AddRawRef(target);
   return result;
 }
 
@@ -569,34 +489,14 @@ HRESULT Host::SetVRPanel(const MGDFVRPanel *panel) {
   return RTCanCallVR() ? _backend->VR().SetVRPanel(panel)
                        : E_ILLEGAL_METHOD_CALL;
 }
-HRESULT Host::GetVREyeDepthTarget(UINT32 index, ID3D11Texture2D **target) {
-  if (!target) return E_INVALIDARG;
-  *target = nullptr;
-  if (index >= 2) return E_INVALIDARG;
-  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
-  ComObject<IUnknown> resource;
-  const auto result = _backend->VR().GetDepthTarget(index, resource);
-  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
-  return result;
-}
-HRESULT Host::GetVRPanelTarget(ID3D11Texture2D **target) {
-  if (!target) return E_INVALIDARG;
-  *target = nullptr;
-
-  if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
-  ComObject<IUnknown> resource;
-  const auto result = _backend->VR().GetPanelTarget(resource);
-  if (result == S_OK) resource.As<ID3D11Texture2D>().AddRawRef(target);
-  return result;
-}
 HRESULT Host::GetVREyeDepthTarget(UINT32 index, ID3D12Resource **target) {
   if (!target) return E_INVALIDARG;
   *target = nullptr;
   if (index >= 2) return E_INVALIDARG;
   if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
-  ComObject<IUnknown> resource;
+  ComObject<ID3D12Resource> resource;
   const auto result = _backend->VR().GetDepthTarget(index, resource);
-  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
+  if (result == S_OK) resource.AddRawRef(target);
   return result;
 }
 HRESULT Host::GetVRPanelTarget(ID3D12Resource **target) {
@@ -604,9 +504,9 @@ HRESULT Host::GetVRPanelTarget(ID3D12Resource **target) {
   *target = nullptr;
 
   if (!RTCanCallVR(true)) return E_ILLEGAL_METHOD_CALL;
-  ComObject<IUnknown> resource;
+  ComObject<ID3D12Resource> resource;
   const auto result = _backend->VR().GetPanelTarget(resource);
-  if (result == S_OK) resource.As<ID3D12Resource>().AddRawRef(target);
+  if (result == S_OK) resource.AddRawRef(target);
   return result;
 }
 
@@ -624,11 +524,6 @@ HRESULT Host::SetHDRMetadata(const MGDFHDRMetadata *metadata) {
   const auto result = ToHDR10Metadata(*metadata, hdr10);
   if (SUCCEEDED(result)) _backend->RTSetHDRMetadata(hdr10);
   return result;
-}
-
-void Host::GetD3D11Device(ID3D11Device **device) {
-  std::lock_guard lock(_deviceMutex);
-  _d3dDevice.AddRawRef(device);
 }
 
 void Host::GetD3D12Device(ID3D12Device10 **device) {
@@ -764,12 +659,6 @@ void Host::ClearWorkingDirectory() {
 HRESULT Host::CreateCPUCounter(IMGDFMetric *metric,
                                IMGDFPerformanceCounter **counter) {
   return _timer->CreateCPUCounter(metric, counter);
-}
-
-HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
-                               ID3D11DeviceContext *context,
-                               IMGDFPerformanceCounter **counter) {
-  return _timer->CreateGPUCounter(metric, context, counter);
 }
 
 HRESULT Host::CreateCounterMetric(const small *name, const small *description,

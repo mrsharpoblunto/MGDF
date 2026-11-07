@@ -98,7 +98,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d11.lib;d3d12.lib;winmm.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d12.lib;winmm.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -129,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d11.lib;d3d12.lib;winmm.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);d3d12.lib;winmm.lib;dxgi.lib;XINPUT9_1_0.LIB;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -144,7 +144,6 @@
     <ClCompile Include="OpenXRTests.cpp" />
     <ClCompile Include="OpenXRIntegrationTests.cpp" />
     <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
-    <ClCompile Include="..\..\src\core\MGDFD3D11RenderBackend.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
     <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />

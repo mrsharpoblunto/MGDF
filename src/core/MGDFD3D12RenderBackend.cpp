@@ -141,7 +141,8 @@ bool D3D12RenderBackend::RTStartVR() {
                 (depth ? D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL
                        : D3D12_FORMAT_SUPPORT1_RENDER_TARGET));
       },
-      [](XrSwapchain swapchain, std::vector<ComObject<IUnknown>> &resources) {
+      [](XrSwapchain swapchain,
+         std::vector<ComObject<ID3D12Resource>> &resources) {
         uint32_t count = 0;
         auto result = xrEnumerateSwapchainImages(swapchain, 0, &count, nullptr);
         if (XR_FAILED(result)) return result;
@@ -153,7 +154,7 @@ bool D3D12RenderBackend::RTStartVR() {
         if (XR_SUCCEEDED(result)) {
           resources.clear();
           for (const auto &image : images)
-            resources.push_back(MakeComFromPtr<IUnknown>(image.texture));
+            resources.push_back(MakeComFromPtr<ID3D12Resource>(image.texture));
         }
         return result;
       },
@@ -633,11 +634,7 @@ HRESULT D3D12RenderBackend::RTGetDeviceRemovedReason() const {
 bool D3D12RenderBackend::RTIsInitialized() const {
   return static_cast<bool>(_device);
 }
-ComObject<IUnknown> D3D12RenderBackend::RTGetDevice() {
-  return _device.As<IUnknown>();
-}
-ComObject<IUnknown> D3D12RenderBackend::RTGetBackBuffer() { return {}; }
-ComObject<IUnknown> D3D12RenderBackend::RTGetDepthStencilBuffer() { return {}; }
+ComObject<ID3D12Device10> D3D12RenderBackend::RTGetDevice() { return _device; }
 ComObject<IDXGIAdapter> D3D12RenderBackend::RTGetAdapter() { return _adapter; }
 MGDFBackBufferInfo D3D12RenderBackend::RTGetBackBufferInfo() const {
   return {_swapDesc.Width, _swapDesc.Height, _swapDesc.Format, 1};

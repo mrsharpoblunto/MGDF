@@ -79,7 +79,6 @@ TEST(RenderSettings, AspectLockCommitsThroughTheSettingsInterface) {
 
 TEST(RenderSettings, ResetUsesExclusiveModeOrTheActualWindowSize) {
   auto settings = MakeCom<RenderSettingsManager>();
-  settings->InitD3D12();
   const MGDFDisplayMode mode{1280, 720, 60, 1, FALSE, FALSE};
   settings->SetOutputProperties({.Width = 1920, .Height = 1080}, 96, {mode});
   DXGI_SWAP_CHAIN_DESC1 swap{};
@@ -125,7 +124,6 @@ TEST(RenderSettings, HDRFormatSelectsTheHDRBackBufferAndColorSpace) {
     SCOPED_TRACE(c.Format);
     auto settings = MakeCom<RenderSettingsManager>();
     settings->SetHDRFormat(c.Format);
-    settings->InitD3D12();
     const MGDFDisplayMode mode{1280, 720, 60, 1, c.OutputHDR, FALSE};
     settings->SetOutputProperties(
         {.SupportsHDR = c.OutputHDR, .Width = 1280, .Height = 720}, 96, {mode});
@@ -227,7 +225,6 @@ TEST(RenderSettings, FrameAndRayTracingPreferencesPersistWithinSupport) {
       .RayTracing = true};
   const auto create = [&](const GraphicsSupport &support) {
     auto settings = MakeCom<RenderSettingsManager>();
-    settings->InitD3D12();
     settings->SetOutputProperties({}, 96, {mode});
     settings->SetGraphicsSupport(support);
     return settings;

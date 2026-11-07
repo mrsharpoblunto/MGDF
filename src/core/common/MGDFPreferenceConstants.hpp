@@ -11,7 +11,6 @@ namespace core {
 class PreferenceConstants {
  public:
   static const char *VR;
-  static const char *GRAPHICS_API;
   static const char *SCREEN_X;
   static const char *SCREEN_Y;
   static const char *MUSIC_VOLUME;
@@ -20,8 +19,6 @@ class PreferenceConstants {
   static const char *RENDER_FPS;
   static const char *FULL_SCREEN;
   static const char *FULL_SCREEN_EXCLUSIVE;
-  static const char *MULTISAMPLE_LEVEL;
-  static const char *RT_MULTISAMPLE_LEVEL;
   static const char *VSYNC;
   static const char *MAX_FRAME_LATENCY;
   static const char *WINDOW_RESIZE;

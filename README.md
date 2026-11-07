@@ -4,7 +4,7 @@ MGDF - Matchstick game development framework
 What is it
 ----------
 
-MGDF is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 10+ supported) easier. The framework uses DirectX 11 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
+MGDF is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 10+ supported) easier. The framework uses DirectX 12 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
 
 * MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game.
 * MGDF makes distributing games easier as it includes an auto update mechanism with full versioning support.

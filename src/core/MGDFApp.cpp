@@ -2,7 +2,6 @@
 
 #include "MGDFApp.hpp"
 
-#include "MGDFD3D11RenderBackend.hpp"
 #include "MGDFD3D12RenderBackend.hpp"
 #include "common/MGDFPreferenceConstants.hpp"
 #include "core.impl/MGDFGraphicsRequirements.hpp"
@@ -75,24 +74,16 @@ MGDFApp::~MGDFApp() {
   _host->RTShutDown();
 }
 
-std::unique_ptr<IRenderBackend> MGDFApp::CreateRenderBackend(
+std::unique_ptr<D3D12RenderBackend> MGDFApp::CreateRenderBackend(
     const ComObject<IDXGIFactory6> &factory) {
-  if (_host->GetGraphicsAPI() == MGDF_GRAPHICS_API_D3D12) {
-    return std::make_unique<D3D12RenderBackend>(
-        factory, _host->GetGraphicsRequirements(),
-        [this](const char *sender, const char *message) {
-          FatalError(sender, message);
-        });
-  }
-  return std::make_unique<D3D11RenderBackend>(
-      factory,
-      GetD3D11FeatureLevels(_host->GetGraphicsRequirements().MinFeatureLevel),
+  return std::make_unique<D3D12RenderBackend>(
+      factory, _host->GetGraphicsRequirements(),
       [this](const char *sender, const char *message) {
         FatalError(sender, message);
       });
 }
 
-void MGDFApp::RTOnInitDevice(IRenderBackend &backend) {
+void MGDFApp::RTOnInitDevice(D3D12RenderBackend &backend) {
   _host->RTSetDevices(backend);
 }
 
@@ -195,7 +186,7 @@ void MGDFApp::RTOnBeforeBackBufferChange() {
   _host->RTBeforeBackBufferChange();
 }
 
-void MGDFApp::RTOnBackBufferChange(IRenderBackend &backend) {
+void MGDFApp::RTOnBackBufferChange(D3D12RenderBackend &backend) {
   _host->RTBackBufferChange(backend);
 }
 

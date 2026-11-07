@@ -34,8 +34,8 @@ class OpenXR {
  public:
   using RequirementsQuery = std::function<XrResult(
       XrInstance, XrSystemId, OpenXRGraphicsRequirements &)>;
-  using ImageQuery =
-      std::function<XrResult(XrSwapchain, std::vector<ComObject<IUnknown>> &)>;
+  using ImageQuery = std::function<XrResult(
+      XrSwapchain, std::vector<ComObject<ID3D12Resource>> &)>;
   OpenXR() = default;
   OpenXR(const OpenXR &) = delete;
   OpenXR &operator=(const OpenXR &) = delete;
@@ -68,16 +68,16 @@ class OpenXR {
   }
   UINT32 ViewCount() const { return _viewCount; }
   MGDFVREye View(UINT32 index) const;
-  ComObject<IUnknown> Target(UINT32 index) const;
+  ComObject<ID3D12Resource> Target(UINT32 index) const;
   HRESULT GetVRFrame(MGDFVRFrame *frame, bool eyeFrame = true) const;
-  HRESULT GetTarget(UINT32 index, ComObject<IUnknown> &target) const;
+  HRESULT GetTarget(UINT32 index, ComObject<ID3D12Resource> &target) const;
 
   HRESULT GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
                        UINT32 *indexCount, UINT32 *indices) const;
-  HRESULT GetDepthTarget(UINT32 index, ComObject<IUnknown> &target) const;
+  HRESULT GetDepthTarget(UINT32 index, ComObject<ID3D12Resource> &target) const;
   HRESULT SetVREyeDepthRange(UINT32 index, float nearZ, float farZ);
   HRESULT SetVRPanel(const MGDFVRPanel *panel);
-  HRESULT GetPanelTarget(ComObject<IUnknown> &target) const;
+  HRESULT GetPanelTarget(ComObject<ID3D12Resource> &target) const;
 
   void SetInputState(std::shared_ptr<VRInputState> input) {
     _input = std::move(input);
@@ -134,7 +134,7 @@ class OpenXR {
   void ReleaseImages();
   struct ImageSet {
     XrSwapchain Swapchain = XR_NULL_HANDLE;
-    std::vector<ComObject<IUnknown>> Images;
+    std::vector<ComObject<ID3D12Resource>> Images;
     uint32_t Image = 0;
     bool Acquired = false;
     bool Waited = false;

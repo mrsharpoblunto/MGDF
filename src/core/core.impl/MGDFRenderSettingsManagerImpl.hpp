@@ -1,8 +1,6 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
-#include <d3d11.h>
-#include <d3d11_1.h>
 
 #include <MGDF/ComObject.hpp>
 #include <atomic>
@@ -28,8 +26,6 @@ class PendingRenderSettingsChange
   void __stdcall SetMaxFrameLatency(UINT32 frames) final;
   void __stdcall SetVSync(BOOL vsync) final;
   void __stdcall SetFullscreen(const MGDFFullScreenDesc *fullscreen) final;
-  BOOL __stdcall SetBackBufferMultiSampleLevel(UINT32 multisampleLevel) final;
-  BOOL __stdcall SetCurrentMultiSampleLevel(UINT32 multisampleLevel) final;
   BOOL __stdcall SetCurrentPrimaryDisplayMode(
       const MGDFDisplayMode *mode) final;
   void __stdcall SetWindowSize(UINT32 width, UINT32 height) final;
@@ -50,8 +46,6 @@ class PendingRenderSettingsChange
   std::optional<BOOL> _newWindowAspectLock;
   std::optional<UINT32> _newMaxFrameLatency;
   std::optional<BOOL> _newVsync;
-  std::optional<UINT32> _newBackBufferMultiSampleLevel;
-  std::optional<UINT32> _newCurrentMultiSampleLevel;
   std::optional<MGDFFullScreenDesc> _newFullscreen;
   std::optional<BOOL> _newHDREnabled;
   std::optional<MGDFDisplayMode> _newPrimaryDisplayMode;
@@ -72,10 +66,6 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   UINT32 __stdcall GetMaxFrameLatency() final;
   BOOL __stdcall GetVSync() final;
   void __stdcall GetFullscreen(MGDFFullScreenDesc *desc) final;
-  UINT64 __stdcall GetMultiSampleLevelCount() final;
-  BOOL __stdcall GetMultiSampleLevel(UINT64 index, UINT32 *level) final;
-  UINT32 __stdcall GetBackBufferMultiSampleLevel() final;
-  UINT32 __stdcall GetCurrentMultiSampleLevel(UINT32 *quality) final;
   UINT64 __stdcall GetPrimaryDisplayModeCount() final;
   BOOL __stdcall GetPrimaryDisplayMode(UINT64 index,
                                        MGDFDisplayMode *mode) final;
@@ -109,18 +99,16 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   BOOL __stdcall GetRayTracing() final;
   BOOL __stdcall GetVRSupport() final;
   BOOL __stdcall GetVR() final;
-  void InitVR(bool moduleVR, MGDFGraphicsAPI api, bool saved, bool commandLine);
+  void InitVR(bool moduleVR, bool saved, bool commandLine);
   std::optional<bool> TakeVRRequest();
   void SetVRState(bool active);
   std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
   // Call after each device creation. Clamps the settings to the support.
   void SetGraphicsSupport(GraphicsSupport support);
-  // Call before InitFromDevice.
+  // Call before device initialization.
   void SetHDRFormat(MGDFHDRFormat format);
 
   void LoadPreferences(const ComObject<IMGDFGame> &game);
-  void InitFromDevice(const ComObject<ID3D11Device> &d3dDevice);
-  void InitD3D12();
   bool IsBackBufferChangePending();
   void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &desc,
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
@@ -131,7 +119,6 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
                            const std::vector<MGDFDisplayMode> &primaryModes);
 
  private:
-  void Cleanup();
   void ClampToSupportLocked();
   MGDFDisplayMode GetBestAlternativeDisplayMode();
 
@@ -143,10 +130,6 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   std::vector<MGDFDisplayMode> _primaryDisplayModes;
   MGDFDisplayMode _primaryDisplayMode;
 
-  std::vector<UINT32> _multiSampleLevels;
-  std::map<UINT32, UINT32> _multiSampleQuality;
-  UINT32 _currentMultiSampleLevel;
-  UINT32 _backBufferMultiSampleLevel;
   DXGI_FORMAT _sdrBackBufferFormat;
   DXGI_FORMAT _hdrBackBufferFormat;
   DXGI_COLOR_SPACE_TYPE _hdrColorSpace;

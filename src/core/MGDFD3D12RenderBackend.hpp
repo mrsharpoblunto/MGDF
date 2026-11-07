@@ -6,52 +6,85 @@
 #include <functional>
 
 #include "MGDFD3D12FrameState.hpp"
-#include "MGDFRenderBackend.hpp"
+#include "core.impl/MGDFOpenXR.hpp"
+#include "core.impl/MGDFStreamline.hpp"
 
 namespace MGDF {
 namespace core {
 
-class D3D12RenderBackend : public IRenderBackend {
+// ResizeBuffers does not keep the color space, so call this after each create
+// and resize. Use the native swap chain: Streamline does not hook these calls.
+inline bool SetSwapChainColorSpace(IDXGISwapChain3 *swapChain,
+                                   DXGI_COLOR_SPACE_TYPE colorSpace) {
+  UINT support = 0;
+  return SUCCEEDED(swapChain->CheckColorSpaceSupport(colorSpace, &support)) &&
+         (support & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) &&
+         SUCCEEDED(swapChain->SetColorSpace1(colorSpace));
+}
+
+// HDR10 metadata describes PQ content, so other color spaces get none
+// (S_FALSE). Use the native swap chain.
+inline HRESULT SetSwapChainHDRMetadata(
+    IDXGISwapChain3 *swapChain, DXGI_COLOR_SPACE_TYPE colorSpace,
+    std::optional<DXGI_HDR_METADATA_HDR10> metadata) {
+  if (colorSpace != DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020) return S_FALSE;
+  ComObject<IDXGISwapChain4> chain;
+  if (FAILED(swapChain->QueryInterface(IID_PPV_ARGS(chain.Assign()))))
+    return E_NOINTERFACE;
+  return metadata
+             ? chain->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10,
+                                     sizeof(*metadata), &*metadata)
+             : chain->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_NONE, 0, nullptr);
+}
+
+class D3D12RenderBackend {
  public:
+  OpenXR &VR() { return _vr; }
+  bool RTMatchesVRAdapter() {
+    const auto adapter = RTGetAdapter();
+    DXGI_ADAPTER_DESC desc{};
+    if (!adapter || FAILED(adapter->GetDesc(&desc))) return false;
+    const auto luid = _vr.Requirements().Adapter;
+    return luid.LowPart == desc.AdapterLuid.LowPart &&
+           luid.HighPart == desc.AdapterLuid.HighPart;
+  }
+
   D3D12RenderBackend(
       const ComObject<IDXGIFactory6> &factory,
       const MGDFGraphicsRequirements &requirements,
       std::function<void(const char *, const char *)> fatalError,
       bool allowSoftwareAdapter = false,
       std::optional<std::wstring> streamlineDirectory = std::nullopt);
-  bool RTPrepareVR(const char *applicationName) final;
-  bool RTStartVR() final;
-  bool RTInit() final;
-  bool RTIsInitialized() const final;
-  void RTUninit(bool exclusiveMode) final;
+  bool RTPrepareVR(const char *applicationName);
+  bool RTStartVR();
+  bool RTInit();
+  bool RTIsInitialized() const;
+  void RTUninit(bool exclusiveMode);
   void RTCreateSwapChain(HWND window, const DXGI_SWAP_CHAIN_DESC1 &desc,
                          DXGI_COLOR_SPACE_TYPE colorSpace,
                          std::optional<UINT> maxFrameLatency,
-                         UINT32 generatedFrames) final;
-  HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc) final;
-  void RTSetHDRMetadata(
-      const std::optional<DXGI_HDR_METADATA_HDR10> &metadata) final;
-  bool RTSetExclusiveFullscreen() final;
-  void RTSetWindowed() final;
-  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency,
-                      bool headsetPaced = false) final;
-  void RTWaitForGpuIdle() final;
-  void RTClear() final;
-  HRESULT RTPresent(UINT syncInterval, UINT flags) final;
-  HRESULT RTEndFrame() final;
-  HRESULT RTGetDeviceRemovedReason() const final;
-  ComObject<IUnknown> RTGetDevice() final;
-  ComObject<IUnknown> RTGetBackBuffer() final;
-  ComObject<IUnknown> RTGetDepthStencilBuffer() final;
-  ComObject<IDXGIAdapter> RTGetAdapter() final;
-  MGDFBackBufferInfo RTGetBackBufferInfo() const final;
-  ComObject<ID3D12CommandQueue> RTGetQueue(D3D12_COMMAND_LIST_TYPE type) final;
-  ComObject<ID3D12Fence> RTGetFrameFence() final;
-  MGDFFrameInfo RTGetCurrentFrame() const final;
-  Streamline *GetStreamline() final;
-  GraphicsSupport RTGetGraphicsSupport() const final;
+                         UINT32 generatedFrames);
+  HRESULT RTResizeBackBuffer(const DXGI_SWAP_CHAIN_DESC1 &desc);
+  void RTSetHDRMetadata(const std::optional<DXGI_HDR_METADATA_HDR10> &metadata);
+  bool RTSetExclusiveFullscreen();
+  void RTSetWindowed();
+  bool RTWaitForFrame(MGDFLowLatencyMode lowLatency, bool headsetPaced = false);
+  void RTWaitForGpuIdle();
+  void RTClear();
+  HRESULT RTPresent(UINT syncInterval, UINT flags);
+  HRESULT RTEndFrame();
+  HRESULT RTGetDeviceRemovedReason() const;
+  ComObject<ID3D12Device10> RTGetDevice();
+  ComObject<IDXGIAdapter> RTGetAdapter();
+  MGDFBackBufferInfo RTGetBackBufferInfo() const;
+  ComObject<ID3D12CommandQueue> RTGetQueue(D3D12_COMMAND_LIST_TYPE type);
+  ComObject<ID3D12Fence> RTGetFrameFence();
+  MGDFFrameInfo RTGetCurrentFrame() const;
+  Streamline *GetStreamline();
+  GraphicsSupport RTGetGraphicsSupport() const;
 
  private:
+  OpenXR _vr;
   static constexpr UINT BackBufferCount = 3;
   ComObject<ID3D12Device10> RTTryCreateDevice(IDXGIAdapter *adapter);
   ComObject<ID3D12CommandQueue> RTCreateQueue(

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
-#include <d3d11.h>
 
 #include <MGDF/ComObject.hpp>
 #include <deque>
@@ -82,52 +81,6 @@ class CPUPerformanceCounter : public CounterBase {
   LARGE_INTEGER _frequency;
 };
 
-class GPUPerformanceCounter;
-
-class GPUPerformanceCounterScope
-    : public ComBase<IMGDFPerformanceCounterScope> {
- public:
-  GPUPerformanceCounterScope(ComObject<ID3D11DeviceContext> &context,
-                             ComObject<ID3D11Query> &endQuery)
-      : _context(context), _endQuery(endQuery) {}
-  virtual ~GPUPerformanceCounterScope();
-
- private:
-  ComObject<ID3D11DeviceContext> _context;
-  ComObject<ID3D11Query> _endQuery;
-};
-
-class GPUPerformanceCounter : public CounterBase {
- public:
-  virtual ~GPUPerformanceCounter();
-  GPUPerformanceCounter(IMGDFMetric *metric, Timer &timer);
-
-  HRESULT Init(const ComObject<ID3D11Device> &device,
-               ID3D11DeviceContext *context);
-  void Reset();
-  void DataReady(ID3D11Query *disjoint, UINT64 frequency);
-  void DataDisjoint(ID3D11Query *disjoint);
-  void SetDisjointQuery(ID3D11Query *disjoint);
-
- protected:
-  HRESULT DoBegin(std::map<std::string, std::string> &tags,
-                  IMGDFPerformanceCounterScope **scope) final;
-
- private:
-  struct ScopeMapping {
-    ComObject<ID3D11Query> Begin;
-    ComObject<ID3D11Query> End;
-    std::map<std::string, std::string> Tags;
-  };
-
-  std::unordered_map<ID3D11Query *, std::vector<ScopeMapping>> _pendingQueries;
-  std::stack<ComObject<ID3D11Query>> _beginQueries;
-  std::stack<ComObject<ID3D11Query>> _endQueries;
-  ID3D11Query *_currentDisjoint;
-  ComObject<ID3D11Device> _device;
-  ComObject<ID3D11DeviceContext> _context;
-};
-
 /**
 this class is used for timing
 */
@@ -144,8 +97,6 @@ class Timer : public ComBase<IMGDFTimer> {
 
   HRESULT CreateCPUCounter(IMGDFMetric *metric,
                            IMGDFPerformanceCounter **counter);
-  HRESULT CreateGPUCounter(IMGDFMetric *metric, ID3D11DeviceContext *context,
-                           IMGDFPerformanceCounter **counter);
 
   HRESULT CreateGPUCounter(IMGDFMetric *metric, ID3D12GraphicsCommandList *list,
                            IMGDFPerformanceCounter **counter);
@@ -154,10 +105,6 @@ class Timer : public ComBase<IMGDFTimer> {
   void BeginD3D12Frame(const MGDFFrameInfo &frame);
   HRESULT EndD3D12Frame();
   void BeforeDeviceReset();
-  void InitFromDevice(const ComObject<ID3D11Device> &device, UINT32 bufferSize);
-
-  void Begin();
-  void End();
 
   void GetCounterSnapshots(std::vector<CounterSnapshot> &snapshots) const;
 
@@ -170,27 +117,16 @@ class Timer : public ComBase<IMGDFTimer> {
 
  private:
   HRESULT Init();
-  void ResetGPUTimers();
 
-  void RemoveInternal(GPUPerformanceCounter *counter);
   void RemoveInternal(CPUPerformanceCounter *counter);
 
   std::unique_ptr<D3D12CounterManager> _d3d12Counters;
-  ComObject<ID3D11Device> _device;
-  ComObject<ID3D11DeviceContext> _context;
   LARGE_INTEGER _freq;
 
-  std::deque<ComObject<ID3D11Query>> _pendingQueries;
-  std::vector<ComObject<ID3D11Query>> _disjointQueries;
-  ComObject<ID3D11Query> _currentQuery;
-
-  UINT32 _bufferSize;
   UINT32 _maxSamples;
-  bool _gpuTimersSupported;
 
   mutable std::mutex _mutex;
   std::set<CPUPerformanceCounter *> _cpuCounters;
-  std::set<GPUPerformanceCounter *> _gpuCounters;
 };  // namespace core
 
 }  // namespace core

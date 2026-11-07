@@ -114,7 +114,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(OpenXRLoaderLibrary);bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);bcrypt.lib;XINPUT9_1_0.LIB;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -166,7 +166,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(OpenXRLoaderLibrary);bcrypt.lib;XINPUT9_1_0.LIB;d3d11.lib;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OpenXRLoaderLibrary);bcrypt.lib;XINPUT9_1_0.LIB;d3d12.lib;dxgi.lib;winmm.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -183,8 +183,6 @@
     <ClInclude Include="..\..\include\MGDF\MGDF.h" />
     <ClInclude Include="MGDFApp.hpp" />
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
-    <ClInclude Include="MGDFRenderBackend.hpp" />
-    <ClInclude Include="MGDFD3D11RenderBackend.hpp" />
     <ClInclude Include="MGDFD3D12RenderBackend.hpp" />
     <ClInclude Include="MGDFD3D12FrameState.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
@@ -195,7 +193,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MGDFApp.cpp" />
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
-    <ClCompile Include="MGDFD3D11RenderBackend.cpp" />
     <ClCompile Include="MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
     <ClCompile Include="StdAfx.cpp">

@@ -87,39 +87,22 @@ TestModule &TestModule::StepOnce(
 Module::~Module(void) {}
 
 Module::Module()
-    : _finalResult(false),
-      _results({0, 0}),
-      _textManagerCounter(nullptr),
-      _testModuleCounter(nullptr),
-      _textManager(nullptr),
-      _draggingScrollbar(false),
-      _wheelAccumulator(0) {
+    : _finalResult(false), _results({0, 0}), _testModuleCounter(nullptr) {
   _stateBuffer.Pending()->Text.AddLine("MGDF functional test suite started");
 }
 
 BOOL Module::STNew(IMGDFSimHost *host) {
   auto commonHost = MakeComFromPtr<IMGDFSimHost>(host).As<IMGDFCommonHost>();
   if (!commonHost) return false;
-  const auto api = commonHost->GetGraphicsAPI();
-  auto d3d11Host = commonHost.As<IMGDFD3D11Host>();
-  auto d3d12Host = commonHost.As<IMGDFD3D12Host>();
-  if ((api == MGDF_GRAPHICS_API_D3D11 && (!d3d11Host || d3d12Host)) ||
-      (api == MGDF_GRAPHICS_API_D3D12 && (!d3d12Host || d3d11Host)))
-    return false;
   auto simHost = commonHost.As<IMGDFSimHost>();
   if (!simHost) return false;
   ComObject<IMGDFGame> game;
   simHost->GetGame(game.Assign());
   if (!game) return false;
-  if (d3d11Host) {
-    ComObject<ID3D11Device> device;
-    d3d11Host->GetD3D11Device(device.Assign());
-    if (!device) return false;
-  } else {
-    ComObject<ID3D12Device10> device;
-    d3d12Host->GetD3D12Device(device.Assign());
-    if (!device) return false;
-  }
+  ComObject<ID3D12Device10> device;
+  commonHost->GetD3D12Device(device.Assign());
+  if (!device) return false;
+
   // mirror all test output into the MGDF log so that test results and
   // failure details are available in the core log after a run
   TextManagerState::LogSink = [host](const std::string &line) {
@@ -246,35 +229,8 @@ BOOL Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {
       state->Text.AddLine("");
     }
 
-    // mousewheel scrolling of the test output
-    const UINT32 screenX = _renderSettings->GetScreenX();
-    const UINT32 screenY = _renderSettings->GetScreenY();
-    _wheelAccumulator += _input->GetMouseDZ();
-    const INT32 wheelLines = (_wheelAccumulator * 3) / WHEEL_DELTA;
-    if (wheelLines) {
-      _wheelAccumulator -= (wheelLines * WHEEL_DELTA) / 3;
-      state->Text.Scroll(wheelLines, screenY);
-    }
-
-    // dragging the scrollbar on the right of the screen
-    if (_input->IsButtonDown(MGDF_MOUSE_LEFT)) {
-      // use a slightly wider hit area than the rendered scrollbar to make
-      // it easier to grab
-      const INT32 hitArea = static_cast<INT32>(
-          static_cast<float>(screenX) - 2 * TextManagerState::SCROLLBAR_WIDTH);
-      if (_draggingScrollbar || _input->GetMouseX() >= hitArea) {
-        _draggingScrollbar = true;
-        state->Text.SetScroll(static_cast<float>(_input->GetMouseY()), screenY);
-      }
-    } else {
-      _draggingScrollbar = false;
-    }
-
     if (_input->IsKeyPress(VK_ESCAPE)) {
       host->QueueShutDown();
-    }
-    if (_input->IsKeyDown(VK_MENU) && _input->IsKeyPress(VK_F12)) {
-      state->Text.ToggleOverlay();
     }
   }
 
@@ -288,52 +244,15 @@ void Module::STShutDown(IMGDFSimHost *host) {
 }
 
 BOOL Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
-  if (host->GetGraphicsAPI() == MGDF_GRAPHICS_API_D3D12) return InitD3D12(host);
-  _textManager = std::make_unique<TextManager>(host);
-  ComObject<ID3D11Device> device;
-  auto d3d11Host = MakeComFromPtr<IMGDFRenderHost>(host).As<IMGDFD3D11Host>();
-  auto d3d11RenderHost =
-      MakeComFromPtr<IMGDFRenderHost>(host).As<IMGDFD3D11RenderHost>();
-  if (!d3d11Host || !d3d11RenderHost) return false;
-  d3d11Host->GetD3D11Device(device.Assign());
-  MGDFBackBufferInfo info{};
-  host->GetBackBufferInfo(&info);
-  D3D11_TEXTURE2D_DESC desc{};
-  d3d11RenderHost->GetBackBufferDescription(&desc, nullptr);
-  if (info.Width != desc.Width || info.Height != desc.Height ||
-      info.Format != desc.Format || info.SampleCount != desc.SampleDesc.Count ||
-      !info.Width || !info.Height)
-    return false;
-  ComObject<ID3D11DeviceContext> context;
-  device->GetImmediateContext(context.Assign());
-  ComObject<IMGDFMetric> gauge;
-  host->CreateGaugeMetric("text_rendering", "Text rendering time",
-                          gauge.Assign());
-  d3d11RenderHost->CreateGPUCounter(gauge, context,
-                                    _textManagerCounter.Assign());
-  return true;
+  return InitD3D12(host);
 }
 
 BOOL Module::RTDraw(IMGDFRenderHost *host, double alpha) {
-  std::ignore = host;
   if (_awaitingPresent) return false;
   _awaitingPresent = true;
-  if (host->GetGraphicsAPI() == MGDF_GRAPHICS_API_D3D12) {
-    if (!_vrTest && _presentedFrames && _presentedFrames % 240 == 0)
-      return false;
-    if (!DrawD3D12(host, alpha))
-      host->FatalError("TestModule", "D3D12 frame validation failed");
-    return true;
-  }
-  if (_vrTest) return DrawVRD3D11(host);
-  std::shared_ptr<TestState> state = _stateBuffer.Interpolate(alpha);
-  if (state) {
-    ComObject<IMGDFPerformanceCounterScope> counter;
-    if (_textManagerCounter)
-      _textManagerCounter->Begin(nullptr, counter.Assign());
-    _textManager->SetState(state->Text);
-    _textManager->DrawText();
-  }
+  if (!_vrTest && _presentedFrames && _presentedFrames % 240 == 0) return false;
+  if (!DrawD3D12(host, alpha))
+    host->FatalError("TestModule", "D3D12 frame validation failed");
   return true;
 }
 
@@ -344,7 +263,6 @@ BOOL Module::RTBackBufferChange(IMGDFRenderHost *host) {
                             0.7f, 0.35f, MGDF_VR_SPACE_VIEW};
     host->SetVRPanel(&panel);
   }
-  if (_textManager) _textManager->BackBufferChange();
   return true;
 }
 
@@ -375,25 +293,19 @@ void Module::RTAfterPresent(IMGDFRenderHost *host) {
                        "GPU counter missing from overlay snapshot");
   }
   if (++_presentedFrames == 1) {
-    host->Log(
-        "TestModule",
-        host->GetGraphicsAPI() == MGDF_GRAPHICS_API_D3D12
-            ? "D3D12 host interfaces, frame slots and RTAfterPresent verified"
-            : "D3D11 host interfaces and RTAfterPresent verified",
-        MGDF_LOG_LOW);
+    host->Log("TestModule",
+              "D3D12 host interfaces, frame slots and RTAfterPresent verified",
+              MGDF_LOG_LOW);
   }
 }
 
 BOOL Module::RTBeforeBackBufferChange(IMGDFRenderHost *host) {
   std::ignore = host;
-  if (_textManager) _textManager->BeforeBackBufferChange();
   return true;
 }
 
 BOOL Module::RTBeforeDeviceReset(IMGDFRenderHost *host) {
   std::ignore = host;
-  if (_textManager) _textManager->BeforeDeviceReset();
-  _textManagerCounter.Clear();
   ReleaseD3D12();
   host->QueueDeviceReset();
   return true;
@@ -406,23 +318,16 @@ BOOL Module::RTDeviceReset(IMGDFRenderHost *host) {
 
 void Module::RTShutDown(IMGDFRenderHost *host) {
   std::ignore = host;
-  _textManagerCounter.Clear();
-  _textManager.reset();
   ReleaseD3D12();
 }
 
 bool Module::InitD3D12(IMGDFRenderHost *host) {
-  auto common = MakeComFromPtr<IMGDFRenderHost>(host);
-  auto deviceHost = common.As<IMGDFD3D12Host>();
-  auto renderHost = common.As<IMGDFD3D12RenderHost>();
-  if (!deviceHost || !renderHost || common.As<IMGDFD3D11RenderHost>())
-    return false;
-  deviceHost->GetD3D12Device(_d3d12Device.Assign());
-  deviceHost->GetDirectQueue(_directQueue.Assign());
-  renderHost->GetFrameFence(_frameFence.Assign());
+  host->GetD3D12Device(_d3d12Device.Assign());
+  host->GetDirectQueue(_directQueue.Assign());
+  host->GetFrameFence(_frameFence.Assign());
   ComObject<ID3D12CommandQueue> compute, copy;
-  deviceHost->GetComputeQueue(compute.Assign());
-  deviceHost->GetCopyQueue(copy.Assign());
+  host->GetComputeQueue(compute.Assign());
+  host->GetCopyQueue(copy.Assign());
   if (!_d3d12Device || !_directQueue || !_frameFence || !compute || !copy)
     return false;
   const D3D12_DESCRIPTOR_HEAP_DESC heap{.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -442,7 +347,7 @@ bool Module::InitD3D12(IMGDFRenderHost *host) {
             type, IID_PPV_ARGS(allocator.Assign()))) ||
         FAILED(_d3d12Device->CreateCommandList(0, type, allocator, nullptr,
                                                IID_PPV_ARGS(list.Assign()))) ||
-        renderHost->CreateGPUCounter(metric, list, rejected.Assign()) !=
+        host->CreateGPUCounter(metric, list, rejected.Assign()) !=
             E_INVALIDARG ||
         rejected || FAILED(list->Close()))
       return false;
@@ -456,18 +361,16 @@ bool Module::InitD3D12(IMGDFRenderHost *host) {
             IID_PPV_ARGS(_allocators[i].Assign()))) ||
         FAILED(_lists[i].Create(_d3d12Device, _allocators[i])) ||
         FAILED(_lists[i].Close()) ||
-        FAILED(renderHost->CreateGPUCounter(metric, _lists[i].Get(),
-                                            _gpuCounters[i].Assign())))
+        FAILED(host->CreateGPUCounter(metric, _lists[i].Get(),
+                                      _gpuCounters[i].Assign())))
       return false;
   }
   return true;
 }
 
 bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
-  auto renderHost =
-      MakeComFromPtr<IMGDFRenderHost>(host).As<IMGDFD3D12RenderHost>();
   MGDFFrameInfo frame{};
-  renderHost->GetCurrentFrame(&frame);
+  host->GetCurrentFrame(&frame);
   const UINT slot = frame.FrameSlot;
   if (frame.FramesInFlight != _lists.size() || slot >= _lists.size() ||
       slot != frame.FrameOrdinal % frame.FramesInFlight ||
@@ -500,8 +403,7 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
     for (UINT32 eye = 0; eye < vr.EyeCount; ++eye) {
       ComObject<ID3D12Resource> target;
       const auto &view = vr.Eyes[eye];
-      if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK)
-        return false;
+      if (host->GetVREyeTarget(eye, target.Assign()) != S_OK) return false;
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + eye) *
                  _d3d12Device->GetDescriptorHandleIncrementSize(
@@ -515,7 +417,7 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
       if (!eye) _leftEyeColor = eyeColor;
     }
     ComObject<ID3D12Resource> panel;
-    if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
+    if (host->GetVRPanelTarget(panel.Assign()) == S_OK) {
       const auto &view = vr.Eyes[0];
       auto rtv = _eyeRTVs->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += (static_cast<SIZE_T>(slot) * 3 + 2) *
@@ -556,49 +458,6 @@ void Module::ReleaseD3D12() {
   _directQueue.Clear();
   _d3d12Device.Clear();
   _slotFences = {};
-}
-
-bool Module::DrawVRD3D11(IMGDFRenderHost *host) {
-  auto common = MakeComFromPtr<IMGDFRenderHost>(host);
-  const auto renderHost = common.As<IMGDFD3D11RenderHost>();
-  ComObject<ID3D11Device> device;
-  common.As<IMGDFD3D11Host>()->GetD3D11Device(device.Assign());
-  ComObject<ID3D11DeviceContext> context;
-  device->GetImmediateContext(context.Assign());
-  MGDFVRFrame vr{};
-  host->GetVRFrame(&vr);
-  for (UINT32 eye = 0; eye < vr.EyeCount; ++eye) {
-    ComObject<ID3D11Texture2D> target;
-    const auto &view = vr.Eyes[eye];
-    if (renderHost->GetVREyeTarget(eye, target.Assign()) != S_OK) return false;
-    const D3D11_RENDER_TARGET_VIEW_DESC desc{
-        .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
-    ComObject<ID3D11RenderTargetView> rtv;
-    if (FAILED(device->CreateRenderTargetView(target, &desc, rtv.Assign())))
-      return false;
-    const auto color = EyeColor(view, eye);
-    context->ClearRenderTargetView(rtv, color.data());
-    if (!eye) _leftEyeColor = color;
-  }
-  ComObject<ID3D11Texture2D> panel;
-  if (renderHost->GetVRPanelTarget(panel.Assign()) == S_OK) {
-    const auto &view = vr.Eyes[0];
-    const D3D11_RENDER_TARGET_VIEW_DESC desc{
-        .Format = view.Format, .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D};
-    ComObject<ID3D11RenderTargetView> panelView;
-    if (FAILED(
-            device->CreateRenderTargetView(panel, &desc, panelView.Assign())))
-      return false;
-    const float panelColor[4]{0.08f, 0.4f, 0.16f, 0.8f};
-    context->ClearRenderTargetView(panelView, panelColor);
-  }
-  ComObject<ID3D11Texture2D> window;
-  renderHost->GetBackBuffer(window.Assign());
-  ComObject<ID3D11RenderTargetView> rtv;
-  if (FAILED(device->CreateRenderTargetView(window, nullptr, rtv.Assign())))
-    return false;
-  context->ClearRenderTargetView(rtv, _leftEyeColor.data());
-  return true;
 }
 
 void Module::Panic() {}

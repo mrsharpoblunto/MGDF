@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <numeric>
 
-#include "../../src/core/MGDFD3D11RenderBackend.hpp"
 #include "../../src/core/MGDFD3D12RenderBackend.hpp"
 #include "../../src/core/MGDFD3DAppFramework.hpp"
 #include "../../src/core/common/MGDFPreferenceSet.hpp"
@@ -95,15 +94,14 @@ LUID TestAdapter() {
 
 class FrameLoop final : public D3DAppFramework {
  public:
-  FrameLoop(MGDFGraphicsAPI api, bool moduleVR, bool saved = false)
+  FrameLoop(bool moduleVR, bool saved = false)
       : D3DAppFramework(GetModuleHandleW(nullptr)),
-        API(api),
         Settings(MakeCom<RenderSettingsManager>()) {
     // OpenXR lifecycle tests do not need the separate vendor upscaler runtime.
     _pluginDirectory = std::filesystem::temp_directory_path() /
                        ("mgdf-openxr-" + std::to_string(GetCurrentProcessId()));
     std::filesystem::create_directories(_pluginDirectory);
-    Settings->InitVR(moduleVR, api, saved, false);
+    Settings->InitVR(moduleVR, saved, false);
   }
   ~FrameLoop() {
     RTWaitForGpuIdle();
@@ -123,9 +121,8 @@ class FrameLoop final : public D3DAppFramework {
   }
   std::function<bool(FrameLoop &)> Step;
   std::string ApplicationName = "MGDF OpenXR integration test";
-  IRenderBackend *Backend = nullptr;
+  D3D12RenderBackend *Backend = nullptr;
   ComObject<input::IInputManagerComponent> Input;
-  const MGDFGraphicsAPI API;
   ComObject<RenderSettingsManager> Settings;
   std::vector<UINT32> Views;
   UINT32 DeviceResets = 0;
@@ -138,20 +135,15 @@ class FrameLoop final : public D3DAppFramework {
   const char *RTGetApplicationName() const override {
     return ApplicationName.c_str();
   }
-  std::unique_ptr<IRenderBackend> CreateRenderBackend(
+  std::unique_ptr<D3D12RenderBackend> CreateRenderBackend(
       const ComObject<IDXGIFactory6> &factory) override {
     const auto fail = [this](const char *sender, const char *message) {
       FatalError(sender, message);
     };
-    if (API == MGDF_GRAPHICS_API_D3D12) {
-      const MGDFGraphicsRequirements requirements{
-          1, {MGDF_GRAPHICS_API_D3D12}, D3D_FEATURE_LEVEL_11_0};
-      return std::make_unique<D3D12RenderBackend>(
-          factory, requirements, fail, true,
-          _pluginDirectory.wstring() + L"\\");
-    }
-    return std::make_unique<D3D11RenderBackend>(
-        factory, GetD3D11FeatureLevels(D3D_FEATURE_LEVEL_11_0), fail, true);
+
+    const MGDFGraphicsRequirements requirements{D3D_FEATURE_LEVEL_11_0};
+    return std::make_unique<D3D12RenderBackend>(
+        factory, requirements, fail, true, _pluginDirectory.wstring() + L"\\");
   }
   std::pair<DXGI_FORMAT, DXGI_FORMAT> RTOnBeforeEnumerateDisplayModes()
       override {
@@ -164,33 +156,29 @@ class FrameLoop final : public D3DAppFramework {
     QueueResetDevice();
   }
   void RTOnDeviceReset() override { ++DeviceResets; }
-  void RTOnInitDevice(IRenderBackend &backend) override {
+  void RTOnInitDevice(D3D12RenderBackend &backend) override {
     Backend = &backend;
     if (Input) backend.VR().SetInputState(Input->GetVRInputState());
-    if (API == MGDF_GRAPHICS_API_D3D12) {
-      Settings->InitD3D12();
-      Device12 = backend.RTGetDevice().As<ID3D12Device>();
-      const D3D12_DESCRIPTOR_HEAP_DESC heap{
-          .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV, .NumDescriptors = 4};
-      EXPECT_EQ(S_OK, Device12->CreateDescriptorHeap(
-                          &heap, IID_PPV_ARGS(RTVs.Assign())));
-      for (UINT32 i = 0; i < 2; ++i) {
-        EXPECT_EQ(S_OK, Device12->CreateCommandAllocator(
-                            D3D12_COMMAND_LIST_TYPE_DIRECT,
-                            IID_PPV_ARGS(Allocators[i].Assign())));
-        EXPECT_EQ(S_OK, Device12->CreateCommandList(
-                            0, D3D12_COMMAND_LIST_TYPE_DIRECT, Allocators[i],
-                            nullptr, IID_PPV_ARGS(Lists[i].Assign())));
-        EXPECT_EQ(S_OK, Lists[i]->Close());
-      }
-    } else {
-      Device11 = backend.RTGetDevice().As<ID3D11Device>();
-      Settings->InitFromDevice(Device11);
+
+    Device12 = backend.RTGetDevice().As<ID3D12Device>();
+    const D3D12_DESCRIPTOR_HEAP_DESC heap{
+        .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV, .NumDescriptors = 4};
+    EXPECT_EQ(S_OK, Device12->CreateDescriptorHeap(
+                        &heap, IID_PPV_ARGS(RTVs.Assign())));
+    for (UINT32 i = 0; i < 2; ++i) {
+      EXPECT_EQ(S_OK, Device12->CreateCommandAllocator(
+                          D3D12_COMMAND_LIST_TYPE_DIRECT,
+                          IID_PPV_ARGS(Allocators[i].Assign())));
+      EXPECT_EQ(S_OK, Device12->CreateCommandList(
+                          0, D3D12_COMMAND_LIST_TYPE_DIRECT, Allocators[i],
+                          nullptr, IID_PPV_ARGS(Lists[i].Assign())));
+      EXPECT_EQ(S_OK, Lists[i]->Close());
     }
+
     Settings->SetGraphicsSupport(backend.RTGetGraphicsSupport());
   }
   void RTOnBeforeBackBufferChange() override { ++BeforeChanges; }
-  void RTOnBackBufferChange(IRenderBackend &backend) override {
+  void RTOnBackBufferChange(D3D12RenderBackend &backend) override {
     ++AfterChanges;
     MGDFVRFrame frame{};
     EXPECT_EQ(backend.VR().HasSession() ? S_FALSE : E_ILLEGAL_METHOD_CALL,
@@ -284,55 +272,41 @@ class FrameLoop final : public D3DAppFramework {
   std::filesystem::path _pluginDirectory;
   void DrawEyes() {
     const float color[4]{0.2f, 0.4f, 0.6f, 1};
-    if (Device11) {
-      ComObject<ID3D11DeviceContext> context;
-      Device11->GetImmediateContext(context.Assign());
-      for (UINT32 i = 0; i < 2; ++i) {
-        auto texture = Backend->VR().Target(i).As<ID3D11Texture2D>();
-        ComObject<ID3D11RenderTargetView> rtv;
-        ASSERT_EQ(S_OK, Device11->CreateRenderTargetView(texture, nullptr,
-                                                         rtv.Assign()));
-        context->ClearRenderTargetView(rtv, color);
-      }
-    } else {
-      const auto slot = Backend->RTGetCurrentFrame().FrameSlot;
-      ASSERT_EQ(S_OK, Allocators[slot]->Reset());
-      ASSERT_EQ(S_OK, Lists[slot]->Reset(Allocators[slot], nullptr));
-      for (UINT32 i = 0; i < 2; ++i) {
-        auto texture = Backend->VR().Target(i).As<ID3D12Resource>();
-        auto handle = RTVs->GetCPUDescriptorHandleForHeapStart();
-        handle.ptr += (static_cast<SIZE_T>(slot) * 2 + i) *
-                      Device12->GetDescriptorHandleIncrementSize(
-                          D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-        Device12->CreateRenderTargetView(texture, nullptr, handle);
-        Lists[slot]->ClearRenderTargetView(handle, color, 0, nullptr);
-      }
-      ASSERT_EQ(S_OK, Lists[slot]->Close());
-      ID3D12CommandList *lists[]{Lists[slot]};
-      Backend->RTGetQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)
-          ->ExecuteCommandLists(1, lists);
+
+    const auto slot = Backend->RTGetCurrentFrame().FrameSlot;
+    ASSERT_EQ(S_OK, Allocators[slot]->Reset());
+    ASSERT_EQ(S_OK, Lists[slot]->Reset(Allocators[slot], nullptr));
+    for (UINT32 i = 0; i < 2; ++i) {
+      auto texture = Backend->VR().Target(i).As<ID3D12Resource>();
+      auto handle = RTVs->GetCPUDescriptorHandleForHeapStart();
+      handle.ptr += (static_cast<SIZE_T>(slot) * 2 + i) *
+                    Device12->GetDescriptorHandleIncrementSize(
+                        D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+      Device12->CreateRenderTargetView(texture, nullptr, handle);
+      Lists[slot]->ClearRenderTargetView(handle, color, 0, nullptr);
     }
+    ASSERT_EQ(S_OK, Lists[slot]->Close());
+    ID3D12CommandList *lists[]{Lists[slot]};
+    Backend->RTGetQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)
+        ->ExecuteCommandLists(1, lists);
   }
   void ReleaseDevice() {
     for (auto &list : Lists) list.Clear();
     for (auto &allocator : Allocators) allocator.Clear();
     RTVs.Clear();
     Device12.Clear();
-    Device11.Clear();
   }
   ULONGLONG Deadline = 0;
   bool Done = false;
-  ComObject<ID3D11Device> Device11;
   ComObject<ID3D12Device> Device12;
   ComObject<ID3D12DescriptorHeap> RTVs;
   std::array<ComObject<ID3D12CommandAllocator>, 2> Allocators;
   std::array<ComObject<ID3D12GraphicsCommandList>, 2> Lists;
 };
 
-class OpenXRIntegrationTests : public testing::TestWithParam<MGDFGraphicsAPI> {
-};
+class OpenXRIntegrationTests : public testing::Test {};
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        PoseEpochChangesAtDisplayTimeAndSurvivesSkippedEyes) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
@@ -342,7 +316,7 @@ TEST_P(OpenXRIntegrationTests,
   UINT64 firstEpoch = 0;
   UINT32 checked = 0;
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       if (!vr.Running()) return false;
@@ -371,7 +345,7 @@ TEST_P(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests, FloorHeightTracksValidityAndReferenceChanges) {
+TEST_F(OpenXRIntegrationTests, FloorHeightTracksValidityAndReferenceChanges) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   ASSERT_NE(nullptr, runtime.SetInput);
@@ -388,7 +362,7 @@ TEST_P(OpenXRIntegrationTests, FloorHeightTracksValidityAndReferenceChanges) {
     UINT64 epoch = 0;
     UINT32 checked = 0;
     {
-      FrameLoop loop(GetParam(), true, true);
+      FrameLoop loop(true, true);
       loop.Step = [&](auto &host) {
         auto &vr = host.Backend->VR();
         if (!vr.Running()) return false;
@@ -423,7 +397,7 @@ TEST_P(OpenXRIntegrationTests, FloorHeightTracksValidityAndReferenceChanges) {
   }
 }
 
-TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
+TEST_F(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   const FakeXRConfig config{TestAdapter()};
@@ -432,7 +406,7 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
   UINT32 expectedImages = 0;
   UINT64 firstEpoch = 0;
   {
-    FrameLoop loop(GetParam(), true);
+    FrameLoop loop(true);
     ASSERT_TRUE(loop.Settings->GetVRSupport());
     EXPECT_EQ(0U, runtime.Stats().InstancesCreated);
     loop.Step = [&](FrameLoop &host) {
@@ -496,7 +470,7 @@ TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
   EXPECT_EQ(0U, stats.Errors);
 }
 
-TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
+TEST_F(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   const FakeXRConfig config{TestAdapter()};
@@ -508,7 +482,7 @@ TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
   UINT32 completedFrames = 0;
   UINT64 firstEpoch = 0;
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       const auto stats = runtime.Stats();
@@ -593,7 +567,7 @@ TEST_P(OpenXRIntegrationTests, IdleSessionResumesWithoutChangingEyeTargets) {
                     runtime.Stats().LiveInstances);
 }
 
-TEST_P(OpenXRIntegrationTests, InstanceIdentifiesTheGameAndEngine) {
+TEST_F(OpenXRIntegrationTests, InstanceIdentifiesTheGameAndEngine) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   const std::array<std::pair<std::string, std::string>, 2> names{{
@@ -604,7 +578,7 @@ TEST_P(OpenXRIntegrationTests, InstanceIdentifiesTheGameAndEngine) {
     const FakeXRConfig config{TestAdapter()};
     runtime.Configure(&config);
     {
-      FrameLoop loop(GetParam(), true, true);
+      FrameLoop loop(true, true);
       loop.ApplicationName = name;
       loop.Step = [](auto &host) {
         return host.Backend->VR().ViewCount() == 2;
@@ -625,18 +599,18 @@ TEST_P(OpenXRIntegrationTests, InstanceIdentifiesTheGameAndEngine) {
   }
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        FrameReportsTargetsWithoutAnEyeFrameAndChecksSessionState) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
   UINT32 phase = 0;
   {
-    FrameLoop loop(GetParam(), true);
+    FrameLoop loop(true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       MGDFVRFrame frame{};
-      ComObject<IUnknown> image;
+      ComObject<ID3D12Resource> image;
       EXPECT_EQ(E_INVALIDARG, vr.GetVRFrame(nullptr));
       EXPECT_EQ(E_INVALIDARG, vr.GetTarget(2, image));
       if (phase == 0) {
@@ -660,7 +634,7 @@ TEST_P(OpenXRIntegrationTests,
         EXPECT_TRUE(image);
         std::thread wrongThread([&] {
           MGDFVRFrame wrong{};
-          ComObject<IUnknown> target;
+          ComObject<ID3D12Resource> target;
           EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetVRFrame(&wrong));
           EXPECT_EQ(E_ILLEGAL_METHOD_CALL, vr.GetTarget(0, target));
           EXPECT_FALSE(target);
@@ -693,7 +667,7 @@ TEST_P(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        HiddenMaskIsCachedAndChangesOnlyWithItsRevision) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
@@ -701,7 +675,7 @@ TEST_P(OpenXRIntegrationTests,
   UINT32 phase = 0, reads = 0;
   UINT64 version = 0;
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       UINT32 vertices = 0, count = 0;
@@ -778,18 +752,18 @@ TEST_P(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        DepthIsSubmittedOnlyWhenBothEyesHaveCurrentRanges) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
   UINT32 phase = 0;
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       if (!vr.ViewCount()) return false;
-      ComObject<IUnknown> target;
+      ComObject<ID3D12Resource> target;
       EXPECT_EQ(DXGI_FORMAT_D32_FLOAT, vr.View(0).DepthFormat);
       EXPECT_EQ(S_OK, vr.GetDepthTarget(0, target));
       EXPECT_TRUE(target);
@@ -832,7 +806,7 @@ TEST_P(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests, PanelUsesNativePoseSpaceAndDeferredSize) {
+TEST_F(OpenXRIntegrationTests, PanelUsesNativePoseSpaceAndDeferredSize) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
@@ -840,11 +814,11 @@ TEST_P(OpenXRIntegrationTests, PanelUsesNativePoseSpaceAndDeferredSize) {
   MGDFVRPanel panel{80, 32,   {0.25f, 0.5f, 2},  {0, 0.6f, 0, 0.8f},
                     1,  0.4f, MGDF_VR_SPACE_VIEW};
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       if (!vr.ViewCount()) return false;
-      ComObject<IUnknown> target;
+      ComObject<ID3D12Resource> target;
       if (phase == 0) {
         EXPECT_EQ(S_FALSE, vr.GetPanelTarget(target));
         EXPECT_FALSE(target);
@@ -895,7 +869,7 @@ TEST_P(OpenXRIntegrationTests, PanelUsesNativePoseSpaceAndDeferredSize) {
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        MissingFeaturesAndCreationFailuresHaveDistinctResults) {
   Runtime runtime;
   for (const bool failure : {false, true}) {
@@ -908,7 +882,7 @@ TEST_P(OpenXRIntegrationTests,
     runtime.Configure(&config);
     UINT32 phase = 0;
     {
-      FrameLoop loop(GetParam(), true, true);
+      FrameLoop loop(true, true);
       loop.Step = [&](auto &host) {
         auto &vr = host.Backend->VR();
         if (!vr.ViewCount()) return false;
@@ -923,7 +897,7 @@ TEST_P(OpenXRIntegrationTests,
         EXPECT_EQ(0U, frame.Features & MGDF_VR_FEATURE_MASK);
         EXPECT_EQ(failure, (frame.Features & MGDF_VR_FEATURE_DEPTH) != 0);
         EXPECT_EQ(failure, (frame.Features & MGDF_VR_FEATURE_PANEL) != 0);
-        ComObject<IUnknown> target;
+        ComObject<ID3D12Resource> target;
         EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL, vr.GetDepthTarget(0, target));
         EXPECT_FALSE(target);
         EXPECT_EQ(failure ? E_FAIL : E_NOTIMPL,
@@ -953,7 +927,7 @@ TEST_P(OpenXRIntegrationTests,
   }
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        ControllerObjectsKeepVibrationLevelsAndConvertedState) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
@@ -961,7 +935,7 @@ TEST_P(OpenXRIntegrationTests,
   FakeXRInput input;
   UINT32 phase = 0;
   {
-    FrameLoop loop(GetParam(), true);
+    FrameLoop loop(true);
     ASSERT_TRUE(input::xinput::CreateInputManagerComponent(loop.Input));
     ComArray<IMGDFVRController> controllers(loop.Input->GetVRControllerCount());
     ASSERT_EQ(2U, controllers.size());
@@ -1134,7 +1108,7 @@ TEST_P(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests, ControllerPressBetweenSimUpdatesIsReportedOnce) {
+TEST_F(OpenXRIntegrationTests, ControllerPressBetweenSimUpdatesIsReportedOnce) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
@@ -1143,7 +1117,7 @@ TEST_P(OpenXRIntegrationTests, ControllerPressBetweenSimUpdatesIsReportedOnce) {
   runtime.SetInput(&input);
   UINT32 phase = 0;
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     ASSERT_TRUE(input::xinput::CreateInputManagerComponent(loop.Input));
     ComArray<IMGDFVRController> controllers(loop.Input->GetVRControllerCount());
     loop.Input->GetVRControllers(controllers.Data());
@@ -1183,7 +1157,7 @@ TEST_P(OpenXRIntegrationTests, ControllerPressBetweenSimUpdatesIsReportedOnce) {
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        GazeRequiresDeviceSupportAndAValidCurrentSample) {
   Runtime runtime;
   for (const bool tracking : {false, true}) {
@@ -1194,7 +1168,7 @@ TEST_P(OpenXRIntegrationTests,
     FakeXRInput input;
     UINT32 phase = 0;
     {
-      FrameLoop loop(GetParam(), true, true);
+      FrameLoop loop(true, true);
       ASSERT_TRUE(input::xinput::CreateInputManagerComponent(loop.Input));
       loop.Step = [&](auto &host) {
         auto &vr = host.Backend->VR();
@@ -1252,21 +1226,21 @@ TEST_P(OpenXRIntegrationTests,
   }
 }
 
-TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
+TEST_F(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.FailAcquire);
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
   UINT32 phase = 0;
   {
-    FrameLoop loop(GetParam(), true);
+    FrameLoop loop(true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       const MGDFVRPanel panel{80, 32, {0, 0, 2},          {0, 0, 0, 1},
                               1,  1,  MGDF_VR_SPACE_LOCAL};
       const auto check = [&](HRESULT expected, bool cached) {
         MGDFVRFrame frame{};
-        ComObject<IUnknown> target;
+        ComObject<ID3D12Resource> target;
         EXPECT_EQ(cached ? S_FALSE : expected, vr.GetVRFrame(&frame));
         EXPECT_EQ(cached ? 48U : 0U, frame.Eyes[0].Width);
         EXPECT_EQ(expected, vr.GetTarget(0, target));
@@ -1317,7 +1291,7 @@ TEST_P(OpenXRIntegrationTests, NativeCallsRejectWrongStateAndRuntimeFailure) {
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        MaskRevisionAndActionsFollowRecreationBoundaries) {
   Runtime runtime;
   const FakeXRConfig config{TestAdapter()};
@@ -1325,7 +1299,7 @@ TEST_P(OpenXRIntegrationTests,
   UINT32 phase = 0, changes = 0;
   UINT64 revision = 0;
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [&](auto &host) {
       auto &vr = host.Backend->VR();
       UINT64 current = 0;
@@ -1371,13 +1345,13 @@ TEST_P(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {
+TEST_F(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   const FakeXRConfig config{TestAdapter(), true};
   runtime.Configure(&config);
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [](auto &host) { return host.Views.size() >= 3; };
     loop.Execute();
     EXPECT_EQ(0U, loop.FatalErrors.load());
@@ -1395,13 +1369,13 @@ TEST_P(OpenXRIntegrationTests, MissingHeadsetKeepsWindowAndSavedPreference) {
   EXPECT_EQ(0U, runtime.Stats().LiveInstances);
 }
 
-TEST_P(OpenXRIntegrationTests, ModuleWithoutVRNeverStartsRuntimeOrSession) {
+TEST_F(OpenXRIntegrationTests, ModuleWithoutVRNeverStartsRuntimeOrSession) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
   {
-    FrameLoop loop(GetParam(), false, true);
+    FrameLoop loop(false, true);
     EXPECT_FALSE(loop.Settings->GetVRSupport());
     ComObject<IMGDFPendingRenderSettingsChange> change;
     loop.Settings->CreatePendingSettingsChange(change.Assign());
@@ -1416,7 +1390,7 @@ TEST_P(OpenXRIntegrationTests, ModuleWithoutVRNeverStartsRuntimeOrSession) {
   EXPECT_EQ(0U, runtime.Stats().InstancesCreated);
 }
 
-TEST_P(OpenXRIntegrationTests, RuntimeLossReturnsToWindow) {
+TEST_F(OpenXRIntegrationTests, RuntimeLossReturnsToWindow) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   for (const auto state :
@@ -1426,7 +1400,7 @@ TEST_P(OpenXRIntegrationTests, RuntimeLossReturnsToWindow) {
     runtime.Configure(&config);
     bool sent = false;
     {
-      FrameLoop loop(GetParam(), true, true);
+      FrameLoop loop(true, true);
       loop.Step = [&](auto &host) {
         if (!sent && host.Backend->VR().ViewCount() == 2) {
           if (state == XR_SESSION_STATE_UNKNOWN)
@@ -1450,7 +1424,7 @@ TEST_P(OpenXRIntegrationTests, RuntimeLossReturnsToWindow) {
   }
 }
 
-TEST_P(OpenXRIntegrationTests, SwitchesToTheRuntimeAdapterThroughDeviceReset) {
+TEST_F(OpenXRIntegrationTests, SwitchesToTheRuntimeAdapterThroughDeviceReset) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   ComObject<IDXGIFactory6> factory;
@@ -1462,7 +1436,7 @@ TEST_P(OpenXRIntegrationTests, SwitchesToTheRuntimeAdapterThroughDeviceReset) {
   const FakeXRConfig config{desc.AdapterLuid};
   runtime.Configure(&config);
   {
-    FrameLoop loop(GetParam(), true);
+    FrameLoop loop(true);
     bool requested = false;
     bool needsReset = false;
     loop.Step = [&](auto &host) {
@@ -1490,13 +1464,13 @@ TEST_P(OpenXRIntegrationTests, SwitchesToTheRuntimeAdapterThroughDeviceReset) {
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
-TEST_P(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
+TEST_F(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
   const FakeXRConfig config{TestAdapter()};
   runtime.Configure(&config);
   auto settings = MakeCom<RenderSettingsManager>();
-  settings->InitVR(true, GetParam(), false, true);
+  settings->InitVR(true, false, true);
   EXPECT_TRUE(settings->GetVRSupport());
   EXPECT_EQ(std::optional<bool>(true), settings->TakeVRRequest());
   EXPECT_EQ(0U, runtime.Stats().InstancesCreated);
@@ -1532,7 +1506,7 @@ TEST_P(OpenXRIntegrationTests, CommandLineAndSessionStateKeepSavedPreferences) {
   EXPECT_FALSE(settings->TakeVRRequest());
 }
 
-TEST_P(OpenXRIntegrationTests,
+TEST_F(OpenXRIntegrationTests,
        SuccessfulAcquireAndWaitStatusesKeepImageOwnership) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
@@ -1540,7 +1514,7 @@ TEST_P(OpenXRIntegrationTests,
   runtime.Configure(&config);
   bool rendered = false;
   {
-    FrameLoop loop(GetParam(), true, true);
+    FrameLoop loop(true, true);
     loop.Step = [&](auto &host) {
       if (host.Backend->VR().ViewCount() == 2) rendered = true;
       return rendered && !host.Settings->GetVR();
@@ -1556,7 +1530,4 @@ TEST_P(OpenXRIntegrationTests,
                     runtime.Stats().LiveInstances);
 }
 
-INSTANTIATE_TEST_SUITE_P(Backends, OpenXRIntegrationTests,
-                         testing::Values(MGDF_GRAPHICS_API_D3D11,
-                                         MGDF_GRAPHICS_API_D3D12));
 }  // namespace

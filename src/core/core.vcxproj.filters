@@ -8,8 +8,6 @@
   <ItemGroup>
     <ClInclude Include="MGDFApp.hpp" />
     <ClInclude Include="MGDFD3DAppFramework.hpp" />
-    <ClInclude Include="MGDFRenderBackend.hpp" />
-    <ClInclude Include="MGDFD3D11RenderBackend.hpp" />
     <ClInclude Include="MGDFD3D12RenderBackend.hpp" />
     <ClInclude Include="MGDFD3D12FrameState.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
@@ -26,7 +24,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MGDFApp.cpp" />
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
-    <ClCompile Include="MGDFD3D11RenderBackend.cpp" />
     <ClCompile Include="MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
     <ClCompile Include="StdAfx.cpp" />

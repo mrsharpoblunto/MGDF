@@ -4,7 +4,6 @@
 #include <MGDF/ComObject.hpp>
 
 #define XR_USE_PLATFORM_WIN32
-#define XR_USE_GRAPHICS_API_D3D11
 #define XR_USE_GRAPHICS_API_D3D12
 #include <openxr/openxr_platform.h>
 
@@ -28,7 +27,6 @@ struct XrActionSet_T {
   std::vector<std::unique_ptr<XrAction_T>> Actions;
 };
 struct XrSession_T {
-  ComObject<ID3D11Device> Device11;
   ComObject<ID3D12Device> Device12;
   ComObject<ID3D12CommandQueue> Queue;
   bool Attached = false;
@@ -45,7 +43,6 @@ struct XrSpace_T {
 };
 struct XrSwapchain_T {
   XrSwapchainCreateInfo Info{};
-  std::vector<ComObject<ID3D11Texture2D>> Images11;
   std::vector<ComObject<ID3D12Resource>> Images12;
   UINT32 Index = 2;
   bool Acquired = false;
@@ -93,8 +90,7 @@ XrResult Enumerate(const std::array<T, N> &values, uint32_t capacity,
 XrResult XRAPI_CALL EnumerateExtensions(const char *, uint32_t capacity,
                                         uint32_t *count,
                                         XrExtensionProperties *output) {
-  std::vector<const char *> names{XR_KHR_D3D11_ENABLE_EXTENSION_NAME,
-                                  XR_KHR_D3D12_ENABLE_EXTENSION_NAME};
+  std::vector<const char *> names{XR_KHR_D3D12_ENABLE_EXTENSION_NAME};
   if (Config.DepthExtension)
     names.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
   if (Config.MaskExtension)
@@ -134,8 +130,7 @@ XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
       Stats.GazeEnabled = true;
     } else if (strcmp(name, XR_EXT_LOCAL_FLOOR_EXTENSION_NAME) == 0 &&
                Config.LocalFloorExtension) {
-    } else if (strcmp(name, XR_KHR_D3D11_ENABLE_EXTENSION_NAME) != 0 &&
-               strcmp(name, XR_KHR_D3D12_ENABLE_EXTENSION_NAME) != 0) {
+    } else if (strcmp(name, XR_KHR_D3D12_ENABLE_EXTENSION_NAME) != 0) {
       return XR_ERROR_EXTENSION_NOT_PRESENT;
     }
     for (UINT32 j = 0; j < i; ++j)
@@ -164,12 +159,6 @@ XrResult XRAPI_CALL GetSystem(XrInstance, const XrSystemGetInfo *,
   *system = 1;
   return XR_SUCCESS;
 }
-XrResult XRAPI_CALL Requirements11(
-    XrInstance, XrSystemId, XrGraphicsRequirementsD3D11KHR *requirements) {
-  requirements->adapterLuid = Config.Adapter;
-  requirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-  return XR_SUCCESS;
-}
 XrResult XRAPI_CALL Requirements12(
     XrInstance, XrSystemId, XrGraphicsRequirementsD3D12KHR *requirements) {
   requirements->adapterLuid = Config.Adapter;
@@ -187,11 +176,7 @@ XrResult XRAPI_CALL CreateSession(XrInstance, const XrSessionCreateInfo *info,
   if (Session) return Reject();
   const auto header = static_cast<const XrBaseInStructure *>(info->next);
   Session = new XrSession_T;
-  if (header->type == XR_TYPE_GRAPHICS_BINDING_D3D11_KHR) {
-    const auto binding =
-        static_cast<const XrGraphicsBindingD3D11KHR *>(info->next);
-    Session->Device11 = MakeComFromPtr<ID3D11Device>(binding->device);
-  } else if (header->type == XR_TYPE_GRAPHICS_BINDING_D3D12_KHR) {
+  if (header->type == XR_TYPE_GRAPHICS_BINDING_D3D12_KHR) {
     const auto binding =
         static_cast<const XrGraphicsBindingD3D12KHR *>(info->next);
     Session->Device12 = MakeComFromPtr<ID3D12Device>(binding->device);
@@ -284,49 +269,27 @@ XrResult XRAPI_CALL CreateSwapchain(XrSession session,
   auto chain = std::make_unique<XrSwapchain_T>();
   chain->Info = *info;
   for (UINT32 i = 0; i < 3; ++i) {
-    if (session->Device11) {
-      const D3D11_TEXTURE2D_DESC desc{
-          info->width,
-          info->height,
-          1,
-          1,
-          depth ? DXGI_FORMAT_R32_TYPELESS
-                : static_cast<DXGI_FORMAT>(info->format),
-          {1, 0},
-          D3D11_USAGE_DEFAULT,
-          static_cast<UINT>(
-              (depth ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET) |
-              D3D11_BIND_SHADER_RESOURCE),
-          0,
-          0};
-      ComObject<ID3D11Texture2D> image;
-      if (FAILED(session->Device11->CreateTexture2D(&desc, nullptr,
-                                                    image.Assign())))
-        return XR_ERROR_RUNTIME_FAILURE;
-      chain->Images11.push_back(image);
-    } else {
-      const D3D12_HEAP_PROPERTIES heap{D3D12_HEAP_TYPE_DEFAULT};
-      const D3D12_RESOURCE_DESC desc{
-          D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-          0,
-          info->width,
-          info->height,
-          1,
-          1,
-          static_cast<DXGI_FORMAT>(info->format),
-          {1, 0},
-          D3D12_TEXTURE_LAYOUT_UNKNOWN,
-          depth ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
-                : D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET};
-      ComObject<ID3D12Resource> image;
-      if (FAILED(session->Device12->CreateCommittedResource(
-              &heap, D3D12_HEAP_FLAG_NONE, &desc,
-              depth ? D3D12_RESOURCE_STATE_DEPTH_WRITE
-                    : D3D12_RESOURCE_STATE_RENDER_TARGET,
-              nullptr, IID_PPV_ARGS(image.Assign()))))
-        return XR_ERROR_RUNTIME_FAILURE;
-      chain->Images12.push_back(image);
-    }
+    const D3D12_HEAP_PROPERTIES heap{D3D12_HEAP_TYPE_DEFAULT};
+    const D3D12_RESOURCE_DESC desc{
+        D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        0,
+        info->width,
+        info->height,
+        1,
+        1,
+        static_cast<DXGI_FORMAT>(info->format),
+        {1, 0},
+        D3D12_TEXTURE_LAYOUT_UNKNOWN,
+        depth ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+              : D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET};
+    ComObject<ID3D12Resource> image;
+    if (FAILED(session->Device12->CreateCommittedResource(
+            &heap, D3D12_HEAP_FLAG_NONE, &desc,
+            depth ? D3D12_RESOURCE_STATE_DEPTH_WRITE
+                  : D3D12_RESOURCE_STATE_RENDER_TARGET,
+            nullptr, IID_PPV_ARGS(image.Assign()))))
+      return XR_ERROR_RUNTIME_FAILURE;
+    chain->Images12.push_back(image);
   }
   *swapchain = chain.release();
   ++Stats.LiveSwapchains;
@@ -346,12 +309,8 @@ XrResult XRAPI_CALL Images(XrSwapchain swapchain, uint32_t capacity,
   if (!capacity) return XR_SUCCESS;
   if (capacity < 3) return XR_ERROR_SIZE_INSUFFICIENT;
   for (UINT32 i = 0; i < 3; ++i) {
-    if (!swapchain->Images11.empty())
-      reinterpret_cast<XrSwapchainImageD3D11KHR *>(images)[i].texture =
-          swapchain->Images11[i];
-    else
-      reinterpret_cast<XrSwapchainImageD3D12KHR *>(images)[i].texture =
-          swapchain->Images12[i];
+    reinterpret_cast<XrSwapchainImageD3D12KHR *>(images)[i].texture =
+        swapchain->Images12[i];
   }
   return XR_SUCCESS;
 }
@@ -807,7 +766,6 @@ XrResult XRAPI_CALL GetProc(XrInstance, const char *name,
   ENTRY("xrGetSystemProperties", GetSystemProperties)
   ENTRY("xrLocateSpace", LocateSpace)
   ENTRY("xrGetVisibilityMaskKHR", GetVisibilityMask)
-  ENTRY("xrGetD3D11GraphicsRequirementsKHR", Requirements11)
   ENTRY("xrGetD3D12GraphicsRequirementsKHR", Requirements12)
   ENTRY("xrEnumerateEnvironmentBlendModes", BlendModes)
   ENTRY("xrCreateSession", CreateSession)

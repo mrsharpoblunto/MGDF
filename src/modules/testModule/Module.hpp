@@ -78,7 +78,6 @@ class Module : public ComBase<IMGDFModule> {
   void __stdcall Panic() final;
 
  private:
-  bool DrawVRD3D11(IMGDFRenderHost *host);
   bool _vrTest = false;
   std::array<bool, 2> _profileLogged{};
   std::array<bool, 2> _triggerPressed{};
@@ -104,13 +103,9 @@ class Module : public ComBase<IMGDFModule> {
   std::list<std::unique_ptr<TestModule>> _testModules;
   std::list<std::unique_ptr<TestModule>>::iterator _currentModule;
   BufferedGameState<TestState> _stateBuffer;
-  std::unique_ptr<TextManager> _textManager;
-  ComObject<IMGDFPerformanceCounter> _textManagerCounter;
   ComObject<IMGDFPerformanceCounter> _testModuleCounter;
   ComObject<IMGDFInputManager> _input;
   ComObject<IMGDFRenderSettingsManager> _renderSettings;
-  bool _draggingScrollbar;
-  INT32 _wheelAccumulator;
 };
 
 }  // namespace Test

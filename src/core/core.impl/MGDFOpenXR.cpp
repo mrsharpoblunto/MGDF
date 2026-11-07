@@ -631,7 +631,8 @@ HRESULT OpenXR::GetVRFrame(MGDFVRFrame *frame, bool eyeFrame) const {
   return frame->EyeCount ? S_OK : S_FALSE;
 }
 
-HRESULT OpenXR::GetTarget(UINT32 index, ComObject<IUnknown> &target) const {
+HRESULT OpenXR::GetTarget(UINT32 index,
+                          ComObject<ID3D12Resource> &target) const {
   target.Clear();
   if (index >= _eyes.size()) return E_INVALIDARG;
   const auto status = SessionStatus();
@@ -658,8 +659,8 @@ MGDFVREye OpenXR::View(UINT32 index) const {
   return view;
 }
 
-ComObject<IUnknown> OpenXR::Target(UINT32 index) const {
-  ComObject<IUnknown> target;
+ComObject<ID3D12Resource> OpenXR::Target(UINT32 index) const {
+  ComObject<ID3D12Resource> target;
   GetTarget(index, target);
   return target;
 }
@@ -832,7 +833,7 @@ HRESULT OpenXR::GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
 }
 
 HRESULT OpenXR::GetDepthTarget(UINT32 index,
-                               ComObject<IUnknown> &target) const {
+                               ComObject<ID3D12Resource> &target) const {
   target.Clear();
   if (index >= _eyes.size()) return E_INVALIDARG;
   const auto status = SessionStatus();
@@ -913,7 +914,7 @@ void OpenXR::PreparePanel() {
   if (FAILED(_panelStatus)) _framePanel.reset();
 }
 
-HRESULT OpenXR::GetPanelTarget(ComObject<IUnknown> &target) const {
+HRESULT OpenXR::GetPanelTarget(ComObject<ID3D12Resource> &target) const {
   target.Clear();
   const auto status = SessionStatus();
   if (FAILED(status)) return status;

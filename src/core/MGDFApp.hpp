@@ -15,7 +15,7 @@ class MGDFApp : public D3DAppFramework {
 
  protected:
   std::pair<DXGI_FORMAT, DXGI_FORMAT> RTOnBeforeEnumerateDisplayModes() final;
-  void RTOnInitDevice(IRenderBackend &backend) final;
+  void RTOnInitDevice(D3D12RenderBackend &backend) final;
   MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
                                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                         DXGI_COLOR_SPACE_TYPE &,
@@ -34,7 +34,7 @@ class MGDFApp : public D3DAppFramework {
   bool OnWindowAspectLock() final;
   bool RTVSyncEnabled() const final;
   void RTOnBeforeBackBufferChange() final;
-  void RTOnBackBufferChange(IRenderBackend &backend) final;
+  void RTOnBackBufferChange(D3D12RenderBackend &backend) final;
   void RTOnBeforeDeviceReset() final;
   void RTOnDeviceReset() final;
   void RTOnBeforeFirstDraw() final;
@@ -47,7 +47,7 @@ class MGDFApp : public D3DAppFramework {
 
   void STOnUpdateSim() final;
 
-  std::unique_ptr<IRenderBackend> CreateRenderBackend(
+  std::unique_ptr<D3D12RenderBackend> CreateRenderBackend(
       const ComObject<IDXGIFactory6> &factory) final;
   bool OnInitWindow(RECT &windowSize) final;
   bool OnSetCursor() final;

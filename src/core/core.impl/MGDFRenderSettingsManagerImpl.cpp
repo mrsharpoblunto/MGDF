@@ -41,15 +41,7 @@ PendingRenderSettingsChange::~PendingRenderSettingsChange() {
     changed = true;
     _manager._vsync = _newVsync.value();
   }
-  if (_newBackBufferMultiSampleLevel.has_value()) {
-    changed = true;
-    _manager._backBufferMultiSampleLevel =
-        _newBackBufferMultiSampleLevel.value();
-  }
-  if (_newCurrentMultiSampleLevel.has_value()) {
-    changed = true;
-    _manager._currentMultiSampleLevel = _newCurrentMultiSampleLevel.value();
-  }
+
   if (_newSize.has_value()) {
     changed = true;
     _manager._pendingWindowSize = _newSize;
@@ -96,30 +88,6 @@ void PendingRenderSettingsChange::SetVSync(BOOL vsync) { _newVsync = vsync; }
 void PendingRenderSettingsChange::SetFullscreen(
     const MGDFFullScreenDesc *fullscreen) {
   _newFullscreen = *fullscreen;
-}
-
-BOOL PendingRenderSettingsChange::SetBackBufferMultiSampleLevel(
-    UINT32 multisampleLevel) {
-  std::lock_guard<std::mutex> lock(_manager._mutex);
-  if (_manager._multiSampleQuality.find(multisampleLevel) !=
-      _manager._multiSampleQuality.end()) {
-    _newBackBufferMultiSampleLevel = multisampleLevel;
-    return true;
-  } else {
-    return false;
-  }
-}
-
-BOOL PendingRenderSettingsChange::SetCurrentMultiSampleLevel(
-    UINT32 multisampleLevel) {
-  std::lock_guard<std::mutex> lock(_manager._mutex);
-  if (_manager._multiSampleQuality.find(multisampleLevel) !=
-      _manager._multiSampleQuality.end()) {
-    _newCurrentMultiSampleLevel = multisampleLevel;
-    return true;
-  } else {
-    return false;
-  }
 }
 
 BOOL PendingRenderSettingsChange::SetCurrentPrimaryDisplayMode(
@@ -182,12 +150,9 @@ BOOL PendingRenderSettingsChange::SetVR(BOOL enabled) {
   return TRUE;
 }
 
-void RenderSettingsManager::InitVR(bool moduleVR, MGDFGraphicsAPI api,
-                                   bool saved, bool commandLine) {
-  const bool support =
-      moduleVR &&
-      OpenXR::Available(api == MGDF_GRAPHICS_API_D3D12 ? "XR_KHR_D3D12_enable"
-                                                       : "XR_KHR_D3D11_enable");
+void RenderSettingsManager::InitVR(bool moduleVR, bool saved,
+                                   bool commandLine) {
+  const bool support = moduleVR && OpenXR::Available("XR_KHR_D3D12_enable");
   std::lock_guard lock(_mutex);
   _vrSupport = support;
   _vrPreference = saved;
@@ -321,9 +286,7 @@ RenderSettingsManager::TakeWindowSize() {
 void PendingRenderSettingsChange::Cancel() { _cancelled = true; }
 
 RenderSettingsManager::RenderSettingsManager()
-    : _currentMultiSampleLevel(1),
-      _backBufferMultiSampleLevel(1),
-      _sdrBackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM),
+    : _sdrBackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM),
       _hdrBackBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT),
       _hdrColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709),
       _hdrEnabled(false),
@@ -353,41 +316,6 @@ RenderSettingsManager::RenderSettingsManager()
           .ExclusiveMode = false,
       }),
       _maxFrameLatency(1) {}
-
-void RenderSettingsManager::InitFromDevice(
-    const ComObject<ID3D11Device> &d3dDevice) {
-  _ASSERTE(d3dDevice);
-
-  std::lock_guard<std::mutex> lock(_mutex);
-  Cleanup();
-
-  // determine the supported multisampling settings for this device
-  for (UINT32 i = 1; i < D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; ++i) {
-    // A level must work for both back buffer formats: HDR can switch on and
-    // off without a device reset.
-    UINT32 quality = 0;
-    UINT32 hdrQuality = 0;
-    if (FAILED(d3dDevice->CheckMultisampleQualityLevels(_sdrBackBufferFormat, i,
-                                                        &quality)) ||
-        FAILED(d3dDevice->CheckMultisampleQualityLevels(_hdrBackBufferFormat, i,
-                                                        &hdrQuality))) {
-      continue;
-    }
-    quality = (std::min)(quality, hdrQuality);
-    if (quality == 0) continue;
-    LOG("Found valid multisample level " << i, MGDF_LOG_MEDIUM);
-    _multiSampleLevels.push_back(i);
-    _multiSampleQuality[i] = quality;
-  }
-}
-
-void RenderSettingsManager::InitD3D12() {
-  std::lock_guard lock(_mutex);
-  Cleanup();
-  _multiSampleLevels.push_back(1);
-  _multiSampleQuality[1] = 1;
-  _backBufferMultiSampleLevel = _currentMultiSampleLevel = 1;
-}
 
 RenderSettingsManager::~RenderSettingsManager(void) {}
 
@@ -466,33 +394,6 @@ void RenderSettingsManager::SetOutputProperties(
     _changePending.store(true);
   }
   _currentOutputDPI = currentDPI;
-}
-
-UINT64 RenderSettingsManager::GetMultiSampleLevelCount() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  return _multiSampleLevels.size();
-}
-
-BOOL RenderSettingsManager::GetMultiSampleLevel(UINT64 index, UINT32 *level) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (!level) return false;
-  if (index < _multiSampleLevels.size()) {
-    *level = _multiSampleLevels[index];
-    return true;
-  }
-  return false;
-}
-
-UINT32 RenderSettingsManager::GetCurrentMultiSampleLevel(UINT32 *quality) {
-  std::lock_guard<std::mutex> lock(_mutex);
-  if (quality)
-    *quality = _multiSampleQuality.find(_currentMultiSampleLevel)->second - 1;
-  return _currentMultiSampleLevel;
-}
-
-UINT32 RenderSettingsManager::GetBackBufferMultiSampleLevel() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  return _backBufferMultiSampleLevel;
 }
 
 UINT32 RenderSettingsManager::GetMaxFrameLatency() {
@@ -650,9 +551,7 @@ void RenderSettingsManager::OnResetSwapChain(
     colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
   }
 
-  desc.SampleDesc.Count = _backBufferMultiSampleLevel;
-  desc.SampleDesc.Quality =
-      _multiSampleQuality[_backBufferMultiSampleLevel] - 1;
+  desc.SampleDesc = {1, 0};
   desc.Scaling = DXGI_SCALING_STRETCH;
   desc.Stereo = false;
 
@@ -660,12 +559,6 @@ void RenderSettingsManager::OnResetSwapChain(
   _screenY = desc.Height;
 
   _changePending.store(false);
-}
-
-void RenderSettingsManager::Cleanup() {
-  _changePending.store(false);
-  _multiSampleLevels.clear();
-  _multiSampleQuality.clear();
 }
 
 void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
@@ -685,11 +578,6 @@ void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {
                                        ToString(_primaryDisplayMode.Width)));
   p->Preferences.insert(std::make_pair(PreferenceConstants::SCREEN_Y,
                                        ToString(_primaryDisplayMode.Height)));
-  p->Preferences.insert(
-      std::make_pair(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
-                     ToString(_currentMultiSampleLevel)));
-  p->Preferences.insert(std::make_pair(PreferenceConstants::MULTISAMPLE_LEVEL,
-                                       ToString(_backBufferMultiSampleLevel)));
 
   p->Preferences.insert(
       std::make_pair(PreferenceConstants::HDR_ENABLED, ToString(_hdrEnabled)));
@@ -785,38 +673,6 @@ void RenderSettingsManager::LoadPreferences(const ComObject<IMGDFGame> &game) {
     LOG("Loaded fullscreen resolution preference for "
             << SCREEN_RES(_primaryDisplayMode),
         MGDF_LOG_LOW);
-  }
-
-  // ensure the multisample level is not above what is supported.
-  if (GetPreference(game, PreferenceConstants::RT_MULTISAMPLE_LEVEL, pref)) {
-    _currentMultiSampleLevel = FromString<int>(pref);
-  }
-
-  if (_currentMultiSampleLevel >
-      _multiSampleLevels.at(_multiSampleLevels.size() - 1)) {
-    _currentMultiSampleLevel =
-        _multiSampleLevels.at(_multiSampleLevels.size() - 1);
-    LOG("RT multisample preference is not supported, using "
-            << _currentMultiSampleLevel << " instead",
-        MGDF_LOG_LOW);
-    game->SetPreference(PreferenceConstants::RT_MULTISAMPLE_LEVEL,
-                        ToString(_currentMultiSampleLevel).c_str());
-    savePreferences = true;
-  }
-
-  if (GetPreference(game, PreferenceConstants::MULTISAMPLE_LEVEL, pref)) {
-    _backBufferMultiSampleLevel = FromString<int>(pref);
-  }
-  if (_backBufferMultiSampleLevel >
-      _multiSampleLevels.at(_multiSampleLevels.size() - 1)) {
-    _backBufferMultiSampleLevel =
-        _multiSampleLevels.at(_multiSampleLevels.size() - 1);
-    LOG("Backbuffer multisample preference is not supported, using "
-            << _backBufferMultiSampleLevel << " instead",
-        MGDF_LOG_LOW);
-    game->SetPreference(PreferenceConstants::MULTISAMPLE_LEVEL,
-                        ToString(_backBufferMultiSampleLevel).c_str());
-    savePreferences = true;
   }
 
   if (savePreferences) {
