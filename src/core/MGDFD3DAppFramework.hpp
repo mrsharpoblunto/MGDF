@@ -141,7 +141,10 @@ class D3DAppFramework {
   POINT _clientOffset;
   std::unique_ptr<POINT> _resizing;
   double _resizeAspect = 0;
-  bool _internalShutDown;
+  std::atomic_bool _internalShutDown{false};
+  std::atomic_bool _fullScreen{false};
+  // Published before worker startup; retained after WM_DESTROY.
+  HWND _closeWindow = nullptr;
   bool _stoppingRenderThread = false;
   std::vector<BYTE> _rawInputBuffer;
 };

@@ -146,6 +146,8 @@
     <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
     <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
+    <ClCompile Include="GamePreferencesTests.cpp" />
+    <ClCompile Include="HostLifecycleTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />
     <ClCompile Include="ParameterManagerTests.cpp">

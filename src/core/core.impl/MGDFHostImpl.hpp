@@ -214,7 +214,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
   ComObject<ID3D12Fence> _frameFence;
 
-  std::mutex _mutex;
+  std::atomic_bool _fatalErrorEntered{false};
   MGDFVersion _version;
   std::atomic<bool> _shutdownQueued;
   std::atomic<ULONG> _references;

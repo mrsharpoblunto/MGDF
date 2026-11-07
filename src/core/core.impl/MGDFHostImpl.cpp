@@ -197,7 +197,7 @@ Host::~Host(void) {
   for (auto &it : _metrics) {
     it.second->Release();
   }
-  _sound->Stop();
+  if (_sound) _sound->Stop();
   _network->Stop();
   LOG("Uninitialised host successfully", MGDF_LOG_LOW);
 }
@@ -579,7 +579,10 @@ void Host::GetRenderSettings(IMGDFRenderSettingsManager **settings) {
 }
 
 void Host::FatalError(const char *sender, const char *message) {
-  std::lock_guard<std::mutex> lock(_mutex);
+  if (_fatalErrorEntered.exchange(true)) {
+    TerminateProcess(GetCurrentProcess(), 1);
+    return;
+  }
 
   if (sender && message) {
     std::ostringstream ss;
