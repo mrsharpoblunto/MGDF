@@ -43,6 +43,7 @@
       <OpenXRBin Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\debug\bin</OpenXRBin>
     </PropertyGroup>
     <Copy SourceFiles="$(OpenXRBin)\$(OpenXRLoaderDLL)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows\x64-windows\share\openxr-loader\copyright" DestinationFiles="$(OutDir)openxr_loader.license.txt" SkipUnchangedFiles="true" />
   </Target>
   <!-- core.impl compiles against Streamline and shares its output folder with core.exe and core.tests.exe. -->
   <Target Name="FetchStreamline" BeforeTargets="PrepareForBuild" Condition="'$(MSBuildProjectName)' == 'core.impl' And !Exists('$(StreamlineDir)include\sl.h')">
