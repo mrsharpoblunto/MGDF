@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}</ProjectGuid>
     <RootNamespace>corenetworkimpl</RootNamespace>
     <Keyword>Win32Proj</Keyword>

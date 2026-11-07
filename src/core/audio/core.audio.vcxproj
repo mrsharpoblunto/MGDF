@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{1FF53D27-8086-4755-829D-53B5D13DB505}</ProjectGuid>
     <RootNamespace>coreaudio</RootNamespace>
     <Keyword>Win32Proj</Keyword>

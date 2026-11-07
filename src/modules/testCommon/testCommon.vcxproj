@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{8B2601FE-BE04-4EC9-B703-48C106200470}</ProjectGuid>
     <RootNamespace>testCommon</RootNamespace>
     <Keyword>ManagedCProj</Keyword>

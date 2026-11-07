@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{531A9FF9-F1EC-41D8-8C34-531E640139BA}</ProjectGuid>
     <RootNamespace>coreapi</RootNamespace>

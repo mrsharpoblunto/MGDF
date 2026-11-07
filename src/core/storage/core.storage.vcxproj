@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{6247D689-9B0F-4FCB-817D-2258739B5AAE}</ProjectGuid>
     <RootNamespace>corestorage</RootNamespace>
     <Keyword>Win32Proj</Keyword>

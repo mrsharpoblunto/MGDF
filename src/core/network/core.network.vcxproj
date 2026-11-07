@@ -17,6 +17,7 @@
     <ClInclude Include="MGDFWebSocket.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{A42BA857-FDAB-47BF-A5B9-EC9AD0263034}</ProjectGuid>
     <RootNamespace>corenetwork</RootNamespace>
     <Keyword>Win32Proj</Keyword>
