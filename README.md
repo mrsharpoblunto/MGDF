@@ -29,6 +29,15 @@ Building Source
 * Using Microsoft Visual Studio 2026 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick.sln in x64 debug/release configurations
 * The first build downloads the pinned NVIDIA Streamline SDK into `dependencies/streamline` and checks its SHA-256 (see `Directory.Build.targets`). The build copies the Streamline runtime DLLs next to `core.exe`: the signed production DLLs in Release and the development DLLs in Debug. Without network access, put `streamline-sdk-v<version>.zip` from https://github.com/NVIDIA-RTX/Streamline/releases into `dependencies/streamline` before the build.
 
+Build rules
+-----------
+
+* Use x64 for Debug and Release. Each C++ project selects the 64-bit build tools.
+* Each project that compiles C++ uses a precompiled header. Start each new `.cpp` with `#include "stdafx.h"` (use `StdAfx.h` in core) and keep the project default. Use `NotUsing` only when a source needs a different define before the header; state the reason beside the setting.
+* Core sources in `core.tests` use a separate header built from core's `StdAfx.h`. Header-only projects and the IDL project need no precompiled header.
+* `Directory.Build.rsp` builds solution projects in parallel. `Directory.Build.props` applies one compiler process limit to the whole build. Keep both settings when adding projects.
+* Builds with whole-program optimization use incremental link-time code generation. Keep the existing optimization settings and output paths.
+
 Running unit tests
 ------------------
 All managed code projects use nunit 3,	all unmanaged code tests are contained within the core.tests.exe binary which must first be compiled as part of the Matchstick.sln project Once built, running this exe from the command line will run the test suite.
