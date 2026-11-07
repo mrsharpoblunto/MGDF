@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{60A53EEC-B17E-4BB8-9626-064ADA85CFC7}</ProjectGuid>
     <RootNamespace>corevfs</RootNamespace>
     <Keyword>Win32Proj</Keyword>

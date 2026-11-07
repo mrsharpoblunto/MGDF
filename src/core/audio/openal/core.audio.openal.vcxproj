@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{F3930F29-C621-41EA-892C-8B5D48C5D2BB}</ProjectGuid>
     <RootNamespace>coreaudioopenal</RootNamespace>
     <Keyword>ManagedCProj</Keyword>
@@ -111,20 +112,6 @@
       </AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <Reference Include="System">
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-    </Reference>
-    <Reference Include="System.Data">
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-    </Reference>
-    <Reference Include="System.Xml">
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-    </Reference>
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OpenALSound.cpp" />
     <ClCompile Include="OpenALSoundManagerComponent.cpp" />

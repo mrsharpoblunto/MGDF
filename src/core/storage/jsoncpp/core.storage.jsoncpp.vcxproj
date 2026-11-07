@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{CD45229C-C675-473F-8AA1-2F8A782D754B}</ProjectGuid>
     <RootNamespace>corestoragejson</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -103,8 +104,7 @@
       <AdditionalIncludeDirectories>../../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -125,7 +125,7 @@
     <ClCompile Include="JsonStorageFactoryComponent.cpp" />
     <ClCompile Include="JsonStorageFactoryComponentImpl.cpp" />
     <ClCompile Include="stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

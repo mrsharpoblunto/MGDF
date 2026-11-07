@@ -1,0 +1,7 @@
+<Project>
+  <!-- Apply one compiler process limit to the whole build. -->
+  <PropertyGroup>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <EnforceProcessCountAcrossBuilds>true</EnforceProcessCountAcrossBuilds>
+  </PropertyGroup>
+</Project>

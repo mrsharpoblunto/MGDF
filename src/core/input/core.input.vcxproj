@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{C9E6F931-1DF5-4969-9964-4DC3B3B9DCFC}</ProjectGuid>
     <RootNamespace>coreinput</RootNamespace>
     <Keyword>Win32Proj</Keyword>

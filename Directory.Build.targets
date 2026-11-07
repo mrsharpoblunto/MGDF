@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Generate code again only for changed functions at the next link. -->
+  <ItemDefinitionGroup Condition="'$(WholeProgramOptimization)' == 'true'">
+    <Link>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+  </ItemDefinitionGroup>
   <PropertyGroup>
     <OpenXRLoaderLibrary>openxr_loader.lib</OpenXRLoaderLibrary>
     <OpenXRLoaderLibrary Condition="'$(Configuration)' == 'Debug'">openxr_loaderd.lib</OpenXRLoaderLibrary>

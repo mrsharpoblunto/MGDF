@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{62406A47-C94A-4C76-B1EF-2AB3E6E175D5}</ProjectGuid>
     <RootNamespace>coretests</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -137,40 +138,28 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="OpenXRTests.cpp" />
     <ClCompile Include="OpenXRIntegrationTests.cpp" />
-    <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
-    <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp" />
+    <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />
-    <ClCompile Include="ParameterManagerTests.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="ResourcesTests.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    <ClCompile Include="ParameterManagerTests.cpp" />
+    <ClCompile Include="ResourcesTests.cpp" />
+    <ClCompile Include="..\..\src\core\StdAfx.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <ObjectFileName>$(IntDir)CoreStdAfx.obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="RenderSettingsTests.cpp" />
     <ClCompile Include="StreamlineTests.cpp" />
     <ClCompile Include="SaveManagerTests.cpp" />
-    <ClCompile Include="StorageTests.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="ReadOnlyVFSTests.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="StorageTests.cpp" />
+    <ClCompile Include="ReadOnlyVFSTests.cpp" />
     <ClCompile Include="VFSCommon.cpp" />
     <ClCompile Include="WriteableVFSTests.cpp" />
   </ItemGroup>
@@ -205,6 +194,15 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
+  <!-- Core sources use the core header, with the test project's compile settings. -->
+  <Target Name="UseCorePrecompiledHeader" BeforeTargets="FixupCLCompileOptions">
+    <ItemGroup>
+      <ClCompile Condition="'%(RelativeDir)' == '..\..\src\core\'">
+        <PrecompiledHeaderFile>StdAfx.h</PrecompiledHeaderFile>
+        <PrecompiledHeaderOutputFile>$(IntDir)Core.pch</PrecompiledHeaderOutputFile>
+      </ClCompile>
+    </ItemGroup>
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

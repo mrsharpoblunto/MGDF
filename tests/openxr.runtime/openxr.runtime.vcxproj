@@ -5,6 +5,7 @@
     <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}</ProjectGuid>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -26,6 +27,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <WarningLevel>Level4</WarningLevel>
@@ -35,7 +38,22 @@
     </ClCompile>
     <Link><AdditionalDependencies>d3d12.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="Runtime.cpp" /><ClInclude Include="Control.hpp" /><None Include="runtime.json" /></ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Runtime.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Control.hpp" />
+    <None Include="runtime.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\core\core.api\core.api.vcxproj">
+      <Project>{531A9FF9-F1EC-41D8-8C34-531E640139BA}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyRuntimeManifest" AfterTargets="Build">
     <Copy SourceFiles="$(ProjectDir)runtime.json" DestinationFiles="$(OutDir)openxr.runtime.json" SkipUnchangedFiles="true" />

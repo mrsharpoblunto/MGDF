@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <ProjectGuid>{8B2601FE-BE04-4EC9-B703-48C106200470}</ProjectGuid>
     <RootNamespace>testCommon</RootNamespace>
     <Keyword>ManagedCProj</Keyword>
@@ -117,20 +118,6 @@
       <Command>if exist app.config copy app.config "$(OutDir)app.config"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <Reference Include="System">
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-    </Reference>
-    <Reference Include="System.Data">
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-    </Reference>
-    <Reference Include="System.Xml">
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-    </Reference>
-  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BufferedGameState.hpp" />
     <ClInclude Include="Common.hpp" />
