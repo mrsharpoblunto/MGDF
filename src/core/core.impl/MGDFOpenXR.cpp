@@ -82,6 +82,7 @@ bool OpenXR::Available(const char *extension) {
 }
 
 void OpenXR::Fail(const char *operation, XrResult result) {
+  _stopCompleted = false;
   if (!_fallback) {
     LOG("OpenXR " << operation << " (" << result
                   << "); returning to the window",
@@ -384,6 +385,7 @@ void OpenXR::PollEvents() {
         _poseChanges.clear();
         _viewCount = 0;
         if (_stopRequested) {
+          _stopCompleted = true;
           _fallback = true;
           _changed = true;
           return;
@@ -402,6 +404,7 @@ void OpenXR::RequestStop() {
   _stopRequested = true;
   StopHaptics();
   if (!_running) {
+    _stopCompleted = true;
     _fallback = true;
     _changed = true;
   } else if (!_exitRequested) {
@@ -568,7 +571,8 @@ void OpenXR::Destroy() {
   _system = XR_NULL_SYSTEM_ID;
   _poseChanges.clear();
   _state = XR_SESSION_STATE_UNKNOWN;
-  _running = _begun = _stopRequested = _exitRequested = _fallback = false;
+  _running = _begun = _stopRequested = _stopCompleted = _exitRequested =
+      _fallback = false;
   _canRender = {};
   _images = {};
   _extensions.clear();

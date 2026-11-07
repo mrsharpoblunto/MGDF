@@ -1566,4 +1566,42 @@ TEST_F(OpenXRIntegrationTests, ResizeDuringSwapChainCreationIsApplied) {
   EXPECT_EQ(static_cast<UINT32>(height), loop.Settings->GetScreenY());
 }
 
+TEST_F(OpenXRIntegrationTests, OnRequestBeforeStoppingStartsANewSession) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  FakeXRConfig config{TestAdapter()};
+  config.DeferStop = true;
+  runtime.Configure(&config);
+  FrameLoop loop(true, true);
+  UINT32 phase = 0;
+  loop.Step = [&](auto &host) {
+    if (phase == 0 && host.Backend->VR().ViewCount() == 2) {
+      host.RequestVR(false);
+      ++phase;
+    } else if (phase == 1 && runtime.Stats().ExitRequests == 1) {
+      host.RequestVR(true);
+      ++phase;
+    } else if (phase == 2) {
+      runtime.Push(XR_SESSION_STATE_STOPPING);
+      ++phase;
+    } else if (phase == 3 && runtime.Stats().SessionsCreated == 2 &&
+               host.Backend->VR().ViewCount() == 2) {
+      EXPECT_TRUE(host.Settings->GetVR());
+      runtime.Push(XR_SESSION_STATE_STOPPING);
+      runtime.Push(XR_SESSION_STATE_EXITING);
+      ++phase;
+    } else if (phase == 4 && !host.Settings->GetVR()) {
+      ++phase;
+      return true;
+    }
+    return false;
+  };
+  loop.Execute();
+  EXPECT_FALSE(loop.TimedOut);
+  EXPECT_EQ(5U, phase);
+  EXPECT_EQ(2U, runtime.Stats().SessionsCreated);
+  EXPECT_EQ(0U, loop.FatalErrors.load());
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
+
 }  // namespace

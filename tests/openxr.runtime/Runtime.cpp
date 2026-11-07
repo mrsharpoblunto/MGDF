@@ -372,7 +372,7 @@ XrResult XRAPI_CALL EndSession(XrSession session) {
 XrResult XRAPI_CALL RequestExit(XrSession session) {
   if (!session->Running) return Reject();
   ++Stats.ExitRequests;
-  Events.push_back({XR_SESSION_STATE_STOPPING});
+  if (!Config.DeferStop) Events.push_back({XR_SESSION_STATE_STOPPING});
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL WaitFrame(XrSession session, const XrFrameWaitInfo *,

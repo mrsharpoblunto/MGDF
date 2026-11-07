@@ -106,7 +106,7 @@ class D3DAppFramework {
   void RTResizeBackBuffer();
   bool RTAllowTearing();
   bool RTUpdateVR();
-  void RTApplyVR();
+  bool RTApplyVR();
   bool _rtVRRequested = false;
   bool _rtVRChangePending = false;
   bool RTCheckForDisplayChanges(const HWND window);

@@ -219,7 +219,7 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
   }
   _rtAdapter = _rtRenderBackend->RTGetAdapter();
   _rtVRRequested = _rtVRRequested && _rtRenderBackend->VR().Prepared();
-  RTApplyVR();
+  if (!RTApplyVR()) return false;
 
   if (!RTCheckForDisplayChanges(window)) {
     return false;
@@ -600,15 +600,23 @@ bool D3DAppFramework::RTUpdateVR() {
     }
   }
   vr.PollEvents();
-  if (vr.NeedsFallback()) _rtVRRequested = false;
+  if (vr.NeedsFallback() && !vr.StopCompleted()) _rtVRRequested = false;
   if (vr.TakeChange()) _rtVRChangePending = true;
   RTOnVRState(vr.HasSession() && !vr.NeedsFallback());
   return true;
 }
 
-void D3DAppFramework::RTApplyVR() {
+bool D3DAppFramework::RTApplyVR() {
   auto &vr = _rtRenderBackend->VR();
   if (vr.NeedsFallback()) vr.Destroy();
+  if (_rtVRRequested && !vr.Prepared()) {
+    if (!_rtRenderBackend->RTPrepareVR(RTGetApplicationName())) {
+      _rtVRRequested = false;
+    } else if (!_rtRenderBackend->RTMatchesVRAdapter()) {
+      RTPrepareToReinitD3D();
+      return false;
+    }
+  }
   if (_rtVRRequested && !vr.HasSession() && !_rtRenderBackend->RTStartVR()) {
     _rtVRRequested = false;
     vr.Destroy();
@@ -616,6 +624,7 @@ void D3DAppFramework::RTApplyVR() {
   vr.TakeChange();
   _rtVRChangePending = false;
   RTOnVRState(vr.HasSession());
+  return true;
 }
 
 bool D3DAppFramework::RTAllowTearing() {
@@ -806,7 +815,7 @@ INT32 D3DAppFramework::Run() {
 
               RTWaitForGpuIdle();
               RTOnBeforeBackBufferChange();
-              RTApplyVR();
+              if (!RTApplyVR()) continue;
               auto settings = RTTakeSettingsSnapshot();
               auto newFullScreen = settings.FullScreen;
               if (_rtCurrentFullScreen.FullScreen &&

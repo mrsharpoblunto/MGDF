@@ -62,6 +62,7 @@ class OpenXR {
     return _running && _state == XR_SESSION_STATE_FOCUSED;
   }
   bool NeedsFallback() const { return _fallback; }
+  bool StopCompleted() const { return _stopCompleted; }
   bool TakeChange();
   const OpenXRGraphicsRequirements &Requirements() const {
     return _requirements;
@@ -198,6 +199,7 @@ class OpenXR {
   bool _running = false;
   bool _begun = false;
   bool _stopRequested = false;
+  bool _stopCompleted = false;
   bool _exitRequested = false;
   bool _fallback = false;
   bool _changed = false;
