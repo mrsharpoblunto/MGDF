@@ -12,7 +12,7 @@
 #include <thread>
 #include <vector>
 
-#include "MGDFRenderBackend.hpp"
+#include "MGDFD3D12RenderBackend.hpp"
 
 namespace MGDF {
 namespace core {
@@ -45,9 +45,9 @@ class D3DAppFramework {
   virtual void RTOnBeforeFirstDraw() = 0;
   virtual void RTOnBeforeDeviceReset() = 0;
   virtual void RTOnDeviceReset() = 0;
-  virtual void RTOnInitDevice(IRenderBackend &backend) = 0;
+  virtual void RTOnInitDevice(D3D12RenderBackend &backend) = 0;
   virtual void RTOnBeforeBackBufferChange() = 0;
-  virtual void RTOnBackBufferChange(IRenderBackend &backend) = 0;
+  virtual void RTOnBackBufferChange(D3D12RenderBackend &backend) = 0;
   virtual MGDFFullScreenDesc RTOnResetSwapChain(
       DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
       DXGI_COLOR_SPACE_TYPE &, const RECT &windowSize) = 0;
@@ -63,6 +63,9 @@ class D3DAppFramework {
   virtual bool RTOnDraw() = 0;
   virtual void RTOnAfterPresent() = 0;
   virtual bool RTIsBackBufferChangePending() = 0;
+  virtual std::optional<bool> RTTakeVRRequest() = 0;
+  virtual const char *RTGetApplicationName() const = 0;
+  virtual void RTOnVRState(bool active) = 0;
   virtual MGDFFullScreenDesc RTGetFullscreen() = 0;
   virtual void RTSetFullscreen(const MGDFFullScreenDesc &desc) = 0;
   virtual std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() = 0;
@@ -78,13 +81,14 @@ class D3DAppFramework {
                                   LPARAM lParam) = 0;
   virtual void OnMoveWindow(INT32 x, INT32 y) = 0;
   virtual bool OnSetCursor() = 0;
-  virtual std::unique_ptr<IRenderBackend> CreateRenderBackend(
+  virtual std::unique_ptr<D3D12RenderBackend> CreateRenderBackend(
       const ComObject<IDXGIFactory6> &factory) = 0;
   virtual void FatalError(const char *sender, const char *message) = 0;
 
   void CloseWindow();
   void QueueResetDevice();
   void RTWaitForGpuIdle();
+  bool RTIsVRRunning() const;
 
  private:
   ComObject<IDXGIFactory6> RTCreateDXGIFactory();
@@ -98,6 +102,10 @@ class D3DAppFramework {
   void RTApplyFullscreen(HWND window);
   void RTResizeBackBuffer();
   bool RTAllowTearing();
+  bool RTUpdateVR();
+  void RTApplyVR();
+  bool _rtVRRequested = false;
+  bool _rtVRChangePending = false;
   bool RTCheckForDisplayChanges(const HWND window);
 
   void InitRawInput();
@@ -110,7 +118,7 @@ class D3DAppFramework {
   // Render thread variables
   ComObject<IDXGIFactory6> _rtFactory;
   ComObject<IDXGIAdapter> _rtAdapter;
-  std::unique_ptr<IRenderBackend> _rtRenderBackend;
+  std::unique_ptr<D3D12RenderBackend> _rtRenderBackend;
   DXGI_SWAP_CHAIN_DESC1 _rtSwapDesc;
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC _rtFullscreenSwapDesc;
   DXGI_COLOR_SPACE_TYPE _rtColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;

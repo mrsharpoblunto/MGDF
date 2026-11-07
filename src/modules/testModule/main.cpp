@@ -28,10 +28,8 @@ extern "C" __declspec(dllexport) HRESULT
 GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
   if (!requirements) return E_POINTER;
   *requirements = {};
-  requirements->APICount = 2;
-  requirements->APIs[0] = MGDF_GRAPHICS_API_D3D11;
-  requirements->APIs[1] = MGDF_GRAPHICS_API_D3D12;
-  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_9_3;
+  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+  requirements->VR = TRUE;
   requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
   return S_OK;
 }

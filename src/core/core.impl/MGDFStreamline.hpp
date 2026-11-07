@@ -71,7 +71,7 @@ class Streamline {
   void RTResumeFrameGeneration();
   UINT RTGetSyncInterval(UINT requested) const;
 
-  void RTBeginFrame(MGDFLowLatencyMode lowLatency);
+  void RTBeginFrame(MGDFLowLatencyMode lowLatency, bool vr = false);
   void RTSetFrameMarker(MGDFFrameMarker marker);
   void RTSetFrameConstants(const MGDFFrameConstants *constants);
   HRESULT RTUpscale(ID3D12GraphicsCommandList *list,

@@ -273,6 +273,41 @@ TEST(StreamlineIntegrationTests, UpscaleReproducesAConstantImage) {
       execute(list);
     }
 
+    auto right = desc;
+    right.View = 1;
+    auto invalid = desc;
+    invalid.View = 2;
+    // Both eyes use real DLSS, with and without a headset session. Leave each
+    // view unused for three frames, then resume it without resetting history.
+    for (const bool vr : {true, false}) {
+      UINT32 frame = 0;
+      for (const auto usedViews : {3U, 1U, 1U, 1U, 2U, 2U, 2U, 3U}) {
+        SCOPED_TRACE(testing::Message() << "VR=" << vr << ", frame=" << frame);
+        streamline.RTBeginFrame(MGDF_LOW_LATENCY_OFF, vr);
+        ASSERT_EQ(S_OK, list.Reset(allocator));
+        EXPECT_EQ(E_INVALIDARG, streamline.RTUpscale(list.Get(), &invalid));
+        // A previous frame's constants must not make either view ready.
+        EXPECT_EQ(E_ILLEGAL_METHOD_CALL,
+                  streamline.RTUpscale(list.Get(), &desc));
+        EXPECT_EQ(E_ILLEGAL_METHOD_CALL,
+                  streamline.RTUpscale(list.Get(), &right));
+        for (UINT32 view = 0; view < 2; ++view) {
+          const auto &upscale = view ? right : desc;
+          if (usedViews & (1U << view)) {
+            auto constants = StaticCamera(frame == 0);
+            constants.View = view;
+            streamline.RTSetFrameConstants(&constants);
+            ASSERT_EQ(S_OK, streamline.RTUpscale(list.Get(), &upscale));
+          } else {
+            EXPECT_EQ(E_ILLEGAL_METHOD_CALL,
+                      streamline.RTUpscale(list.Get(), &upscale));
+          }
+        }
+        execute(list);
+        ++frame;
+      }
+    }
+
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
     UINT64 bytes = 0;
     const auto outputDesc = output->GetDesc();

@@ -7,7 +7,7 @@
 #include <mutex>
 #include <sstream>
 
-#include "../MGDFRenderBackend.hpp"
+#include "../MGDFD3D12RenderBackend.hpp"
 #include "../audio/MGDFSoundManagerComponent.hpp"
 #include "../input/MGDFInputManagerComponent.hpp"
 #include "../network/MGDFNetworkManagerComponent.hpp"
@@ -37,11 +37,7 @@ struct HostComponents {
  reference implementation of the Host interfaces
 \author gcconner
 */
-class Host : public IMGDFD3D11RenderHost,
-             public IMGDFSimHost,
-             public IMGDFD3D11Host,
-             public IMGDFD3D12Host,
-             public IMGDFD3D12RenderHost {
+class Host : public IMGDFRenderHost, public IMGDFSimHost {
  public:
   static HRESULT TryCreate(ComObject<Game> game, HostComponents &components,
                            ComObject<Host> &host);
@@ -66,11 +62,11 @@ class Host : public IMGDFD3D11RenderHost,
   void STDisposeModule();
 
   void RTBeforeFirstDraw();
-  void RTSetDevices(IRenderBackend &backend);
+  void RTSetDevices(D3D12RenderBackend &backend);
   bool RTDraw(double alpha);
   void RTAfterPresent();
   void RTBeforeBackBufferChange();
-  void RTBackBufferChange(IRenderBackend &backend);
+  void RTBackBufferChange(D3D12RenderBackend &backend);
   void RTBeforeDeviceReset();
   void RTDeviceReset();
   void RTShutDown();
@@ -111,7 +107,17 @@ class Host : public IMGDFD3D11RenderHost,
   void __stdcall GetInput(IMGDFInputManager **manager) final;
   void __stdcall ShutDown() final;
 
-  MGDFGraphicsAPI __stdcall GetGraphicsAPI() final;
+  HRESULT __stdcall GetVRFrame(MGDFVRFrame *frame) final;
+  HRESULT __stdcall GetVREyeTarget(UINT32 index, ID3D12Resource **target) final;
+
+  HRESULT __stdcall GetVREyeMask(UINT32 index, UINT32 *vertexCount, FLOAT *xy,
+                                 UINT32 *indexCount, UINT32 *indices) final;
+  HRESULT __stdcall SetVREyeDepthRange(UINT32 index, FLOAT nearZ,
+                                       FLOAT farZ) final;
+  HRESULT __stdcall SetVRPanel(const MGDFVRPanel *panel) final;
+  HRESULT __stdcall GetVREyeDepthTarget(UINT32 index,
+                                        ID3D12Resource **target) final;
+  HRESULT __stdcall GetVRPanelTarget(ID3D12Resource **target) final;
 
   // IRenderHost methods
   void __stdcall GetBackBufferInfo(MGDFBackBufferInfo *info) final;
@@ -137,18 +143,7 @@ class Host : public IMGDFD3D11RenderHost,
   HRESULT __stdcall SetFrameGenerationInputs(
       const MGDFFrameGenerationDesc *desc) final;
 
-  // D3D11 host methods
-  void __stdcall GetD3D11Device(ID3D11Device **device) final;
-  void __stdcall GetBackBuffer(ID3D11Texture2D **backbuffer) final;
-  void __stdcall GetDepthStencilBuffer(ID3D11Texture2D **depthStencil) final;
-  void __stdcall GetBackBufferDescription(
-      D3D11_TEXTURE2D_DESC *backBufferDesc,
-      D3D11_TEXTURE2D_DESC *depthStencilBufferDesc) final;
-
   HRESULT __stdcall CreateCPUCounter(IMGDFMetric *metric,
-                                     IMGDFPerformanceCounter **counter) final;
-  HRESULT __stdcall CreateGPUCounter(IMGDFMetric *metric,
-                                     ID3D11DeviceContext *context,
                                      IMGDFPerformanceCounter **counter) final;
 
   HRESULT __stdcall CreateCounterMetric(const small *name,
@@ -172,9 +167,7 @@ class Host : public IMGDFD3D11RenderHost,
                                     IMGDFWebServer **server) final;
 
  private:
-  IMGDFRenderHost *RenderHost() {
-    return static_cast<IMGDFD3D11RenderHost *>(this);
-  }
+  IMGDFRenderHost *RenderHost() { return static_cast<IMGDFRenderHost *>(this); }
   HRESULT Init();
   template <typename T>
   HRESULT CreateMetric(const small *name, IMGDFMetric **metric,
@@ -208,19 +201,18 @@ class Host : public IMGDFD3D11RenderHost,
   ComObject<StatisticsManager> _stats;
 
   MGDFGraphicsRequirements _graphicsRequirements{};
-  MGDFGraphicsAPI _graphicsAPI = MGDF_GRAPHICS_API_D3D11;
   MGDFBackBufferInfo _backBufferInfo{};
   std::mutex _deviceMutex;
-  IRenderBackend *_backend = nullptr;
+  D3D12RenderBackend *_backend = nullptr;
+  std::atomic<DWORD> _vrThreadId{0};
+  bool _vrDrawing = false;
+  bool RTCanCallVR(bool eyeFrame = false) const;
   // Guarded by _deviceMutex: GetUpscaleRenderSize runs on any thread.
   Streamline *_streamline = nullptr;
   UINT64 _renderedFrames = 0;
   ComObject<ID3D12Device10> _d3d12Device;
   ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
   ComObject<ID3D12Fence> _frameFence;
-  ComObject<ID3D11Device> _d3dDevice;
-  ComObject<ID3D11Texture2D> _backBuffer;
-  ComObject<ID3D11Texture2D> _depthStencilBuffer;
 
   std::mutex _mutex;
   MGDFVersion _version;

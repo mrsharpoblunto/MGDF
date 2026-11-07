@@ -16,7 +16,8 @@
       "repository": "https://github.com/microsoft/vcpkg",
       "packages": [
         "directx12-agility",
-        "directx-headers"
+        "directx-headers",
+        "openxr-loader"
       ]
     }
   ]
