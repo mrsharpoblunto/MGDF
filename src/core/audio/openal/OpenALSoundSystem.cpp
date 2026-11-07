@@ -21,25 +21,27 @@ namespace openal_audio {
 /**
 initialise the openAL sound
 */
-OpenALSoundSystem::OpenALSoundSystem() : _context(nullptr) {}
+OpenALSoundSystem::OpenALSoundSystem(OpenALContextFunctions contextFunctions)
+    : _contextFunctions(contextFunctions), _context(nullptr) {}
 
 HRESULT OpenALSoundSystem::Init() {
-  ALCdevice *device = alcOpenDevice(nullptr);
+  ALCdevice *device = _contextFunctions.OpenDevice(nullptr);
   if (device == nullptr) {
     LOG("Unable to open audio device", MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
-  _context = alcCreateContext(device, nullptr);
+  _context = _contextFunctions.CreateContext(device, nullptr);
   if (_context == nullptr) {
-    alcCloseDevice(device);
+    _contextFunctions.CloseDevice(device);
     LOG("Failed to initialize OpenAL", MGDF_LOG_ERROR);
     return E_FAIL;
   }
 
-  if (!alcMakeContextCurrent(_context)) {
-    alcDestroyContext(_context);
-    alcCloseDevice(device);
+  if (!_contextFunctions.MakeCurrent(_context)) {
+    _contextFunctions.DestroyContext(_context);
+    _context = nullptr;
+    _contextFunctions.CloseDevice(device);
     LOG("Failed to make OpenAL context current", MGDF_LOG_ERROR);
     return E_FAIL;
   }
@@ -50,6 +52,8 @@ HRESULT OpenALSoundSystem::Init() {
         MGDF_LOG_ERROR);
     return E_FAIL;
   }
+
+  _alutInitialized = true;
 
   // allocate as many sources as we can (or until we reach a hard coded limit)
   // and add them to the free sources pool.
@@ -82,10 +86,11 @@ OpenALSoundSystem::~OpenALSoundSystem() {
       alDeleteSources(1, &source);
     }
 
-    alcMakeContextCurrent(nullptr);
+    if (_alutInitialized) alutExit();
+    _contextFunctions.MakeCurrent(nullptr);
     ALCdevice *device = alcGetContextsDevice(_context);
-    alcDestroyContext(_context);
-    alcCloseDevice(device);
+    _contextFunctions.DestroyContext(_context);
+    _contextFunctions.CloseDevice(device);
     LOG("uninitialised successfully", MGDF_LOG_LOW);
   }
 }

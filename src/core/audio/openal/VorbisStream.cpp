@@ -323,7 +323,7 @@ UINT32 VorbisStream::GetLength() {
 }
 
 void VorbisStream::Update() {
-  if (_state != PAUSE && _state != STOP) {
+  if (_state == PLAY) {
     // Request the number of OpenAL Buffers have been processed (played) on the
     // Source
     ALint buffersProcessed = 0;

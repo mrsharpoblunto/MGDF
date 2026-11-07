@@ -29,8 +29,10 @@ namespace audio {
 namespace openal_audio {
 
 OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(
-    const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs)
-    : _enableAttenuation(false),
+    const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs,
+    OpenALContextFunctions contextFunctions)
+    : OpenALSoundSystem(contextFunctions),
+      _enableAttenuation(false),
       _vfs(vfs),
       _soundVolume(0.0f),
       _streamVolume(0.0f),
