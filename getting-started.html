@@ -259,6 +259,7 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
 {% endhighlight %}
     <h2 id="d3d12module">Writing a D3D12 module</h2>
     <p>Declare the module's graphics requirements as shown above. Use the device and queues to create resources, record commands, and submit each frame.</p>
+    <p>To render to a headset, follow the <a href="{{ site.baseurl }}/vr">OpenXR VR guide</a>. It covers opt-in, eye targets, controllers, and optional features. Keep drawing the window in VR.</p>
 
     <h4>Device and queue access</h4>
     <p>Use <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a> methods from either thread. <code>GetD3D12Device</code> returns an <code>ID3D12Device10</code> reference. <code>GetDirectQueue</code>, <code>GetComputeQueue</code>, and <code>GetCopyQueue</code> return command queue references. The module owns these returned references. Release them before you acknowledge a device reset. The device can be null during a reset.</p>
@@ -338,6 +339,7 @@ HRESULT DrawTimedClear(IMGDFRenderHost *host,
 
     <h2 id="upscaling">Upscaling, frame generation and low latency</h2>
     <p>A module can use NVIDIA DLSS upscaling and DLAA, DLSS frame generation (DLSS-G) and Reflex low latency through the MGDF API. The module uses only MGDF types.</p>
+    <p>In VR, DLSS can upscale each eye separately. Frame generation is off and <code>GetMaxGeneratedFrames</code> returns 0. Low latency sleep and frame markers have no effect. The saved preferences apply again when VR ends. See <a href="{{ site.baseurl }}/vr#upscaling">VR upscaling and latency</a>.</p>
     <p>The module does not request these features. The host starts them when the device supports them, and tells the module what is supported. The module:</p>
     <ul>
         <li>Reads the supported modes from the render settings manager.</li>

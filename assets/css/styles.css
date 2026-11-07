@@ -51,6 +51,10 @@
 	margin-top:50px;
 }
 
+.main [id] {
+	scroll-margin-top:70px;
+}
+
 .jumbotron-content {
 	margin-top:-35px;
 	text-align:center;
