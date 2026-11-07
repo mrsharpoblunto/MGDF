@@ -154,7 +154,7 @@ Task("Dist")
 		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
-		DeleteFiles(GetFiles("../dist/tmp/**/openxr.runtime.dll"));
+		DeleteFiles(GetFiles("../dist/tmp/**/openxr.runtime.*"));
 		DeleteFiles(GetFiles("../dist/tmp/**/gmock.dll"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));
 
@@ -180,6 +180,7 @@ Task("Dist")
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/symbols/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/symbols/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.pdb"), "../dist/symbols/x64");
+		DeleteFiles(GetFiles("../dist/symbols/**/openxr.runtime.*"));
 
 		// copy MGDF headers
 		CreateDirectory("../dist/SDK/include/MGDF");
