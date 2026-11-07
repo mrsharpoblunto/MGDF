@@ -62,8 +62,7 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
       _window(nullptr),
       _renderThread(nullptr),
       _windowStyle(WS_OVERLAPPEDWINDOW),
-      _rtAllowTearing(false),
-      _hasSwapChain(false) {
+      _rtAllowTearing(false) {
   _minimized.store(false);
   _runRenderThread.clear();
 
@@ -357,7 +356,6 @@ void D3DAppFramework::RTUninitD3D() {
   if (_rtRenderBackend) {
     _rtRenderBackend->RTUninit(_rtCurrentFullScreen.ExclusiveMode);
   }
-  _hasSwapChain.store(false);
   _rtFactory.Clear();
 }
 
@@ -650,7 +648,6 @@ void D3DAppFramework::RTCreateSwapChain(
           ? std::nullopt
           : std::optional<UINT>(settings.MaxFrameLatency),
       settings.FrameGeneration);
-  _hasSwapChain.store(true);
 }
 
 void D3DAppFramework::RTResizeBackBuffer() {

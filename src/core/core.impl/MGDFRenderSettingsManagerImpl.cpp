@@ -279,17 +279,15 @@ BOOL RenderSettingsManager::GetWindowSizeLimits(UINT32 *width, UINT32 *height) {
 
 RenderSettingsSnapshot RenderSettingsManager::TakeSnapshot() {
   std::lock_guard lock(_mutex);
-  const bool hdr =
-      _hdrEnabled && ((_fullScreen.FullScreen && _fullScreen.ExclusiveMode)
-                          ? _primaryDisplayMode.SupportsHDR
-                          : _currentOutputDisplayInfo.SupportsHDR);
   return {_generation,
           _fullScreen,
           std::exchange(_pendingWindowSize, std::nullopt),
           _primaryDisplayMode,
           _currentOutputDisplayInfo,
-          hdr ? _hdrBackBufferFormat : _sdrBackBufferFormat,
-          hdr ? _hdrColorSpace : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
+          _hdrEnabled,
+          _sdrBackBufferFormat,
+          _hdrBackBufferFormat,
+          _hdrColorSpace,
           _maxFrameLatency,
           _vrActive ? 0 : _frameGeneration};
 }
@@ -559,8 +557,14 @@ void RenderSettingsManager::OnResetSwapChain(
     desc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
   }
 
-  desc.Format = snapshot.Format;
-  colorSpace = snapshot.ColorSpace;
+  const bool hdr =
+      snapshot.HDREnabled &&
+      ((snapshot.FullScreen.FullScreen && snapshot.FullScreen.ExclusiveMode)
+           ? snapshot.PrimaryDisplayMode.SupportsHDR
+           : snapshot.Output.SupportsHDR);
+  desc.Format = hdr ? snapshot.HDRFormat : snapshot.SDRFormat;
+  colorSpace =
+      hdr ? snapshot.HDRColorSpace : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
 
   desc.SampleDesc = {1, 0};
   desc.Scaling = DXGI_SCALING_STRETCH;

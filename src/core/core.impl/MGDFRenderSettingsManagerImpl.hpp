@@ -20,8 +20,9 @@ struct RenderSettingsSnapshot {
   std::optional<std::pair<UINT32, UINT32>> WindowSize;
   MGDFDisplayMode PrimaryDisplayMode;
   MGDFOutputDisplayInfo Output;
-  DXGI_FORMAT Format;
-  DXGI_COLOR_SPACE_TYPE ColorSpace;
+  bool HDREnabled;
+  DXGI_FORMAT SDRFormat, HDRFormat;
+  DXGI_COLOR_SPACE_TYPE HDRColorSpace;
   UINT32 MaxFrameLatency;
   UINT32 FrameGeneration;
 };

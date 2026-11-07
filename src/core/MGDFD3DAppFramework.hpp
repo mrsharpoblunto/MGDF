@@ -135,7 +135,7 @@ class D3DAppFramework {
   std::condition_variable _renderWake;
   std::mutex _displayChangeMutex;
   std::list<DisplayChangeMessage> _pendingDisplayChanges;
-  std::atomic_bool _minimized, _awaitingD3DReset, _hasSwapChain;
+  std::atomic_bool _minimized, _awaitingD3DReset;
   std::atomic_flag _runRenderThread;
 
   // Non-render thread variables
