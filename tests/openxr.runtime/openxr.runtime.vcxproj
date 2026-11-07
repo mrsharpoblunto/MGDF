@@ -47,6 +47,13 @@
     <ClInclude Include="Control.hpp" />
     <None Include="runtime.json" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\core\core.api\core.api.vcxproj">
+      <Project>{531A9FF9-F1EC-41D8-8C34-531E640139BA}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyRuntimeManifest" AfterTargets="Build">
     <Copy SourceFiles="$(ProjectDir)runtime.json" DestinationFiles="$(OutDir)openxr.runtime.json" SkipUnchangedFiles="true" />

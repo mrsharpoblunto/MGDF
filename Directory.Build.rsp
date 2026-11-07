@@ -1,0 +1,2 @@
+# Build solution projects in parallel.
+/maxCpuCount
