@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-#include <thread>
-
 #include "../../src/core/input/xinput/XInputManagerComponentImpl.hpp"
 
 using namespace MGDF;
@@ -41,8 +39,7 @@ TEST(InputTests, ClearIsAppliedAtTheNextSimulationBoundary) {
   input->ProcessSim();
   ASSERT_TRUE(input->IsKeyDown(VK_SPACE));
   Key(*input.Get(), RI_KEY_BREAK | RI_KEY_E0);
-  std::thread window([&]() { input->ClearInput(); });
-  window.join();
+  input->ClearInput();
   EXPECT_TRUE(input->IsKeyDown(VK_SPACE));
   input->ProcessSim();
   EXPECT_TRUE(input->IsKeyUp(VK_SPACE));
