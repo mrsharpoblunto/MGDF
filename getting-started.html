@@ -210,6 +210,7 @@ BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host)
 BOOL __stdcall Module::RTBeforeDeviceReset(IMGDFRenderHost *host)
 {
     // Release saved device resources here.
+    host->QueueDeviceReset();
     return TRUE;
 }
 BOOL __stdcall Module::RTDeviceReset(IMGDFRenderHost *host)

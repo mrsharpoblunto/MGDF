@@ -129,6 +129,7 @@ ndcY = (2 * y - (tan(eye.AngleUp) + tan(eye.AngleDown))) /
 </div>
 <script type="text/javascript">
 $(function() {
-    $('.side-nav').biscroll({main: '.main'});
+    $('.side-nav').biscroll({main: '.main', footer: 'footer'});
+    $('body').scrollspy({target: '.side-nav'});
 });
 </script>
