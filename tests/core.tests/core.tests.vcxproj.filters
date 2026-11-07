@@ -8,6 +8,7 @@
     <ClCompile Include="HostLifecycleTests.cpp" />
     <ClCompile Include="InputTests.cpp" />
     <ClCompile Include="AudioTests.cpp" />
+    <ClCompile Include="NetworkTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />
     <ClCompile Include="ParameterManagerTests.cpp" />

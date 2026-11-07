@@ -97,13 +97,18 @@ class HttpClientRequest
   HttpMessage _request;
 };
 
-class WebSocketClient : public std::enable_shared_from_this<WebSocketClient>,
-                        public WebSocketBase {
+struct WebSocketTransport {
+  std::function<CURL *()> Create = curl_easy_init;
+  std::function<void(CURL *)> Release = curl_easy_cleanup;
+};
+
+class WebSocketConnection
+    : public std::enable_shared_from_this<WebSocketConnection>,
+      public WebSocketBase {
  public:
-  WebSocketClient(const std::string &url,
-                  std::shared_ptr<NetworkManagerComponent> manager,
-                  size_t reconnectInterval);
-  virtual ~WebSocketClient();
+  WebSocketConnection(const std::string &url, NetworkManagerComponent *manager,
+                      size_t reconnectInterval, WebSocketTransport transport);
+  virtual ~WebSocketConnection();
 
   IWebSocket *Send(const std::vector<char> &data, bool binary) final;
   IWebSocket *Send(void *data, size_t dataLength, bool binary) final;
@@ -113,7 +118,10 @@ class WebSocketClient : public std::enable_shared_from_this<WebSocketClient>,
     Closed,
   };
 
-  // the following members are only used by the manager poll thread
+  void RequestClose();
+  bool Closing() const;
+
+  // The manager poll thread owns transport access.
   bool Connect(CURLM *multi);
   void CompleteConnection(CURLM *multi, CURLcode result);
   PumpResult Pump(CURLM *multi);
@@ -125,10 +133,10 @@ class WebSocketClient : public std::enable_shared_from_this<WebSocketClient>,
 
   const std::string _url;
   const size_t _reconnectInterval;
-  const std::shared_ptr<NetworkManagerComponent> _manager;
+  NetworkManagerComponent *const _manager;
+  const WebSocketTransport _transport;
   bool _forceClose;
   bool _closing;
-  std::condition_variable_any _cv;
 
   // poll thread only
   CURL *_curl;
@@ -140,11 +148,30 @@ class WebSocketClient : public std::enable_shared_from_this<WebSocketClient>,
   bool _recvBinary;
 };
 
+class WebSocketClient : public IWebSocket {
+ public:
+  WebSocketClient(std::shared_ptr<WebSocketConnection> connection,
+                  std::shared_ptr<NetworkManagerComponent> manager)
+      : _connection(std::move(connection)), _manager(std::move(manager)) {}
+  ~WebSocketClient() override;
+  IWebSocket *Send(const std::vector<char> &data, bool binary) final;
+  IWebSocket *Send(void *data, size_t dataLength, bool binary) final;
+  IWebSocket *OnReceive(
+      std::function<void(std::span<const char> &, bool)> handler) final;
+  MGDFWebSocketConnectionState GetConnectionState(
+      std::string &lastError) const final;
+
+ private:
+  const std::shared_ptr<WebSocketConnection> _connection;
+  const std::shared_ptr<NetworkManagerComponent> _manager;
+};
+
 class NetworkManagerComponent
     : public std::enable_shared_from_this<NetworkManagerComponent>,
       public INetworkManagerComponent {
  public:
-  NetworkManagerComponent(const NetworkManagerOptions &options);
+  NetworkManagerComponent(const NetworkManagerOptions &options,
+                          WebSocketTransport transport = {});
   virtual ~NetworkManagerComponent();
 
   std::unique_ptr<IHttpClientRequest> CreateHttpRequest(
@@ -159,7 +186,7 @@ class NetworkManagerComponent
       HttpMessage &request,
       std::function<void(std::shared_ptr<HttpMessage> &response)> handler);
 
-  void ScheduleWebSocketConnect(std::weak_ptr<WebSocketClient> socket,
+  void ScheduleWebSocketConnect(std::shared_ptr<WebSocketConnection> socket,
                                 size_t when);
   void Wake();
 
@@ -172,20 +199,21 @@ class NetworkManagerComponent
   std::thread _pollThread;
   NetworkManagerOptions _options;
   std::atomic_bool _running;
+  const WebSocketTransport _transport;
+  std::mutex _stopMutex;
+  std::thread::id _pollThreadId;
 
   std::mutex _requestMutex;
   std::deque<std::shared_ptr<HttpClientPendingRequest>> _newRequests;
 
   std::mutex _webSocketMutex;
-  std::list<std::pair<std::weak_ptr<WebSocketClient>, size_t>>
+  std::list<std::pair<std::shared_ptr<WebSocketConnection>, size_t>>
       _pendingWebSockets;
 
-  // poll thread only. Active websockets are tracked by raw pointer - this
-  // is safe as a WebSocketClients destructor blocks until the poll thread
-  // has acknowledged the close and stopped referencing it
+  // Poll owns connection state until transport cleanup is complete.
   std::unordered_map<CURL *, std::shared_ptr<HttpClientPendingRequest>>
       _activeRequests;
-  std::vector<WebSocketClient *> _activeWebSockets;
+  std::vector<std::shared_ptr<WebSocketConnection>> _activeWebSockets;
 };
 
 }  // namespace impl
