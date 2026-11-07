@@ -17,6 +17,10 @@ struct FakeXRConfig {
   UINT32 FailWidth = 0;
   bool GazeExtension = false;
   bool EyeTracking = false;
+  bool Api11 = false;
+  bool Stage = false;
+  bool LocalFloor = false;
+  bool LocalFloorExtension = false;
 };
 struct FakeXRInput {
   bool Connected[2]{true, true};
@@ -34,6 +38,10 @@ struct FakeXRInput {
   bool GazeActive = true;
   XrPosef Gaze{{0, 0.6f, 0, 0.8f}, {0.1f, 1.7f, -0.2f}};
   bool FailSync = false;
+  bool FloorValid = true;
+  float FloorHeight = -1.7f;
+  float ChangedFloorHeight = -1.5f;
+  XrTime FloorChangeTime = 33000000;
 };
 struct FakeXRStats {
   XrApplicationInfo ApplicationInfo{};

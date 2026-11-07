@@ -12,6 +12,12 @@ with +X right, +Y up and +Z forward. The quaternion order is x, y, z, w. FOV
 angles are in radians; left and down are negative. Width, Height, Format and
 DepthFormat describe each target. Write linear color to an sRGB target.
 
+Use `MGDFVRFrame::FloorHeight` only when `FloorHeightValid` is TRUE. It is the
+floor Y in LOCAL space, in metres, at the eye display time. Subtract it from
+the head Y to get height above the floor. The host uses LOCAL_FLOOR or STAGE
+when the runtime lists it. Without either space, or without a valid floor
+pose, the flag is FALSE. Floor space changes also advance `PoseEpoch`.
+
 Compare `MGDFVRFrame::PoseEpoch` with the last rendered frame. Reset temporal
 history for both eyes when it differs. The counter advances when a session
 starts and on the first frame whose predicted display time reaches a LOCAL

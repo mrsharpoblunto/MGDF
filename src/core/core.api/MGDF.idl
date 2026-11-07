@@ -2495,9 +2495,14 @@ typedef struct MGDFVRFrame {
   recreation. Zero without mask support */
   UINT64 MaskVersion;
   /** Reset temporal history when this counter changes. It advances when a
-  session starts and on the first frame at or after a LOCAL space change time,
+  session starts and on the first frame at or after a LOCAL or floor space change time,
   including frames with no eye output. Compare with the last rendered frame */
   UINT64 PoseEpoch;
+  /** Floor Y in LOCAL space, in metres. Sampled at the eye display time.
+  Subtract this from a LOCAL head Y to get height above the floor */
+  FLOAT FloorHeight;
+  /** FALSE without STAGE or LOCAL_FLOOR support, or while the floor pose is invalid */
+  BOOL FloorHeightValid;
   /** Bit set of MGDFVRFeature values */
   UINT32 Features;
 } MGDFVRFrame;

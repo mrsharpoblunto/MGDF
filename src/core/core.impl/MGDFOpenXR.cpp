@@ -127,7 +127,7 @@ bool OpenXR::Prepare(const char *extension, const char *applicationName,
         (info.applicationInfo.engineVersion << 8) |
         static_cast<uint32_t>((std::max)(0, component));
   }
-  info.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);
+  info.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 1, 0);
   uint32_t extensionCount = 0;
   if (!Check(xrEnumerateInstanceExtensionProperties(nullptr, 0, &extensionCount,
                                                     nullptr),
@@ -142,7 +142,8 @@ bool OpenXR::Prepare(const char *extension, const char *applicationName,
   _extensions = {extension};
   for (const auto name : {XR_KHR_VISIBILITY_MASK_EXTENSION_NAME,
                           XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME,
-                          XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME}) {
+                          XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME,
+                          XR_EXT_LOCAL_FLOOR_EXTENSION_NAME}) {
     if (std::ranges::any_of(properties, [name](const auto &property) {
           return strcmp(property.extensionName, name) == 0;
         }))
@@ -152,8 +153,12 @@ bool OpenXR::Prepare(const char *extension, const char *applicationName,
   for (const auto &name : _extensions) enabled.push_back(name.c_str());
   info.enabledExtensionCount = static_cast<uint32_t>(enabled.size());
   info.enabledExtensionNames = enabled.data();
-  if (!Check(xrCreateInstance(&info, &_instance), "create instance"))
-    return false;
+  auto result = xrCreateInstance(&info, &_instance);
+  if (result == XR_ERROR_API_VERSION_UNSUPPORTED) {
+    info.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);
+    result = xrCreateInstance(&info, &_instance);
+  }
+  if (!Check(result, "create instance")) return false;
   const XrSystemGetInfo system{XR_TYPE_SYSTEM_GET_INFO, nullptr,
                                XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY};
   if (!Check(xrGetSystem(_instance, &system, &_system), "get headset") ||
@@ -220,6 +225,24 @@ bool OpenXR::CreateSession(const void *binding,
   if (!Check(xrCreateReferenceSpace(_session, &viewSpace, &_viewSpace),
              "create VIEW space"))
     return false;
+  uint32_t count = 0;
+  if (XR_SUCCEEDED(xrEnumerateReferenceSpaces(_session, 0, &count, nullptr))) {
+    std::vector<XrReferenceSpaceType> spaces(count);
+    if (XR_SUCCEEDED(xrEnumerateReferenceSpaces(_session, count, &count,
+                                                spaces.data()))) {
+      for (const auto type : {XR_REFERENCE_SPACE_TYPE_LOCAL_FLOOR_EXT,
+                              XR_REFERENCE_SPACE_TYPE_STAGE}) {
+        if (std::ranges::find(spaces, type) == spaces.end()) continue;
+        auto floor = space;
+        floor.referenceSpaceType = type;
+        if (XR_SUCCEEDED(
+                xrCreateReferenceSpace(_session, &floor, &_floorSpace))) {
+          _floorType = type;
+          break;
+        }
+      }
+    }
+  }
   _waitIdle = std::move(waitIdle);
   _canRender = std::move(canRender);
   _images = std::move(images);
@@ -326,7 +349,8 @@ void OpenXR::PollEvents() {
           reinterpret_cast<const XrEventDataReferenceSpaceChangePending &>(
               event);
       if (change.session == _session &&
-          change.referenceSpaceType == XR_REFERENCE_SPACE_TYPE_LOCAL)
+          (change.referenceSpaceType == XR_REFERENCE_SPACE_TYPE_LOCAL ||
+           change.referenceSpaceType == _floorType))
         _poseChanges.push_back(change.changeTime);
     }
     if (event.type != XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) continue;
@@ -404,6 +428,17 @@ bool OpenXR::BeginFrame() {
     return true;
   });
   UpdateInput();
+  _floorHeight = 0;
+  _floorHeightValid = false;
+  if (_floorSpace) {
+    XrSpaceLocation floor{XR_TYPE_SPACE_LOCATION};
+    if (XR_SUCCEEDED(xrLocateSpace(_floorSpace, _space,
+                                   _frame.predictedDisplayTime, &floor)) &&
+        (floor.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)) {
+      _floorHeight = floor.pose.position.y;
+      _floorHeightValid = true;
+    }
+  }
   if (!_frame.shouldRender || _stopRequested) return true;
   const XrViewLocateInfo locate{XR_TYPE_VIEW_LOCATE_INFO, nullptr,
                                 XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
@@ -521,9 +556,13 @@ void OpenXR::Destroy() {
   DestroyActions();
   if (_space) xrDestroySpace(_space);
   if (_viewSpace) xrDestroySpace(_viewSpace);
+  if (_floorSpace) xrDestroySpace(_floorSpace);
   if (_session) xrDestroySession(_session);
   if (_instance) xrDestroyInstance(_instance);
-  _space = _viewSpace = XR_NULL_HANDLE;
+  _space = _viewSpace = _floorSpace = XR_NULL_HANDLE;
+  _floorType = XR_REFERENCE_SPACE_TYPE_MAX_ENUM;
+  _floorHeight = 0;
+  _floorHeightValid = false;
   _session = XR_NULL_HANDLE;
   _instance = XR_NULL_HANDLE;
   _system = XR_NULL_SYSTEM_ID;
@@ -562,6 +601,8 @@ HRESULT OpenXR::GetVRFrame(MGDFVRFrame *frame, bool eyeFrame) const {
   frame->EyeCount = eyeFrame && _begun ? _viewCount : 0;
   frame->Focused = Focused();
   frame->PoseEpoch = _poseEpoch;
+  frame->FloorHeight = _floorHeight;
+  frame->FloorHeightValid = _running && _floorHeightValid;
   if (_getMask) {
     frame->Features |= MGDF_VR_FEATURE_MASK;
     frame->MaskVersion = _maskVersion;

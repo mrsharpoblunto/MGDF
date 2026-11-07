@@ -101,6 +101,8 @@ XrResult XRAPI_CALL EnumerateExtensions(const char *, uint32_t capacity,
     names.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
   if (Config.GazeExtension)
     names.push_back(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME);
+  if (Config.LocalFloorExtension)
+    names.push_back(XR_EXT_LOCAL_FLOOR_EXTENSION_NAME);
   *count = static_cast<UINT32>(names.size());
   if (!capacity) return XR_SUCCESS;
   if (capacity < *count) return XR_ERROR_SIZE_INSUFFICIENT;
@@ -113,6 +115,9 @@ XrResult XRAPI_CALL EnumerateExtensions(const char *, uint32_t capacity,
 }
 XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
                                    XrInstance *instance) {
+  if (!Config.Api11 &&
+      info->applicationInfo.apiVersion >= XR_MAKE_VERSION(1, 1, 0))
+    return XR_ERROR_API_VERSION_UNSUPPORTED;
   Stats.ApplicationInfo = info->applicationInfo;
   Stats.EnabledExtensions = info->enabledExtensionCount;
   Stats.DepthEnabled = Stats.MaskEnabled = Stats.GazeEnabled = false;
@@ -127,6 +132,8 @@ XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
     } else if (strcmp(name, XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME) == 0 &&
                Config.GazeExtension) {
       Stats.GazeEnabled = true;
+    } else if (strcmp(name, XR_EXT_LOCAL_FLOOR_EXTENSION_NAME) == 0 &&
+               Config.LocalFloorExtension) {
     } else if (strcmp(name, XR_KHR_D3D11_ENABLE_EXTENSION_NAME) != 0 &&
                strcmp(name, XR_KHR_D3D12_ENABLE_EXTENSION_NAME) != 0) {
       return XR_ERROR_EXTENSION_NOT_PRESENT;
@@ -209,11 +216,33 @@ XrResult XRAPI_CALL DestroySession(XrSession session) {
   --Stats.LiveSessions;
   return XR_SUCCESS;
 }
+XrResult XRAPI_CALL ReferenceSpaces(XrSession, uint32_t capacity,
+                                    uint32_t *count,
+                                    XrReferenceSpaceType *spaces) {
+  std::vector<XrReferenceSpaceType> types{XR_REFERENCE_SPACE_TYPE_LOCAL,
+                                          XR_REFERENCE_SPACE_TYPE_VIEW};
+  if (Config.Stage) types.push_back(XR_REFERENCE_SPACE_TYPE_STAGE);
+  if (Config.LocalFloor &&
+      (Stats.ApplicationInfo.apiVersion >= XR_MAKE_VERSION(1, 1, 0) ||
+       Config.LocalFloorExtension))
+    types.push_back(XR_REFERENCE_SPACE_TYPE_LOCAL_FLOOR_EXT);
+  *count = static_cast<uint32_t>(types.size());
+  if (!capacity) return XR_SUCCESS;
+  if (capacity < *count) return XR_ERROR_SIZE_INSUFFICIENT;
+  std::copy(types.begin(), types.end(), spaces);
+  return XR_SUCCESS;
+}
 XrResult XRAPI_CALL CreateSpace(XrSession session,
                                 const XrReferenceSpaceCreateInfo *info,
                                 XrSpace *space) {
   if (info->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_LOCAL &&
-      info->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_VIEW)
+      info->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_VIEW &&
+      !(Config.Stage &&
+        info->referenceSpaceType == XR_REFERENCE_SPACE_TYPE_STAGE) &&
+      !(Config.LocalFloor &&
+        (Stats.ApplicationInfo.apiVersion >= XR_MAKE_VERSION(1, 1, 0) ||
+         Config.LocalFloorExtension) &&
+        info->referenceSpaceType == XR_REFERENCE_SPACE_TYPE_LOCAL_FLOOR_EXT))
     return Reject();
   *space = new XrSpace_T{session, info->referenceSpaceType};
   return XR_SUCCESS;
@@ -701,6 +730,14 @@ XrResult XRAPI_CALL LocateSpace(XrSpace space, XrSpace base, XrTime time,
   location->locationFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT |
                             XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
   location->pose = {{0, 0, 0, 1}, {0, 0, 0}};
+  if (space->Type == XR_REFERENCE_SPACE_TYPE_STAGE ||
+      space->Type == XR_REFERENCE_SPACE_TYPE_LOCAL_FLOOR_EXT) {
+    if (base->Type != XR_REFERENCE_SPACE_TYPE_LOCAL) return Reject();
+    location->locationFlags = Input.FloorValid ? location->locationFlags : 0;
+    location->pose.position.y = time >= Input.FloorChangeTime
+                                    ? Input.ChangedFloorHeight
+                                    : Input.FloorHeight;
+  }
   if (space->Action) {
     location->locationFlags = Input.PoseFlags;
     const auto hand = Hand(space->Hand);
@@ -776,6 +813,7 @@ XrResult XRAPI_CALL GetProc(XrInstance, const char *name,
   ENTRY("xrCreateSession", CreateSession)
   ENTRY("xrDestroySession", DestroySession)
   ENTRY("xrCreateReferenceSpace", CreateSpace)
+  ENTRY("xrEnumerateReferenceSpaces", ReferenceSpaces)
   ENTRY("xrDestroySpace", DestroySpace)
   ENTRY("xrEnumerateViewConfigurationViews", Views)
   ENTRY("xrEnumerateSwapchainFormats", Formats)
@@ -837,7 +875,7 @@ xrNegotiateLoaderRuntimeInterface(const LoaderInfo *loader,
   if (loader->MinInterfaceVersion > 1 || loader->MaxInterfaceVersion < 1)
     return XR_ERROR_INITIALIZATION_FAILED;
   runtime->InterfaceVersion = 1;
-  runtime->ApiVersion = XR_MAKE_VERSION(1, 0, 0);
+  runtime->ApiVersion = XR_MAKE_VERSION(1, 1, 0);
   runtime->GetProc = GetProc;
   return XR_SUCCESS;
 }

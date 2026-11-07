@@ -162,6 +162,10 @@ class OpenXR {
   XrSession _session = XR_NULL_HANDLE;
   XrSpace _space = XR_NULL_HANDLE;
   XrSpace _viewSpace = XR_NULL_HANDLE;
+  XrSpace _floorSpace = XR_NULL_HANDLE;
+  XrReferenceSpaceType _floorType = XR_REFERENCE_SPACE_TYPE_MAX_ENUM;
+  float _floorHeight = 0;
+  bool _floorHeightValid = false;
   XrSystemProperties _systemProperties{XR_TYPE_SYSTEM_PROPERTIES};
   XrSessionState _state = XR_SESSION_STATE_UNKNOWN;
   OpenXRGraphicsRequirements _requirements;

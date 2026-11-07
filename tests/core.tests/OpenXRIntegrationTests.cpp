@@ -371,6 +371,57 @@ TEST_P(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
 }
 
+TEST_P(OpenXRIntegrationTests, FloorHeightTracksValidityAndReferenceChanges) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  ASSERT_NE(nullptr, runtime.SetInput);
+  const auto adapter = TestAdapter();
+  for (int mode = 0; mode < 3; ++mode) {
+    SCOPED_TRACE(mode);
+    FakeXRConfig config{adapter};
+    config.Stage = mode == 1;
+    config.LocalFloor = mode >= 2;
+    config.LocalFloorExtension = mode == 2;
+    runtime.Configure(&config);
+    FakeXRInput input;
+    UINT64 epoch = 0;
+    UINT32 checked = 0;
+    {
+      FrameLoop loop(GetParam(), true, true);
+      loop.Step = [&](auto &host) {
+        auto &vr = host.Backend->VR();
+        if (!vr.Running()) return false;
+        const auto number = runtime.Stats().Frames + 1;
+        MGDFVRFrame frame{};
+        EXPECT_EQ(number == 3 ? S_FALSE : S_OK, vr.GetVRFrame(&frame));
+        if (number == 1) {
+          epoch = frame.PoseEpoch;
+          runtime.ChangeSpace(mode == 1
+                                  ? XR_REFERENCE_SPACE_TYPE_STAGE
+                                  : XR_REFERENCE_SPACE_TYPE_LOCAL_FLOOR_EXT,
+                              input.FloorChangeTime);
+        }
+        const bool valid = mode != 0 && number != 4;
+        EXPECT_EQ(valid, frame.FloorHeightValid != FALSE);
+        EXPECT_FLOAT_EQ(valid ? (number < 3 ? -1.7f : -1.5f) : 0.0f,
+                        frame.FloorHeight);
+        EXPECT_EQ(epoch + (mode != 0 && number >= 3 ? 1 : 0), frame.PoseEpoch);
+        if (number == 2) runtime.ShouldRender(false);
+        if (number == 3) runtime.ShouldRender(true);
+        input.FloorValid = number != 3;
+        runtime.SetInput(&input);
+        ++checked;
+        return number == 5;
+      };
+      loop.Execute();
+      EXPECT_FALSE(loop.TimedOut);
+      EXPECT_EQ(0U, loop.FatalErrors.load());
+    }
+    EXPECT_EQ(5U, checked);
+    EXPECT_EQ(0U, runtime.Stats().Errors);
+  }
+}
+
 TEST_P(OpenXRIntegrationTests, HostRendersTwoEyesSkipsFramesAndTogglesVR) {
   Runtime runtime;
   ASSERT_NE(nullptr, runtime.Configure);
