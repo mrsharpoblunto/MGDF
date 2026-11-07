@@ -121,6 +121,8 @@ HRESULT Host::Init() {
   if (FAILED(result)) return result;
 
   _debugOverlay = MakeCom<Debug>(_timer);
+  _captures = std::make_unique<CaptureManager>(
+      std::filesystem::path(Resources::Instance().UserBaseDir()) / L"captures");
 
   // map essential directories to the vfs
   // ensure the vfs automatically enumerates zip files
@@ -327,6 +329,7 @@ void Host::RTBeforeDeviceReset() {
       FATALERROR(this, "Error in before device reset in module");
     }
   }
+  _captures->RTReleaseDevice();
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
   _d3d12Device.Clear();
@@ -358,6 +361,7 @@ void Host::RTShutDown() {
   // release all device dependent resources now as the app framework will
   // uninitialize D3D (and report any remaining live objects in debug builds)
   // before this host is destroyed
+  _captures->RTShutDown();
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
   _streamline = nullptr;
@@ -385,6 +389,7 @@ void Host::RTSetDevices(D3D12RenderBackend &backend) {
     _copyQueue = backend.RTGetQueue(D3D12_COMMAND_LIST_TYPE_COPY);
     _frameFence = backend.RTGetFrameFence();
   }
+  _captures->RTSetDevice(_d3d12Device, _directQueue, _frameFence);
   {
     std::lock_guard lock(_deviceMutex);
     _streamline = backend.GetStreamline();
@@ -400,6 +405,18 @@ bool Host::RTDraw(double alpha) {
   _vrDrawing = true;
   const bool drawn = _module && _module->RTDraw(RenderHost(), alpha);
   _vrDrawing = false;
+  MGDFOutputDisplayInfo display{};
+  _renderSettings->GetCurrentOutputDisplayInfo(&display);
+  const auto colorSpace = _backend->RTGetColorSpace();
+  // SDRWhiteLevel is in thousandths of 80 nits
+  _captures->RTCapture(
+      _backend->RTGetCurrentFrame(), drawn,
+      colorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+          ? CaptureEncoding::HDR10
+      : colorSpace == DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709
+          ? CaptureEncoding::ScRGB
+          : CaptureEncoding::SDR,
+      display.SDRWhiteLevel ? display.SDRWhiteLevel * 0.08f : 80.0f);
   return drawn;
 }
 
@@ -544,6 +561,12 @@ void Host::GetCopyQueue(ID3D12CommandQueue **queue) {
 }
 void Host::GetCurrentFrame(MGDFFrameInfo *frame) {
   *frame = _backend->RTGetCurrentFrame();
+}
+HRESULT Host::RecordScreenshot(const small *name, IMGDFCapture **capture) {
+  return _captures->RecordScreenshot(name, capture);
+}
+HRESULT Host::RecordVideo(const small *name, IMGDFVideoRecording **recording) {
+  return _captures->RecordVideo(name, recording);
 }
 void Host::GetFrameFence(ID3D12Fence **fence) { _frameFence.AddRawRef(fence); }
 HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,

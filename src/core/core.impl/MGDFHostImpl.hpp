@@ -13,6 +13,7 @@
 #include "../network/MGDFNetworkManagerComponent.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"
 #include "../vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
+#include "MGDFCaptures.hpp"
 #include "MGDFDebugImpl.hpp"
 #include "MGDFGameImpl.hpp"
 #include "MGDFHostMetrics.hpp"
@@ -165,6 +166,10 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                                     IMGDFWebSocket **socket) final;
   HRESULT __stdcall CreateWebServer(unsigned int port, const small *socketPath,
                                     IMGDFWebServer **server) final;
+  HRESULT __stdcall RecordScreenshot(const small *name,
+                                     IMGDFCapture **capture) final;
+  HRESULT __stdcall RecordVideo(const small *name,
+                                IMGDFVideoRecording **recording) final;
 
  private:
   IMGDFRenderHost *RenderHost() { return static_cast<IMGDFRenderHost *>(this); }
@@ -199,6 +204,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<Timer> _timer;
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
+  std::unique_ptr<CaptureManager> _captures;
 
   MGDFGraphicsRequirements _graphicsRequirements{};
   MGDFBackBufferInfo _backBufferInfo{};

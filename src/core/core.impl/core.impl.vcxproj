@@ -114,6 +114,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MGDFCaptures.cpp" />
     <ClCompile Include="MGDFDebugImpl.cpp" />
     <ClCompile Include="MGDFGameBuilder.cpp" />
     <ClCompile Include="MGDFGameImpl.cpp" />
@@ -140,6 +141,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MGDFCaptures.hpp" />
     <ClInclude Include="MGDFDebugImpl.hpp" />
     <ClInclude Include="MGDFGameBuilder.hpp" />
     <ClInclude Include="MGDFGameImpl.hpp" />
