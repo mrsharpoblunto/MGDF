@@ -1,0 +1,135 @@
+---
+layout: default
+---
+<div class="row">
+    <div class="col-md-9 main">
+        <h1 id="overview" class="page-header">OpenXR VR</h1>
+        <p>MGDF gives a module D3D12 eye targets, headset poses, controller input, and optional VR features. Players need an active OpenXR runtime, such as Meta Horizon Link or SteamVR. Modules use MGDF types and calls. They need no OpenXR SDK.</p>
+        <p>First implement the <a href="{{ site.baseurl }}/getting-started#d3d12module">D3D12 frame contract</a>. A VR module must render both eyes when requested. It must also draw the game window on every frame, including while VR is off or paused.</p>
+
+        <h2 id="settings">Enable and disable VR</h2>
+        <p>Opt in through <a href="{{ site.baseurl }}/api#MGDFGraphicsRequirements">MGDFGraphicsRequirements::VR</a>. A zero-initialized requirements structure keeps VR unavailable. Set <code>VR</code> to <code>TRUE</code> only when the module can render both eyes.</p>
+{% highlight c++ %}
+extern "C" __declspec(dllexport) HRESULT
+GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
+  if (!requirements) return E_POINTER;
+  *requirements = {};
+  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+  requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
+  requirements->VR = TRUE;
+  return S_OK;
+}
+{% endhighlight %}
+        <p>Read <code>GetVRSupport()</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a> before showing a VR option. It returns <code>FALSE</code> if the module did not opt in or no active OpenXR runtime supports D3D12. <code>TRUE</code> does not mean that a headset is connected.</p>
+        <p>Create an <a href="{{ site.baseurl }}/api#IMGDFPendingRenderSettingsChange">IMGDFPendingRenderSettingsChange</a>, call <code>SetVR(TRUE)</code> or <code>SetVR(FALSE)</code>, then release the change. <code>SetVR</code> returns <code>TRUE</code> when it accepts the request. It returns <code>FALSE</code> if VR is unavailable. Acceptance does not guarantee that a headset session can start.</p>
+{% highlight c++ %}
+BOOL RequestVR(IMGDFCommonHost *host, BOOL enabled) {
+  MGDF::ComObject<IMGDFRenderSettingsManager> settings;
+  host->GetRenderSettings(settings.Assign());
+  MGDF::ComObject<IMGDFPendingRenderSettingsChange> change;
+  settings->CreatePendingSettingsChange(change.Assign());
+  return change->SetVR(enabled);
+} // Releasing change applies the request.
+{% endhighlight %}
+        <p>A VR change calls <code>RTBeforeBackBufferChange</code> and <code>RTBackBufferChange</code>. Release eye resources before the change and size them again after it. If the graphics adapter changes, release device resources in <code>RTBeforeDeviceReset</code>, then call <code>QueueDeviceReset</code> when all old device references are released.</p>
+        <p>The <a href="{{ site.baseurl }}/api#hostpreferences">host.vr</a> preference defaults to <code>0</code>. Start <code>core.exe -vr</code> to request VR for one run without changing the saved value. A module that did not opt in ignores both the preference and the flag.</p>
+        <p><code>GetVR()</code> stays <code>TRUE</code> while a headset session exists, including while the runtime pauses it. During a pause, draw the window. <code>GetVRFrame</code> returns <code>S_FALSE</code>, <code>Focused</code> is <code>FALSE</code>, and <code>EyeCount</code> is zero. Eye rendering resumes with the same targets and no back buffer change. Pause headset input while <code>Focused</code> is <code>FALSE</code>, but continue to render requested frames.</p>
+        <p>If the headset is unavailable, startup fails, or the runtime exits or loses the session, VR ends and the game continues in the window. The saved preference stays unchanged. Call <code>SetVR(TRUE)</code> again to retry when the headset is available.</p>
+
+        <h2 id="frames">Render each frame</h2>
+        <ol>
+            <li>During <code>RTDraw</code>, call <code>IMGDFRenderHost::GetVRFrame(&amp;frame)</code>. Render both eyes only when the result is <code>S_OK</code>. <code>S_FALSE</code> is a success code but has no eye frame.</li>
+            <li>Read <a href="{{ site.baseurl }}/api#MGDFVRFrame">MGDFVRFrame</a>. <code>Eyes[0]</code> is the left eye. <code>Eyes[1]</code> is the right eye. Use each eye's pose, field of view, dimensions, and format.</li>
+            <li>Call <code>IMGDFRenderHost::GetVREyeTarget(index, &amp;target)</code> for each eye. It returns an owned <code>ID3D12Resource</code> reference. Create a render target view with the eye's <code>Format</code>. Write linear color to an sRGB target.</li>
+            <li>Render the eyes. Each eye target starts in <code>D3D12_RESOURCE_STATE_RENDER_TARGET</code>. Leave it in that state when the commands finish.</li>
+            <li>Execute eye commands on the direct queue from <code>GetDirectQueue</code> before <code>RTDraw</code> returns. Join any eye work on other queues to that queue.</li>
+            <li>Draw the window on every frame. Its back buffer must finish in <code>D3D12_RESOURCE_STATE_PRESENT</code>.</li>
+        </ol>
+        <p>Release each target reference when it is no longer needed. Eye images rotate until the next back buffer change. You can cache descriptors by resource. Release all eye references and cached descriptors in <code>RTBeforeBackBufferChange</code>.</p>
+        <p>Call <code>GetVRFrame</code> in <code>RTBackBufferChange</code> to size resources. With a session, it returns <code>S_FALSE</code> and supplies the eye target sizes and formats. Outside an eye frame, <code>EyeCount</code> is zero and poses and FOV angles are zero.</p>
+        <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead><tr><th>Result</th><th>GetVRFrame</th><th>GetVREyeTarget</th></tr></thead>
+            <tbody>
+                <tr><td><code>S_OK</code></td><td>Two eyes need rendering in this <code>RTDraw</code>.</td><td>An owned eye target reference is available.</td></tr>
+                <tr><td><code>S_FALSE</code></td><td>A session exists but no eye frame is available.</td><td>Not returned.</td></tr>
+                <tr><td><code>E_INVALIDARG</code></td><td>The output pointer is null.</td><td>The eye index is invalid or the output pointer is null.</td></tr>
+                <tr><td><code>E_ILLEGAL_METHOD_CALL</code></td><td>No session exists or the call is on the wrong thread.</td><td>No session exists, no eye frame is active, or the call is on the wrong thread.</td></tr>
+                <tr><td><code>E_FAIL</code></td><td colspan="2">A runtime failure occurred.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p><code>GetVRFrame</code> zeroes its output on error. <code>GetVREyeTarget</code> sets its output to null on error.</p>
+
+        <h2 id="poses">Poses, floor height, and history</h2>
+        <p>Eye poses use LOCAL space at this frame's predicted display time. Positions are in metres, with +X right, +Y up, and +Z forward. Quaternions use x, y, z, w order. FOV angles are in radians. Left and down angles are negative.</p>
+        <p>Use <code>MGDFVRFrame::FloorHeight</code> only when <code>FloorHeightValid</code> is <code>TRUE</code>. It gives floor Y in LOCAL space at the eye display time. Subtract it from a LOCAL head Y to get height above the floor. The flag is <code>FALSE</code> without LOCAL_FLOOR or STAGE support, or when the floor pose is invalid.</p>
+        <p>Compare <code>PoseEpoch</code> with the last rendered eye frame. Reset temporal history for both eyes when it changes. The counter advances when a session starts and on the first frame at or after a LOCAL or floor space change, such as recentring. It also advances on frames with no eye output. Keep the comparison with the last rendered eye frame when you skip frames.</p>
+        <p><code>Grip</code>, <code>Aim</code>, and <code>Gaze</code> contain poses at the eye display time. Index <code>Grip</code> and <code>Aim</code> with <a href="{{ site.baseurl }}/api#MGDFVRHand">MGDFVRHand</a>. Check <code>PositionValid</code> and <code>OrientationValid</code> separately. Invalid components are zero. Aim and gaze point along the pose's rotated +Z axis.</p>
+
+        <h2 id="features">Optional features</h2>
+        <p><code>MGDFVRFrame::Features</code> is a bit set of <a href="{{ site.baseurl }}/api#MGDFVRFeature">MGDFVRFeature</a> values: <code>MGDF_VR_FEATURE_MASK</code>, <code>MGDF_VR_FEATURE_DEPTH</code>, <code>MGDF_VR_FEATURE_PANEL</code>, and <code>MGDF_VR_FEATURE_GAZE</code>. Check these flags before using optional data. Individual calls can still fail. Gaze is invalid without eye tracking or a current sample.</p>
+
+        <h2 id="masks">Hidden-area masks</h2>
+        <p>Read <code>MaskVersion</code> on the render thread. Reload both masks when it changes, including after session or eye target recreation. It is zero without mask support.</p>
+        <p>Call <code>GetVREyeMask(index, &amp;vertexCount, nullptr, &amp;indexCount, nullptr)</code> to get the required counts. Allocate two floats per vertex and one <code>UINT32</code> per index. Pass those capacities and buffers to a second call. The index buffer is a triangle list.</p>
+        <p>The mesh covers the hidden area. Use it to exclude that area from scene rendering. Its triangles are counter-clockwise in coordinates with x right and y up. Vertices are view-angle tangents at z=+1. Map them to normalized device coordinates with the eye's FOV angles:</p>
+{% highlight c++ %}
+ndcX = (2 * x - (tan(eye.AngleRight) + tan(eye.AngleLeft))) /
+       (tan(eye.AngleRight) - tan(eye.AngleLeft));
+ndcY = (2 * y - (tan(eye.AngleUp) + tan(eye.AngleDown))) /
+       (tan(eye.AngleUp) - tan(eye.AngleDown));
+{% endhighlight %}
+        <p><code>S_OK</code> returns a mesh. <code>S_FALSE</code> returns an empty mesh and zero counts. <code>E_NOTIMPL</code> means mask support is unavailable. <code>E_INVALIDARG</code> means an invalid index, null count pointer, or insufficient capacity. With insufficient capacity, the counts still report the required sizes. Other errors zero the counts. No session or the wrong thread returns <code>E_ILLEGAL_METHOD_CALL</code>. Runtime failure returns <code>E_FAIL</code>.</p>
+
+        <h2 id="depth">Reprojection depth</h2>
+        <p><a href="{{ site.baseurl }}/api#MGDFVREye">MGDFVREye::DepthFormat</a> describes the optional depth target. <code>DXGI_FORMAT_UNKNOWN</code> means there is no depth target. During <code>RTDraw</code>, call <code>GetVREyeDepthTarget</code> to get an owned reference with the eye's dimensions. Use <code>DepthFormat</code> to create the depth view.</p>
+        <p>The image starts in <code>D3D12_RESOURCE_STATE_DEPTH_WRITE</code>. Leave it in that state. Submit depth work on the direct queue before <code>RTDraw</code> returns. Release depth references and cached descriptors in <code>RTBeforeBackBufferChange</code>.</p>
+        <p>After writing depth, call <code>SetVREyeDepthRange(index, nearZ, farZ)</code> for both eyes in that frame. No depth is submitted unless both calls succeed. The distances are in metres at depth values 0 and 1. For reverse-Z, pass the distant plane as <code>nearZ</code> and the close plane as <code>farZ</code>. Both must be positive and different. Either can be positive infinity.</p>
+        <p>Depth calls return <code>S_OK</code>, <code>E_NOTIMPL</code> without depth support, or <code>E_INVALIDARG</code> for an invalid index, range, or target output pointer. They return <code>E_ILLEGAL_METHOD_CALL</code> without a session, outside an eye frame, or on the wrong thread. Runtime failure returns <code>E_FAIL</code>; the target getter also uses it for resource failure. Target outputs are null on error.</p>
+
+        <h2 id="panel">Headset panel</h2>
+        <p>Call <code>SetVRPanel(&amp;panel)</code> on the render thread with one <a href="{{ site.baseurl }}/api#MGDFVRPanel">MGDFVRPanel</a>. Supply pixel dimensions, a pose, size in metres, and <code>MGDF_VR_SPACE_LOCAL</code> or <code>MGDF_VR_SPACE_VIEW</code>. LOCAL stays in the room. VIEW follows the head. Positive z puts the panel in front of the user. The pose uses the eye coordinate and quaternion conventions.</p>
+        <p>The call copies the description. Changes apply on the next eye frame. <code>SetVRPanel(nullptr)</code> hides the panel immediately. A size change invalidates old panel images at the next <code>RTDraw</code>. Release their references and cached descriptors by the current <code>RTAfterPresent</code>. Release them also in <code>RTBeforeBackBufferChange</code>.</p>
+        <p>Call <code>GetVRPanelTarget</code> during <code>RTDraw</code> to get an owned reference to the current image. Use <code>MGDFVREye::Format</code> and write linear color with premultiplied alpha. Transparent pixels must have zero color. The image starts and must finish in <code>D3D12_RESOURCE_STATE_RENDER_TARGET</code>. Submit panel work on the direct queue before <code>RTDraw</code> returns. The panel displays over the eye projection.</p>
+        <p>Panel calls return <code>S_OK</code>, <code>E_NOTIMPL</code> without panel support, <code>E_INVALIDARG</code> for invalid inputs, <code>E_ILLEGAL_METHOD_CALL</code> without a session or on the wrong thread, or <code>E_FAIL</code> on runtime failure. <code>GetVRPanelTarget</code> also requires an eye frame. It returns <code>S_FALSE</code> while hidden or before the first panel frame, and <code>E_FAIL</code> if deferred image creation failed. Its output is null except on <code>S_OK</code>.</p>
+
+        <h2 id="input">Controllers, vibration, and gaze</h2>
+        <p>On the simulation thread, use <a href="{{ site.baseurl }}/api#IMGDFInputManager">IMGDFInputManager</a>. <code>GetVRControllerCount()</code> always returns 2, including while VR is off. <code>GetVRControllers(controllers)</code> fills two owned <a href="{{ site.baseurl }}/api#IMGDFVRController">IMGDFVRController</a> references in left and right hand order. Release them when done. You can keep these objects across session changes.</p>
+        <ul>
+            <li><code>GetHand</code> identifies the hand. <code>IsConnected</code> requires a connection and headset input focus. <code>GetProfile</code> reports Touch, Index, Vive, WMR, simple, other, or none.</li>
+            <li><code>IsButtonDown</code> and <code>IsButtonUp</code> read button state. <code>IsButtonPress</code> returns <code>TRUE</code> once after a button is pressed and released. A press observed between sim updates is kept for the next update. <code>IsTouched</code> uses the separate <a href="{{ site.baseurl }}/api#MGDFVRTouch">MGDFVRTouch</a> enum.</li>
+            <li><code>GetTrigger</code> and <code>GetSqueeze</code> return 0 to 1. <code>GetThumbX</code> and <code>GetThumbY</code> return -1 to 1. Positive X is right. Positive Y is up, which differs from <code>IMGDFGamepad</code>. Vive uses its trackpad.</li>
+            <li><code>GetGripPose</code> and <code>GetAimPose</code> return LOCAL poses for the current sim sample. Check both validity flags.</li>
+        </ul>
+        <p>Missing controls are zero. Without input focus, a connection, or a session, buttons are up, analog values are zero, the profile is none, and poses are invalid. All controller calls are safe while VR is off.</p>
+        <p><code>SetVibration(amplitude)</code> stores a level until changed. Values are clamped to 0 to 1. NaN means zero. Set zero to stop. Output stops when focus, connection, or the session is lost. It resumes at the stored level when they return. Set zero while inactive to prevent vibration from resuming.</p>
+        <p><code>IMGDFInputManager::GetVRGaze(&amp;pose)</code> returns <code>TRUE</code> only for a valid gaze sample in the current sim update. Without eye tracking, focus, a session, or a current sample, it returns <code>FALSE</code> and zeroes the output. It is safe while VR is off. On the render thread, use <code>MGDFVRFrame::Grip</code>, <code>Aim</code>, and <code>Gaze</code> for poses at the eye display time.</p>
+
+        <h2 id="upscaling">Upscaling, frame generation, and low latency</h2>
+        <p>For DLSS, set <code>View</code> to the eye index in both <a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a> and <a href="{{ site.baseurl }}/api#MGDFUpscaleDesc">MGDFUpscaleDesc</a>. Call <code>SetFrameConstants</code> once for each used view in each frame. Then call <code>Upscale</code> for that view. Views 0 and 1 have separate histories and work with or without VR. Either view can be omitted from a frame. Set <code>ResetHistory</code> when <code>PoseEpoch</code> changes.</p>
+        <p>Frame generation is off in VR, and <code>GetMaxGeneratedFrames()</code> returns 0. Low latency sleep and frame markers have no effect in VR. Saved frame generation and low latency preferences stay unchanged and apply again when VR ends. See <a href="{{ site.baseurl }}/getting-started#upscaling">Upscaling and frame generation</a> for input resources and command list rules.</p>
+    </div>
+    <div class="col-md-3">
+        <div class="side-nav">
+            <ul class="nav">
+                <li><a href="#overview">OpenXR VR</a></li>
+                <li><a href="#settings">Enable and disable VR</a></li>
+                <li><a href="#frames">Render each frame</a></li>
+                <li><a href="#poses">Poses and floor height</a></li>
+                <li><a href="#features">Optional features</a></li>
+                <li><a href="#masks">Hidden-area masks</a></li>
+                <li><a href="#depth">Reprojection depth</a></li>
+                <li><a href="#panel">Headset panel</a></li>
+                <li><a href="#input">Controllers and gaze</a></li>
+                <li><a href="#upscaling">Upscaling and latency</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+$(function() {
+    $('.side-nav').biscroll({main: '.main', footer: 'footer'});
+    $('body').scrollspy({target: '.side-nav'});
+});
+</script>

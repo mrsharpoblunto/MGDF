@@ -4,7 +4,7 @@ layout: default
 <div class="row">    
     <div class="col-md-9 main">
         <h1 id="overview" class="page-header">Overview</h1>
-        <p>Matchstick (MGDF) is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 7+ supported) easier. The framework uses DirectX 11 or 12 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).</p>
+        <p>Matchstick (MGDF) provides tools to develop, install, distribute, and update C++ games on Windows. It provides DirectX 12 rendering with OpenXR VR support, OpenAL audio, XInput gamepad input, and HTTP/S and WebSocket networking support. Its virtual file system gives modules access to files on disk and in archives.</p>
         
         <p>MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game. It also makes distributing games easier as it includes an auto update mechanism with full versioning support.</p> 
 
@@ -12,7 +12,7 @@ layout: default
 
         <h2>The core <small>(core.exe)</small></h2>
         <p>This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before loading the user supplied game dll (known as a game module) and passing control on to that module. Once up and running the game module can then access the framework's functionality via a series of c++ interfaces (see the <a href="{{ site.baseurl }}/api#interfaces">API reference</a> for more details)</p>
-        <p>These interfaces include the ability to create audio samples and streams which under the hood are powered by the openAL audio system. Also included is the ability to access user interfaces devices including the mouse, keyboard, and any connected xbox 360 controllers. File system access is performed by a virtual file system wrapper which allows simple access to normal files on disk as well as files within compressed archives. The module accesses the selected D3D11 or D3D12 device through the host interfaces. The framework also provides interfaces for graphics settings.</p>
+        <p>The module uses MGDF interfaces for audio, input, files, networking, and graphics settings. Call <code>IMGDFCommonHost::GetD3D12Device</code> to get the graphics device. Use <code>IMGDFRenderHost</code> on the render thread for frame data and rendering calls.</p>
 
         <div class="architecture hidden-xs hidden-sm">
             <br />
@@ -44,7 +44,7 @@ layout: default
                     <h4>MGDF host</h4>
                 </div>
                 <div class="col-md-2" style="background-color: #ff0094; border-top: 5px solid #ff0094; border-bottom: 5px solid #ff0094; ">
-                    <h4>D3D11 / D3D12</h4>
+                    <h4>D3D12</h4>
                 </div>
             </div>
             <div class="row">
@@ -129,8 +129,8 @@ layout: default
         <p class="alert alert-info"><strong>NOTE</strong> The SDK includes a sample visual studio game project in src/samples/EmptyGame. This project contains a game.json file and will create a compatible module.dll with a stub module class.</p>
         <h4>Implementing the IMGDFModule interface</h4>
         <p>Implement each method in <a href="{{ site.baseurl }}/api#IMGDFModule">IMGDFModule</a>. The host calls ST methods on the simulation thread. It calls RT methods on the render thread. It can call <code>Panic</code> on either thread. MGDF interfaces use COM reference counting. Release each interface when you no longer need it.</p>
-        <p>This example uses D3D11. Call <code>IMGDFCommonHost::GetGraphicsAPI</code> to read the selected API. Query the host for <a href="{{ site.baseurl }}/api#IMGDFD3D11Host">IMGDFD3D11Host</a> to get the D3D11 device from any thread. Query the render host for <a href="{{ site.baseurl }}/api#IMGDFD3D11RenderHost">IMGDFD3D11RenderHost</a> to get the back buffer, depth buffer, texture descriptions, or GPU counters. Use those render methods only on the render thread. <code>IMGDFRenderHost::GetBackBufferInfo</code> returns the back buffer width, height, format, and sample count for either graphics API.</p>
-        <p>The example queries the interfaces in <code>RTDraw</code>. Its local <code>MGDF::ComObject</code> values release their references when the method returns. If you keep resources between frames, release back buffer references in <code>RTBeforeBackBufferChange</code>. Release device resources in <code>RTBeforeDeviceReset</code> and <code>RTShutDown</code>.</p>
+        <p>Call <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a> methods to get the D3D12 device and command queues from either thread. <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> inherits these methods. Call its <code>GetCurrentFrame</code> method on the render thread to get the back buffer and its render target view. The module creates its own depth buffers.</p>
+        <p>This example shows the module callbacks and resource access. Add the drawing commands described in <a href="#d3d12module">Writing a D3D12 module</a>. Local <code>MGDF::ComObject</code> values release their references when the method returns. If you keep resources between frames, release back buffer references in <code>RTBeforeBackBufferChange</code>. Release device resources in <code>RTBeforeDeviceReset</code> and <code>RTShutDown</code>.</p>
         <h5>Module.hpp</h5>
 {% highlight c++ %}
 #pragma once
@@ -182,25 +182,15 @@ BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host)
 }
 BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha)
 {
-    if (host->GetGraphicsAPI() != MGDF_GRAPHICS_API_D3D11) return FALSE;
+    MGDF::ComObject<ID3D12Device10> device;
+    host->GetD3D12Device(device.Assign());
+    MGDF::ComObject<ID3D12CommandQueue> directQueue;
+    host->GetDirectQueue(directQueue.Assign());
+    MGDFFrameInfo frame = {};
+    host->GetCurrentFrame(&frame);
 
-    MGDF::ComObject<IMGDFD3D11Host> d3d11;
-    if (FAILED(host->QueryInterface(__uuidof(IMGDFD3D11Host),
-            reinterpret_cast<void **>(d3d11.Assign())))) return FALSE;
-
-    MGDF::ComObject<ID3D11Device> device;
-    d3d11->GetD3D11Device(device.Assign());
-
-    MGDF::ComObject<IMGDFD3D11RenderHost> render;
-    if (FAILED(host->QueryInterface(__uuidof(IMGDFD3D11RenderHost),
-            reinterpret_cast<void **>(render.Assign())))) return FALSE;
-
-    MGDF::ComObject<ID3D11Texture2D> backBuffer;
-    render->GetBackBuffer(backBuffer.Assign());
-    MGDFBackBufferInfo info = {};
-    host->GetBackBufferInfo(&info);
-
-    // Draw with device and backBuffer here.
+    // Record drawing commands for frame.BackBuffer and frame.BackBufferRTV.
+    // Restore D3D12_RESOURCE_STATE_PRESENT, then submit on directQueue.
     return TRUE;
 }
 void __stdcall Module::RTAfterPresent(IMGDFRenderHost *host)
@@ -220,6 +210,7 @@ BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host)
 BOOL __stdcall Module::RTBeforeDeviceReset(IMGDFRenderHost *host)
 {
     // Release saved device resources here.
+    host->QueueDeviceReset();
     return TRUE;
 }
 BOOL __stdcall Module::RTDeviceReset(IMGDFRenderHost *host)
@@ -238,8 +229,8 @@ void __stdcall Module::Panic()
 {% endhighlight %}
 
     <h4>Implementing main.cpp</h4>
-    <p>Export <a href="{{ site.baseurl }}/api#functions">GetGraphicsRequirements</a> to declare the graphics requirements. This export replaces <code>GetCompatibleFeatureLevels</code>. Set <code>APICount</code> to a value from 1 to 4. Fill <code>APIs</code> with supported <code>MGDFGraphicsAPI</code> values in preference order. The values are <code>MGDF_GRAPHICS_API_D3D11</code> and <code>MGDF_GRAPHICS_API_D3D12</code>. Set <code>MinFeatureLevel</code> to the minimum D3D feature level. <code>MinShaderModel</code> holds a <code>D3D_SHADER_MODEL</code> value for D3D12. D3D11 ignores this field.</p>
-    <p>The host reads these requirements before it calls <code>GetModule</code>. The <a href="{{ site.baseurl }}/api#hostpreferences">host.graphicsAPI</a> preference can select an API from the list. This example requests only D3D11.</p>
+    <p>Export <a href="{{ site.baseurl }}/api#functions">GetGraphicsRequirements</a> to fill <a href="{{ site.baseurl }}/api#MGDFGraphicsRequirements">MGDFGraphicsRequirements</a>. Set <code>MinFeatureLevel</code> to the minimum D3D feature level and <code>MinShaderModel</code> to a <code>D3D_SHADER_MODEL</code> value. Set <code>HDRFormat</code> to the format that the module writes for HDR output. Zero selects scRGB. Set <code>VR</code> to <code>TRUE</code> only if the module renders both headset views and the window.</p>
+    <p>The host reads these requirements before it calls <code>GetModule</code>. This example requires feature level 11.0 and shader model 6.0. It keeps VR off.</p>
 {% highlight c++ %}
 #include "Module.hpp"
 
@@ -255,9 +246,8 @@ extern "C" __declspec(dllexport) HRESULT
 GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
   if (!requirements) return E_POINTER;
   *requirements = {};
-  requirements->APICount = 1;
-  requirements->APIs[0] = MGDF_GRAPHICS_API_D3D11;
   requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+  requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
   return S_OK;
 }
 
@@ -269,26 +259,12 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
 
 {% endhighlight %}
     <h2 id="d3d12module">Writing a D3D12 module</h2>
-    <p>Export <code>GetGraphicsRequirements</code> with <code>MGDF_GRAPHICS_API_D3D12</code> in its API list. This example requests D3D12 with feature level 11.0 and shader model 6.0.</p>
-{% highlight c++ %}
-#include <MGDF/MGDF.h>
-
-extern "C" __declspec(dllexport) HRESULT
-GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
-  if (!requirements) return E_POINTER;
-  *requirements = {};
-  requirements->APICount = 1;
-  requirements->APIs[0] = MGDF_GRAPHICS_API_D3D12;
-  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-  requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
-  return S_OK;
-}
-{% endhighlight %}
-    <p>A module that implements both APIs can list both values in preference order. The <a href="{{ site.baseurl }}/api#hostpreferences">host.graphicsAPI</a> preference can select either listed API. Check <code>GetGraphicsAPI</code> before you query an API interface. <code>QueryInterface</code> exposes D3D11 interfaces only when D3D11 is selected. It exposes D3D12 interfaces only when D3D12 is selected.</p>
+    <p>Declare the module's graphics requirements as shown above. Use the device and queues to create resources, record commands, and submit each frame.</p>
+    <p>To render to a headset, follow the <a href="{{ site.baseurl }}/vr">OpenXR VR guide</a>. It covers opt-in, eye targets, controllers, and optional features. Keep drawing the window in VR.</p>
 
     <h4>Device and queue access</h4>
-    <p>Query any host interface for <a href="{{ site.baseurl }}/api#IMGDFD3D12Host">IMGDFD3D12Host</a>. Its methods are safe to call from any thread. <code>GetD3D12Device</code> returns an <code>ID3D12Device10</code> reference. <code>GetDirectQueue</code>, <code>GetComputeQueue</code>, and <code>GetCopyQueue</code> return command queue references. The module owns these returned references. Release them before you acknowledge a device reset. The device can be null during a reset.</p>
-    <p>Query the render host for <a href="{{ site.baseurl }}/api#IMGDFD3D12RenderHost">IMGDFD3D12RenderHost</a>. Use its methods only on the render thread. <code>GetCurrentFrame</code> fills an <a href="{{ site.baseurl }}/api#MGDFFrameInfo">MGDFFrameInfo</a> structure. <code>GetFrameFence</code> returns an owned reference to the host's frame fence. Release that reference when you no longer need it. Only the host signals this fence.</p>
+    <p>Use <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a> methods from either thread. <code>GetD3D12Device</code> returns an <code>ID3D12Device10</code> reference. <code>GetDirectQueue</code>, <code>GetComputeQueue</code>, and <code>GetCopyQueue</code> return command queue references. The module owns these returned references. Release them before you acknowledge a device reset. The device can be null during a reset.</p>
+    <p>Use <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> on the render thread. <code>GetCurrentFrame</code> fills an <a href="{{ site.baseurl }}/api#MGDFFrameInfo">MGDFFrameInfo</a> structure. <code>GetFrameFence</code> returns an owned reference to the frame fence. Release that reference when you no longer need it. Do not signal this fence.</p>
     <p><code>MGDFFrameInfo</code> supplies the current <code>BackBuffer</code>, <code>BackBufferRTV</code>, <code>BackBufferDesc</code>, and <code>BackBufferIndex</code>. The back buffer pointer is borrowed. Release any references you add before <code>RTBeforeBackBufferChange</code> returns. Get the current frame again after a back buffer change. The D3D12 swap chain uses one sample per pixel. The module creates its own depth buffers and multisample targets.</p>
 
     <h4>Frame contract</h4>
@@ -307,7 +283,7 @@ GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
     <p>Record a resource's last <code>FrameOrdinal</code> when you submit its final use. Keep the resource in a deferred release list. <code>CompletedOrdinal</code> is the highest completed frame fence value when the host prepares the frame. Release the resource only when <code>CompletedOrdinal &gt;= lastUseOrdinal</code>. Apply the same rule before you reuse upload memory or GPU descriptor storage. CPU return from <code>RTDraw</code> does not indicate GPU completion.</p>
 
     <h4>GPU counters</h4>
-    <p>Use <code>IMGDFD3D12RenderHost::CreateGPUCounter</code> to time commands on a direct queue list. Pass an <code>IMGDFMetric</code>, the native command list, and an output pointer for <code>IMGDFPerformanceCounter</code>. Compute and copy lists are not supported.</p>
+    <p>Use <code>IMGDFRenderHost::CreateGPUCounter</code> to time commands on a direct queue list. Pass an <code>IMGDFMetric</code>, the native command list, and an output pointer for <code>IMGDFPerformanceCounter</code>. Compute and copy lists are not supported.</p>
     <p>For lists used with GPU counters, include <code>MGDF/D3D12CommandList.hpp</code> from <code>include/MGDF/D3D12CommandList.hpp</code> in the SDK. Use <code>MGDF::D3D12CommandList::Create</code> to create each list. Call <code>Reset</code> on the helper to start a new recording. Call <code>Close</code> on the helper to finish recording. Use <code>Get</code> to record commands, create counters, and submit the native list. Do not call <code>Reset</code> or <code>Close</code> through the native pointer. The counter needs the helper's recording state. An untracked list returns <code>E_INVALIDARG</code>.</p>
     <p>Begin each counter scope while its list is recording. Release the scope before you close or reset the list. Execute that list in the same frame before <code>RTAfterPresent</code> returns. The host logs and discards a scope that ends after its list closes, resets, or passes the end of its frame.</p>
     <p>This helper records and submits a timed clear from <code>RTDraw</code>. The caller supplies an open command list for the current frame slot. Keep that list and its allocator alive until the frame completes. Create the metric with <code>IMGDFCommonHost::CreateGaugeMetric</code>.</p>
@@ -317,7 +293,7 @@ GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
 #include <MGDF/MGDF.h>
 #include <MGDF/D3D12CommandList.hpp>
 
-HRESULT DrawTimedClear(IMGDFD3D12RenderHost *host,
+HRESULT DrawTimedClear(IMGDFRenderHost *host,
                       ID3D12CommandQueue *directQueue,
                       MGDF::D3D12CommandList &commands,
                       IMGDFMetric *metric) {
@@ -360,10 +336,11 @@ HRESULT DrawTimedClear(IMGDFD3D12RenderHost *host,
     <p>Call <code>Create(device, allocator)</code> before the list's first use. This leaves the list open. For each later use, reset the completed frame slot's allocator first. Then call <code>Reset(allocator)</code> on the helper before <code>DrawTimedClear</code>. Return <code>TRUE</code> from <code>RTDraw</code> after a successful submission.</p>
 
     <h4>Build requirements</h4>
-    <p>Build D3D12 modules with Windows SDK 10.0.26100 or later. The MGDF headers need no other D3D12 headers. The redistributable includes the D3D12 Agility SDK runtime (1.619.5) in the <code>D3D12</code> folder beside <code>core.exe</code>, so modules don't distribute it. A module needs the <a href="https://devblogs.microsoft.com/directx/directx12agility/">Agility SDK</a> headers only to use D3D12 APIs that its Windows SDK doesn't declare. Use headers no newer than 1.619.5, because the host loads that runtime.</p>
+    <p>Build modules with Windows SDK 10.0.26100 or later. The MGDF headers need no other D3D12 headers. Modules use MGDF types and calls for VR and need no OpenXR SDK.</p>
 
     <h2 id="upscaling">Upscaling, frame generation and low latency</h2>
-    <p>A D3D12 module can use NVIDIA DLSS upscaling and DLAA, DLSS frame generation (DLSS-G) and Reflex low latency through the MGDF API. The module uses only MGDF types. D3D11 modules cannot use these features.</p>
+    <p>A module can use NVIDIA DLSS upscaling and DLAA, DLSS frame generation (DLSS-G) and Reflex low latency through the MGDF API. The module uses only MGDF types.</p>
+    <p>In VR, DLSS can upscale each eye separately. Frame generation is off and <code>GetMaxGeneratedFrames</code> returns 0. Low latency sleep and frame markers have no effect. The saved preferences apply again when VR ends. See <a href="{{ site.baseurl }}/vr#upscaling">VR upscaling and latency</a>.</p>
     <p>The module does not request these features. The host starts them when the device supports them, and tells the module what is supported. The module:</p>
     <ul>
         <li>Reads the supported modes from the render settings manager.</li>
@@ -403,7 +380,7 @@ BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
     <p>While frame generation runs, the low latency mode is at least <code>MGDF_LOW_LATENCY_ON</code>. Frame generation does not work with an scRGB back buffer. Set <code>HDRFormat</code> in <code>GetGraphicsRequirements</code> to <code>MGDF_HDR_FORMAT_HDR10</code> if the module supports HDR output and frame generation (see <a href="#hdroutput">HDR output</a>).</p>
 
     <h4>Select a render size</h4>
-    <p>The module selects the upscale mode. Use a mode from the list. Call <code>IMGDFD3D12Host::GetUpscaleRenderSize</code> with that mode and the output size. Render the scene at the size it returns. DLAA renders at the output size. <code>MinWidth</code> to <code>MaxWidth</code> and <code>MinHeight</code> to <code>MaxHeight</code> give the range for dynamic resolution. The output size changes with the back buffer, so select the render size again in <code>RTBackBufferChange</code>.</p>
+    <p>The module selects the upscale mode. Use a mode from the list. Call <code>IMGDFCommonHost::GetUpscaleRenderSize</code> with that mode and the output size. Render the scene at the size it returns. DLAA renders at the output size. <code>MinWidth</code> to <code>MaxWidth</code> and <code>MinHeight</code> to <code>MaxHeight</code> give the range for dynamic resolution. The output size changes with the back buffer, so select the render size again in <code>RTBackBufferChange</code>.</p>
 {% highlight c++ %}
 BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
   _upscale = std::find(_upscaleModes.begin(), _upscaleModes.end(),
@@ -414,10 +391,7 @@ BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
   _renderSize = {info.Width, info.Height, info.Width,
                  info.Height, info.Width, info.Height};
   if (_upscale) {
-    MGDF::ComObject<IMGDFD3D12Host> d3d12;
-    if (FAILED(host->QueryInterface(__uuidof(IMGDFD3D12Host),
-            reinterpret_cast<void **>(d3d12.Assign())))) return FALSE;
-    if (FAILED(d3d12->GetUpscaleRenderSize(_upscaleMode, info.Width,
+    if (FAILED(host->GetUpscaleRenderSize(_upscaleMode, info.Width,
                                            info.Height, &_renderSize)))
       _upscale = false;
   }
@@ -431,10 +405,10 @@ BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
     <p>A low latency change applies on the next frame. A frame generation change makes a new swap chain, so the module gets <code>RTBeforeBackBufferChange</code> and <code>RTBackBufferChange</code>. The host keeps both values in the <a href="{{ site.baseurl }}/api#hostpreferences">host.lowLatencyMode and host.frameGeneration</a> preferences. When the device does not support a saved value, the host uses off. On some devices, vsync does not work with frame generation. On these devices the host presents without vsync while frame generation runs.</p>
 
     <h4>Each frame</h4>
-    <p>In <code>RTDraw</code> the module does these steps on <a href="{{ site.baseurl }}/api#IMGDFD3D12RenderHost">IMGDFD3D12RenderHost</a>:</p>
+    <p>In <code>RTDraw</code> the module does these steps on <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a>:</p>
     <ol>
         <li>Call <code>SetFrameMarker</code> with <code>MGDF_FRAME_MARKER_SIMULATION_START</code> before it reads the simulation state, and with <code>MGDF_FRAME_MARKER_SIMULATION_END</code> after it has the state. Report <code>MGDF_FRAME_MARKER_INPUT_SAMPLE</code> when it reads controller input. Report <code>MGDF_FRAME_MARKER_RENDER_SUBMIT_START</code> before it records the first command list.</li>
-        <li>Call <code>SetFrameConstants</code> one time with the camera data of the frame (<a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a>). The matrices are row-major for row vectors (<code>v * M</code>) and do not contain the jitter. <code>JitterOffset</code> is in render pixels. Set <code>ResetHistory</code> to <code>TRUE</code> after a camera cut. Frame generation also needs these constants.</li>
+        <li>Call <code>SetFrameConstants</code> once for each used <code>View</code> (0 or 1) with the camera data of the frame (<a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a>). The matrices are row-major for row vectors (<code>v * M</code>) and do not contain the jitter. <code>JitterOffset</code> is in render pixels. Set <code>ResetHistory</code> to <code>TRUE</code> after a camera cut. Each view has separate history. Use the same <code>View</code> in <code>MGDFUpscaleDesc</code>. Frame generation uses view 0.</li>
         <li>Render the scene at the render size with jitter. Then call <code>Upscale</code> to record the upscale into a command list.</li>
         <li>Render the post-processing and the UI at the output size. Call <code>SetFrameGenerationInputs</code>.</li>
         <li>Execute the command lists. Call <code>SetFrameMarker</code> with <code>MGDF_FRAME_MARKER_RENDER_SUBMIT_END</code> after the last submit.</li>
@@ -445,7 +419,7 @@ BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
         <li>The list must be a direct list that is recording. Create it with the SDK <code>MGDF::D3D12CommandList</code> helper (see GPU counters in <a href="#d3d12module">Writing a D3D12 module</a>). An untracked list returns <code>E_INVALIDARG</code>.</li>
         <li><code>ColorIn</code>, <code>Depth</code> and <code>MotionVectors</code> are at the render size. <code>ColorOut</code> is at the output size and needs unordered access. <code>Exposure</code> and <code>BiasCurrentColor</code> are optional. Without <code>Exposure</code> the upscaler uses automatic exposure. Set <code>ColorHDR</code> to <code>TRUE</code> if <code>ColorIn</code> is linear HDR color before tonemapping.</li>
         <li>After the call, the descriptor heaps, root signature, pipeline state, render targets and viewports of the list are undefined. Set them again before you record more work.</li>
-        <li>It returns <code>E_ILLEGAL_METHOD_CALL</code> if <code>SetFrameConstants</code> was not called in this frame, and <code>E_FAIL</code> if the upscaler failed.</li>
+        <li>It returns <code>E_ILLEGAL_METHOD_CALL</code> if <code>SetFrameConstants</code> was not called for that view in this frame, and <code>E_FAIL</code> if the upscaler failed.</li>
     </ul>
 {% highlight c++ %}
 render->SetFrameConstants(&constants);
@@ -503,7 +477,7 @@ if (_loading || _paused) {
     <p>The debug overlay data (<a href="{{ site.baseurl }}/api#MGDFDebugOverlayData">MGDFDebugOverlayData</a>) contains the render latency and the numbers of rendered and presented frames. While frame generation runs, the presented frames are more than the rendered frames.</p>
 
     <h2 id="raytracing">Ray tracing</h2>
-    <p>A D3D12 module that uses DXR can ask the host if the device supports ray tracing. Call <code>GetRayTracingSupport</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>. It returns <code>TRUE</code> when the device supports D3D12 raytracing tier 1.1 and shader model 6.9, which <code>HitObject</code> and <code>MaybeReorderThread</code> need. It also fills <a href="{{ site.baseurl }}/api#MGDFRayTracingSupport">MGDFRayTracingSupport</a>. <code>ShaderExecutionReordering</code> is <code>TRUE</code> when the device reorders shader execution (raytracing tier 1.2). Without it, <code>MaybeReorderThread</code> does nothing. The support follows the same rules as the upscaling lists: read it in <code>RTBeforeFirstDraw</code> and again in <code>RTDeviceReset</code>. With D3D11 it is always <code>FALSE</code>.</p>
+    <p>A D3D12 module that uses DXR can ask the host if the device supports ray tracing. Call <code>GetRayTracingSupport</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>. It returns <code>TRUE</code> when the device supports D3D12 raytracing tier 1.1 and shader model 6.9, which <code>HitObject</code> and <code>MaybeReorderThread</code> need. It also fills <a href="{{ site.baseurl }}/api#MGDFRayTracingSupport">MGDFRayTracingSupport</a>. <code>ShaderExecutionReordering</code> is <code>TRUE</code> when the device reorders shader execution (raytracing tier 1.2). Without it, <code>MaybeReorderThread</code> does nothing. The support follows the same rules as the upscaling lists: read it in <code>RTBeforeFirstDraw</code> and again in <code>RTDeviceReset</code>.</p>
     <p>The user can turn ray tracing off. <code>GetRayTracing</code> returns the setting, and <code>SetRayTracing</code> on <a href="{{ site.baseurl }}/api#IMGDFPendingRenderSettingsChange">IMGDFPendingRenderSettingsChange</a> changes it. <code>SetRayTracing(TRUE)</code> returns <code>FALSE</code> when the device does not support ray tracing. The host keeps the setting in the <a href="{{ site.baseurl }}/api#hostpreferences">host.rayTracing</a> preference. It is on by default, and the host turns it off when the device does not support ray tracing. The host does not change the back buffer or the device for this setting. The module reads it and selects its own render path.</p>
 {% highlight c++ %}
 MGDFRayTracingSupport support = {};
