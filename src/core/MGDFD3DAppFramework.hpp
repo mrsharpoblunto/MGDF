@@ -4,6 +4,7 @@
 
 #include <MGDF/ComObject.hpp>
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <list>
 #include <memory>
@@ -13,6 +14,7 @@
 #include <vector>
 
 #include "MGDFD3D12RenderBackend.hpp"
+#include "core.impl/MGDFRenderSettingsManagerImpl.hpp"
 
 namespace MGDF {
 namespace core {
@@ -49,9 +51,9 @@ class D3DAppFramework {
   virtual void RTOnBeforeBackBufferChange() = 0;
   virtual void RTOnBackBufferChange(D3D12RenderBackend &backend) = 0;
   virtual MGDFFullScreenDesc RTOnResetSwapChain(
-      DXGI_SWAP_CHAIN_DESC1 &, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
-      DXGI_COLOR_SPACE_TYPE &, const RECT &windowSize) = 0;
-  virtual std::optional<UINT> RTGetMaxFrameLatency() const = 0;
+      const RenderSettingsSnapshot &, DXGI_SWAP_CHAIN_DESC1 &,
+      DXGI_SWAP_CHAIN_FULLSCREEN_DESC &, DXGI_COLOR_SPACE_TYPE &,
+      const RECT &windowSize) = 0;
   virtual UINT32 RTGetFrameGeneration() const = 0;
   virtual MGDFLowLatencyMode RTGetLowLatencyMode() const = 0;
   virtual void RTOnDisplayChange(
@@ -66,9 +68,9 @@ class D3DAppFramework {
   virtual std::optional<bool> RTTakeVRRequest() = 0;
   virtual const char *RTGetApplicationName() const = 0;
   virtual void RTOnVRState(bool active) = 0;
-  virtual MGDFFullScreenDesc RTGetFullscreen() = 0;
-  virtual void RTSetFullscreen(const MGDFFullScreenDesc &desc) = 0;
-  virtual std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() = 0;
+  virtual RenderSettingsSnapshot RTTakeSettingsSnapshot() = 0;
+  virtual void RTSetFullscreenFallback(const RenderSettingsSnapshot &snapshot,
+                                       const MGDFFullScreenDesc &desc) = 0;
   virtual bool OnWindowAspectLock() = 0;
 
   virtual void STOnUpdateSim() = 0;
@@ -96,10 +98,11 @@ class D3DAppFramework {
   void RTPrepareToReinitD3D();
   void RTReinitD3D(const HWND window);
   void RTUninitD3D();
-  void RTCreateSwapChain(const HWND window);
+  void RTCreateSwapChain(const HWND window,
+                         const RenderSettingsSnapshot &settings);
   bool ApplyWindowMode(const HWND window, const bool fullScreenBorderless);
   void ApplyWindowSize(HWND window, UINT32 width, UINT32 height);
-  void RTApplyFullscreen(HWND window);
+  void RTApplyFullscreen(HWND window, RenderSettingsSnapshot &settings);
   void RTResizeBackBuffer();
   bool RTAllowTearing();
   bool RTUpdateVR();
@@ -128,6 +131,8 @@ class D3DAppFramework {
   RECT _rtWindowRect;
 
   // shared variables
+  std::mutex _renderWaitMutex;
+  std::condition_variable _renderWake;
   std::mutex _displayChangeMutex;
   std::list<DisplayChangeMessage> _pendingDisplayChanges;
   std::atomic_bool _minimized, _awaitingD3DReset, _hasSwapChain;

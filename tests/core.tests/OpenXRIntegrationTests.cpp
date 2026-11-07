@@ -120,6 +120,8 @@ class FrameLoop final : public D3DAppFramework {
     Run();
   }
   std::function<bool(FrameLoop &)> Step;
+  std::function<void()> ResetSwapChain;
+  HWND Window = nullptr;
   std::string ApplicationName = "MGDF OpenXR integration test";
   D3D12RenderBackend *Backend = nullptr;
   ComObject<input::IInputManagerComponent> Input;
@@ -188,12 +190,13 @@ class FrameLoop final : public D3DAppFramework {
     EXPECT_EQ(backend.VR().HasSession() ? 64U : 0U, frame.Eyes[1].Width);
   }
   MGDFFullScreenDesc RTOnResetSwapChain(
-      DXGI_SWAP_CHAIN_DESC1 &desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen,
-      DXGI_COLOR_SPACE_TYPE &color, const RECT &size) override {
-    Settings->OnResetSwapChain(desc, fullscreen, color, size);
-    return {};
+      const RenderSettingsSnapshot &snapshot, DXGI_SWAP_CHAIN_DESC1 &desc,
+      DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen, DXGI_COLOR_SPACE_TYPE &color,
+      const RECT &size) override {
+    Settings->OnResetSwapChain(snapshot, desc, fullscreen, color, size);
+    if (ResetSwapChain) ResetSwapChain();
+    return snapshot.FullScreen;
   }
-  std::optional<UINT> RTGetMaxFrameLatency() const override { return 1; }
   UINT32 RTGetFrameGeneration() const override {
     return Settings->GetFrameGeneration();
   }
@@ -236,10 +239,12 @@ class FrameLoop final : public D3DAppFramework {
     return Settings->TakeVRRequest();
   }
   void RTOnVRState(bool active) override { Settings->SetVRState(active); }
-  MGDFFullScreenDesc RTGetFullscreen() override { return {}; }
-  void RTSetFullscreen(const MGDFFullScreenDesc &) override {}
-  std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() override {
-    return std::nullopt;
+  RenderSettingsSnapshot RTTakeSettingsSnapshot() override {
+    return Settings->TakeSnapshot();
+  }
+  void RTSetFullscreenFallback(const RenderSettingsSnapshot &snapshot,
+                               const MGDFFullScreenDesc &desc) override {
+    Settings->SetFullscreenFallback(snapshot, desc);
   }
   bool OnWindowAspectLock() override { return false; }
   void STOnUpdateSim() override {
@@ -258,6 +263,7 @@ class FrameLoop final : public D3DAppFramework {
   void OnRawInput(std::function<RAWINPUT *()>) override {}
   LRESULT OnHandleMessage(HWND window, UINT32 message, WPARAM wparam,
                           LPARAM lparam) override {
+    if (message == WM_NCCREATE) Window = window;
     return DefWindowProc(window, message, wparam, lparam);
   }
   void OnMoveWindow(INT32, INT32) override {}
@@ -1528,6 +1534,36 @@ TEST_F(OpenXRIntegrationTests,
   EXPECT_EQ(0U, runtime.Stats().Errors);
   EXPECT_EQ(0U, runtime.Stats().LiveSwapchains + runtime.Stats().LiveSessions +
                     runtime.Stats().LiveInstances);
+}
+
+TEST_F(OpenXRIntegrationTests, ResizeDuringSwapChainCreationIsApplied) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  const FakeXRConfig config{TestAdapter(), true};
+  runtime.Configure(&config);
+  FrameLoop loop(false);
+  bool resized = false;
+  LONG width = 0, height = 0;
+  loop.ResetSwapChain = [&]() {
+    if (resized) return;
+    resized = true;
+    EXPECT_TRUE(SetWindowPos(loop.Window, nullptr, 0, 0, 960, 720,
+                             SWP_NOMOVE | SWP_NOZORDER));
+    RECT client{};
+    EXPECT_TRUE(GetClientRect(loop.Window, &client));
+    width = client.right;
+    height = client.bottom;
+  };
+  loop.Step = [&](auto &host) {
+    return host.Settings->GetScreenX() == static_cast<UINT32>(width) &&
+           host.Settings->GetScreenY() == static_cast<UINT32>(height);
+  };
+  loop.Execute();
+  EXPECT_TRUE(resized);
+  EXPECT_FALSE(loop.TimedOut);
+  EXPECT_EQ(0U, loop.FatalErrors.load());
+  EXPECT_EQ(static_cast<UINT32>(width), loop.Settings->GetScreenX());
+  EXPECT_EQ(static_cast<UINT32>(height), loop.Settings->GetScreenY());
 }
 
 }  // namespace

@@ -98,24 +98,18 @@ bool MGDFApp::RTIsBackBufferChangePending() {
   return _settings->IsBackBufferChangePending();
 }
 
-void MGDFApp::RTSetFullscreen(const MGDFFullScreenDesc &desc) {
-  ComObject<IMGDFPendingRenderSettingsChange> change;
-  _settings->CreatePendingSettingsChange(change.Assign());
-  change->SetFullscreen(&desc);
+RenderSettingsSnapshot MGDFApp::RTTakeSettingsSnapshot() {
+  return _settings->TakeSnapshot();
 }
 
-MGDFFullScreenDesc MGDFApp::RTGetFullscreen() {
-  MGDFFullScreenDesc desc{};
-  _settings->GetFullscreen(&desc);
-  return desc;
-}
-
-std::optional<std::pair<UINT32, UINT32>> MGDFApp::RTTakeWindowSize() {
-  return _settings->TakeWindowSize();
+void MGDFApp::RTSetFullscreenFallback(const RenderSettingsSnapshot &snapshot,
+                                      const MGDFFullScreenDesc &desc) {
+  _settings->SetFullscreenFallback(snapshot, desc);
 }
 
 bool MGDFApp::OnWindowAspectLock() {
-  const auto fullscreen = RTGetFullscreen();
+  MGDFFullScreenDesc fullscreen{};
+  _settings->GetFullscreen(&fullscreen);
   return !fullscreen.FullScreen && _settings->GetWindowResizeEnabled() &&
          _settings->GetWindowAspectLock();
 }
@@ -123,22 +117,12 @@ bool MGDFApp::OnWindowAspectLock() {
 bool MGDFApp::RTVSyncEnabled() const { return _settings->GetVSync(); }
 
 MGDFFullScreenDesc MGDFApp::RTOnResetSwapChain(
-    DXGI_SWAP_CHAIN_DESC1 &swapDesc,
+    const RenderSettingsSnapshot &snapshot, DXGI_SWAP_CHAIN_DESC1 &swapDesc,
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
     DXGI_COLOR_SPACE_TYPE &colorSpace, const RECT &windowSize) {
-  _settings->OnResetSwapChain(swapDesc, fullscreenDesc, colorSpace, windowSize);
-  MGDFFullScreenDesc desc;
-  _settings->GetFullscreen(&desc);
-  return desc;
-}
-
-std::optional<UINT> MGDFApp::RTGetMaxFrameLatency() const {
-  MGDFFullScreenDesc desc;
-  _settings->GetFullscreen(&desc);
-  if (!desc.ExclusiveMode) {
-    return _settings->GetMaxFrameLatency();
-  }
-  return std::nullopt;
+  _settings->OnResetSwapChain(snapshot, swapDesc, fullscreenDesc, colorSpace,
+                              windowSize);
+  return snapshot.FullScreen;
 }
 
 UINT32 MGDFApp::RTGetFrameGeneration() const {

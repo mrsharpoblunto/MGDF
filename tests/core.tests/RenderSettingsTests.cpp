@@ -42,7 +42,7 @@ TEST(RenderSettings, CancelDiscardsDisplaySizeAndAspectChanges) {
   settings->GetCurrentPrimaryDisplayMode(&current);
   EXPECT_EQ(current.Width, before.Width);
   EXPECT_EQ(current.Height, before.Height);
-  EXPECT_FALSE(settings->TakeWindowSize());
+  EXPECT_FALSE(settings->TakeSnapshot().WindowSize);
   EXPECT_FALSE(settings->GetWindowAspectLock());
 }
 
@@ -54,13 +54,13 @@ TEST(RenderSettings, WindowSizeWaitsForTheActualClientResize) {
     settings->CreatePendingSettingsChange(change.Assign());
     change->SetWindowSize(1280, 720);
   }
-  const auto size = settings->TakeWindowSize();
+  const auto size = settings->TakeSnapshot().WindowSize;
   ASSERT_TRUE(size);
   EXPECT_EQ(size->first, 1280u);
   EXPECT_EQ(size->second, 720u);
   EXPECT_TRUE(settings->IsBackBufferChangePending());
   EXPECT_EQ(settings->GetScreenX(), 1920u);
-  EXPECT_FALSE(settings->TakeWindowSize());
+  EXPECT_FALSE(settings->TakeSnapshot().WindowSize);
   settings->OnResize(size->first, size->second);
   EXPECT_EQ(settings->GetScreenX(), 1280u);
   EXPECT_EQ(settings->GetScreenY(), 720u);
@@ -93,7 +93,8 @@ TEST(RenderSettings, ResetUsesExclusiveModeOrTheActualWindowSize) {
       change->SetFullscreen(&choice);
       ASSERT_TRUE(change->SetCurrentPrimaryDisplayMode(&mode));
     }
-    settings->OnResetSwapChain(swap, fullscreen, colorSpace, client);
+    settings->OnResetSwapChain(settings->TakeSnapshot(), swap, fullscreen,
+                               colorSpace, client);
     EXPECT_EQ(fullscreen.Windowed,
               !(choice.FullScreen && choice.ExclusiveMode));
     EXPECT_EQ(swap.Width, choice.FullScreen
@@ -135,7 +136,8 @@ TEST(RenderSettings, HDRFormatSelectsTheHDRBackBufferAndColorSpace) {
     DXGI_SWAP_CHAIN_DESC1 swap{};
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreen{};
     DXGI_COLOR_SPACE_TYPE colorSpace{};
-    settings->OnResetSwapChain(swap, fullscreen, colorSpace, {0, 0, 640, 480});
+    settings->OnResetSwapChain(settings->TakeSnapshot(), swap, fullscreen,
+                               colorSpace, {0, 0, 640, 480});
     EXPECT_EQ(c.ExpectedFormat, swap.Format);
     EXPECT_EQ(c.ExpectedColorSpace, colorSpace);
   }
@@ -285,4 +287,59 @@ TEST(WindowSizing, EveryEdgeKeepsClientAspectAndTheOppositeAnchor) {
     else
       EXPECT_EQ(rect.top, proposed.top);
   }
+}
+
+TEST(RenderSettings, SizeCommittedDuringResetRemainsPending) {
+  const auto settings = MakeCom<RenderSettingsManager>();
+  const auto resize = [&](UINT32 width, UINT32 height) {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    settings->CreatePendingSettingsChange(change.Assign());
+    change->SetWindowSize(width, height);
+  };
+  resize(800, 600);
+  const auto first = settings->TakeSnapshot();
+  ASSERT_TRUE(first.WindowSize);
+  resize(1024, 768);
+  DXGI_SWAP_CHAIN_DESC1 swap{};
+  DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreen{};
+  DXGI_COLOR_SPACE_TYPE color{};
+  settings->OnResetSwapChain(first, swap, fullscreen, color, {0, 0, 800, 600});
+  EXPECT_TRUE(settings->IsBackBufferChangePending());
+  const auto second = settings->TakeSnapshot();
+  ASSERT_TRUE(second.WindowSize);
+  EXPECT_EQ(std::make_pair(1024U, 768U), *second.WindowSize);
+  settings->OnResetSwapChain(second, swap, fullscreen, color,
+                             {0, 0, 1024, 768});
+  EXPECT_EQ(1024U, settings->GetScreenX());
+  EXPECT_FALSE(settings->IsBackBufferChangePending());
+}
+
+TEST(RenderSettings, FullscreenResetUsesOneSnapshotAndRetainsTheNextMode) {
+  const auto settings = MakeCom<RenderSettingsManager>();
+  settings->SetOutputProperties({.Width = 1920, .Height = 1080}, 96, {});
+  const auto setMode = [&](const MGDFFullScreenDesc &mode) {
+    ComObject<IMGDFPendingRenderSettingsChange> change;
+    settings->CreatePendingSettingsChange(change.Assign());
+    change->SetFullscreen(&mode);
+  };
+  setMode({TRUE, FALSE});
+  const auto borderless = settings->TakeSnapshot();
+  setMode({FALSE, FALSE});
+  DXGI_SWAP_CHAIN_DESC1 swap{};
+  DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreen{};
+  DXGI_COLOR_SPACE_TYPE color{};
+  settings->OnResetSwapChain(borderless, swap, fullscreen, color,
+                             {0, 0, 800, 600});
+  EXPECT_TRUE(borderless.FullScreen.FullScreen);
+  EXPECT_EQ(1920U, swap.Width);
+  EXPECT_EQ(1080U, swap.Height);
+  EXPECT_TRUE(settings->IsBackBufferChangePending());
+  settings->SetFullscreenFallback(borderless, {TRUE, TRUE});
+  const auto windowed = settings->TakeSnapshot();
+  EXPECT_FALSE(windowed.FullScreen.FullScreen);
+  settings->OnResetSwapChain(windowed, swap, fullscreen, color,
+                             {0, 0, 800, 600});
+  EXPECT_EQ(800U, swap.Width);
+  EXPECT_EQ(600U, swap.Height);
+  EXPECT_FALSE(settings->IsBackBufferChangePending());
 }

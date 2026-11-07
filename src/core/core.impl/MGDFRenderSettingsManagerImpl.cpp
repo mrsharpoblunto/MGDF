@@ -75,7 +75,7 @@ PendingRenderSettingsChange::~PendingRenderSettingsChange() {
   }
 
   if (changed) {
-    _manager._changePending.store(true);
+    _manager.MarkChangeLocked();
   }
 }
 
@@ -277,10 +277,33 @@ BOOL RenderSettingsManager::GetWindowSizeLimits(UINT32 *width, UINT32 *height) {
   return TRUE;
 }
 
-std::optional<std::pair<UINT32, UINT32>>
-RenderSettingsManager::TakeWindowSize() {
+RenderSettingsSnapshot RenderSettingsManager::TakeSnapshot() {
   std::lock_guard lock(_mutex);
-  return std::exchange(_pendingWindowSize, std::nullopt);
+  const bool hdr =
+      _hdrEnabled && ((_fullScreen.FullScreen && _fullScreen.ExclusiveMode)
+                          ? _primaryDisplayMode.SupportsHDR
+                          : _currentOutputDisplayInfo.SupportsHDR);
+  return {_generation,
+          _fullScreen,
+          std::exchange(_pendingWindowSize, std::nullopt),
+          _primaryDisplayMode,
+          _currentOutputDisplayInfo,
+          hdr ? _hdrBackBufferFormat : _sdrBackBufferFormat,
+          hdr ? _hdrColorSpace : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
+          _maxFrameLatency,
+          _vrActive ? 0 : _frameGeneration};
+}
+
+void RenderSettingsManager::SetFullscreenFallback(
+    const RenderSettingsSnapshot &snapshot,
+    const MGDFFullScreenDesc &fullscreen) {
+  std::lock_guard lock(_mutex);
+  if (_generation == snapshot.Generation) _fullScreen = fullscreen;
+}
+
+void RenderSettingsManager::MarkChangeLocked() {
+  ++_generation;
+  _changePending.store(true);
 }
 
 void PendingRenderSettingsChange::Cancel() { _cancelled = true; }
@@ -367,7 +390,7 @@ void RenderSettingsManager::SetOutputProperties(
   std::lock_guard<std::mutex> lock(_mutex);
 
   if (_currentOutputDisplayInfo.SDRWhiteLevel != info.SDRWhiteLevel) {
-    _changePending.store(true);
+    MarkChangeLocked();
   }
   _currentOutputDisplayInfo = info;
 
@@ -383,7 +406,7 @@ void RenderSettingsManager::SetOutputProperties(
             _primaryDisplayMode.RefreshRateDenominator) {
       if (_fullScreen.ExclusiveMode && _fullScreen.FullScreen &&
           mode.SupportsHDR != _primaryDisplayMode.SupportsHDR) {
-        _changePending.store(true);
+        MarkChangeLocked();
       }
       _primaryDisplayMode = mode;
       break;
@@ -391,7 +414,7 @@ void RenderSettingsManager::SetOutputProperties(
   }
 
   if (_currentOutputDPI != currentDPI) {
-    _changePending.store(true);
+    MarkChangeLocked();
   }
   _currentOutputDPI = currentDPI;
 }
@@ -492,8 +515,7 @@ UINT32 RenderSettingsManager::GetScreenY() {
 }
 
 bool RenderSettingsManager::IsBackBufferChangePending() {
-  bool exp = true;
-  return _changePending.compare_exchange_weak(exp, true);
+  return _changePending.load();
 }
 
 void RenderSettingsManager::OnResize(UINT32 width, UINT32 height) {
@@ -504,52 +526,41 @@ void RenderSettingsManager::OnResize(UINT32 width, UINT32 height) {
 }
 
 void RenderSettingsManager::OnResetSwapChain(
-    DXGI_SWAP_CHAIN_DESC1 &desc,
+    const RenderSettingsSnapshot &snapshot, DXGI_SWAP_CHAIN_DESC1 &desc,
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
     DXGI_COLOR_SPACE_TYPE &colorSpace, const RECT &windowSize) {
   std::lock_guard<std::mutex> lock(_mutex);
 
   fullscreenDesc.Windowed =
-      !(_fullScreen.FullScreen && _fullScreen.ExclusiveMode);
+      !(snapshot.FullScreen.FullScreen && snapshot.FullScreen.ExclusiveMode);
   fullscreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
   fullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
   fullscreenDesc.RefreshRate.Numerator =
-      _primaryDisplayMode.RefreshRateNumerator;
+      snapshot.PrimaryDisplayMode.RefreshRateNumerator;
   fullscreenDesc.RefreshRate.Denominator =
-      _primaryDisplayMode.RefreshRateDenominator;
+      snapshot.PrimaryDisplayMode.RefreshRateDenominator;
 
-  desc.Width = _fullScreen.FullScreen ? (_fullScreen.ExclusiveMode
-                                             ? _primaryDisplayMode.Width
-                                             : _currentOutputDisplayInfo.Width)
-                                      : windowSize.right;
-  desc.Height =
-      _fullScreen.FullScreen
-          ? (_fullScreen.ExclusiveMode ? _primaryDisplayMode.Height
-                                       : _currentOutputDisplayInfo.Height)
-          : windowSize.bottom;
+  desc.Width = snapshot.FullScreen.FullScreen
+                   ? (snapshot.FullScreen.ExclusiveMode
+                          ? snapshot.PrimaryDisplayMode.Width
+                          : snapshot.Output.Width)
+                   : windowSize.right;
+  desc.Height = snapshot.FullScreen.FullScreen
+                    ? (snapshot.FullScreen.ExclusiveMode
+                           ? snapshot.PrimaryDisplayMode.Height
+                           : snapshot.Output.Height)
+                    : windowSize.bottom;
   desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
   desc.BufferCount = 2;
   desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
   desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-  if (!_fullScreen.ExclusiveMode) {
+  if (!snapshot.FullScreen.ExclusiveMode) {
     desc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
   }
 
-  // fullscreen exclusive always uses the primary display output
-  const bool supportsHDR =
-      ((_fullScreen.FullScreen && _fullScreen.ExclusiveMode)
-           ? _primaryDisplayMode.SupportsHDR
-           : _currentOutputDisplayInfo.SupportsHDR) &&
-      _hdrEnabled;
-
-  if (supportsHDR) {
-    desc.Format = _hdrBackBufferFormat;
-    colorSpace = _hdrColorSpace;
-  } else {
-    desc.Format = _sdrBackBufferFormat;
-    colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-  }
+  desc.Format = snapshot.Format;
+  colorSpace = snapshot.ColorSpace;
 
   desc.SampleDesc = {1, 0};
   desc.Scaling = DXGI_SCALING_STRETCH;
@@ -558,7 +569,7 @@ void RenderSettingsManager::OnResetSwapChain(
   _screenX = desc.Width;
   _screenY = desc.Height;
 
-  _changePending.store(false);
+  _changePending.store(_generation != snapshot.Generation);
 }
 
 void RenderSettingsManager::GetPreferences(IMGDFPreferenceSet **preferences) {

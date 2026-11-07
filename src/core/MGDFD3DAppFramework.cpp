@@ -228,37 +228,45 @@ bool D3DAppFramework::RTInitD3D(const HWND window) {
 
   RTWaitForGpuIdle();
   RTOnBeforeBackBufferChange();
-  const auto desired = RTGetFullscreen();
+  auto settings = RTTakeSettingsSnapshot();
+  const auto desired = settings.FullScreen;
   if (desired.FullScreen && !desired.ExclusiveMode &&
-      !ApplyWindowMode(window, true))
-    RTSetFullscreen({FALSE, FALSE});
+      !ApplyWindowMode(window, true)) {
+    RTSetFullscreenFallback(settings, {FALSE, FALSE});
+    settings.FullScreen = {FALSE, FALSE};
+  }
+  if (settings.WindowSize && !settings.FullScreen.FullScreen)
+    ApplyWindowSize(window, settings.WindowSize->first,
+                    settings.WindowSize->second);
   RECT windowSize{};
   if (!::GetClientRect(window, &windowSize)) {
     FATALERROR(this, "GetClientRect failed");
   }
-  _rtCurrentFullScreen = RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc,
-                                            _rtColorSpace, windowSize);
+  _rtCurrentFullScreen = RTOnResetSwapChain(
+      settings, _rtSwapDesc, _rtFullscreenSwapDesc, _rtColorSpace, windowSize);
   _fullScreen.store(_rtCurrentFullScreen.FullScreen);
-  RTCreateSwapChain(window);
-  RTApplyFullscreen(window);
+  RTCreateSwapChain(window, settings);
+  RTApplyFullscreen(window, settings);
   RTResizeBackBuffer();
   return true;
 }
 
-void D3DAppFramework::RTApplyFullscreen(HWND window) {
+void D3DAppFramework::RTApplyFullscreen(HWND window,
+                                        RenderSettingsSnapshot &settings) {
   if (!_rtCurrentFullScreen.FullScreen || !_rtCurrentFullScreen.ExclusiveMode ||
       _rtRenderBackend->RTSetExclusiveFullscreen())
     return;
-  RTSetFullscreen({FALSE, FALSE});
+  RTSetFullscreenFallback(settings, {FALSE, FALSE});
+  settings.FullScreen = {FALSE, FALSE};
   ApplyWindowMode(window, false);
   RECT client{};
   if (!::GetClientRect(window, &client)) {
     FATALERROR(this, "GetClientRect failed");
   }
-  _rtCurrentFullScreen = RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc,
-                                            _rtColorSpace, client);
+  _rtCurrentFullScreen = RTOnResetSwapChain(
+      settings, _rtSwapDesc, _rtFullscreenSwapDesc, _rtColorSpace, client);
   _fullScreen.store(_rtCurrentFullScreen.FullScreen);
-  RTCreateSwapChain(window);
+  RTCreateSwapChain(window, settings);
 }
 
 bool D3DAppFramework::ApplyWindowMode(const HWND window,
@@ -617,7 +625,8 @@ bool D3DAppFramework::RTAllowTearing() {
           _rtSwapDesc.SampleDesc.Count == 1);
 }
 
-void D3DAppFramework::RTCreateSwapChain(const HWND window) {
+void D3DAppFramework::RTCreateSwapChain(
+    const HWND window, const RenderSettingsSnapshot &settings) {
   _rtSwapDesc.Flags &= ~DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
   if (_rtAllowTearing && _rtSwapDesc.SampleDesc.Count == 1 &&
       !(_rtCurrentFullScreen.FullScreen &&
@@ -626,9 +635,12 @@ void D3DAppFramework::RTCreateSwapChain(const HWND window) {
   }
 
   RTWaitForGpuIdle();
-  _rtRenderBackend->RTCreateSwapChain(window, _rtSwapDesc, _rtColorSpace,
-                                      RTGetMaxFrameLatency(),
-                                      RTGetFrameGeneration());
+  _rtRenderBackend->RTCreateSwapChain(
+      window, _rtSwapDesc, _rtColorSpace,
+      settings.FullScreen.ExclusiveMode
+          ? std::nullopt
+          : std::optional<UINT>(settings.MaxFrameLatency),
+      settings.FrameGeneration);
   _hasSwapChain.store(true);
 }
 
@@ -795,7 +807,8 @@ INT32 D3DAppFramework::Run() {
               RTWaitForGpuIdle();
               RTOnBeforeBackBufferChange();
               RTApplyVR();
-              auto newFullScreen = RTGetFullscreen();
+              auto settings = RTTakeSettingsSnapshot();
+              auto newFullScreen = settings.FullScreen;
               if (_rtCurrentFullScreen.FullScreen &&
                   _rtCurrentFullScreen.ExclusiveMode) {
                 _rtRenderBackend->RTSetWindowed();
@@ -807,25 +820,26 @@ INT32 D3DAppFramework::Run() {
               if (wasBorderless != borderless &&
                   !ApplyWindowMode(window, borderless)) {
                 newFullScreen = _rtCurrentFullScreen;
-                RTSetFullscreen(newFullScreen);
+                RTSetFullscreenFallback(settings, newFullScreen);
+                settings.FullScreen = newFullScreen;
               }
-              const auto size = RTTakeWindowSize();
+              const auto size = settings.WindowSize;
               if (size && !newFullScreen.FullScreen)
                 ApplyWindowSize(window, size->first, size->second);
               RECT windowSize{};
               if (!::GetClientRect(window, &windowSize)) {
                 FATALERROR(this, "GetClientRect failed");
               }
-              _rtCurrentFullScreen =
-                  RTOnResetSwapChain(_rtSwapDesc, _rtFullscreenSwapDesc,
-                                     _rtColorSpace, windowSize);
+              _rtCurrentFullScreen = RTOnResetSwapChain(
+                  settings, _rtSwapDesc, _rtFullscreenSwapDesc, _rtColorSpace,
+                  windowSize);
               _fullScreen.store(_rtCurrentFullScreen.FullScreen);
-              RTCreateSwapChain(window);
+              RTCreateSwapChain(window, settings);
 
               // reset the swap chain to fullscreen if it was previously
               // fullscreen or if this backbuffer change was for a toggle from
               // windowed to fullscreen
-              RTApplyFullscreen(window);
+              RTApplyFullscreen(window, settings);
               RTResizeBackBuffer();
             }
           }
@@ -868,6 +882,10 @@ INT32 D3DAppFramework::Run() {
             } else if (FAILED(result)) {
               FATALERROR(this, "Direct3d Present1 failed");
             }
+          } else {
+            std::unique_lock lock(_renderWaitMutex);
+            _renderWake.wait_for(lock, std::chrono::milliseconds(10),
+                                 [this] { return !_runRenderThread.test(); });
           }
         }
         LOG("Stopping render thread...", MGDF_LOG_LOW);
@@ -989,15 +1007,11 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
         // For example, restoring the window to its default size
         // after a minimize or maximize, or from dragging the resize
         // bars.
-        bool exp = true;
+        _minimized.store(false);
         if (_resizing.get()) {
           // Track, but don't resize until the user has finished resizing
           _resizing->x = LOWORD(lParam);
           _resizing->y = HIWORD(lParam);
-        } else if (!_hasSwapChain.load() ||
-                   _minimized.compare_exchange_strong(exp, false)) {
-          // If we are just starting up and haven't initialized d3d yet, or we
-          // are simply restoring the window view without changing the size
         } else {
           PushRTMessage(DC_WINDOW_RESIZE, [lParam](auto &message) {
             message.Point = POINT{
@@ -1068,7 +1082,11 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
         if (_renderThread) {
           // make sure we stop rendering before disposing of the window
           _stoppingRenderThread = true;
-          _runRenderThread.clear();
+          {
+            std::lock_guard lock(_renderWaitMutex);
+            _runRenderThread.clear();
+          }
+          _renderWake.notify_all();
           // A frame generation Present can wait for this thread to process
           // window messages, so keep the message pump running until the
           // render thread exits.
