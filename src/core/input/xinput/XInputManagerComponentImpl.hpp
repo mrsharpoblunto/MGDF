@@ -2,6 +2,8 @@
 
 #include <MGDF/MGDF.h>
 
+#include <atomic>
+#include <bitset>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -51,38 +53,37 @@ class XInputManagerComponent : public IInputManagerComponent {
   std::mutex _simMutex;
 
   // pending keyboard state (input thread)
-  UINT8 _pendingKeyDown[256];
-  UINT8 _pendingKeyDownEvents[256];
-  UINT8 _pendingKeyDownEventsLength;
-  UINT8 _pendingKeyPressEvents[256];
-  UINT8 _pendingKeyPressEventsLength;
+  bool _pendingKeyDown[256]{};
+  std::bitset<256> _changedKeys;
+  std::bitset<256> _pendingKeyPress;
+  bool _resetPending = false;
 
   std::atomic_bool _showCursor;
   std::atomic<MGDFCursor> _cursor;
 
   // current keyboard state (sim thread)
-  bool _keyDown[256];
-  bool _keyPress[256];
+  bool _keyDown[256]{};
+  bool _keyPress[256]{};
 
   // pending mouse state (input thread)
   INT32 _pendingMouseDX, _pendingMouseDY;
   INT16 _pendingMouseDZ;
-  UINT8 _pendingMouseButtonDown[3];
-  bool _pendingMouseButtonClick[3];
+  UINT8 _pendingMouseButtonDown[3]{};
+  bool _pendingMouseButtonClick[3]{};
   INT32 _pendingMouseX, _pendingMouseY;
 
   // current mouse state (sim thread)
   INT32 _mouseDX, _mouseDY;
   INT16 _mouseDZ;
-  bool _mouseButtonDown[3];
-  bool _mouseButtonClick[3];
-  INT32 _mouseX, _mouseY;
+  bool _mouseButtonDown[3]{};
+  bool _mouseButtonClick[3]{};
+  INT32 _mouseX = 0, _mouseY = 0;
 
   std::vector<ComObject<XInputGamepad>> _gamepads;
   std::set<XInputGamepad *> _connectedGamepads;
   std::set<XInputGamepad *> _disconnectedGamepads;
   std::thread _gamepadCheckThread;
-  bool _checkThreadRunning;
+  std::atomic_bool _checkThreadRunning{false};
   std::mutex _gamepadMutex;
 };
 

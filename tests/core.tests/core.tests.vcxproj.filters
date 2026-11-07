@@ -6,6 +6,8 @@
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="GamePreferencesTests.cpp" />
     <ClCompile Include="HostLifecycleTests.cpp" />
+    <ClCompile Include="InputTests.cpp" />
+    <ClCompile Include="AudioTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />
     <ClCompile Include="ParameterManagerTests.cpp" />
