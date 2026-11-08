@@ -2447,6 +2447,94 @@ typedef struct MGDFFrameGenerationDesc {
 } MGDFFrameGenerationDesc;
 
 /**
+A screenshot or video in the captures folder. Methods are safe to use from any
+thread
+*/
+[
+  uuid("A73D0082-1E89-48C1-9B80-D9A97CACBB15"), object,
+  local
+] interface IMGDFCapture : IUnknown {
+  /**
+  \return E_PENDING until the capture is complete, then S_OK if the file was
+  written, otherwise the error. Poll it to wait for the file. A device reset
+  ends a capture in progress with DXGI_ERROR_DEVICE_REMOVED and no file
+  */
+  HRESULT GetResult();
+  /**
+  Gets the full path of the capture file
+  \param path buffer to store the path
+  \param length the length of the buffer provided. Will be set to the length required
+  \return S_OK if the buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
+  */
+  HRESULT GetPath([ in, out ] wchar_t * path, [ in, out ] UINT64 * length);
+};
+
+/**
+A video that the host records from drawn frames. Recording starts when the
+encoder is ready, about 0.1 seconds after the request, and ends at Stop, at
+the final Release, at a back buffer size change or at host shutdown. The host
+then writes the remaining frames and completes the file. A device reset ends
+it with DXGI_ERROR_DEVICE_REMOVED and no file
+*/
+[
+  uuid("3746A654-0AE1-4AA4-8B9F-26CC25036798"), object,
+  local
+] interface IMGDFVideoRecording : IMGDFCapture {
+  /**
+  Stops recording. Frames drawn after this call are not recorded
+  */
+  void Stop();
+  /**
+  \return the number of frames written to the file so far
+  */
+  UINT64 GetFrameCount();
+  /**
+  \return the number of frames left out because the GPU readback or the encoder
+  was not ready for them
+  */
+  UINT64 GetDroppedFrameCount();
+};
+
+/**
+Records screenshots and videos of drawn frames into the captures folder: the
+captures subfolder of the user directory, or the -capturediroverride folder.
+The host maps HDR frames to SDR. Get the host's recorder from
+IMGDFCommonHost::GetRecorder. Methods are safe to use from any thread
+*/
+[
+  uuid("C4A414D9-67D0-4B3F-B509-2B984DB1246C"), object,
+  local
+] interface IMGDFRecorder : IUnknown {
+  /**
+  Saves the next drawn frame as a PNG
+  \param name the file name relative to the captures folder, with or without
+  the .png extension. '/' separates sub folders; '..', absolute paths and
+  characters that are not valid in file names are rejected
+  \param capture receives the capture; poll GetResult for the file
+  \return S_OK, E_INVALIDARG for an invalid name or null output,
+  DXGI_ERROR_DEVICE_REMOVED from a device reset until the host has a device
+  again, or E_ABORT after host shutdown
+  */
+  HRESULT TakeScreenshot([in] const small *name, [out] IMGDFCapture **capture);
+  /**
+  Records drawn frames to an H.264 MP4, at up to 60 frames per second with
+  real frame times. Recording starts about 0.1 seconds after this call, when
+  the encoder is ready, and ends at Stop or at the final Release of the
+  recording. One video records at a time; screenshots can be taken while it
+  records
+  \param name the file name relative to the captures folder, with or without
+  the .mp4 extension, under the same rules as TakeScreenshot
+  \param recording receives the recording
+  \return S_OK, E_INVALIDARG for an invalid name or null output,
+  E_NOT_VALID_STATE while another video records, DXGI_ERROR_DEVICE_REMOVED
+  from a device reset until the host has a device again, or E_ABORT after
+  host shutdown
+  */
+  HRESULT StartVideo([in] const small *name,
+                     [out] IMGDFVideoRecording **recording);
+};
+
+/**
 Provides an entrypoint for a module to interact with the MGDF host. Methods in
 this interface are safe to be used from any thread. Release device and queue
 references before acknowledging a device reset
@@ -2583,6 +2671,18 @@ references before acknowledging a device reset
   HRESULT GetUpscaleRenderSize(MGDFUpscaleMode mode, UINT32 displayWidth,
                                UINT32 displayHeight,
                                [out] MGDFUpscaleRenderSize *size);
+
+  /**
+  Gets the host's recorder for screenshots and videos. The first call creates
+  it and every call returns the same recorder. The host does not load Media
+  Foundation or record frames until then
+  \param recorder points to the recorder
+  \return S_OK, E_INVALIDARG for a null output,
+  HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND) when Windows has no Media Foundation
+  (N and KN editions without the Media Feature Pack), or E_ABORT after host
+  shutdown
+  */
+  HRESULT GetRecorder([out] IMGDFRecorder **recorder);
 };
 
 /**

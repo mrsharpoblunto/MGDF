@@ -80,6 +80,7 @@ class D3D12RenderBackend {
   ComObject<ID3D12CommandQueue> RTGetQueue(D3D12_COMMAND_LIST_TYPE type);
   ComObject<ID3D12Fence> RTGetFrameFence();
   MGDFFrameInfo RTGetCurrentFrame() const;
+  DXGI_COLOR_SPACE_TYPE RTGetColorSpace() const { return _colorSpace; }
   Streamline *GetStreamline();
   GraphicsSupport RTGetGraphicsSupport() const;
 

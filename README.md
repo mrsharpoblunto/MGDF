@@ -59,6 +59,7 @@ For ease of debugging the environment variables can also be placed in a `.env` f
 * -loglevel <level> (env `MGDF_LOGLEVEL`): (OPTIONAL) The logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
 * -userdiroverride (env `MGDF_USERDIROVERRIDE`): (OPTIONAL) The directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
 * -gamediroverride <directory> (env `MGDF_GAMEDIROVERRIDE`): (OPTIONAL) The directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
+* -capturediroverride <directory> (env `MGDF_CAPTUREDIROVERRIDE`): (OPTIONAL) The directory that screenshots and videos from IMGDFRecorder are saved to (by default this is the captures subdirectory of the user data directory). A relative path is relative to the current directory
 * -metricsport <port_number> (env `MGDF_METRICSPORT`): (OPTIONAL) A port to expose internal metrics via a prometheus compatible endpoint at http://localhost:<port_number>/metrics
 * -logendpoint <url> (env `MGDF_LOGENDPOINT`): (OPTIONAL) A Loki logging endpoint to push internal logs to
 * -statisticsendpointoverride <url> (env `MGDF_STATISTICSENDPOINTOVERRIDE`): (OPTIONAL) A statistics endpoint to push statistics to (overrides any statistics service specified in the games manifest)

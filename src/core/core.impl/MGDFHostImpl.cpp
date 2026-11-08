@@ -327,6 +327,13 @@ void Host::RTBeforeDeviceReset() {
       FATALERROR(this, "Error in before device reset in module");
     }
   }
+  {
+    // a recorder created from here on starts lost; one created before is in
+    // _rtRecorder
+    std::lock_guard lock(_recorderMutex);
+    _deviceResetting = true;
+  }
+  if (auto *recorder = _rtRecorder.load()) recorder->RTReleaseDevice();
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
   _d3d12Device.Clear();
@@ -358,6 +365,11 @@ void Host::RTShutDown() {
   // release all device dependent resources now as the app framework will
   // uninitialize D3D (and report any remaining live objects in debug builds)
   // before this host is destroyed
+  {
+    std::lock_guard lock(_recorderMutex);
+    _recorderClosed = true;
+  }
+  if (auto *recorder = _rtRecorder.load()) recorder->RTShutDown();
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
   _streamline = nullptr;
@@ -369,6 +381,10 @@ void Host::RTShutDown() {
 }
 
 void Host::RTSetDevices(D3D12RenderBackend &backend) {
+  {
+    std::lock_guard lock(_recorderMutex);
+    _deviceResetting = false;
+  }
   _vrThreadId = GetCurrentThreadId();
   _backend = &backend;
   backend.VR().SetInputState(_input->GetVRInputState());
@@ -400,6 +416,23 @@ bool Host::RTDraw(double alpha) {
   _vrDrawing = true;
   const bool drawn = _module && _module->RTDraw(RenderHost(), alpha);
   _vrDrawing = false;
+  auto *recorder = _rtRecorder.load();
+  if (!recorder) return drawn;
+  if (!recorder->RTHasDevice()) {
+    recorder->RTSetDevice(_d3d12Device, _directQueue, _frameFence);
+  }
+  MGDFOutputDisplayInfo display{};
+  _renderSettings->GetCurrentOutputDisplayInfo(&display);
+  const auto colorSpace = _backend->RTGetColorSpace();
+  // SDRWhiteLevel is in thousandths of 80 nits
+  recorder->RTCapture(
+      _backend->RTGetCurrentFrame(), drawn,
+      colorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+          ? CaptureEncoding::HDR10
+      : colorSpace == DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709
+          ? CaptureEncoding::ScRGB
+          : CaptureEncoding::SDR,
+      display.SDRWhiteLevel ? display.SDRWhiteLevel * 0.08f : 80.0f);
   return drawn;
 }
 
@@ -544,6 +577,27 @@ void Host::GetCopyQueue(ID3D12CommandQueue **queue) {
 }
 void Host::GetCurrentFrame(MGDFFrameInfo *frame) {
   *frame = _backend->RTGetCurrentFrame();
+}
+HRESULT Host::GetRecorder(IMGDFRecorder **recorder) {
+  if (!recorder) return E_INVALIDARG;
+  std::lock_guard lock(_recorderMutex);
+  if (!_recorder) {
+    if (_recorderClosed) return E_ABORT;
+    if (!MediaFoundationInstalled()) {
+      return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+    }
+    const char *folder = ParameterManager::Instance().GetParameter(
+        ParameterConstants::CAPTURE_DIR_OVERRIDE);
+    _recorder = MakeCom<CaptureManager>(
+        folder && *folder
+            ? std::filesystem::absolute(Resources::ToWString(folder))
+            : std::filesystem::path(Resources::Instance().UserBaseDir()) /
+                  L"captures",
+        _deviceResetting);
+    _rtRecorder = _recorder.Get();
+  }
+  _recorder.AddRawRef<IMGDFRecorder>(recorder);
+  return S_OK;
 }
 void Host::GetFrameFence(ID3D12Fence **fence) { _frameFence.AddRawRef(fence); }
 HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,

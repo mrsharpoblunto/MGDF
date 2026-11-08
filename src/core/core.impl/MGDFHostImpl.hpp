@@ -13,6 +13,7 @@
 #include "../network/MGDFNetworkManagerComponent.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"
 #include "../vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
+#include "MGDFCaptures.hpp"
 #include "MGDFDebugImpl.hpp"
 #include "MGDFGameImpl.hpp"
 #include "MGDFHostMetrics.hpp"
@@ -165,6 +166,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                                     IMGDFWebSocket **socket) final;
   HRESULT __stdcall CreateWebServer(unsigned int port, const small *socketPath,
                                     IMGDFWebServer **server) final;
+  HRESULT __stdcall GetRecorder(IMGDFRecorder **recorder) final;
 
  private:
   IMGDFRenderHost *RenderHost() { return static_cast<IMGDFRenderHost *>(this); }
@@ -199,6 +201,14 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<Timer> _timer;
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
+  // created by the first GetRecorder call
+  std::mutex _recorderMutex;
+  ComObject<CaptureManager> _recorder;
+  bool _recorderClosed = false;
+  // from RTBeforeDeviceReset until RTSetDevices
+  bool _deviceResetting = false;
+  // the render thread's view of _recorder, which lives until the host ends
+  std::atomic<CaptureManager *> _rtRecorder = nullptr;
 
   MGDFGraphicsRequirements _graphicsRequirements{};
   MGDFBackBufferInfo _backBufferInfo{};
