@@ -185,6 +185,7 @@ Task("Dist")
 		// copy MGDF headers
 		CreateDirectory("../dist/SDK/include/MGDF");
 		CopyFiles(GetFiles("../include/MGDF/*.h*"), "../dist/SDK/include/MGDF");
+		CopyFile("../src/core/core.api/MGDF.idl", "../dist/SDK/include/MGDF/MGDF.idl");
     
 		// copy packagegen to SDK bin dir
 		CreateDirectory("../dist/SDK/bin");
