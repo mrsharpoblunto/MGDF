@@ -112,7 +112,7 @@ template <typename Capture>
 bool WaitForCompletion(Capture *capture) {
   const auto deadline =
       std::chrono::steady_clock::now() + std::chrono::seconds(30);
-  while (!capture->IsComplete()) {
+  while (capture->GetResult() == E_PENDING) {
     if (std::chrono::steady_clock::now() > deadline) return false;
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
@@ -237,7 +237,7 @@ class CaptureIntegrationTests : public ::testing::Test {
                                                   IID_PPV_ARGS(_rtv.Assign())));
     _device->CreateRenderTargetView(_backBuffer, nullptr,
                                     _rtv->GetCPUDescriptorHandleForHeapStart());
-    _captures = MakeCom<CaptureManager>(TempFolder());
+    _captures = MakeCom<CaptureManager>(TempFolder(), false);
     _captures->RTSetDevice(_device, _queue, _fence);
   }
 
@@ -360,6 +360,54 @@ TEST_F(CaptureIntegrationTests, OneVideoRecordsAtATime) {
 
   first->Stop();
   EXPECT_EQ(S_OK, _captures->StartVideo("second", second.Assign()));
+}
+
+TEST_F(CaptureIntegrationTests, DeviceResetFailsCapturesUntilRecovered) {
+  ComObject<IMGDFVideoRecording> recording;
+  ASSERT_EQ(S_OK, _captures->StartVideo("reset", recording.Assign()));
+  ASSERT_TRUE(RecordBlackFrames(recording.Get(), 2));
+  ComObject<IMGDFCapture> screenshot;
+  ASSERT_EQ(S_OK, _captures->TakeScreenshot("reset", screenshot.Assign()));
+
+  _captures->RTReleaseDevice();
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED, recording->GetResult());
+  ASSERT_TRUE(WaitForCompletion(recording.Get()));
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED, recording->GetResult());
+  EXPECT_FALSE(std::filesystem::exists(TempFolder() / L"reset.mp4"));
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED, screenshot->GetResult());
+  ComObject<IMGDFCapture> lostScreenshot;
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED,
+            _captures->TakeScreenshot("lost", lostScreenshot.Assign()));
+  ComObject<IMGDFVideoRecording> lostVideo;
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED,
+            _captures->StartVideo("lost", lostVideo.Assign()));
+
+  _captures->RTSetDevice(_device, _queue, _fence);
+  ComObject<IMGDFVideoRecording> next;
+  ASSERT_EQ(S_OK, _captures->StartVideo("next", next.Assign()));
+  EXPECT_TRUE(RecordBlackFrames(next.Get(), 1));
+}
+
+TEST_F(CaptureIntegrationTests, ResetsApplyBeforeTheFirstDevice) {
+  // created during a reset
+  auto created = MakeCom<CaptureManager>(TempFolder() / L"created", true);
+  ComObject<IMGDFCapture> rejected;
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED,
+            created->TakeScreenshot("shot", rejected.Assign()));
+  created->RTSetDevice(_device, _queue, _fence);
+  ComObject<IMGDFCapture> accepted;
+  EXPECT_EQ(S_OK, created->TakeScreenshot("shot", accepted.Assign()));
+  created->RTShutDown();
+
+  // reset before the first draw gave the recorder a device
+  auto fresh = MakeCom<CaptureManager>(TempFolder() / L"fresh", false);
+  ComObject<IMGDFCapture> pending;
+  ASSERT_EQ(S_OK, fresh->TakeScreenshot("shot", pending.Assign()));
+  fresh->RTReleaseDevice();
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED, pending->GetResult());
+  EXPECT_EQ(DXGI_ERROR_DEVICE_REMOVED,
+            fresh->TakeScreenshot("shot", rejected.Assign()));
+  fresh->RTShutDown();
 }
 
 TEST_F(CaptureIntegrationTests, ReleasingAVideoStopsIt) {

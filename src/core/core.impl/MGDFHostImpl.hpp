@@ -205,6 +205,8 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   std::mutex _recorderMutex;
   ComObject<CaptureManager> _recorder;
   bool _recorderClosed = false;
+  // from RTBeforeDeviceReset until RTSetDevices
+  bool _deviceResetting = false;
   // the render thread's view of _recorder, which lives until the host ends
   std::atomic<CaptureManager *> _rtRecorder = nullptr;
 

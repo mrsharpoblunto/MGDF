@@ -14,6 +14,7 @@ class ParameterConstants {
   static const char *LOG_LEVEL;
   static const char *USER_DIR_OVERRIDE;
   static const char *GAME_DIR_OVERRIDE;
+  static const char *CAPTURE_DIR_OVERRIDE;
   static const char *METRICS_PORT;
   static const char *LOG_ENDPOINT;
   static const char *STATISTICS_ENDPOINT_OVERRIDE;

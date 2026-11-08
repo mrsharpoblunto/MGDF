@@ -327,6 +327,12 @@ void Host::RTBeforeDeviceReset() {
       FATALERROR(this, "Error in before device reset in module");
     }
   }
+  {
+    // a recorder created from here on starts lost; one created before is in
+    // _rtRecorder
+    std::lock_guard lock(_recorderMutex);
+    _deviceResetting = true;
+  }
   if (auto *recorder = _rtRecorder.load()) recorder->RTReleaseDevice();
   _timer->BeforeDeviceReset();
   std::lock_guard lock(_deviceMutex);
@@ -375,6 +381,10 @@ void Host::RTShutDown() {
 }
 
 void Host::RTSetDevices(D3D12RenderBackend &backend) {
+  {
+    std::lock_guard lock(_recorderMutex);
+    _deviceResetting = false;
+  }
   _vrThreadId = GetCurrentThreadId();
   _backend = &backend;
   backend.VR().SetInputState(_input->GetVRInputState());
@@ -576,9 +586,14 @@ HRESULT Host::GetRecorder(IMGDFRecorder **recorder) {
     if (!MediaFoundationInstalled()) {
       return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     }
+    const char *folder = ParameterManager::Instance().GetParameter(
+        ParameterConstants::CAPTURE_DIR_OVERRIDE);
     _recorder = MakeCom<CaptureManager>(
-        std::filesystem::path(Resources::Instance().UserBaseDir()) /
-        L"captures");
+        folder && *folder
+            ? std::filesystem::absolute(Resources::ToWString(folder))
+            : std::filesystem::path(Resources::Instance().UserBaseDir()) /
+                  L"captures",
+        _deviceResetting);
     _rtRecorder = _recorder.Get();
   }
   _recorder.AddRawRef<IMGDFRecorder>(recorder);

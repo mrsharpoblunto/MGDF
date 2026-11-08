@@ -97,14 +97,29 @@ const std::array<float, 1024> &PQTable() {
 
 }  // namespace
 
+// a video worker claimed the result: its frames are all encoded, so a device
+// reset no longer fails it. GetResult reports E_PENDING
+constexpr HRESULT kPublishing =
+    MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x200);
+
 struct CaptureState {
   std::filesystem::path Path;
   std::atomic<bool> Complete = false;
   std::atomic<HRESULT> Result = E_PENDING;
 
+  // the first result wins: a device reset fails a capture at once, before
+  // its worker finishes. False when a result was already set
+  bool SetResult(HRESULT result) {
+    HRESULT pending = E_PENDING;
+    return Result.compare_exchange_strong(pending, result);
+  }
   void Finish(HRESULT result) {
-    Result = result;
+    SetResult(result);
     Complete = true;
+  }
+  HRESULT VisibleResult() const {
+    const HRESULT result = Result;
+    return result == kPublishing ? E_PENDING : result;
   }
 };
 
@@ -206,7 +221,10 @@ void VideoState::Encode(uint32_t width, uint32_t height,
   VideoEncoder encoder;
   // opening takes most of a second, so it must finish before the first frame
   // or the queue fills and frames are dropped
-  HRESULT result = encoder.Open(Path, width, height, device);
+  // the file has its final name only once it is complete
+  auto partial = Path;
+  partial += L".partial";
+  HRESULT result = encoder.Open(partial, width, height, device);
   if (SUCCEEDED(result)) {
     EncoderReady = true;
   } else {
@@ -226,6 +244,7 @@ void VideoState::Encode(uint32_t width, uint32_t height,
       frame = std::move(Queue.front());
       Queue.pop_front();
     }
+    if (Result != E_PENDING) result = Result;
     if (FAILED(result)) continue;
     const auto &slot = frame.Pixels->Slot();
     const uint32_t fullWidth = slot.Layout.Footprint.Width;
@@ -250,21 +269,28 @@ void VideoState::Encode(uint32_t width, uint32_t height,
     pending.swap(nv12);
     pendingTime = time;
   }
+  if (Result != E_PENDING) result = Result;
   if (SUCCEEDED(result) && !pending.empty()) {
     result = encoder.Write(pending.data(), pendingTime,
                            kTicksPerSecond / kVideoFrameRate);
     if (SUCCEEDED(result)) ++Frames;
   }
   const HRESULT closed = encoder.Close();
-  if (Frames == 0) {
-    // stopped before a frame was recorded: there is no file
-    std::error_code error;
-    std::filesystem::remove(Path, error);
-    if (SUCCEEDED(result)) result = HRESULT_FROM_WIN32(ERROR_NO_DATA);
-  } else if (SUCCEEDED(result)) {
-    result = closed;
+  if (SUCCEEDED(result)) {
+    result = Frames == 0 ? HRESULT_FROM_WIN32(ERROR_NO_DATA) : closed;
   }
-  Finish(result);
+  std::error_code error;
+  HRESULT unclaimed = E_PENDING;
+  if (SUCCEEDED(result) &&
+      Result.compare_exchange_strong(unclaimed, kPublishing)) {
+    std::filesystem::rename(partial, Path, error);
+    Result = error ? HRESULT_FROM_WIN32(error.value()) : S_OK;
+  } else {
+    // keeps the error of a device reset
+    SetResult(result);
+  }
+  if (Result != S_OK) std::filesystem::remove(partial, error);
+  Complete = true;
   if (SUCCEEDED(com)) CoUninitialize();
 }
 
@@ -274,8 +300,7 @@ class Capture final : public ComBase<IMGDFCapture> {
  public:
   explicit Capture(std::shared_ptr<CaptureState> state)
       : _state(std::move(state)) {}
-  BOOL __stdcall IsComplete() final { return _state->Complete; }
-  HRESULT __stdcall GetResult() final { return _state->Result; }
+  HRESULT __stdcall GetResult() final { return _state->VisibleResult(); }
   HRESULT __stdcall GetPath(wchar_t *path, UINT64 *length) final {
     return StringWriter::Write(_state->Path.wstring(), path, length);
   }
@@ -289,8 +314,7 @@ class VideoRecording final : public ComBase<IMGDFVideoRecording, IMGDFCapture> {
   explicit VideoRecording(std::shared_ptr<VideoState> state)
       : _state(std::move(state)) {}
   ~VideoRecording() { _state->StopRequested = true; }
-  BOOL __stdcall IsComplete() final { return _state->Complete; }
-  HRESULT __stdcall GetResult() final { return _state->Result; }
+  HRESULT __stdcall GetResult() final { return _state->VisibleResult(); }
   HRESULT __stdcall GetPath(wchar_t *path, UINT64 *length) final {
     return StringWriter::Write(_state->Path.wstring(), path, length);
   }
@@ -509,12 +533,16 @@ HRESULT VideoEncoder::Open(const std::filesystem::path &path, uint32_t width,
   if (FAILED(result)) return result;
   _started = true;
   ComObject<IMFAttributes> attributes;
-  result = MFCreateAttributes(attributes.Assign(), 3);
+  result = MFCreateAttributes(attributes.Assign(), 4);
   if (SUCCEEDED(result))
     result =
         attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
   if (SUCCEEDED(result))
     result = attributes->SetUINT32(MF_SINK_WRITER_DISABLE_THROTTLING, TRUE);
+  // the file name does not end in .mp4 while it is written
+  if (SUCCEEDED(result))
+    result = attributes->SetGUID(MF_TRANSCODE_CONTAINERTYPE,
+                                 MFTranscodeContainerType_MPEG4);
   if (SUCCEEDED(result) && device)
     result = attributes->SetUnknown(MF_SINK_WRITER_D3D_MANAGER, device);
   ComObject<IMFSinkWriter> writer;
@@ -603,12 +631,19 @@ bool MediaFoundationInstalled() {
   return installed;
 }
 
-CaptureManager::CaptureManager(std::filesystem::path folder)
-    : _folder(std::move(folder)), _worker([this] { Work(); }) {}
+CaptureManager::CaptureManager(std::filesystem::path folder, bool deviceLost)
+    : _folder(std::move(folder)),
+      _deviceLost(deviceLost),
+      _worker([this] { Work(); }) {}
 
 namespace {
 
-ComObject<IMFDXGIDeviceManager> CreateEncoderDevice(LUID luid) {
+bool SameAdapter(const LUID &a, const LUID &b) {
+  return a.LowPart == b.LowPart && a.HighPart == b.HighPart;
+}
+
+ComObject<IMFDXGIDeviceManager> CreateEncoderDevice(
+    LUID luid, ComObject<ID3D11Device> &d3dDevice) {
   ComObject<IDXGIFactory4> factory;
   ComObject<IDXGIAdapter1> adapter;
   DXGI_ADAPTER_DESC1 desc{};
@@ -635,6 +670,7 @@ ComObject<IMFDXGIDeviceManager> CreateEncoderDevice(LUID luid) {
       FAILED(manager->ResetDevice(device, token))) {
     return {};
   }
+  d3dDevice = device;
   return manager;
 }
 
@@ -642,9 +678,21 @@ ComObject<IMFDXGIDeviceManager> CreateEncoderDevice(LUID luid) {
 
 ComObject<IMFDXGIDeviceManager> CaptureManager::EncoderDevice() {
   std::lock_guard lock(_encoderDeviceMutex);
-  if (!_encoderDeviceTried && _adapterKnown) {
+  if (!_adapterKnown) return {};
+  // a driver reset or update removes the device, and the host can move to
+  // another adapter at a device reset
+  if (_encoderDeviceTried &&
+      (!SameAdapter(_encoderAdapter, _adapter) ||
+       (_encoderD3DDevice &&
+        _encoderD3DDevice->GetDeviceRemovedReason() != S_OK))) {
+    _encoderDevice.Clear();
+    _encoderD3DDevice.Clear();
+    _encoderDeviceTried = false;
+  }
+  if (!_encoderDeviceTried) {
     _encoderDeviceTried = true;
-    _encoderDevice = CreateEncoderDevice(_adapter);
+    _encoderAdapter = _adapter;
+    _encoderDevice = CreateEncoderDevice(_adapter, _encoderD3DDevice);
   }
   return _encoderDevice;
 }
@@ -690,6 +738,7 @@ HRESULT CaptureManager::TakeScreenshot(const small *name,
   {
     std::lock_guard lock(_requestMutex);
     if (_shutDown) return E_ABORT;
+    if (_deviceLost) return DXGI_ERROR_DEVICE_REMOVED;
     _screenshotRequests.push_back(state);
   }
   *capture = new Capture(std::move(state));
@@ -706,6 +755,7 @@ HRESULT CaptureManager::StartVideo(const small *name,
   {
     std::lock_guard lock(_requestMutex);
     if (_shutDown) return E_ABORT;
+    if (_deviceLost) return DXGI_ERROR_DEVICE_REMOVED;
     // each video holds a hardware encoder session, and GPUs allow few
     if (const auto active = _activeVideo.lock();
         active && !active->StopRequested && !active->Complete) {
@@ -729,6 +779,8 @@ void CaptureManager::RTSetDevice(ID3D12Device *device,
   }
   _queue = MakeComFromPtr<ID3D12CommandQueue>(queue);
   _fence = MakeComFromPtr<ID3D12Fence>(fence);
+  std::lock_guard lock(_requestMutex);
+  _deviceLost = false;
 }
 
 void CaptureManager::RTDeliver(uint64_t completedOrdinal) {
@@ -932,6 +984,27 @@ void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
 }
 
 void CaptureManager::RTReleaseDevice() {
+  {
+    std::lock_guard lock(_requestMutex);
+    _deviceLost = true;
+    for (auto &screenshot : _screenshotRequests) {
+      screenshot->Finish(DXGI_ERROR_DEVICE_REMOVED);
+    }
+    _screenshotRequests.clear();
+    for (auto &video : _videoRequests) video->Finish(DXGI_ERROR_DEVICE_REMOVED);
+    _videoRequests.clear();
+  }
+  // the reset can follow a device removal, which also stops the encoders
+  for (auto &video : _videos) {
+    video->SetResult(DXGI_ERROR_DEVICE_REMOVED);
+    video->StopRequested = true;
+    video->Ending = true;
+  }
+  RTDropDevice(DXGI_ERROR_DEVICE_REMOVED);
+  RTEndVideos(false);
+}
+
+void CaptureManager::RTDropDevice(HRESULT lost) {
   if (!_device) return;
   uint64_t last = 0;
   for (auto &slot : _slots) {
@@ -955,10 +1028,7 @@ void CaptureManager::RTReleaseDevice() {
       --video->InFlight;
       ++video->Dropped;
     }
-    for (auto &screenshot : slot->Screenshots) {
-      std::lock_guard lock(_requestMutex);
-      _screenshotRequests.push_back(screenshot);
-    }
+    for (auto &screenshot : slot->Screenshots) screenshot->Finish(lost);
     slot->Screenshots.clear();
     slot->Videos.clear();
   }
@@ -973,7 +1043,7 @@ void CaptureManager::RTReleaseDevice() {
 }
 
 void CaptureManager::RTShutDown() {
-  RTReleaseDevice();
+  RTDropDevice(E_ABORT);
   {
     std::lock_guard lock(_requestMutex);
     _shutDown = true;

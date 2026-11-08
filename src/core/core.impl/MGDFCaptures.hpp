@@ -1,6 +1,7 @@
 #pragma once
 
 #include <MGDF/MGDF.h>
+#include <d3d11.h>
 #include <d3d12.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
@@ -84,7 +85,8 @@ struct CaptureSlot;
 // safe on any thread; RT methods run on the render thread
 class CaptureManager : public ComBase<IMGDFRecorder> {
  public:
-  explicit CaptureManager(std::filesystem::path folder);
+  // deviceLost: the host is in a device reset
+  CaptureManager(std::filesystem::path folder, bool deviceLost);
   ~CaptureManager();
 
   HRESULT __stdcall TakeScreenshot(const small *name,
@@ -99,18 +101,21 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
   // drawn; the frame fence reaches frame.FrameOrdinal once the copy is done
   void RTCapture(const MGDFFrameInfo &frame, bool drawn,
                  CaptureEncoding encoding, float sdrWhiteNits);
-  // Before the device goes away: delivers or drops every frame in flight
+  // Before a device reset: captures in progress fail, and new captures fail
+  // until RTSetDevice
   void RTReleaseDevice();
   // Stops every recording and waits for the files
   void RTShutDown();
 
  private:
   void RTDeliver(uint64_t completedOrdinal);
+  // delivers finished frames and fails screenshots still on the GPU with lost
+  void RTDropDevice(HRESULT lost);
   void RTEndVideos(bool all);
   CaptureSlot *RTFreeSlot(uint64_t bytes);
   void Work();
-  // the shared encoder device, created on first use; null on a software
-  // adapter
+  // the shared encoder device on the host's adapter, created on first use
+  // and again after it is removed; null on a software adapter
   ComObject<IMFDXGIDeviceManager> EncoderDevice();
 
   std::filesystem::path _folder;
@@ -119,12 +124,15 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
   LUID _adapter{};
   bool _adapterKnown = false;
   bool _encoderDeviceTried = false;
+  LUID _encoderAdapter{};
+  ComObject<ID3D11Device> _encoderD3DDevice;
   ComObject<IMFDXGIDeviceManager> _encoderDevice;
   std::mutex _requestMutex;
   std::vector<std::shared_ptr<CaptureState>> _screenshotRequests;
   std::vector<std::shared_ptr<VideoState>> _videoRequests;
   std::weak_ptr<VideoState> _activeVideo;
   bool _shutDown = false;
+  bool _deviceLost = false;
 
   // render thread
   ComObject<ID3D12Device> _device;
