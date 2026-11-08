@@ -4,6 +4,8 @@
 
 #include <DirectXPackedVector.h>
 #include <codecapi.h>
+#include <d3d11_4.h>
+#include <dxgi1_4.h>
 #include <mfapi.h>
 #include <wincodec.h>
 
@@ -16,6 +18,8 @@
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFStringImpl.hpp"
 
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "mfplat.lib")
 #pragma comment(lib, "mfreadwrite.lib")
 #pragma comment(lib, "mfuuid.lib")
@@ -35,6 +39,9 @@ constexpr uint32_t kSlots = 8;
 constexpr size_t kVideoQueue = 4;
 constexpr uint32_t kVideoFrameRate = 60;
 constexpr int64_t kTicksPerSecond = 10'000'000;
+// hardware encoders reject small frames, and with the shared device Media
+// Foundation does not fall back to its software encoder
+constexpr uint32_t kSharedEncoderDeviceMinSize = 256;
 
 template <typename F>
 void ForEachRow(uint32_t rows, F &&row) {
@@ -188,17 +195,18 @@ struct VideoState : CaptureState {
   }
 
   // width and height must be even
-  void Encode(uint32_t width, uint32_t height);
+  void Encode(uint32_t width, uint32_t height, IMFDXGIDeviceManager *device);
 };
 
-void VideoState::Encode(uint32_t width, uint32_t height) {
+void VideoState::Encode(uint32_t width, uint32_t height,
+                        IMFDXGIDeviceManager *device) {
   const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
   LARGE_INTEGER frequency;
   QueryPerformanceFrequency(&frequency);
   VideoEncoder encoder;
   // opening takes most of a second, so it must finish before the first frame
   // or the queue fills and frames are dropped
-  HRESULT result = encoder.Open(Path, width, height);
+  HRESULT result = encoder.Open(Path, width, height, device);
   if (SUCCEEDED(result)) {
     EncoderReady = true;
   } else {
@@ -287,9 +295,6 @@ class VideoRecording final : public ComBase<IMGDFVideoRecording, IMGDFCapture> {
     return StringWriter::Write(_state->Path.wstring(), path, length);
   }
   void __stdcall Stop() final { _state->StopRequested = true; }
-  BOOL __stdcall IsRecording() final {
-    return _state->EncoderReady && !_state->StopRequested && !_state->Complete;
-  }
   UINT64 __stdcall GetFrameCount() final { return _state->Frames; }
   UINT64 __stdcall GetDroppedFrameCount() final { return _state->Dropped; }
 
@@ -495,7 +500,7 @@ HRESULT WritePNG(const std::filesystem::path &path, const uint8_t *rgba,
 VideoEncoder::~VideoEncoder() { Close(); }
 
 HRESULT VideoEncoder::Open(const std::filesystem::path &path, uint32_t width,
-                           uint32_t height) {
+                           uint32_t height, IMFDXGIDeviceManager *device) {
   _width = width;
   _height = height;
   std::error_code error;
@@ -504,12 +509,14 @@ HRESULT VideoEncoder::Open(const std::filesystem::path &path, uint32_t width,
   if (FAILED(result)) return result;
   _started = true;
   ComObject<IMFAttributes> attributes;
-  result = MFCreateAttributes(attributes.Assign(), 2);
+  result = MFCreateAttributes(attributes.Assign(), 3);
   if (SUCCEEDED(result))
     result =
         attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
   if (SUCCEEDED(result))
     result = attributes->SetUINT32(MF_SINK_WRITER_DISABLE_THROTTLING, TRUE);
+  if (SUCCEEDED(result) && device)
+    result = attributes->SetUnknown(MF_SINK_WRITER_D3D_MANAGER, device);
   ComObject<IMFSinkWriter> writer;
   if (SUCCEEDED(result))
     result = MFCreateSinkWriterFromURL(path.c_str(), nullptr, attributes,
@@ -583,8 +590,64 @@ HRESULT VideoEncoder::Close() {
   return result;
 }
 
+bool MediaFoundationInstalled() {
+  static const bool installed = [] {
+    for (const auto *dll : {L"mfplat.dll", L"mfreadwrite.dll"}) {
+      const HMODULE module =
+          LoadLibraryExW(dll, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+      if (!module) return false;
+      FreeLibrary(module);
+    }
+    return true;
+  }();
+  return installed;
+}
+
 CaptureManager::CaptureManager(std::filesystem::path folder)
     : _folder(std::move(folder)), _worker([this] { Work(); }) {}
+
+namespace {
+
+ComObject<IMFDXGIDeviceManager> CreateEncoderDevice(LUID luid) {
+  ComObject<IDXGIFactory4> factory;
+  ComObject<IDXGIAdapter1> adapter;
+  DXGI_ADAPTER_DESC1 desc{};
+  if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.Assign()))) ||
+      FAILED(
+          factory->EnumAdapterByLuid(luid, IID_PPV_ARGS(adapter.Assign()))) ||
+      FAILED(adapter->GetDesc1(&desc)) ||
+      (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
+    return {};
+  }
+  ComObject<ID3D11Device> device;
+  if (FAILED(D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr,
+                               D3D11_CREATE_DEVICE_VIDEO_SUPPORT, nullptr, 0,
+                               D3D11_SDK_VERSION, device.Assign(), nullptr,
+                               nullptr))) {
+    return {};
+  }
+  ComObject<ID3D11Multithread> multithread;
+  if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(multithread.Assign()))))
+    multithread->SetMultithreadProtected(TRUE);
+  UINT token = 0;
+  ComObject<IMFDXGIDeviceManager> manager;
+  if (FAILED(MFCreateDXGIDeviceManager(&token, manager.Assign())) ||
+      FAILED(manager->ResetDevice(device, token))) {
+    return {};
+  }
+  return manager;
+}
+
+}  // namespace
+
+ComObject<IMFDXGIDeviceManager> CaptureManager::EncoderDevice() {
+  std::lock_guard lock(_encoderDeviceMutex);
+  if (!_encoderDeviceTried && _adapterKnown) {
+    _encoderDeviceTried = true;
+    _encoderDevice = CreateEncoderDevice(_adapter);
+  }
+  return _encoderDevice;
+}
 
 CaptureManager::~CaptureManager() {
   {
@@ -617,8 +680,8 @@ void CaptureManager::Work() {
   if (SUCCEEDED(com)) CoUninitialize();
 }
 
-HRESULT CaptureManager::RecordScreenshot(const small *name,
-                                         IMGDFCapture **capture) {
+HRESULT CaptureManager::TakeScreenshot(const small *name,
+                                       IMGDFCapture **capture) {
   if (!name || !capture) return E_INVALIDARG;
   const auto path = CapturePath(_folder, name, L".png");
   if (!path) return E_INVALIDARG;
@@ -626,14 +689,15 @@ HRESULT CaptureManager::RecordScreenshot(const small *name,
   state->Path = *path;
   {
     std::lock_guard lock(_requestMutex);
+    if (_shutDown) return E_ABORT;
     _screenshotRequests.push_back(state);
   }
   *capture = new Capture(std::move(state));
   return S_OK;
 }
 
-HRESULT CaptureManager::RecordVideo(const small *name,
-                                    IMGDFVideoRecording **recording) {
+HRESULT CaptureManager::StartVideo(const small *name,
+                                   IMGDFVideoRecording **recording) {
   if (!name || !recording) return E_INVALIDARG;
   const auto path = CapturePath(_folder, name, L".mp4");
   if (!path) return E_INVALIDARG;
@@ -641,7 +705,14 @@ HRESULT CaptureManager::RecordVideo(const small *name,
   state->Path = *path;
   {
     std::lock_guard lock(_requestMutex);
+    if (_shutDown) return E_ABORT;
+    // each video holds a hardware encoder session, and GPUs allow few
+    if (const auto active = _activeVideo.lock();
+        active && !active->StopRequested && !active->Complete) {
+      return E_NOT_VALID_STATE;
+    }
     _videoRequests.push_back(state);
+    _activeVideo = state;
   }
   *recording = new VideoRecording(std::move(state));
   return S_OK;
@@ -651,6 +722,11 @@ void CaptureManager::RTSetDevice(ID3D12Device *device,
                                  ID3D12CommandQueue *queue,
                                  ID3D12Fence *fence) {
   _device = MakeComFromPtr<ID3D12Device>(device);
+  {
+    std::lock_guard lock(_encoderDeviceMutex);
+    _adapter = device->GetAdapterLuid();
+    _adapterKnown = true;
+  }
   _queue = MakeComFromPtr<ID3D12CommandQueue>(queue);
   _fence = MakeComFromPtr<ID3D12Fence>(fence);
 }
@@ -762,8 +838,14 @@ void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
     for (auto &video : _videoRequests) {
       video->Width = width;
       video->Height = height;
-      video->Worker = std::thread(
-          [video, width, height] { video->Encode(width & ~1u, height & ~1u); });
+      video->Worker = std::thread([this, video, width, height] {
+        ComObject<IMFDXGIDeviceManager> device;
+        if (width >= kSharedEncoderDeviceMinSize &&
+            height >= kSharedEncoderDeviceMinSize) {
+          device = EncoderDevice();
+        }
+        video->Encode(width & ~1u, height & ~1u, device);
+      });
       _videos.push_back(std::move(video));
     }
     _videoRequests.clear();
@@ -894,6 +976,7 @@ void CaptureManager::RTShutDown() {
   RTReleaseDevice();
   {
     std::lock_guard lock(_requestMutex);
+    _shutDown = true;
     for (auto &screenshot : _screenshotRequests) screenshot->Finish(E_ABORT);
     _screenshotRequests.clear();
     for (auto &video : _videoRequests) video->Finish(E_ABORT);

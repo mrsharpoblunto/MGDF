@@ -30,6 +30,10 @@ enum class CaptureEncoding {
   HDR10,
 };
 
+// Media Foundation is delay loaded: Windows N and KN editions do not have it
+// unless the Media Feature Pack is installed
+bool MediaFoundationInstalled();
+
 // Converts back buffer rows to tightly packed 8-bit sRGB RGBA with opaque
 // alpha. HDR maps sdrWhiteNits to white and clips above it, as an SDR display
 // would. Returns false for an unsupported format
@@ -56,8 +60,10 @@ class VideoEncoder {
  public:
   ~VideoEncoder();
   // width and height must be even
+  // device is optional; without one Media Foundation creates a device for
+  // the encoder, which takes most of a second
   HRESULT Open(const std::filesystem::path &path, uint32_t width,
-               uint32_t height);
+               uint32_t height, IMFDXGIDeviceManager *device = nullptr);
   // times are in 100 ns units and must increase
   HRESULT Write(const uint8_t *nv12, int64_t time, int64_t duration);
   HRESULT Close();
@@ -74,16 +80,19 @@ struct CaptureState;
 struct VideoState;
 struct CaptureSlot;
 
-// Records screenshots and videos from drawn frames. The request methods are
+// Records screenshots and videos from drawn frames. The recorder methods are
 // safe on any thread; RT methods run on the render thread
-class CaptureManager {
+class CaptureManager : public ComBase<IMGDFRecorder> {
  public:
   explicit CaptureManager(std::filesystem::path folder);
   ~CaptureManager();
 
-  HRESULT RecordScreenshot(const small *name, IMGDFCapture **capture);
-  HRESULT RecordVideo(const small *name, IMGDFVideoRecording **recording);
+  HRESULT __stdcall TakeScreenshot(const small *name,
+                                   IMGDFCapture **capture) final;
+  HRESULT __stdcall StartVideo(const small *name,
+                               IMGDFVideoRecording **recording) final;
 
+  bool RTHasDevice() const { return _device; }
   void RTSetDevice(ID3D12Device *device, ID3D12CommandQueue *queue,
                    ID3D12Fence *fence);
   // After the module's RTDraw, before present. Copies the back buffer when
@@ -100,11 +109,22 @@ class CaptureManager {
   void RTEndVideos(bool all);
   CaptureSlot *RTFreeSlot(uint64_t bytes);
   void Work();
+  // the shared encoder device, created on first use; null on a software
+  // adapter
+  ComObject<IMFDXGIDeviceManager> EncoderDevice();
 
   std::filesystem::path _folder;
+
+  std::mutex _encoderDeviceMutex;
+  LUID _adapter{};
+  bool _adapterKnown = false;
+  bool _encoderDeviceTried = false;
+  ComObject<IMFDXGIDeviceManager> _encoderDevice;
   std::mutex _requestMutex;
   std::vector<std::shared_ptr<CaptureState>> _screenshotRequests;
   std::vector<std::shared_ptr<VideoState>> _videoRequests;
+  std::weak_ptr<VideoState> _activeVideo;
+  bool _shutDown = false;
 
   // render thread
   ComObject<ID3D12Device> _device;

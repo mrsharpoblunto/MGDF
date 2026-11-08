@@ -166,10 +166,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
                                     IMGDFWebSocket **socket) final;
   HRESULT __stdcall CreateWebServer(unsigned int port, const small *socketPath,
                                     IMGDFWebServer **server) final;
-  HRESULT __stdcall RecordScreenshot(const small *name,
-                                     IMGDFCapture **capture) final;
-  HRESULT __stdcall RecordVideo(const small *name,
-                                IMGDFVideoRecording **recording) final;
+  HRESULT __stdcall GetRecorder(IMGDFRecorder **recorder) final;
 
  private:
   IMGDFRenderHost *RenderHost() { return static_cast<IMGDFRenderHost *>(this); }
@@ -204,7 +201,12 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ComObject<Timer> _timer;
   ComObject<RenderSettingsManager> _renderSettings;
   ComObject<StatisticsManager> _stats;
-  std::unique_ptr<CaptureManager> _captures;
+  // created by the first GetRecorder call
+  std::mutex _recorderMutex;
+  ComObject<CaptureManager> _recorder;
+  bool _recorderClosed = false;
+  // the render thread's view of _recorder, which lives until the host ends
+  std::atomic<CaptureManager *> _rtRecorder = nullptr;
 
   MGDFGraphicsRequirements _graphicsRequirements{};
   MGDFBackBufferInfo _backBufferInfo{};

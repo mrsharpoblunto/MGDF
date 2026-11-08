@@ -2474,7 +2474,7 @@ safe to use from any thread
 
 /**
 A video that the host records from drawn frames. Recording starts when the
-encoder is ready, which can take up to about a second, and ends at Stop, at
+encoder is ready, about 0.1 seconds after the request, and ends at Stop, at
 the final Release, at a back buffer size change or at host shutdown. The host
 then writes the remaining frames and completes the file
 */
@@ -2487,11 +2487,6 @@ then writes the remaining frames and completes the file
   */
   void Stop();
   /**
-  \return TRUE while the host records drawn frames: from when the encoder is
-  ready until the recording ends
-  */
-  BOOL IsRecording();
-  /**
   \return the number of frames written to the file so far
   */
   UINT64 GetFrameCount();
@@ -2500,6 +2495,42 @@ then writes the remaining frames and completes the file
   was not ready for them
   */
   UINT64 GetDroppedFrameCount();
+};
+
+/**
+Records screenshots and videos of drawn frames into the captures folder of the
+user directory. The host maps HDR frames to SDR. Get the host's recorder from
+IMGDFCommonHost::GetRecorder. Methods are safe to use from any thread
+*/
+[
+  uuid("C4A414D9-67D0-4B3F-B509-2B984DB1246C"), object,
+  local
+] interface IMGDFRecorder : IUnknown {
+  /**
+  Saves the next drawn frame as a PNG
+  \param name the file name relative to the captures folder, with or without
+  the .png extension. '/' separates sub folders; '..', absolute paths and
+  characters that are not valid in file names are rejected
+  \param capture receives the capture; poll IsComplete for the file
+  \return S_OK, E_INVALIDARG for an invalid name or null output, or E_ABORT
+  after host shutdown
+  */
+  HRESULT TakeScreenshot([in] const small *name, [out] IMGDFCapture **capture);
+  /**
+  Records drawn frames to an H.264 MP4, at up to 60 frames per second with
+  real frame times. Recording starts about 0.1 seconds after this call, when
+  the encoder is ready, and ends at Stop or at the final Release of the
+  recording. One video records at a time; screenshots can be taken while it
+  records
+  \param name the file name relative to the captures folder, with or without
+  the .mp4 extension, under the same rules as TakeScreenshot
+  \param recording receives the recording
+  \return S_OK, E_INVALIDARG for an invalid name or null output,
+  E_NOT_VALID_STATE while another video records, or E_ABORT after host
+  shutdown
+  */
+  HRESULT StartVideo([in] const small *name,
+                     [out] IMGDFVideoRecording **recording);
 };
 
 /**
@@ -2641,27 +2672,16 @@ references before acknowledging a device reset
                                [out] MGDFUpscaleRenderSize *size);
 
   /**
-  Saves the next drawn frame as a PNG in the captures folder of the user
-  directory. The host maps HDR frames to SDR
-  \param name the file name relative to the captures folder, with or without
-  the .png extension. '/' separates sub folders; '..', absolute paths and
-  characters that are not valid in file names are rejected
-  \param capture receives the capture; poll IsComplete for the file
-  \return S_OK, or E_INVALIDARG for an invalid name or null output
+  Gets the host's recorder for screenshots and videos. The first call creates
+  it and every call returns the same recorder. The host does not load Media
+  Foundation or record frames until then
+  \param recorder points to the recorder
+  \return S_OK, E_INVALIDARG for a null output,
+  HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND) when Windows has no Media Foundation
+  (N and KN editions without the Media Feature Pack), or E_ABORT after host
+  shutdown
   */
-  HRESULT RecordScreenshot([in] const small *name, [out] IMGDFCapture **capture);
-  /**
-  Records drawn frames to an H.264 MP4 in the captures folder of the user
-  directory, at up to 60 frames per second with real frame times. The host
-  maps HDR frames to SDR. Recording starts when IsRecording becomes TRUE and
-  ends at Stop or at the final Release of the recording
-  \param name the file name relative to the captures folder, with or without
-  the .mp4 extension, under the same rules as RecordScreenshot
-  \param recording receives the recording
-  \return S_OK, or E_INVALIDARG for an invalid name or null output
-  */
-  HRESULT RecordVideo([in] const small *name,
-                      [out] IMGDFVideoRecording **recording);
+  HRESULT GetRecorder([out] IMGDFRecorder **recorder);
 };
 
 /**

@@ -70,30 +70,43 @@ std::vector<uint8_t> ReadPNG(const std::filesystem::path &path, UINT &width,
   return pixels;
 }
 
-// frames and frame size of the first video stream
-UINT64 CountVideoFrames(const std::filesystem::path &path, UINT32 &width,
-                        UINT32 &height) {
+// the luma of the first pixel of each frame, and the frame size
+std::vector<uint8_t> ReadVideoLuma(const std::filesystem::path &path,
+                                   UINT32 &width, UINT32 &height) {
+  constexpr auto stream = DWORD(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
+  std::vector<uint8_t> luma;
   ComObject<IMFSourceReader> reader;
   EXPECT_EQ(S_OK, MFCreateSourceReaderFromURL(path.c_str(), nullptr,
                                               reader.Assign()));
-  if (!reader) return 0;
+  if (!reader) return luma;
   ComObject<IMFMediaType> type;
-  EXPECT_EQ(S_OK,
-            reader->GetNativeMediaType(
-                DWORD(MF_SOURCE_READER_FIRST_VIDEO_STREAM), 0, type.Assign()));
+  EXPECT_EQ(S_OK, reader->GetNativeMediaType(stream, 0, type.Assign()));
   EXPECT_EQ(S_OK, MFGetAttributeSize(type, MF_MT_FRAME_SIZE, &width, &height));
-  UINT64 frames = 0;
+  ComObject<IMFMediaType> nv12;
+  EXPECT_EQ(S_OK, MFCreateMediaType(nv12.Assign()));
+  EXPECT_EQ(S_OK, nv12->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));
+  EXPECT_EQ(S_OK, nv12->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12));
+  EXPECT_EQ(S_OK, reader->SetCurrentMediaType(stream, nullptr, nv12));
   for (;;) {
     DWORD flags = 0;
     ComObject<IMFSample> sample;
-    EXPECT_EQ(S_OK,
-              reader->ReadSample(DWORD(MF_SOURCE_READER_FIRST_VIDEO_STREAM), 0,
-                                 nullptr, &flags, nullptr, sample.Assign()));
-    if (sample) ++frames;
+    EXPECT_EQ(S_OK, reader->ReadSample(stream, 0, nullptr, &flags, nullptr,
+                                       sample.Assign()));
+    if (sample) {
+      ComObject<IMFMediaBuffer> buffer;
+      EXPECT_EQ(S_OK, sample->ConvertToContiguousBuffer(buffer.Assign()));
+      BYTE *data = nullptr;
+      EXPECT_EQ(S_OK, buffer->Lock(&data, nullptr, nullptr));
+      luma.push_back(data[0]);
+      buffer->Unlock();
+    }
     if (flags & MF_SOURCE_READERF_ENDOFSTREAM) break;
   }
-  return frames;
+  return luma;
 }
+
+// Rec.709 limited range luma of black; white is 235
+constexpr uint8_t kBlackLuma = 16;
 
 template <typename Capture>
 bool WaitForCompletion(Capture *capture) {
@@ -208,8 +221,8 @@ class CaptureIntegrationTests : public ::testing::Test {
     const D3D12_HEAP_PROPERTIES heap{D3D12_HEAP_TYPE_DEFAULT};
     const D3D12_RESOURCE_DESC desc{
         .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-        .Width = 67,
-        .Height = 41,
+        .Width = 263,
+        .Height = 257,
         .DepthOrArraySize = 1,
         .MipLevels = 1,
         .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -224,13 +237,13 @@ class CaptureIntegrationTests : public ::testing::Test {
                                                   IID_PPV_ARGS(_rtv.Assign())));
     _device->CreateRenderTargetView(_backBuffer, nullptr,
                                     _rtv->GetCPUDescriptorHandleForHeapStart());
-    _captures = std::make_unique<CaptureManager>(TempFolder());
+    _captures = MakeCom<CaptureManager>(TempFolder());
     _captures->RTSetDevice(_device, _queue, _fence);
   }
 
   void TearDown() override {
     if (_captures) _captures->RTShutDown();
-    _captures.reset();
+    _captures.Clear();
     MFShutdown();
     CoUninitialize();
     std::error_code error;
@@ -269,14 +282,15 @@ class CaptureIntegrationTests : public ::testing::Test {
     CloseHandle(event);
   }
 
-  // the render thread starts the encoder, so frames keep running meanwhile
-  bool WaitForRecording(IMGDFVideoRecording *recording) {
+  // draws black frames, past the video frame interval, until the recording
+  // has written frames; the encoder starts some frames after the request
+  bool RecordBlackFrames(IMGDFVideoRecording *recording, UINT64 frames) {
     const auto deadline =
         std::chrono::steady_clock::now() + std::chrono::seconds(30);
-    while (!recording->IsRecording()) {
+    while (recording->GetFrameCount() < frames) {
       if (std::chrono::steady_clock::now() > deadline) return false;
-      Frame({0.0f, 0.0f, 0.0f, 1.0f}, false);
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      Frame({0.0f, 0.0f, 0.0f, 1.0f});
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     return true;
   }
@@ -288,13 +302,13 @@ class CaptureIntegrationTests : public ::testing::Test {
   ComObject<ID3D12GraphicsCommandList> _list;
   ComObject<ID3D12Resource> _backBuffer;
   ComObject<ID3D12DescriptorHeap> _rtv;
-  std::unique_ptr<CaptureManager> _captures;
+  ComObject<CaptureManager> _captures;
   UINT64 _ordinal = 0;
 };
 
 TEST_F(CaptureIntegrationTests, ScreenshotSavesTheNextDrawnFrame) {
   ComObject<IMGDFCapture> capture;
-  ASSERT_EQ(S_OK, _captures->RecordScreenshot("shots/first", capture.Assign()));
+  ASSERT_EQ(S_OK, _captures->TakeScreenshot("shots/first", capture.Assign()));
   EXPECT_EQ(E_PENDING, capture->GetResult());
   Frame({1.0f, 0.0f, 0.0f, 1.0f}, false);
   Frame({0.0f, 0.5f, 1.0f, 1.0f});
@@ -306,8 +320,8 @@ TEST_F(CaptureIntegrationTests, ScreenshotSavesTheNextDrawnFrame) {
   EXPECT_EQ(TempFolder() / L"shots" / L"first.png", path);
   UINT width = 0, height = 0;
   const auto pixels = ReadPNG(path, width, height);
-  EXPECT_EQ(67u, width);
-  EXPECT_EQ(41u, height);
+  EXPECT_EQ(263u, width);
+  EXPECT_EQ(257u, height);
   EXPECT_EQ(0, pixels[0]);
   EXPECT_NEAR(128, pixels[1], 1);
   EXPECT_EQ(255, pixels[2]);
@@ -315,40 +329,53 @@ TEST_F(CaptureIntegrationTests, ScreenshotSavesTheNextDrawnFrame) {
 
 TEST_F(CaptureIntegrationTests, VideoRecordsDrawnFramesUntilStopped) {
   ComObject<IMGDFVideoRecording> recording;
-  ASSERT_EQ(S_OK, _captures->RecordVideo("clip", recording.Assign()));
-  ASSERT_TRUE(WaitForRecording(recording.Get()));
-  for (int i = 0; i < 3; ++i) {
-    Frame({float(i) / 3.0f, 0.2f, 0.4f, 1.0f});
-    // past the recording's frame interval
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
-  }
-  Frame({0.0f, 0.0f, 0.0f, 1.0f}, false);
+  ASSERT_EQ(S_OK, _captures->StartVideo("clip", recording.Assign()));
+  ASSERT_TRUE(RecordBlackFrames(recording.Get(), 3));
   recording->Stop();
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
   Frame({1.0f, 1.0f, 1.0f, 1.0f});
   ASSERT_TRUE(WaitForCompletion(recording.Get()));
   ASSERT_EQ(S_OK, recording->GetResult());
-  EXPECT_EQ(3u, recording->GetFrameCount());
   EXPECT_EQ(0u, recording->GetDroppedFrameCount());
 
   UINT32 width = 0, height = 0;
-  EXPECT_EQ(3u, CountVideoFrames(TempFolder() / L"clip.mp4", width, height));
-  EXPECT_EQ(66u, width);
-  EXPECT_EQ(40u, height);
+  const auto luma = ReadVideoLuma(TempFolder() / L"clip.mp4", width, height);
+  EXPECT_EQ(recording->GetFrameCount(), luma.size());
+  for (const auto y : luma) EXPECT_NEAR(kBlackLuma, y, 4);
+  EXPECT_EQ(262u, width);
+  EXPECT_EQ(256u, height);
+}
+
+TEST_F(CaptureIntegrationTests, OneVideoRecordsAtATime) {
+  ComObject<IMGDFVideoRecording> first;
+  ASSERT_EQ(S_OK, _captures->StartVideo("first", first.Assign()));
+  ComObject<IMGDFVideoRecording> second;
+  EXPECT_EQ(E_NOT_VALID_STATE,
+            _captures->StartVideo("second", second.Assign()));
+  ComObject<IMGDFCapture> screenshot;
+  ASSERT_EQ(S_OK, _captures->TakeScreenshot("during", screenshot.Assign()));
+  ASSERT_TRUE(RecordBlackFrames(first.Get(), 1));
+  ASSERT_TRUE(WaitForCompletion(screenshot.Get()));
+  EXPECT_EQ(S_OK, screenshot->GetResult());
+
+  first->Stop();
+  EXPECT_EQ(S_OK, _captures->StartVideo("second", second.Assign()));
 }
 
 TEST_F(CaptureIntegrationTests, ReleasingAVideoStopsIt) {
   ComObject<IMGDFVideoRecording> recording;
-  ASSERT_EQ(S_OK, _captures->RecordVideo("released", recording.Assign()));
-  ASSERT_TRUE(WaitForRecording(recording.Get()));
-  Frame({0.5f, 0.5f, 0.5f, 1.0f});
+  ASSERT_EQ(S_OK, _captures->StartVideo("released", recording.Assign()));
+  ASSERT_TRUE(RecordBlackFrames(recording.Get(), 1));
   recording.Clear();
-  for (int i = 0; i < 2; ++i) {
+  for (int i = 0; i < 3; ++i) {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    Frame({0.5f, 0.5f, 0.5f, 1.0f});
+    Frame({1.0f, 1.0f, 1.0f, 1.0f});
   }
   // waits for the file
   _captures->RTShutDown();
   UINT32 width = 0, height = 0;
-  EXPECT_EQ(1u,
-            CountVideoFrames(TempFolder() / L"released.mp4", width, height));
+  const auto luma =
+      ReadVideoLuma(TempFolder() / L"released.mp4", width, height);
+  EXPECT_FALSE(luma.empty());
+  for (const auto y : luma) EXPECT_NEAR(kBlackLuma, y, 4);
 }
