@@ -269,6 +269,18 @@ class CaptureIntegrationTests : public ::testing::Test {
     CloseHandle(event);
   }
 
+  // the render thread starts the encoder, so frames keep running meanwhile
+  bool WaitForRecording(IMGDFVideoRecording *recording) {
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (!recording->IsRecording()) {
+      if (std::chrono::steady_clock::now() > deadline) return false;
+      Frame({0.0f, 0.0f, 0.0f, 1.0f}, false);
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    return true;
+  }
+
   ComObject<ID3D12Device10> _device;
   ComObject<ID3D12CommandQueue> _queue;
   ComObject<ID3D12Fence> _fence;
@@ -304,6 +316,7 @@ TEST_F(CaptureIntegrationTests, ScreenshotSavesTheNextDrawnFrame) {
 TEST_F(CaptureIntegrationTests, VideoRecordsDrawnFramesUntilStopped) {
   ComObject<IMGDFVideoRecording> recording;
   ASSERT_EQ(S_OK, _captures->RecordVideo("clip", recording.Assign()));
+  ASSERT_TRUE(WaitForRecording(recording.Get()));
   for (int i = 0; i < 3; ++i) {
     Frame({float(i) / 3.0f, 0.2f, 0.4f, 1.0f});
     // past the recording's frame interval
@@ -326,6 +339,7 @@ TEST_F(CaptureIntegrationTests, VideoRecordsDrawnFramesUntilStopped) {
 TEST_F(CaptureIntegrationTests, ReleasingAVideoStopsIt) {
   ComObject<IMGDFVideoRecording> recording;
   ASSERT_EQ(S_OK, _captures->RecordVideo("released", recording.Assign()));
+  ASSERT_TRUE(WaitForRecording(recording.Get()));
   Frame({0.5f, 0.5f, 0.5f, 1.0f});
   recording.Clear();
   for (int i = 0; i < 2; ++i) {

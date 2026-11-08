@@ -2473,7 +2473,8 @@ safe to use from any thread
 };
 
 /**
-A video that the host records from drawn frames. Recording ends at Stop, at
+A video that the host records from drawn frames. Recording starts when the
+encoder is ready, which can take up to about a second, and ends at Stop, at
 the final Release, at a back buffer size change or at host shutdown. The host
 then writes the remaining frames and completes the file
 */
@@ -2485,6 +2486,11 @@ then writes the remaining frames and completes the file
   Stops recording. Frames drawn after this call are not recorded
   */
   void Stop();
+  /**
+  \return TRUE while the host records drawn frames: from when the encoder is
+  ready until the recording ends
+  */
+  BOOL IsRecording();
   /**
   \return the number of frames written to the file so far
   */
@@ -2645,10 +2651,10 @@ references before acknowledging a device reset
   */
   HRESULT RecordScreenshot([in] const small *name, [out] IMGDFCapture **capture);
   /**
-  Starts recording drawn frames to an H.264 MP4 in the captures folder of the
-  user directory, at up to 60 frames per second with real frame times. The host
-  maps HDR frames to SDR. Recording ends at Stop or at the final Release of the
-  recording
+  Records drawn frames to an H.264 MP4 in the captures folder of the user
+  directory, at up to 60 frames per second with real frame times. The host
+  maps HDR frames to SDR. Recording starts when IsRecording becomes TRUE and
+  ends at Stop or at the final Release of the recording
   \param name the file name relative to the captures folder, with or without
   the .mp4 extension, under the same rules as RecordScreenshot
   \param recording receives the recording

@@ -149,6 +149,8 @@ struct VideoState : CaptureState {
   };
 
   std::atomic<bool> StopRequested = false;
+  // the encoder is open, so frames can be recorded
+  std::atomic<bool> EncoderReady = false;
   std::atomic<uint64_t> Frames = 0;
   std::atomic<uint64_t> Dropped = 0;
 
@@ -185,20 +187,27 @@ struct VideoState : CaptureState {
     Ready.notify_one();
   }
 
-  void Encode();
+  // width and height must be even
+  void Encode(uint32_t width, uint32_t height);
 };
 
-void VideoState::Encode() {
+void VideoState::Encode(uint32_t width, uint32_t height) {
   const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
   LARGE_INTEGER frequency;
   QueryPerformanceFrequency(&frequency);
   VideoEncoder encoder;
-  HRESULT result = S_OK;
-  bool opened = false;
+  // opening takes most of a second, so it must finish before the first frame
+  // or the queue fills and frames are dropped
+  HRESULT result = encoder.Open(Path, width, height);
+  if (SUCCEEDED(result)) {
+    EncoderReady = true;
+  } else {
+    StopRequested = true;
+  }
+  bool started = false;
   int64_t first = 0;
   std::vector<uint8_t> rgba, nv12, pending;
   int64_t pendingTime = 0;
-  uint32_t width = 0, height = 0;
 
   for (;;) {
     Frame frame;
@@ -212,13 +221,9 @@ void VideoState::Encode() {
     if (FAILED(result)) continue;
     const auto &slot = frame.Pixels->Slot();
     const uint32_t fullWidth = slot.Layout.Footprint.Width;
-    if (!opened) {
-      opened = true;
-      width = fullWidth & ~1u;
-      height = slot.Layout.Footprint.Height & ~1u;
+    if (!started) {
+      started = true;
       first = frame.Time;
-      result = encoder.Open(Path, width, height);
-      if (FAILED(result)) continue;
     }
     rgba.resize(size_t(fullWidth) * slot.Layout.Footprint.Height * 4);
     if (!slot.ToRGBA8(rgba.data())) {
@@ -242,12 +247,14 @@ void VideoState::Encode() {
                            kTicksPerSecond / kVideoFrameRate);
     if (SUCCEEDED(result)) ++Frames;
   }
-  if (opened) {
-    const HRESULT closed = encoder.Close();
-    if (SUCCEEDED(result)) result = closed;
-  } else {
-    // stopped before a frame was drawn: there is no file
-    result = HRESULT_FROM_WIN32(ERROR_NO_DATA);
+  const HRESULT closed = encoder.Close();
+  if (Frames == 0) {
+    // stopped before a frame was recorded: there is no file
+    std::error_code error;
+    std::filesystem::remove(Path, error);
+    if (SUCCEEDED(result)) result = HRESULT_FROM_WIN32(ERROR_NO_DATA);
+  } else if (SUCCEEDED(result)) {
+    result = closed;
   }
   Finish(result);
   if (SUCCEEDED(com)) CoUninitialize();
@@ -280,6 +287,9 @@ class VideoRecording final : public ComBase<IMGDFVideoRecording, IMGDFCapture> {
     return StringWriter::Write(_state->Path.wstring(), path, length);
   }
   void __stdcall Stop() final { _state->StopRequested = true; }
+  BOOL __stdcall IsRecording() final {
+    return _state->EncoderReady && !_state->StopRequested && !_state->Complete;
+  }
   UINT64 __stdcall GetFrameCount() final { return _state->Frames; }
   UINT64 __stdcall GetDroppedFrameCount() final { return _state->Dropped; }
 
@@ -442,7 +452,7 @@ std::optional<std::filesystem::path> CapturePath(
                std::wstring(extension).c_str()) != 0) {
     result += extension;
   }
-  return result;
+  return result.make_preferred();
 }
 
 HRESULT WritePNG(const std::filesystem::path &path, const uint8_t *rgba,
@@ -742,20 +752,23 @@ void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
                                CaptureEncoding encoding, float sdrWhiteNits) {
   if (!_device) return;
   RTDeliver(frame.CompletedOrdinal);
+  const auto &desc = frame.BackBufferDesc;
+  const auto width = uint32_t(desc.Width);
+  const auto height = desc.Height;
   std::vector<std::shared_ptr<CaptureState>> screenshots;
   {
     std::lock_guard lock(_requestMutex);
     if (drawn) screenshots.swap(_screenshotRequests);
     for (auto &video : _videoRequests) {
-      video->Worker = std::thread([video] { video->Encode(); });
+      video->Width = width;
+      video->Height = height;
+      video->Worker = std::thread(
+          [video, width, height] { video->Encode(width & ~1u, height & ~1u); });
       _videos.push_back(std::move(video));
     }
     _videoRequests.clear();
   }
 
-  const auto &desc = frame.BackBufferDesc;
-  const auto width = uint32_t(desc.Width);
-  const auto height = desc.Height;
   LARGE_INTEGER now, frequency;
   QueryPerformanceCounter(&now);
   QueryPerformanceFrequency(&frequency);
@@ -767,14 +780,15 @@ void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
     if (video->Ending) continue;
     if (video->StopRequested) {
       video->Ending = true;
-    } else if (video->Started &&
-               (video->Width != width || video->Height != height)) {
+    } else if (video->Width != width || video->Height != height) {
       LOG("Video recording " << video->Path.string()
                              << " ended at a back buffer size change",
           MGDF_LOG_MEDIUM);
+      video->StopRequested = true;
       video->Ending = true;
-    } else if (drawn && (!video->Started ||
-                         now.QuadPart - video->LastTime >= interval)) {
+    } else if (drawn && video->EncoderReady &&
+               (!video->Started ||
+                now.QuadPart - video->LastTime >= interval)) {
       videos.push_back(video);
     }
   }
@@ -825,11 +839,7 @@ void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
         slot->Screenshots = std::move(screenshots);
         slot->Videos = videos;
         for (auto &video : videos) {
-          if (!video->Started) {
-            video->Started = true;
-            video->Width = width;
-            video->Height = height;
-          }
+          video->Started = true;
           video->LastTime = now.QuadPart;
           ++video->InFlight;
         }
