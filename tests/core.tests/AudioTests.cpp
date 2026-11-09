@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <future>
@@ -21,6 +22,14 @@ using namespace MGDF::core;
 using namespace MGDF::core::audio::openal_audio;
 using namespace std::chrono_literals;
 namespace {
+void Await(std::future<void> &task) {
+  if (task.wait_for(2s) != std::future_status::ready) {
+    ADD_FAILURE() << "Audio task did not finish within two seconds";
+    // A blocked task would also block its future destructor.
+    std::_Exit(EXIT_FAILURE);
+  }
+  task.get();
+}
 class AudioTests : public testing::Test {
  protected:
   void SetUp() override { Open(2); }
@@ -411,8 +420,7 @@ TEST_F(AudioTests, ConcurrentSubmissionsRetainEveryVoice) {
       Manager->Submit(commands);
     });
   for (auto &worker : workers) {
-    ASSERT_EQ(std::future_status::ready, worker.wait_for(2s));
-    worker.get();
+    Await(worker);
   }
   Manager->Update();
   for (auto id : ids) {
@@ -440,13 +448,10 @@ TEST_F(AudioTests, PlayPositionPublishesAConsistentFrameAndTimePair) {
         bad.store(true);
     }
   });
-  const auto started = readyFuture.wait_for(2s);
-  if (started != std::future_status::ready) done.store(true);
-  ASSERT_EQ(std::future_status::ready, started);
+  Await(readyFuture);
   for (int i = 0; i < 100; ++i) Render(240);
   done.store(true);
-  ASSERT_EQ(std::future_status::ready, reader.wait_for(2s));
-  reader.get();
+  Await(reader);
   EXPECT_FALSE(bad.load());
 }
 
@@ -723,7 +728,7 @@ TEST_F(AudioTests, VoiceAndBusHighFrequencyGainsReduceHighFrequencies) {
   const auto output = Render(480);
   double energy = 0;
   for (const auto sample : output) energy += sample * sample;
-  EXPECT_LT(energy / output.size(), 0.005);
+  EXPECT_LT(energy / output.size(), 0.001);
   EXPECT_GT(energy / output.size(), 0.00001);
 }
 TEST_F(AudioIntegrationTests, SampleRmsSelectsTheLouderVoice) {
