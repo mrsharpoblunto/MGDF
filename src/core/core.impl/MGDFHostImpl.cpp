@@ -441,12 +441,11 @@ void Host::RTAfterPresent() {
   {
     const auto stats =
         _streamline ? _streamline->GetFrameStats() : StreamlineFrameStats{};
+    _presentedFrames += std::max<UINT64>(stats.PresentFrames, 1);
     _debugOverlay->SetFrameStats({.HasLatency = stats.HasLatency,
                                   .RenderLatency = stats.RenderLatency,
                                   .RenderedFrames = _renderedFrames,
-                                  .PresentedFrames = stats.PresentedFrames
-                                                         ? stats.PresentedFrames
-                                                         : _renderedFrames});
+                                  .PresentedFrames = _presentedFrames});
   }
   if (_module) _module->RTAfterPresent(RenderHost());
   if (FAILED(_timer->EndD3D12Frame()) &&

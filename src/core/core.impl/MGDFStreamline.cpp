@@ -185,7 +185,7 @@ struct StreamlineState {
   UINT32 GeneratedFrames = 0;
   std::optional<sl::DLSSGMode> FrameGenerationMode;
 
-  UINT64 PresentedFrames = 0;
+  UINT32 PresentFrames = 0;
   UINT64 RenderedFrames = 0;
   bool HasLatency = false;
   double RenderLatency = 0.0;
@@ -533,7 +533,7 @@ StreamlineFrameStats Streamline::GetFrameStats() const {
   const auto &s = *_state;
   return {.HasLatency = s.HasLatency,
           .RenderLatency = s.RenderLatency,
-          .PresentedFrames = s.PresentedFrames};
+          .PresentFrames = s.PresentFrames};
 }
 
 bool Streamline::RTPrepareSwapChain(UINT32 generatedFrames,
@@ -873,13 +873,14 @@ void Streamline::RTBeforePresent() {
 void Streamline::RTAfterPresent() {
   std::lock_guard lock(_mutex);
   auto &s = *_state;
+  s.PresentFrames = 0;
   if (!s.Active || !s.Token) return;
   if (!s.VR && s.PCL) s.PCLSetMarker(sl::PCLMarker::ePresentEnd, *s.Token);
   ++s.RenderedFrames;
   if (s.FrameGeneration) {
     sl::DLSSGState state{};
     if (s.DLSSGGetState(Viewport, state, nullptr) == sl::Result::eOk) {
-      s.PresentedFrames += state.numFramesActuallyPresented;
+      s.PresentFrames = state.numFramesActuallyPresented;
       if (state.status != sl::DLSSGStatus::eOk &&
           s.FrameGenerationMode == sl::DLSSGMode::eOn) {
         LOG("Frame generation stopped until the next swap chain (status "
@@ -888,8 +889,6 @@ void Streamline::RTAfterPresent() {
         s.FrameGenerationFailed = true;
       }
     }
-  } else {
-    ++s.PresentedFrames;
   }
   if (!s.VR && s.Reflex && s.RenderedFrames % 30 == 0) {
     sl::ReflexState reflex{};

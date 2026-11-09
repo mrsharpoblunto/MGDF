@@ -220,6 +220,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   // Guarded by _deviceMutex: GetUpscaleRenderSize runs on any thread.
   Streamline *_streamline = nullptr;
   UINT64 _renderedFrames = 0;
+  UINT64 _presentedFrames = 0;
   ComObject<ID3D12Device10> _d3d12Device;
   ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
   ComObject<ID3D12Fence> _frameFence;
