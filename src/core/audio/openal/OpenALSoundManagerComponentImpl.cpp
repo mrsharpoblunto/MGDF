@@ -18,6 +18,7 @@
 #include "../../common/MGDFPreferenceSet.hpp"
 #include "AudioState.hpp"
 #include "OpenALSoundManagerComponentImpl.hpp"
+#include "SoundStream.hpp"
 
 namespace MGDF::core::audio::openal_audio {
 namespace {
@@ -124,6 +125,7 @@ struct Voice {
   UINT64 Played = 0;
   int Source = -1;
   bool Stopping = false, Ended = false, Paused = false, Waiting = false;
+  bool OwnPause = false, Pausing = false, FileStream = false;
   std::unique_ptr<PcmFeed> Feed;
 };
 struct Source {
@@ -157,6 +159,7 @@ struct OpenALSoundManagerComponentImpl::Impl {
   ComObject<AudioControl> Control = MakeCom<AudioControl>();
   std::atomic<bool> Stopping{false};
   std::thread AudioThread, Decoder;
+  std::unique_ptr<StreamWorker> Streams;
   AudioQueue<DecodeJob> Decodes;
   AudioQueue<SampleRegistration> Registrations;
   std::atomic<UINT32> Outstanding{0};
@@ -437,6 +440,7 @@ struct OpenALSoundManagerComponentImpl::Impl {
       auto voice = std::make_unique<Voice>();
       voice->Id = id;
       voice->Desc = command.Desc;
+      voice->FileStream = command.FileStream;
       voice->Samples = std::move(command.Samples);
       voice->Pcm = std::move(command.Pcm);
       voice->Desc.StartTime =
@@ -497,10 +501,22 @@ struct OpenALSoundManagerComponentImpl::Impl {
     if (found == Voices.end() || found->second->Ended) return;
     auto &voice = *found->second;
     switch (command.Op) {
+      case AudioOp::Pause:
+        voice.Pausing = true;
+        voice.Stopping = false;
+        voice.Fade.Set(0, Now, command.Ramp);
+        break;
+      case AudioOp::Resume:
+        voice.OwnPause = voice.Pausing = voice.Stopping = false;
+        voice.Fade.Set(1, Now, command.Ramp);
+        break;
+      case AudioOp::Bus:
+        voice.Desc.Bus = command.Desc.Bus;
+        break;
       case AudioOp::Stop:
         voice.Stopping = true;
         voice.Fade.Set(0, Now, command.Ramp);
-        if (command.Ramp == 0) Finish(voice, true);
+        if (command.Ramp == 0 || voice.Paused) Finish(voice, true);
         break;
       case AudioOp::Volume:
         voice.Volume.Set(command.Value, Now, command.Ramp);
@@ -601,7 +617,11 @@ struct OpenALSoundManagerComponentImpl::Impl {
     for (auto &[id, item] : Voices) {
       auto &voice = *item;
       if (voice.Ended) continue;
-      const bool paused = Buses[voice.Desc.Bus].Paused;
+      if (voice.Pausing && Now >= voice.Fade.End) {
+        voice.OwnPause = true;
+        voice.Pausing = false;
+      }
+      const bool paused = voice.OwnPause || Buses[voice.Desc.Bus].Paused;
       if (voice.Source >= 0 && paused != voice.Paused) {
         if (paused)
           alSourcePause(Sources[voice.Source].Id);
@@ -658,6 +678,7 @@ struct OpenALSoundManagerComponentImpl::Impl {
     snapshot.Stats.Underruns = Underruns;
     for (const auto &[id, voice] : Voices) {
       if (voice->Ended) continue;
+      if (voice->FileStream) ++snapshot.Stats.Streams;
       if (voice->Source >= 0)
         ++snapshot.Stats.RealVoices;
       else if (Control->GetStatus(id) == MGDF_VOICE_VIRTUAL)
@@ -770,6 +791,7 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
     Stop();
     return result;
   }
+  m.Streams = std::make_unique<StreamWorker>(m.Control);
   m.Decoder = std::thread([&m] {
     while (!m.Stopping.load()) {
       auto *job = m.Decodes.Take();
@@ -795,6 +817,7 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
 void OpenALSoundManagerComponentImpl::Stop() {
   auto &m = *_impl;
   m.Stopping.store(true);
+  if (m.Streams) m.Streams->Stop();
   if (m.Decoder.joinable()) m.Decoder.join();
   auto *job = m.Decodes.Close();
   while (job) {
@@ -894,6 +917,18 @@ HRESULT OpenALSoundManagerComponentImpl::CreatePcmStream(
   return S_OK;
 } catch (const std::bad_alloc &) {
   return E_OUTOFMEMORY;
+}
+HRESULT OpenALSoundManagerComponentImpl::CreateSoundStream(
+    IMGDFReadOnlyFile *file, IMGDFSoundStream **stream) {
+  if (!stream) return E_POINTER;
+  *stream = nullptr;
+  if (_impl->Stopping.load()) return E_ABORT;
+  if (!file) return E_INVALIDARG;
+  return _impl->Streams->Create(file, stream);
+}
+bool OpenALSoundManagerComponentImpl::WaitForStreams(
+    std::chrono::milliseconds timeout) {
+  return _impl->Streams->WaitForUpdate(timeout);
 }
 HRESULT OpenALSoundManagerComponentImpl::CreateCommandList(
     IMGDFSoundCommandList **list) try {

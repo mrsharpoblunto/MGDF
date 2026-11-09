@@ -115,6 +115,7 @@
   <ItemGroup>
     <ClCompile Include="AudioState.cpp" />
     <ClCompile Include="SampleDecoder.cpp" />
+    <ClCompile Include="SoundStream.cpp" />
     <ClCompile Include="OpenALSoundManagerComponent.cpp" />
     <ClCompile Include="OpenALSoundManagerComponentImpl.cpp" />
     <ClCompile Include="Stdafx.cpp">
@@ -124,6 +125,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioState.hpp" />
+    <ClInclude Include="SoundStream.hpp" />
     <ClInclude Include="vendor\dr_wav.h" />
     <ClInclude Include="OpenALSoundManagerComponent.hpp" />
     <ClInclude Include="OpenALSoundManagerComponentImpl.hpp" />

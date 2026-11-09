@@ -1650,6 +1650,36 @@ interface IMGDFSoundPcmStream : IUnknown {
   void GetPlayPosition(UINT64 *frame, double *audioTime);
 };
 
+/** A 2D WAV or Ogg Vorbis stream. Controls belong to one caller thread.
+Reads are safe from any thread and report the last published state. Controls
+apply in call order without waiting for playback. Releasing the last reference
+stops playback. Invalid control values do nothing. Fades and ramps use seconds. */
+[uuid("2F0555E6-B5C3-40C4-9399-F74699A38811"), object, local]
+interface IMGDFSoundStream : IUnknown {
+  /** File name. A null buffer queries the required length, including its terminator.
+  Returns S_OK, E_POINTER for null length, or E_NOT_SUFFICIENT_BUFFER. */
+  HRESULT GetName([in, out] wchar_t *name, [in, out] UINT64 *length);
+  double GetDuration();
+  /** File position in seconds. Pause retains it; Stop resets it to zero. */
+  double GetPosition();
+  /** Enable looping from start to end in seconds; end 0 selects the file end.
+  The end is exclusive. Play begins at file frame zero, then repeats the loop.
+  Changes affect audio not yet buffered. Valid Vorbis LOOPSTART and LOOPLENGTH
+  comments set the initial loop in file frames. Without them playback ends. */
+  void SetLoop(double start, double end);
+  /** Start or resume. An already playing stream is unchanged. */
+  void Play(float fadeIn);
+  /** Fade to zero, then hold the position. */
+  void Pause(float fadeOut);
+  /** Fade to zero, then reset. The next Play starts at file frame zero. */
+  void Stop(float fadeOut);
+  void SetVolume(float volume, float ramp);
+  /** Select a bus from this manager. The default is Music. */
+  void SetBus(MGDFBusId bus);
+  /** TRUE while playing or fading, including virtual playback. */
+  BOOL IsPlaying();
+};
+
 /** A command list belongs to one thread, including during Submit. Recording
 does not change playback. Submit applies its commands in order and resets it.
 An invalid setter or a command for an ended or unknown voice does nothing.
@@ -1679,8 +1709,8 @@ interface IMGDFSoundCommandList : IUnknown {
 };
 
 /** Audio access from IMGDFSimHost. CreateSoundSamples, CreatePcmStream,
-CreateCommandList, Submit and read calls are safe from any thread. Other calls
-belong to the sim thread. Reads do not wait for playback. Submissions apply in
+CreateSoundStream, CreateCommandList, Submit and read calls are safe from any
+thread. Other calls belong to the sim thread. Reads do not wait for playback. Submissions apply in
 submission order. Creation returns S_OK, E_POINTER for a null output,
 E_INVALIDARG for invalid input, E_OUTOFMEMORY for a limit or allocation failure,
 or E_ABORT after shutdown. Outputs are cleared on failure. */
@@ -1698,6 +1728,10 @@ interface IMGDFSoundManager : IUnknown {
   /** Channels is 1 or 2. Rate is 8000 through 192000, or 0 for device rate.
   Capacity is at most 16777216 stream frames, or 0 for 200 ms. */
   HRESULT CreatePcmStream(const MGDFSoundPcmDesc *desc, IMGDFSoundPcmStream **stream);
+  /** Open a mono or stereo WAV or Ogg Vorbis file. The file stays open until release.
+  Returns E_FAIL for an unreadable or unsupported file. A later read error ends
+  playback. Playback does not depend on sim updates. */
+  HRESULT CreateSoundStream(IMGDFReadOnlyFile *file, IMGDFSoundStream **stream);
   HRESULT CreateCommandList(IMGDFSoundCommandList **list);
   /** Submit a list from this manager. The caller can reuse it at once. */
   void Submit(IMGDFSoundCommandList *list);
