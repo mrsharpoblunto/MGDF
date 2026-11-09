@@ -117,7 +117,7 @@ TEST(StreamlineTests, InactiveStreamlineReportsNoSupportAndIgnoresFrameCalls) {
   EXPECT_EQ(1u, streamline.RTGetSyncInterval(1));
   streamline.RTBeforePresent();
   streamline.RTAfterPresent();
-  EXPECT_EQ(0u, streamline.GetFrameStats().PresentedFrames);
+  EXPECT_EQ(0u, streamline.GetFrameStats().PresentFrames);
   EXPECT_EQ(0u, streamline.GetLatencyPingMessage());
 }
 
