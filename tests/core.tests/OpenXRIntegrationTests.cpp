@@ -130,6 +130,7 @@ class FrameLoop final : public D3DAppFramework {
   UINT32 DeviceResets = 0;
   UINT32 BeforeChanges = 0;
   UINT32 AfterChanges = 0;
+  std::array<UINT32, 2> EyeWidths{48, 64};
   std::atomic<UINT32> FatalErrors{0};
   bool TimedOut = false;
 
@@ -186,8 +187,10 @@ class FrameLoop final : public D3DAppFramework {
     EXPECT_EQ(backend.VR().HasSession() ? S_FALSE : E_ILLEGAL_METHOD_CALL,
               backend.VR().GetVRFrame(&frame, false));
     EXPECT_EQ(0U, frame.EyeCount);
-    EXPECT_EQ(backend.VR().HasSession() ? 48U : 0U, frame.Eyes[0].Width);
-    EXPECT_EQ(backend.VR().HasSession() ? 64U : 0U, frame.Eyes[1].Width);
+    EXPECT_EQ(backend.VR().HasSession() ? EyeWidths[0] : 0U,
+              frame.Eyes[0].Width);
+    EXPECT_EQ(backend.VR().HasSession() ? EyeWidths[1] : 0U,
+              frame.Eyes[1].Width);
   }
   MGDFFullScreenDesc RTOnResetSwapChain(
       const RenderSettingsSnapshot &snapshot, DXGI_SWAP_CHAIN_DESC1 &desc,
@@ -220,8 +223,8 @@ class FrameLoop final : public D3DAppFramework {
       EXPECT_TRUE(Settings->GetVR());
       EXPECT_FLOAT_EQ(1.0f, Backend->VR().View(0).Position[2]);
       EXPECT_FLOAT_EQ(-0.2f, Backend->VR().View(0).Orientation[1]);
-      EXPECT_EQ(48U, Backend->VR().View(0).Width);
-      EXPECT_EQ(64U, Backend->VR().View(1).Width);
+      EXPECT_EQ(EyeWidths[0], Backend->VR().View(0).Width);
+      EXPECT_EQ(EyeWidths[1], Backend->VR().View(1).Width);
       EXPECT_EQ(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, Backend->VR().View(0).Format);
       DrawEyes();
     }
@@ -288,7 +291,10 @@ class FrameLoop final : public D3DAppFramework {
       handle.ptr += (static_cast<SIZE_T>(slot) * 2 + i) *
                     Device12->GetDescriptorHandleIncrementSize(
                         D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-      Device12->CreateRenderTargetView(texture, nullptr, handle);
+      const D3D12_RENDER_TARGET_VIEW_DESC desc{
+          .Format = Backend->VR().View(i).Format,
+          .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D};
+      Device12->CreateRenderTargetView(texture, &desc, handle);
       Lists[slot]->ClearRenderTargetView(handle, color, 0, nullptr);
     }
     ASSERT_EQ(S_OK, Lists[slot]->Close());
@@ -311,6 +317,52 @@ class FrameLoop final : public D3DAppFramework {
 };
 
 class OpenXRIntegrationTests : public testing::Test {};
+
+TEST_F(OpenXRIntegrationTests, DrawsWindowUntilReadyThenSubmitsTypelessEyes) {
+  Runtime runtime;
+  ASSERT_NE(nullptr, runtime.Configure);
+  FakeXRConfig config{};
+  config.TypelessColor = config.TypelessDepth = true;
+  config.SimultaneousAccess = true;
+  config.EyeWidth = 960;
+  config.EyeHeight = 720;
+  config.DeferReady = true;
+  runtime.Configure(&config);
+  UINT32 windowFrames = 0;
+  bool stopped = false;
+  {
+    FrameLoop loop(true, true);
+    loop.EyeWidths = {960, 960};
+    loop.Step = [&](auto &host) {
+      auto &vr = host.Backend->VR();
+      if (!vr.Running() && !stopped) {
+        EXPECT_EQ(0U, vr.ViewCount());
+        EXPECT_EQ(0U, runtime.Stats().Frames);
+        if (++windowFrames == 3) {
+          runtime.Push(XR_SESSION_STATE_READY);
+          runtime.Push(XR_SESSION_STATE_FOCUSED);
+        }
+      } else if (vr.ViewCount() && !stopped) {
+        EXPECT_EQ(DXGI_FORMAT_R8G8B8A8_TYPELESS,
+                  vr.Target(0)->GetDesc().Format);
+        ComObject<ID3D12Resource> depth;
+        EXPECT_EQ(S_OK, vr.GetDepthTarget(0, depth));
+        if (depth) EXPECT_EQ(DXGI_FORMAT_R32_TYPELESS, depth->GetDesc().Format);
+        host.RequestVR(false);
+        stopped = true;
+      } else if (stopped && !host.Settings->GetVR()) {
+        return true;
+      }
+      return false;
+    };
+    loop.Execute();
+    EXPECT_FALSE(loop.TimedOut);
+    EXPECT_EQ(0U, loop.FatalErrors.load());
+  }
+  EXPECT_EQ(3U, windowFrames);
+  EXPECT_GE(runtime.Stats().SubmittedImages, 2U);
+  EXPECT_EQ(0U, runtime.Stats().Errors);
+}
 
 TEST_F(OpenXRIntegrationTests,
        PoseEpochChangesAtDisplayTimeAndSurvivesSkippedEyes) {
