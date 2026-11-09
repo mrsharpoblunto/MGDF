@@ -158,10 +158,9 @@ void HttpClientPendingRequest::CompleteConnection(CURLcode result) {
     _working.Code = static_cast<int>(code);
     SetResponse(HttpRequestState::Complete, _working);
   } else {
-    HttpMessage response = {.Error = _error[0]
-                                         ? std::string(_error)
-                                         : std::string(
-                                               curl_easy_strerror(result))};
+    HttpMessage response = {
+        .Error = _error[0] ? std::string(_error)
+                           : std::string(curl_easy_strerror(result))};
     SetResponse(HttpRequestState::Error, response);
   }
 }
@@ -265,12 +264,36 @@ std::shared_ptr<IHttpClientPendingRequest> HttpClientRequest::SendRequest(
   return pending;
 }
 
-WebSocketClient::WebSocketClient(
-    const std::string &url, std::shared_ptr<NetworkManagerComponent> manager,
-    size_t reconnectInterval)
+WebSocketClient::~WebSocketClient() {
+  _connection->RequestClose();
+  _manager->Wake();
+}
+IWebSocket *WebSocketClient::Send(const std::vector<char> &data, bool binary) {
+  _connection->Send(data, binary);
+  return this;
+}
+IWebSocket *WebSocketClient::Send(void *data, size_t size, bool binary) {
+  _connection->Send(data, size, binary);
+  return this;
+}
+IWebSocket *WebSocketClient::OnReceive(
+    std::function<void(std::span<const char> &, bool)> handler) {
+  _connection->OnReceive(std::move(handler));
+  return this;
+}
+MGDFWebSocketConnectionState WebSocketClient::GetConnectionState(
+    std::string &lastError) const {
+  return _connection->GetConnectionState(lastError);
+}
+
+WebSocketConnection::WebSocketConnection(const std::string &url,
+                                         NetworkManagerComponent *manager,
+                                         size_t reconnectInterval,
+                                         WebSocketTransport transport)
     : WebSocketBase(MGDF_WEBSOCKET_CLOSED),
       _url(url),
       _manager(manager),
+      _transport(std::move(transport)),
       _reconnectInterval(reconnectInterval),
       _forceClose(false),
       _closing(false),
@@ -281,32 +304,40 @@ WebSocketClient::WebSocketClient(
   _error[0] = '\0';
 }
 
-WebSocketClient::~WebSocketClient() {
-  std::unique_lock<std::shared_mutex> lock(_mutex);
-  _forceClose = true;
-  _closing = true;
-  _cv.wait(lock, [this]() { return _state == MGDF_WEBSOCKET_CLOSED; });
+WebSocketConnection::~WebSocketConnection() { _ASSERTE(!_curl); }
+
+void WebSocketConnection::RequestClose() {
+  std::unique_lock lock(_mutex);
+  _forceClose = _closing = true;
 }
 
-IWebSocket *WebSocketClient::Send(const std::vector<char> &data, bool binary) {
+bool WebSocketConnection::Closing() const {
+  std::shared_lock lock(_mutex);
+  return _closing;
+}
+
+IWebSocket *WebSocketConnection::Send(const std::vector<char> &data,
+                                      bool binary) {
   WebSocketBase::Send(data, binary);
   _manager->Wake();
   return this;
 }
 
-IWebSocket *WebSocketClient::Send(void *data, size_t dataLength, bool binary) {
+IWebSocket *WebSocketConnection::Send(void *data, size_t dataLength,
+                                      bool binary) {
   WebSocketBase::Send(data, dataLength, binary);
   _manager->Wake();
   return this;
 }
 
-bool WebSocketClient::Connect(CURLM *multi) {
+bool WebSocketConnection::Connect(CURLM *multi) {
   {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_closing) return false;
     _state = MGDF_WEBSOCKET_CONNECTING;
   }
   _error[0] = '\0';
-  _curl = curl_easy_init();
+  _curl = _transport.Create();
   if (!_curl) {
     Fail(multi, "Unable to create connection");
     return false;
@@ -327,7 +358,7 @@ bool WebSocketClient::Connect(CURLM *multi) {
   return true;
 }
 
-void WebSocketClient::CompleteConnection(CURLM *multi, CURLcode result) {
+void WebSocketConnection::CompleteConnection(CURLM *multi, CURLcode result) {
   _connecting = false;
   if (result == CURLE_OK) {
     // the easy handle must stay attached to the multi for the lifetime of
@@ -340,7 +371,7 @@ void WebSocketClient::CompleteConnection(CURLM *multi, CURLcode result) {
     // record the failure - the next Pump invocation transitions the
     // socket to closed and schedules any reconnection
     curl_multi_remove_handle(multi, _curl);
-    curl_easy_cleanup(_curl);
+    _transport.Release(_curl);
     _curl = nullptr;
     if (!_error[0]) {
       strncpy_s(_error, curl_easy_strerror(result), sizeof(_error) - 1);
@@ -348,12 +379,12 @@ void WebSocketClient::CompleteConnection(CURLM *multi, CURLcode result) {
   }
 }
 
-void WebSocketClient::Fail(CURLM *multi, const std::string &error) {
+void WebSocketConnection::Fail(CURLM *multi, const std::string &error) {
   LOG("WebSocket connection to " << _url << " failed: " << error,
       MGDF_LOG_MEDIUM);
   if (_curl) {
     curl_multi_remove_handle(multi, _curl);
-    curl_easy_cleanup(_curl);
+    _transport.Release(_curl);
     _curl = nullptr;
   }
   // drop any partially transmitted message rather than risk
@@ -371,41 +402,37 @@ void WebSocketClient::Fail(CURLM *multi, const std::string &error) {
 
   if (reconnect) {
     _manager->ScheduleWebSocketConnect(
-        weak_from_this(), NetworkManagerComponent::NowMs() + _reconnectInterval);
+        shared_from_this(),
+        NetworkManagerComponent::NowMs() + _reconnectInterval);
   }
 
-  // setting the closed state must be the last access of this object from
-  // the poll thread, as it releases any destructor waiting on the socket
   lock.lock();
   _state = MGDF_WEBSOCKET_CLOSED;
   lock.unlock();
-  _cv.notify_all();
 }
 
-void WebSocketClient::Shutdown(CURLM *multi) {
+void WebSocketConnection::Shutdown(CURLM *multi) {
   if (_curl) {
     curl_multi_remove_handle(multi, _curl);
-    curl_easy_cleanup(_curl);
+    _transport.Release(_curl);
     _curl = nullptr;
   }
   std::unique_lock<std::shared_mutex> lock(_mutex);
   _state = MGDF_WEBSOCKET_CLOSED;
   lock.unlock();
-  _cv.notify_all();
 }
 
-WebSocketClient::PumpResult WebSocketClient::Pump(CURLM *multi) {
+WebSocketConnection::PumpResult WebSocketConnection::Pump(CURLM *multi) {
   {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (_closing) {
       if (_curl) {
         curl_multi_remove_handle(multi, _curl);
-        curl_easy_cleanup(_curl);
+        _transport.Release(_curl);
         _curl = nullptr;
       }
       _state = MGDF_WEBSOCKET_CLOSED;
       lock.unlock();
-      _cv.notify_all();
       return PumpResult::Closed;
     }
   }
@@ -458,7 +485,7 @@ WebSocketClient::PumpResult WebSocketClient::Pump(CURLM *multi) {
       break;
     } else if (result != CURLE_OK || !meta) {
       Fail(multi, result != CURLE_OK ? curl_easy_strerror(result)
-                              : "Connection closed");
+                                     : "Connection closed");
       return PumpResult::Closed;
     }
     if (meta->flags & CURLWS_CLOSE) {
@@ -492,32 +519,35 @@ WebSocketClient::PumpResult WebSocketClient::Pump(CURLM *multi) {
 }
 
 NetworkManagerComponent::NetworkManagerComponent(
-    const NetworkManagerOptions &options)
-    : _options(options), _running(true), _multi(nullptr) {
+    const NetworkManagerOptions &options, WebSocketTransport transport)
+    : _options(options),
+      _running(true),
+      _multi(nullptr),
+      _transport(std::move(transport)) {
   _multi = curl_multi_init();
   curl_multi_setopt(_multi, CURLMOPT_MAX_HOST_CONNECTIONS,
                     static_cast<long>(options.HttpClientOriginConnectionLimit));
   _pollThread = std::thread([this]() { Poll(); });
+  _pollThreadId = _pollThread.get_id();
 }
 
 NetworkManagerComponent::~NetworkManagerComponent() {
   Stop();
-  // clean up anything that was queued after the poll thread exited
-  std::lock_guard<std::mutex> lock(_requestMutex);
-  for (auto &pending : _newRequests) {
-    HttpMessage response = {.Code = -1, .Error = S_CANCELLED};
-    pending->SetResponse(HttpRequestState::Cancelled, response);
-  }
-  _newRequests.clear();
   curl_multi_cleanup(_multi);
 }
 
 void NetworkManagerComponent::Stop() {
-  if (_running.load()) {
+  std::deque<std::shared_ptr<HttpClientPendingRequest>> cancelled;
+  {
+    std::lock_guard lock(_requestMutex);
     _running.store(false);
-    Wake();
-    _pollThread.join();
+    cancelled.swap(_newRequests);
   }
+  for (const auto &pending : cancelled) pending->CancelRequest();
+  Wake();
+  if (std::this_thread::get_id() == _pollThreadId) return;
+  std::lock_guard lock(_stopMutex);
+  if (_pollThread.joinable()) _pollThread.join();
 }
 
 void NetworkManagerComponent::Wake() { curl_multi_wakeup(_multi); }
@@ -536,10 +566,12 @@ std::shared_ptr<IHttpServer> NetworkManagerComponent::CreateHttpServer(
 
 std::shared_ptr<IWebSocket> NetworkManagerComponent::CreateWebSocket(
     const std::string &url) {
-  auto socket = std::make_shared<WebSocketClient>(
-      url, shared_from_this(), _options.WebSocketClientReconnectInterval);
-  std::lock_guard<std::mutex> lock(_webSocketMutex);
-  _pendingWebSockets.push_back(std::make_pair(socket, NowMs()));
+  auto connection = std::make_shared<WebSocketConnection>(
+      url, this, _options.WebSocketClientReconnectInterval, _transport);
+  auto socket =
+      std::make_shared<WebSocketClient>(connection, shared_from_this());
+  ScheduleWebSocketConnect(connection, NowMs());
+  Wake();
   return socket;
 }
 
@@ -549,23 +581,28 @@ std::shared_ptr<HttpClientPendingRequest> NetworkManagerComponent::SendRequest(
   const bool validProtocol = CaseInsensitiveStartsWith(request.Url, S_HTTP) ||
                              CaseInsensitiveStartsWith(request.Url, S_HTTPS);
   auto pending = std::make_shared<HttpClientPendingRequest>(request, handler);
-  if (!validProtocol) {
+  bool stopped;
+  {
+    std::lock_guard lock(_requestMutex);
+    stopped = !_running.load();
+    if (!stopped && validProtocol) _newRequests.push_back(pending);
+  }
+  if (stopped) {
+    pending->CancelRequest();
+  } else if (!validProtocol) {
     HttpMessage response = {.Error = "Invalid URL protocol"};
     pending->SetResponse(HttpRequestState::Error, response);
-    return pending;
+  } else {
+    Wake();
   }
-  {
-    std::lock_guard<std::mutex> lock(_requestMutex);
-    _newRequests.push_back(pending);
-  }
-  Wake();
   return pending;
 }
 
 void NetworkManagerComponent::ScheduleWebSocketConnect(
-    std::weak_ptr<WebSocketClient> socket, size_t when) {
+    std::shared_ptr<WebSocketConnection> socket, size_t when) {
   std::lock_guard<std::mutex> lock(_webSocketMutex);
-  _pendingWebSockets.push_back(std::make_pair(socket, when));
+  if (_running.load())
+    _pendingWebSockets.push_back(std::make_pair(socket, when));
 }
 
 void NetworkManagerComponent::Poll() {
@@ -600,16 +637,16 @@ void NetworkManagerComponent::Poll() {
 
     // begin connecting any pending websockets that are due
     {
-      std::vector<std::shared_ptr<WebSocketClient>> due;
+      std::vector<std::shared_ptr<WebSocketConnection>> due;
       {
         std::lock_guard<std::mutex> lock(_webSocketMutex);
         const auto now = NowMs();
         auto it = _pendingWebSockets.begin();
         while (it != _pendingWebSockets.end()) {
-          if (now >= it->second) {
-            if (auto socket = it->first.lock()) {
-              due.push_back(socket);
-            }
+          if (it->first->Closing()) {
+            it = _pendingWebSockets.erase(it);
+          } else if (now >= it->second) {
+            due.push_back(it->first);
             it = _pendingWebSockets.erase(it);
           } else {
             ++it;
@@ -618,7 +655,7 @@ void NetworkManagerComponent::Poll() {
       }
       for (auto &socket : due) {
         if (socket->Connect(_multi)) {
-          _activeWebSockets.push_back(socket.get());
+          _activeWebSockets.push_back(socket);
         }
       }
     }
@@ -652,11 +689,8 @@ void NetworkManagerComponent::Poll() {
     }
 
     // pump open websocket connections
-    for (auto it = _activeWebSockets.begin();
-         it != _activeWebSockets.end();) {
-      if ((*it)->Pump(_multi) == WebSocketClient::PumpResult::Closed) {
-        // after a socket transitions to closed the poll thread must not
-        // access it again as it may be destroyed at any time
+    for (auto it = _activeWebSockets.begin(); it != _activeWebSockets.end();) {
+      if ((*it)->Pump(_multi) == WebSocketConnection::PumpResult::Closed) {
         it = _activeWebSockets.erase(it);
       } else {
         ++it;
@@ -666,15 +700,12 @@ void NetworkManagerComponent::Poll() {
     curl_multi_poll(_multi, nullptr, 0, 16, nullptr);
   }
 
-  // shutting down - cancel all queued and in-flight requests
+  std::deque<std::shared_ptr<HttpClientPendingRequest>> cancelled;
   {
-    std::lock_guard<std::mutex> lock(_requestMutex);
-    for (auto &pending : _newRequests) {
-      HttpMessage response = {.Code = -1, .Error = S_CANCELLED};
-      pending->SetResponse(HttpRequestState::Cancelled, response);
-    }
-    _newRequests.clear();
+    std::lock_guard lock(_requestMutex);
+    cancelled.swap(_newRequests);
   }
+  for (const auto &pending : cancelled) pending->CancelRequest();
   for (auto &pending : _activeRequests) {
     HttpMessage response = {.Code = -1, .Error = S_CANCELLED};
     pending.second->SetResponse(HttpRequestState::Cancelled, response);
@@ -687,6 +718,8 @@ void NetworkManagerComponent::Poll() {
     socket->Shutdown(_multi);
   }
   _activeWebSockets.clear();
+  std::lock_guard lock(_webSocketMutex);
+  _pendingWebSockets.clear();
 }
 
 }  // namespace impl

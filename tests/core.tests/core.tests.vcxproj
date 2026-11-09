@@ -144,6 +144,11 @@
     <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp" />
     <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
+    <ClCompile Include="GamePreferencesTests.cpp" />
+    <ClCompile Include="HostLifecycleTests.cpp" />
+    <ClCompile Include="InputTests.cpp" />
+    <ClCompile Include="AudioTests.cpp" />
+    <ClCompile Include="NetworkTests.cpp" />
     <ClCompile Include="DebugTests.cpp" />
     <ClCompile Include="CaptureTests.cpp" />
     <ClCompile Include="D3D12TimerTests.cpp" />

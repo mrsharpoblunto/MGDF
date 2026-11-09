@@ -3,6 +3,7 @@
 
 #include <MGDF/ComObject.hpp>
 #include <map>
+#include <mutex>
 #include <unordered_map>
 
 #include "../common/MGDFLoggerImpl.hpp"
@@ -49,12 +50,17 @@ class Game : public ComBase<IMGDFGame> {
   }
 
  private:
+  void SavePreferenceSnapshot(
+      const std::map<std::string, std::string> &preferences,
+      const std::wstring &filename);
+
   std::shared_ptr<storage::IStorageFactoryComponent> _storageFactory;
   std::string _uid, _name;
   std::wstring _preferencesFile;
   std::string _statisticsService;
   MGDFVersion _version;
   std::map<std::string, std::string> _preferences;
+  std::mutex _preferencesMutex;
 };
 
 }  // namespace core

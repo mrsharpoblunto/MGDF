@@ -21,6 +21,7 @@ struct FakeXRConfig {
   bool Stage = false;
   bool LocalFloor = false;
   bool LocalFloorExtension = false;
+  bool DeferStop = false;
 };
 struct FakeXRInput {
   bool Connected[2]{true, true};

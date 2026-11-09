@@ -14,6 +14,19 @@
 namespace MGDF {
 namespace core {
 
+struct RenderSettingsSnapshot {
+  UINT64 Generation;
+  MGDFFullScreenDesc FullScreen;
+  std::optional<std::pair<UINT32, UINT32>> WindowSize;
+  MGDFDisplayMode PrimaryDisplayMode;
+  MGDFOutputDisplayInfo Output;
+  bool HDREnabled;
+  DXGI_FORMAT SDRFormat, HDRFormat;
+  DXGI_COLOR_SPACE_TYPE HDRColorSpace;
+  UINT32 MaxFrameLatency;
+  UINT32 FrameGeneration;
+};
+
 class RenderSettingsManager;
 
 class PendingRenderSettingsChange
@@ -102,7 +115,9 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
   void InitVR(bool moduleVR, bool saved, bool commandLine);
   std::optional<bool> TakeVRRequest();
   void SetVRState(bool active);
-  std::optional<std::pair<UINT32, UINT32>> TakeWindowSize();
+  RenderSettingsSnapshot TakeSnapshot();
+  void SetFullscreenFallback(const RenderSettingsSnapshot &snapshot,
+                             const MGDFFullScreenDesc &fullscreen);
   // Call after each device creation. Clamps the settings to the support.
   void SetGraphicsSupport(GraphicsSupport support);
   // Call before device initialization.
@@ -110,7 +125,8 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
 
   void LoadPreferences(const ComObject<IMGDFGame> &game);
   bool IsBackBufferChangePending();
-  void OnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &desc,
+  void OnResetSwapChain(const RenderSettingsSnapshot &snapshot,
+                        DXGI_SWAP_CHAIN_DESC1 &desc,
                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreenDesc,
                         DXGI_COLOR_SPACE_TYPE &colorSpace,
                         const RECT &windowSize);
@@ -119,10 +135,12 @@ class RenderSettingsManager : public ComBase<IMGDFRenderSettingsManager> {
                            const std::vector<MGDFDisplayMode> &primaryModes);
 
  private:
+  void MarkChangeLocked();
   void ClampToSupportLocked();
   MGDFDisplayMode GetBestAlternativeDisplayMode();
 
   std::atomic_bool _changePending{false};
+  UINT64 _generation = 0;
   bool _windowAspectLock = false;
   bool _windowResizeEnabled = false;
   std::optional<std::pair<UINT32, UINT32>> _pendingWindowSize;

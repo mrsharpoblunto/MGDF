@@ -29,7 +29,8 @@ class OpenALSoundManagerComponentImpl : public OpenALSoundSystem,
  public:
   virtual ~OpenALSoundManagerComponentImpl();
   OpenALSoundManagerComponentImpl(
-      const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs);
+      const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs,
+      OpenALContextFunctions contextFunctions = {});
   HRESULT Init() final;
   void Update() final;
   void Stop() final;

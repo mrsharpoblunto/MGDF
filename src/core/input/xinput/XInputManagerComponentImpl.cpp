@@ -22,9 +22,7 @@ XInputManagerComponent::XInputManagerComponent()
       _pendingMouseDZ(0),
       _mouseDX(0L),
       _mouseDY(0L),
-      _mouseDZ(0),
-      _pendingKeyDownEventsLength(0),
-      _pendingKeyPressEventsLength(0) {
+      _mouseDZ(0) {
   for (INT32 i = 0; i < XUSER_MAX_COUNT; ++i) {
     _gamepads.push_back(ComObject(new XInputGamepad(i, true)));
     _connectedGamepads.insert(_gamepads.back());
@@ -55,7 +53,6 @@ XInputManagerComponent::XInputManagerComponent()
       Sleep(500);
     }
   });
-  ClearInput();
 }
 
 XInputManagerComponent::~XInputManagerComponent(void) {
@@ -64,17 +61,8 @@ XInputManagerComponent::~XInputManagerComponent(void) {
 }
 
 void XInputManagerComponent::ClearInput() {
-  GetVRInputState()->ClearPresses();
-  ZeroMemory(_pendingMouseButtonDown, sizeof(_pendingMouseButtonDown));
-  ZeroMemory(_pendingMouseButtonClick, sizeof(_pendingMouseButtonClick));
-  ZeroMemory(_mouseButtonDown, sizeof(_mouseButtonDown));
-  ZeroMemory(_mouseButtonClick, sizeof(_mouseButtonClick));
-
-  ZeroMemory(_pendingKeyDown, sizeof(_pendingKeyDown));
-  ZeroMemory(_pendingKeyDownEvents, sizeof(_pendingKeyDownEvents));
-  ZeroMemory(_pendingKeyPressEvents, sizeof(_pendingKeyPressEvents));
-  ZeroMemory(_keyDown, sizeof(_keyDown));
-  ZeroMemory(_keyPress, sizeof(_keyPress));
+  std::lock_guard lock(_simMutex);
+  _resetPending = true;
 }
 
 void XInputManagerComponent::HandleInput(INT32 mouseX, INT32 mouseY) {
@@ -95,22 +83,11 @@ void XInputManagerComponent::HandleInput(std::function<RAWINPUT *()> getInput) {
       // we only know how to deal with keys
       if (input->data.keyboard.VKey > UINT8_MAX) return;
 
-      UINT8 key = static_cast<UINT8>(input->data.keyboard.VKey);
-      if ((input->data.keyboard.Flags & RI_KEY_MAKE) == RI_KEY_MAKE &&
-          _pendingKeyDown[key] != 1) {
-        _pendingKeyDown[key] = 1;
-        _pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
-        _pendingKeyDownEventsLength++;
-      }
-      if ((input->data.keyboard.Flags & RI_KEY_BREAK) == RI_KEY_BREAK &&
-          _pendingKeyDown[key] != 2) {
-        _pendingKeyDown[key] = 2;
-        _pendingKeyDownEvents[_pendingKeyDownEventsLength] = key;
-        _pendingKeyDownEventsLength++;
-
-        _pendingKeyPressEvents[_pendingKeyPressEventsLength] = key;
-        _pendingKeyPressEventsLength++;
-      }
+      const UINT8 key = static_cast<UINT8>(input->data.keyboard.VKey);
+      const bool released = (input->data.keyboard.Flags & RI_KEY_BREAK) != 0;
+      _pendingKeyDown[key] = !released;
+      _changedKeys.set(key);
+      if (released) _pendingKeyPress.set(key);
     } else if (input->header.dwType == RIM_TYPEMOUSE) {
       if ((input->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) ==
           MOUSE_MOVE_RELATIVE) {
@@ -156,11 +133,24 @@ void XInputManagerComponent::HandleInput(std::function<RAWINPUT *()> getInput) {
 }
 
 void XInputManagerComponent::ProcessSim() {
-  GetVRInputState()->ProcessSim();
   // handleinput occurs on a different thread to processinput so
   // we need to sync any access to the pending input state
   {
     std::lock_guard<std::mutex> lock(_simMutex);
+    if (std::exchange(_resetPending, false)) {
+      ZeroMemory(_pendingMouseButtonDown, sizeof(_pendingMouseButtonDown));
+      ZeroMemory(_pendingMouseButtonClick, sizeof(_pendingMouseButtonClick));
+      ZeroMemory(_mouseButtonDown, sizeof(_mouseButtonDown));
+      ZeroMemory(_mouseButtonClick, sizeof(_mouseButtonClick));
+      ZeroMemory(_pendingKeyDown, sizeof(_pendingKeyDown));
+      ZeroMemory(_keyDown, sizeof(_keyDown));
+      ZeroMemory(_keyPress, sizeof(_keyPress));
+      _changedKeys.reset();
+      _pendingKeyPress.reset();
+      _pendingMouseDX = _pendingMouseDY = _pendingMouseDZ = 0;
+      GetVRInputState()->ClearPresses();
+    }
+    GetVRInputState()->ProcessSim();
     // update keyboard and mouse state
 
     // mouse position
@@ -202,20 +192,12 @@ void XInputManagerComponent::ProcessSim() {
     _pendingMouseButtonClick[MGDF_MOUSE_RIGHT] = false;
     ZeroMemory(_pendingMouseButtonClick, sizeof(_pendingMouseButtonClick));
 
-    // keyboard events
-    for (UINT8 i = 0; i < _pendingKeyDownEventsLength; ++i) {
-      UINT8 key = _pendingKeyDownEvents[i];
-      _keyDown[key] = _pendingKeyDown[key] == 1;
+    for (size_t key = 0; key < _changedKeys.size(); ++key) {
+      if (_changedKeys[key]) _keyDown[key] = _pendingKeyDown[key];
+      _keyPress[key] = _pendingKeyPress[key];
     }
-    ZeroMemory(_pendingKeyDown, sizeof(_pendingKeyDown));
-    _pendingKeyDownEventsLength = 0;
-
-    ZeroMemory(_keyPress, sizeof(_keyPress));
-    for (UINT8 i = 0; i < _pendingKeyPressEventsLength; ++i) {
-      UINT8 key = _pendingKeyPressEvents[i];
-      _keyPress[key] = true;
-    }
-    _pendingKeyPressEventsLength = 0;
+    _changedKeys.reset();
+    _pendingKeyPress.reset();
   }
 
   // read controller states

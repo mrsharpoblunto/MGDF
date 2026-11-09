@@ -16,11 +16,11 @@ class MGDFApp : public D3DAppFramework {
  protected:
   std::pair<DXGI_FORMAT, DXGI_FORMAT> RTOnBeforeEnumerateDisplayModes() final;
   void RTOnInitDevice(D3D12RenderBackend &backend) final;
-  MGDFFullScreenDesc RTOnResetSwapChain(DXGI_SWAP_CHAIN_DESC1 &,
+  MGDFFullScreenDesc RTOnResetSwapChain(const RenderSettingsSnapshot &,
+                                        DXGI_SWAP_CHAIN_DESC1 &,
                                         DXGI_SWAP_CHAIN_FULLSCREEN_DESC &,
                                         DXGI_COLOR_SPACE_TYPE &,
                                         const RECT &windowSize) final;
-  std::optional<UINT> RTGetMaxFrameLatency() const final;
   UINT32 RTGetFrameGeneration() const final;
   MGDFLowLatencyMode RTGetLowLatencyMode() const final;
   void RTOnResize(UINT32 width, UINT32 height) final;
@@ -28,9 +28,9 @@ class MGDFApp : public D3DAppFramework {
   void RTOnVRState(bool active) final;
   const char *RTGetApplicationName() const final;
   bool RTIsBackBufferChangePending() final;
-  MGDFFullScreenDesc RTGetFullscreen() final;
-  void RTSetFullscreen(const MGDFFullScreenDesc &desc) final;
-  std::optional<std::pair<UINT32, UINT32>> RTTakeWindowSize() final;
+  RenderSettingsSnapshot RTTakeSettingsSnapshot() final;
+  void RTSetFullscreenFallback(const RenderSettingsSnapshot &snapshot,
+                               const MGDFFullScreenDesc &desc) final;
   bool OnWindowAspectLock() final;
   bool RTVSyncEnabled() const final;
   void RTOnBeforeBackBufferChange() final;

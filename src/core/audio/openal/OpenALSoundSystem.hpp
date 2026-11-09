@@ -11,10 +11,18 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
+struct OpenALContextFunctions {
+  decltype(&alcOpenDevice) OpenDevice = alcOpenDevice;
+  decltype(&alcCreateContext) CreateContext = alcCreateContext;
+  decltype(&alcMakeContextCurrent) MakeCurrent = alcMakeContextCurrent;
+  decltype(&alcDestroyContext) DestroyContext = alcDestroyContext;
+  decltype(&alcCloseDevice) CloseDevice = alcCloseDevice;
+};
+
 class OpenALSoundSystem {
  public:
   virtual ~OpenALSoundSystem(void);
-  OpenALSoundSystem(void);
+  explicit OpenALSoundSystem(OpenALContextFunctions contextFunctions = {});
   virtual HRESULT Init();
 
   HRESULT AcquireSource(ALuint *source);
@@ -27,7 +35,9 @@ class OpenALSoundSystem {
   std::unordered_set<ALuint> _allocatedSources;
   std::stack<ALuint> _freeSources;
 
+  const OpenALContextFunctions _contextFunctions;
   ALCcontext *_context;
+  bool _alutInitialized = false;
 };
 
 }  // namespace openal_audio
