@@ -7,9 +7,8 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-bool CreateSoundManagerComponent(
-    const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs,
-    ComObject<ISoundManagerComponent> &comp);
+bool CreateSoundManagerComponent(bool hrtf,
+                                 ComObject<ISoundManagerComponent> &comp);
 
 }  // namespace openal_audio
 }  // namespace audio

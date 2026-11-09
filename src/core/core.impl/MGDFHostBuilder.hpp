@@ -12,8 +12,7 @@ class HostBuilder {
 
  private:
   static bool RegisterBaseComponents(HostComponents &);
-  static bool RegisterAdditionalComponents(std::string gameUid,
-                                           HostComponents &);
+  static bool RegisterAdditionalComponents(IMGDFGame *game, HostComponents &);
   static void InitParameterManager();
   // load a .env file from the application directory into the process
   // environment so both the framework and the bootstrapped game module can

@@ -1,449 +1,959 @@
-
-#include "StdAfx.h"
-
-#include "OpenALSoundManagerComponentImpl.hpp"
-
+#include "Stdafx.h"
+#undef min
+#undef max
 #include <AL/al.h>
-#include <AL/alut.h>
+#include <AL/alc.h>
+#include <AL/alext.h>
+#include <AL/efx.h>
 
 #include <algorithm>
+#include <bit>
+#include <cmath>
+#include <condition_variable>
+#include <future>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
 
-#include "../../common/MGDFLoggerImpl.hpp"
-#include "../../common/MGDFPreferenceConstants.hpp"
 #include "../../common/MGDFPreferenceSet.hpp"
-#include "../../common/MGDFResources.hpp"
-#include "OpenALSound.hpp"
-#include "OpenALSoundSystem.hpp"
-#include "VorbisStream.hpp"
+#include "AudioState.hpp"
+#include "OpenALSoundManagerComponentImpl.hpp"
 
-#if defined(_DEBUG)
-#define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
-#pragma warning(disable : 4291)
-#endif
-
-using namespace DirectX;
-
-namespace MGDF {
-namespace core {
-namespace audio {
-namespace openal_audio {
-
-OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(
-    const ComObject<IMGDFReadOnlyVirtualFileSystem> &vfs,
-    OpenALContextFunctions contextFunctions)
-    : OpenALSoundSystem(contextFunctions),
-      _enableAttenuation(false),
-      _vfs(vfs),
-      _soundVolume(0.0f),
-      _streamVolume(0.0f),
-      _orientationForward(XMFLOAT3(0.0f, 0.0f, 1.0f)),
-      _orientationUp(XMFLOAT3(0.0f, 1.0f, 0.0f)),
-      _position(XMFLOAT3(0.0f, 0.0f, 0.0f)),
-      _velocity(XMFLOAT3(0.0f, 0.0f, 0.0f)) {}
-
-HRESULT OpenALSoundManagerComponentImpl::Init() {
-  const auto result = OpenALSoundSystem::Init();
-  if (FAILED(result)) {
-    return result;
+namespace MGDF::core::audio::openal_audio {
+namespace {
+struct Ramp {
+  float From = 1, To = 1;
+  double Begin = 0, End = 0;
+  float At(double time) const {
+    if (time >= End || End <= Begin) return To;
+    if (time <= Begin) return From;
+    return From +
+           (To - From) * static_cast<float>((time - Begin) / (End - Begin));
   }
-
-  alDistanceModel(AL_NONE);
-
-  return S_OK;
-}
-
-OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() {
-  for (auto &buffer : _sharedBuffers) {
-    alDeleteBuffers(1, &buffer.first);
+  void Set(float value, double now, float duration = 0) {
+    From = At(now);
+    To = value;
+    Begin = now;
+    End = now + duration;
   }
-}
-
-void OpenALSoundManagerComponentImpl::Stop() {
-  for (auto sound : _sounds) {
-    std::wstring name = ComString<&IMGDFSound::GetName>(sound);
-    LOG("Sound '" << Resources::ToString(name) << "' still has live references",
-        MGDF_LOG_ERROR);
-  }
-  for (auto stream : _soundStreams) {
-    std::wstring name = ComString<&IMGDFSoundStream::GetName>(stream);
-    LOG("SoundStream '" << Resources::ToString(name)
-                        << "' still has live references",
-        MGDF_LOG_ERROR);
-  }
-}
-
-void OpenALSoundManagerComponentImpl::Update() {
-  alListener3f(AL_POSITION, _position.x, _position.y, _position.z);
-  alListener3f(AL_VELOCITY, _velocity.x, _velocity.y, _velocity.z);
-
-  float orientation[6];
-  orientation[0] = _orientationForward.x;  // forward vector x value
-  orientation[1] = _orientationForward.y;  // forward vector y value
-  orientation[2] = _orientationForward.z;  // forward vector z value
-  orientation[3] = _orientationUp.x;       // up vector x value
-  orientation[4] = _orientationUp.y;       // up vector y value
-  orientation[5] = _orientationUp.z;       // up vector z value
-  alListenerfv(AL_ORIENTATION, orientation);
-
-  INT32 deactivatedSoundsCount = 0;
-
-  LOG("Updating sounds...", MGDF_LOG_HIGH);
-  for (auto sound : _sounds) {
-    if (!sound->IsActive()) {
-      deactivatedSoundsCount++;
+  double Integral(double first, double last) const {
+    if (last <= first) return 0;
+    double result = 0;
+    if (first < Begin) {
+      const auto end = std::min(last, Begin);
+      result += (end - first) * From;
+      first = end;
     }
-
-    float attenuation = 1;
-    if (_enableAttenuation) {
-      // work out the sounds attenuation due to distance
-
-      MGDFSoundPosition sp;
-      sound->GetPosition(&sp);
-      const XMVECTOR distanceVector = XMVectorSet(
-          _position.x - sp.x, _position.y - sp.y, _position.z - sp.z, 1.0f);
-      const float distance = XMVectorGetX(XMVector3Length(distanceVector));
-
-      if (distance <= sound->GetInnerRange()) {
-        attenuation = 1;
-      } else if (distance >= sound->GetOuterRange()) {
-        attenuation = 0;
-      } else {
-        attenuation = 1 - ((distance - sound->GetInnerRange()) /
-                           (sound->GetOuterRange() - sound->GetInnerRange()));
+    if (first < End) {
+      const auto end = std::min(last, End);
+      result +=
+          (end - first) * (static_cast<double>(At(first)) + At(end)) * 0.5;
+      first = end;
+    }
+    return result + (last - first) * To;
+  }
+};
+struct Bus {
+  Ramp Volume, GainHF;
+  bool Initialized = false, Mute = false, Pause = false, Paused = false;
+  float Gain = 1, HF = 1;
+};
+struct CallbackSpan {
+  std::atomic<UINT64> Version{0}, Begin{0}, DataBegin{0}, DataCount{0},
+      Length{0};
+};
+struct PcmFeed {
+  SoundPcmStream *Stream = nullptr;
+  UINT64 Base = 0, Offset = 0, Serial = 0;
+  std::array<CallbackSpan, 256> History;
+  std::atomic<UINT64> Latest{0}, Underruns{0};
+  static ALsizei AL_APIENTRY Read(void *user, void *output,
+                                  ALsizei bytes) noexcept {
+    auto &feed = *static_cast<PcmFeed *>(user);
+    const auto channels = feed.Stream->GetChannels();
+    const auto requested = static_cast<UINT32>(bytes) /
+                           (channels * static_cast<UINT32>(sizeof(float)));
+    const auto begin = feed.Stream->ReadCount();
+    // Observe End before the ring so its final write is visible.
+    const bool ended = feed.Stream->Ended.load(std::memory_order_acquire);
+    const auto count =
+        feed.Stream->Consume(static_cast<float *>(output), requested);
+    const auto length = ended ? count : requested;
+    if (!ended && count < requested) {
+      std::fill_n(
+          static_cast<float *>(output) + static_cast<size_t>(count) * channels,
+          static_cast<size_t>(requested - count) * channels, 0.0f);
+      feed.Underruns.fetch_add(1, std::memory_order_relaxed);
+    }
+    const auto serial = ++feed.Serial;
+    auto &span = feed.History[serial % feed.History.size()];
+    span.Version.store(serial * 2 + 1);
+    span.Begin.store(feed.Offset);
+    span.DataBegin.store(begin);
+    span.DataCount.store(count);
+    span.Length.store(length);
+    span.Version.store(serial * 2 + 2);
+    feed.Latest.store(serial);
+    feed.Offset += length;
+    return static_cast<ALsizei>(length * channels * sizeof(float));
+  }
+  UINT64 Position(UINT64 offset, UINT64 previous) const {
+    const auto latest = Latest.load();
+    for (UINT64 age = 0; age < std::min<UINT64>(latest, History.size());
+         ++age) {
+      const auto serial = latest - age;
+      const auto &span = History[serial % History.size()];
+      const auto version = span.Version.load();
+      const auto begin = span.Begin.load(), data = span.DataBegin.load();
+      const auto count = span.DataCount.load(), length = span.Length.load();
+      if (version != serial * 2 + 2 || span.Version.load() != version) continue;
+      if (offset >= begin && offset <= begin + length)
+        return data + std::min(offset - begin, count);
+    }
+    return offset == 0 ? Base : previous;
+  }
+};
+struct Voice {
+  MGDFVoiceId Id = 0;
+  MGDFVoiceDesc Desc{};
+  ComObject<SoundSamples> Samples;
+  ComObject<SoundPcmStream> Pcm;
+  Ramp Volume, Pitch, HF, Fade;
+  std::array<Ramp, 7> Spatial;
+  double LastTime = 0, Position = 0, Fraction = 0;
+  UINT64 Played = 0;
+  int Source = -1;
+  bool Stopping = false, Ended = false, Paused = false, Waiting = false;
+  std::unique_ptr<PcmFeed> Feed;
+};
+struct Source {
+  ALuint Id = 0, Filter = 0, Callback = 0;
+};
+struct SampleRegistration {
+  SampleRegistration *Next = nullptr;
+  std::shared_ptr<SampleData> Data;
+};
+struct SampleBuffers {
+  std::shared_ptr<SampleData> Data;
+  std::vector<ALuint> Buffers;
+};
+void Discard(AudioBatch *batch, AudioControl &control) {
+  while (batch) {
+    auto *next = batch->Next;
+    for (auto &command : batch->Commands) {
+      if (command.Op == AudioOp::Play || command.Op == AudioOp::PlayPcm) {
+        control.SetStatus(command.Voice, MGDF_VOICE_ENDED);
+        if (command.Pcm) command.Pcm->ReleaseVoice(false);
       }
     }
-    sound->Update(attenuation);
-  }
-
-  if (deactivatedSoundsCount > 0) {
-    PrioritizeSounds(deactivatedSoundsCount);
-  }
-
-  for (auto stream : _soundStreams) {
-    stream->Update();
+    delete batch;
+    batch = next;
   }
 }
+}  // namespace
 
-MGDFSoundPosition *
-OpenALSoundManagerComponentImpl::GetListenerOrientationForward(
-    MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_orientationForward,
-           sizeof(DirectX::XMFLOAT3));
-  return sp;
-}
+struct OpenALSoundManagerComponentImpl::Impl {
+  AudioOptions Options;
+  std::shared_ptr<AudioControl> Control = std::make_shared<AudioControl>();
+  std::atomic<bool> Stopping{false};
+  std::thread AudioThread, Decoder;
+  AudioQueue<DecodeJob> Decodes;
+  AudioQueue<SampleRegistration> Registrations;
+  std::atomic<UINT32> Outstanding{0};
+  std::mutex DecodeMutex;
+  std::condition_variable DecodeComplete;
+  ALCdevice *Device = nullptr;
+  ALCcontext *Context = nullptr;
+  LPALCRENDERSAMPLESSOFT RenderSamples = nullptr;
+  LPALCGETINTEGER64VSOFT GetClock = nullptr;
+  LPALGETSOURCEI64VSOFT GetOffset = nullptr;
+  LPALSOURCEPLAYATTIMEVSOFT PlayAt = nullptr;
+  LPALBUFFERCALLBACKSOFT BufferCallback = nullptr;
+  LPALGENFILTERS GenFilters = nullptr;
+  LPALDELETEFILTERS DeleteFilters = nullptr;
+  LPALFILTERI Filteri = nullptr;
+  LPALFILTERF Filterf = nullptr;
+  std::vector<Source> Sources;
+  std::vector<int> FreeSources;
+  std::unordered_map<MGDFVoiceId, std::unique_ptr<Voice>> Voices;
+  std::unordered_map<SampleData *, SampleBuffers> Samples;
+  std::array<Bus, AudioControl::BusSlots> Buses;
+  UINT64 Underruns = 0;
+  double Now = 0;
 
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::GetListenerOrientationUp(
-    MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_orientationUp,
-           sizeof(DirectX::XMFLOAT3));
-  return sp;
-}
-
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::GetListenerPosition(
-    MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_position,
-           sizeof(DirectX::XMFLOAT3));
-  return sp;
-}
-
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::GetListenerVelocity(
-    MGDFSoundPosition *sp) {
-  memcpy_s(sp, sizeof(MGDFSoundPosition), &_velocity,
-           sizeof(DirectX::XMFLOAT3));
-  return sp;
-}
-
-MGDFSoundPosition *
-OpenALSoundManagerComponentImpl::SetListenerOrientationForward(
-    MGDFSoundPosition *sp) {
-  memcpy_s(&_orientationForward, sizeof(DirectX::XMFLOAT3), sp,
-           sizeof(MGDFSoundPosition));
-  return sp;
-}
-
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::SetListenerOrientationUp(
-    MGDFSoundPosition *sp) {
-  memcpy_s(&_orientationUp, sizeof(DirectX::XMFLOAT3), sp,
-           sizeof(MGDFSoundPosition));
-  return sp;
-}
-
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::SetListenerPosition(
-    MGDFSoundPosition *sp) {
-  memcpy_s(&_position, sizeof(DirectX::XMFLOAT3), sp,
-           sizeof(MGDFSoundPosition));
-  return sp;
-}
-
-MGDFSoundPosition *OpenALSoundManagerComponentImpl::SetListenerVelocity(
-    MGDFSoundPosition *sp) {
-  memcpy_s(&_velocity, sizeof(DirectX::XMFLOAT3), sp,
-           sizeof(MGDFSoundPosition));
-  return sp;
-}
-
-BOOL OpenALSoundManagerComponentImpl::GetEnableAttenuation() {
-  return _enableAttenuation;
-}
-
-void OpenALSoundManagerComponentImpl::SetEnableAttenuation(
-    BOOL enableAttenuation) {
-  _enableAttenuation = enableAttenuation;
-}
-
-float OpenALSoundManagerComponentImpl::GetSoundVolume() { return _soundVolume; }
-
-void OpenALSoundManagerComponentImpl::SetSoundVolume(float volume) {
-  _soundVolume = volume;
-  for (auto &sound : _sounds) {
-    sound->SetGlobalVolume(_soundVolume);
-  }
-}
-
-float OpenALSoundManagerComponentImpl::GetStreamVolume() {
-  return _streamVolume;
-}
-
-void OpenALSoundManagerComponentImpl::SetStreamVolume(float volume) {
-  _streamVolume = volume;
-  for (auto &stream : _soundStreams) {
-    stream->SetGlobalVolume(_streamVolume);
-  }
-}
-
-float OpenALSoundManagerComponentImpl::GetDopplerShiftFactor() {
-  return alGetFloat(AL_DOPPLER_FACTOR);
-}
-
-void OpenALSoundManagerComponentImpl::SetDopplerShiftFactor(
-    float dopplerShiftFactor) {
-  alDopplerFactor(dopplerShiftFactor);
-}
-
-float OpenALSoundManagerComponentImpl::GetSpeedOfSound() {
-  return alGetFloat(AL_SPEED_OF_SOUND);
-}
-
-void OpenALSoundManagerComponentImpl::SetSpeedOfSound(float speedOfSound) {
-  alSpeedOfSound(speedOfSound);
-}
-
-HRESULT OpenALSoundManagerComponentImpl::CreateSoundStream(
-    IMGDFReadOnlyFile *file, IMGDFSoundStream **stream) {
-  if (!file) {
-    LOG("The stream datasource cannot be null", MGDF_LOG_ERROR);
-    return E_INVALIDARG;
-  }
-
-  // try to deactivate a sound in order to free up a source for the new sound
-  // however it may not be possible to deactivate any of the current sounds so
-  // the new sound may have to be created as inactive.
-  if (GetFreeSources() == 0) {
-    LOG("Trying to free up audio source by deactivating low priority sound...",
-        MGDF_LOG_MEDIUM);
-    DeactivateSound(INT_MAX);
-  }
-
-  // if we couldn't deactivate any sources then we cannot create the stream
-  if (GetFreeSources() == 0) {
-    return E_FAIL;
-  } else {
-    ComObject<VorbisStream> s;
-    ComObject<IMGDFReadOnlyFile> f(file, true);
-    const auto result = VorbisStream::TryCreate(f, this, s);
-    if (SUCCEEDED(result)) {
-      _soundStreams.insert(s);
-      s.AddRawRef(stream);
-    }
-    return result;
-  }
-}
-
-HRESULT OpenALSoundManagerComponentImpl::CreateSound(IMGDFReadOnlyFile *file,
-                                                     INT32 priority,
-                                                     IMGDFSound **sound) {
-  if (!file) {
-    LOG("The stream datasource cannot be null", MGDF_LOG_ERROR);
-    return E_INVALIDARG;
-  }
-
-  // try to deactivate a sound in order to free up a source for the new sound
-  // however it may not be possible to deactivate any of the current sounds so
-  // the new sound may have to be created as inactive.
-  if (GetFreeSources() == 0) {
-    LOG("Trying to free up audio source by deactivating low priority sound...",
-        MGDF_LOG_MEDIUM);
-    DeactivateSound(priority);
-  }
-
-  ComObject<OpenALSound> s;
-  ComObject<IMGDFReadOnlyFile> f(file, true);
-  const auto result = OpenALSound::TryCreate(f, this, priority, s);
-  if (SUCCEEDED(result)) {
-    _sounds.insert(s);
-    s.AddRawRef(sound);
-  }
-  return result;
-}
-
-void OpenALSoundManagerComponentImpl::GetPreferences(
-    IMGDFPreferenceSet **preferences) {
-  ComObject<PreferenceSetImpl> p(new PreferenceSetImpl());
-  std::ostringstream ss;
-  ss << _soundVolume;
-  p->Preferences.insert(
-      std::make_pair(PreferenceConstants::SOUND_VOLUME, ss.str()));
-  ss.clear();
-  ss << _streamVolume;
-  p->Preferences.insert(
-      std::make_pair(PreferenceConstants::MUSIC_VOLUME, ss.str()));
-  p.AddRawRef(preferences);
-}
-
-void OpenALSoundManagerComponentImpl::DeactivateSound(INT32 priority) {
-  // find all sounds with a priority equal or lower to the one to be created
-  std::vector<OpenALSound *> sounds;
-  for (auto sound : _sounds) {
-    if (sound->GetPriority() <= priority) {
-      sounds.push_back(sound);
+  explicit Impl(AudioOptions options) : Options(options) {
+    const wchar_t *const names[]{L"Master", L"Sound", L"Music"};
+    const char *const preferences[]{"host.masterVolume", "host.soundVolume",
+                                    "host.musicVolume"};
+    for (size_t i = 0; i < 3; ++i) {
+      auto bus = std::make_unique<AudioBusInfo>();
+      bus->Name = names[i];
+      bus->Preference = preferences[i];
+      Control->Buses[i].store(bus.release());
     }
   }
-  LOG("Deactivating " << sounds.size() << " sounds...", MGDF_LOG_MEDIUM);
-  if (sounds.size() > 0) {
-    sort(sounds.begin(), sounds.end(), &OpenALSoundManagerComponentImpl::Sort);
-    sounds[0]->Deactivate();
+  double Clock() const {
+    ALCint64SOFT time = 0;
+    GetClock(Device, ALC_DEVICE_CLOCK_SOFT, 1, &time);
+    const double seconds = static_cast<double>(time) / 1e9;
+    return Options.Loopback
+               ? std::round(seconds * Options.SampleRate) / Options.SampleRate
+               : seconds;
   }
-}
-
-// ensure as many samples are active as possible, with the highest precedence
-// samples being activated first
-void OpenALSoundManagerComponentImpl::PrioritizeSounds(
-    INT32 deactivatedSoundsCount) {
-  LOG("Prioritizing sounds...", MGDF_LOG_MEDIUM);
-  // copy the sounds into a local list so sorting won't mess up the external
-  // ordering of the samples
-  std::vector<OpenALSound *> sounds;
-  for (const auto s : _sounds) {
-    sounds.push_back(s);
-  }
-  sort(sounds.begin(), sounds.end(), &OpenALSoundManagerComponentImpl::Sort);
-
-  // detect how many samples will need to be deactivated
-  const size_t freeSources = GetFreeSources();
-  size_t requiringDeactivationCount = deactivatedSoundsCount - freeSources;
-  if (requiringDeactivationCount < 0)
-    requiringDeactivationCount = 0;  // we can activate all sounds.
-
-  // deactivate requiringDeactivationCount of the lowest priority samples, and
-  // reactivate the rest.
-  for (auto s : sounds) {
-    if (requiringDeactivationCount-- > 0) {
-      if (s->IsActive()) {
-        s->Deactivate();
-      }
-    } else {
-      if (!s->IsActive()) {
-        s->Reactivate();
-      }
+  HRESULT Open() {
+    if (Options.Loopback) {
+      const auto open = std::bit_cast<LPALCLOOPBACKOPENDEVICESOFT>(
+          alcGetProcAddress(nullptr, "alcLoopbackOpenDeviceSOFT"));
+      RenderSamples = std::bit_cast<LPALCRENDERSAMPLESSOFT>(
+          alcGetProcAddress(nullptr, "alcRenderSamplesSOFT"));
+      if (!open || !RenderSamples) return E_FAIL;
+      Device = open(nullptr);
+    } else
+      Device = alcOpenDevice(nullptr);
+    if (!Device) return E_FAIL;
+    std::vector<ALCint> attributes{
+        ALC_MONO_SOURCES,        512,
+        ALC_MAX_AUXILIARY_SENDS, 2,
+        ALC_HRTF_SOFT,           Options.Hrtf ? ALC_TRUE : ALC_FALSE};
+    if (Options.Loopback)
+      attributes.insert(
+          attributes.end(),
+          {ALC_FREQUENCY, static_cast<ALCint>(Options.SampleRate),
+           ALC_FORMAT_CHANNELS_SOFT, ALC_STEREO_SOFT, ALC_FORMAT_TYPE_SOFT,
+           ALC_FLOAT_SOFT, ALC_OUTPUT_LIMITER_SOFT, ALC_FALSE,
+           ALC_OUTPUT_MODE_SOFT, ALC_STEREO_BASIC_SOFT});
+    attributes.push_back(0);
+    Context = alcCreateContext(Device, attributes.data());
+    if (!Context) return E_FAIL;
+    const auto bind = std::bit_cast<PFNALCSETTHREADCONTEXTPROC>(
+        alcGetProcAddress(Device, "alcSetThreadContext"));
+    if (!bind || !bind(Context)) return E_FAIL;
+    if (!alIsExtensionPresent("AL_SOFT_callback_buffer") ||
+        !alIsExtensionPresent("AL_SOFT_source_start_delay") ||
+        !alIsExtensionPresent("AL_EXT_SOURCE_RADIUS") ||
+        !alcIsExtensionPresent(Device, "ALC_EXT_EFX") ||
+        !alcIsExtensionPresent(Device, "ALC_SOFT_device_clock"))
+      return E_FAIL;
+    GetClock = std::bit_cast<LPALCGETINTEGER64VSOFT>(
+        alcGetProcAddress(Device, "alcGetInteger64vSOFT"));
+    GetOffset = std::bit_cast<LPALGETSOURCEI64VSOFT>(
+        alGetProcAddress("alGetSourcei64vSOFT"));
+    PlayAt = std::bit_cast<LPALSOURCEPLAYATTIMEVSOFT>(
+        alGetProcAddress("alSourcePlayAtTimevSOFT"));
+    BufferCallback = std::bit_cast<LPALBUFFERCALLBACKSOFT>(
+        alGetProcAddress("alBufferCallbackSOFT"));
+    GenFilters =
+        std::bit_cast<LPALGENFILTERS>(alGetProcAddress("alGenFilters"));
+    DeleteFilters =
+        std::bit_cast<LPALDELETEFILTERS>(alGetProcAddress("alDeleteFilters"));
+    Filteri = std::bit_cast<LPALFILTERI>(alGetProcAddress("alFilteri"));
+    Filterf = std::bit_cast<LPALFILTERF>(alGetProcAddress("alFilterf"));
+    if (!GetClock || !GetOffset || !PlayAt || !BufferCallback || !GenFilters ||
+        !DeleteFilters || !Filteri || !Filterf)
+      return E_FAIL;
+    ALCint rate = 0;
+    alcGetIntegerv(Device, ALC_FREQUENCY, 1, &rate);
+    Control->SampleRate.store(static_cast<UINT32>(rate));
+    alDistanceModel(AL_NONE);
+    for (UINT32 i = 0; i < Options.Sources; ++i) {
+      Source source;
+      alGenSources(1, &source.Id);
+      if (alGetError() != AL_NO_ERROR) break;
+      GenFilters(1, &source.Filter);
+      alGenBuffers(1, &source.Callback);
+      Filteri(source.Filter, AL_FILTER_TYPE, AL_FILTER_LOWPASS);
+      Sources.push_back(source);
+      FreeSources.push_back(static_cast<int>(i));
     }
-  }
-}
-
-// sort sounds into the lowest->highest priority
-bool OpenALSoundManagerComponentImpl::Sort(OpenALSound *a, OpenALSound *b) {
-  _ASSERTE(a);
-  _ASSERTE(b);
-
-  if (a->GetPriority() < b->GetPriority()) {
-    return true;
-  } else if (a->GetAttenuatedVolume() < b->GetAttenuatedVolume()) {
-    return true;
-  } else if (!a->GetLooping() && b->GetLooping()) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-HRESULT OpenALSoundManagerComponentImpl::CreateSoundBuffer(
-    ComObject<IMGDFReadOnlyFile> dataSource, ALuint *bufferId) {
-  _ASSERTE(dataSource);
-
-  LOG("Getting sound buffer...", MGDF_LOG_MEDIUM);
-
-  std::wstring dataSourceName =
-      ComString<&IMGDFReadOnlyFile::GetLogicalPath>(dataSource);
-
-  // see if the buffer already exists in memory before trying to create it
-  for (auto &buffer : _sharedBuffers) {
-    if (buffer.second->BufferSource == dataSourceName) {
-      LOG("Sound buffer already loaded into memory - re-using",
-          MGDF_LOG_MEDIUM);
-      ++buffer.second->References;
-      *bufferId = buffer.first;
-      return S_OK;
-    }
-  }
-
-  {
-    std::vector<char> data;
-    ComObject<IMGDFFileReader> reader;
-    if (FAILED(dataSource->Open(reader.Assign()))) {
-      LOG("Buffer file could not be opened or is already open for reading",
-          MGDF_LOG_ERROR);
-      return E_ACCESSDENIED;
-    }
-
-    const INT64 size = reader->GetSize();
-    const UINT32 truncSize =
-        size > UINT_MAX ? UINT_MAX : static_cast<UINT32>(size);
-    data.resize(truncSize);
-    reader->Read(data.data(), truncSize);
-    *bufferId = alutCreateBufferFromFileImage((ALvoid *)data.data(), truncSize);
-  }
-
-  // if the buffer loaded ok, add it to the list of loaded shared buffers
-  if (*bufferId != ALUT_ERROR_AL_ERROR_ON_ENTRY &&
-      *bufferId != ALUT_ERROR_ALC_ERROR_ON_ENTRY && *bufferId != AL_NONE) {
-    LOG("Loaded shared sound buffer into memory", MGDF_LOG_MEDIUM);
-    auto sharedBuffer = std::make_unique<SharedBuffer>();
-    sharedBuffer->BufferSource = dataSourceName;
-    sharedBuffer->References = 1;
-    _sharedBuffers.insert(std::make_pair(*bufferId, std::move(sharedBuffer)));
+    if (Sources.empty() || alGetError() != AL_NO_ERROR) return E_FAIL;
+    Now = Clock();
+    RefreshBuses();
+    Publish(0);
     return S_OK;
   }
-
-  LOG("Error allocating sound buffer", MGDF_LOG_ERROR);
-  return E_FAIL;
-}
-
-void OpenALSoundManagerComponentImpl::RemoveSoundBuffer(ALuint bufferId) {
-  if (_sharedBuffers.find(bufferId) != _sharedBuffers.end()) {
-    --_sharedBuffers[bufferId]->References;
-    // if there are no more references to this buffer, remove it.
-    if (_sharedBuffers[bufferId]->References == 0) {
-      LOG("No more references to shared sound buffer - removing...",
-          MGDF_LOG_MEDIUM);
-      alDeleteBuffers(1, &bufferId);
-      _sharedBuffers.erase(bufferId);
+  void RefreshBuses() {
+    for (size_t i = 0; i < Buses.size(); ++i) {
+      auto *info = Control->Buses[i].load();
+      if (!info) continue;
+      auto &bus = Buses[i];
+      if (!bus.Initialized) {
+        bus.Volume.Set(info->InitialVolume, Now);
+        bus.Initialized = true;
+      }
+      bus.Gain = bus.Mute ? 0 : bus.Volume.At(Now);
+      bus.HF = bus.GainHF.At(Now);
+      bus.Paused = bus.Pause;
+      if (i) {
+        bus.Gain *= Buses[info->Parent].Gain;
+        bus.HF *= Buses[info->Parent].HF;
+        bus.Paused |= Buses[info->Parent].Paused;
+      }
+      info->Volume.store(bus.Volume.At(Now));
     }
   }
-}
+  void UploadSamples() {
+    auto *registration = Registrations.Take();
+    while (registration) {
+      auto *next = registration->Next;
+      auto data = std::move(registration->Data);
+      Samples.emplace(data.get(), SampleBuffers{data, {}});
+      delete registration;
+      registration = next;
+    }
+    for (auto it = Samples.begin(); it != Samples.end();) {
+      auto &record = it->second;
+      auto &data = *record.Data;
+      if (data.Status.load(std::memory_order_acquire) == SampleData::Decoded) {
+        record.Buffers.resize(data.Segments.size());
+        alGenBuffers(static_cast<ALsizei>(record.Buffers.size()),
+                     record.Buffers.data());
+        for (size_t i = 0; i < record.Buffers.size(); ++i) {
+          const auto &pcm = data.Segments[i].Samples;
+          alBufferData(record.Buffers[i],
+                       data.Channels == 1 ? AL_FORMAT_MONO_FLOAT32
+                                          : AL_FORMAT_STEREO_FLOAT32,
+                       pcm.data(),
+                       static_cast<ALsizei>(pcm.size() * sizeof(float)),
+                       static_cast<ALsizei>(data.Rate));
+        }
+        data.Status.store(alGetError() == AL_NO_ERROR ? SampleData::Loaded
+                                                      : SampleData::Failed,
+                          std::memory_order_release);
+      }
+      if (record.Data.use_count() == 1) {
+        if (!record.Buffers.empty())
+          alDeleteBuffers(static_cast<ALsizei>(record.Buffers.size()),
+                          record.Buffers.data());
+        it = Samples.erase(it);
+      } else
+        ++it;
+    }
+  }
+  void ReleaseSource(Voice &voice) {
+    if (voice.Source < 0) return;
+    auto &source = Sources[voice.Source];
+    alSourceStop(source.Id);
+    alSourcei(source.Id, AL_BUFFER, 0);
+    alSourcei(source.Id, AL_DIRECT_FILTER, AL_FILTER_NULL);
+    if (voice.Pcm && voice.Feed) {
+      voice.Played = voice.Pcm->ReadCount();
+      voice.Pcm->Publish(voice.Played, Now);
+      Underruns += voice.Feed->Underruns.load();
+      voice.Feed.reset();
+    }
+    FreeSources.push_back(voice.Source);
+    voice.Source = -1;
+  }
+  void Finish(Voice &voice, bool stopped) {
+    ReleaseSource(voice);
+    if (voice.Pcm) voice.Pcm->ReleaseVoice(stopped);
+    voice.Ended = true;
+    Control->SetStatus(voice.Id, MGDF_VOICE_ENDED);
+  }
+  void Advance(Voice &voice) {
+    if (voice.Waiting && voice.Samples->IsLoaded()) {
+      voice.Waiting = false;
+      voice.Desc.StartTime = Now;
+      voice.LastTime = Now;
+      voice.Fade.From = voice.Fade.To = voice.Desc.FadeIn > 0 ? 0.0f : 1.0f;
+      voice.Fade.Set(1, Now, voice.Desc.FadeIn);
+    }
+    const auto first = std::max(voice.LastTime, voice.Desc.StartTime);
+    const auto elapsed =
+        voice.Paused || voice.Waiting ? 0 : voice.Pitch.Integral(first, Now);
+    voice.LastTime = Now;
+    if (voice.Stopping && Now >= voice.Fade.End) {
+      Finish(voice, true);
+      return;
+    }
+    if (voice.Samples && voice.Samples->HasFailed()) {
+      Finish(voice, false);
+      return;
+    }
+    if (voice.Source >= 0) {
+      const auto source = Sources[voice.Source].Id;
+      ALint64SOFT offset[2]{};
+      GetOffset(source, AL_SAMPLE_OFFSET_CLOCK_SOFT, offset);
+      ALint state = AL_INITIAL;
+      alGetSourcei(source, AL_SOURCE_STATE, &state);
+      if (voice.Pcm) {
+        if (state == AL_STOPPED)
+          voice.Played = voice.Pcm->ReadCount();
+        else if (offset[0] >= 0)
+          voice.Played = voice.Feed->Position(
+              static_cast<UINT64>(offset[0]) >> 32, voice.Played);
+        voice.Pcm->Publish(voice.Played,
+                           std::max(voice.Desc.StartTime,
+                                    static_cast<double>(offset[1]) / 1e9));
+        if (voice.Pcm->Ended.load() && !voice.Pcm->GetQueuedFrames() &&
+            voice.Played == voice.Pcm->ReadCount()) {
+          Finish(voice, false);
+          return;
+        }
+      } else if (state == AL_STOPPED) {
+        Finish(voice, false);
+        return;
+      } else if (offset[0] >= 0)
+        voice.Position = static_cast<double>(offset[0]) / 4294967296.0 /
+                         voice.Samples->Data->Rate;
+    } else if (voice.Pcm) {
+      const auto advance =
+          voice.Fraction + elapsed * voice.Pcm->GetSampleRate();
+      const auto frames =
+          static_cast<UINT64>(static_cast<INT64>(std::floor(advance + 1e-9)));
+      voice.Fraction = std::max(0.0, advance - static_cast<double>(frames));
+      const auto requested =
+          static_cast<UINT32>(std::min<UINT64>(frames, UINT32_MAX));
+      const auto consumed = voice.Pcm->Consume(nullptr, requested);
+      if (consumed < frames && !voice.Pcm->Ended.load()) ++Underruns;
+      voice.Played = voice.Pcm->ReadCount();
+      voice.Pcm->Publish(voice.Played, std::max(Now, voice.Desc.StartTime));
+      if (Now >= voice.Desc.StartTime && voice.Pcm->Ended.load() &&
+          !voice.Pcm->GetQueuedFrames()) {
+        Finish(voice, false);
+        return;
+      }
+    } else {
+      voice.Position += elapsed;
+      if (voice.Samples->IsLoaded()) {
+        const auto &segment = voice.Samples->Data->Segments[voice.Desc.Segment];
+        if (segment.Loop)
+          voice.Position = std::fmod(voice.Position, segment.Duration);
+        else if (voice.Position >= segment.Duration) {
+          Finish(voice, false);
+          return;
+        }
+      }
+    }
+  }
+  void Apply(AudioCommand &command) {
+    const auto id = command.Voice;
+    if (command.Op == AudioOp::Play || command.Op == AudioOp::PlayPcm) {
+      auto voice = std::make_unique<Voice>();
+      voice->Id = id;
+      voice->Desc = command.Desc;
+      voice->Samples = std::move(command.Samples);
+      voice->Pcm = std::move(command.Pcm);
+      voice->Desc.StartTime =
+          command.Desc.StartTime ? command.Desc.StartTime : Now;
+      voice->LastTime = voice->Desc.StartTime;
+      voice->Waiting = voice->Samples && !voice->Samples->IsLoaded() &&
+                       !command.Desc.StartTime;
+      voice->Position = voice->Pcm ? 0 : command.Desc.StartOffset;
+      voice->Volume.Set(command.Desc.Volume, Now);
+      voice->Pitch.Set(command.Desc.Pitch, Now);
+      voice->HF.Set(command.Desc.GainHF, Now);
+      voice->Fade.From = voice->Fade.To = command.Desc.FadeIn > 0 ? 0.0f : 1.0f;
+      voice->Fade.Set(1, voice->Desc.StartTime, command.Desc.FadeIn);
+      const auto &d = command.Desc;
+      const float spatial[]{d.Position.x, d.Position.y, d.Position.z,
+                            d.Velocity.x, d.Velocity.y, d.Velocity.z,
+                            d.Radius};
+      for (size_t i = 0; i < voice->Spatial.size(); ++i)
+        voice->Spatial[i].Set(spatial[i], Now);
+      if (voice->Pcm) {
+        voice->Played = voice->Pcm->ReadCount();
+        voice->LastTime = Now;
+      }
+      voice->Paused = Buses[d.Bus].Paused;
+      Advance(*voice);
+      if (!voice->Ended) Voices.emplace(id, std::move(voice));
+      return;
+    }
+    if (command.Op == AudioOp::Listener) {
+      const auto &l = command.Listener;
+      alListener3f(AL_POSITION, l.Position.x, l.Position.y, l.Position.z);
+      alListener3f(AL_VELOCITY, l.Velocity.x, l.Velocity.y, l.Velocity.z);
+      const float orientation[]{l.Forward.x, l.Forward.y, l.Forward.z,
+                                l.Up.x,      l.Up.y,      l.Up.z};
+      alListenerfv(AL_ORIENTATION, orientation);
+      return;
+    }
+    if (command.Op == AudioOp::Speed) {
+      alSpeedOfSound(command.Value);
+      return;
+    }
+    if (command.Op == AudioOp::Doppler) {
+      alDopplerFactor(command.Value);
+      return;
+    }
+    if (command.Op >= AudioOp::BusVolume && command.Op <= AudioOp::BusGainHF) {
+      if (id >= Buses.size() || !Control->Buses[id].load()) return;
+      auto &bus = Buses[id];
+      if (command.Op == AudioOp::BusVolume)
+        bus.Volume.Set(command.Value, Now, command.Ramp);
+      if (command.Op == AudioOp::BusGainHF)
+        bus.GainHF.Set(command.Value, Now, command.Ramp);
+      if (command.Op == AudioOp::BusMute) bus.Mute = command.Value != 0;
+      if (command.Op == AudioOp::BusPaused) bus.Pause = command.Value != 0;
+      return;
+    }
+    const auto found = Voices.find(id);
+    if (found == Voices.end() || found->second->Ended) return;
+    auto &voice = *found->second;
+    switch (command.Op) {
+      case AudioOp::Stop:
+        voice.Stopping = true;
+        voice.Fade.Set(0, Now, command.Ramp);
+        if (command.Ramp == 0) Finish(voice, true);
+        break;
+      case AudioOp::Volume:
+        voice.Volume.Set(command.Value, Now, command.Ramp);
+        break;
+      case AudioOp::Pitch:
+        voice.Pitch.Set(command.Value, Now, command.Ramp);
+        break;
+      case AudioOp::Audibility:
+        voice.Desc.Audibility = command.Value;
+        break;
+      case AudioOp::GainHF:
+        voice.HF.Set(command.Value, Now, command.Ramp);
+        break;
+      case AudioOp::Spatial: {
+        const auto &d = command.Desc;
+        const float values[]{d.Position.x, d.Position.y, d.Position.z,
+                             d.Velocity.x, d.Velocity.y, d.Velocity.z,
+                             d.Radius};
+        for (size_t i = 0; i < voice.Spatial.size(); ++i)
+          voice.Spatial[i].Set(values[i], Now, command.Ramp);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  float Score(const Voice &voice) const {
+    float level = voice.Desc.Audibility;
+    if (level == 0 && voice.Samples) {
+      const auto &segment = voice.Samples->Data->Segments[voice.Desc.Segment];
+      const auto index = std::min(static_cast<size_t>(voice.Position / 0.02),
+                                  segment.Rms.size() - 1);
+      level = segment.Rms[index];
+    } else if (level == 0)
+      level = 1;
+    return level * voice.Volume.At(Now) * voice.Fade.At(Now) *
+           Buses[voice.Desc.Bus].Gain;
+  }
+  void Configure(Voice &voice) {
+    const auto &source = Sources[voice.Source];
+    const auto &bus = Buses[voice.Desc.Bus];
+    const auto gain = voice.Volume.At(Now) * voice.Fade.At(Now) * bus.Gain;
+    alSourcef(source.Id, AL_MAX_GAIN, std::max(1.0f, gain));
+    alSourcef(source.Id, AL_GAIN, std::max(1.0f, gain));
+    alSourcef(source.Id, AL_PITCH, voice.Pitch.At(Now));
+    Filterf(source.Filter, AL_LOWPASS_GAIN, std::min(1.0f, gain));
+    Filterf(source.Filter, AL_LOWPASS_GAINHF, voice.HF.At(Now) * bus.HF);
+    alSourcei(source.Id, AL_DIRECT_FILTER, static_cast<ALint>(source.Filter));
+    alSourcei(source.Id, AL_SOURCE_RELATIVE, AL_TRUE);
+    alSourcei(source.Id, AL_SOURCE_SPATIALIZE_SOFT,
+              voice.Desc.Spatial ? AL_TRUE : AL_FALSE);
+    alSourcei(source.Id, AL_DIRECT_CHANNELS_SOFT,
+              voice.Desc.Spatial ? AL_FALSE : AL_TRUE);
+    alSource3f(source.Id, AL_POSITION, voice.Spatial[0].At(Now),
+               voice.Spatial[1].At(Now), voice.Spatial[2].At(Now));
+    alSource3f(source.Id, AL_VELOCITY, voice.Spatial[3].At(Now),
+               voice.Spatial[4].At(Now), voice.Spatial[5].At(Now));
+    alSourcef(source.Id, AL_SOURCE_RADIUS, voice.Spatial[6].At(Now));
+  }
+  void Acquire(Voice &voice) {
+    voice.Source = FreeSources.back();
+    FreeSources.pop_back();
+    const auto &source = Sources[voice.Source];
+    alSourceRewind(source.Id);
+    alSourcei(source.Id, AL_LOOPING, AL_FALSE);
+    if (voice.Pcm) {
+      voice.Feed = std::make_unique<PcmFeed>();
+      voice.Feed->Stream = voice.Pcm.Get();
+      voice.Feed->Base = voice.Pcm->ReadCount();
+      BufferCallback(source.Callback,
+                     voice.Pcm->GetChannels() == 1 ? AL_FORMAT_MONO_FLOAT32
+                                                   : AL_FORMAT_STEREO_FLOAT32,
+                     static_cast<ALsizei>(voice.Pcm->GetSampleRate()),
+                     PcmFeed::Read, voice.Feed.get());
+      alSourcei(source.Id, AL_BUFFER, static_cast<ALint>(source.Callback));
+    } else {
+      const auto &data = *voice.Samples->Data;
+      if (voice.Desc.Spatial && data.Channels != 1) {
+        Finish(voice, false);
+        return;
+      }
+      const auto &segment = data.Segments[voice.Desc.Segment];
+      const auto buffer =
+          Samples.at(voice.Samples->Data.get()).Buffers[voice.Desc.Segment];
+      alSourcei(source.Id, AL_BUFFER, static_cast<ALint>(buffer));
+      alSourcei(source.Id, AL_LOOPING, segment.Loop ? AL_TRUE : AL_FALSE);
+      alSourcei(source.Id, AL_SAMPLE_OFFSET,
+                static_cast<ALint>(std::llround(voice.Position * data.Rate)));
+    }
+    Configure(voice);
+    const auto start = static_cast<ALint64SOFT>(
+        std::llround(std::max(Now, voice.Desc.StartTime) * 1e9));
+    PlayAt(1, &source.Id, start);
+  }
+  void Select() {
+    std::vector<Voice *> candidates;
+    size_t pausedSources = 0;
+    for (auto &[id, item] : Voices) {
+      auto &voice = *item;
+      if (voice.Ended) continue;
+      const bool paused = Buses[voice.Desc.Bus].Paused;
+      if (voice.Source >= 0 && paused != voice.Paused) {
+        if (paused)
+          alSourcePause(Sources[voice.Source].Id);
+        else {
+          const auto start = static_cast<ALint64SOFT>(
+              std::llround(std::max(Now, voice.Desc.StartTime) * 1e9));
+          PlayAt(1, &Sources[voice.Source].Id, start);
+        }
+      }
+      voice.Paused = paused;
+      if (voice.Samples && !voice.Samples->IsLoaded()) {
+        Control->SetStatus(id, MGDF_VOICE_PENDING);
+        continue;
+      }
+      if (paused) {
+        if (voice.Source >= 0) ++pausedSources;
+        Control->SetStatus(id, MGDF_VOICE_PAUSED);
+        continue;
+      }
+      candidates.push_back(&voice);
+    }
+    std::sort(candidates.begin(), candidates.end(),
+              [&](const Voice *a, const Voice *b) {
+                if (a->Desc.Priority != b->Desc.Priority)
+                  return a->Desc.Priority > b->Desc.Priority;
+                const auto as = Score(*a), bs = Score(*b);
+                return as == bs ? a->Id < b->Id : as > bs;
+              });
+    const auto available = Sources.size() - pausedSources;
+    for (size_t i = available; i < candidates.size(); ++i)
+      ReleaseSource(*candidates[i]);
+    for (size_t i = 0; i < candidates.size(); ++i) {
+      auto &voice = *candidates[i];
+      if (i < available) {
+        if (voice.Source < 0)
+          Acquire(voice);
+        else
+          Configure(voice);
+        if (!voice.Ended)
+          Control->SetStatus(voice.Id, Now < voice.Desc.StartTime
+                                           ? MGDF_VOICE_PENDING
+                                           : MGDF_VOICE_PLAYING);
+      } else
+        Control->SetStatus(voice.Id, Now < voice.Desc.StartTime
+                                         ? MGDF_VOICE_PENDING
+                                         : MGDF_VOICE_VIRTUAL);
+    }
+  }
+  void Publish(float elapsed) {
+    MixerSnapshot snapshot;
+    snapshot.Time = Now;
+    snapshot.Stats.AudioThreadMs = elapsed;
+    snapshot.Stats.FreeSources = static_cast<UINT32>(FreeSources.size());
+    snapshot.Stats.Underruns = Underruns;
+    for (const auto &[id, voice] : Voices) {
+      if (voice->Ended) continue;
+      if (voice->Source >= 0)
+        ++snapshot.Stats.RealVoices;
+      else if (Control->GetStatus(id) == MGDF_VOICE_VIRTUAL)
+        ++snapshot.Stats.VirtualVoices;
+      if (voice->Feed)
+        snapshot.Stats.Underruns += voice->Feed->Underruns.load();
+    }
+    Control->Snapshot.Publish(snapshot);
+  }
+  void Update() {
+    const auto begin = std::chrono::steady_clock::now();
+    Now = Clock();
+    UploadSamples();
+    for (auto &[id, voice] : Voices)
+      if (!voice->Ended) Advance(*voice);
+    RefreshBuses();
+    auto *batch = Control->Submissions.Take();
+    while (batch) {
+      auto *next = batch->Next;
+      for (auto &command : batch->Commands) Apply(command);
+      delete batch;
+      batch = next;
+    }
+    RefreshBuses();
+    Select();
+    std::erase_if(Voices,
+                  [](const auto &entry) { return entry.second->Ended; });
+    Publish(std::chrono::duration<float, std::milli>(
+                std::chrono::steady_clock::now() - begin)
+                .count());
+  }
+  void Close() {
+    Discard(Control->Submissions.Close(), *Control);
+    if (Context) {
+      for (auto &[id, voice] : Voices)
+        if (!voice->Ended) Finish(*voice, true);
+      Voices.clear();
+      for (auto &[key, record] : Samples)
+        if (!record.Buffers.empty())
+          alDeleteBuffers(static_cast<ALsizei>(record.Buffers.size()),
+                          record.Buffers.data());
+      Samples.clear();
+      for (auto &source : Sources) {
+        alDeleteSources(1, &source.Id);
+        alDeleteBuffers(1, &source.Callback);
+        if (DeleteFilters) DeleteFilters(1, &source.Filter);
+      }
+      Sources.clear();
+      FreeSources.clear();
+      const auto bind = std::bit_cast<PFNALCSETTHREADCONTEXTPROC>(
+          alcGetProcAddress(Device, "alcSetThreadContext"));
+      if (bind) bind(nullptr);
+      alcDestroyContext(Context);
+      Context = nullptr;
+    }
+    if (Device) {
+      alcCloseDevice(Device);
+      Device = nullptr;
+    }
+  }
+};
 
-void OpenALSoundManagerComponentImpl::RemoveSoundStream(
-    IMGDFSoundStream *stream) {
-  if (!stream) return;
-  LOG("Removing sound stream", MGDF_LOG_MEDIUM);
-  _soundStreams.erase(static_cast<VorbisStream *>(stream));
+OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(
+    AudioOptions options)
+    : _impl(std::make_unique<Impl>(options)) {}
+OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() { Stop(); }
+HRESULT OpenALSoundManagerComponentImpl::Init() {
+  auto &m = *_impl;
+  if (!m.Options.Sources || m.Options.Sources > 512) return E_INVALIDARG;
+  HRESULT result = E_FAIL;
+  if (m.Options.Loopback)
+    result = m.Open();
+  else {
+    std::promise<HRESULT> ready;
+    auto future = ready.get_future();
+    m.AudioThread = std::thread([&m, ready = std::move(ready)]() mutable {
+      HRESULT opened = E_FAIL;
+      try {
+        opened = m.Open();
+      } catch (...) {
+      }
+      ready.set_value(opened);
+      if (SUCCEEDED(opened)) {
+        try {
+          while (!m.Stopping.load()) {
+            const auto next =
+                std::chrono::steady_clock::now() + std::chrono::milliseconds(5);
+            m.Update();
+            std::this_thread::sleep_until(next);
+          }
+        } catch (...) {
+          m.Stopping.store(true);
+        }
+      }
+      m.Close();
+    });
+    result = future.get();
+  }
+  if (FAILED(result)) {
+    Stop();
+    return result;
+  }
+  m.Decoder = std::thread([&m] {
+    while (!m.Stopping.load()) {
+      auto *job = m.Decodes.Take();
+      if (!job) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        continue;
+      }
+      while (job) {
+        auto *next = job->Next;
+        DecodeSamples(*job);
+        delete job;
+        job = next;
+        {
+          const std::lock_guard lock(m.DecodeMutex);
+          m.Outstanding.fetch_sub(1);
+        }
+        m.DecodeComplete.notify_all();
+      }
+    }
+  });
+  return S_OK;
 }
-
-void OpenALSoundManagerComponentImpl::RemoveSound(IMGDFSound *sound) {
-  if (!sound) return;
-  LOG("Removing sound", MGDF_LOG_MEDIUM);
-  _sounds.erase(static_cast<OpenALSound *>(sound));
+void OpenALSoundManagerComponentImpl::Stop() {
+  auto &m = *_impl;
+  m.Stopping.store(true);
+  if (m.Decoder.joinable()) m.Decoder.join();
+  auto *job = m.Decodes.Close();
+  while (job) {
+    auto *next = job->Next;
+    job->Data->Status.store(SampleData::Failed);
+    delete job;
+    job = next;
+  }
+  if (m.AudioThread.joinable())
+    m.AudioThread.join();
+  else if (m.Options.Loopback)
+    m.Close();
 }
-
-}  // namespace openal_audio
-}  // namespace audio
-}  // namespace core
-}  // namespace MGDF
+MGDFBusId OpenALSoundManagerComponentImpl::GetBus(MGDFBusKind kind) {
+  return kind >= MGDF_BUS_MASTER && kind <= MGDF_BUS_MUSIC
+             ? static_cast<MGDFBusId>(kind)
+             : 0;
+}
+HRESULT OpenALSoundManagerComponentImpl::CreateBus(const MGDFBusDesc *desc,
+                                                   MGDFBusId *bus) try {
+  if (!bus) return E_POINTER;
+  *bus = 0;
+  auto &m = *_impl;
+  if (m.Stopping.load()) return E_ABORT;
+  if (!desc || !desc->Name || desc->Parent >= AudioControl::BusSlots ||
+      !m.Control->Buses[desc->Parent].load() || !std::isfinite(desc->Volume) ||
+      desc->Volume < 0)
+    return E_INVALIDARG;
+  auto info = std::make_unique<AudioBusInfo>();
+  info->Name = desc->Name;
+  info->Parent = desc->Parent;
+  info->InitialVolume = desc->Volume;
+  info->Volume.store(desc->Volume);
+  if (desc->PreferenceKey) info->Preference = desc->PreferenceKey;
+  const auto id = m.Control->NextBus.fetch_add(1);
+  if (id >= AudioControl::BusSlots) return E_OUTOFMEMORY;
+  m.Control->Buses[id].store(info.release());
+  *bus = id;
+  return S_OK;
+} catch (const std::bad_alloc &) {
+  return E_OUTOFMEMORY;
+}
+HRESULT OpenALSoundManagerComponentImpl::CreateSoundSamples(
+    IMGDFReadOnlyFile *file, const MGDFSoundSamplesDesc *desc,
+    IMGDFSoundSamples **samples) try {
+  if (!samples) return E_POINTER;
+  *samples = nullptr;
+  auto &m = *_impl;
+  if (m.Stopping.load()) return E_ABORT;
+  if (!file || (desc && desc->SegmentCount && !desc->Segments))
+    return E_INVALIDARG;
+  auto data = std::make_shared<SampleData>();
+  if (desc && desc->SegmentCount)
+    data->Descriptors.assign(desc->Segments,
+                             desc->Segments + desc->SegmentCount);
+  else
+    data->Descriptors.push_back({0, 0, FALSE});
+  for (const auto &segment : data->Descriptors)
+    if (!std::isfinite(segment.Start) || !std::isfinite(segment.Length) ||
+        segment.Start < 0 || segment.Length < 0)
+      return E_INVALIDARG;
+  auto registration = std::make_unique<SampleRegistration>();
+  registration->Data = data;
+  if (!m.Registrations.Push(registration.get())) return E_ABORT;
+  registration.release();
+  auto job = std::make_unique<DecodeJob>();
+  job->Data = data;
+  job->File = MakeComFromPtr<IMGDFReadOnlyFile>(file);
+  m.Outstanding.fetch_add(1);
+  if (!m.Decodes.Push(job.get())) {
+    m.Outstanding.fetch_sub(1);
+    data->Status.store(SampleData::Failed);
+    return E_ABORT;
+  }
+  job.release();
+  auto result = MakeCom<SoundSamples>(m.Control, data);
+  result.AddRawRef(samples);
+  return S_OK;
+} catch (const std::bad_alloc &) {
+  return E_OUTOFMEMORY;
+}
+HRESULT OpenALSoundManagerComponentImpl::CreatePcmStream(
+    const MGDFSoundPcmDesc *desc, IMGDFSoundPcmStream **stream) try {
+  if (!stream) return E_POINTER;
+  *stream = nullptr;
+  auto &m = *_impl;
+  if (m.Stopping.load()) return E_ABORT;
+  if (!desc || desc->Channels < 1 || desc->Channels > 2) return E_INVALIDARG;
+  auto value = *desc;
+  if (!value.SampleRate) value.SampleRate = GetSampleRate();
+  if (!value.CapacityFrames) value.CapacityFrames = value.SampleRate / 5;
+  if (value.SampleRate < 8000 || value.SampleRate > 192000 ||
+      !value.CapacityFrames || value.CapacityFrames > 16777216)
+    return E_INVALIDARG;
+  auto result = MakeCom<SoundPcmStream>(m.Control, value);
+  result.AddRawRef(stream);
+  return S_OK;
+} catch (const std::bad_alloc &) {
+  return E_OUTOFMEMORY;
+}
+HRESULT OpenALSoundManagerComponentImpl::CreateCommandList(
+    IMGDFSoundCommandList **list) try {
+  if (!list) return E_POINTER;
+  *list = nullptr;
+  if (_impl->Stopping.load()) return E_ABORT;
+  auto result = MakeCom<SoundCommandList>(_impl->Control);
+  result.AddRawRef(list);
+  return S_OK;
+} catch (const std::bad_alloc &) {
+  return E_OUTOFMEMORY;
+}
+void OpenALSoundManagerComponentImpl::Submit(IMGDFSoundCommandList *list) {
+  auto *commands = dynamic_cast<SoundCommandList *>(list);
+  if (!commands || commands->Owner != _impl->Control) return;
+  auto *batch = commands->Detach();
+  if (batch && !_impl->Control->Submissions.Push(batch))
+    Discard(batch, *_impl->Control);
+}
+double OpenALSoundManagerComponentImpl::GetAudioTime() {
+  return _impl->Control->Snapshot.Read().Time;
+}
+UINT32 OpenALSoundManagerComponentImpl::GetSampleRate() {
+  return _impl->Control->SampleRate.load();
+}
+MGDFVoiceStatus OpenALSoundManagerComponentImpl::GetVoiceStatus(
+    MGDFVoiceId id) {
+  return _impl->Control->GetStatus(id);
+}
+void OpenALSoundManagerComponentImpl::GetStats(MGDFSoundStats *stats) {
+  if (stats) *stats = _impl->Control->Snapshot.Read().Stats;
+}
+void OpenALSoundManagerComponentImpl::SetSpeedOfSound(float value) {
+  if (!std::isfinite(value) || value <= 0) return;
+  auto list = MakeCom<SoundCommandList>(_impl->Control);
+  AudioCommand command;
+  command.Op = AudioOp::Speed;
+  command.Value = value;
+  list->Add(std::move(command));
+  Submit(list);
+}
+void OpenALSoundManagerComponentImpl::SetDopplerFactor(float value) {
+  if (!std::isfinite(value) || value < 0) return;
+  auto list = MakeCom<SoundCommandList>(_impl->Control);
+  AudioCommand command;
+  command.Op = AudioOp::Doppler;
+  command.Value = value;
+  list->Add(std::move(command));
+  Submit(list);
+}
+void OpenALSoundManagerComponentImpl::GetPreferences(
+    IMGDFPreferenceSet **preferences) {
+  if (!preferences) return;
+  auto result = MakeCom<PreferenceSetImpl>();
+  for (auto &slot : _impl->Control->Buses) {
+    const auto *bus = slot.load();
+    if (bus && !bus->Preference.empty())
+      result->Preferences[bus->Preference] = std::to_string(bus->Volume.load());
+  }
+  result->Preferences["host.hrtf"] = _impl->Options.Hrtf ? "1" : "0";
+  result.AddRawRef(preferences);
+}
+void OpenALSoundManagerComponentImpl::Update() {
+  _ASSERTE(_impl->Options.Loopback);
+  _impl->Update();
+}
+void OpenALSoundManagerComponentImpl::Render(float *stereo, UINT32 frames) {
+  _ASSERTE(_impl->Options.Loopback);
+  _impl->RenderSamples(_impl->Device, stereo, static_cast<ALCsizei>(frames));
+  _impl->Update();
+}
+bool OpenALSoundManagerComponentImpl::WaitForLoads(
+    std::chrono::milliseconds timeout) {
+  std::unique_lock lock(_impl->DecodeMutex);
+  return _impl->DecodeComplete.wait_for(
+      lock, timeout, [&] { return _impl->Outstanding.load() == 0; });
+}
+}  // namespace MGDF::core::audio::openal_audio
