@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include <fstream>
+
 #include "Control.hpp"
 
 using namespace MGDF;
@@ -58,6 +60,39 @@ std::vector<std::unique_ptr<XrSpace_T>> RetiredSpaces;
 bool InstanceLost = false;
 UINT32 MaskMode = 0;
 bool FailNextAcquire = false;
+bool Configured = false;
+ULONGLONG ReadyAt = 0;
+std::string ReportPath;
+
+UINT32 EnvironmentNumber(const char *name) {
+  char value[32]{};
+  return GetEnvironmentVariableA(name, value, sizeof(value))
+             ? static_cast<UINT32>(strtoul(value, nullptr, 10))
+             : 0;
+}
+
+void ReadEnvironment() {
+  if (Configured) return;
+  Config.TypelessColor = EnvironmentNumber("MGDF_TEST_XR_TYPELESS_COLOR") != 0;
+  Config.TypelessDepth = EnvironmentNumber("MGDF_TEST_XR_TYPELESS_DEPTH") != 0;
+  Config.SimultaneousAccess =
+      EnvironmentNumber("MGDF_TEST_XR_SIMULTANEOUS_ACCESS") != 0;
+  Config.EyeWidth = EnvironmentNumber("MGDF_TEST_XR_EYE_WIDTH");
+  Config.EyeHeight = EnvironmentNumber("MGDF_TEST_XR_EYE_HEIGHT");
+  Config.ReadyDelayMs = EnvironmentNumber("MGDF_TEST_XR_READY_DELAY_MS");
+  char path[MAX_PATH]{};
+  GetEnvironmentVariableA("MGDF_TEST_XR_REPORT", path, sizeof(path));
+  ReportPath = path;
+}
+
+void WriteReport() {
+  if (ReportPath.empty()) return;
+  std::ofstream file(ReportPath);
+  file << "{\"frames\":" << Stats.Frames
+       << ",\"projectionFrames\":" << Stats.ProjectionFrames
+       << ",\"submittedImages\":" << Stats.SubmittedImages
+       << ",\"errors\":" << Stats.Errors << "}\n";
+}
 
 XrResult Reject() {
   ++Stats.Errors;
@@ -98,6 +133,7 @@ XrResult XRAPI_CALL EnumerateExtensions(const char *, uint32_t capacity,
 }
 XrResult XRAPI_CALL CreateInstance(const XrInstanceCreateInfo *info,
                                    XrInstance *instance) {
+  ReadEnvironment();
   if (!Config.Api11 &&
       info->applicationInfo.apiVersion >= XR_MAKE_VERSION(1, 1, 0))
     return XR_ERROR_API_VERSION_UNSUPPORTED;
@@ -148,6 +184,13 @@ XrResult XRAPI_CALL GetSystem(XrInstance, const XrSystemGetInfo *,
 }
 XrResult XRAPI_CALL Requirements12(
     XrInstance, XrSystemId, XrGraphicsRequirementsD3D12KHR *requirements) {
+  if (!Config.Adapter.LowPart && !Config.Adapter.HighPart) {
+    ComObject<ID3D12Device> device;
+    if (FAILED(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0,
+                                 IID_PPV_ARGS(device.Assign()))))
+      return XR_ERROR_GRAPHICS_DEVICE_INVALID;
+    Config.Adapter = device->GetAdapterLuid();
+  }
   requirements->adapterLuid = Config.Adapter;
   requirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
   return XR_SUCCESS;
@@ -175,8 +218,8 @@ XrResult XRAPI_CALL CreateSession(XrInstance, const XrSessionCreateInfo *info,
   *session = Session;
   ++Stats.SessionsCreated;
   ++Stats.LiveSessions;
-  Events.push_back({XR_SESSION_STATE_READY});
-  Events.push_back({XR_SESSION_STATE_FOCUSED});
+  Events.push_back({XR_SESSION_STATE_IDLE});
+  ReadyAt = Config.DeferReady ? 0 : GetTickCount64() + Config.ReadyDelayMs;
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL DestroySession(XrSession session) {
@@ -186,6 +229,8 @@ XrResult XRAPI_CALL DestroySession(XrSession session) {
   Session = XR_NULL_HANDLE;
   Events.clear();
   --Stats.LiveSessions;
+  ReadyAt = 0;
+  WriteReport();
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL ReferenceSpaces(XrSession, uint32_t capacity,
@@ -227,9 +272,15 @@ XrResult XRAPI_CALL Views(XrInstance, XrSystemId, XrViewConfigurationType type,
                           uint32_t capacity, uint32_t *count,
                           XrViewConfigurationView *views) {
   if (type != XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) return Reject();
-  const std::array<XrViewConfigurationView, 2> values{
+  std::array<XrViewConfigurationView, 2> values{
       {{XR_TYPE_VIEW_CONFIGURATION_VIEW, nullptr, 48, 128, 48, 128, 1, 1},
        {XR_TYPE_VIEW_CONFIGURATION_VIEW, nullptr, 64, 128, 48, 128, 1, 1}}};
+  for (auto &view : values) {
+    if (Config.EyeWidth) view.recommendedImageRectWidth = Config.EyeWidth;
+    if (Config.EyeHeight) view.recommendedImageRectHeight = Config.EyeHeight;
+    view.maxImageRectWidth = std::max(128U, view.recommendedImageRectWidth);
+    view.maxImageRectHeight = std::max(128U, view.recommendedImageRectHeight);
+  }
   return Enumerate(values, capacity, count, views);
 }
 XrResult XRAPI_CALL Formats(XrSession, uint32_t capacity, uint32_t *count,
@@ -264,16 +315,23 @@ XrResult XRAPI_CALL CreateSwapchain(XrSession session,
         info->height,
         1,
         1,
-        static_cast<DXGI_FORMAT>(info->format),
+        depth && Config.TypelessDepth ? DXGI_FORMAT_R32_TYPELESS
+        : !depth && Config.TypelessColor
+            ? DXGI_FORMAT_R8G8B8A8_TYPELESS
+            : static_cast<DXGI_FORMAT>(info->format),
         {1, 0},
         D3D12_TEXTURE_LAYOUT_UNKNOWN,
         depth ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
-              : D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET};
+              : D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET |
+                    (Config.SimultaneousAccess
+                         ? D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS
+                         : D3D12_RESOURCE_FLAG_NONE)};
     ComObject<ID3D12Resource> image;
     if (FAILED(session->Device12->CreateCommittedResource(
             &heap, D3D12_HEAP_FLAG_NONE, &desc,
             depth ? D3D12_RESOURCE_STATE_DEPTH_WRITE
-                  : D3D12_RESOURCE_STATE_RENDER_TARGET,
+            : Config.SimultaneousAccess ? D3D12_RESOURCE_STATE_COMMON
+                                       : D3D12_RESOURCE_STATE_RENDER_TARGET,
             nullptr, IID_PPV_ARGS(image.Assign()))))
       return XR_ERROR_RUNTIME_FAILURE;
     chain->Images12.push_back(image);
@@ -302,6 +360,11 @@ XrResult XRAPI_CALL Images(XrSwapchain swapchain, uint32_t capacity,
   return XR_SUCCESS;
 }
 XrResult XRAPI_CALL Poll(XrInstance, XrEventDataBuffer *buffer) {
+  if (ReadyAt && GetTickCount64() >= ReadyAt) {
+    ReadyAt = 0;
+    Events.push_back({XR_SESSION_STATE_READY});
+    Events.push_back({XR_SESSION_STATE_FOCUSED});
+  }
   if (InstanceLost) {
     const XrEventDataInstanceLossPending event{
         XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING, nullptr, 1};
@@ -480,6 +543,7 @@ XrResult XRAPI_CALL EndFrame(XrSession session, const XrFrameEndInfo *info) {
   } else
     ++Stats.EmptyFrames;
   ++Stats.Frames;
+  if (Stats.Frames == 1 || Stats.Frames % 60 == 0) WriteReport();
   session->Begun = false;
   return XR_SUCCESS;
 }
@@ -706,7 +770,9 @@ XrResult XRAPI_CALL GetSystemProperties(XrInstance, XrSystemId system,
       return Reject();
     gaze->supportsEyeGazeInteraction = Config.EyeTracking;
   }
-  properties->graphicsProperties = {1024, 1024, Config.PanelSupport ? 4U : 1U};
+  properties->graphicsProperties = {std::max(1024U, Config.EyeWidth),
+                                    std::max(1024U, Config.EyeHeight),
+                                    Config.PanelSupport ? 4U : 1U};
   return XR_SUCCESS;
 }
 
@@ -829,6 +895,9 @@ extern "C" __declspec(dllexport) void Configure(const FakeXRConfig *config) {
   RetiredSessions.clear();
   RetiredSpaces.clear();
   Config = *config;
+  Configured = true;
+  ReadyAt = 0;
+  ReportPath.clear();
   Input = {};
   Paths.clear();
   Stats = {};

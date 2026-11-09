@@ -46,6 +46,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Control.hpp" />
     <None Include="runtime.json" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\core\core.api\core.api.vcxproj">

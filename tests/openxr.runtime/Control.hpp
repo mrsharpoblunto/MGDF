@@ -22,6 +22,13 @@ struct FakeXRConfig {
   bool LocalFloor = false;
   bool LocalFloorExtension = false;
   bool DeferStop = false;
+  bool TypelessColor = false;
+  bool TypelessDepth = false;
+  bool SimultaneousAccess = false;
+  UINT32 EyeWidth = 0;
+  UINT32 EyeHeight = 0;
+  UINT32 ReadyDelayMs = 0;
+  bool DeferReady = false;
 };
 struct FakeXRInput {
   bool Connected[2]{true, true};
