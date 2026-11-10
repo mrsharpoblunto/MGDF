@@ -1149,16 +1149,23 @@ std::filesystem::path OutputTestFile() {
          ("mgdf_output_" + std::to_string(GetCurrentProcessId()) + ".wav");
 }
 bool WaitForMix(audio::AudioCaptureRing *ring,
-                OpenALSoundManagerComponentImpl *manager, double time) {
+                OpenALSoundManagerComponentImpl *manager, double time,
+                audio::AudioBlock *last = nullptr) {
   const auto deadline = GetTickCount64() + 10000;
-  while (manager->GetAudioTime() < time) {
+  for (;;) {
     if (GetTickCount64() > deadline) return false;
     audio::AudioBlock block;
     while (ring->Pop(block)) {
+      if (last) {
+        EXPECT_GE(block.PlayTime,
+                  last->PlayTime + last->Frames * audio::AudioTicksPerSecond /
+                                       audio::MixRate);
+        *last = block;
+      }
     }
+    if (manager->GetAudioTime() >= time) return true;
     if (WaitForSingleObject(ring->Ready, 1000) != WAIT_OBJECT_0) return false;
   }
-  return true;
 }
 }  // namespace
 TEST_F(AudioTests, FileOutputEqualsTheLoopbackMix) {
@@ -1211,6 +1218,7 @@ TEST_F(AudioTests, FileOutputEqualsTheLoopbackMix) {
 }
 TEST_F(AudioTests, EndpointChangesPreserveTheClockAndPcmPosition) {
   auto source = MakeCom<TestOutputSource>();
+  source->State->QueuedFrames = 2880;
   Commands.Clear();
   Manager.Clear();
   AudioOptions options{.Sources = 2};
@@ -1218,25 +1226,46 @@ TEST_F(AudioTests, EndpointChangesPreserveTheClockAndPcmPosition) {
   Manager = MakeCom<OpenALSoundManagerComponentImpl>(options);
   ASSERT_EQ(S_OK, Manager->Init());
   auto ring = Manager->CaptureSource()->Start();
-  auto pcm = Pcm(48000, 48000);
-  ASSERT_EQ(48000u, pcm->WriteSilence(48000));
+  auto pcm = Pcm(48000, 192000);
+  ASSERT_EQ(192000u, pcm->WriteSilence(192000));
   ASSERT_EQ(S_OK, Manager->CreateCommandList(Commands.Assign()));
   auto desc = Desc();
   desc.StartTime = 0.05;
   const auto voice = Commands->PlayPcm(pcm, &desc);
   Manager->Submit(Commands);
-  ASSERT_TRUE(WaitForMix(ring, Manager, 0.1));
+  audio::AudioBlock last{};
+  // Let the initial retry deadline pass while an endpoint is active.
+  ASSERT_TRUE(WaitForMix(ring, Manager, 1.1, &last));
+  EXPECT_EQ(0u, Stats().DeviceChanges);
+  struct ResumeOnExit {
+    HANDLE Resume;
+    ~ResumeOnExit() { SetEvent(Resume); }
+  } resume{source->State->Resume};
   double previous = Manager->GetAudioTime();
-  for (const UINT32 channels : {6u, 0u, 2u}) {
+  UINT64 changes = 0;
+  for (const UINT32 channels : {6u, 0u, 2u, 2u}) {
+    SCOPED_TRACE(channels);
+    const auto opens = source->State->OpenCalls.load();
+    if (channels == 2) source->State->QueuedFrames = 0;
+    ResetEvent(source->State->Resume);
     ResetEvent(source->State->Opened);
     source->Change(channels);
     ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(source->State->Opened, 2000));
-    ASSERT_TRUE(WaitForMix(ring, Manager, previous + 0.05));
+    // Mixing continues during the open. A retry must not discard its result.
+    ASSERT_TRUE(WaitForMix(ring, Manager, previous + 0.025, &last));
+    SetEvent(source->State->Resume);
+    ASSERT_TRUE(WaitForMix(ring, Manager, previous + 0.1, &last));
+    EXPECT_EQ(opens + 1, source->State->OpenCalls.load());
+    if (changes < 3) ++changes;
+    EXPECT_EQ(changes, Stats().DeviceChanges);
+    if (!channels) {
+      ASSERT_TRUE(WaitForMix(ring, Manager, previous + 1.25, &last));
+      EXPECT_GT(source->State->OpenCalls.load(), opens + 1);
+      EXPECT_EQ(changes, Stats().DeviceChanges);
+    }
     const double now = Manager->GetAudioTime();
     EXPECT_GE(now, previous);
-    audio::AudioBlock block;
-    UINT64 rendered = 0;
-    while (ring->Pop(block)) rendered = block.FirstFrame + block.Frames;
+    const auto rendered = last.FirstFrame + last.Frames;
     ASSERT_GT(rendered, 0u);
     EXPECT_LE(
         std::abs(std::llround(now * 48000) - static_cast<int64_t>(rendered)),
@@ -1249,6 +1278,6 @@ TEST_F(AudioTests, EndpointChangesPreserveTheClockAndPcmPosition) {
     EXPECT_EQ(MGDF_VOICE_PLAYING, Manager->GetVoiceStatus(voice));
     previous = now;
   }
-  EXPECT_GE(Stats().DeviceChanges, 3u);
+  EXPECT_EQ(3u, Stats().DeviceChanges);
   EXPECT_EQ(0u, Stats().Underruns);
 }

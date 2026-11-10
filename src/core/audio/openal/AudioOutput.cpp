@@ -38,9 +38,13 @@ class WasapiEndpoint final : public OutputEndpoint {
     if (Event) CloseHandle(Event);
   }
   HRESULT Open(IMMDevice *device) {
-    HRESULT result =
-        device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr,
-                         std::bit_cast<void **>(_client.Assign()));
+    LPWSTR id = nullptr;
+    auto result = device->GetId(&id);
+    if (FAILED(result)) return result;
+    Id = id;
+    CoTaskMemFree(id);
+    result = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr,
+                              std::bit_cast<void **>(_client.Assign()));
     WAVEFORMATEX *mix = nullptr;
     if (SUCCEEDED(result)) result = _client->GetMixFormat(&mix);
     if (FAILED(result)) return result;
@@ -220,9 +224,10 @@ struct AudioOutput::Impl {
   std::thread Thread;
   std::future<ComObject<OutputEndpoint>> Opening;
   bool OpenAgain = false;
+  std::wstring EndpointId;
   UINT32 Channels = 2;
   UINT64 Rendered = 0, Submitted = 0;
-  int64_t Pace = 0;
+  int64_t Pace = 0, Retry = 0, PublishedThrough = 0;
   WavOutput Wav;
   std::array<float, MixBlockFrames * 8> Mix{};
 
@@ -285,14 +290,14 @@ struct AudioOutput::Impl {
     if (Endpoint) {
       Endpoint.Clear();
       Layout(2);
-      Pace = QpcTime();
+      StartPaced();
     }
     if (!Source) return;
     if (Opening.valid()) {
       OpenAgain = true;
       return;
     }
-    Owner.DeviceChanges.fetch_add(1, std::memory_order_relaxed);
+    Retry = QpcTime() + AudioTicksPerSecond;
     // Endpoint activation can wait for a driver. Keep mixing while it opens.
     Opening = std::async(std::launch::async, [source = Source] {
       const auto com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -305,10 +310,16 @@ struct AudioOutput::Impl {
       return endpoint;
     });
   }
+  void StartPaced() {
+    const auto now = QpcTime();
+    Pace = std::max(now, PublishedThrough);
+    Retry = now + AudioTicksPerSecond;
+  }
   void RenderBlock(float *output, UINT32 frames, int64_t playTime) {
     const auto begin = QpcTime();
     Render(Device, output, static_cast<ALCsizei>(frames));
     Capture->Publish(output, Channels, frames, Rendered, playTime);
+    PublishedThrough = playTime + frames * AudioTicksPerSecond / MixRate;
     Rendered += frames;
     Owner.RenderMs.store(static_cast<float>(QpcTime() - begin) / 10000.0f,
                          std::memory_order_relaxed);
@@ -337,7 +348,16 @@ struct AudioOutput::Impl {
                       Endpoint->BufferFrames -
                       std::min(padding, Endpoint->BufferFrames) - remaining) *
                       AudioTicksPerSecond / MixRate;
-      RenderBlock(data, count, time);
+      // A new endpoint can play before the last block from paced output ends.
+      // Fill that interval with silence without changing either clock.
+      const auto overlap = std::max<int64_t>(0, PublishedThrough - time);
+      const auto silence = static_cast<UINT32>(std::min<int64_t>(
+          count,
+          (overlap * MixRate + AudioTicksPerSecond - 1) / AudioTicksPerSecond));
+      std::fill_n(data, size_t(silence) * Channels, 0.0f);
+      if (silence < count)
+        RenderBlock(data + size_t(silence) * Channels, count - silence,
+                    time + silence * AudioTicksPerSecond / MixRate);
       result = Endpoint->Submit(count);
       if (FAILED(result)) return result;
       Submitted += count;
@@ -357,15 +377,14 @@ struct AudioOutput::Impl {
       if (FAILED(result)) return result;
     } else if (!Source)
       Source = MakeCom<WasapiSource>();
-    Pace = QpcTime();
     if (Source) UseEndpoint(Source->Open());
-    Pace = QpcTime();
+    EndpointId = Endpoint ? Endpoint->Id : L"";
+    StartPaced();
     return S_OK;
   }
   void Run() {
     DWORD task = 0;
     const auto mmcss = AvSetMmThreadCharacteristicsW(L"Pro Audio", &task);
-    int64_t retry = QpcTime() + AudioTicksPerSecond;
     while (WaitForSingleObject(StopEvent, 0) != WAIT_OBJECT_0) {
       if (Opening.valid() && Opening.wait_for(std::chrono::seconds(0)) ==
                                  std::future_status::ready) {
@@ -373,8 +392,15 @@ struct AudioOutput::Impl {
         if (OpenAgain) {
           OpenAgain = false;
           Reopen();
-        } else
+        } else {
           UseEndpoint(std::move(endpoint));
+          const auto id = Endpoint ? Endpoint->Id : L"";
+          if (id != EndpointId) {
+            EndpointId = id;
+            Owner.DeviceChanges.fetch_add(1, std::memory_order_relaxed);
+          }
+          Retry = QpcTime() + AudioTicksPerSecond;
+        }
       }
       if (Source && WaitForSingleObject(Source->Changed, 0) == WAIT_OBJECT_0)
         Reopen();
@@ -403,9 +429,8 @@ struct AudioOutput::Impl {
         RenderBlock(Mix.data(), MixBlockFrames, Pace);
         if (!File.empty()) Wav.Write(Mix.data(), MixBlockFrames);
         Pace += MixBlockFrames * AudioTicksPerSecond / MixRate;
-        if (Source && now >= retry) {
+        if (Source && !Opening.valid() && now >= Retry) {
           Reopen();
-          retry = now + AudioTicksPerSecond;
         }
       }
     }

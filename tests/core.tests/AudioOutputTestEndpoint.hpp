@@ -18,14 +18,16 @@ class TestOutputState : public ComBase<ITestOutputState> {
     CloseHandle(RenderResume);
   }
   std::atomic<UINT32> Channels{2};
+  std::atomic<UINT32> QueuedFrames{0}, OpenCalls{0};
   HANDLE Opened, Resume, Rendering, RenderResume;
 };
 class TestOutputEndpoint final : public OutputEndpoint {
  public:
   TestOutputEndpoint(UINT32 channels, const ComObject<TestOutputState> &state)
-      : _state(state) {
+      : _state(state), _queuedFrames(state->QueuedFrames.load()) {
+    Id = std::to_wstring(channels);
     Channels = channels;
-    BufferFrames = 240;
+    BufferFrames = (std::max)(240u, _queuedFrames);
     Event = CreateWaitableTimerW(nullptr, FALSE, nullptr);
   }
   ~TestOutputEndpoint() {
@@ -42,7 +44,7 @@ class TestOutputEndpoint final : public OutputEndpoint {
     SetEvent(_state->Rendering);
     if (WaitForSingleObject(_state->RenderResume, 10000) != WAIT_OBJECT_0)
       return E_FAIL;
-    frames = 0;
+    frames = BufferFrames - 240;
     return S_OK;
   }
   HRESULT Buffer(UINT32 frames, float **data) final {
@@ -58,7 +60,7 @@ class TestOutputEndpoint final : public OutputEndpoint {
     LARGE_INTEGER now, rate;
     QueryPerformanceCounter(&now);
     QueryPerformanceFrequency(&rate);
-    position = _frames;
+    position = _frames - _queuedFrames;
     frequency = 48000;
     qpc = static_cast<UINT64>(double(now.QuadPart) * 1e7 / rate.QuadPart);
     return S_OK;
@@ -66,13 +68,15 @@ class TestOutputEndpoint final : public OutputEndpoint {
 
  private:
   ComObject<TestOutputState> _state;
-  std::array<float, 240 * 8> _samples{};
+  const UINT32 _queuedFrames;
+  std::array<float, 2880 * 8> _samples{};
   UINT64 _frames = 0;
 };
 class TestOutputSource final : public OutputEndpointSource {
  public:
   ComObject<TestOutputState> State = MakeCom<TestOutputState>();
   ComObject<OutputEndpoint> Open() final {
+    State->OpenCalls.fetch_add(1);
     SetEvent(State->Opened);
     if (WaitForSingleObject(State->Resume, 10000) != WAIT_OBJECT_0) return {};
     const auto channels = State->Channels.load();

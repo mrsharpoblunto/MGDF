@@ -6,6 +6,7 @@
 #include <atomic>
 #include <filesystem>
 #include <memory>
+#include <string>
 
 #include "../MGDFAudioCapture.hpp"
 
@@ -17,6 +18,7 @@ struct __declspec(uuid("AB51B6E4-5E38-44CA-B9BA-F2B3EF9F6103")) IOutputEndpoint
 // The external device boundary. Tests replace only this interface.
 class OutputEndpoint : public ComBase<IOutputEndpoint> {
  public:
+  std::wstring Id;
   UINT32 Channels = 2;
   UINT32 BufferFrames = 0;
   HANDLE Event = nullptr;

@@ -1610,7 +1610,7 @@ typedef struct MGDFSoundStats {
   UINT32 RealVoices, VirtualVoices, FreeSources, Streams;
   float AudioThreadMs;
   UINT64 Underruns;
-  UINT64 DeviceChanges;       // output device changes and recovery attempts
+  UINT64 DeviceChanges;       // changes between endpoints or to/from no endpoint
   UINT64 DroppedAudioBlocks;  // recorder blocks dropped when full or late
   float OutputThreadMs;      // most recent mix and recorder copy cost
 } MGDFSoundStats;
