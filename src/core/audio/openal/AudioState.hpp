@@ -98,6 +98,10 @@ class AudioQueue {
   std::atomic<T *> _head{nullptr};
 };
 
+struct __declspec(uuid("0b493939-6305-4df7-92c5-0d8717e1a096")) IAudioControl
+    : IUnknown {};
+struct __declspec(uuid("ed58fc3b-a611-4d7a-8e39-3b27e8646631")) ISampleData
+    : IUnknown {};
 struct AudioControl;
 struct SampleSegment {
   std::vector<float> Samples;
@@ -105,7 +109,7 @@ struct SampleSegment {
   bool Loop = false;
   double Duration = 0;
 };
-struct SampleData {
+struct SampleData : ComBase<ISampleData> {
   enum State { Pending, Decoded, Loaded, Failed };
   std::atomic<State> Status{Pending};
   std::vector<MGDFSoundSegment> Descriptors;
@@ -113,11 +117,15 @@ struct SampleData {
   UINT32 Channels = 0, Rate = 0;
 };
 
+struct SampleRetirement {
+  SampleRetirement *Next = nullptr;
+  ComObject<SampleData> Data;
+};
+
 class SoundSamples : public ComBase<IMGDFSoundSamples> {
  public:
-  SoundSamples(std::shared_ptr<AudioControl> owner,
-               std::shared_ptr<SampleData> data)
-      : Owner(std::move(owner)), Data(std::move(data)) {}
+  SoundSamples(ComObject<AudioControl> owner, ComObject<SampleData> data);
+  ~SoundSamples();
   BOOL __stdcall IsLoaded() final {
     return Data->Status.load() == SampleData::Loaded;
   }
@@ -132,8 +140,11 @@ class SoundSamples : public ComBase<IMGDFSoundSamples> {
                ? Data->Segments[segment].Duration
                : 0;
   }
-  const std::shared_ptr<AudioControl> Owner;
-  const std::shared_ptr<SampleData> Data;
+  const ComObject<AudioControl> Owner;
+  ComObject<SampleData> Data;
+
+ private:
+  std::unique_ptr<SampleRetirement> _retirement;
 };
 
 struct PlayPosition {
@@ -143,7 +154,7 @@ struct PlayPosition {
 
 class SoundPcmStream : public ComBase<IMGDFSoundPcmStream> {
  public:
-  SoundPcmStream(std::shared_ptr<AudioControl> owner, MGDFSoundPcmDesc desc);
+  SoundPcmStream(ComObject<AudioControl> owner, MGDFSoundPcmDesc desc);
   UINT32 __stdcall GetChannels() final { return _desc.Channels; }
   UINT32 __stdcall GetSampleRate() final { return _desc.SampleRate; }
   UINT32 __stdcall GetWritableFrames() final;
@@ -157,7 +168,7 @@ class SoundPcmStream : public ComBase<IMGDFSoundPcmStream> {
   void Publish(UINT64 frame, double time) { _position.Publish({frame, time}); }
   bool Claim(MGDFVoiceId id);
   void ReleaseVoice(bool stopped);
-  const std::shared_ptr<AudioControl> Owner;
+  const ComObject<AudioControl> Owner;
   std::atomic<bool> Ended{false};
 
  private:
@@ -213,10 +224,11 @@ struct MixerSnapshot {
   MGDFSoundStats Stats{};
   double Time = 0;
 };
-struct AudioControl {
+struct AudioControl : ComBase<IAudioControl> {
   static constexpr size_t VoiceSlots = 65536;
   static constexpr size_t BusSlots = 256;
   AudioQueue<AudioBatch> Submissions;
+  AudioQueue<SampleRetirement> RetiredSamples;
   std::array<std::atomic<UINT64>, VoiceSlots> Status{};
   std::array<std::atomic<AudioBusInfo *>, BusSlots> Buses{};
   std::atomic<UINT64> NextVoice{1};
@@ -233,7 +245,7 @@ struct AudioControl {
 
 class SoundCommandList : public ComBase<IMGDFSoundCommandList> {
  public:
-  explicit SoundCommandList(std::shared_ptr<AudioControl> owner)
+  explicit SoundCommandList(ComObject<AudioControl> owner)
       : Owner(std::move(owner)) {}
   ~SoundCommandList();
   MGDFVoiceId __stdcall Play(IMGDFSoundSamples *, const MGDFVoiceDesc *) final;
@@ -253,7 +265,7 @@ class SoundCommandList : public ComBase<IMGDFSoundCommandList> {
   void __stdcall SetListener(const MGDFSoundListener *) final;
   bool Add(AudioCommand command) noexcept;
   AudioBatch *Detach() { return _batch.release(); }
-  const std::shared_ptr<AudioControl> Owner;
+  const ComObject<AudioControl> Owner;
 
  private:
   void Scalar(AudioOp op, MGDFVoiceId id, float value, float ramp);
@@ -263,7 +275,7 @@ class SoundCommandList : public ComBase<IMGDFSoundCommandList> {
 struct DecodeJob {
   DecodeJob *Next = nullptr;
   ComObject<IMGDFReadOnlyFile> File;
-  std::shared_ptr<SampleData> Data;
+  ComObject<SoundSamples> Samples;
 };
 void DecodeSamples(const DecodeJob &job);
 bool ValidVoice(const MGDFVoiceDesc &desc, const AudioControl &control);

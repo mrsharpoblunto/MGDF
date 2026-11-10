@@ -9,7 +9,18 @@
 
 namespace MGDF::core::audio::openal_audio {
 
-SoundPcmStream::SoundPcmStream(std::shared_ptr<AudioControl> owner,
+SoundSamples::SoundSamples(ComObject<AudioControl> owner,
+                           ComObject<SampleData> data)
+    : Owner(std::move(owner)),
+      Data(std::move(data)),
+      _retirement(std::make_unique<SampleRetirement>()) {}
+SoundSamples::~SoundSamples() {
+  // Transfer the last sample reference to the audio thread without allocation.
+  _retirement->Data = std::move(Data);
+  if (Owner->RetiredSamples.Push(_retirement.get())) _retirement.release();
+}
+
+SoundPcmStream::SoundPcmStream(ComObject<AudioControl> owner,
                                MGDFSoundPcmDesc desc)
     : Owner(std::move(owner)),
       _desc(desc),
@@ -138,7 +149,8 @@ bool SoundCommandList::Add(AudioCommand command) noexcept {
 MGDFVoiceId SoundCommandList::Play(IMGDFSoundSamples *samples,
                                    const MGDFVoiceDesc *desc) {
   auto *value = dynamic_cast<SoundSamples *>(samples);
-  if (!value || value->Owner != Owner || !desc || !ValidVoice(*desc, *Owner) ||
+  if (!value || value->Owner != Owner || !desc ||
+      !ValidVoice(*desc, *Owner.Get()) ||
       desc->Segment >= value->GetSegmentCount() ||
       (desc->Spatial && value->IsLoaded() && value->Data->Channels != 1))
     return 0;
@@ -163,7 +175,7 @@ MGDFVoiceId SoundCommandList::PlayPcm(IMGDFSoundPcmStream *stream,
   pcmDesc.Segment = 0;
   pcmDesc.StartOffset = 0;
   auto *value = dynamic_cast<SoundPcmStream *>(stream);
-  if (!value || value->Owner != Owner || !ValidVoice(pcmDesc, *Owner) ||
+  if (!value || value->Owner != Owner || !ValidVoice(pcmDesc, *Owner.Get()) ||
       (desc->Spatial && value->GetChannels() != 1))
     return 0;
   const auto id = Owner->NewVoice();

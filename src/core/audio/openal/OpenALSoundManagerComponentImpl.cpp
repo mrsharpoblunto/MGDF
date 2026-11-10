@@ -131,10 +131,10 @@ struct Source {
 };
 struct SampleRegistration {
   SampleRegistration *Next = nullptr;
-  std::shared_ptr<SampleData> Data;
+  ComObject<SampleData> Data;
 };
 struct SampleBuffers {
-  std::shared_ptr<SampleData> Data;
+  ComObject<SampleData> Data;
   std::vector<ALuint> Buffers;
 };
 void Discard(AudioBatch *batch, AudioControl &control) {
@@ -154,7 +154,7 @@ void Discard(AudioBatch *batch, AudioControl &control) {
 
 struct OpenALSoundManagerComponentImpl::Impl {
   AudioOptions Options;
-  std::shared_ptr<AudioControl> Control = std::make_shared<AudioControl>();
+  ComObject<AudioControl> Control = MakeCom<AudioControl>();
   std::atomic<bool> Stopping{false};
   std::thread AudioThread, Decoder;
   AudioQueue<DecodeJob> Decodes;
@@ -292,17 +292,29 @@ struct OpenALSoundManagerComponentImpl::Impl {
     }
   }
   void UploadSamples() {
+    // Each retired set must have its registration in this update.
+    auto *retired = Control->RetiredSamples.Take();
     auto *registration = Registrations.Take();
     while (registration) {
       auto *next = registration->Next;
       auto data = std::move(registration->Data);
-      Samples.emplace(data.get(), SampleBuffers{data, {}});
+      Samples.emplace(data.Get(), SampleBuffers{data, {}});
       delete registration;
       registration = next;
     }
-    for (auto it = Samples.begin(); it != Samples.end();) {
-      auto &record = it->second;
-      auto &data = *record.Data;
+    while (retired) {
+      std::unique_ptr<SampleRetirement> current(retired);
+      retired = retired->Next;
+      const auto it = Samples.find(current->Data.Get());
+      if (it != Samples.end()) {
+        const auto &buffers = it->second.Buffers;
+        if (!buffers.empty())
+          alDeleteBuffers(static_cast<ALsizei>(buffers.size()), buffers.data());
+        Samples.erase(it);
+      }
+    }
+    for (auto &[key, record] : Samples) {
+      auto &data = *record.Data.Get();
       if (data.Status.load(std::memory_order_acquire) == SampleData::Decoded) {
         record.Buffers.resize(data.Segments.size());
         alGenBuffers(static_cast<ALsizei>(record.Buffers.size()),
@@ -320,13 +332,6 @@ struct OpenALSoundManagerComponentImpl::Impl {
                                                       : SampleData::Failed,
                           std::memory_order_release);
       }
-      if (record.Data.use_count() == 1) {
-        if (!record.Buffers.empty())
-          alDeleteBuffers(static_cast<ALsizei>(record.Buffers.size()),
-                          record.Buffers.data());
-        it = Samples.erase(it);
-      } else
-        ++it;
     }
   }
   void ReleaseSource(Voice &voice) {
@@ -572,14 +577,14 @@ struct OpenALSoundManagerComponentImpl::Impl {
                      PcmFeed::Read, voice.Feed.get());
       alSourcei(source.Id, AL_BUFFER, static_cast<ALint>(source.Callback));
     } else {
-      const auto &data = *voice.Samples->Data;
+      const auto &data = *voice.Samples->Data.Get();
       if (voice.Desc.Spatial && data.Channels != 1) {
         Finish(voice, false);
         return;
       }
       const auto &segment = data.Segments[voice.Desc.Segment];
       const auto buffer =
-          Samples.at(voice.Samples->Data.get()).Buffers[voice.Desc.Segment];
+          Samples.at(voice.Samples->Data.Get()).Buffers[voice.Desc.Segment];
       alSourcei(source.Id, AL_BUFFER, static_cast<ALint>(buffer));
       alSourcei(source.Id, AL_LOOPING, segment.Loop ? AL_TRUE : AL_FALSE);
       alSourcei(source.Id, AL_SAMPLE_OFFSET,
@@ -685,7 +690,17 @@ struct OpenALSoundManagerComponentImpl::Impl {
                 .count());
   }
   void Close() {
-    Discard(Control->Submissions.Close(), *Control);
+    Discard(Control->Submissions.Close(), *Control.Get());
+    auto *registration = Registrations.Close();
+    while (registration) {
+      std::unique_ptr<SampleRegistration> current(registration);
+      registration = registration->Next;
+    }
+    auto *retired = Control->RetiredSamples.Close();
+    while (retired) {
+      std::unique_ptr<SampleRetirement> current(retired);
+      retired = retired->Next;
+    }
     if (Context) {
       for (auto &[id, voice] : Voices)
         if (!voice->Ended) Finish(*voice, true);
@@ -784,7 +799,7 @@ void OpenALSoundManagerComponentImpl::Stop() {
   auto *job = m.Decodes.Close();
   while (job) {
     auto *next = job->Next;
-    job->Data->Status.store(SampleData::Failed);
+    job->Samples->Data->Status.store(SampleData::Failed);
     delete job;
     job = next;
   }
@@ -831,7 +846,7 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundSamples(
   if (m.Stopping.load()) return E_ABORT;
   if (!file || (desc && desc->SegmentCount && !desc->Segments))
     return E_INVALIDARG;
-  auto data = std::make_shared<SampleData>();
+  auto data = MakeCom<SampleData>();
   if (desc && desc->SegmentCount)
     data->Descriptors.assign(desc->Segments,
                              desc->Segments + desc->SegmentCount);
@@ -841,12 +856,13 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundSamples(
     if (!std::isfinite(segment.Start) || !std::isfinite(segment.Length) ||
         segment.Start < 0 || segment.Length < 0)
       return E_INVALIDARG;
+  auto result = MakeCom<SoundSamples>(m.Control, data);
   auto registration = std::make_unique<SampleRegistration>();
   registration->Data = data;
   if (!m.Registrations.Push(registration.get())) return E_ABORT;
   registration.release();
   auto job = std::make_unique<DecodeJob>();
-  job->Data = data;
+  job->Samples = result;
   job->File = MakeComFromPtr<IMGDFReadOnlyFile>(file);
   m.Outstanding.fetch_add(1);
   if (!m.Decodes.Push(job.get())) {
@@ -855,7 +871,6 @@ HRESULT OpenALSoundManagerComponentImpl::CreateSoundSamples(
     return E_ABORT;
   }
   job.release();
-  auto result = MakeCom<SoundSamples>(m.Control, data);
   result.AddRawRef(samples);
   return S_OK;
 } catch (const std::bad_alloc &) {
@@ -896,7 +911,7 @@ void OpenALSoundManagerComponentImpl::Submit(IMGDFSoundCommandList *list) {
   if (!commands || commands->Owner != _impl->Control) return;
   auto *batch = commands->Detach();
   if (batch && !_impl->Control->Submissions.Push(batch))
-    Discard(batch, *_impl->Control);
+    Discard(batch, *_impl->Control.Get());
 }
 double OpenALSoundManagerComponentImpl::GetAudioTime() {
   return _impl->Control->Snapshot.Read().Time;

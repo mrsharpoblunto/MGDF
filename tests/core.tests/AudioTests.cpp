@@ -126,6 +126,42 @@ TEST_F(AudioTests, SubmissionStartsARecordedVoiceAndResetsTheList) {
   Submit();
   EXPECT_EQ(1U, Stats().RealVoices);
 }
+TEST_F(AudioTests, PlayingPcmRetainsTheLastModuleReferenceUntilItEnds) {
+  auto pcm = Pcm();
+  const auto signal = Signal(1000);
+  ASSERT_EQ(1000U, pcm->Write(signal.data(), 1000));
+  pcm->End();
+  const auto desc = Desc();
+  const auto id = Commands->PlayPcm(pcm, &desc);
+  Submit();
+  auto release = std::async(std::launch::async, [&] { pcm.Clear(); });
+  Await(release);
+  const auto output = Render(480);
+  for (size_t i = 0; i < output.size(); ++i)
+    ASSERT_NEAR(signal[i], output[i], 1e-6f) << i;
+  EXPECT_EQ(MGDF_VOICE_PLAYING, Manager->GetVoiceStatus(id));
+  Render(1000);
+  EXPECT_EQ(MGDF_VOICE_ENDED, Manager->GetVoiceStatus(id));
+}
+TEST_F(AudioTests, PcmRemainsValidAfterShutdownAndCreationAborts) {
+  auto pcm = Pcm();
+  pcm->WriteSilence(1000);
+  const auto desc = Desc();
+  Commands->PlayPcm(pcm, &desc);
+  Submit();
+  Manager->Stop();
+  ComObject<IMGDFSoundPcmStream> rejected;
+  const MGDFSoundPcmDesc pcmDesc{2, 48000, 1000};
+  EXPECT_EQ(E_ABORT, Manager->CreatePcmStream(&pcmDesc, rejected.Assign()));
+  EXPECT_FALSE(rejected);
+  Manager.Clear();
+  EXPECT_EQ(48000U, pcm->GetSampleRate());
+  EXPECT_EQ(0U, pcm->WriteSilence(1));
+  // A retained list can still release its control and stream after shutdown.
+  Commands->PlayPcm(pcm, &desc);
+  pcm.Clear();
+  Commands.Clear();
+}
 TEST_F(AudioTests, ScheduledPcmStartsAtTheRequestedOutputFrame) {
   auto pcm = Pcm();
   std::vector<float> data(2000, 0.125f);
@@ -601,6 +637,44 @@ TEST_F(AudioIntegrationTests,
   Manager->Update();
   EXPECT_TRUE(samples->HasFailed());
   EXPECT_EQ(MGDF_VOICE_ENDED, Manager->GetVoiceStatus(id));
+}
+TEST_F(AudioIntegrationTests,
+       SampleVoiceRetainsTheLastModuleReferenceUntilItEnds) {
+  const auto signal = Signal(1000);
+  auto samples = Load(Wav(signal));
+  const auto desc = Desc();
+  const auto id = Commands->Play(samples, &desc);
+  // The recorded command must retain the samples before the voice exists.
+  auto release = std::async(std::launch::async, [&] { samples.Clear(); });
+  Await(release);
+  Submit();
+  const auto output = Render(480);
+  for (size_t i = 0; i < output.size(); ++i)
+    ASSERT_NEAR(signal[i], output[i], 1e-6f) << i;
+  EXPECT_EQ(MGDF_VOICE_PLAYING, Manager->GetVoiceStatus(id));
+  Render(1000);
+  EXPECT_EQ(MGDF_VOICE_ENDED, Manager->GetVoiceStatus(id));
+  Manager->Update();
+}
+TEST_F(AudioIntegrationTests,
+       SamplesRemainValidAfterShutdownAndCreationAborts) {
+  auto file = Wav(Signal(1000));
+  auto samples = Load(file);
+  const auto desc = Desc();
+  Commands->Play(samples, &desc);
+  Submit();
+  Manager->Stop();
+  ComObject<IMGDFSoundSamples> rejected;
+  EXPECT_EQ(E_ABORT,
+            Manager->CreateSoundSamples(file, nullptr, rejected.Assign()));
+  EXPECT_FALSE(rejected);
+  Manager.Clear();
+  EXPECT_TRUE(samples->IsLoaded());
+  EXPECT_EQ(1U, samples->GetSegmentCount());
+  EXPECT_DOUBLE_EQ(1000.0 / 48000, samples->GetDuration(0));
+  Commands->Play(samples, &desc);
+  samples.Clear();
+  Commands.Clear();
 }
 TEST_F(AudioIntegrationTests, VorbisFileDecodesOnTheSampleWorker) {
   auto file = Ogg();

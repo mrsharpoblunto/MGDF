@@ -122,7 +122,7 @@ bool Load(const DecodeJob &job) {
   }
   reader.Clear();
   std::vector<float> pcm;
-  auto &data = *job.Data;
+  auto &data = *job.Samples->Data.Get();
   if (!Decode(bytes, data, pcm)) return false;
   for (const float value : pcm)
     if (!std::isfinite(value)) return false;
@@ -163,10 +163,12 @@ bool Load(const DecodeJob &job) {
 
 void DecodeSamples(const DecodeJob &job) {
   try {
-    job.Data->Status.store(Load(job) ? SampleData::Decoded : SampleData::Failed,
-                           std::memory_order_release);
+    job.Samples->Data->Status.store(
+        Load(job) ? SampleData::Decoded : SampleData::Failed,
+        std::memory_order_release);
   } catch (...) {
-    job.Data->Status.store(SampleData::Failed, std::memory_order_release);
+    job.Samples->Data->Status.store(SampleData::Failed,
+                                    std::memory_order_release);
   }
 }
 }  // namespace MGDF::core::audio::openal_audio
