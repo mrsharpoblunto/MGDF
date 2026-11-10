@@ -602,7 +602,9 @@ HRESULT Host::GetRecorder(IMGDFRecorder **recorder) {
             ? std::filesystem::absolute(Resources::ToWString(folder))
             : std::filesystem::path(Resources::Instance().UserBaseDir()) /
                   L"captures",
-        _deviceResetting);
+        _deviceResetting,
+        _sound ? _sound->CaptureSource()
+               : ComObject<audio::AudioCaptureSource>{});
     _rtRecorder = _recorder.Get();
   }
   _recorder.AddRawRef<IMGDFRecorder>(recorder);

@@ -102,7 +102,9 @@ const std::array<float, 1024> &PQTable() {
 constexpr HRESULT kPublishing =
     MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x200);
 
-struct CaptureState {
+struct __declspec(uuid("AB51B6E4-5E38-44CA-B9BA-F2B3EF9F6110")) ICaptureState
+    : IUnknown {};
+struct CaptureState : ComBase<ICaptureState> {
   std::filesystem::path Path;
   std::atomic<bool> Complete = false;
   std::atomic<HRESULT> Result = E_PENDING;
@@ -139,8 +141,8 @@ struct CaptureSlot {
   CaptureEncoding Encoding = CaptureEncoding::SDR;
   float SDRWhiteNits = 80.0f;
   int64_t Time = 0;
-  std::vector<std::shared_ptr<CaptureState>> Screenshots;
-  std::vector<std::shared_ptr<VideoState>> Videos;
+  std::vector<ComObject<CaptureState>> Screenshots;
+  std::vector<ComObject<VideoState>> Videos;
 
   bool ToRGBA8(uint8_t *output) const {
     return ConvertToRGBA8(Data + Layout.Offset, Layout.Footprint.RowPitch,
@@ -152,7 +154,9 @@ struct CaptureSlot {
 namespace {
 
 // keeps a slot's pixels readable until the reader drops it
-class SlotUse {
+struct __declspec(uuid("AB51B6E4-5E38-44CA-B9BA-F2B3EF9F6111")) ISlotUse
+    : IUnknown {};
+class SlotUse : public ComBase<ISlotUse> {
  public:
   explicit SlotUse(CaptureSlot &slot) : _slot(slot) { ++_slot.Users; }
   ~SlotUse() { --_slot.Users; }
@@ -166,10 +170,12 @@ class SlotUse {
 
 struct VideoState : CaptureState {
   struct Frame {
-    std::shared_ptr<SlotUse> Pixels;
-    int64_t Time;
+    ComObject<SlotUse> Pixels;
+    int64_t Time = 0;
   };
 
+  ComObject<audio::AudioCaptureRing> Audio;
+  ComObject<CaptureWorkerControl> Control;
   std::atomic<bool> StopRequested = false;
   // the encoder is open, so frames can be recorded
   std::atomic<bool> EncoderReady = false;
@@ -190,6 +196,11 @@ struct VideoState : CaptureState {
   std::condition_variable Ready;
   std::deque<Frame> Queue;
   bool Closing = false;
+
+  void Finish(HRESULT result) {
+    if (Audio) Audio->Active.store(false, std::memory_order_release);
+    CaptureState::Finish(result);
+  }
 
   void Push(Frame frame) {
     {
@@ -213,6 +224,85 @@ struct VideoState : CaptureState {
   void Encode(uint32_t width, uint32_t height, IMFDXGIDeviceManager *device);
 };
 
+namespace {
+// Places audio on the video's QPC origin. Missing or late blocks are silence.
+class RecordingAudio {
+ public:
+  explicit RecordingAudio(const ComObject<audio::AudioCaptureRing> &ring)
+      : _ring(ring) {}
+  void Start(int64_t firstQpc, int64_t frequency) {
+    _first = static_cast<int64_t>(static_cast<double>(firstQpc) *
+                                  kTicksPerSecond / frequency);
+  }
+  HRESULT WriteUntil(VideoEncoder &encoder, int64_t end) {
+    if (!_ring) return S_OK;
+    const int64_t target =
+        (end * audio::MixRate + kTicksPerSecond - 1) / kTicksPerSecond;
+    const auto deadline = GetTickCount64() + 100;
+    while (_frame < target) {
+      const auto count =
+          static_cast<UINT32>(std::min<int64_t>(1024, target - _frame));
+      std::array<int16_t, 2048> pcm{};
+      int64_t cursor = _frame;
+      const int64_t limit = _frame + count;
+      while (cursor < limit) {
+        if (!_hasBlock) {
+          _hasBlock = _ring->Pop(_block);
+          if (_hasBlock) {
+            _blockFrame = static_cast<int64_t>(
+                std::llround(static_cast<double>(_block.PlayTime - _first) *
+                             audio::MixRate / kTicksPerSecond));
+          } else {
+            const auto required =
+                _first + limit * kTicksPerSecond / audio::MixRate;
+            if (_ring->Through.load(std::memory_order_acquire) >= required ||
+                GetTickCount64() >= deadline)
+              break;
+            WaitForSingleObject(_ring->Ready, 10);
+            continue;
+          }
+        }
+        const int64_t blockEnd = _blockFrame + _block.Frames;
+        if (blockEnd <= cursor) {
+          if (blockEnd > 0)
+            _ring->Counts->Dropped.fetch_add(1, std::memory_order_relaxed);
+          _hasBlock = false;
+          continue;
+        }
+        if (_blockFrame > cursor) {
+          cursor = (std::min)(limit, _blockFrame);
+          continue;
+        }
+        const auto copied = (std::min)(limit, blockEnd) - cursor;
+        for (int64_t i = 0; i < copied; ++i) {
+          const auto source = size_t(cursor - _blockFrame + i) * 2;
+          const auto dest = size_t(cursor - _frame + i) * 2;
+          for (size_t channel = 0; channel < 2; ++channel) {
+            const auto sample =
+                std::clamp(_block.Samples[source + channel], -1.0f, 1.0f);
+            pcm[dest + channel] = static_cast<int16_t>(
+                std::clamp(std::lround(sample * 32768.0f), -32768L, 32767L));
+          }
+        }
+        cursor += copied;
+        if (cursor == blockEnd) _hasBlock = false;
+      }
+      const auto result = encoder.WriteAudio(
+          pcm.data(), count, _frame * kTicksPerSecond / audio::MixRate);
+      if (FAILED(result)) return result;
+      _frame += count;
+    }
+    return S_OK;
+  }
+
+ private:
+  ComObject<audio::AudioCaptureRing> _ring;
+  audio::AudioBlock _block;
+  int64_t _first = 0, _frame = 0, _blockFrame = 0;
+  bool _hasBlock = false;
+};
+}  // namespace
+
 void VideoState::Encode(uint32_t width, uint32_t height,
                         IMFDXGIDeviceManager *device) {
   const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -224,9 +314,15 @@ void VideoState::Encode(uint32_t width, uint32_t height,
   // the file has its final name only once it is complete
   auto partial = Path;
   partial += L".partial";
-  HRESULT result = encoder.Open(partial, width, height, device);
+  HRESULT result = encoder.Open(partial, width, height, device, bool(Audio));
+  RecordingAudio audio(Audio);
   if (SUCCEEDED(result)) {
     EncoderReady = true;
+    if (Control) {
+      SetEvent(Control->Ready);
+      if (WaitForSingleObject(Control->Resume, 30000) != WAIT_OBJECT_0)
+        result = E_ABORT;
+    }
   } else {
     StopRequested = true;
   }
@@ -251,20 +347,25 @@ void VideoState::Encode(uint32_t width, uint32_t height,
     if (!started) {
       started = true;
       first = frame.Time;
+      audio.Start(first, frequency.QuadPart);
     }
     rgba.resize(size_t(fullWidth) * slot.Layout.Footprint.Height * 4);
     if (!slot.ToRGBA8(rgba.data())) {
       result = E_NOTIMPL;
       continue;
     }
-    frame.Pixels.reset();
+    frame.Pixels.Clear();
     nv12.resize(size_t(width) * height * 3 / 2);
     ConvertToNV12(rgba.data(), fullWidth * 4, width, height, nv12.data());
     const int64_t time =
         (frame.Time - first) * kTicksPerSecond / frequency.QuadPart;
     if (!pending.empty()) {
       result = encoder.Write(pending.data(), pendingTime, time - pendingTime);
-      if (SUCCEEDED(result)) ++Frames;
+      if (SUCCEEDED(result)) {
+        ++Frames;
+        if (Control) SetEvent(Control->Progress);
+        result = audio.WriteUntil(encoder, time);
+      }
     }
     pending.swap(nv12);
     pendingTime = time;
@@ -273,8 +374,14 @@ void VideoState::Encode(uint32_t width, uint32_t height,
   if (SUCCEEDED(result) && !pending.empty()) {
     result = encoder.Write(pending.data(), pendingTime,
                            kTicksPerSecond / kVideoFrameRate);
-    if (SUCCEEDED(result)) ++Frames;
+    if (SUCCEEDED(result)) {
+      ++Frames;
+      if (Control) SetEvent(Control->Progress);
+      result = audio.WriteUntil(
+          encoder, pendingTime + kTicksPerSecond / kVideoFrameRate);
+    }
   }
+  if (Audio) Audio->Active.store(false, std::memory_order_release);
   const HRESULT closed = encoder.Close();
   if (SUCCEEDED(result)) {
     result = Frames == 0 ? HRESULT_FROM_WIN32(ERROR_NO_DATA) : closed;
@@ -298,20 +405,19 @@ namespace {
 
 class Capture final : public ComBase<IMGDFCapture> {
  public:
-  explicit Capture(std::shared_ptr<CaptureState> state)
-      : _state(std::move(state)) {}
+  explicit Capture(ComObject<CaptureState> state) : _state(std::move(state)) {}
   HRESULT __stdcall GetResult() final { return _state->VisibleResult(); }
   HRESULT __stdcall GetPath(wchar_t *path, UINT64 *length) final {
     return StringWriter::Write(_state->Path.wstring(), path, length);
   }
 
  private:
-  std::shared_ptr<CaptureState> _state;
+  ComObject<CaptureState> _state;
 };
 
 class VideoRecording final : public ComBase<IMGDFVideoRecording, IMGDFCapture> {
  public:
-  explicit VideoRecording(std::shared_ptr<VideoState> state)
+  explicit VideoRecording(ComObject<VideoState> state)
       : _state(std::move(state)) {}
   ~VideoRecording() { _state->StopRequested = true; }
   HRESULT __stdcall GetResult() final { return _state->VisibleResult(); }
@@ -323,7 +429,7 @@ class VideoRecording final : public ComBase<IMGDFVideoRecording, IMGDFCapture> {
   UINT64 __stdcall GetDroppedFrameCount() final { return _state->Dropped; }
 
  private:
-  std::shared_ptr<VideoState> _state;
+  ComObject<VideoState> _state;
 };
 
 void Transition(ID3D12GraphicsCommandList *list, ID3D12Resource *resource,
@@ -524,7 +630,9 @@ HRESULT WritePNG(const std::filesystem::path &path, const uint8_t *rgba,
 VideoEncoder::~VideoEncoder() { Close(); }
 
 HRESULT VideoEncoder::Open(const std::filesystem::path &path, uint32_t width,
-                           uint32_t height, IMFDXGIDeviceManager *device) {
+                           uint32_t height, IMFDXGIDeviceManager *device,
+                           bool audio) {
+  _audio = audio;
   _width = width;
   _height = height;
   std::error_code error;
@@ -578,6 +686,38 @@ HRESULT VideoEncoder::Open(const std::filesystem::path &path, uint32_t width,
   if (SUCCEEDED(result)) result = describe(input, MFVideoFormat_NV12);
   if (SUCCEEDED(result))
     result = writer->SetInputMediaType(_stream, input, nullptr);
+  if (SUCCEEDED(result) && audio) {
+    ComObject<IMFMediaType> compressed, pcm;
+    result = MFCreateMediaType(compressed.Assign());
+    const auto describeAudio = [](IMFMediaType *type, const GUID &subtype) {
+      HRESULT hr = type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio);
+      if (SUCCEEDED(hr)) hr = type->SetGUID(MF_MT_SUBTYPE, subtype);
+      if (SUCCEEDED(hr)) hr = type->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, 2);
+      if (SUCCEEDED(hr))
+        hr = type->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, 48000);
+      if (SUCCEEDED(hr)) hr = type->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16);
+      return hr;
+    };
+    if (SUCCEEDED(result))
+      result = describeAudio(compressed, MFAudioFormat_AAC);
+    if (SUCCEEDED(result))
+      result = compressed->SetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 24000);
+    if (SUCCEEDED(result))
+      result = compressed->SetUINT32(MF_MT_AAC_PAYLOAD_TYPE, 0);
+    if (SUCCEEDED(result))
+      result =
+          compressed->SetUINT32(MF_MT_AAC_AUDIO_PROFILE_LEVEL_INDICATION, 0x29);
+    if (SUCCEEDED(result))
+      result = writer->AddStream(compressed, &_audioStream);
+    if (SUCCEEDED(result)) result = MFCreateMediaType(pcm.Assign());
+    if (SUCCEEDED(result)) result = describeAudio(pcm, MFAudioFormat_PCM);
+    if (SUCCEEDED(result))
+      result = pcm->SetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, 4);
+    if (SUCCEEDED(result))
+      result = pcm->SetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 192000);
+    if (SUCCEEDED(result))
+      result = writer->SetInputMediaType(_audioStream, pcm, nullptr);
+  }
   if (SUCCEEDED(result)) result = writer->BeginWriting();
   if (SUCCEEDED(result)) _writer = writer;
   return result;
@@ -602,6 +742,30 @@ HRESULT VideoEncoder::Write(const uint8_t *nv12, int64_t time,
   if (SUCCEEDED(result)) result = sample->SetSampleTime(time);
   if (SUCCEEDED(result)) result = sample->SetSampleDuration(duration);
   if (SUCCEEDED(result)) result = _writer->WriteSample(_stream, sample);
+  return result;
+}
+
+HRESULT VideoEncoder::WriteAudio(const int16_t *stereo, UINT32 frames,
+                                 int64_t time) {
+  if (!_writer || !_audio) return E_UNEXPECTED;
+  const DWORD bytes = frames * 4;
+  ComObject<IMFMediaBuffer> buffer;
+  HRESULT result = MFCreateMemoryBuffer(bytes, buffer.Assign());
+  BYTE *data = nullptr;
+  if (SUCCEEDED(result)) result = buffer->Lock(&data, nullptr, nullptr);
+  if (SUCCEEDED(result)) {
+    memcpy(data, stereo, bytes);
+    buffer->Unlock();
+    result = buffer->SetCurrentLength(bytes);
+  }
+  ComObject<IMFSample> sample;
+  if (SUCCEEDED(result)) result = MFCreateSample(sample.Assign());
+  if (SUCCEEDED(result)) result = sample->AddBuffer(buffer);
+  if (SUCCEEDED(result)) result = sample->SetSampleTime(time);
+  if (SUCCEEDED(result))
+    result = sample->SetSampleDuration(int64_t(frames) * kTicksPerSecond /
+                                       audio::MixRate);
+  if (SUCCEEDED(result)) result = _writer->WriteSample(_audioStream, sample);
   return result;
 }
 
@@ -631,8 +795,13 @@ bool MediaFoundationInstalled() {
   return installed;
 }
 
-CaptureManager::CaptureManager(std::filesystem::path folder, bool deviceLost)
+CaptureManager::CaptureManager(
+    std::filesystem::path folder, bool deviceLost,
+    const ComObject<audio::AudioCaptureSource> &audio,
+    const ComObject<CaptureWorkerControl> &control)
     : _folder(std::move(folder)),
+      _audio(audio),
+      _control(control),
       _deviceLost(deviceLost),
       _worker([this] { Work(); }) {}
 
@@ -733,7 +902,7 @@ HRESULT CaptureManager::TakeScreenshot(const small *name,
   if (!name || !capture) return E_INVALIDARG;
   const auto path = CapturePath(_folder, name, L".png");
   if (!path) return E_INVALIDARG;
-  auto state = std::make_shared<CaptureState>();
+  auto state = MakeCom<CaptureState>();
   state->Path = *path;
   {
     std::lock_guard lock(_requestMutex);
@@ -750,17 +919,19 @@ HRESULT CaptureManager::StartVideo(const small *name,
   if (!name || !recording) return E_INVALIDARG;
   const auto path = CapturePath(_folder, name, L".mp4");
   if (!path) return E_INVALIDARG;
-  auto state = std::make_shared<VideoState>();
+  auto state = MakeCom<VideoState>();
   state->Path = *path;
   {
     std::lock_guard lock(_requestMutex);
     if (_shutDown) return E_ABORT;
     if (_deviceLost) return DXGI_ERROR_DEVICE_REMOVED;
     // each video holds a hardware encoder session, and GPUs allow few
-    if (const auto active = _activeVideo.lock();
+    if (const auto *active = dynamic_cast<VideoState *>(_activeVideo.Get());
         active && !active->StopRequested && !active->Complete) {
       return E_NOT_VALID_STATE;
     }
+    state->Control = _control;
+    if (_audio) state->Audio = _audio->Start();
     _videoRequests.push_back(state);
     _activeVideo = state;
   }
@@ -788,7 +959,7 @@ void CaptureManager::RTDeliver(uint64_t completedOrdinal) {
     if (!slot->InFlight || slot->Ordinal > completedOrdinal) continue;
     slot->InFlight = false;
     for (auto &screenshot : slot->Screenshots) {
-      auto pixels = std::make_shared<SlotUse>(*slot);
+      auto pixels = MakeCom<SlotUse>(*slot);
       std::lock_guard lock(_workMutex);
       _work.push_back([pixels, screenshot] {
         const auto &source = pixels->Slot();
@@ -804,7 +975,7 @@ void CaptureManager::RTDeliver(uint64_t completedOrdinal) {
     }
     for (auto &video : slot->Videos) {
       --video->InFlight;
-      video->Push({std::make_shared<SlotUse>(*slot), slot->Time});
+      video->Push({MakeCom<SlotUse>(*slot), slot->Time});
     }
     slot->Screenshots.clear();
     slot->Videos.clear();
@@ -813,7 +984,7 @@ void CaptureManager::RTDeliver(uint64_t completedOrdinal) {
 
 void CaptureManager::RTEndVideos(bool all) {
   for (auto it = _videos.begin(); it != _videos.end();) {
-    auto &video = **it;
+    auto &video = *it->Get();
     if (all) video.Ending = true;
     if (video.Ending && video.InFlight == 0 && !video.CloseSent) {
       video.CloseSent = true;
@@ -877,13 +1048,14 @@ CaptureSlot *CaptureManager::RTFreeSlot(uint64_t bytes) {
 }
 
 void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
-                               CaptureEncoding encoding, float sdrWhiteNits) {
+                               CaptureEncoding encoding, float sdrWhiteNits,
+                               int64_t qpcTime) {
   if (!_device) return;
   RTDeliver(frame.CompletedOrdinal);
   const auto &desc = frame.BackBufferDesc;
   const auto width = uint32_t(desc.Width);
   const auto height = desc.Height;
-  std::vector<std::shared_ptr<CaptureState>> screenshots;
+  std::vector<ComObject<CaptureState>> screenshots;
   {
     std::lock_guard lock(_requestMutex);
     if (drawn) screenshots.swap(_screenshotRequests);
@@ -906,10 +1078,11 @@ void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
   LARGE_INTEGER now, frequency;
   QueryPerformanceCounter(&now);
   QueryPerformanceFrequency(&frequency);
+  if (qpcTime) now.QuadPart = qpcTime;
   // a little early still counts, so a 60 Hz display records every frame
   const int64_t interval =
       frequency.QuadPart / kVideoFrameRate - frequency.QuadPart / 1000;
-  std::vector<std::shared_ptr<VideoState>> videos;
+  std::vector<ComObject<VideoState>> videos;
   for (auto &video : _videos) {
     if (video->Ending) continue;
     if (video->StopRequested) {

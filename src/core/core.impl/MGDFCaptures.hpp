@@ -19,6 +19,8 @@
 #include <thread>
 #include <vector>
 
+#include "../audio/MGDFAudioCapture.hpp"
+
 namespace MGDF {
 namespace core {
 
@@ -64,17 +66,37 @@ class VideoEncoder {
   // device is optional; without one Media Foundation creates a device for
   // the encoder, which takes most of a second
   HRESULT Open(const std::filesystem::path &path, uint32_t width,
-               uint32_t height, IMFDXGIDeviceManager *device = nullptr);
+               uint32_t height, IMFDXGIDeviceManager *device = nullptr,
+               bool audio = false);
   // times are in 100 ns units and must increase
   HRESULT Write(const uint8_t *nv12, int64_t time, int64_t duration);
+  HRESULT WriteAudio(const int16_t *stereo, UINT32 frames, int64_t time);
   HRESULT Close();
 
  private:
   ComObject<IMFSinkWriter> _writer;
-  DWORD _stream = 0;
+  DWORD _stream = 0, _audioStream = 0;
+  bool _audio = false;
   uint32_t _width = 0;
   uint32_t _height = 0;
   bool _started = false;
+};
+
+struct __declspec(uuid("AB51B6E4-5E38-44CA-B9BA-F2B3EF9F6112"))
+ICaptureWorkerControl : IUnknown {};
+// Optional worker signals for bounded integration tests.
+class CaptureWorkerControl : public ComBase<ICaptureWorkerControl> {
+ public:
+  CaptureWorkerControl()
+      : Ready(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+        Resume(CreateEventW(nullptr, TRUE, TRUE, nullptr)),
+        Progress(CreateEventW(nullptr, FALSE, FALSE, nullptr)) {}
+  ~CaptureWorkerControl() {
+    CloseHandle(Ready);
+    CloseHandle(Resume);
+    CloseHandle(Progress);
+  }
+  HANDLE Ready, Resume, Progress;
 };
 
 struct CaptureState;
@@ -86,7 +108,9 @@ struct CaptureSlot;
 class CaptureManager : public ComBase<IMGDFRecorder> {
  public:
   // deviceLost: the host is in a device reset
-  CaptureManager(std::filesystem::path folder, bool deviceLost);
+  CaptureManager(std::filesystem::path folder, bool deviceLost,
+                 const ComObject<audio::AudioCaptureSource> &audio = {},
+                 const ComObject<CaptureWorkerControl> &control = {});
   ~CaptureManager();
 
   HRESULT __stdcall TakeScreenshot(const small *name,
@@ -100,7 +124,8 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
   // After the module's RTDraw, before present. Copies the back buffer when
   // drawn; the frame fence reaches frame.FrameOrdinal once the copy is done
   void RTCapture(const MGDFFrameInfo &frame, bool drawn,
-                 CaptureEncoding encoding, float sdrWhiteNits);
+                 CaptureEncoding encoding, float sdrWhiteNits,
+                 int64_t qpcTime = 0);
   // Before a device reset: captures in progress fail, and new captures fail
   // until RTSetDevice
   void RTReleaseDevice();
@@ -119,6 +144,8 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
   ComObject<IMFDXGIDeviceManager> EncoderDevice();
 
   std::filesystem::path _folder;
+  ComObject<audio::AudioCaptureSource> _audio;
+  ComObject<CaptureWorkerControl> _control;
 
   std::mutex _encoderDeviceMutex;
   LUID _adapter{};
@@ -128,9 +155,9 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
   ComObject<ID3D11Device> _encoderD3DDevice;
   ComObject<IMFDXGIDeviceManager> _encoderDevice;
   std::mutex _requestMutex;
-  std::vector<std::shared_ptr<CaptureState>> _screenshotRequests;
-  std::vector<std::shared_ptr<VideoState>> _videoRequests;
-  std::weak_ptr<VideoState> _activeVideo;
+  std::vector<ComObject<CaptureState>> _screenshotRequests;
+  std::vector<ComObject<VideoState>> _videoRequests;
+  ComObject<IUnknown> _activeVideo;
   bool _shutDown = false;
   bool _deviceLost = false;
 
@@ -139,7 +166,7 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
   ComObject<ID3D12CommandQueue> _queue;
   ComObject<ID3D12Fence> _fence;
   std::vector<std::unique_ptr<CaptureSlot>> _slots;
-  std::vector<std::shared_ptr<VideoState>> _videos;
+  std::vector<ComObject<VideoState>> _videos;
 
   // screenshot encoding
   std::mutex _workMutex;

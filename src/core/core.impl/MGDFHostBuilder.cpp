@@ -69,8 +69,12 @@ bool HostBuilder::RegisterAdditionalComponents(IMGDFGame *game,
     return false;
   }
 
-  if (!audio::openal_audio::CreateSoundManagerComponent(enableHrtf,
-                                                        components.Sound)) {
+  const auto *audioFile =
+      ParameterManager::Instance().GetParameter("audiofile");
+  if (!audio::openal_audio::CreateSoundManagerComponent(
+          enableHrtf,
+          audioFile ? Resources::ToWString(audioFile) : std::wstring{},
+          components.Sound)) {
     // its a problem, but we can still probably run if the soundmanager failed
     // to initialize
     LOG("ERROR: Unable to register SoundManager", MGDF_LOG_ERROR);

@@ -16,6 +16,7 @@
 #include "../../src/core/audio/openal/OpenALSoundManagerComponentImpl.hpp"
 #include "../../src/core/common/MGDFPreferenceSet.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
+#include "AudioOutputTestEndpoint.hpp"
 
 using namespace MGDF;
 using namespace MGDF::core;
@@ -1141,3 +1142,113 @@ TEST_F(AudioStreamIntegrationTests, StopAndPlayInOneBatchRestartsTheFile) {
   EXPECT_DOUBLE_EQ(304.0 / 48000, stream->GetPosition());
 }
 }  // namespace
+
+namespace {
+std::filesystem::path OutputTestFile() {
+  return std::filesystem::temp_directory_path() /
+         ("mgdf_output_" + std::to_string(GetCurrentProcessId()) + ".wav");
+}
+bool WaitForMix(audio::AudioCaptureRing *ring,
+                OpenALSoundManagerComponentImpl *manager, double time) {
+  const auto deadline = GetTickCount64() + 10000;
+  while (manager->GetAudioTime() < time) {
+    if (GetTickCount64() > deadline) return false;
+    audio::AudioBlock block;
+    while (ring->Pop(block)) {
+    }
+    if (WaitForSingleObject(ring->Ready, 1000) != WAIT_OBJECT_0) return false;
+  }
+  return true;
+}
+}  // namespace
+TEST_F(AudioTests, FileOutputEqualsTheLoopbackMix) {
+  Commands.Clear();
+  Manager.Clear();
+  const auto path = OutputTestFile();
+  Manager = MakeCom<OpenALSoundManagerComponentImpl>(
+      AudioOptions{.Sources = 2, .OutputFile = path});
+  ASSERT_EQ(S_OK, Manager->Init());
+  auto ring = Manager->CaptureSource()->Start();
+  auto pcm = Pcm(48000, 9600);
+  const auto signal = Signal(4800);
+  pcm->Write(signal.data(), 4800);
+  pcm->End();
+  auto desc = Desc();
+  desc.StartTime = 0.1;
+  ASSERT_EQ(S_OK, Manager->CreateCommandList(Commands.Assign()));
+  Commands->PlayPcm(pcm, &desc);
+  Manager->Submit(Commands);
+  ASSERT_TRUE(WaitForMix(ring, Manager, 0.3));
+  Manager->Stop();
+  std::ifstream file(path, std::ios::binary);
+  ASSERT_TRUE(file.good());
+  std::array<UINT32, 11> header{};
+  file.read(reinterpret_cast<char *>(header.data()), sizeof(header));
+  ASSERT_EQ(48000u, header[6]);
+  ASSERT_EQ((2u << 16) | 3u, header[5]);
+  ASSERT_GT(header[10], 0u);
+  std::vector<float> recorded(header[10] / sizeof(float));
+  file.read(reinterpret_cast<char *>(recorded.data()), header[10]);
+  ASSERT_TRUE(file.good());
+  file.close();
+  std::filesystem::remove(path);
+  Open(2);
+  pcm = Pcm(48000, 9600);
+  pcm->Write(signal.data(), 4800);
+  pcm->End();
+  Commands->PlayPcm(pcm, &desc);
+  Submit();
+  std::vector<float> expected;
+  while (expected.size() < recorded.size()) {
+    const auto count = static_cast<UINT32>(
+        (std::min)(size_t(240), (recorded.size() - expected.size()) / 2));
+    const auto block = Render(count);
+    expected.insert(expected.end(), block.begin(), block.end());
+  }
+  ASSERT_EQ(expected.size(), recorded.size());
+  for (size_t i = 0; i < expected.size(); ++i)
+    ASSERT_NEAR(expected[i], recorded[i], 1e-6f) << i;
+}
+TEST_F(AudioTests, EndpointChangesPreserveTheClockAndPcmPosition) {
+  auto source = MakeCom<TestOutputSource>();
+  Commands.Clear();
+  Manager.Clear();
+  AudioOptions options{.Sources = 2};
+  options.EndpointSource = source;
+  Manager = MakeCom<OpenALSoundManagerComponentImpl>(options);
+  ASSERT_EQ(S_OK, Manager->Init());
+  auto ring = Manager->CaptureSource()->Start();
+  auto pcm = Pcm(48000, 48000);
+  ASSERT_EQ(48000u, pcm->WriteSilence(48000));
+  ASSERT_EQ(S_OK, Manager->CreateCommandList(Commands.Assign()));
+  auto desc = Desc();
+  desc.StartTime = 0.05;
+  const auto voice = Commands->PlayPcm(pcm, &desc);
+  Manager->Submit(Commands);
+  ASSERT_TRUE(WaitForMix(ring, Manager, 0.1));
+  double previous = Manager->GetAudioTime();
+  for (const UINT32 channels : {6u, 0u, 2u}) {
+    ResetEvent(source->State->Opened);
+    source->Change(channels);
+    ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(source->State->Opened, 2000));
+    ASSERT_TRUE(WaitForMix(ring, Manager, previous + 0.05));
+    const double now = Manager->GetAudioTime();
+    EXPECT_GE(now, previous);
+    audio::AudioBlock block;
+    UINT64 rendered = 0;
+    while (ring->Pop(block)) rendered = block.FirstFrame + block.Frames;
+    ASSERT_GT(rendered, 0u);
+    EXPECT_LE(
+        std::abs(std::llround(now * 48000) - static_cast<int64_t>(rendered)),
+        480);
+    UINT64 played = 0;
+    double audioTime = 0;
+    pcm->GetPlayPosition(&played, &audioTime);
+    EXPECT_NEAR(double(played) / 48000, audioTime - desc.StartTime,
+                1.0 / 48000);
+    EXPECT_EQ(MGDF_VOICE_PLAYING, Manager->GetVoiceStatus(voice));
+    previous = now;
+  }
+  EXPECT_GE(Stats().DeviceChanges, 3u);
+  EXPECT_EQ(0u, Stats().Underruns);
+}

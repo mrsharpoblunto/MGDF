@@ -159,6 +159,8 @@ struct OpenALSoundManagerComponentImpl::Impl {
   ComObject<AudioControl> Control = MakeCom<AudioControl>();
   std::atomic<bool> Stopping{false};
   std::thread AudioThread, Decoder;
+  ComObject<AudioCaptureSource> Capture = MakeCom<AudioCaptureSource>();
+  std::unique_ptr<AudioOutput> Output;
   std::unique_ptr<StreamWorker> Streams;
   AudioQueue<DecodeJob> Decodes;
   AudioQueue<SampleRegistration> Registrations;
@@ -204,27 +206,25 @@ struct OpenALSoundManagerComponentImpl::Impl {
                : seconds;
   }
   HRESULT Open() {
-    if (Options.Loopback) {
-      const auto open = std::bit_cast<LPALCLOOPBACKOPENDEVICESOFT>(
-          alcGetProcAddress(nullptr, "alcLoopbackOpenDeviceSOFT"));
-      RenderSamples = std::bit_cast<LPALCRENDERSAMPLESSOFT>(
-          alcGetProcAddress(nullptr, "alcRenderSamplesSOFT"));
-      if (!open || !RenderSamples) return E_FAIL;
-      Device = open(nullptr);
-    } else
-      Device = alcOpenDevice(nullptr);
+    const auto open = std::bit_cast<LPALCLOOPBACKOPENDEVICESOFT>(
+        alcGetProcAddress(nullptr, "alcLoopbackOpenDeviceSOFT"));
+    RenderSamples = std::bit_cast<LPALCRENDERSAMPLESSOFT>(
+        alcGetProcAddress(nullptr, "alcRenderSamplesSOFT"));
+    if (!open || !RenderSamples) return E_FAIL;
+    Device = open(nullptr);
     if (!Device) return E_FAIL;
     std::vector<ALCint> attributes{
         ALC_MONO_SOURCES,        512,
         ALC_MAX_AUXILIARY_SENDS, 2,
         ALC_HRTF_SOFT,           Options.Hrtf ? ALC_TRUE : ALC_FALSE};
-    if (Options.Loopback)
-      attributes.insert(
-          attributes.end(),
-          {ALC_FREQUENCY, static_cast<ALCint>(Options.SampleRate),
-           ALC_FORMAT_CHANNELS_SOFT, ALC_STEREO_SOFT, ALC_FORMAT_TYPE_SOFT,
-           ALC_FLOAT_SOFT, ALC_OUTPUT_LIMITER_SOFT, ALC_FALSE,
-           ALC_OUTPUT_MODE_SOFT, ALC_STEREO_BASIC_SOFT});
+    attributes.insert(
+        attributes.end(),
+        {ALC_FREQUENCY, static_cast<ALCint>(Options.SampleRate),
+         ALC_FORMAT_CHANNELS_SOFT, ALC_STEREO_SOFT, ALC_FORMAT_TYPE_SOFT,
+         ALC_FLOAT_SOFT, ALC_OUTPUT_LIMITER_SOFT, ALC_FALSE,
+         ALC_OUTPUT_MODE_SOFT,
+         Options.Loopback || !Options.Hrtf ? ALC_STEREO_BASIC_SOFT
+                                           : ALC_STEREO_HRTF_SOFT});
     attributes.push_back(0);
     Context = alcCreateContext(Device, attributes.data());
     if (!Context) return E_FAIL;
@@ -676,6 +676,11 @@ struct OpenALSoundManagerComponentImpl::Impl {
     snapshot.Stats.AudioThreadMs = elapsed;
     snapshot.Stats.FreeSources = static_cast<UINT32>(FreeSources.size());
     snapshot.Stats.Underruns = Underruns;
+    snapshot.Stats.DroppedAudioBlocks = Capture->Counts->Dropped.load();
+    if (Output) {
+      snapshot.Stats.DeviceChanges = Output->DeviceChanges.load();
+      snapshot.Stats.OutputThreadMs = Output->RenderMs.load();
+    }
     for (const auto &[id, voice] : Voices) {
       if (voice->Ended) continue;
       if (voice->FileStream) ++snapshot.Stats.Streams;
@@ -711,6 +716,7 @@ struct OpenALSoundManagerComponentImpl::Impl {
                 .count());
   }
   void Close() {
+    if (Output) Output->Stop();
     Discard(Control->Submissions.Close(), *Control.Get());
     auto *registration = Registrations.Close();
     while (registration) {
@@ -757,6 +763,7 @@ OpenALSoundManagerComponentImpl::OpenALSoundManagerComponentImpl(
 OpenALSoundManagerComponentImpl::~OpenALSoundManagerComponentImpl() { Stop(); }
 HRESULT OpenALSoundManagerComponentImpl::Init() {
   auto &m = *_impl;
+  if (!m.Options.Loopback) m.Options.SampleRate = MixRate;
   if (!m.Options.Sources || m.Options.Sources > 512) return E_INVALIDARG;
   HRESULT result = E_FAIL;
   if (m.Options.Loopback)
@@ -768,6 +775,12 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
       HRESULT opened = E_FAIL;
       try {
         opened = m.Open();
+        if (SUCCEEDED(opened)) {
+          m.Output = std::make_unique<AudioOutput>(
+              m.Device, m.Options.Hrtf, m.Capture, m.Options.OutputFile,
+              m.Options.EndpointSource);
+          opened = m.Output->Start();
+        }
       } catch (...) {
       }
       ready.set_value(opened);
@@ -813,6 +826,9 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
     }
   });
   return S_OK;
+}
+ComObject<AudioCaptureSource> OpenALSoundManagerComponentImpl::CaptureSource() {
+  return _impl->Capture;
 }
 void OpenALSoundManagerComponentImpl::Stop() {
   auto &m = *_impl;
@@ -999,6 +1015,21 @@ void OpenALSoundManagerComponentImpl::Render(float *stereo, UINT32 frames) {
   _ASSERTE(_impl->Options.Loopback);
   _impl->RenderSamples(_impl->Device, stereo, static_cast<ALCsizei>(frames));
   _impl->Update();
+}
+void OpenALSoundManagerComponentImpl::RenderAt(float *stereo, UINT32 frames,
+                                               int64_t qpcTime) {
+  _ASSERTE(_impl->Options.Loopback);
+  UINT32 offset = 0;
+  while (offset < frames) {
+    const auto count = std::min(frames - offset, MixBlockFrames);
+    const auto first =
+        static_cast<UINT64>(std::llround(_impl->Clock() * GetSampleRate()));
+    Render(stereo + size_t(offset) * 2, count);
+    _impl->Capture->Publish(
+        stereo + size_t(offset) * 2, 2, count, first,
+        qpcTime + int64_t(offset) * AudioTicksPerSecond / GetSampleRate());
+    offset += count;
+  }
 }
 bool OpenALSoundManagerComponentImpl::WaitForLoads(
     std::chrono::milliseconds timeout) {
