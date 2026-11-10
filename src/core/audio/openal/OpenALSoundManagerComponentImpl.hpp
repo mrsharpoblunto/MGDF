@@ -3,12 +3,15 @@
 #include <memory>
 
 #include "../MGDFSoundManagerComponent.hpp"
+#include "AudioOutput.hpp"
 namespace MGDF::core::audio::openal_audio {
 struct AudioOptions {
   bool Loopback = false;
   UINT32 SampleRate = 48000;
   UINT32 Sources = 512;
   bool Hrtf = false;
+  std::filesystem::path OutputFile;
+  ComObject<OutputEndpointSource> EndpointSource;
 };
 class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
  public:
@@ -16,6 +19,7 @@ class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
   ~OpenALSoundManagerComponentImpl();
   HRESULT Init();
   void Stop() final;
+  ComObject<AudioCaptureSource> CaptureSource() final;
   MGDFBusId __stdcall GetBus(MGDFBusKind) final;
   HRESULT __stdcall CreateBus(const MGDFBusDesc *, MGDFBusId *) final;
   HRESULT __stdcall CreateSoundSamples(IMGDFReadOnlyFile *,
@@ -37,6 +41,7 @@ class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
   // Loopback uses the caller as the audio thread.
   void Update();
   void Render(float *stereo, UINT32 frames);
+  void RenderAt(float *stereo, UINT32 frames, int64_t qpcTime);
   bool WaitForStreams(std::chrono::milliseconds timeout);
   bool WaitForLoads(std::chrono::milliseconds timeout);
 

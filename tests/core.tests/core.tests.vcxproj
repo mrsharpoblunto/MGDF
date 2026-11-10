@@ -171,6 +171,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="AudioOutputTestEndpoint.hpp" />
     <ClInclude Include="VFSCommon.hpp" />
   </ItemGroup>
   <ItemGroup>
