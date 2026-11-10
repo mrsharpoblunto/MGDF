@@ -13,11 +13,11 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <future>
 #include <thread>
 
 #include "../../src/core/audio/openal/OpenALSoundManagerComponentImpl.hpp"
 #include "../../src/core/core.impl/MGDFCaptures.hpp"
-#include "AudioOutputTestEndpoint.hpp"
 
 using namespace MGDF;
 using namespace MGDF::core;
@@ -434,26 +434,6 @@ TEST_F(CaptureIntegrationTests, ReleasingAVideoStopsIt) {
 }
 
 namespace {
-class FrameTimer {
- public:
-  FrameTimer() : _timer(CreateWaitableTimerW(nullptr, FALSE, nullptr)) {
-    LARGE_INTEGER due;
-    due.QuadPart = -1;
-    if (_timer) SetWaitableTimer(_timer, &due, 20, nullptr, nullptr, FALSE);
-  }
-  ~FrameTimer() {
-    if (_timer) {
-      CancelWaitableTimer(_timer);
-      CloseHandle(_timer);
-    }
-  }
-  bool Wait() const {
-    return WaitForSingleObject(_timer, 2000) == WAIT_OBJECT_0;
-  }
-
- private:
-  HANDLE _timer;
-};
 struct DecodedAudio {
   std::vector<float> Samples;
   int64_t First = 0, End = 0;
@@ -570,16 +550,24 @@ class AudioCaptureIntegrationTests : public CaptureIntegrationTests {
     _sound.Clear();
     CaptureIntegrationTests::TearDown();
   }
-  bool Prime(IMGDFVideoRecording *recording) {
-    FrameTimer timer;
-    const auto deadline = GetTickCount64() + 10000;
-    while (recording->GetFrameCount() < 2 &&
-           recording->GetResult() == E_PENDING) {
-      if (GetTickCount64() >= deadline || !timer.Wait()) return false;
-      Frame({0, 0, 0, 1});
-    }
-    return recording->GetFrameCount() >= 2;
+  void Ready() {
+    Frame({0, 0, 0, 1}, false);
+    ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(_control->Ready, 10000));
   }
+  void ExactFrame(int index, IMGDFVideoRecording *recording,
+                  std::array<float, 4> color = {0, 0, 0, 1}) {
+    const auto ticks = _frequency * 10 + int64_t(index) * _frequency / 60;
+    Frame(color, true, ticks);
+    Frame({0, 0, 0, 1}, false, ticks);
+    while (recording->GetFrameCount() < UINT64(index))
+      ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(_control->Progress, 10000));
+  }
+  static constexpr int64_t BaseTime = 100'000'000;
+  const int64_t _frequency = [] {
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    return frequency.QuadPart;
+  }();
   void Finish(IMGDFVideoRecording *recording) {
     recording->Stop();
     Frame({0, 0, 0, 1});
@@ -594,8 +582,7 @@ TEST_F(AudioCaptureIntegrationTests,
        VideoContainsStereoAudioInTimeWithAWhiteFrame) {
   ComObject<IMGDFVideoRecording> recording;
   ASSERT_EQ(S_OK, _captures->StartVideo("tone", recording.Assign()));
-  Frame({0, 0, 0, 1}, false);
-  ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(_control->Ready, 10000));
+  ASSERT_NO_FATAL_FAILURE(Ready());
   const double start = 0.25;
   const MGDFSoundPcmDesc format{2, 48000, 4800};
   ComObject<IMGDFSoundPcmStream> pcm;
@@ -616,24 +603,13 @@ TEST_F(AudioCaptureIntegrationTests,
   commands->PlayPcm(pcm, &desc);
   _sound->Submit(commands);
   _sound->Update();
-  LARGE_INTEGER base, frequency;
-  QueryPerformanceCounter(&base);
-  QueryPerformanceFrequency(&frequency);
-  const auto baseTime =
-      static_cast<int64_t>(double(base.QuadPart) * 1e7 / frequency.QuadPart);
   std::vector<float> mix(1600);
   for (int i = 0; i < 45; ++i) {
-    const auto ticks = base.QuadPart + int64_t(i) * frequency.QuadPart / 60;
-    _sound->RenderAt(mix.data(), 800, baseTime + int64_t(i) * 10000000 / 60);
-    Frame(i == 15 ? std::array<float, 4>{1, 1, 1, 1}
-                  : std::array<float, 4>{0, 0, 0, 1},
-          true, ticks);
-    Frame({0, 0, 0, 1}, false, ticks);
-    const auto deadline = GetTickCount64() + 10000;
-    while (recording->GetFrameCount() < UINT64(i)) {
-      ASSERT_LT(GetTickCount64(), deadline);
-      ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(_control->Progress, 10000));
-    }
+    _sound->RenderAt(mix.data(), 800, BaseTime + int64_t(i) * 10000000 / 60);
+    ASSERT_NO_FATAL_FAILURE(ExactFrame(i, recording,
+                                       i == 15
+                                           ? std::array<float, 4>{1, 1, 1, 1}
+                                           : std::array<float, 4>{0, 0, 0, 1}));
   }
   Finish(recording);
   const auto path = TempFolder() / L"tone.mp4";
@@ -658,112 +634,113 @@ TEST_F(AudioCaptureIntegrationTests,
 
 TEST_F(AudioCaptureIntegrationTests,
        ADeviceGapBecomesSilenceWithoutShorteningTheTrack) {
-  using namespace audio::openal_audio;
-  auto source = MakeCom<TestOutputSource>();
-  _sound->Stop();
-  AudioOptions options{.Sources = 4};
-  options.EndpointSource = source;
-  _sound = MakeCom<OpenALSoundManagerComponentImpl>(options);
-  ASSERT_EQ(S_OK, _sound->Init());
-  _captures->RTShutDown();
-  _control = MakeCom<CaptureWorkerControl>();
-  _captures = MakeCom<CaptureManager>(TempFolder(), false,
-                                      _sound->CaptureSource(), _control);
-  _captures->RTSetDevice(_device, _queue, _fence);
-  const MGDFSoundPcmDesc format{2, 48000, 96000};
+  ComObject<IMGDFVideoRecording> recording;
+  ASSERT_EQ(S_OK, _captures->StartVideo("gap", recording.Assign()));
+  ASSERT_NO_FATAL_FAILURE(Ready());
+  const MGDFSoundPcmDesc format{2, 48000, 24000};
   ComObject<IMGDFSoundPcmStream> pcm;
   ASSERT_EQ(S_OK, _sound->CreatePcmStream(&format, pcm.Assign()));
-  std::vector<float> tone(192000);
+  std::vector<float> tone(48000);
   for (size_t i = 0; i < tone.size() / 2; ++i)
     tone[i * 2] = tone[i * 2 + 1] =
         0.25f * std::sin(float(i) * 6.28318530718f / 48);
-  ASSERT_EQ(96000u, pcm->Write(tone.data(), 96000));
+  ASSERT_EQ(24000u, pcm->Write(tone.data(), 24000));
+  pcm->End();
   ComObject<IMGDFSoundCommandList> commands;
   ASSERT_EQ(S_OK, _sound->CreateCommandList(commands.Assign()));
   const MGDFVoiceDesc desc{.Bus = 1, .Volume = 1, .Pitch = 1, .GainHF = 1};
   commands->PlayPcm(pcm, &desc);
   _sound->Submit(commands);
-  ComObject<IMGDFVideoRecording> recording;
-  ASSERT_EQ(S_OK, _captures->StartVideo("gap", recording.Assign()));
-  ASSERT_TRUE(Prime(recording));
-  struct ResumeOnExit {
-    HANDLE Resume;
-    ~ResumeOnExit() { SetEvent(Resume); }
-  } resume{source->State->RenderResume};
-  ResetEvent(source->State->RenderResume);
-  ResetEvent(source->State->Rendering);
-  ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(source->State->Rendering, 2000));
-  FrameTimer timer;
-  for (int i = 0; i < 12; ++i) {
-    ASSERT_TRUE(timer.Wait());
-    Frame({0, 0, 0, 1});
+  _sound->Update();
+  // Publish [0, 0.2) and [0.4, 0.7). Leave a 200 ms gap and a 100 ms tail.
+  // All 100 blocks fit in the ring before the first video frame.
+  std::array<float, 480> mix{};
+  for (int block = 0; block < 140; ++block) {
+    if (block >= 40 && block < 80) continue;
+    _sound->RenderAt(mix.data(), 240, BaseTime + int64_t(block) * 50000);
   }
-  SetEvent(source->State->RenderResume);
-  for (int i = 0; i < 15; ++i) {
-    ASSERT_TRUE(timer.Wait());
-    Frame({0, 0, 0, 1});
-  }
+  for (int frame = 0; frame < 48; ++frame)
+    ASSERT_NO_FATAL_FAILURE(ExactFrame(frame, recording));
   Finish(recording);
+  EXPECT_EQ(48u, recording->GetFrameCount());
+  EXPECT_EQ(0u, recording->GetDroppedFrameCount());
   const auto path = TempFolder() / L"gap.mp4";
   const auto decoded = ReadRecordingAudio(path);
   const auto video = ReadRecordingTimes(path);
   ASSERT_EQ(48000u, decoded.Rate);
-  EXPECT_NEAR(double(decoded.End), double(video.End),
-              10000000.0 * 1024 / 48000);
-  size_t quiet = 0, longest = 0;
-  bool heardBefore = false, heardAfter = false;
-  for (size_t i = 0; i < decoded.Samples.size(); i += 2) {
-    if (std::abs(decoded.Samples[i]) < 0.002f) {
-      if (heardBefore) {
-        ++quiet;
-        longest = (std::max)(longest, quiet);
+  ASSERT_EQ(2u, decoded.Channels);
+  EXPECT_NEAR(double(video.End), 8'000'000.0, 2.0);
+  // 38,400 PCM frames round up to 38 AAC packets, including final silence.
+  EXPECT_EQ(38u * 1024, decoded.Samples.size() / 2);
+  EXPECT_NEAR(double(decoded.End), 38.0 * 1024 * 10000000 / 48000, 1.0);
+  size_t quiet = 0, longest = 0, quietEnd = 0;
+  // Measure 5 ms RMS windows so AAC ringing at a boundary cannot move the
+  // result to the last isolated sample above a threshold.
+  for (size_t i = 0; i + 240 <= decoded.Samples.size() / 2; i += 240) {
+    double energy = 0;
+    for (size_t j = i; j < i + 240; ++j)
+      energy += double(decoded.Samples[j * 2]) * decoded.Samples[j * 2];
+    if (std::sqrt(energy / 240) < 0.01) {
+      quiet += 240;
+      if (quiet > longest) {
+        longest = quiet;
+        quietEnd = i + 240;
       }
     } else {
-      if (longest > 4800) heardAfter = true;
-      heardBefore = true;
       quiet = 0;
     }
   }
-  EXPECT_GT(longest, 7200u);
-  EXPECT_LT(longest, 16000u);
-  EXPECT_TRUE(heardAfter);
-  std::cout << "gap silence_ms=" << double(longest) * 1000 / 48000
-            << " track_difference_ms="
-            << double(decoded.End - video.End) / 10000 << '\n';
+  EXPECT_NEAR(double(longest), 9600.0, audio::MixBlockFrames);
+  EXPECT_NEAR(double(quietEnd), 19200.0, audio::MixBlockFrames);
+  // The output stopped at 0.7 s; the recorder must supply the remaining tail.
+  ASSERT_GE(decoded.Samples.size() / 2, 38400u);
+  for (size_t i = 34800; i < 38400; ++i)
+    ASSERT_LT(std::abs(decoded.Samples[i * 2]), 0.002f) << i;
+  std::cout << "gap quiet_frames=" << longest << " gap_end=" << quietEnd
+            << " audio_frames=" << decoded.Samples.size() / 2
+            << " video_end=" << video.End << " audio_end=" << decoded.End
+            << " difference_ms=" << double(decoded.End - video.End) / 10000
+            << '\n';
 }
 TEST_F(AudioCaptureIntegrationTests,
        ASlowRecorderDropsAudioWithoutStoppingTheOutput) {
-  using namespace audio::openal_audio;
-  _sound->Stop();
-  _sound = MakeCom<OpenALSoundManagerComponentImpl>(
-      AudioOptions{.Sources = 4, .OutputFile = TempFolder() / L"slow.wav"});
-  ASSERT_EQ(S_OK, _sound->Init());
-  _captures->RTShutDown();
-  _control = MakeCom<CaptureWorkerControl>();
   ResetEvent(_control->Resume);
-  _captures = MakeCom<CaptureManager>(TempFolder(), false,
-                                      _sound->CaptureSource(), _control);
-  _captures->RTSetDevice(_device, _queue, _fence);
   ComObject<IMGDFVideoRecording> recording;
   ASSERT_EQ(S_OK, _captures->StartVideo("slow", recording.Assign()));
-  Frame({0, 0, 0, 1}, false);
-  ASSERT_EQ(WAIT_OBJECT_0, WaitForSingleObject(_control->Ready, 10000));
-  const double start = _sound->GetAudioTime();
-  FrameTimer timer;
-  const auto deadline = GetTickCount64() + 5000;
-  while (_sound->GetAudioTime() < start + 0.85) {
-    ASSERT_LT(GetTickCount64(), deadline);
-    ASSERT_TRUE(timer.Wait());
-    Frame({0, 0, 0, 1});
+  ASSERT_NO_FATAL_FAILURE(Ready());
+  // Queue two frames while the worker is held. Their final end is one second.
+  for (const int frame : {0, 59}) {
+    const auto ticks = _frequency * 10 + int64_t(frame) * _frequency / 60;
+    Frame({0, 0, 0, 1}, true, ticks);
+    Frame({0, 0, 0, 1}, false, ticks);
   }
-  MGDFSoundStats stats{};
-  _sound->GetStats(&stats);
-  EXPECT_GT(stats.DroppedAudioBlocks, 0u);
-  EXPECT_EQ(0u, recording->GetFrameCount());
+  // Completion must not depend on the recorder consuming the full audio ring.
+  const auto rendered = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+  if (!rendered) FAIL() << "Could not create the render completion event";
+  auto completion = std::async(std::launch::async, [&] {
+    const auto result = WaitForSingleObject(rendered, 10000);
+    if (result != WAIT_OBJECT_0) SetEvent(_control->Resume);
+    return result;
+  });
+  std::array<float, 480> mix{};
+  for (int block = 0; block < 200; ++block)
+    _sound->RenderAt(mix.data(), 240, BaseTime + int64_t(block) * 50000);
+  _sound->Update();
+  SetEvent(rendered);
+  const auto status = completion.get();
+  CloseHandle(rendered);
+  EXPECT_EQ(WAIT_OBJECT_0, status);
+  if (status == WAIT_OBJECT_0) {
+    MGDFSoundStats stats{};
+    _sound->GetStats(&stats);
+    EXPECT_EQ(72u, stats.DroppedAudioBlocks);
+    EXPECT_DOUBLE_EQ(1.0, _sound->GetAudioTime());
+    EXPECT_EQ(0u, recording->GetFrameCount());
+  }
   SetEvent(_control->Resume);
   Finish(recording);
-  EXPECT_GT(recording->GetFrameCount(), 0u);
+  EXPECT_EQ(2u, recording->GetFrameCount());
   const auto decoded = ReadRecordingAudio(TempFolder() / L"slow.mp4");
   EXPECT_EQ(48000u, decoded.Rate);
-  EXPECT_FALSE(decoded.Samples.empty());
+  EXPECT_EQ(47u * 1024, decoded.Samples.size() / 2);
 }

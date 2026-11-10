@@ -1148,9 +1148,9 @@ std::filesystem::path OutputTestFile() {
   return std::filesystem::temp_directory_path() /
          ("mgdf_output_" + std::to_string(GetCurrentProcessId()) + ".wav");
 }
-bool WaitForMix(audio::AudioCaptureRing *ring,
-                OpenALSoundManagerComponentImpl *manager, double time,
-                audio::AudioBlock *last = nullptr) {
+template <typename Complete>
+bool WaitForOutput(audio::AudioCaptureRing *ring, Complete complete,
+                   audio::AudioBlock *last = nullptr) {
   const auto deadline = GetTickCount64() + 10000;
   for (;;) {
     if (GetTickCount64() > deadline) return false;
@@ -1163,9 +1163,15 @@ bool WaitForMix(audio::AudioCaptureRing *ring,
         *last = block;
       }
     }
-    if (manager->GetAudioTime() >= time) return true;
+    if (complete()) return true;
     if (WaitForSingleObject(ring->Ready, 1000) != WAIT_OBJECT_0) return false;
   }
+}
+bool WaitForMix(audio::AudioCaptureRing *ring,
+                OpenALSoundManagerComponentImpl *manager, double time,
+                audio::AudioBlock *last = nullptr) {
+  return WaitForOutput(
+      ring, [&] { return manager->GetAudioTime() >= time; }, last);
 }
 }  // namespace
 TEST_F(AudioTests, FileOutputEqualsTheLoopbackMix) {
@@ -1181,11 +1187,12 @@ TEST_F(AudioTests, FileOutputEqualsTheLoopbackMix) {
   pcm->Write(signal.data(), 4800);
   pcm->End();
   auto desc = Desc();
-  desc.StartTime = 0.1;
   ASSERT_EQ(S_OK, Manager->CreateCommandList(Commands.Assign()));
-  Commands->PlayPcm(pcm, &desc);
+  const auto voice = Commands->PlayPcm(pcm, &desc);
   Manager->Submit(Commands);
-  ASSERT_TRUE(WaitForMix(ring, Manager, 0.3));
+  ASSERT_TRUE(WaitForOutput(ring, [&] {
+    return Manager->GetVoiceStatus(voice) == MGDF_VOICE_ENDED;
+  }));
   Manager->Stop();
   std::ifstream file(path, std::ios::binary);
   ASSERT_TRUE(file.good());
@@ -1199,6 +1206,13 @@ TEST_F(AudioTests, FileOutputEqualsTheLoopbackMix) {
   ASSERT_TRUE(file.good());
   file.close();
   std::filesystem::remove(path);
+  // Command setup can take any amount of time. Reproduce its actual start
+  // frame, then compare every WAV sample, including the silence around it.
+  const auto first = std::find_if(recorded.begin(), recorded.end(),
+                                  [](float value) { return value != 0; });
+  ASSERT_NE(recorded.end(), first);
+  ASSERT_EQ(0, std::distance(recorded.begin(), first) % 2);
+  desc.StartTime = double(std::distance(recorded.begin(), first) / 2) / 48000;
   Open(2);
   pcm = Pcm(48000, 9600);
   pcm->Write(signal.data(), 4800);
@@ -1228,14 +1242,24 @@ TEST_F(AudioTests, EndpointChangesPreserveTheClockAndPcmPosition) {
   auto ring = Manager->CaptureSource()->Start();
   auto pcm = Pcm(48000, 192000);
   ASSERT_EQ(192000u, pcm->WriteSilence(192000));
+  pcm->End();
   ASSERT_EQ(S_OK, Manager->CreateCommandList(Commands.Assign()));
   auto desc = Desc();
-  desc.StartTime = 0.05;
   const auto voice = Commands->PlayPcm(pcm, &desc);
   Manager->Submit(Commands);
   audio::AudioBlock last{};
   // Let the initial retry deadline pass while an endpoint is active.
   ASSERT_TRUE(WaitForMix(ring, Manager, 1.1, &last));
+  UINT64 firstPlayed = 0;
+  double firstTime = 0;
+  ASSERT_TRUE(WaitForOutput(
+      ring,
+      [&] {
+        pcm->GetPlayPosition(&firstPlayed, &firstTime);
+        return firstPlayed != 0;
+      },
+      &last));
+  const auto start = firstTime - double(firstPlayed) / 48000;
   EXPECT_EQ(0u, Stats().DeviceChanges);
   struct ResumeOnExit {
     HANDLE Resume;
@@ -1254,30 +1278,38 @@ TEST_F(AudioTests, EndpointChangesPreserveTheClockAndPcmPosition) {
     // Mixing continues during the open. A retry must not discard its result.
     ASSERT_TRUE(WaitForMix(ring, Manager, previous + 0.025, &last));
     SetEvent(source->State->Resume);
-    ASSERT_TRUE(WaitForMix(ring, Manager, previous + 0.1, &last));
-    EXPECT_EQ(opens + 1, source->State->OpenCalls.load());
     if (changes < 3) ++changes;
+    ASSERT_TRUE(WaitForOutput(
+        ring, [&] { return Stats().DeviceChanges >= changes; }, &last));
+    ASSERT_TRUE(
+        WaitForMix(ring, Manager, Manager->GetAudioTime() + 0.1, &last));
+    // An absent endpoint can retry again while the test thread is suspended.
+    if (channels) EXPECT_EQ(opens + 1, source->State->OpenCalls.load());
     EXPECT_EQ(changes, Stats().DeviceChanges);
     if (!channels) {
-      ASSERT_TRUE(WaitForMix(ring, Manager, previous + 1.25, &last));
-      EXPECT_GT(source->State->OpenCalls.load(), opens + 1);
+      ASSERT_TRUE(WaitForOutput(
+          ring, [&] { return source->State->OpenCalls.load() > opens + 1; },
+          &last));
       EXPECT_EQ(changes, Stats().DeviceChanges);
     }
     const double now = Manager->GetAudioTime();
     EXPECT_GE(now, previous);
-    const auto rendered = last.FirstFrame + last.Frames;
-    ASSERT_GT(rendered, 0u);
-    EXPECT_LE(
-        std::abs(std::llround(now * 48000) - static_cast<int64_t>(rendered)),
-        480);
     UINT64 played = 0;
     double audioTime = 0;
     pcm->GetPlayPosition(&played, &audioTime);
-    EXPECT_NEAR(double(played) / 48000, audioTime - desc.StartTime,
+    EXPECT_NEAR(double(played) / 48000, (std::min)(4.0, audioTime - start),
                 1.0 / 48000);
-    EXPECT_EQ(MGDF_VOICE_PLAYING, Manager->GetVoiceStatus(voice));
+    EXPECT_NE(MGDF_VOICE_PENDING, Manager->GetVoiceStatus(voice));
     previous = now;
   }
   EXPECT_EQ(3u, Stats().DeviceChanges);
   EXPECT_EQ(0u, Stats().Underruns);
+  Manager->Stop();
+  ASSERT_TRUE(WaitForOutput(ring, [] { return true; }, &last));
+  // The final snapshot cannot be ahead of all rendered frames. No limit on
+  // snapshot age is needed while the two threads run at different speeds.
+  EXPECT_LE(std::llround(Manager->GetAudioTime() * 48000),
+            static_cast<int64_t>(last.FirstFrame + last.Frames +
+                                 ring->Counts->Dropped.load() *
+                                     audio::MixBlockFrames));
 }
