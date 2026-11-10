@@ -11,6 +11,8 @@ layout: default
         <dl class ="dl-horizontal">
             <dt>-vr</dt>
             <dd><em>[Optional]</em> Requests VR for this run without changing <code>host.vr</code>. The module must set <code>MGDFGraphicsRequirements::VR</code> to <code>TRUE</code>. See the <a href="{{ site.baseurl }}/vr">VR guide</a>.</dd>
+            <dt>-audiofile &lt;path&gt;</dt>
+            <dd><em>[Optional]</em> Writes the 48000 Hz stereo host sound mix to a WAV file at real-time pace. This output does not use a speaker endpoint.</dd>
             <dt>-logLevel</dt>
             <dd><em>[Optional]</em> Allows you to specify the logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error</dd>
             <dt>-userdiroverride</dt>

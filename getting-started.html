@@ -12,7 +12,7 @@ layout: default
 
         <h2>The core <small>(core.exe)</small></h2>
         <p>This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before loading the user supplied game dll (known as a game module) and passing control on to that module. Once up and running the game module can then access the framework's functionality via a series of c++ interfaces (see the <a href="{{ site.baseurl }}/api#interfaces">API reference</a> for more details)</p>
-        <p>The module uses MGDF interfaces for audio, input, files, networking, and graphics settings. Call <code>IMGDFCommonHost::GetD3D12Device</code> to get the graphics device. Use <code>IMGDFRenderHost</code> on the render thread for frame data and rendering calls.</p>
+        <p>The module uses MGDF interfaces for audio, input, files, networking, and graphics settings. The host mixes audio at 48000 Hz and follows the default Windows output. Audio time continues when no output device is present. Call <code>IMGDFCommonHost::GetD3D12Device</code> to get the graphics device. Use <code>IMGDFRenderHost</code> on the render thread for frame data and rendering calls.</p>
 
         <div class="architecture hidden-xs hidden-sm">
             <br />
@@ -259,6 +259,7 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
 
 {% endhighlight %}
     <h2 id="d3d12module">Writing a D3D12 module</h2>
+    <p><code>IMGDFRecorder::StartVideo</code> records drawn frames as H.264 and the host sound mix as the player hears it as stereo AAC in the same MP4. A host without a sound manager writes no audio track. Audio follows the video frame times; gaps contain silence.</p>
     <p>Declare the module's graphics requirements as shown above. Use the device and queues to create resources, record commands, and submit each frame.</p>
     <p>To render to a headset, follow the <a href="{{ site.baseurl }}/vr">OpenXR VR guide</a>. It covers opt-in, eye targets, controllers, and optional features. Keep drawing the window in VR.</p>
 
