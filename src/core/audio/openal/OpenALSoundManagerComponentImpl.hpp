@@ -23,6 +23,8 @@ class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
                                        IMGDFSoundSamples **) final;
   HRESULT __stdcall CreatePcmStream(const MGDFSoundPcmDesc *,
                                     IMGDFSoundPcmStream **) final;
+  HRESULT __stdcall CreateSoundStream(IMGDFReadOnlyFile *,
+                                      IMGDFSoundStream **) final;
   HRESULT __stdcall CreateCommandList(IMGDFSoundCommandList **) final;
   void __stdcall Submit(IMGDFSoundCommandList *) final;
   double __stdcall GetAudioTime() final;
@@ -35,6 +37,7 @@ class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
   // Loopback uses the caller as the audio thread.
   void Update();
   void Render(float *stereo, UINT32 frames);
+  bool WaitForStreams(std::chrono::milliseconds timeout);
   bool WaitForLoads(std::chrono::milliseconds timeout);
 
  private:

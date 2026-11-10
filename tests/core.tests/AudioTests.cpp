@@ -539,7 +539,7 @@ class AudioIntegrationTests : public AudioTests {
     file.close();
     return File(path);
   }
-  ComObject<IMGDFReadOnlyFile> Ogg() {
+  ComObject<IMGDFReadOnlyFile> Ogg(bool loop = false) {
     const auto path = Root / L"sample.ogg";
     std::ofstream file(path, std::ios::binary);
     vorbis_info info{};
@@ -547,6 +547,10 @@ class AudioIntegrationTests : public AudioTests {
     EXPECT_EQ(0, vorbis_encode_init_vbr(&info, 2, 48000, 0.2f));
     vorbis_comment comment{};
     vorbis_comment_init(&comment);
+    if (loop) {
+      vorbis_comment_add_tag(&comment, "LOOPSTART", "120");
+      vorbis_comment_add_tag(&comment, "LOOPLENGTH", "240");
+    }
     vorbis_dsp_state dsp{};
     EXPECT_EQ(0, vorbis_analysis_init(&dsp, &info));
     vorbis_block block{};
@@ -833,5 +837,307 @@ TEST_F(AudioIntegrationTests, VirtualOneShotEndsAtTheSegmentEnd) {
   EXPECT_EQ(MGDF_VOICE_VIRTUAL, Manager->GetVoiceStatus(id));
   Render(480);
   EXPECT_EQ(MGDF_VOICE_ENDED, Manager->GetVoiceStatus(id));
+}
+class AudioStreamIntegrationTests : public AudioIntegrationTests {
+ protected:
+  ComObject<IMGDFSoundStream> Stream(IMGDFReadOnlyFile *file) {
+    ComObject<IMGDFSoundStream> stream;
+    EXPECT_EQ(S_OK, Manager->CreateSoundStream(file, stream.Assign()));
+    return stream;
+  }
+  void Sync() {
+    if (!Manager->WaitForStreams(2s)) {
+      ADD_FAILURE() << "Stream worker did not finish within two seconds";
+      std::_Exit(EXIT_FAILURE);
+    }
+    Manager->Update();
+    if (!Manager->WaitForStreams(2s)) {
+      ADD_FAILURE() << "Stream snapshot did not finish within two seconds";
+      std::_Exit(EXIT_FAILURE);
+    }
+  }
+  std::vector<float> Step(UINT32 frames) {
+    auto output = Render(frames);
+    Sync();
+    return output;
+  }
+};
+
+TEST_F(AudioStreamIntegrationTests,
+       ReleasedStreamRetainsPcmUntilItsVoiceStops) {
+  const auto signal = Signal(2000);
+  auto stream = Stream(Wav(signal));
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  auto release = std::async(std::launch::async, [&] { stream.Clear(); });
+  Await(release);
+  ASSERT_TRUE(Manager->WaitForStreams(2s));
+  // The worker has dropped its PCM reference. The mixer still owns the voice.
+  const auto output = Render(480);
+  for (size_t i = 0; i < output.size(); ++i)
+    ASSERT_FLOAT_EQ(signal[i], output[i]) << i;
+  EXPECT_EQ(0U, Stats().Streams);
+  Render(64);  // Drain OpenAL's stop de-click tail.
+  const auto silence = Render(240);
+  EXPECT_TRUE(std::all_of(silence.begin(), silence.end(),
+                          [](float x) { return x == 0; }));
+}
+
+TEST_F(AudioStreamIntegrationTests,
+       StreamRemainsValidAfterShutdownAndCreationAborts) {
+  auto file = Wav(Signal(2000));
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  Manager->Stop();
+  ComObject<IMGDFSoundStream> rejected;
+  EXPECT_EQ(E_ABORT, Manager->CreateSoundStream(file, rejected.Assign()));
+  EXPECT_FALSE(rejected);
+  Manager.Clear();
+  EXPECT_DOUBLE_EQ(2000.0 / 48000, stream->GetDuration());
+  UINT64 length = 0;
+  ASSERT_EQ(S_OK, stream->GetName(nullptr, &length));
+  std::wstring name(length, L'\0');
+  ASSERT_EQ(S_OK, stream->GetName(name.data(), &length));
+  EXPECT_STREQ(L"sample.wav", name.c_str());
+  stream->Play(0);
+  stream->SetLoop(0, 0);
+  stream->SetBus(MGDF_BUS_MUSIC);
+  EXPECT_FALSE(stream->IsPlaying());
+  stream.Clear();
+}
+
+TEST_F(AudioStreamIntegrationTests, WavLoopPreservesEveryFrameAcrossRefills) {
+  const auto signal = Signal(960);
+  auto file = Wav(signal);
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  EXPECT_DOUBLE_EQ(0.02, stream->GetDuration());
+  UINT64 length = 0;
+  ASSERT_EQ(S_OK, stream->GetName(nullptr, &length));
+  std::wstring name(length, L'\0');
+  ASSERT_EQ(S_OK, stream->GetName(name.data(), &length));
+  EXPECT_STREQ(L"sample.wav", name.c_str());
+  stream->SetLoop(0.005, 0.015);
+  stream->Play(0);
+  Sync();
+  std::vector<float> expected(signal.begin(), signal.begin() + 1440);
+  for (int loop = 0; loop < 210; ++loop)
+    expected.insert(expected.end(), signal.begin() + 480,
+                    signal.begin() + 1440);
+  for (size_t first = 0; first < expected.size(); first += 480) {
+    const auto output = Step(240);
+    for (size_t i = 0; i < output.size(); ++i)
+      ASSERT_FLOAT_EQ(expected[first + i], output[i]) << first + i;
+  }
+  EXPECT_DOUBLE_EQ(0.005, stream->GetPosition());
+  EXPECT_TRUE(stream->IsPlaying());
+  EXPECT_EQ(1U, Stats().Streams);
+  EXPECT_EQ(0U, Stats().Underruns);
+}
+
+TEST_F(AudioStreamIntegrationTests,
+       VorbisCommentsSelectExactDecodedLoopFrames) {
+  auto file = Ogg(true);
+  auto samples = Load(file);
+  ASSERT_TRUE(samples->IsLoaded());
+  const auto desc = Desc();
+  Commands->Play(samples, &desc);
+  Submit();
+  const auto decoded = Render(480);
+  Render(64);  // Drain OpenAL's source-end de-click tail.
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  std::vector<float> expected(decoded.begin(), decoded.begin() + 720);
+  for (int loop = 0; loop < 4; ++loop)
+    expected.insert(expected.end(), decoded.begin() + 240,
+                    decoded.begin() + 720);
+  const auto output = Step(1320);
+  ASSERT_EQ(expected.size(), output.size());
+  for (size_t i = 0; i < output.size(); ++i)
+    ASSERT_FLOAT_EQ(expected[i], output[i]) << i;
+  EXPECT_DOUBLE_EQ(0.0025, stream->GetPosition());
+  EXPECT_EQ(0U, Stats().Underruns);
+}
+
+TEST_F(AudioStreamIntegrationTests, FadeInReachesFullVolume) {
+  auto file = Wav(std::vector<float>(4000, 0.25f));
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0.01f);
+  Sync();
+  const auto first = Step(240);
+  EXPECT_FLOAT_EQ(0, first.back());
+  Step(64);
+  EXPECT_NEAR(0.125f, Step(16)[0], 1e-6f);
+  Step(160);
+  Step(64);
+  EXPECT_FLOAT_EQ(0.25f, Step(16)[0]);
+}
+
+TEST_F(AudioStreamIntegrationTests, StopFadesThenResetsAndReplaysFromTheStart) {
+  auto file = Wav(std::vector<float>(4000, 0.25f));
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  Step(240);
+  stream->Stop(0.01f);
+  Sync();
+  Step(240);
+  EXPECT_TRUE(stream->IsPlaying());
+  Step(64);
+  EXPECT_NEAR(0.125f, Step(16)[0], 1e-6f);
+  Step(160);
+  EXPECT_FALSE(stream->IsPlaying());
+  EXPECT_DOUBLE_EQ(0, stream->GetPosition());
+  Step(64);  // Drain OpenAL's stop de-click tail.
+  const auto silence = Step(240);
+  EXPECT_TRUE(std::all_of(silence.begin(), silence.end(),
+                          [](float x) { return x == 0; }));
+  stream->Play(0);
+  Sync();
+  EXPECT_FLOAT_EQ(0.25f, Step(240)[0]);
+  EXPECT_DOUBLE_EQ(0.005, stream->GetPosition());
+}
+
+TEST_F(AudioStreamIntegrationTests, PauseFadeHoldsPositionAndResumeContinues) {
+  auto file = Wav(std::vector<float>(8000, 0.25f));
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  Step(240);
+  stream->Pause(0.01f);
+  Sync();
+  Step(240);
+  EXPECT_TRUE(stream->IsPlaying());
+  Step(64);
+  EXPECT_NEAR(0.125f, Step(16)[0], 1e-6f);
+  Step(160);
+  EXPECT_FALSE(stream->IsPlaying());
+  EXPECT_DOUBLE_EQ(0.015, stream->GetPosition());
+  Step(64);  // Drain OpenAL's pause de-click tail.
+  const auto silence = Step(960);
+  EXPECT_TRUE(std::all_of(silence.begin(), silence.end(),
+                          [](float x) { return x == 0; }));
+  EXPECT_DOUBLE_EQ(0.015, stream->GetPosition());
+  stream->Play(0.005f);
+  Sync();
+  Step(240);
+  Step(64);
+  EXPECT_FLOAT_EQ(0.25f, Step(16)[0]);
+  EXPECT_NEAR(0.015 + 320.0 / 48000, stream->GetPosition(), 1e-9);
+}
+
+TEST_F(AudioStreamIntegrationTests, VolumeRampReachesItsTarget) {
+  auto file = Wav(std::vector<float>(4000, 0.25f));
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  Step(240);
+  stream->SetVolume(0.25f, 0.01f);
+  Sync();
+  Step(240);
+  Step(64);
+  EXPECT_NEAR(0.15625f, Step(16)[0], 1e-6f);
+  Step(160);
+  Step(64);
+  EXPECT_FLOAT_EQ(0.0625f, Step(16)[0]);
+}
+
+TEST_F(AudioStreamIntegrationTests, MusicAndSelectedBusVolumeApply) {
+  auto file = Wav(std::vector<float>(8000, 0.25f));
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  Commands->SetBusVolume(Manager->GetBus(MGDF_BUS_MUSIC), 0.5f, 0);
+  Submit();
+  stream->Play(0);
+  Sync();
+  EXPECT_FLOAT_EQ(0.125f, Step(240)[0]);
+  const auto child = Bus(Manager->GetBus(MGDF_BUS_MASTER), 0.25f);
+  stream->SetBus(child);
+  Sync();
+  Step(64);
+  EXPECT_FLOAT_EQ(0.0625f, Step(240)[0]);
+}
+
+TEST_F(AudioStreamIntegrationTests,
+       SubmittingThreadCanStallForOneSecondOfAudio) {
+  const auto signal = Signal(96000);
+  auto file = Wav(signal);
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  std::promise<void> submitted, resume;
+  auto ready = submitted.get_future();
+  auto resumed = resume.get_future();
+  auto submitter = std::async(std::launch::async, [&] {
+    stream->Play(0);
+    submitted.set_value();
+    Await(resumed);
+  });
+  Await(ready);
+  Sync();
+  const auto output = Render(48000);
+  resume.set_value();
+  Await(submitter);
+  Sync();
+  for (size_t i = 0; i < output.size(); ++i)
+    ASSERT_FLOAT_EQ(signal[i], output[i]) << i;
+  EXPECT_DOUBLE_EQ(1, stream->GetPosition());
+  EXPECT_TRUE(stream->IsPlaying());
+  EXPECT_EQ(0U, Stats().Underruns);
+}
+
+TEST_F(AudioStreamIntegrationTests, BadFileClearsTheOutputAndReturnsFailure) {
+  const auto path = Root / L"bad.wav";
+  {
+    std::ofstream file(path, std::ios::binary);
+    file << "not an audio file";
+  }
+  auto file = File(path);
+  IMGDFSoundStream *stream = reinterpret_cast<IMGDFSoundStream *>(1);
+  EXPECT_EQ(E_FAIL, Manager->CreateSoundStream(file, &stream));
+  EXPECT_EQ(nullptr, stream);
+  EXPECT_EQ(E_POINTER, Manager->CreateSoundStream(file, nullptr));
+  EXPECT_EQ(E_INVALIDARG, Manager->CreateSoundStream(nullptr, &stream));
+  EXPECT_EQ(nullptr, stream);
+}
+
+TEST_F(AudioStreamIntegrationTests, EndOfFileStopsWithoutAnUnderrun) {
+  const auto signal = Signal(480);
+  auto file = Wav(signal);
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  const auto output = Step(480);
+  EXPECT_EQ(signal, output);
+  EXPECT_FALSE(stream->IsPlaying());
+  EXPECT_DOUBLE_EQ(0.01, stream->GetPosition());
+  EXPECT_EQ(0U, Stats().Underruns);
+}
+
+TEST_F(AudioStreamIntegrationTests, StopAndPlayInOneBatchRestartsTheFile) {
+  const auto signal = Signal(2000);
+  auto file = Wav(signal);
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  Step(240);
+  stream->Stop(0);
+  stream->Play(0);
+  Sync();
+  Step(64);  // The old source has a short de-click tail.
+  const auto output = Step(240);
+  for (size_t i = 0; i < output.size(); ++i)
+    ASSERT_FLOAT_EQ(signal[128 + i], output[i]);
+  EXPECT_DOUBLE_EQ(304.0 / 48000, stream->GetPosition());
 }
 }  // namespace

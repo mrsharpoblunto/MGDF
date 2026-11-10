@@ -58,7 +58,7 @@ class AudioQueue {
     auto *item = Close();
     while (item) {
       auto *next = item->Next;
-      delete item;
+      std::unique_ptr<T> owned(item);
       item = next;
     }
   }
@@ -187,6 +187,9 @@ enum class AudioOp {
   Play,
   PlayPcm,
   Stop,
+  Pause,
+  Resume,
+  Bus,
   Volume,
   Pitch,
   Audibility,
@@ -206,6 +209,7 @@ struct AudioCommand {
   MGDFVoiceDesc Desc{};
   ComObject<SoundSamples> Samples;
   ComObject<SoundPcmStream> Pcm;
+  bool FileStream = false;
   MGDFSoundListener Listener{};
   float Value = 0, Ramp = 0;
 };
