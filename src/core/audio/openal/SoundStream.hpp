@@ -9,7 +9,7 @@ namespace MGDF::core::audio::openal_audio {
 
 class StreamWorker {
  public:
-  explicit StreamWorker(std::shared_ptr<AudioControl> control);
+  explicit StreamWorker(ComObject<AudioControl> control);
   ~StreamWorker();
   HRESULT Create(IMGDFReadOnlyFile *file, IMGDFSoundStream **stream);
   void Stop();

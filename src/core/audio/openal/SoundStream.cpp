@@ -155,7 +155,12 @@ class StreamFile {
   bool _oggOpen = false, _wavOpen = false;
 };
 
-struct StreamSignal {
+struct __declspec(uuid("a787b378-49ee-4583-905b-31615f514aa4")) IStreamSignal
+    : IUnknown {};
+struct __declspec(uuid("e0d5ab5d-fd7a-40cd-b745-7c94705bcf15")) IStreamState
+    : IUnknown {};
+
+struct StreamSignal : ComBase<IStreamSignal> {
   std::mutex Mutex;
   std::condition_variable Wake, Complete;
   std::atomic<bool> Stopped{false};
@@ -188,8 +193,8 @@ struct PositionMap {
                : position;
   }
 };
-struct StreamState {
-  std::shared_ptr<AudioControl> Owner;
+struct StreamState : ComBase<IStreamState> {
+  ComObject<AudioControl> Owner;
   std::unique_ptr<StreamFile> File;
   std::wstring Name;
   AudioQueue<StreamCommand> Commands;
@@ -361,8 +366,7 @@ struct StreamState {
 };
 class SoundStream : public ComBase<IMGDFSoundStream> {
  public:
-  SoundStream(std::shared_ptr<StreamState> state,
-              std::shared_ptr<StreamSignal> signal)
+  SoundStream(ComObject<StreamState> state, ComObject<StreamSignal> signal)
       : _state(std::move(state)), _signal(std::move(signal)) {}
   ~SoundStream() {
     _state->Released.store(true);
@@ -423,24 +427,23 @@ class SoundStream : public ComBase<IMGDFSoundStream> {
     } catch (...) {
     }
   }
-  const std::shared_ptr<StreamState> _state;
-  const std::shared_ptr<StreamSignal> _signal;
+  const ComObject<StreamState> _state;
+  const ComObject<StreamSignal> _signal;
 };
 struct StreamRegistration {
   StreamRegistration *Next = nullptr;
-  std::shared_ptr<StreamState> State;
+  ComObject<StreamState> State;
 };
 }  // namespace
 
 struct StreamWorker::Impl {
-  const std::shared_ptr<AudioControl> Control;
-  const std::shared_ptr<StreamSignal> Signal = std::make_shared<StreamSignal>();
+  const ComObject<AudioControl> Control;
+  const ComObject<StreamSignal> Signal = MakeCom<StreamSignal>();
   AudioQueue<StreamRegistration> Registrations;
-  std::vector<std::shared_ptr<StreamState>> Streams;
+  std::vector<ComObject<StreamState>> Streams;
   std::thread Thread;
 
-  explicit Impl(std::shared_ptr<AudioControl> control)
-      : Control(std::move(control)) {
+  explicit Impl(ComObject<AudioControl> control) : Control(std::move(control)) {
     Thread = std::thread([this] {
       UINT64 completed = 0;
       while (!Signal->Stopped.load()) {
@@ -485,7 +488,7 @@ struct StreamWorker::Impl {
   }
 };
 
-StreamWorker::StreamWorker(std::shared_ptr<AudioControl> control)
+StreamWorker::StreamWorker(ComObject<AudioControl> control)
     : _impl(std::make_unique<Impl>(std::move(control))) {}
 StreamWorker::~StreamWorker() { Stop(); }
 void StreamWorker::Stop() {
@@ -495,7 +498,7 @@ void StreamWorker::Stop() {
 }
 HRESULT StreamWorker::Create(IMGDFReadOnlyFile *file,
                              IMGDFSoundStream **stream) try {
-  auto state = std::make_shared<StreamState>();
+  auto state = MakeCom<StreamState>();
   state->Owner = _impl->Control;
   state->File = std::make_unique<StreamFile>();
   if (!state->File->Open(file)) return E_FAIL;
@@ -522,7 +525,7 @@ HRESULT StreamWorker::Create(IMGDFReadOnlyFile *file,
   return E_FAIL;
 }
 bool StreamWorker::WaitForUpdate(std::chrono::milliseconds timeout) {
-  auto &signal = *_impl->Signal;
+  auto &signal = *_impl->Signal.Get();
   std::unique_lock lock(signal.Mutex);
   const auto requested = ++signal.Requested;
   signal.Wake.notify_one();

@@ -863,6 +863,52 @@ class AudioStreamIntegrationTests : public AudioIntegrationTests {
   }
 };
 
+TEST_F(AudioStreamIntegrationTests,
+       ReleasedStreamRetainsPcmUntilItsVoiceStops) {
+  const auto signal = Signal(2000);
+  auto stream = Stream(Wav(signal));
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  auto release = std::async(std::launch::async, [&] { stream.Clear(); });
+  Await(release);
+  ASSERT_TRUE(Manager->WaitForStreams(2s));
+  // The worker has dropped its PCM reference. The mixer still owns the voice.
+  const auto output = Render(480);
+  for (size_t i = 0; i < output.size(); ++i)
+    ASSERT_FLOAT_EQ(signal[i], output[i]) << i;
+  EXPECT_EQ(0U, Stats().Streams);
+  Render(64);  // Drain OpenAL's stop de-click tail.
+  const auto silence = Render(240);
+  EXPECT_TRUE(std::all_of(silence.begin(), silence.end(),
+                          [](float x) { return x == 0; }));
+}
+
+TEST_F(AudioStreamIntegrationTests,
+       StreamRemainsValidAfterShutdownAndCreationAborts) {
+  auto file = Wav(Signal(2000));
+  auto stream = Stream(file);
+  ASSERT_TRUE(stream);
+  stream->Play(0);
+  Sync();
+  Manager->Stop();
+  ComObject<IMGDFSoundStream> rejected;
+  EXPECT_EQ(E_ABORT, Manager->CreateSoundStream(file, rejected.Assign()));
+  EXPECT_FALSE(rejected);
+  Manager.Clear();
+  EXPECT_DOUBLE_EQ(2000.0 / 48000, stream->GetDuration());
+  UINT64 length = 0;
+  ASSERT_EQ(S_OK, stream->GetName(nullptr, &length));
+  std::wstring name(length, L'\0');
+  ASSERT_EQ(S_OK, stream->GetName(name.data(), &length));
+  EXPECT_STREQ(L"sample.wav", name.c_str());
+  stream->Play(0);
+  stream->SetLoop(0, 0);
+  stream->SetBus(MGDF_BUS_MUSIC);
+  EXPECT_FALSE(stream->IsPlaying());
+  stream.Clear();
+}
+
 TEST_F(AudioStreamIntegrationTests, WavLoopPreservesEveryFrameAcrossRefills) {
   const auto signal = Signal(960);
   auto file = Wav(signal);
