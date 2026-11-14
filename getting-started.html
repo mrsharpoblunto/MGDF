@@ -98,8 +98,8 @@ layout: default
                             <li><p>Any game data files should go in here. This folder serves as the root of the virtual file system and content outside this folder is not accessable</p></li>
                         </ul>
                     </li>
-                    <li><h4>game.json <small><em>[Required]</em></small></h4><p>This JSON file contains metadata including the name, version, and preference settings for the game. This file is required and the game will not run unless it is present.</p></li>
-                    <li><h4>gameIcon.png <small><em>[Optional]</em></small></h4><p>This 48x48 PNG file is used to display the game logo in the GamesManager UI as well as the installed programs registry entry, and the desktop icon. This file is optional, and if not specified a default MGDF icon will be used instead.</p></li>
+                    <li><h4>game.json <small><em>[Required]</em></small></h4><p>This JSON file contains metadata including the name, version, and preference settings for the game. The game name is also the title of the game window. This file is required and the game will not run unless it is present.</p></li>
+                    <li><h4>gameIcon.png <small><em>[Optional]</em></small></h4><p>This 48x48 PNG file is used to display the game logo in the GamesManager UI, the installed programs registry entry, the desktop icon, and the game window and taskbar. The host scales the image to the window icon sizes for the system DPI, so use a square image. This file is optional, and if not specified a default icon will be used instead.</p></li>
                     <li><h4>gameSystemIcon.ico <small><em>[Optional]</em></small></h4><p>By default the PNG image above will be converted automatically into an icon file for display in parts of the system that cannot use PNGs. If you don't wish to use the automatically converted icon file (sometimes the conversion results in messy transparency), and instead want to provide one, you can do so here.</p></li>
                 </ul>
             </li>
@@ -257,6 +257,17 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
   return S_OK;
 }
 
+{% endhighlight %}
+    <h4 id="windowtitle">Window title</h4>
+    <p>The game window shows the <code>gameName</code> from game.json. Call <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost::SetWindowTitle</a> to show a different title, for example the build configuration or the current level. The title is UTF-8. A null or empty title restores the game name.</p>
+    <p>Call it from the Sim thread or the Render thread. The host changes the title on the window thread, so the call does not wait for the window.</p>
+{% highlight c++ %}
+BOOL Module::STNew(IMGDFSimHost *host) {
+#if defined(_DEBUG)
+  host->SetWindowTitle("My Game - Debug");
+#endif
+  return TRUE;
+}
 {% endhighlight %}
     <h2 id="d3d12module">Writing a D3D12 module</h2>
     <p>Declare the module's graphics requirements as shown above. Use the device and queues to create resources, record commands, and submit each frame.</p>
