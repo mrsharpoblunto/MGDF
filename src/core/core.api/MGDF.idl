@@ -36,6 +36,7 @@ typedef enum MGDFVRHand {
   MGDF_VR_HAND_LEFT = 0,
   MGDF_VR_HAND_RIGHT = 1,
 } MGDFVRHand;
+/** The interaction profile a VR controller uses */
 typedef enum MGDFVRControllerProfile {
   MGDF_VR_PROFILE_NONE = 0,
   MGDF_VR_PROFILE_TOUCH = 1,
@@ -45,6 +46,7 @@ typedef enum MGDFVRControllerProfile {
   MGDF_VR_PROFILE_SIMPLE = 5,
   MGDF_VR_PROFILE_OTHER = 6,
 } MGDFVRControllerProfile;
+/** VR controller buttons that can be pressed */
 typedef enum MGDFVRButton {
   MGDF_VR_BUTTON_A = 1,
   MGDF_VR_BUTTON_B = 2,
@@ -397,39 +399,84 @@ Calls are safe with no session. Missing controls are zero or FALSE
   uuid("EDB23A73-9C5C-436A-8845-BD687CA9C6C3"), object,
   local
 ] interface IMGDFVRController : IUnknown {
-  /** Gets the hand assigned to this object */
+  /**
+  Gets the hand assigned to this object
+  \return the left or right hand assigned to this object
+  */
   MGDFVRHand GetHand();
-  /** TRUE when connected with headset input focus */
+  /**
+  Gets whether the controller is connected with headset input focus
+  \return TRUE when connected with headset input focus
+  */
   BOOL IsConnected();
-  /** Gets the current interaction profile, or NONE when disconnected */
+  /**
+  Gets the current interaction profile
+  \return the current interaction profile, or NONE when disconnected
+  */
   MGDFVRControllerProfile GetProfile();
-  /** TRUE while the button is held */
+  /**
+  Gets whether a button is held
+  \param button the button to check
+  \return TRUE while the button is held
+  */
   BOOL IsButtonDown(MGDFVRButton button);
-  /** TRUE while the button is not held, including when disconnected */
+  /**
+  Gets whether a button is not held
+  \param button the button to check
+  \return TRUE while the button is not held, including when disconnected
+  */
   BOOL IsButtonUp(MGDFVRButton button);
-  /** TRUE once after a button was pressed and released, like IMGDFGamepad.
-  Presses observed between sim updates are kept for the next update */
+  /**
+  Gets whether a button was pressed and released, like IMGDFGamepad. Presses
+  observed between sim updates are kept for the next update
+  \param button the button to check
+  \return TRUE once after the button was pressed and released
+  */
   BOOL IsButtonPress(MGDFVRButton button);
-  /** TRUE while the named control is touched */
+  /**
+  Gets whether a capacitive touch control is touched
+  \param touch the control to check
+  \return TRUE while the control is touched
+  */
   BOOL IsTouched(MGDFVRTouch touch);
-  /** Trigger level, 0..1 */
+  /**
+  Gets the trigger level
+  \return the trigger level, 0..1
+  */
   FLOAT GetTrigger();
-  /** Grip squeeze level, 0..1 */
+  /**
+  Gets the grip squeeze level
+  \return the grip squeeze level, 0..1
+  */
   FLOAT GetSqueeze();
-  /** Thumbstick or Vive trackpad X, -1..1; positive is right */
+  /**
+  Gets the thumbstick or Vive trackpad X position
+  \return the X position, -1..1; positive is right
+  */
   FLOAT GetThumbX();
-  /** Thumbstick or Vive trackpad Y, -1..1; positive is up.
-  This differs from the IMGDFGamepad Y convention */
+  /**
+  Gets the thumbstick or Vive trackpad Y position. This differs from the
+  IMGDFGamepad Y convention
+  \return the Y position, -1..1; positive is up
+  */
   FLOAT GetThumbY();
-  /** Gets the sim sample's LOCAL grip pose; invalid components are zero.
-  A null output is ignored */
+  /**
+  Gets the sim sample's LOCAL grip pose; invalid components are zero
+  \param pose receives the grip pose. A null output is ignored
+  */
   void GetGripPose([out] MGDFVRPose *pose);
-  /** Gets the sim sample's LOCAL aim pose; invalid components are zero.
-  A null output is ignored */
+  /**
+  Gets the sim sample's LOCAL aim pose; invalid components are zero
+  \param pose receives the aim pose. A null output is ignored
+  */
   void GetAimPose([out] MGDFVRPose *pose);
-  /** Sets vibration level until changed; 0 stops. Values are clamped to 0..1;
-  NaN means 0. Output stops without focus, connection or a session, and resumes
-  at the stored level when these return. Safe with VR off */
+  /**
+  Sets the vibration level until changed. Output stops without focus,
+  connection or a session, and resumes at the stored level when these return.
+  Safe with VR off
+  \param amplitude the vibration level; 0 stops. Values are clamped to 0..1;
+  NaN means 0
+  */
   void SetVibration(FLOAT amplitude);
 };
 
@@ -453,14 +500,22 @@ from the mouse, keyboard, and xinput controllers
   uuid("98EC499D-5359-4902-8BA9-6E36686E9898"), object,
   local
 ] interface IMGDFInputManager : IUnknown {
-  /** Returns 2 controller objects: left and right, including with VR off */
+  /**
+  Gets the number of VR controller objects
+  \return 2 controller objects: left and right, including with VR off
+  */
   UINT64 GetVRControllerCount();
-  /** Fills GetVRControllerCount entries in hand order with owned COM references.
+  /**
+  Gets the VR controller objects in hand order as owned COM references.
   Release each reference when no longer needed. Objects can be kept across
-  session changes. Safe with VR off; a null array is ignored */
+  session changes. Safe with VR off
+  \param controllers an array of GetVRControllerCount entries to fill. A null
+  array is ignored
+  */
   void GetVRControllers([out] IMGDFVRController **controllers);
   /**
   Gets the current sim update's eye gaze sample. Safe with VR off
+  \param pose receives the gaze pose
   \return TRUE with position and orientation; FALSE for no session, no input
   focus, unavailable eye tracking, no current sample or null output.
   Non-null output is zero on FALSE
@@ -2455,6 +2510,7 @@ thread
   local
 ] interface IMGDFCapture : IUnknown {
   /**
+  Gets the result of the capture
   \return E_PENDING until the capture is complete, then S_OK if the file was
   written, otherwise the error. Poll it to wait for the file. A device reset
   ends a capture in progress with DXGI_ERROR_DEVICE_REMOVED and no file
@@ -2485,10 +2541,12 @@ it with DXGI_ERROR_DEVICE_REMOVED and no file
   */
   void Stop();
   /**
+  Gets the number of frames written to the file so far
   \return the number of frames written to the file so far
   */
   UINT64 GetFrameCount();
   /**
+  Gets the number of frames left out of the recording
   \return the number of frames left out because the GPU readback or the encoder
   was not ready for them
   */
@@ -2808,6 +2866,7 @@ typedef struct MGDFVRPanel {
   properties, focus, mask revision and feature flags; EyeCount is zero and
   poses and FOV angles are zero. Use Eyes to size resources at a back buffer
   change. Check pose validity and Features before using optional data
+  \param frame receives the VR frame data
   \return S_OK with an eye frame; S_FALSE with a session but no eye frame;
   E_INVALIDARG for null output; E_ILLEGAL_METHOD_CALL without a session or on
   the wrong thread; E_FAIL after a runtime failure. Output is zero on error
@@ -2822,6 +2881,13 @@ typedef struct MGDFVRPanel {
   Vertices are view-angle tangents at z=+1. Map to your projection with
   ndc.x = (2*x - (tan(AngleRight) + tan(AngleLeft))) /
           (tan(AngleRight) - tan(AngleLeft)); use up/down in the same way for y.
+  \param index the eye, 0 or 1
+  \param vertexCount the xy vertex capacity on input; the required vertex count
+  on output
+  \param xy receives two floats per vertex, or null to query the counts
+  \param indexCount the indices capacity on input; the required index count on
+  output
+  \param indices receives a UINT32 triangle list, or null to query the counts
   \return S_OK; S_FALSE for an empty mesh; E_NOTIMPL without mask support;
   E_INVALIDARG for invalid index, null counts or insufficient buffer capacity
   (required counts are still returned); E_ILLEGAL_METHOD_CALL without a session
@@ -2837,6 +2903,9 @@ typedef struct MGDFVRPanel {
   nearZ and farZ are positive distances in metres at depth values 0 and 1.
   For reverse-Z pass the distant plane as nearZ and the close plane as farZ.
   Positive infinity is allowed for either plane, but the two must differ.
+  \param index the eye, 0 or 1
+  \param nearZ the distance in metres at depth value 0
+  \param farZ the distance in metres at depth value 1
   \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
   index or range; E_ILLEGAL_METHOD_CALL without a session, outside an eye frame
   or on the wrong thread; E_FAIL on runtime failure
@@ -2847,6 +2916,7 @@ typedef struct MGDFVRPanel {
   null hides it immediately. Resizing invalidates old panel targets at the next
   RTDraw: release their references and descriptors by this RTAfterPresent.
   Release them also in RTBeforeBackBufferChange. Color is premultiplied alpha.
+  \param panel the panel description, or null to hide the panel
   \return S_OK; E_NOTIMPL if the runtime cannot show a panel; E_INVALIDARG for
   an invalid size, space or pose; E_ILLEGAL_METHOD_CALL without a session or on
   the wrong thread; E_FAIL on runtime failure. Deferred creation errors are
@@ -2873,6 +2943,8 @@ typedef struct MGDFVRPanel {
   Gets an owned reference to eye 0 or 1's depth image for this RTDraw.
   Size matches the eye target; use MGDFVREye::DepthFormat for a depth view.
   Release references and descriptors in RTBeforeBackBufferChange. The state is DEPTH_WRITE; leave it in that state. Submit work on the direct queue before RTDraw returns.
+  \param index the eye, 0 or 1
+  \param target receives the depth image
   \return S_OK; E_NOTIMPL without depth support; E_INVALIDARG for an invalid
   index or null output; E_ILLEGAL_METHOD_CALL without a session, outside an eye
   frame or on the wrong thread; E_FAIL on runtime or resource failure.
@@ -2885,6 +2957,7 @@ typedef struct MGDFVRPanel {
   premultiplied alpha in MGDFVREye::Format. Release references and descriptors
   before a panel size change takes effect and in RTBeforeBackBufferChange.
    The state is RENDER_TARGET; leave it in that state. Submit work on the direct queue.
+  \param target receives the panel image
   \return S_OK; S_FALSE while hidden or before the first panel frame;
   E_NOTIMPL without panel support; E_INVALIDARG for a null output;
   E_ILLEGAL_METHOD_CALL without a session, outside an eye frame or on the wrong
