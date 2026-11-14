@@ -2683,6 +2683,15 @@ references before acknowledging a device reset
   shutdown
   */
   HRESULT GetRecorder([out] IMGDFRecorder **recorder);
+
+  /**
+  Sets the title of the game window. The window title is the game name until
+  this is called. Safe to call from any thread; the title changes
+  asynchronously on the window thread
+  \param title the UTF-8 window title. A null or empty title restores the game
+  name
+  */
+  void SetWindowTitle([in] const small *title);
 };
 
 /**

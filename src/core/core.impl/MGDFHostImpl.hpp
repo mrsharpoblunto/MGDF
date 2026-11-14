@@ -53,10 +53,12 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
       DeviceResetFunction;  // shutDown callback function signature
   typedef std::function<void(const std::string &, const std::string &)>
       FatalErrorFunction;  // fatal error callback function signature
+  typedef std::function<void(const std::string &)> WindowTitleFunction;
 
   void SetShutDownHandler(const ShutDownFunction handler);
   void SetDeviceResetHandler(const DeviceResetFunction handler);
   void SetFatalErrorHandler(const FatalErrorFunction handler);
+  void SetWindowTitleHandler(const WindowTitleFunction handler);
 
   void STCreateModule();
   void STUpdate(double simulationTime, HostMetrics &stats);
@@ -167,6 +169,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   HRESULT __stdcall CreateWebServer(unsigned int port, const small *socketPath,
                                     IMGDFWebServer **server) final;
   HRESULT __stdcall GetRecorder(IMGDFRecorder **recorder) final;
+  void __stdcall SetWindowTitle(const small *title) final;
 
  private:
   IMGDFRenderHost *RenderHost() { return static_cast<IMGDFRenderHost *>(this); }
@@ -239,6 +242,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ShutDownFunction _shutDownHandler;
   DeviceResetFunction _deviceResetHandler;
   FatalErrorFunction _fatalErrorHandler;
+  WindowTitleFunction _windowTitleHandler;
 };
 
 }  // namespace core
