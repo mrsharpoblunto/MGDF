@@ -189,6 +189,7 @@
     <ClInclude Include="MGDFD3D12RenderBackend.hpp" />
     <ClInclude Include="MGDFD3D12FrameState.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
+    <ClInclude Include="MGDFWindowIcon.hpp" />
     <ClInclude Include="MGDFStdAfxBase.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
@@ -198,6 +199,7 @@
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
     <ClCompile Include="MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
+    <ClCompile Include="MGDFWindowIcon.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

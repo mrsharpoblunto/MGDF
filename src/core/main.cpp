@@ -89,7 +89,9 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
     // create the application instance and initialise the window
     host->SetFatalErrorHandler(FatalErrorCallBack);
     MGDFApp app(host, hInstance);
-    app.InitWindow("MGDF");
+    ComObject<IMGDFGame> game;
+    host->GetGame(game.Assign());
+    app.InitWindow(game->GetName());
     app.Run();
 
     LOG("shutting down...", MGDF_LOG_LOW);

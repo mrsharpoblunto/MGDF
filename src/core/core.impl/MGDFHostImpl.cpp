@@ -36,6 +36,10 @@ void Host::SetFatalErrorHandler(const FatalErrorFunction handler) {
   _fatalErrorHandler = handler;
 }
 
+void Host::SetWindowTitleHandler(const WindowTitleFunction handler) {
+  _windowTitleHandler = handler;
+}
+
 void Host::SetDeviceResetHandler(const DeviceResetFunction handler) {
   _deviceResetHandler = handler;
 }
@@ -597,6 +601,10 @@ HRESULT Host::GetRecorder(IMGDFRecorder **recorder) {
   }
   _recorder.AddRawRef<IMGDFRecorder>(recorder);
   return S_OK;
+}
+void Host::SetWindowTitle(const char *title) {
+  if (!_windowTitleHandler) return;
+  _windowTitleHandler(title && *title ? title : _game->GetName());
 }
 void Host::GetFrameFence(ID3D12Fence **fence) { _frameFence.AddRawRef(fence); }
 HRESULT Host::CreateGPUCounter(IMGDFMetric *metric,
