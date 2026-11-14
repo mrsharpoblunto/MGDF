@@ -11,7 +11,6 @@ namespace audio {
 class ISoundManagerComponent : public ComBase<IMGDFSoundManager> {
  public:
   virtual ~ISoundManagerComponent() {}
-  virtual void Update() = 0;
   virtual void Stop() = 0;
 };
 

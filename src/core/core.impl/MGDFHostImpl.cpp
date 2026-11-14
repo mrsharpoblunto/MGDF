@@ -180,15 +180,25 @@ HRESULT Host::Init() {
   // set the initial sound volumes
   if (_sound) {
     LOG("Setting initial volume...", MGDF_LOG_HIGH);
+    ComObject<IMGDFSoundCommandList> commands;
+    const auto audioResult = _sound->CreateCommandList(commands.Assign());
+    if (FAILED(audioResult)) return audioResult;
     std::string pref;
     ComObject<IMGDFGame> game = _game.As<IMGDFGame>();
     if (GetPreference(game, PreferenceConstants::SOUND_VOLUME, pref)) {
-      _sound->SetSoundVolume(FromString<float>(pref));
+      commands->SetBusVolume(_sound->GetBus(MGDF_BUS_SOUND),
+                             FromString<float>(pref), 0);
     }
 
     if (GetPreference(game, PreferenceConstants::MUSIC_VOLUME, pref)) {
-      _sound->SetStreamVolume(FromString<float>(pref));
+      commands->SetBusVolume(_sound->GetBus(MGDF_BUS_MUSIC),
+                             FromString<float>(pref), 0);
     }
+    if (GetPreference(game, "host.masterVolume", pref)) {
+      commands->SetBusVolume(_sound->GetBus(MGDF_BUS_MASTER),
+                             FromString<float>(pref), 0);
+    }
+    _sound->Submit(commands);
   }
 
   LOG("Initialised host components successfully", MGDF_LOG_LOW);
@@ -290,13 +300,12 @@ void Host::STUpdate(double simulationTime, HostMetrics &stats) {
   _input->ProcessSim();
   const LARGE_INTEGER inputEnd = _timer->GetCurrentTimeTicks();
 
-  const LARGE_INTEGER audioStart = _timer->GetCurrentTimeTicks();
-  if (_sound) _sound->Update();
-  const LARGE_INTEGER audioEnd = _timer->GetCurrentTimeTicks();
+  MGDFSoundStats audio{};
+  if (_sound) _sound->GetStats(&audio);
 
   stats.AppendSimInputAndAudioTimes(
       _timer->ConvertDifferenceToSeconds(inputEnd, inputStart),
-      _timer->ConvertDifferenceToSeconds(audioEnd, audioStart));
+      audio.AudioThreadMs / 1000.0);
 
   if (_module) {
     LOG("Calling module STUpdate...", MGDF_LOG_HIGH);

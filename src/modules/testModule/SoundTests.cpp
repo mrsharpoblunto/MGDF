@@ -1,155 +1,61 @@
 #include "StdAfx.h"
 
 #include "SoundTests.hpp"
-
-#if defined(_DEBUG)
-#define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
-#endif
-
-namespace MGDF {
-namespace Test {
-
-SoundTests::~SoundTests(void) {}
-
-SoundTests::SoundTests() : _x(0), _y(0) {}
-
+namespace MGDF::Test {
+SoundTests::~SoundTests() {
+  if (_voice && _commands) {
+    _commands->Stop(_voice, 0);
+    _manager->Submit(_commands);
+  }
+}
 void SoundTests::Setup(IMGDFSimHost *host) {
+  host->GetSound(_manager.Assign());
   host->GetInput(_input.Assign());
-  host->GetVFS(_vfs.Assign());
-  host->GetSound(_soundManager.Assign());
-
+  ComObject<IMGDFReadOnlyVirtualFileSystem> vfs;
+  host->GetVFS(vfs.Assign());
+  ComObject<IMGDFReadOnlyFile> file;
+  if (_manager && vfs->GetFile(L"chimes.wav", file.Assign())) {
+    _manager->CreateCommandList(_commands.Assign());
+    const MGDFSoundSegment segment{0, 0, TRUE};
+    const MGDFSoundSamplesDesc desc{&segment, 1};
+    _manager->CreateSoundSamples(file, &desc, _samples.Assign());
+  }
   Step([this](auto state) {
-    state->Text.AddLine("");
-    state->Text.AddLine("Sound Tests");
-    state->Text.AddLine("");
-    state->Text.AddLine("Checking SoundManager is initialized");
-    return _soundManager ? TestStep::PASSED
-                         : state->Fail("SoundManager was not initialized");
+    state->Text.AddLine("Loading chimes.wav");
+    if (!_samples || !_commands || _samples->HasFailed())
+      return state->Fail("Cannot load audio samples");
+    return _samples->IsLoaded() ? TestStep::PASSED : TestStep::CONT;
   })
-      .Step([this](auto state) {
-        state->Text.AddLine("Loading sound chimes.wav");
-        _soundManager->SetEnableAttenuation(true);
-        ComObject<IMGDFReadOnlyFile> file;
-        if (_vfs->GetFile(L"chimes.wav", file.Assign()) &&
-            FAILED(_soundManager->CreateSound(file, 0, _sound.Assign()))) {
-          return state->Fail("Unable to create a sound from chimes.wav");
-        } else {
-          ComObject<IMGDFSound> s;
-          if (S_OK != _sound->QueryInterface<IMGDFSound>(s.Assign())) {
-            return state->Fail(
-                "Unable to query the IMGDFSound interface from the created "
-                "sound");
-          } else {
-            return TestStep::PASSED;
-          }
-        }
-      })
       .StepOnce([this](auto state) {
-        _sound->SetLooping(true);
-        _sound->SetInnerRange(0);
-        _sound->SetOuterRange(250);
-        _sound->Play();
-        state->Text.AddLine("Is a sound playing? [Y/N]");
-      })
-      .Step([this](auto state) {
-        if (_input->IsKeyPress('Y')) {
-          return TestStep::PASSED;
-        } else if (_input->IsKeyPress('N')) {
-          return state->Fail("User reported no sound was playing");
-        } else {
-          return TestStep::CONT;
-        }
-      })
-      .StepOnce([this](auto state) {
+        MGDFVoiceDesc voice{};
+        voice.Bus = _manager->GetBus(MGDF_BUS_SOUND);
+        voice.Volume = 1;
+        voice.Pitch = 1;
+        voice.GainHF = 1;
+        voice.Spatial = TRUE;
+        _voice = _commands->Play(_samples, &voice);
+        _manager->Submit(_commands);
         state->Text.AddLine(
-            "Use arrow keys to change sounds position, press [Y/N] if the "
-            "sound "
-            "adjusts accordingly");
+            "Use the arrow keys to move the sound. Press Y or N to record the "
+            "result.");
       })
       .Step([this](auto state) {
-        if (_input->IsKeyPress('Y')) {
-          return TestStep::PASSED;
-        } else if (_input->IsKeyPress('N')) {
-          _sound.Clear();
-          return state->Fail(
-              "User reported the sound did not adjust to position changes");
-        } else {
-          MGDFSoundPosition position;
-          _sound->GetPosition(&position);
-          if (_input->IsKeyDown(VK_UP)) {
-            position.y += 1;
-          }
-          if (_input->IsKeyDown(VK_DOWN)) {
-            position.y -= 1;
-          }
-          if (_input->IsKeyDown(VK_LEFT)) {
-            position.x -= 1;
-          }
-          if (_input->IsKeyDown(VK_RIGHT)) {
-            position.x += 1;
-          }
-          _sound->SetPosition(&position);
-          return TestStep::CONT;
+        if (_input->IsKeyPress('Y') || _input->IsKeyPress('N')) {
+          _commands->Stop(_voice, 0.05f);
+          _manager->Submit(_commands);
+          _voice = 0;
+          return _input->IsKeyPress('Y')
+                     ? TestStep::PASSED
+                     : state->Fail("Sound did not pan with its position");
         }
-      })
-      .Step([this](auto state) {
-        _sound.Clear();
-        state->Text.AddLine("Loading stream stream.ogg");
-        ComObject<IMGDFReadOnlyFile> file;
-        if (_vfs->GetFile(L"Stream.ogg", file.Assign()) &&
-            FAILED(_soundManager->CreateSoundStream(file, _stream.Assign()))) {
-          return state->Fail("Unable to create a sound stream from Stream.ogg");
-        } else {
-          ComObject<IMGDFSoundStream> ss;
-          if (S_OK != _stream->QueryInterface<IMGDFSoundStream>(ss.Assign())) {
-            return state->Fail(
-                "Unable to query the IMGDFSoundStream interface from the "
-                "created stream");
-          } else if (FAILED(_stream->Play())) {
-            return state->Fail("Unable to play the sound stream");
-          } else {
-            return TestStep::PASSED;
-          }
-        }
-      })
-      .StepOnce([](auto state) {
-        state->Text.AddLine(
-            "Playing stream, press [Y/N] if the stream is actually playing");
-      })
-      .Step([this](auto state) {
-        if (_input->IsKeyPress('Y')) {
-          return TestStep::PASSED;
-        } else if (_input->IsKeyPress('N')) {
-          return state->Fail("User reported the stream was not playing");
-        } else {
-          return TestStep::CONT;
-        }
-      })
-      .StepOnce([](auto state) {
-        state->Text.AddLine(
-            "Use [P] to toggle pause/play, press [Y/N] if this is working.");
-      })
-      .Step([this](auto state) {
-        if (_input->IsKeyPress('Y')) {
-          _stream.Clear();
-          return TestStep::PASSED;
-        } else if (_input->IsKeyPress('N')) {
-          _stream.Clear();
-          return state->Fail("User reported pause/play toggle did not work");
-        } else {
-          if (_input->IsKeyPress('P')) {
-            if (_stream->IsPaused()) {
-              if (FAILED(_stream->Play())) {
-                _stream.Clear();
-                return state->Fail("Unable to resume the paused stream");
-              }
-            } else
-              _stream->Pause();
-          }
-          return TestStep::CONT;
-        }
+        if (_input->IsKeyDown(VK_LEFT)) _position.x -= 0.1f;
+        if (_input->IsKeyDown(VK_RIGHT)) _position.x += 0.1f;
+        if (_input->IsKeyDown(VK_UP)) _position.z -= 0.1f;
+        if (_input->IsKeyDown(VK_DOWN)) _position.z += 0.1f;
+        const MGDFSoundPosition velocity{};
+        _commands->SetSpatial(_voice, &_position, &velocity, 0, 0.02f);
+        _manager->Submit(_commands);
+        return TestStep::CONT;
       });
 }
-
-}  // namespace Test
-}  // namespace MGDF
+}  // namespace MGDF::Test
