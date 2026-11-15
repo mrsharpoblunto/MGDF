@@ -9,6 +9,8 @@ class HostBuilder {
  public:
   static HRESULT TryCreateHost(ComObject<Host> &host);
   static void InitLogLevel();
+  static std::string StatisticsEndpoint(const std::string &manifestEndpoint,
+                                        const char *endpointOverride);
 
  private:
   static bool RegisterBaseComponents(HostComponents &);

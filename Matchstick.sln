@@ -45,6 +45,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{3464
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core", "src\core\core.vcxproj", "{762B44B2-4615-4C7D-9418-DC604A6D930A}"
 	ProjectSection(ProjectDependencies) = postProject
+		{251E80AB-0AFB-4586-A57A-4095324680B2} = {251E80AB-0AFB-4586-A57A-4095324680B2}
 		{531A9FF9-F1EC-41D8-8C34-531E640139BA} = {531A9FF9-F1EC-41D8-8C34-531E640139BA}
 	EndProjectSection
 EndProject
@@ -82,6 +83,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamesManager.Model", "src\G
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.tests", "tests\core.tests\core.tests.vcxproj", "{62406A47-C94A-4C76-B1EF-2AB3E6E175D5}"
 	ProjectSection(ProjectDependencies) = postProject
+		{251E80AB-0AFB-4586-A57A-4095324680B2} = {251E80AB-0AFB-4586-A57A-4095324680B2}
 		{531A9FF9-F1EC-41D8-8C34-531E640139BA} = {531A9FF9-F1EC-41D8-8C34-531E640139BA}
 	EndProjectSection
 EndProject
@@ -159,6 +161,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core.network.impl", "src\core\network\impl\core.network.impl.vcxproj", "{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openxr.runtime", "tests\openxr.runtime\openxr.runtime.vcxproj", "{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrashReporter", "src\CrashReporter\CrashReporter.csproj", "{251E80AB-0AFB-4586-A57A-4095324680B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrashReporter.Tests", "tests\CrashReporter.Tests\CrashReporter.Tests.csproj", "{D9DB7440-D225-4DE6-8732-B93BE74EE4BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -350,6 +356,18 @@ Global
 		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Release|Any CPU.ActiveCfg = Release|x64
 		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Release|x64.ActiveCfg = Release|x64
 		{FCCE76A9-9EA8-4E54-8212-480A5CA9D701}.Release|x64.Build.0 = Release|x64
+		{251E80AB-0AFB-4586-A57A-4095324680B2}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{251E80AB-0AFB-4586-A57A-4095324680B2}.Debug|x64.ActiveCfg = Debug|x64
+		{251E80AB-0AFB-4586-A57A-4095324680B2}.Debug|x64.Build.0 = Debug|x64
+		{251E80AB-0AFB-4586-A57A-4095324680B2}.Release|Any CPU.ActiveCfg = Release|x64
+		{251E80AB-0AFB-4586-A57A-4095324680B2}.Release|x64.ActiveCfg = Release|x64
+		{251E80AB-0AFB-4586-A57A-4095324680B2}.Release|x64.Build.0 = Release|x64
+		{D9DB7440-D225-4DE6-8732-B93BE74EE4BD}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{D9DB7440-D225-4DE6-8732-B93BE74EE4BD}.Debug|x64.ActiveCfg = Debug|x64
+		{D9DB7440-D225-4DE6-8732-B93BE74EE4BD}.Debug|x64.Build.0 = Debug|x64
+		{D9DB7440-D225-4DE6-8732-B93BE74EE4BD}.Release|Any CPU.ActiveCfg = Release|x64
+		{D9DB7440-D225-4DE6-8732-B93BE74EE4BD}.Release|x64.ActiveCfg = Release|x64
+		{D9DB7440-D225-4DE6-8732-B93BE74EE4BD}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

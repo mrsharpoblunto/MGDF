@@ -110,6 +110,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="MGDFCrashReporter.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />
     <ClInclude Include="MGDFWindowSizing.hpp" />
@@ -123,6 +124,7 @@
     <ClInclude Include="win32Exception.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MGDFCrashReporter.cpp" />
     <ClCompile Include="MGDFLoggerImpl.cpp" />
     <ClCompile Include="MGDFParameterManager.cpp" />
     <ClCompile Include="MGDFPreferenceConstants.cpp" />

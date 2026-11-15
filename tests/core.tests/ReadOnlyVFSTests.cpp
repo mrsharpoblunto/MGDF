@@ -1,5 +1,8 @@
 #include "stdafx.h"
 
+#include <fstream>
+#include <iterator>
+
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/vfs/MGDFReadOnlyVirtualFileSystemComponent.hpp"
 #include "../../src/core/vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
@@ -147,17 +150,17 @@ TEST_F(ReadOnlyVFSTests, FileSystemContentTests) {
   ComObject<IMGDFReadOnlyFile> file;
   ASSERT_TRUE(_vfs->GetFile(L"console.json", file.Assign()));
 
-  std::vector<std::string> list;
-  {
-    ComObject<IMGDFFileReader> reader;
-    ASSERT_HRESULT_SUCCEEDED(file->Open(reader.Assign()));
-    ASSERT_TRUE(reader);
-    ReadLines(reader, list);
-  }
-
-  // see if the file has as many lines as we expect
-  EXPECT_EQ(17, list.size());
-  // check to see the first and last lines are as expected
-  EXPECT_EQ("{", list[0]);
-  EXPECT_EQ("}", list[16]);
+  ComObject<IMGDFFileReader> reader;
+  ASSERT_HRESULT_SUCCEEDED(file->Open(reader.Assign()));
+  ASSERT_TRUE(reader);
+  const auto size = static_cast<UINT32>(reader->GetSize());
+  std::string actual(size, '\0');
+  EXPECT_EQ(size, reader->Read(actual.data(), size));
+  std::ifstream input(
+      Resources::Instance().RootDir() + L"../../../tests/content/console.json",
+      std::ios::binary);
+  ASSERT_TRUE(input.good());
+  const std::string expected((std::istreambuf_iterator<char>(input)),
+                             std::istreambuf_iterator<char>());
+  EXPECT_EQ(expected, actual);
 }

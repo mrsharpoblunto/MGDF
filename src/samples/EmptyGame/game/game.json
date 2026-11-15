@@ -1,11 +1,12 @@
 {
-  "gameuid": "EmptyGame",
-  "gamename": "Empty Game",
   "version": "1.0.0",
   "developername": "Unknown",
   "homepage": "http://www.example.com",
-  "supportemail": "support@example.com",
   "preferences": {
     "simFps": "120"
-  }
+  },
+  "crashReportService": "https://example.com/api/v1/crashes",
+  "privacyPolicy": "https://example.com/privacy",
+  "gameUid": "EmptyGame",
+  "gameName": "Empty Game"
 }

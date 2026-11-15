@@ -8,9 +8,12 @@
 #include <fstream>
 
 #include "../audio/openal/OpenALSoundManagerComponent.hpp"
+#include "../common/MGDFCrashReporter.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
 #include "../common/MGDFResources.hpp"
+#include "../common/MGDFVersionHelper.hpp"
+#include "../common/MGDFVersionInfo.hpp"
 #include "../input/xinput/XInputManagerComponent.hpp"
 #include "../network/impl/NetworkManagerComponent.hpp"
 #include "../storage/jsoncpp/JsonStorageFactoryComponent.hpp"
@@ -104,6 +107,25 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   // paths again and shift the logfile over to the new user directory
   InitResources(handler->GetGameUid());
   Logger::Instance().MoveOutputFile();
+
+  MGDFVersion version{};
+  handler->GetVersion(version);
+  auto icon = Resources::Instance().GameBaseDir() + L"gameIcon.png";
+  if (!exists(icon))
+    icon = Resources::Instance().RootDir() + L"resources/gameIcon.png";
+  CrashReporter::Instance().Start(
+      {.Executable = Resources::Instance().RootDir() + L"crashreporter.exe",
+       .GameName = Resources::ToWString(handler->GetGameName()),
+       .GameUid = Resources::ToWString(handler->GetGameUid()),
+       .GameVersion = Resources::ToWString(VersionHelper::Format(version)),
+       .FrameworkVersion =
+           Resources::ToWString(MGDFVersionInfo::MGDF_VERSION()),
+       .IconPath = icon,
+       .UserFolder = Resources::Instance().UserBaseDir(),
+       .LogFile = Resources::Instance().LogFile(),
+       .ServiceUrl = Resources::ToWString(handler->GetCrashReportService()),
+       .PrivacyPolicyUrl = Resources::ToWString(handler->GetPrivacyPolicy()),
+       .HideErrors = ParameterManager::Instance().HasParameter("hideerrors")});
 
   ComObject<Game> game;
   result = GameBuilder::LoadGame(components.Storage, handler, game);
@@ -202,6 +224,11 @@ void HostBuilder::LoadEnvironmentFile() {
       SetEnvironmentVariableA(key.c_str(), value.c_str());
     }
   }
+}
+
+std::string HostBuilder::StatisticsEndpoint(const std::string &manifestEndpoint,
+                                            const char *endpointOverride) {
+  return endpointOverride ? endpointOverride : manifestEndpoint;
 }
 
 void HostBuilder::InitLogLevel() {

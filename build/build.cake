@@ -74,6 +74,14 @@ Task("TestGamesManager")
 	});
 });	
 
+Task("TestCrashReporter")
+  .IsDependentOn("BuildX64")
+  .Does(() => {
+    if (StartProcess($@"../bin/x64/{buildConfiguration}/crashreporter.tests.exe") != 0) {
+      throw new Exception("Crash reporter tests failed");
+    }
+  });
+
 Task("TestCoreX64")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
@@ -140,6 +148,7 @@ Task("Dist")
 	.IsDependentOn("BuildX64")
 	.IsDependentOn("TestGamesManager")
 	.IsDependentOn("TestCoreX64")
+	.IsDependentOn("TestCrashReporter")
 	.IsDependentOn("Documentation")
 	.Does(() => {
 		// zip up the SDK binaries
@@ -154,6 +163,7 @@ Task("Dist")
 		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
 		CopyDirectory($@"../content/resources", "../dist/tmp/x64/resources");
 		DeleteFiles(GetFiles("../dist/tmp/**/core.tests.exe"));
+    DeleteFiles(GetFiles("../dist/tmp/**/crashreporter.tests.*"));
 		DeleteFiles(GetFiles("../dist/tmp/**/openxr.runtime.*"));
 		DeleteFiles(GetFiles("../dist/tmp/**/gmock.dll"));
 		DeleteFiles(GetFiles("../dist/tmp/**/*.vshost.exe"));

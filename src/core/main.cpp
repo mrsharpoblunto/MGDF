@@ -1,13 +1,9 @@
 #include "StdAfx.h"
 
-#pragma warning(push)
-#pragma warning(disable : 4091)
-#include <Dbghelp.h>
-#pragma warning(pop)
-
 #include <timeapi.h>
 
 #include "MGDFApp.hpp"
+#include "common/MGDFCrashReporter.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFParameterManager.hpp"
 #include "common/MGDFResources.hpp"
@@ -15,14 +11,8 @@
 #include "core.impl/MGDFHostBuilder.hpp"
 
 void FatalErrorCallBack(const std::string &sender, const std::string &message);
-void WriteMinidump(PEXCEPTION_POINTERS exceptionInfo);
 
 LONG WINAPI UnhandledExceptionCallBack(PEXCEPTION_POINTERS pExceptionInfo);
-typedef BOOL(WINAPI *MINIDUMPWRITEDUMP)(
-    HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
-    CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-    CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-    CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
 extern "C" {
 __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
@@ -35,15 +25,6 @@ using namespace MGDF::core;
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
-
-struct DumpData {
-  DWORD processId;
-  DWORD threadId;
-  LPEXCEPTION_POINTERS exceptionPointers;
-};
-
-HWND _launcherWindow = nullptr;
-bool _hasDumped = false;
 
 INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
                      _In_opt_ HINSTANCE const hPreviousInstance,
@@ -78,14 +59,6 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
       return -1;
     }
 
-    // record the launcher window handle so we can request a minidump from the
-    // launcher process if we encounter an error later
-    if (ParameterManager::Instance().HasParameter("launcherhandle")) {
-      const std::string launcherHandle =
-          ParameterManager::Instance().GetParameter("launcherhandle");
-      _launcherWindow = (HWND)std::stoull(launcherHandle);
-    }
-
     // create the application instance and initialise the window
     host->SetFatalErrorHandler(FatalErrorCallBack);
     MGDFApp app(host, hInstance);
@@ -112,12 +85,13 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
 log & handle unexpected win32 errors before the exception is thrown
 */
 LONG WINAPI UnhandledExceptionCallBack(PEXCEPTION_POINTERS pExceptionInfo) {
+  if (CrashReporter::Instance().SignalCrash(pExceptionInfo)) {
+    return EXCEPTION_EXECUTE_HANDLER;
+  }
   if (pExceptionInfo) {
     LOG("WIN32 ERROR: " << Win32Exception::TranslateError(
             pExceptionInfo->ExceptionRecord->ExceptionCode),
         MGDF_LOG_ERROR);
-
-    WriteMinidump(pExceptionInfo);
 
     if (!ParameterManager::Instance().HasParameter("hideerrors")) {
       ::MessageBox(
@@ -137,7 +111,8 @@ handle fatal errors explicitly invoked from the MGDF core
 */
 void FatalErrorCallBack(const std::string &sender, const std::string &message) {
   std::ignore = sender;
-  WriteMinidump(nullptr);
+  if (CrashReporter::Instance().SignalCrash(nullptr)) return;
+  Logger::Instance().FlushSync();
 
   if (!ParameterManager::Instance().HasParameter("hideerrors")) {
     ::MessageBox(
@@ -147,22 +122,5 @@ void FatalErrorCallBack(const std::string &sender, const std::string &message) {
          Resources::ToString(Resources::Instance().LogFile()) + "'")
             .c_str(),
         "FATAL ERROR", MB_OK);  // output a nasty error message
-  }
-}
-
-void WriteMinidump(PEXCEPTION_POINTERS exceptionInfo) {
-  if (!_hasDumped) {
-    _hasDumped = true;
-    Logger::Instance().FlushSync();
-    if (_launcherWindow) {
-      DumpData data = {::GetCurrentProcessId(), ::GetCurrentThreadId(),
-                       exceptionInfo};
-      COPYDATASTRUCT cds;
-      cds.dwData = 1;
-      cds.cbData = sizeof(DumpData);
-      cds.lpData = &data;
-      ::SendMessageA(_launcherWindow, WM_COPYDATA, (WPARAM) nullptr,
-                     (LPARAM)&cds);
-    }
   }
 }

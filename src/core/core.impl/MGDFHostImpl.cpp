@@ -12,6 +12,7 @@
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 #include "MGDFGraphicsRequirements.hpp"
+#include "MGDFHostBuilder.hpp"
 #include "MGDFMetrics.hpp"
 #include "MGDFNetworkImpl.hpp"
 #include "MGDFParameterConstants.hpp"
@@ -73,14 +74,11 @@ Host::Host(ComObject<Game> game, HostComponents &components)
   _shutdownQueued.store(false);
   _ASSERTE(game);
 
-  auto statsEndpointOverride = ParameterManager::Instance().GetParameter(
-      ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE);
-  if (statsEndpointOverride) {
-    _stats->SetRemoteEndpoint(statsEndpointOverride);
-  } else if (ParameterManager::Instance().HasParameter(
-                 ParameterConstants::STATISTICS_ENABLED)) {
-    _stats->SetRemoteEndpoint(_game->GetStatististicsService());
-  }
+  const auto statsEndpoint = HostBuilder::StatisticsEndpoint(
+      _game->GetStatististicsService(),
+      ParameterManager::Instance().GetParameter(
+          ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE));
+  if (!statsEndpoint.empty()) _stats->SetRemoteEndpoint(statsEndpoint);
 
   auto metricsPort = ParameterManager::Instance().GetParameter(
       ParameterConstants::METRICS_PORT);

@@ -4,10 +4,11 @@
   "version": "0.1",
   "developerName": "Straylight Technologies",
   "homepage": "http://www.matchstickframework.org",
-  "supportEmail": "support@matchstickframework.org",
   "preferences": {
     "host.windowResize": "1",
     "host.simFps": "120",
     "host.fullScreenExclusive": "0"
-  }
+  },
+  "crashReportService": "https://example.com/api/v1/crashes",
+  "privacyPolicy": "https://example.com/privacy"
 }
