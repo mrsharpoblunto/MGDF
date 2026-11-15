@@ -83,7 +83,7 @@ internal static partial class Program
   private static IntPtr WaitForSendAction(IntPtr desktop, int reporter)
   {
     IntPtr send = IntPtr.Zero;
-    uint threadId = 0;
+    int threadId = 0;
     Exception failure = null;
     using (var finished = new ManualResetEventSlim())
     {
@@ -92,7 +92,7 @@ internal static partial class Program
         try
         {
           Check(SetThreadDesktop(desktop), "Cannot use the private test desktop.");
-          threadId = GetCurrentThreadId();
+          Interlocked.Exchange(ref threadId, unchecked((int)GetCurrentThreadId()));
           using (var context = new ApplicationContext())
           {
             Action find = () => {
@@ -126,7 +126,8 @@ internal static partial class Program
       worker.SetApartmentState(ApartmentState.STA);
       worker.Start();
       bool ready = finished.Wait(TimeSpan.FromSeconds(10));
-      if (!ready && threadId != 0) PostThreadMessage(threadId, 0x0012, IntPtr.Zero, IntPtr.Zero);
+      int watcher = Volatile.Read(ref threadId);
+      if (!ready && watcher != 0) PostThreadMessage(unchecked((uint)watcher), 0x0012, IntPtr.Zero, IntPtr.Zero);
       Check(worker.Join(10000), "Crash form watcher did not exit.");
       if (failure != null) throw failure;
       Check(ready && send != IntPtr.Zero, "Crash form has no Send report action.");
@@ -153,7 +154,7 @@ internal static partial class Program
 
   private static void FullReportChain()
   {
-    // This detects a broken handoff between the crash handler, dump writer, form and upload.
+    // A real crash must reach the form and upload with its dump and log.
     RunReportChain(false);
     RunReportChain(true);
   }

@@ -26,6 +26,7 @@ internal static partial class Program
   [STAThread]
   private static int Main(string[] args)
   {
+    MGDF.Tools.ToolForm.EnableStyles();
     _root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reporter-tests-" + Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(_root);
     _options = new ReporterOptions
@@ -283,7 +284,6 @@ internal static partial class Program
 
   private static void ErrorTextHasFixedLayout()
   {
-    MGDF.Tools.ToolForm.EnableStyles();
     var longText = string.Join("\r\n", Enumerable.Repeat("A long error line with enough words to wrap in the error box.", 100));
     using (var shortForm = new ReportForm(_options, new CrashResult { ErrorText = "Renderer: No device." }))
     using (var longForm = new ReportForm(_options, new CrashResult { ErrorText = longText }))
