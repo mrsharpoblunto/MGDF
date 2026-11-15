@@ -63,7 +63,6 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
   _mapping =
       CreateFileMappingW(INVALID_HANDLE_VALUE, &security, PAGE_READWRITE, 0,
                          static_cast<DWORD>(CrashLayout::Size), nullptr);
-  const auto ready = CreateEventW(&security, TRUE, FALSE, nullptr);
   const auto log =
       CreateFileW(options.LogFile.c_str(), GENERIC_READ,
                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -77,8 +76,7 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
         _mapping, FILE_MAP_WRITE, 0, 0, static_cast<DWORD>(CrashLayout::Size)));
   }
   bool started = false;
-  if (_crash && _dumpDone && _data && ready && process &&
-      log != INVALID_HANDLE_VALUE) {
+  if (_crash && _dumpDone && _data && process && log != INVALID_HANDLE_VALUE) {
     ZeroMemory(_data, static_cast<size_t>(CrashLayout::Size));
     std::wstring command = Quote(options.Executable);
     const auto add = [&](const wchar_t *name, const std::wstring &value) {
@@ -88,7 +86,6 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
     add(L"process-handle", HandleArgument(process));
     add(L"crash-event", HandleArgument(_crash));
     add(L"dump-event", HandleArgument(_dumpDone));
-    add(L"ready-event", HandleArgument(ready));
     add(L"mapping-handle", HandleArgument(_mapping));
     add(L"game-name", options.GameName);
     add(L"game-uid", options.GameUid);
@@ -112,7 +109,7 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
                                           &size)) {
       // Inherit only the reporter's handles, even if other handles are
       // inheritable.
-      std::array handles{process, _crash, _dumpDone, ready, _mapping, log};
+      std::array handles{process, _crash, _dumpDone, _mapping, log};
       if (UpdateProcThreadAttribute(
               startup.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
               handles.data(), sizeof(handles), nullptr, nullptr)) {
@@ -123,17 +120,13 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
                            nullptr, nullptr, &startup.StartupInfo, &child)) {
           CloseHandle(child.hThread);
           _reporter = child.hProcess;
-          const HANDLE wait[]{ready, _reporter};
-          started =
-              WaitForMultipleObjects(2, wait, FALSE, 5000) == WAIT_OBJECT_0;
-          if (!started) TerminateProcess(_reporter, 1);
+          started = true;
         }
       }
       DeleteProcThreadAttributeList(startup.lpAttributeList);
     }
   }
   if (log != INVALID_HANDLE_VALUE) CloseHandle(log);
-  if (ready) CloseHandle(ready);
   if (process) CloseHandle(process);
   // Later child processes must not retain this channel.
   for (auto handle : {_crash, _dumpDone, _mapping}) {

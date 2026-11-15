@@ -2,8 +2,6 @@
   "gameUid": "Test",
   "gameName": "Test Game",
   "version": "0.1",
-  "developerName": "Straylight Technologies",
-  "homepage": "http://www.matchstickframework.org",
   "preferences": {
     "host.windowResize": "1",
     "host.simFps": "120",

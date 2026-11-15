@@ -10,7 +10,6 @@ namespace MGDF.CrashReporter
     public IntPtr ProcessHandle { get; set; }
     public IntPtr CrashEvent { get; set; }
     public IntPtr DumpEvent { get; set; }
-    public IntPtr ReadyEvent { get; set; }
     public IntPtr MappingHandle { get; set; }
     public string GameName { get; set; }
     public string GameUid { get; set; }
@@ -25,7 +24,7 @@ namespace MGDF.CrashReporter
 
     public static ReporterOptions Parse(string[] args)
     {
-      if (args.Length != 32) throw new ArgumentException("Invalid reporter arguments.");
+      if (args.Length != 30) throw new ArgumentException("Invalid reporter arguments.");
       var values = new Dictionary<string, string>(StringComparer.Ordinal);
       for (int i = 0; i < args.Length; i += 2) values.Add(args[i], args[i + 1]);
       return new ReporterOptions
@@ -34,7 +33,6 @@ namespace MGDF.CrashReporter
         ProcessHandle = Handle(values["--process-handle"]),
         CrashEvent = Handle(values["--crash-event"]),
         DumpEvent = Handle(values["--dump-event"]),
-        ReadyEvent = Handle(values["--ready-event"]),
         MappingHandle = Handle(values["--mapping-handle"]),
         GameName = values["--game-name"],
         GameUid = values["--game-uid"],

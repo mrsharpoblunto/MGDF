@@ -49,14 +49,12 @@ namespace MGDF.CrashReporter
       using (var process = new SafeWaitHandle(options.ProcessHandle, true))
       using (var crash = new SafeWaitHandle(options.CrashEvent, true))
       using (var done = new SafeWaitHandle(options.DumpEvent, true))
-      using (var ready = new SafeWaitHandle(options.ReadyEvent, true))
       using (var mapping = new SafeFileHandle(options.MappingHandle, true))
       {
         var data = MapViewOfFile(mapping.DangerousGetHandle(), 4, 0, 0, new UIntPtr((uint)CrashLayout.Size));
         if (data == IntPtr.Zero) throw new Win32Exception();
         try
         {
-          if (!SetEvent(ready.DangerousGetHandle())) throw new Win32Exception();
           // A pending crash takes priority when the process also has exited.
           uint result = WaitForMultipleObjects(2, new[] { options.CrashEvent, options.ProcessHandle }, false, uint.MaxValue);
           if (result > 1) throw new Win32Exception();

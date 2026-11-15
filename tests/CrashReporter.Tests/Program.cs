@@ -253,7 +253,6 @@ internal static partial class Program
       "/d /c exit /b " + unchecked((int)code)) { UseShellExecute = false, CreateNoWindow = true }))
     using (var crash = new EventWaitHandle(false, EventResetMode.ManualReset))
     using (var done = new EventWaitHandle(false, EventResetMode.ManualReset))
-    using (var ready = new EventWaitHandle(false, EventResetMode.ManualReset))
     using (var mapping = CreateFileMapping(new IntPtr(-1), IntPtr.Zero, 4, 0, (uint)CrashLayout.Size, null))
     {
       Check(!mapping.IsInvalid, "Cannot create test mapping.");
@@ -263,7 +262,6 @@ internal static partial class Program
         ProcessId = (uint)process.Id, ProcessHandle = Duplicate(process.Handle),
         CrashEvent = Duplicate(crash.SafeWaitHandle.DangerousGetHandle()),
         DumpEvent = Duplicate(done.SafeWaitHandle.DangerousGetHandle()),
-        ReadyEvent = Duplicate(ready.SafeWaitHandle.DangerousGetHandle()),
         MappingHandle = Duplicate(mapping.DangerousGetHandle()), UserFolder = _root
       };
       if (signal) crash.Set();
@@ -271,7 +269,6 @@ internal static partial class Program
       Check(result.Failed == failed, "Wrong exit decision.");
       Check(result.DumpFile == null, "Process exit used a stale dump.");
       Check(result.Detail.Contains("Exit code: " + code + "."), "Missing exit code.");
-      Check(ready.WaitOne(0), "Reporter did not signal ready.");
     }
   }
 

@@ -2,9 +2,6 @@
   "gameUid": "Console",
   "gameName": "Lua Console",
   "version": "0.1",
-  "developerUid": "no-8",
-  "developerName": "no8 interactive",
-  "homepage": "http://www.junkship.org",
   "statisticsService": "http://statistics.junkship.org/statisticsservice.asmx",
   "preferences": {
     "key": "value",

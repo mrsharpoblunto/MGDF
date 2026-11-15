@@ -1,7 +1,5 @@
 {
   "version": "1.0.0",
-  "developername": "Unknown",
-  "homepage": "http://www.example.com",
   "preferences": {
     "simFps": "120"
   },

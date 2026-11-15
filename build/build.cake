@@ -74,6 +74,13 @@ Task("TestCrashReporter")
     }
   });
 
+Task("TestUpdater")
+  .IsDependentOn("BuildX64")
+  .Does(() => {
+    if (StartProcess($@"../bin/x64/{buildConfiguration}/updater.tests.exe") != 0)
+      throw new Exception("Updater tests failed");
+  });
+
 Task("TestCoreX64")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
@@ -138,6 +145,7 @@ Task("Dist")
   .IsDependentOn("Sign")
   .IsDependentOn("TestCoreX64")
   .IsDependentOn("TestCrashReporter")
+  .IsDependentOn("TestUpdater")
   .IsDependentOn("Package");
 
 Task("Package")
@@ -151,7 +159,7 @@ Task("Package")
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/tmp/x64");
 		CopyFileToDirectory($@"../bin/x64/{buildConfiguration}/core.exe", "../dist/tmp/x64");
     CopyFileToDirectory($@"../bin/x64/{buildConfiguration}/crashreporter.exe", "../dist/tmp/x64");
-		CopyFileToDirectory($@"../bin/x64/{buildConfiguration}/crashreporter.exe.config", "../dist/tmp/x64");
+		CopyFileToDirectory($@"../bin/x64/{buildConfiguration}/updater.exe", "../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.license.txt"), "../dist/tmp/x64");
 		CopyDirectory($@"../bin/x64/{buildConfiguration}/D3D12", "../dist/tmp/x64/D3D12");
 		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
