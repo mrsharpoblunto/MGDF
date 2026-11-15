@@ -15,7 +15,7 @@ namespace MGDF.CrashReporter
 
     public ReportForm(ReporterOptions options, CrashResult crash)
       : base(options.GameName, options.IconPath, options.GameName + " stopped unexpectedly",
-        "Sorry about that. To help us fix the problem, you can send a crash report. The report contains " +
+        "To help us fix the problem, you can send a crash report. The report contains " +
         "technical details of the crash, the game's log file and basic information about your system." +
         (string.IsNullOrEmpty(options.PrivacyPolicyUrl) ? "" : " For how we use this information, see our privacy policy."),
         "Send report", "Don't send", LimitError(crash.ErrorText))

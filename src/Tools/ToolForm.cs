@@ -60,7 +60,7 @@ namespace MGDF.Tools
       {
         _error = new TextBox { Text = errorText, Multiline = true, ReadOnly = true,
           WordWrap = true, ScrollBars = ScrollBars.Vertical };
-        _copy = new Button { Text = "Copy", AutoSize = true };
+        _copy = new Button { Text = "Copy", AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, MinimumSize = new Size(108, 28) };
         _copy.Click += (sender, e) => {
           try { Clipboard.SetText(_error.Text); }
           catch (ExternalException) { _copy.Text = "Try again"; }
@@ -88,17 +88,16 @@ namespace MGDF.Tools
       int titleHeight = _heading.GetPreferredSize(new Size(titleWidth, 0)).Height;
       int rowHeight = Math.Max(icon, titleHeight);
       _heading.SetBounds(margin + icon + margin, margin + (rowHeight - titleHeight) / 2, titleWidth, titleHeight);
-      int top = margin + rowHeight + margin / 2;
-      int bodyHeight = Body.GetPreferredSize(new Size(width, 0)).Height;
+      int top = margin + rowHeight;
+      int bodyHeight = string.IsNullOrEmpty(Body.Text) ? 0 : Body.GetPreferredSize(new Size(width, 0)).Height;
+      if (bodyHeight != 0) top += margin / 2;
       Body.SetBounds(margin, top, width, bodyHeight);
       top += bodyHeight + margin;
       if (_error != null)
       {
-        int height = Font.Height * 4 + (int)Math.Round(8 * scale);
-        int gap = margin / 2;
-        var copy = _copy.GetPreferredSize(Size.Empty);
-        _error.SetBounds(margin, top, width - copy.Width - gap, height);
-        _copy.SetBounds(margin + width - copy.Width, top, copy.Width, copy.Height);
+        int lineHeight = TextRenderer.MeasureText("M", _error.Font, Size.Empty, TextFormatFlags.NoPadding).Height;
+        int height = lineHeight * 4 + (_error.Height - _error.ClientSize.Height) + 2;
+        _error.SetBounds(margin, top, width, height);
         top += height + margin;
       }
       if (Progress.Visible)
@@ -109,6 +108,11 @@ namespace MGDF.Tools
       }
       var buttons = _buttons.GetPreferredSize(new Size(width, 0));
       _buttons.SetBounds(margin, top, width, buttons.Height);
+      if (_copy != null)
+      {
+        var copy = _copy.GetPreferredSize(Size.Empty);
+        _copy.SetBounds(margin, top, copy.Width, buttons.Height);
+      }
       int heightNeeded = top + buttons.Height + margin;
       if (ClientSize.Height != heightNeeded) ClientSize = new Size(ClientSize.Width, heightNeeded);
     }

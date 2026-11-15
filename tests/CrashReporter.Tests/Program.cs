@@ -24,7 +24,7 @@ internal static class Program
   private static string _logPath;
 
   [STAThread]
-  private static int Main()
+  private static int Main(string[] args)
   {
     _root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reporter-tests-" + Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(_root);
@@ -41,6 +41,7 @@ internal static class Program
     _crash = new CrashResult { Failed = true, Detail = "Test \"failure\"\nwith detail." };
     Action[] tests = { ZipWithDump, ZipWithoutDump, UploadContract, RejectedService, MissingUploadUrl,
       InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, TaskManagerExit, ReturnedFailure, ExceptionExit, InterruptedExit, SignaledCrash, RetainedLog, FallbackError, ErrorTextHasFixedLayout };
+    if (args.Contains("--reverse")) Array.Reverse(tests);
     int failures = 0;
     try
     {
@@ -268,6 +269,13 @@ internal static class Program
     }
   }
 
+  [StructLayout(LayoutKind.Sequential)]
+  private struct EditRect { public int Left, Top, Right, Bottom; }
+  [DllImport("user32.dll")]
+  private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr value, ref EditRect rect);
+  [DllImport("user32.dll")]
+  private static extern int GetWindowLong(IntPtr window, int index);
+
   private static void ErrorTextHasFixedLayout()
   {
     MGDF.Tools.ToolForm.EnableStyles();
@@ -276,14 +284,31 @@ internal static class Program
     using (var longForm = new ReportForm(_options, new CrashResult { ErrorText = longText }))
     using (var emptyForm = new ReportForm(_options, new CrashResult()))
     {
-      shortForm.PerformLayout(); longForm.PerformLayout(); emptyForm.PerformLayout();
+      foreach (var form in new[] { shortForm, longForm, emptyForm })
+      {
+        form.ShowInTaskbar = false;
+        form.StartPosition = FormStartPosition.Manual;
+        form.Location = new System.Drawing.Point(-32000, -32000);
+        form.Show();
+        form.PerformLayout();
+      }
       var box = longForm.Controls.OfType<TextBox>().Single();
       Check(box.Text == longText.Substring(0, (int)CrashLayout.ErrorLimit), "Error text was not limited.");
       Check(shortForm.ClientSize == longForm.ClientSize, "Error length changed the window size.");
       Check(shortForm.Controls.OfType<FlowLayoutPanel>().Single().Bounds == longForm.Controls.OfType<FlowLayoutPanel>().Single().Bounds, "Error length moved the buttons.");
       Check(emptyForm.ClientSize.Height < shortForm.ClientSize.Height && !emptyForm.Controls.OfType<TextBox>().Any(), "Empty error text did not remove its row.");
       Check(box.ReadOnly && box.Multiline && box.WordWrap && box.ScrollBars == ScrollBars.Vertical, "Error text cannot scroll and wrap.");
-      Check(longForm.Controls.OfType<Button>().Single().Text == "Copy", "Error text has no copy button.");
+      var copy = longForm.Controls.OfType<Button>().Single();
+      var buttons = longForm.Controls.OfType<FlowLayoutPanel>().Single();
+      var body = longForm.Controls.OfType<LinkLabel>().Single();
+      Check(copy.Text == "Copy" && copy.Left == box.Left && copy.Top == buttons.Top, "Copy is not at the left of the button row.");
+      Check(box.Left == body.Left && box.Width == body.Width, "Error text does not use the content width.");
+      Check(!emptyForm.Controls.OfType<Button>().Any(), "Empty error text has a Copy button.");
+      var rect = new EditRect();
+      SendMessage(box.Handle, 0x00B2, IntPtr.Zero, ref rect);
+      int lineHeight = box.GetPositionFromCharIndex(box.GetFirstCharIndexFromLine(1)).Y - box.GetPositionFromCharIndex(0).Y;
+      Check(lineHeight > 0 && rect.Bottom - rect.Top == lineHeight * 4, "The error box does not show four whole lines.");
+      Check((GetWindowLong(box.Handle, -16) & 0x00200000) != 0 && box.GetFirstCharIndexFromLine(4) >= 0, "Long error text has no native vertical scroll bar.");
     }
   }
 
