@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using System.IO;
@@ -22,6 +23,7 @@ internal static class Program
   private static FileStream _log;
   private static string _logPath;
 
+  [STAThread]
   private static int Main()
   {
     _root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reporter-tests-" + Guid.NewGuid().ToString("N"));
@@ -38,7 +40,7 @@ internal static class Program
     _options.LogHandle = _log.SafeFileHandle.DangerousGetHandle();
     _crash = new CrashResult { Failed = true, Detail = "Test \"failure\"\nwith detail." };
     Action[] tests = { ZipWithDump, ZipWithoutDump, UploadContract, RejectedService, MissingUploadUrl,
-      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, FailedExit, RetainedLog, FallbackError };
+      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, TaskManagerExit, ReturnedFailure, ExceptionExit, InterruptedExit, SignaledCrash, RetainedLog, FallbackError, ErrorTextHasFixedLayout };
     int failures = 0;
     try
     {
@@ -231,17 +233,21 @@ internal static class Program
     return target;
   }
 
-  private static void CleanExit() { CheckExit(0); }
-  private static void FailedExit() { CheckExit(17); }
+  private static void CleanExit() { CheckExit(0, false); }
+  private static void TaskManagerExit() { CheckExit(1, false); }
+  private static void ReturnedFailure() { CheckExit(17, false); }
+  private static void ExceptionExit() { CheckExit(0xC0000005, true); }
+  private static void InterruptedExit() { CheckExit(0xC000013A, false); }
+  private static void SignaledCrash() { CheckExit(0, true, true); }
 
-  private static void CheckExit(int code)
+  private static void CheckExit(uint code, bool failed, bool signal = false)
   {
     using (var process = Process.Start(new ProcessStartInfo(Environment.GetEnvironmentVariable("COMSPEC"),
-      "/d /c exit /b " + code) { UseShellExecute = false, CreateNoWindow = true }))
+      "/d /c exit /b " + unchecked((int)code)) { UseShellExecute = false, CreateNoWindow = true }))
     using (var crash = new EventWaitHandle(false, EventResetMode.ManualReset))
     using (var done = new EventWaitHandle(false, EventResetMode.ManualReset))
     using (var ready = new EventWaitHandle(false, EventResetMode.ManualReset))
-    using (var mapping = CreateFileMapping(new IntPtr(-1), IntPtr.Zero, 4, 0, 16, null))
+    using (var mapping = CreateFileMapping(new IntPtr(-1), IntPtr.Zero, 4, 0, (uint)CrashLayout.Size, null))
     {
       Check(!mapping.IsInvalid, "Cannot create test mapping.");
       Check(process.WaitForExit(10000), "Child did not exit.");
@@ -253,11 +259,31 @@ internal static class Program
         ReadyEvent = Duplicate(ready.SafeWaitHandle.DangerousGetHandle()),
         MappingHandle = Duplicate(mapping.DangerousGetHandle()), UserFolder = _root
       };
+      if (signal) crash.Set();
       var result = CrashMonitor.Wait(options);
-      Check(result.Failed == (code != 0), "Wrong exit decision.");
+      Check(result.Failed == failed, "Wrong exit decision.");
       Check(result.DumpFile == null, "Process exit used a stale dump.");
       Check(result.Detail.Contains("Exit code: " + code + "."), "Missing exit code.");
       Check(ready.WaitOne(0), "Reporter did not signal ready.");
+    }
+  }
+
+  private static void ErrorTextHasFixedLayout()
+  {
+    MGDF.Tools.ToolForm.EnableStyles();
+    var longText = string.Join("\r\n", Enumerable.Repeat("A long error line with enough words to wrap in the error box.", 100));
+    using (var shortForm = new ReportForm(_options, new CrashResult { ErrorText = "Renderer: No device." }))
+    using (var longForm = new ReportForm(_options, new CrashResult { ErrorText = longText }))
+    using (var emptyForm = new ReportForm(_options, new CrashResult()))
+    {
+      shortForm.PerformLayout(); longForm.PerformLayout(); emptyForm.PerformLayout();
+      var box = longForm.Controls.OfType<TextBox>().Single();
+      Check(box.Text == longText.Substring(0, (int)CrashLayout.ErrorLimit), "Error text was not limited.");
+      Check(shortForm.ClientSize == longForm.ClientSize, "Error length changed the window size.");
+      Check(shortForm.Controls.OfType<FlowLayoutPanel>().Single().Bounds == longForm.Controls.OfType<FlowLayoutPanel>().Single().Bounds, "Error length moved the buttons.");
+      Check(emptyForm.ClientSize.Height < shortForm.ClientSize.Height && !emptyForm.Controls.OfType<TextBox>().Any(), "Empty error text did not remove its row.");
+      Check(box.ReadOnly && box.Multiline && box.WordWrap && box.ScrollBars == ScrollBars.Vertical, "Error text cannot scroll and wrap.");
+      Check(longForm.Controls.OfType<Button>().Single().Text == "Copy", "Error text has no copy button.");
     }
   }
 

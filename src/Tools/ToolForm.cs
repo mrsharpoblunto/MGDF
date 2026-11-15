@@ -15,6 +15,8 @@ namespace MGDF.Tools
     private readonly PictureBox _picture;
     private readonly Label _heading;
     private readonly FlowLayoutPanel _buttons;
+    private readonly TextBox _error;
+    private readonly Button _copy;
 
     [DllImport("user32.dll")]
     private static extern bool SetProcessDpiAwarenessContext(IntPtr context);
@@ -27,7 +29,7 @@ namespace MGDF.Tools
       Application.SetCompatibleTextRenderingDefault(false);
     }
 
-    public ToolForm(string gameName, string iconPath, string heading, string body, string primary, string secondary)
+    public ToolForm(string gameName, string iconPath, string heading, string body, string primary, string secondary, string errorText = null)
     {
       Text = gameName;
       Font = new Font("Segoe UI", 9F);
@@ -54,9 +56,21 @@ namespace MGDF.Tools
       Primary.Margin = new Padding(0, 0, 8, 0);
       Secondary.Margin = Padding.Empty;
       _buttons.Controls.AddRange(new Control[] { Secondary, Primary });
+      if (!string.IsNullOrEmpty(errorText))
+      {
+        _error = new TextBox { Text = errorText, Multiline = true, ReadOnly = true,
+          WordWrap = true, ScrollBars = ScrollBars.Vertical };
+        _copy = new Button { Text = "Copy", AutoSize = true };
+        _copy.Click += (sender, e) => {
+          try { Clipboard.SetText(_error.Text); }
+          catch (ExternalException) { _copy.Text = "Try again"; }
+        };
+        Controls.AddRange(new Control[] { _error, _copy });
+      }
       AcceptButton = Primary;
       CancelButton = Secondary;
       Controls.AddRange(new Control[] { _picture, _heading, Body, Progress, _buttons });
+      ActiveControl = Primary;
       Body.TextChanged += (sender, e) => PerformLayout();
       Progress.VisibleChanged += (sender, e) => PerformLayout();
     }
@@ -78,6 +92,15 @@ namespace MGDF.Tools
       int bodyHeight = Body.GetPreferredSize(new Size(width, 0)).Height;
       Body.SetBounds(margin, top, width, bodyHeight);
       top += bodyHeight + margin;
+      if (_error != null)
+      {
+        int height = Font.Height * 4 + (int)Math.Round(8 * scale);
+        int gap = margin / 2;
+        var copy = _copy.GetPreferredSize(Size.Empty);
+        _error.SetBounds(margin, top, width - copy.Width - gap, height);
+        _copy.SetBounds(margin + width - copy.Width, top, copy.Width, copy.Height);
+        top += height + margin;
+      }
       if (Progress.Visible)
       {
         int height = (int)Math.Round(8 * scale);

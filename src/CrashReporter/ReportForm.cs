@@ -18,7 +18,7 @@ namespace MGDF.CrashReporter
         "Sorry about that. To help us fix the problem, you can send a crash report. The report contains " +
         "technical details of the crash, the game's log file and basic information about your system." +
         (string.IsNullOrEmpty(options.PrivacyPolicyUrl) ? "" : " For how we use this information, see our privacy policy."),
-        "Send report", "Don't send")
+        "Send report", "Don't send", LimitError(crash.ErrorText))
     {
       _options = options;
       _crash = crash;
@@ -27,6 +27,11 @@ namespace MGDF.CrashReporter
       Body.LinkClicked += OpenPrivacyPolicy;
       Primary.Click += SendReport;
       Secondary.Click += (sender, e) => Close();
+    }
+
+    private static string LimitError(string text)
+    {
+      return text == null ? null : text.Substring(0, Math.Min(text.Length, (int)CrashLayout.ErrorLimit));
     }
 
     private void OpenPrivacyPolicy(object sender, LinkLabelLinkClickedEventArgs e)

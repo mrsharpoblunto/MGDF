@@ -48,6 +48,28 @@ class CrashReporterIntegrationTests : public ::testing::Test {
     ASSERT_EQ(WAIT_OBJECT_0, wait);
     ASSERT_EQ(expectedExit, exit);
   }
+  std::wstring ErrorText() const {
+    std::ifstream dump(DumpFile(), std::ios::binary);
+    MINIDUMP_HEADER header{};
+    if (!dump.read(reinterpret_cast<char *>(&header), sizeof(header)))
+      return {};
+    dump.seekg(header.StreamDirectoryRva);
+    std::vector<MINIDUMP_DIRECTORY> directory(header.NumberOfStreams);
+    if (!dump.read(reinterpret_cast<char *>(directory.data()),
+                   directory.size() * sizeof(MINIDUMP_DIRECTORY)))
+      return {};
+    for (const auto &entry : directory) {
+      if (entry.StreamType != CommentStreamW) continue;
+      dump.seekg(entry.Location.Rva);
+      std::wstring text(entry.Location.DataSize / sizeof(wchar_t), L'\0');
+      if (!dump.read(reinterpret_cast<char *>(text.data()),
+                     entry.Location.DataSize))
+        return {};
+      while (!text.empty() && text.back() == L'\0') text.pop_back();
+      return text;
+    }
+    return {};
+  }
   std::filesystem::path DumpFile() const {
     for (const auto &entry : std::filesystem::directory_iterator(_root))
       if (entry.path().extension() == L".dmp") return entry.path();
@@ -110,7 +132,20 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
   }
   if (!CrashReporter::Instance().Start(options)) return 2;
   if (selected == "reporter-exit" || selected == "reporter-timeout")
-    return CrashReporter::Instance().SignalCrash(nullptr, selected == "reporter-timeout" ? 0 : 15000) ? 3 : 0;
+    return CrashReporter::Instance().SignalCrash(
+               nullptr, selected == "reporter-timeout" ? 0 : 15000)
+               ? 3
+               : 0;
+  if (std::string(mode) == "error-text")
+    return CrashReporter::Instance().SignalCrash(
+               nullptr, 15000, L"Renderer: No DirectX 12 device. \u03A9")
+               ? 1
+               : 3;
+  if (std::string(mode) == "long-error-text") {
+    std::wstring text;
+    for (unsigned i = 0; i < 500; ++i) text += L"line \u03A9\n";
+    return CrashReporter::Instance().SignalCrash(nullptr, 15000, text) ? 1 : 3;
+  }
   SetUnhandledExceptionFilter([](PEXCEPTION_POINTERS info) -> LONG {
     CrashReporter::Instance().SignalCrash(info);
     return EXCEPTION_EXECUTE_HANDLER;
@@ -143,11 +178,24 @@ TEST_F(CrashReporterIntegrationTests, RunsKeepSeparateDumps) {
 int RunFakeReporter(int argc, char **argv) {
   std::map<std::string, HANDLE> handles;
   for (int i = 1; i + 1 < argc; i += 2)
-    handles[argv[i]] = reinterpret_cast<HANDLE>(std::strtoull(argv[i + 1], nullptr, 10));
+    handles[argv[i]] =
+        reinterpret_cast<HANDLE>(std::strtoull(argv[i + 1], nullptr, 10));
   if (handles.contains("--ready-event")) SetEvent(handles["--ready-event"]);
   char mode[64]{};
   GetEnvironmentVariableA("MGDF_TEST_REPORTER_MODE", mode, sizeof(mode));
   if (std::string(mode) == "reporter-timeout")
     WaitForSingleObject(handles["--process-handle"], 30000);
   return 0;
+}
+
+TEST_F(CrashReporterIntegrationTests, SharedCrashLayoutCarriesErrorText) {
+  ASSERT_NO_FATAL_FAILURE(RunChild(L"error-text", 1));
+  EXPECT_EQ(L"Renderer: No DirectX 12 device. \u03A9", ErrorText());
+}
+
+TEST_F(CrashReporterIntegrationTests, CoreLimitsErrorTextBeforeItSignals) {
+  ASSERT_NO_FATAL_FAILURE(RunChild(L"long-error-text", 1));
+  std::wstring text;
+  for (unsigned i = 0; i < 500; ++i) text += L"line \u03A9\n";
+  EXPECT_EQ(text.substr(0, 2048), ErrorText());
 }

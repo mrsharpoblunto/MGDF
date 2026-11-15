@@ -2,11 +2,18 @@
 
 #include "MGDFCrashReporter.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cstring>
 #include <vector>
 
 namespace MGDF::core {
 namespace {
+
+template <typename T>
+void SetField(unsigned char *data, CrashLayout field, T value) {
+  std::memcpy(data + static_cast<size_t>(field), &value, sizeof(value));
+}
 
 std::wstring Quote(const std::wstring &value) {
   std::wstring result = L"\"";
@@ -53,23 +60,26 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
   SECURITY_ATTRIBUTES security{sizeof(security), nullptr, TRUE};
   _crash = CreateEventW(&security, TRUE, FALSE, nullptr);
   _dumpDone = CreateEventW(&security, TRUE, FALSE, nullptr);
-  _mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, &security, PAGE_READWRITE,
-                                0, sizeof(CrashData), nullptr);
+  _mapping =
+      CreateFileMappingW(INVALID_HANDLE_VALUE, &security, PAGE_READWRITE, 0,
+                         static_cast<DWORD>(CrashLayout::Size), nullptr);
   const auto ready = CreateEventW(&security, TRUE, FALSE, nullptr);
-  const auto log = CreateFileW(options.LogFile.c_str(), GENERIC_READ,
-      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &security,
-      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+  const auto log =
+      CreateFileW(options.LogFile.c_str(), GENERIC_READ,
+                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                  &security, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
   HANDLE process = nullptr;
   DuplicateHandle(
       GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &process,
       PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | SYNCHRONIZE, TRUE, 0);
   if (_mapping) {
-    _data = static_cast<CrashData *>(
-        MapViewOfFile(_mapping, FILE_MAP_WRITE, 0, 0, sizeof(CrashData)));
+    _data = static_cast<unsigned char *>(MapViewOfFile(
+        _mapping, FILE_MAP_WRITE, 0, 0, static_cast<DWORD>(CrashLayout::Size)));
   }
   bool started = false;
-  if (_crash && _dumpDone && _data && ready && process && log != INVALID_HANDLE_VALUE) {
-    *_data = {};
+  if (_crash && _dumpDone && _data && ready && process &&
+      log != INVALID_HANDLE_VALUE) {
+    ZeroMemory(_data, static_cast<size_t>(CrashLayout::Size));
     std::wstring command = Quote(options.Executable);
     const auto add = [&](const wchar_t *name, const std::wstring &value) {
       command += L" --" + std::wstring(name) + L" " + Quote(value);
@@ -133,13 +143,24 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
   return started;
 }
 
-bool CrashReporter::SignalCrash(PEXCEPTION_POINTERS exceptionPointers, DWORD timeout) {
+bool CrashReporter::SignalCrash(PEXCEPTION_POINTERS exceptionPointers,
+                                DWORD timeout, std::wstring_view errorText) {
   if (!_reporter || WaitForSingleObject(_reporter, 0) != WAIT_TIMEOUT) {
     return false;
   }
   if (InterlockedCompareExchange(&_signaled, 1, 0) == 0) {
-    _data->ThreadId = GetCurrentThreadId();
-    _data->ExceptionPointers = reinterpret_cast<UINT64>(exceptionPointers);
+    SetField(_data, CrashLayout::ThreadId, GetCurrentThreadId());
+    SetField(_data, CrashLayout::ExceptionPointers,
+             reinterpret_cast<UINT64>(exceptionPointers));
+    auto length = (std::min)(errorText.size(),
+                           static_cast<size_t>(CrashLayout::ErrorLimit));
+    if (length && errorText[length - 1] >= 0xD800 &&
+        errorText[length - 1] <= 0xDBFF)
+      --length;
+    SetField(_data, CrashLayout::ErrorLength, static_cast<DWORD>(length));
+    if (length)
+      std::memcpy(_data + static_cast<size_t>(CrashLayout::ErrorText),
+                  errorText.data(), length * sizeof(wchar_t));
     SetEvent(_crash);
   }
   const HANDLE wait[]{_dumpDone, _reporter};

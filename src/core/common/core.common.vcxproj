@@ -110,6 +110,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="CrashLayout.cs" />
     <ClInclude Include="MGDFCrashReporter.hpp" />
     <ClInclude Include="MGDFLoggerImpl.hpp" />
     <ClInclude Include="MGDFParameterManager.hpp" />

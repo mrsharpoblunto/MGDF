@@ -3,6 +3,9 @@
 #include <windows.h>
 
 #include <string>
+#include <string_view>
+
+#include "CrashLayout.cs"
 
 namespace MGDF::core {
 
@@ -29,7 +32,8 @@ class CrashReporter {
 
   ~CrashReporter();
   bool Start(const CrashReporterOptions &options);
-  bool SignalCrash(PEXCEPTION_POINTERS exceptionPointers, DWORD timeout = 15000);
+  bool SignalCrash(PEXCEPTION_POINTERS exceptionPointers, DWORD timeout = 15000,
+                   std::wstring_view errorText = {});
 
  private:
   CrashReporter() = default;
@@ -37,16 +41,11 @@ class CrashReporter {
   CrashReporter &operator=(const CrashReporter &) = delete;
   void Close();
 
-  struct CrashData {
-    DWORD ThreadId;
-    DWORD Reserved;
-    UINT64 ExceptionPointers;
-  };
   HANDLE _crash = nullptr;
   HANDLE _dumpDone = nullptr;
   HANDLE _mapping = nullptr;
   HANDLE _reporter = nullptr;
-  CrashData *_data = nullptr;
+  unsigned char *_data = nullptr;
   volatile LONG _signaled = 0;
 };
 

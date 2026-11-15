@@ -33,6 +33,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="ReporterOptions.cs" />
     <Compile Include="CrashMonitor.cs" />
+    <Compile Include="..\core\common\CrashLayout.cs"><Link>CrashLayout.cs</Link></Compile>
     <Compile Include="ReportUpload.cs" />
     <Compile Include="ReportForm.cs" />
     <Compile Include="..\Tools\ToolForm.cs"><Link>ToolForm.cs</Link></Compile>

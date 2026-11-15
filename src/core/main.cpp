@@ -56,7 +56,7 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
     ComObject<Host> host;
     if (FAILED(HostBuilder::TryCreateHost(host))) {
       LOG("failed to start up", MGDF_LOG_ERROR);
-      return -1;
+      return 1;
     }
 
     // create the application instance and initialise the window
@@ -85,14 +85,17 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
 log & handle unexpected win32 errors before the exception is thrown
 */
 LONG WINAPI UnhandledExceptionCallBack(PEXCEPTION_POINTERS pExceptionInfo) {
+  const auto error = pExceptionInfo
+                         ? Win32Exception::TranslateError(
+                               pExceptionInfo->ExceptionRecord->ExceptionCode)
+                         : std::string{};
   if (pExceptionInfo) {
-    LOG("WIN32 ERROR: " << Win32Exception::TranslateError(
-            pExceptionInfo->ExceptionRecord->ExceptionCode),
-        MGDF_LOG_ERROR);
+    LOG("WIN32 ERROR: " << error, MGDF_LOG_ERROR);
   }
   // The crash reporter reads the log file after this process exits.
   Logger::Instance().FlushSync();
-  if (CrashReporter::Instance().SignalCrash(pExceptionInfo)) {
+  if (CrashReporter::Instance().SignalCrash(pExceptionInfo, 15000,
+                                            Resources::ToWString(error))) {
     return EXCEPTION_EXECUTE_HANDLER;
   }
   if (pExceptionInfo &&
@@ -111,9 +114,10 @@ LONG WINAPI UnhandledExceptionCallBack(PEXCEPTION_POINTERS pExceptionInfo) {
 handle fatal errors explicitly invoked from the MGDF core
 */
 void FatalErrorCallBack(const std::string &sender, const std::string &message) {
-  std::ignore = sender;
   Logger::Instance().FlushSync();
-  if (CrashReporter::Instance().SignalCrash(nullptr)) return;
+  if (CrashReporter::Instance().SignalCrash(
+          nullptr, 15000, Resources::ToWString(sender + ": " + message)))
+    return;
 
   if (!ParameterManager::Instance().HasParameter("hideerrors")) {
     ::MessageBox(
