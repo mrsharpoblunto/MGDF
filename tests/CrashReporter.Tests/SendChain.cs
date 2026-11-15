@@ -109,6 +109,7 @@ internal static partial class Program
         try
         {
           child = Process.GetProcessById(info.Id);
+          Check(child.Handle != IntPtr.Zero, "Cannot retain crash child handle.");
           Check(ResumeThread(info.Thread) != uint.MaxValue, "Cannot run crash child.");
         }
         finally { CloseHandle(info.Thread); CloseHandle(info.Process); }
@@ -116,6 +117,7 @@ internal static partial class Program
         Check(unchecked((uint)child.ExitCode) == (fatal ? 1U : 0xC0000005U), "Wrong crash child exit.");
         reporter = FindReporter(child.Id);
         Check(reporter != null, "Crash reporter did not start.");
+        Check(reporter.Handle != IntPtr.Zero, "Cannot retain reporter handle.");
         Check(reporter.WaitForInputIdle(10000), "Crash form did not become ready.");
         IntPtr send = IntPtr.Zero;
         EnumDesktopWindows(desktop, (window, data) => {
@@ -158,7 +160,7 @@ internal static partial class Program
               Check(text.Contains("System Information") && text.Contains("MGDF Version: 1.0") &&
                 text.Contains("OS Architecture:") && text.Contains("Processor Count:") &&
                 text.Contains("Crash send test " + Path.GetFileName(root)), "Missing system or run log data.");
-              Check(text.Contains(fatal ? "Renderer: No DirectX 12 device." : "WIN32 ERROR:"), "Missing crash handler text.");
+              Check(text.Contains(fatal ? "Renderer: No DirectX 12 device." : "WIN32 ERROR: Access violation"), "Missing crash handler text.");
             }
           }
           Respond(client, "");
