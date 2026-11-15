@@ -47,9 +47,11 @@ namespace MGDF.CrashReporter
       Primary.Visible = false;
       Secondary.Text = "Cancel";
       Progress.Visible = true;
+      AcceptButton = Secondary;
+      ActiveControl = Secondary;
       Body.LinkArea = new LinkArea(0, 0);
       Body.Text = "Sending report...";
-      var upload = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+      var upload = new CancellationTokenSource();
       _upload = upload;
       try
       {
@@ -64,6 +66,7 @@ namespace MGDF.CrashReporter
           Body.Text = "Cannot send the report. Please try again later.";
           Progress.Visible = false;
           Secondary.Text = "Close";
+          ActiveControl = Secondary;
         }
       }
       finally { _upload = null; upload.Dispose(); }

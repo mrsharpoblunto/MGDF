@@ -5,6 +5,9 @@
 #include <filesystem>
 #include <fstream>
 
+#include "../../src/core/common/MGDFCrashHandling.hpp"
+#include "../../src/core/common/MGDFLoggerImpl.hpp"
+#include "../../src/core/common/MGDFParameterManager.hpp"
 #include "../../src/core/common/MGDFCrashReporter.hpp"
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/core.impl/MGDFSaveManagerImpl.hpp"
@@ -129,6 +132,29 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
   if (selected == "reporter-exit" || selected == "reporter-timeout") {
     options.Executable = Resources::Instance().RootDir() + L"core.tests.exe";
     SetEnvironmentVariableA("MGDF_TEST_REPORTER_MODE", mode);
+  }
+  if (selected == "send-crash" || selected == "send-fatal") {
+    Resources::Instance().SetGameBaseDir((root / "stage" / "game").wstring());
+    Resources::Instance().SetUserBaseDir("crash-send-test", true);
+    Resources::Instance().CreateRequiredDirectories();
+    options.UserFolder = Resources::Instance().UserBaseDir();
+    options.LogFile = Resources::Instance().LogFile();
+    std::ifstream service(root / "service-url.txt");
+    std::string url;
+    std::getline(service, url);
+    options.ServiceUrl = Resources::ToWString(url);
+    options.HideErrors = false;
+    ParameterManager::Instance().AddParameterString("-hideerrors");
+    LOG("Crash send test " << root.filename().string(), MGDF_LOG_ERROR);
+    if (!CrashReporter::Instance().Start(options)) return 2;
+    std::ofstream(root / "crash-thread.txt") << GetCurrentThreadId();
+    if (selected == "send-fatal") {
+      HandleFatalError("Renderer", "No DirectX 12 device.");
+      TerminateProcess(GetCurrentProcess(), 1);
+    }
+    SetUnhandledExceptionFilter(HandleUnhandledException);
+    *static_cast<volatile int *>(nullptr) = 1;
+    return 3;
   }
   if (!CrashReporter::Instance().Start(options)) return 2;
   if (selected == "reporter-exit" || selected == "reporter-timeout")

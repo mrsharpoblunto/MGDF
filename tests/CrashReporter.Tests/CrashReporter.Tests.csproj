@@ -25,6 +25,8 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Web.Extensions" />
     <Compile Include="Program.cs" />
+    <Compile Include="SendChain.cs" />
+    <Compile Include="SendStates.cs" />
     <ProjectReference Include="..\..\src\CrashReporter\CrashReporter.csproj">
       <Project>{251E80AB-0AFB-4586-A57A-4095324680B2}</Project>
       <Name>CrashReporter</Name>

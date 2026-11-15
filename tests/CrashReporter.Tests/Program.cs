@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using MGDF.CrashReporter;
 
-internal static class Program
+internal static partial class Program
 {
   private static string _root;
   private static ReporterOptions _options;
@@ -40,7 +40,12 @@ internal static class Program
     _options.LogHandle = _log.SafeFileHandle.DangerousGetHandle();
     _crash = new CrashResult { Failed = true, Detail = "Test \"failure\"\nwith detail." };
     Action[] tests = { ZipWithDump, ZipWithoutDump, UploadContract, RejectedService, MissingUploadUrl,
-      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, TaskManagerExit, ReturnedFailure, ExceptionExit, InterruptedExit, SignaledCrash, RetainedLog, FallbackError, ErrorTextHasFixedLayout };
+      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, TaskManagerExit, ReturnedFailure, ExceptionExit, InterruptedExit, SignaledCrash, RetainedLog, FallbackError, ErrorTextHasFixedLayout, FullReportChain, SendStatesKeepButtonFocus, StalledUploadStops, MovingUploadHasNoTotalLimit };
+    var only = args.FirstOrDefault(arg => arg.StartsWith("--only=", StringComparison.Ordinal));
+    if (only != null) tests = tests.Where(test => test.Method.Name == only.Substring(7)).ToArray();
+    Check(tests.Length != 0, "No tests selected.");
+    var repeat = args.FirstOrDefault(arg => arg.StartsWith("--repeat=", StringComparison.Ordinal));
+    if (repeat != null) tests = Enumerable.Range(0, int.Parse(repeat.Substring(9))).SelectMany(unused => tests).ToArray();
     if (args.Contains("--reverse")) Array.Reverse(tests);
     int failures = 0;
     try

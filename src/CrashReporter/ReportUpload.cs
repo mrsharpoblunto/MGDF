@@ -60,7 +60,18 @@ namespace MGDF.CrashReporter
     }
 
     public static async Task SendAsync(ReporterOptions options, CrashResult crash,
-      IProgress<int> progress, CancellationToken cancellation)
+      IProgress<int> progress, CancellationToken cancellation, TimeSpan? inactivityTimeout = null)
+    {
+      var interval = inactivityTimeout ?? TimeSpan.FromSeconds(60);
+      using (var idle = CancellationTokenSource.CreateLinkedTokenSource(cancellation))
+      {
+        idle.CancelAfter(interval);
+        await SendWithProgressAsync(options, crash, progress, idle.Token, () => idle.CancelAfter(interval)).ConfigureAwait(false);
+      }
+    }
+
+    private static async Task SendWithProgressAsync(ReporterOptions options, CrashResult crash,
+      IProgress<int> progress, CancellationToken cancellation, Action moved)
     {
       if (options.HideErrors) throw new InvalidOperationException("Reports are disabled.");
       var file = Path.Combine(options.UserFolder, "crash-report-" + Guid.NewGuid().ToString("N") + ".zip");
@@ -69,6 +80,7 @@ namespace MGDF.CrashReporter
         cancellation.ThrowIfCancellationRequested();
         using (var output = File.Create(file)) WriteZip(output, options, crash);
         cancellation.ThrowIfCancellationRequested();
+        moved();
         var body = Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(new
         {
           detail = crash.Detail,
@@ -81,21 +93,26 @@ namespace MGDF.CrashReporter
         using (cancellation.Register(request.Abort))
         {
           using (var stream = await request.GetRequestStreamAsync().ConfigureAwait(false))
+          {
             await stream.WriteAsync(body, 0, body.Length, cancellation).ConfigureAwait(false);
+            moved();
+          }
           using (var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false))
           {
+            moved();
             RequireSuccess(response);
-            using (var reader = new StreamReader(response.GetResponseStream()))
+            using (var input = response.GetResponseStream())
+            using (var text = new MemoryStream())
             {
-              var text = new StringBuilder();
-              var buffer = new char[4096];
+              var buffer = new byte[4096];
               int count;
-              while ((count = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) != 0)
+              while ((count = await input.ReadAsync(buffer, 0, buffer.Length, cancellation).ConfigureAwait(false)) != 0)
               {
                 if (text.Length + count > 65536) throw new InvalidDataException("Invalid service response.");
-                text.Append(buffer, 0, count);
+                moved();
+                text.Write(buffer, 0, count);
               }
-              serviceBody = text.ToString();
+              serviceBody = Encoding.UTF8.GetString(text.ToArray());
             }
           }
         }
@@ -118,6 +135,7 @@ namespace MGDF.CrashReporter
               while ((count = await source.ReadAsync(buffer, 0, buffer.Length, cancellation).ConfigureAwait(false)) != 0)
               {
                 await target.WriteAsync(buffer, 0, count, cancellation).ConfigureAwait(false);
+                moved();
                 sent += count;
                 progress?.Report((int)(100 * sent / source.Length));
               }
@@ -143,8 +161,8 @@ namespace MGDF.CrashReporter
       request.ContentLength = length;
       request.AllowAutoRedirect = false;
       request.ServicePoint.Expect100Continue = false;
-      request.Timeout = 30000;
-      request.ReadWriteTimeout = 30000;
+      request.Timeout = Timeout.Infinite;
+      request.ReadWriteTimeout = Timeout.Infinite;
       return request;
     }
 
