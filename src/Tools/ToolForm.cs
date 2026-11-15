@@ -23,7 +23,7 @@ namespace MGDF.Tools
 
     public static void EnableStyles()
     {
-      try { SetProcessDpiAwarenessContext(new IntPtr(-4)); }
+      try { SetProcessDpiAwarenessContext(new IntPtr(-2)); }
       catch (EntryPointNotFoundException) { }
       Application.EnableVisualStyles();
       Application.SetCompatibleTextRenderingDefault(false);
