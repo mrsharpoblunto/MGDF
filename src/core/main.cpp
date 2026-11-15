@@ -85,23 +85,24 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
 log & handle unexpected win32 errors before the exception is thrown
 */
 LONG WINAPI UnhandledExceptionCallBack(PEXCEPTION_POINTERS pExceptionInfo) {
-  if (CrashReporter::Instance().SignalCrash(pExceptionInfo)) {
-    return EXCEPTION_EXECUTE_HANDLER;
-  }
   if (pExceptionInfo) {
     LOG("WIN32 ERROR: " << Win32Exception::TranslateError(
             pExceptionInfo->ExceptionRecord->ExceptionCode),
         MGDF_LOG_ERROR);
-
-    if (!ParameterManager::Instance().HasParameter("hideerrors")) {
-      ::MessageBox(
-          nullptr,
-          ("Unexpected Win32 error\r\n\r\nFor more information, please "
-           "view the log file\r\n'" +
-           Resources::ToString(Resources::Instance().LogFile()) + "'")
-              .c_str(),
-          "FATAL ERROR", MB_OK);  // output a nasty error message
-    }
+  }
+  // The crash reporter reads the log file after this process exits.
+  Logger::Instance().FlushSync();
+  if (CrashReporter::Instance().SignalCrash(pExceptionInfo)) {
+    return EXCEPTION_EXECUTE_HANDLER;
+  }
+  if (pExceptionInfo &&
+      !ParameterManager::Instance().HasParameter("hideerrors")) {
+    ::MessageBox(nullptr,
+                 ("Unexpected Win32 error\r\n\r\nFor more information, please "
+                  "view the log file\r\n'" +
+                  Resources::ToString(Resources::Instance().LogFile()) + "'")
+                     .c_str(),
+                 "FATAL ERROR", MB_OK);  // output a nasty error message
   }
   return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -111,8 +112,8 @@ handle fatal errors explicitly invoked from the MGDF core
 */
 void FatalErrorCallBack(const std::string &sender, const std::string &message) {
   std::ignore = sender;
-  if (CrashReporter::Instance().SignalCrash(nullptr)) return;
   Logger::Instance().FlushSync();
+  if (CrashReporter::Instance().SignalCrash(nullptr)) return;
 
   if (!ParameterManager::Instance().HasParameter("hideerrors")) {
     ::MessageBox(
