@@ -302,6 +302,7 @@ internal static class Program
       var buttons = longForm.Controls.OfType<FlowLayoutPanel>().Single();
       var body = longForm.Controls.OfType<LinkLabel>().Single();
       Check(copy.Text == "Copy" && copy.Left == box.Left && copy.Top == buttons.Top, "Copy is not at the left of the button row.");
+      Check(!copy.Bounds.IntersectsWith(buttons.Bounds), "The button panel covers Copy.");
       Check(box.Left == body.Left && box.Width == body.Width, "Error text does not use the content width.");
       Check(!emptyForm.Controls.OfType<Button>().Any(), "Empty error text has a Copy button.");
       var rect = new EditRect();

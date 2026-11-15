@@ -107,7 +107,7 @@ namespace MGDF.Tools
         top += height + margin;
       }
       var buttons = _buttons.GetPreferredSize(new Size(width, 0));
-      _buttons.SetBounds(margin, top, width, buttons.Height);
+      _buttons.SetBounds(margin + width - buttons.Width, top, buttons.Width, buttons.Height);
       if (_copy != null)
       {
         var copy = _copy.GetPreferredSize(Size.Empty);
