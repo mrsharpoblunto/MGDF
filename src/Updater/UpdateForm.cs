@@ -16,11 +16,11 @@ namespace MGDF.Updater
 
     public UpdateForm(UpdateSession session, UpdateInfo update, string iconPath)
       : base(session.Game.gameName, iconPath, "An update for " + session.Game.gameName + " is available",
-        "Version " + update.version + " is ready to install.", "Update now", "Later")
+        "", "Update now", "Later")
     {
       _session = session;
       _update = update;
-      if (session.RepairRequired) { Body.Text = "The update did not finish. Install version " + update.version + " to repair the game."; Secondary.Text = "Close"; }
+      if (session.RepairRequired) { Body.Text = "The update did not finish. Install the update to repair the game."; Secondary.Text = "Close"; }
       Primary.Click += Download;
       Secondary.Click += (sender, e) => { if (_busy) _download.Cancel(); else Close(); };
     }
@@ -32,7 +32,7 @@ namespace MGDF.Updater
       Secondary.Text = "Cancel";
       Progress.Visible = true;
       Body.Text = "Downloading update...";
-      using (var cancel = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
+      using (var cancel = new CancellationTokenSource())
       {
         _download = cancel;
         try
@@ -41,7 +41,7 @@ namespace MGDF.Updater
           await _session.StageAsync(_update, progress, cancel.Token);
           _handedOff = true;
         }
-        catch (Exception) { }
+        catch (Exception) { if (!cancel.IsCancellationRequested) _session.ShowDownloadFailure(); }
         finally { _busy = false; _download = null; }
       }
       Close();

@@ -35,7 +35,7 @@ internal static class Program
     Directory.CreateDirectory(_root);
     Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
     MGDF.Tools.ToolForm.EnableStyles();
-    Action[] tests = { CoreFlags, NoService, ServiceFailure, SameVersion, Later, CancelDownload, HashMismatch,
+    Action[] tests = { CoreFlags, NoService, ServiceFailure, SameVersion, Later, PromptLayout, DownloadInactivity, DownloadKeepsReceiving, DownloadFailureStartsGame, CancelFormDownload, CancelDownload, HashMismatch,
       LockedInstaller, InstallerSuccess, InstallerFailure, InstallerRefused, FullHandoff, StandalonePrograms, OneUpdater, PendingInstaller, PendingFailure, CompletedMarker, InUseFiles, KilledHelper, NativeImageInUse, CorruptManifestOffersRepair };
     if (args.Contains("--cpu-only")) tests = tests.Where(test => !new[] { "FullHandoff", "KilledHelper", "NativeImageInUse" }.Contains(test.Method.Name)).ToArray();
     if (args.Contains("--reverse")) Array.Reverse(tests);
@@ -130,6 +130,88 @@ internal static class Program
       Application.Run(form);
     }
     Check(process.Games == 1 && process.Helpers == 0, "Later did not start only the game.");
+  }
+  private static void PromptLayout()
+  {
+    var process = new FakeProcesses(); var session = Session(NewGame(), process);
+    var update = Update("https://example.invalid/", new byte[] { 1 });
+    using (var form = new UpdateForm(session, update, ""))
+    {
+      form.PerformLayout();
+      Check(form.Controls.OfType<LinkLabel>().Single().Text == "", "Update prompt has body text.");
+      Check(!form.Controls.OfType<Label>().Any(label => label.Text.Contains(update.version)), "Update prompt shows the version.");
+      int promptHeight = form.ClientSize.Height;
+      new PendingInstall { Update = update }.Write(session.StateFolder);
+      using (var repair = new UpdateForm(session, update, ""))
+      {
+        repair.PerformLayout();
+        var body = repair.Controls.OfType<LinkLabel>().Single().Text;
+        Check(body.Contains("repair the game") && !body.Contains(update.version), "Repair text lost its meaning or shows the version.");
+        Check(repair.ClientSize.Height > promptHeight, "Update prompt kept the empty body space.");
+      }
+    }
+  }
+  private static void DownloadInactivity()
+  {
+    using (var server = new Server())
+    using (var received = new ManualResetEventSlim())
+    using (var release = new ManualResetEventSlim())
+    {
+      var worker = server.Stall(received, release);
+      var output = Path.Combine(_root, "idle.exe");
+      var download = UpdateNetwork.DownloadAsync(Update(server.Url, new byte[] { 1 }), output, null,
+        CancellationToken.None, TimeSpan.FromMilliseconds(200));
+      try
+      {
+        Check(received.Wait(10000), "No download request.");
+        Check(Task.WhenAny(download, Task.Delay(10000)).Result == download, "An idle download did not stop.");
+        Fails(() => download.GetAwaiter().GetResult());
+      }
+      finally { release.Set(); Complete(worker); }
+    }
+  }
+  private static void DownloadKeepsReceiving()
+  {
+    using (var server = new Server())
+    {
+      var bytes = new byte[6 * 16384];
+      var worker = server.Respond(bytes, chunks: 6);
+      var output = Path.Combine(_root, "active.exe");
+      UpdateNetwork.DownloadAsync(Update(server.Url, bytes), output, null,
+        CancellationToken.None, TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+      Complete(worker);
+      Check(File.ReadAllBytes(output).SequenceEqual(bytes), "A download with data stopped at the total time limit.");
+    }
+  }
+  private static void DownloadFailureStartsGame() { DownloadForm(false); }
+  private static void CancelFormDownload() { DownloadForm(true); }
+  private static void DownloadForm(bool cancel)
+  {
+    using (var server = new Server())
+    using (var received = new ManualResetEventSlim())
+    using (var release = new ManualResetEventSlim())
+    {
+      var process = new FakeProcesses(); var session = Session(NewGame(), process);
+      var worker = cancel ? server.Stall(received, release) : server.Respond(new byte[] { 1 }, 500);
+      using (var form = new UpdateForm(session, Update(server.Url, new byte[] { 1 }), ""))
+      {
+        form.ShowInTaskbar = false; form.StartPosition = FormStartPosition.Manual;
+        form.Location = new System.Drawing.Point(-32000, -32000);
+        form.Shown += (sender, e) => {
+          var buttons = form.Controls.OfType<FlowLayoutPanel>().Single().Controls.OfType<Button>().ToArray();
+          buttons.Single(button => button.Text == "Update now").PerformClick();
+          if (cancel)
+          {
+            Check(received.Wait(10000), "No request before user cancel.");
+            buttons.Single(button => button.Text == "Cancel").PerformClick();
+          }
+        };
+        Application.Run(form);
+      }
+      release.Set(); Complete(worker);
+      Check(process.Games == 1 && process.Helpers == 0, "Download did not return to the game.");
+      Check(process.Failures == (cancel ? 0 : 1), "Download failure or user cancel gave the wrong status.");
+    }
   }
   private sealed class CancelProgress : IProgress<int>
   {
@@ -392,14 +474,18 @@ internal static class Program
       if (Code != 1223) using (var process = Process.GetCurrentProcess()) started(process.Id, process.StartTime.ToUniversalTime().Ticks);
       return Code;
     }
-    public void ShowStatus(string name, string text) { Failures++; }
+    public void ShowStatus(string name, string text)
+    {
+      Check(Games == 0, "The game started before the status was shown.");
+      Failures++;
+    }
   }
   private sealed class Server : IDisposable
   {
     private readonly TcpListener _listener = new TcpListener(IPAddress.Loopback, 0);
     public Server() { _listener.Start(); }
     public string Url => "http://127.0.0.1:" + ((IPEndPoint)_listener.LocalEndpoint).Port + "/";
-    public Task Respond(byte[] body, int code = 200, bool allowCancel = false)
+    public Task Respond(byte[] body, int code = 200, bool allowCancel = false, int chunks = 1)
     {
       return Task.Run(async () =>
       {
@@ -412,8 +498,28 @@ internal static class Program
           while (!header.ToString().EndsWith("\r\n\r\n", StringComparison.Ordinal))
           { int ch = stream.ReadByte(); Check(ch >= 0 && header.Length < 65536, "Incomplete request."); header.Append((char)ch); }
           var response = Encoding.ASCII.GetBytes("HTTP/1.1 " + code + " Result\r\nContent-Length: " + body.Length + "\r\nConnection: close\r\n\r\n");
-          try { stream.Write(response, 0, response.Length); stream.Write(body, 0, body.Length); }
+          try
+          {
+            stream.Write(response, 0, response.Length);
+            for (int i = 0; i < chunks; i++)
+            {
+              int start = body.Length * i / chunks;
+              int end = body.Length * (i + 1) / chunks;
+              stream.Write(body, start, end - start);
+              if (i + 1 < chunks) await Task.Delay(600);
+            }
+          }
           catch (IOException) when (allowCancel) { }
+        }
+      });
+    }
+    public Task Stall(ManualResetEventSlim received, ManualResetEventSlim release)
+    {
+      return Task.Run(async () => {
+        using (var client = await _listener.AcceptTcpClientAsync())
+        {
+          received.Set();
+          Check(release.Wait(10000), "Idle server was not released.");
         }
       });
     }

@@ -69,22 +69,30 @@ namespace MGDF.Updater
       catch (Exception) { return null; }
     }
 
-    public static async Task DownloadAsync(UpdateInfo update, string file, IProgress<int> progress, CancellationToken token)
+    public static async Task DownloadAsync(UpdateInfo update, string file, IProgress<int> progress, CancellationToken token,
+      TimeSpan? inactivityTimeout = null)
     {
-      using (var response = await OpenAsync(new Uri(update.installerUrl), token).ConfigureAwait(false))
-      using (var input = response.GetResponseStream())
-      using (var output = new FileStream(file, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-        await CopyAsync(input, output, 4L * 1024 * 1024 * 1024, progress, response.ContentLength, token).ConfigureAwait(false);
+      var interval = inactivityTimeout ?? TimeSpan.FromSeconds(60);
+      using (var idle = CancellationTokenSource.CreateLinkedTokenSource(token))
+      {
+        idle.CancelAfter(interval);
+        using (var response = await OpenAsync(new Uri(update.installerUrl), idle.Token).ConfigureAwait(false))
+        using (var input = response.GetResponseStream())
+        using (var output = new FileStream(file, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+          await CopyAsync(input, output, 4L * 1024 * 1024 * 1024, progress, response.ContentLength,
+            idle.Token, () => idle.CancelAfter(interval)).ConfigureAwait(false);
+      }
     }
 
     private static async Task CopyAsync(Stream input, Stream output, long limit, IProgress<int> progress,
-      long length, CancellationToken token)
+      long length, CancellationToken token, Action received = null)
     {
       var buffer = new byte[65536];
       long total = 0;
       int count;
       while ((count = await input.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false)) != 0)
       {
+        received?.Invoke();
         total += count;
         if (total > limit) throw new InvalidDataException("Update is too large.");
         await output.WriteAsync(buffer, 0, count, token).ConfigureAwait(false);

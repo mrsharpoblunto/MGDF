@@ -47,6 +47,10 @@ namespace MGDF.Updater
     {
       if (Lock != null && !RepairRequired) { Lock.StopInheritance(); _processes.StartGame(_folder, _arguments); }
     }
+    public void ShowDownloadFailure()
+    {
+      _processes.ShowStatus(Game.gameName, "Cannot download the update.");
+    }
     public async Task<UpdateInfo> CheckAsync()
     {
       if (Lock == null) { _processes.ShowStatus(Game.gameName, "An update is in progress."); return null; }
