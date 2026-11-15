@@ -6,6 +6,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Windows.Forms;
 using Microsoft.Win32.SafeHandles;
 
 internal static partial class Program
@@ -56,13 +58,81 @@ internal static partial class Program
   private static extern bool EnumChildWindows(IntPtr window, EnumWindow callback, IntPtr data);
   [DllImport("user32.dll")]
   private static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
-  [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-  private static extern int GetWindowText(IntPtr window, StringBuilder text, int count);
   [DllImport("user32.dll")]
   private static extern bool IsWindowVisible(IntPtr window);
   [DllImport("user32.dll", SetLastError = true)]
   private static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr first, IntPtr second,
     uint flags, uint timeout, out UIntPtr result);
+
+  private delegate void WindowEvent(IntPtr hook, uint type, IntPtr window, int objectId, int childId, uint thread, uint time);
+  [DllImport("user32.dll", SetLastError = true)]
+  private static extern bool SetThreadDesktop(IntPtr desktop);
+  [DllImport("user32.dll", SetLastError = true)]
+  private static extern IntPtr SetWinEventHook(uint first, uint last, IntPtr module, WindowEvent callback,
+    uint process, uint thread, uint flags);
+  [DllImport("user32.dll")]
+  private static extern bool UnhookWinEvent(IntPtr hook);
+  [DllImport("kernel32.dll")]
+  private static extern uint GetCurrentThreadId();
+  [DllImport("user32.dll")]
+  private static extern bool PostThreadMessage(uint thread, uint message, IntPtr first, IntPtr second);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+  private static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr first, StringBuilder text,
+    uint flags, uint timeout, out UIntPtr result);
+
+  private static IntPtr WaitForSendAction(IntPtr desktop, int reporter)
+  {
+    IntPtr send = IntPtr.Zero;
+    uint threadId = 0;
+    Exception failure = null;
+    using (var finished = new ManualResetEventSlim())
+    {
+      var worker = new Thread(() => {
+        IntPtr hook = IntPtr.Zero;
+        try
+        {
+          Check(SetThreadDesktop(desktop), "Cannot use the private test desktop.");
+          threadId = GetCurrentThreadId();
+          using (var context = new ApplicationContext())
+          {
+            Action find = () => {
+              EnumDesktopWindows(desktop, (window, data) => {
+                GetWindowThreadProcessId(window, out uint process);
+                if (process != reporter || !IsWindowVisible(window)) return true;
+                EnumChildWindows(window, (control, unused) => {
+                  var text = new StringBuilder(256);
+                  if (IsWindowVisible(control) && SendMessageTimeout(control, 0x000D, new IntPtr(text.Capacity), text,
+                      2, 1000, out UIntPtr result) != IntPtr.Zero && text.ToString() == "Send report") send = control;
+                  return true;
+                }, IntPtr.Zero);
+                return true;
+              }, IntPtr.Zero);
+              if (send != IntPtr.Zero) context.ExitThread();
+            };
+            WindowEvent shown = (handle, type, window, objectId, childId, thread, time) => find();
+            hook = SetWinEventHook(0x8002, 0x8002, IntPtr.Zero, shown, (uint)reporter, 0, 0);
+            Check(hook != IntPtr.Zero, "Cannot watch the crash form.");
+            // The form can be ready before the hook is set.
+            find();
+            if (send == IntPtr.Zero) Application.Run(context);
+            UnhookWinEvent(hook);
+            hook = IntPtr.Zero;
+            GC.KeepAlive(shown);
+          }
+        }
+        catch (Exception ex) { failure = ex; }
+        finally { if (hook != IntPtr.Zero) UnhookWinEvent(hook); finished.Set(); }
+      }) { IsBackground = true };
+      worker.SetApartmentState(ApartmentState.STA);
+      worker.Start();
+      bool ready = finished.Wait(TimeSpan.FromSeconds(10));
+      if (!ready && threadId != 0) PostThreadMessage(threadId, 0x0012, IntPtr.Zero, IntPtr.Zero);
+      Check(worker.Join(10000), "Crash form watcher did not exit.");
+      if (failure != null) throw failure;
+      Check(ready && send != IntPtr.Zero, "Crash form has no Send report action.");
+      return send;
+    }
+  }
 
   private static Process FindReporter(int parent)
   {
@@ -118,20 +188,7 @@ internal static partial class Program
         reporter = FindReporter(child.Id);
         Check(reporter != null, "Crash reporter did not start.");
         Check(reporter.Handle != IntPtr.Zero, "Cannot retain reporter handle.");
-        Check(reporter.WaitForInputIdle(10000), "Crash form did not become ready.");
-        IntPtr send = IntPtr.Zero;
-        EnumDesktopWindows(desktop, (window, data) => {
-          GetWindowThreadProcessId(window, out uint process);
-          if (process != reporter.Id || !IsWindowVisible(window)) return true;
-          EnumChildWindows(window, (control, unused) => {
-            var text = new StringBuilder(256);
-            GetWindowText(control, text, text.Capacity);
-            if (text.ToString() == "Send report" && IsWindowVisible(control)) send = control;
-            return true;
-          }, IntPtr.Zero);
-          return true;
-        }, IntPtr.Zero);
-        Check(send != IntPtr.Zero, "Crash form has no Send report action.");
+        var send = WaitForSendAction(desktop, reporter.Id);
         Check(SendMessageTimeout(send, 0x00F5, IntPtr.Zero, IntPtr.Zero, 2, 10000, out UIntPtr result) != IntPtr.Zero,
           "Send report did not respond.");
         using (var client = server.Accept())
