@@ -247,6 +247,7 @@ internal static partial class Program
 
   private static void CheckDump(MemoryStream dump, bool fatal, uint crashedThread)
   {
+    dump.Position = 0;
     var reader = new BinaryReader(dump, Encoding.Unicode, true);
     Check(reader.ReadUInt32() == 0x504D444D, "Invalid dump signature.");
     reader.ReadUInt32();
