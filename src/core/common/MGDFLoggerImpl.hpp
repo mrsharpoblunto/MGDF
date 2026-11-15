@@ -37,7 +37,7 @@ class Logger {
   MGDFLogLevel GetLoggingLevel() const;
   void Log(const char *sender, const char *message, MGDFLogLevel level);
 
-  void MoveOutputFile();
+  bool MoveOutputFile();
   void Flush();
   void FlushSync();
 

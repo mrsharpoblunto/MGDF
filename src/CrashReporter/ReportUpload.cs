@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Win32.SafeHandles;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -43,10 +44,11 @@ namespace MGDF.CrashReporter
           writer.WriteLine();
           writer.WriteLine("Log output");
           writer.WriteLine("==========");
-          if (File.Exists(options.LogFile))
+          if (options.LogHandle != IntPtr.Zero)
           {
-            using (var input = new StreamReader(new FileStream(options.LogFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+            using (var input = new StreamReader(new FileStream(new SafeFileHandle(options.LogHandle, false), FileAccess.Read)))
             {
+              input.BaseStream.Position = 0;
               var buffer = new char[8192];
               int count;
               while ((count = input.Read(buffer, 0, buffer.Length)) != 0) writer.Write(buffer, 0, count);

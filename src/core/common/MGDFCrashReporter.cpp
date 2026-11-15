@@ -56,6 +56,9 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
   _mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, &security, PAGE_READWRITE,
                                 0, sizeof(CrashData), nullptr);
   const auto ready = CreateEventW(&security, TRUE, FALSE, nullptr);
+  const auto log = CreateFileW(options.LogFile.c_str(), GENERIC_READ,
+      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &security,
+      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
   HANDLE process = nullptr;
   DuplicateHandle(
       GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &process,
@@ -65,7 +68,7 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
         MapViewOfFile(_mapping, FILE_MAP_WRITE, 0, 0, sizeof(CrashData)));
   }
   bool started = false;
-  if (_crash && _dumpDone && _data && ready && process) {
+  if (_crash && _dumpDone && _data && ready && process && log != INVALID_HANDLE_VALUE) {
     *_data = {};
     std::wstring command = Quote(options.Executable);
     const auto add = [&](const wchar_t *name, const std::wstring &value) {
@@ -83,7 +86,7 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
     add(L"framework-version", options.FrameworkVersion);
     add(L"icon", options.IconPath);
     add(L"user-folder", options.UserFolder);
-    add(L"log-file", options.LogFile);
+    add(L"log-handle", HandleArgument(log));
     add(L"service", options.ServiceUrl);
     add(L"privacy-policy", options.PrivacyPolicyUrl);
     add(L"hide-errors", options.HideErrors ? L"true" : L"false");
@@ -99,7 +102,7 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
                                           &size)) {
       // Inherit only the reporter's handles, even if other handles are
       // inheritable.
-      std::array handles{process, _crash, _dumpDone, ready, _mapping};
+      std::array handles{process, _crash, _dumpDone, ready, _mapping, log};
       if (UpdateProcThreadAttribute(
               startup.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
               handles.data(), sizeof(handles), nullptr, nullptr)) {
@@ -119,6 +122,7 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
       DeleteProcThreadAttributeList(startup.lpAttributeList);
     }
   }
+  if (log != INVALID_HANDLE_VALUE) CloseHandle(log);
   if (ready) CloseHandle(ready);
   if (process) CloseHandle(process);
   // Later child processes must not retain this channel.
@@ -129,7 +133,7 @@ bool CrashReporter::Start(const CrashReporterOptions &options) {
   return started;
 }
 
-bool CrashReporter::SignalCrash(PEXCEPTION_POINTERS exceptionPointers) {
+bool CrashReporter::SignalCrash(PEXCEPTION_POINTERS exceptionPointers, DWORD timeout) {
   if (!_reporter || WaitForSingleObject(_reporter, 0) != WAIT_TIMEOUT) {
     return false;
   }
@@ -139,8 +143,8 @@ bool CrashReporter::SignalCrash(PEXCEPTION_POINTERS exceptionPointers) {
     SetEvent(_crash);
   }
   const HANDLE wait[]{_dumpDone, _reporter};
-  WaitForMultipleObjects(2, wait, FALSE, 15000);
-  return true;
+  WaitForMultipleObjects(2, wait, FALSE, timeout);
+  return WaitForSingleObject(_dumpDone, 0) == WAIT_OBJECT_0;
 }
 
 }  // namespace MGDF::core

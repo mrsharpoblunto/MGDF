@@ -29,7 +29,7 @@ class CrashReporter {
 
   ~CrashReporter();
   bool Start(const CrashReporterOptions &options);
-  bool SignalCrash(PEXCEPTION_POINTERS exceptionPointers);
+  bool SignalCrash(PEXCEPTION_POINTERS exceptionPointers, DWORD timeout = 15000);
 
  private:
   CrashReporter() = default;

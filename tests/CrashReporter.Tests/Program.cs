@@ -19,6 +19,8 @@ internal static class Program
   private static string _root;
   private static ReporterOptions _options;
   private static CrashResult _crash;
+  private static FileStream _log;
+  private static string _logPath;
 
   private static int Main()
   {
@@ -27,12 +29,16 @@ internal static class Program
     _options = new ReporterOptions
     {
       GameName = "Test game", GameUid = "game-uid", GameVersion = "1.2.3", FrameworkVersion = "4.5.6",
-      UserFolder = _root, LogFile = Path.Combine(_root, "corelog.txt")
+      UserFolder = _root
     };
-    File.WriteAllText(_options.LogFile, "A test log: \"error\".\n");
+
+    _logPath = Path.Combine(_root, "corelog.txt");
+    File.WriteAllText(_logPath, "A test log: \"error\".\n");
+    _log = new FileStream(_logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+    _options.LogHandle = _log.SafeFileHandle.DangerousGetHandle();
     _crash = new CrashResult { Failed = true, Detail = "Test \"failure\"\nwith detail." };
     Action[] tests = { ZipWithDump, ZipWithoutDump, UploadContract, RejectedService, MissingUploadUrl,
-      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, FailedExit };
+      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, FailedExit, RetainedLog, FallbackError };
     int failures = 0;
     try
     {
@@ -44,7 +50,7 @@ internal static class Program
       Console.WriteLine("Tests: " + tests.Length + ", passed: " + (tests.Length - failures) + ", failed: " + failures);
       return failures == 0 ? 0 : 1;
     }
-    finally { Directory.Delete(_root, true); }
+    finally { _log.Dispose(); Directory.Delete(_root, true); }
   }
 
   private static void Check(bool value, string message)
@@ -253,6 +259,21 @@ internal static class Program
       Check(result.Detail.Contains("Exit code: " + code + "."), "Missing exit code.");
       Check(ready.WaitOne(0), "Reporter did not signal ready.");
     }
+  }
+
+  private static void RetainedLog()
+  {
+    File.Delete(_logPath);
+    File.WriteAllText(_logPath, "A later run.");
+    ZipWithoutDump();
+  }
+
+  private static void FallbackError()
+  {
+    int calls = 0;
+    Check(MGDF.CrashReporter.Program.Run(new string[0], (text, title) => {
+      Check(text == "The game stopped unexpectedly.", "Wrong fallback text."); calls++;
+    }) == 1 && calls == 1, "Reporter failure gave no message.");
   }
 
   private static void ExpectFailure(Action action)

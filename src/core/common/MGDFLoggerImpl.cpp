@@ -160,26 +160,25 @@ Logger::Logger() {
   });
 }
 
-void Logger::MoveOutputFile() {
-  std::wstring newFile = Resources::Instance().LogFile();
-  if (newFile != _filename && _filename.size() &&
-      std::filesystem::exists(_filename)) {
-    std::filesystem::path from(_filename);
-    std::filesystem::path to(Resources::Instance().LogFile());
-    std::error_code ec;
-    if (std::filesystem::copy_file(
-            from, to, std::filesystem::copy_options::overwrite_existing, ec)) {
-      std::filesystem::remove(from, ec);
-    }
-  }
+bool Logger::MoveOutputFile() {
+  const auto newFile = Resources::Instance().LogFile();
+  if (newFile == _filename) return true;
+  std::error_code error;
+  std::filesystem::remove(newFile, error);
+  if (error || !std::filesystem::copy_file(_filename, newFile,
+      std::filesystem::copy_options::none, error)) return false;
+  std::filesystem::remove(_filename, error);
   _filename = newFile;
+  return true;
 }
 
 void Logger::SetOutputFile(const std::wstring &filename) {
   _filename = filename;
   std::ofstream outFile;
 
-  outFile.open(_filename.c_str(), std::ios::out);
+  std::error_code error;
+  std::filesystem::remove(_filename, error);
+  if (!error) outFile.open(_filename.c_str(), std::ios::out);
   outFile.close();
 }
 

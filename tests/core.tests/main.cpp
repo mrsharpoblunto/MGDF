@@ -3,9 +3,12 @@
 // this snippet ensures that the location of memory leaks is reported correctly
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
 
+int RunFakeReporter(int argc, char **argv);
+
 int RunCrashReporterChild(const char *folder, const char *mode);
 
 int main(int argc, char **argv) {
+  if (argc > 2 && std::string(argv[1]) == "--process-id") return RunFakeReporter(argc, argv);
   if (argc == 4 && std::string(argv[1]) == "--crash-reporter-child") {
     return RunCrashReporterChild(argv[2], argv[3]);
   }

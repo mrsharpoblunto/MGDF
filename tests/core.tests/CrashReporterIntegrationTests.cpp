@@ -48,13 +48,18 @@ class CrashReporterIntegrationTests : public ::testing::Test {
     ASSERT_EQ(WAIT_OBJECT_0, wait);
     ASSERT_EQ(expectedExit, exit);
   }
+  std::filesystem::path DumpFile() const {
+    for (const auto &entry : std::filesystem::directory_iterator(_root))
+      if (entry.path().extension() == L".dmp") return entry.path();
+    return {};
+  }
   std::filesystem::path _root;
 };
 }  // namespace
 
 TEST_F(CrashReporterIntegrationTests, HiddenCrashWritesExceptionDump) {
   ASSERT_NO_FATAL_FAILURE(RunChild(L"crash", EXCEPTION_ACCESS_VIOLATION));
-  std::ifstream dump(_root / "minidump.dmp", std::ios::binary);
+  std::ifstream dump(DumpFile(), std::ios::binary);
   ASSERT_TRUE(dump.good());
   MINIDUMP_HEADER header{};
   ASSERT_TRUE(dump.read(reinterpret_cast<char *>(&header), sizeof(header)));
@@ -77,7 +82,7 @@ TEST_F(CrashReporterIntegrationTests, HiddenCrashWritesExceptionDump) {
 
 TEST_F(CrashReporterIntegrationTests, HiddenFatalErrorWritesDump) {
   ASSERT_NO_FATAL_FAILURE(RunChild(L"fatal", 1));
-  std::ifstream dump(_root / "minidump.dmp", std::ios::binary);
+  std::ifstream dump(DumpFile(), std::ios::binary);
   MINIDUMP_HEADER header{};
   ASSERT_TRUE(dump.read(reinterpret_cast<char *>(&header), sizeof(header)));
   EXPECT_EQ(MINIDUMP_SIGNATURE, header.Signature);
@@ -87,7 +92,8 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
   Resources::Instance(GetModuleHandleW(nullptr));
   SetErrorMode(SEM_NOGPFAULTERRORBOX);
   const std::filesystem::path root(folder);
-  const CrashReporterOptions options{
+  std::ofstream(root / "corelog.txt") << "Crash test log";
+  CrashReporterOptions options{
       .Executable = Resources::Instance().RootDir() + L"crashreporter.exe",
       .GameName = L"Crash test \"game\"",
       .GameUid = L"crash-test",
@@ -97,7 +103,14 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
       .LogFile = (root / "corelog.txt").wstring(),
       .ServiceUrl = L"http://127.0.0.1:1/unused",
       .HideErrors = true};
+  const std::string selected(mode);
+  if (selected == "reporter-exit" || selected == "reporter-timeout") {
+    options.Executable = Resources::Instance().RootDir() + L"core.tests.exe";
+    SetEnvironmentVariableA("MGDF_TEST_REPORTER_MODE", mode);
+  }
   if (!CrashReporter::Instance().Start(options)) return 2;
+  if (selected == "reporter-exit" || selected == "reporter-timeout")
+    return CrashReporter::Instance().SignalCrash(nullptr, selected == "reporter-timeout" ? 0 : 15000) ? 3 : 0;
   SetUnhandledExceptionFilter([](PEXCEPTION_POINTERS info) -> LONG {
     CrashReporter::Instance().SignalCrash(info);
     return EXCEPTION_EXECUTE_HANDLER;
@@ -108,4 +121,33 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
     return 3;
   }
   return CrashReporter::Instance().SignalCrash(nullptr) ? 1 : 3;
+}
+
+TEST_F(CrashReporterIntegrationTests, ReporterExitFallsBack) {
+  ASSERT_NO_FATAL_FAILURE(RunChild(L"reporter-exit", 0));
+}
+
+TEST_F(CrashReporterIntegrationTests, ReporterTimeoutFallsBack) {
+  ASSERT_NO_FATAL_FAILURE(RunChild(L"reporter-timeout", 0));
+}
+
+TEST_F(CrashReporterIntegrationTests, RunsKeepSeparateDumps) {
+  ASSERT_NO_FATAL_FAILURE(RunChild(L"fatal", 1));
+  ASSERT_NO_FATAL_FAILURE(RunChild(L"fatal", 1));
+  size_t dumps = 0;
+  for (const auto &entry : std::filesystem::directory_iterator(_root))
+    if (entry.path().extension() == L".dmp") ++dumps;
+  EXPECT_EQ(2U, dumps);
+}
+
+int RunFakeReporter(int argc, char **argv) {
+  std::map<std::string, HANDLE> handles;
+  for (int i = 1; i + 1 < argc; i += 2)
+    handles[argv[i]] = reinterpret_cast<HANDLE>(std::strtoull(argv[i + 1], nullptr, 10));
+  if (handles.contains("--ready-event")) SetEvent(handles["--ready-event"]);
+  char mode[64]{};
+  GetEnvironmentVariableA("MGDF_TEST_REPORTER_MODE", mode, sizeof(mode));
+  if (std::string(mode) == "reporter-timeout")
+    WaitForSingleObject(handles["--process-handle"], 30000);
+  return 0;
 }

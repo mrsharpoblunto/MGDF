@@ -106,7 +106,7 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   // now that we know the UID for the game, we'll set up the user resources
   // paths again and shift the logfile over to the new user directory
   InitResources(handler->GetGameUid());
-  Logger::Instance().MoveOutputFile();
+  if (!Logger::Instance().MoveOutputFile()) return E_FAIL;
 
   MGDFVersion version{};
   handler->GetVersion(version);

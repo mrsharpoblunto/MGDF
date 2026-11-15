@@ -84,7 +84,7 @@ namespace MGDF.CrashReporter
 
     private static string WriteDump(ReporterOptions options, IntPtr data)
     {
-      var file = Path.Combine(options.UserFolder, "minidump.dmp");
+      var file = Path.Combine(options.UserFolder, "crash-" + Guid.NewGuid().ToString("N") + ".dmp");
       var exception = new DumpException
       {
         ThreadId = unchecked((uint)Marshal.ReadInt32(data)),

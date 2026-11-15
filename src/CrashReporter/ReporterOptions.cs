@@ -18,7 +18,7 @@ namespace MGDF.CrashReporter
     public string FrameworkVersion { get; set; }
     public string IconPath { get; set; }
     public string UserFolder { get; set; }
-    public string LogFile { get; set; }
+    public IntPtr LogHandle { get; set; }
     public string ServiceUrl { get; set; }
     public string PrivacyPolicyUrl { get; set; }
     public bool HideErrors { get; set; }
@@ -42,7 +42,7 @@ namespace MGDF.CrashReporter
         FrameworkVersion = values["--framework-version"],
         IconPath = values["--icon"],
         UserFolder = values["--user-folder"],
-        LogFile = values["--log-file"],
+        LogHandle = Handle(values["--log-handle"]),
         ServiceUrl = values["--service"],
         PrivacyPolicyUrl = values["--privacy-policy"],
         HideErrors = bool.Parse(values["--hide-errors"])
