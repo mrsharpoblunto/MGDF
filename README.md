@@ -171,7 +171,9 @@ The service returns this JSON:
 Both URLs must use HTTPS. HTTP with a literal loopback IP is allowed for local
 tests. Redirects keep this rule. The manifest is limited to 64 KiB; the installer
 is limited to 4 GiB. The window offers Update now or Later. Cancel stops the
-download and starts the game. A download or hash failure also starts the game.
+download and starts the game. A download stops after 60 seconds without data,
+with no limit on the total time. A download or hash failure shows a short status
+message, then starts the game.
 
 Each argument is one array entry. `{installDir}` expands to the installed folder.
 For NSIS, put `/D={installDir}` last. It is passed without quotes, including when
