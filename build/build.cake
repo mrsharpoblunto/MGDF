@@ -9,6 +9,7 @@ var buildNumber = (target == "Dist" || target == "Default" || target == "Package
 
 Task("BuildX64")
 	.IsDependentOn("VersionInfo")
+	.IsDependentOn("SolutionInfo")
 	.Does(() => {
     var visualStudio = VSWhereLatest(new VSWhereLatestSettings {
       ToolPath = new FilePath(EnvironmentVariable("ProgramFiles(x86)") + "/Microsoft Visual Studio/Installer/vswhere.exe"),
@@ -23,6 +24,21 @@ Task("BuildX64")
 			PlatformTarget = PlatformTarget.x64
 		}).WithTarget("Clean").WithTarget("Build"));
 	});
+
+Task("SolutionInfo").Does(() => {
+	string solutionInfo = FileReadText("../src/Tools/SolutionInfo.cs");
+
+	Regex productRegex = new Regex(@"\[assembly\:\sAssemblyProduct\("".+""\)\]");
+	Regex assemblyVersionRegex = new Regex(@"\[assembly\:\sAssemblyVersion\("".+""\)\]");
+	Regex assemblyFileVersionRegex = new Regex(@"\[assembly\:\sAssemblyFileVersion\("".+""\)\]");
+
+	string product = "Matchstick game development framework";
+	solutionInfo = productRegex.Replace(solutionInfo,$@"[assembly: AssemblyProduct(""{product}"")]");
+	solutionInfo = assemblyVersionRegex.Replace(solutionInfo, $@"[assembly: AssemblyVersion(""{buildNumber}"")]");
+	solutionInfo = assemblyFileVersionRegex.Replace(solutionInfo, $@"[assembly: AssemblyFileVersion(""{buildNumber}"")]");
+
+	FileWriteText("../src/Tools/SolutionInfo.cs", solutionInfo);
+});
 
 Task("VersionInfo").Does(() => {
 	string versionInfo = FileReadText("../src/core/common/MGDFVersionInfo.cpp");

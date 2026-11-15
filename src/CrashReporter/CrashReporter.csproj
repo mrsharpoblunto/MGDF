@@ -37,6 +37,7 @@
     <Compile Include="ReportUpload.cs" />
     <Compile Include="ReportForm.cs" />
     <Compile Include="..\Tools\ToolForm.cs"><Link>ToolForm.cs</Link></Compile>
+    <Compile Include="..\Tools\SolutionInfo.cs"><Link>SolutionInfo.cs</Link></Compile>
     <None Include="app.manifest" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
