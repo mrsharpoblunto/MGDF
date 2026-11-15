@@ -127,10 +127,10 @@ TEST_F(ReadOnlyVFSTests, FileSystemTests) {
 
   ComObject<IMGDFReadOnlyFile> root;
   _vfs->GetRoot(root.Assign());
-  ASSERT_EQ(5, root->GetChildCount());
+  ASSERT_EQ(4, root->GetChildCount());
 
   for (auto f : std::vector({L"test.zip", L"console.json", L"preferences.json",
-                             L"gameState.json", L"Update.json"})) {
+                             L"gameState.json"})) {
     ComObject<IMGDFReadOnlyFile> file;
     ASSERT_TRUE(_vfs->GetFile(f, file.Assign()));
     EXPECT_STREQ(f, GetLogicalName(file).c_str());

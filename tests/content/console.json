@@ -5,7 +5,6 @@
   "developerUid": "no-8",
   "developerName": "no8 interactive",
   "homepage": "http://www.junkship.org",
-  "updateService": "http://games.junkship.org/gamesource.asmx",
   "statisticsService": "http://statistics.junkship.org/statisticsservice.asmx",
   "preferences": {
     "key": "value",

@@ -1,42 +1,28 @@
 using System.Text.RegularExpressions;
 #addin nuget:?package=Cake.FileHelpers&version=6.1.3
-#addin nuget:?package=Cake.Json&version=7.0.1
 #addin nuget:?package=Cake.AWS.S3&version=1.0.0&loaddependencies=true
-#addin nuget:?package=Cake.Git&version=3.0.0
-#addin nuget:?package=Newtonsoft.Json&version=9.0.1
-#tool nuget:?package=NUnit.ConsoleRunner&version=3.16.3
 
 var target = Argument("target", "Default");
 var buildConfiguration = Argument("configuration", "Release");
-var buildNumber = (target == "Dist" || target == "Default") ? Argument<string>("buildnumber") : null;
+var buildNumber = (target == "Dist" || target == "Default" || target == "Package") ? Argument<string>("buildnumber") : null;
 
 
 Task("BuildX64")
 	.IsDependentOn("VersionInfo")
-	.IsDependentOn("SolutionInfo")
 	.Does(() => {
+    var visualStudio = VSWhereLatest(new VSWhereLatestSettings {
+      ToolPath = new FilePath(EnvironmentVariable("ProgramFiles(x86)") + "/Microsoft Visual Studio/Installer/vswhere.exe"),
+      Products = "*",
+      Requires = "Microsoft.Component.MSBuild"
+    });
+    if (visualStudio == null) throw new Exception("Visual Studio MSBuild was not found");
 		MSBuild("../Matchstick.sln", (new MSBuildSettings{
 			Verbosity = Verbosity.Minimal,
-			ToolVersion = MSBuildToolVersion.VS2022,
+      ToolPath = visualStudio.CombineWithFilePath("MSBuild/Current/Bin/MSBuild.exe"),
 			Configuration = buildConfiguration,
 			PlatformTarget = PlatformTarget.x64
 		}).WithTarget("Clean").WithTarget("Build"));
 	});
-
-Task("SolutionInfo").Does(() => {
-	string solutionInfo = FileReadText("../src/GamesManager/SolutionInfo.cs");
-
-	Regex productRegex = new Regex(@"\[assembly\:\sAssemblyProduct\("".+""\)\]");
-	Regex assemblyVersionRegex = new Regex(@"\[assembly\:\sAssemblyVersion\("".+""\)\]");
-	Regex assemblyFileVersionRegex = new Regex(@"\[assembly\:\sAssemblyFileVersion\("".+""\)\]");
-
-	string product = "Matchstick game development framework";
-	solutionInfo = productRegex.Replace(solutionInfo,$@"[assembly: AssemblyProduct(""{product}"")]");
-	solutionInfo = assemblyVersionRegex.Replace(solutionInfo, $@"[assembly: AssemblyVersion(""{buildNumber}"")]");
-	solutionInfo = assemblyFileVersionRegex.Replace(solutionInfo, $@"[assembly: AssemblyFileVersion(""{buildNumber}"")]");
-
-	FileWriteText("../src/GamesManager/SolutionInfo.cs", solutionInfo);
-});
 
 Task("VersionInfo").Does(() => {
 	string versionInfo = FileReadText("../src/core/common/MGDFVersionInfo.cpp");
@@ -63,16 +49,6 @@ Task("Documentation")
 			throw new Exception("Docgen failed to generate documentation");
 		}
   });
-
-Task("TestGamesManager")
-	.IsDependentOn("BuildX64")
-	.Does(() => {
-	NUnit($@"../tests/GamesManager.Tests/bin/{buildConfiguration}/GamesManager.Tests.dll", new NUnitSettings() {
-		ToolPath = "./tools/NUnit.ConsoleRunner.3.16.3/tools/nunit3-console.exe",
-		StopOnError = true,
-		NoResults = true
-	});
-});	
 
 Task("TestCrashReporter")
   .IsDependentOn("BuildX64")
@@ -101,7 +77,7 @@ Task("Clean").Does(() => {
 		});
 	}
 	CreateDirectory("../dist");
-	if (DirectoryExists("../bin/x64/{buildConfiguration}")) {
+	if (DirectoryExists($@"../bin/x64/{buildConfiguration}")) {
     DeleteDirectory($@"../bin/x64/{buildConfiguration}", new DeleteDirectorySettings() {
       Force = true,
       Recursive = true,
@@ -113,7 +89,6 @@ Task("Sign")
 	.IsDependentOn("BuildX64")
 	.Does(() => {
     var files = GetFiles($@"../bin/x64/{buildConfiguration}/*.exe");
-    files.Add(GetFiles($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/GamesManager.PackageGen.exe"));
 		var signSecret = Argument<string>("signsecret");
     Sign(files, new SignToolSignSettings {
 			TimeStampUri = new Uri("http://timestamp.digicert.com"),
@@ -143,21 +118,24 @@ Task("Sign")
 });
 
 Task("Dist")
-	.IsDependentOn("Clean")
-	.IsDependentOn("Sign")	
-	.IsDependentOn("BuildX64")
-	.IsDependentOn("TestGamesManager")
-	.IsDependentOn("TestCoreX64")
-	.IsDependentOn("TestCrashReporter")
-	.IsDependentOn("Documentation")
+  .IsDependentOn("Clean")
+  .IsDependentOn("Sign")
+  .IsDependentOn("TestCoreX64")
+  .IsDependentOn("TestCrashReporter")
+  .IsDependentOn("Package");
+
+Task("Package")
+  .IsDependentOn("Clean")
+  .IsDependentOn("Documentation")
 	.Does(() => {
 		// zip up the SDK binaries
 		CreateDirectory("../dist/tmp");
 		CreateDirectory("../dist/SDK");
 		CreateDirectory("../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.dll"), "../dist/tmp/x64");
-		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe"), "../dist/tmp/x64");
-		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.exe.config"), "../dist/tmp/x64");
+		CopyFileToDirectory($@"../bin/x64/{buildConfiguration}/core.exe", "../dist/tmp/x64");
+    CopyFileToDirectory($@"../bin/x64/{buildConfiguration}/crashreporter.exe", "../dist/tmp/x64");
+		CopyFileToDirectory($@"../bin/x64/{buildConfiguration}/crashreporter.exe.config", "../dist/tmp/x64");
 		CopyFiles(GetFiles($@"../bin/x64/{buildConfiguration}/*.license.txt"), "../dist/tmp/x64");
 		CopyDirectory($@"../bin/x64/{buildConfiguration}/D3D12", "../dist/tmp/x64/D3D12");
 		CopyDirectory($@"../dependencies/x64", "../dist/tmp/x64/dependencies");
@@ -175,14 +153,6 @@ Task("Dist")
 			Recursive = true
 		});
 
-		// generate the latest.json file for use by other games
-		SerializeJsonToPrettyFile("../dist/latest.json", new {
-			framework = new {
-				version = buildNumber,
-				url = $@"https://s3.matchstickframework.org/MGDF_{buildNumber}_x64.zip",
-				md5 = CalculateFileHash($@"../dist/SDK/MGDF_{buildNumber}_x64.zip", HashAlgorithm.MD5).ToHex(),
-			}
-		});
 
 		// copy debug symbols
 		CreateDirectory("../dist/symbols");
@@ -197,10 +167,6 @@ Task("Dist")
 		CopyFiles(GetFiles("../include/MGDF/*.h*"), "../dist/SDK/include/MGDF");
 		CopyFile("../src/core/core.api/MGDF.idl", "../dist/SDK/include/MGDF/MGDF.idl");
     
-		// copy packagegen to SDK bin dir
-		CreateDirectory("../dist/SDK/bin");
-		CopyFile($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/GamesManager.PackageGen.exe", "../dist/SDK/bin/PackageGen.exe");
-		CopyFile($@"../src/GamesManager/GamesManager.PackageGen/bin/{buildConfiguration}/GamesManager.PackageGen.exe.config", "../dist/SDK/bin/PackageGen.exe.config");
 
 		// copy SDK samples
 		CreateDirectory("../dist/SDK/src/samples");
@@ -208,14 +174,15 @@ Task("Dist")
 		DeleteFiles(GetFiles("../dist/SDK/src/**/*.sdf"));
 		DeleteFiles(GetFiles("../dist/SDK/src/**/*.suo"));
 		DeleteFiles(GetFiles("../dist/SDK/src/**/*.user"));
-		DeleteDirectories(new DirectoryPath[] {
-			Directory("../dist/SDK/src/samples/EmptyGame/user"),
-			Directory("../dist/SDK/src/samples/EmptyGame/bin"),
-			Directory("../dist/SDK/src/samples/EmptyGame/game/bin"),
-		}, new DeleteDirectorySettings() { 
-			Force = true,
-			Recursive = true
-		});
+    foreach (var directory in new[] {
+      "../dist/SDK/src/samples/EmptyGame/user",
+      "../dist/SDK/src/samples/EmptyGame/bin",
+      "../dist/SDK/src/samples/EmptyGame/game/bin"
+    }) {
+      if (DirectoryExists(directory)) {
+        DeleteDirectory(directory, new DeleteDirectorySettings { Force = true, Recursive = true });
+      }
+    }
 
 		// zip up sdk
 		Zip("../dist/SDK", $@"../dist/MGDF_{buildNumber}_SDK.zip");

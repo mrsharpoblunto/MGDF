@@ -32,10 +32,10 @@ class WriteableVFSTests : public ::testing::Test {
 TEST_F(WriteableVFSTests, FileSystemTests) {
   ComObject<IMGDFWriteableFile> root;
   _vfs->GetRoot(root.Assign());
-  EXPECT_EQ(5, root->GetChildCount());
+  EXPECT_EQ(4, root->GetChildCount());
 
   for (auto f : std::vector({L"test.zip", L"console.json", L"preferences.json",
-                             L"gameState.json", L"Update.json"})) {
+                             L"gameState.json"})) {
     ComObject<IMGDFWriteableFile> file;
     ASSERT_TRUE(_vfs->GetFile(f, file.Assign()));
     EXPECT_STREQ(f,

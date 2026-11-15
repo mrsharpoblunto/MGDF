@@ -1,91 +1,131 @@
 MGDF - Matchstick game development framework
 ============================================
 
-What is it
-----------
+MGDF runs C++ games on Windows 10 and later. It provides DirectX 12 graphics,
+OpenXR, OpenAL audio, RawInput and XInput, HTTP and WebSocket networking, and a
+virtual file system for files and archives.
 
-MGDF is a framework designed to make developing, installing, distributing, and updating games on Windows (Windows 10+ supported) easier. The framework uses DirectX 12 for graphics, RawInput/XInput for user input (has full support for the XBox 360 controller), and OpenAL for audio (supports 3d positional audio and audio streaming using Ogg Vorbis). The framework also provides a virtual file system which allows easy access to resources stored in zipped archives (new archive formats can also be plugged in).
+Start the game with `core.exe`. The core loads the game module and runs its
+simulation and render threads. A game installer or store client owns installation,
+shortcuts, uninstall records, and updates.
 
-* MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game.
-* MGDF makes distributing games easier as it includes an auto update mechanism with full versioning support.
+The SDK and API reference are at https://www.matchstickframework.org.
 
-How do I build games using MGDF?
---------------------------------
-To download the SDK, or view the getting started and API reference, go to www.matchstickframework.org. Alternatively you can clone this repo instead of downloading the pre-built SDK.
-
-Features
---------
-The framework is composed of three main parts (the second two of which are not required for running games, but for online updating/distribution)
-
-### The core
-This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before boostrapping the user supplied game dll and passing control on to that dll. Once up and running the game dll can then access the frameworks functionality via a series of COM interfaces (graphics, audio, input, virtual filesystem etc...)
-
-### The GamesManager (Optional)
-This is written in C# (.NET 4.6) and consists a windows forms application which provides a graphical user interface for launching and updating games.
-
-Building Source
+Building source
 ---------------
 
-* Using Microsoft Visual Studio 2026 (with the vcpkg component installed & enabled via `vcpkg integrate install`) build Matchstick.sln in x64 debug/release configurations
-* The first build downloads the pinned NVIDIA Streamline SDK into `dependencies/streamline` and checks its SHA-256 (see `Directory.Build.targets`). The build copies the Streamline runtime DLLs next to `core.exe`: the signed production DLLs in Release and the development DLLs in Debug. Without network access, put `streamline-sdk-v<version>.zip` from https://github.com/NVIDIA-RTX/Streamline/releases into `dependencies/streamline` before the build.
+Use Visual Studio 2026 with the C++ desktop tools, .NET Framework 4.8 targeting
+pack, and vcpkg. Enable vcpkg with `vcpkg integrate install`. Restore the Docgen
+project's `packages.config`, then build `Matchstick.sln` for x64 Debug or Release.
+The crash reporter uses only .NET Framework assemblies. It has no NuGet packages.
+
+The first build downloads the pinned NVIDIA Streamline SDK to
+`dependencies/streamline` and checks its SHA-256. To build without network access,
+put `streamline-sdk-v<version>.zip` from the NVIDIA Streamline releases there
+before the build. Release uses the signed runtime DLLs. Debug uses the development
+DLLs. The build also copies the DirectX 12 Agility runtime and OpenXR loader.
 
 Build rules
 -----------
 
-* Use x64 for Debug and Release. Each C++ project selects the 64-bit build tools.
-* Each project that compiles C++ uses a precompiled header. Start each new `.cpp` with `#include "stdafx.h"` (use `StdAfx.h` in core) and keep the project default. Use `NotUsing` only when a source needs a different define before the header; state the reason beside the setting.
-* Core sources in `core.tests` use a separate header built from core's `StdAfx.h`. Header-only projects and the IDL project need no precompiled header.
-* `Directory.Build.rsp` builds solution projects in parallel. `Directory.Build.props` applies one compiler process limit to the whole build. Keep both settings when adding projects.
-* Builds with whole-program optimization use incremental link-time code generation. Keep the existing optimization settings and output paths.
+- Use x64 for Debug and Release. C++ projects select the 64-bit build tools.
+- Each C++ project uses a precompiled header. Start new sources with
+  `#include "stdafx.h"`, or `StdAfx.h` in core. Use `NotUsing` only when a source
+  requires a define before the header. State the reason beside that setting.
+- Core sources in `core.tests` use a separate header built from core's
+  `StdAfx.h`. Header-only projects and the IDL project need no precompiled header.
+- Keep the process limits in `Directory.Build.rsp` and `Directory.Build.props`.
+- Keep the output paths and incremental link-time code generation settings.
 
-Running unit tests
-------------------
-All managed code projects use nunit 3,	all unmanaged code tests are contained within the core.tests.exe binary which must first be compiled as part of the Matchstick.sln project Once built, running this exe from the command line will run the test suite.
+Tests
+-----
 
-To make running the unmanaged unit tests easier you can set up an external tool in visual studio. Go to tools->external tools and select Add. Then fill in the following fields
+After a solution build, run these commands from `bin/x64/Debug` or
+`bin/x64/Release`:
 
-    Title: Core tests
-    Command: <MGDF bin dir>\core.tests.exe Initial Directory: $(TargetDir) Also tick use output window
+```
+core.tests.exe
+crashreporter.tests.exe
+```
 
-Running core.exe from command line
-----------------------------------
-core.exe can be invoked either via the GamesManager or directly via the command line.
+The full core suite includes graphics and OpenXR tests. The crash reporter tests
+use a local HTTP server. They check report files, the upload contract, failures,
+cancellation, and process exit codes. The core suite starts a child process to
+check external minidumps with errors hidden. The reporter tests need no test
+packages.
 
-Configuration can be supplied either as command line arguments or as environment variables. Every command line argument `-name [value]` has an equivalent environment variable `MGDF_NAME` (the argument name upper-cased and prefixed with `MGDF_`); for flags that take no value, set the variable to any non-empty value. Command line arguments take precedence over environment variables.
+Starting a game
+---------------
 
-For ease of debugging the environment variables can also be placed in a `.env` file in the application directory. Each line is a `KEY=VALUE` pair; blank lines and lines beginning with `#` are ignored, and values may optionally be wrapped in matching single or double quotes. On startup these values are loaded into the process environment (without overwriting any variable already set in the real environment), so they are visible both to the framework and to the bootstrapped game module (via `getenv`/`GetEnvironmentVariable`), as well as to any child processes.
+Use `core.exe` as the entry point for the player, installer shortcut, or store
+client. The game manifest is `game/game.json` beside the core. Use
+`-gamediroverride` to select another game folder.
 
-### Arguments
-* -loglevel <level> (env `MGDF_LOGLEVEL`): (OPTIONAL) The logging verbosity, possible values in descending order of verbosity log_low|log_medium|log_high|log_error
-* -userdiroverride (env `MGDF_USERDIROVERRIDE`): (OPTIONAL) The directory from which to load and save user specific data to (save games/preferences etc.) will be either the gamesdir override (if specified) or application directory. If this parameter is omitted, the data directory will be the users appData\Local\MGDF\<uid> folder
-* -gamediroverride <directory> (env `MGDF_GAMEDIROVERRIDE`): (OPTIONAL) The directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
-* -capturediroverride <directory> (env `MGDF_CAPTUREDIROVERRIDE`): (OPTIONAL) The directory that screenshots and videos from IMGDFRecorder are saved to (by default this is the captures subdirectory of the user data directory). A relative path is relative to the current directory
-* -metricsport <port_number> (env `MGDF_METRICSPORT`): (OPTIONAL) A port to expose internal metrics via a prometheus compatible endpoint at http://localhost:<port_number>/metrics
-* -logendpoint <url> (env `MGDF_LOGENDPOINT`): (OPTIONAL) A Loki logging endpoint to push internal logs to
-* -statisticsendpointoverride <url> (env `MGDF_STATISTICSENDPOINTOVERRIDE`): (OPTIONAL) A statistics endpoint to push statistics to (overrides any statistics service specified in the games manifest)
-
-An example `.env` file:
-
-    # logging
-    MGDF_LOGLEVEL=log_high
-    MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
-
-Running GamesManager.exe from command line
-------------------------------------------
-
-As with core.exe, these arguments can also be supplied as `MGDF_`-prefixed environment variables (e.g. `MGDF_GAMEDIROVERRIDE`), including via a `.env` file in the application directory. Command line arguments take precedence over environment variables. The GamesManager loads the `.env` file into the process environment before launching core.exe, so the values are inherited by the game as well.
+Each argument `-name [value]` also has an environment variable `MGDF_NAME`. Set a
+flag to any non-empty value. Command line arguments take precedence. The core
+loads `.env` beside `core.exe` before it reads the arguments. A `.env` file uses
+`KEY=VALUE` lines. It accepts blank lines, `#` comments, and quoted values. It does
+not replace environment variables that are already set.
 
 ### Arguments
-* -register: In order to make installing/uninstalling your game easier, you can use the gamesManager register argument to create installed program registry entries, desktop shortcuts, start menu shortcuts and windows games explorer integration.
 
-* -deregister: Removes anything added via the register argument
- 
-* -gamediroverride <directory>: (OPTIONAL) allows you to specify a directory from which to load games from (by default this is the core.exe's application /game subdirectory). Useful for local development
+- `-loglevel <level>`: `log_low`, `log_medium`, `log_high`, or `log_error`.
+- `-userdiroverride`: Store game user data in the local `user` folder. Without
+  this flag, use `%LOCALAPPDATA%/MGDF/1/<gameUid>`.
+- `-gamediroverride <directory>`: Select the game folder.
+- `-capturediroverride <directory>`: Select the capture folder. The default is the
+  captures folder under game user data. Relative paths use the current directory.
+- `-metricsport <port>`: Serve Prometheus metrics at `http://localhost:<port>/metrics`.
+- `-logendpoint <url>`: Send logs to a Loki endpoint.
+- `-statisticsendpointoverride <url>`: Override the manifest statistics endpoint.
+- `-hideerrors`: Write a crash dump when a reporter is available. Show no error
+  dialog and send no crash report.
 
-* -noupdatecheck: (OPTIONAL) disables checks for updates.
+For example:
 
-Building a release package
---------------------------
+```
+MGDF_LOGLEVEL=log_high
+MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
+```
 
-* To build a release package, run `build\build.ps1 -Target Dist -buildnumber=x.x.x` from a powershell prompt. This will put the generated release in /dist
-* To publish the release, locate /dist from the previous step and run `build\build.ps1 -Target Publish -dist=<dist_folder_from_previous_step> -backup=<some_build_archive_folder> -s3accesskey=xxxx -s3secretkey=yyyy` from a powershell prompt.
+Crash reports and statistics
+----------------------------
+
+Set `crashReportService` in `game.json` to the crash service URL. Ship
+`crashreporter.exe` and its `.config` file beside `core.exe`. The core starts the
+reporter and supplies all paths and game data. The reporter writes
+`minidump.dmp` in the game user folder after a crash. An abnormal exit without a
+crash signal can still send the log. A normal exit shows no dialog.
+
+The reporter asks the player to send the report. `privacyPolicy`, when present,
+is the URL for the dialog's privacy link. The reporter sends a JSON `POST` with
+`detail`, `gameUid`, `gameVersion`, and `frameworkVersion`. The service returns
+`success` and `uploadUrl`. The reporter sends an `application/zip` `PUT` to that
+URL. The zip contains `log.txt` and, when available, `minidump.dmp`.
+
+Set `statisticsService` to enable the statistics endpoint. The host sends values
+that the game supplies through `IMGDFStatisticsManager`. The game owns the
+statistics controls and decides when to push values.
+
+Building packages
+-----------------
+
+From `build`, restore the local Cake tool with `dotnet tool restore`. Run:
+
+```
+dotnet cake build.cake --target=Dist --buildnumber=x.x.x --signsecret=<key-container>
+```
+
+`Dist` builds and signs the binaries, runs both test programs, and writes runtime,
+SDK, symbols, and API documentation output under `dist`. The SDK includes the
+runtime zip, headers, IDL, and sample game. The runtime contains `core.exe`,
+`crashreporter.exe`, its configuration, native runtime libraries, resources, and
+`dependencies/vc2022_redist.x64.exe`. The game installer must run the VC++ runtime
+installer. Install .NET Framework 4.8 for the crash reporter if it is absent.
+
+To make an unsigned package for a local check, use `--target=Package` with the
+same build number. This target builds the solution and generates the API data.
+
+The framework does not register an installed game or make update manifests.
+The `Publish` target uploads release packages and updates the docs site. Run it
+only as a separate release action with the required signing and service access.
