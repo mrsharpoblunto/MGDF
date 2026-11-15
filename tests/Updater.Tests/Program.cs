@@ -243,7 +243,7 @@ internal static class Program
   private static void LockedInstaller()
   {
     var file = Path.Combine(_root, "locked.exe"); byte[] bytes = { 1, 2 }; File.WriteAllBytes(file, bytes);
-    using (InstallerVerification.Open(file, Update("https://example.invalid", bytes).sha256, Path.Combine(_bin, "updater.exe")))
+    using (InstallerVerification.Open(file, Update("https://example.invalid", bytes).sha256))
     {
       Fails(() => { using (File.Open(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) { } });
       Fails(() => File.Move(file, file + ".moved"));

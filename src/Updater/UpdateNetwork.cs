@@ -79,7 +79,7 @@ namespace MGDF.Updater
         using (var response = await OpenAsync(new Uri(update.installerUrl), idle.Token).ConfigureAwait(false))
         using (var input = response.GetResponseStream())
         using (var output = new FileStream(file, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-          await CopyAsync(input, output, 4L * 1024 * 1024 * 1024, progress, response.ContentLength,
+          await CopyAsync(input, output, long.MaxValue, progress, response.ContentLength,
             idle.Token, () => idle.CancelAfter(interval)).ConfigureAwait(false);
       }
     }

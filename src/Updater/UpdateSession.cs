@@ -97,7 +97,7 @@ namespace MGDF.Updater
       {
         var installer = Path.Combine(folder, "installer.exe");
         await UpdateNetwork.DownloadAsync(update, installer, progress, token).ConfigureAwait(false);
-        using (InstallerVerification.Open(installer, update.sha256, _updater))
+        using (InstallerVerification.Open(installer, update.sha256))
         using (var parent = Process.GetCurrentProcess())
         {
           var helper = Path.Combine(folder, "updater.exe");
@@ -130,7 +130,7 @@ namespace MGDF.Updater
         using (var installLock = InstallLock.Inherited(handoff.LockHandle))
         using (var parent = Process.GetProcessById(handoff.ParentId))
         using (var lease = Lease(Path.GetDirectoryName(updater)))
-        using (var installer = InstallerVerification.Open(handoff.Installer, handoff.Sha256, updater))
+        using (var installer = InstallerVerification.Open(handoff.Installer, handoff.Sha256))
         using (var signal = EventWaitHandle.OpenExisting(handoff.ReadyEvent))
         {
           if (parent.StartTime.ToUniversalTime().Ticks != handoff.ParentStart) return 1;

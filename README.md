@@ -17,9 +17,6 @@ Building source
 Use Visual Studio 2026 with the C++ desktop tools, .NET Framework 4.8 targeting
 pack, and vcpkg. Enable vcpkg with `vcpkg integrate install`. Restore the Docgen
 project's `packages.config`, then build `Matchstick.sln` for x64 Debug or Release.
-The crash reporter and updater use only .NET Framework assemblies. They compile
-shared window source into each executable. Each runs as one file, without a
-configuration file or another assembly. No IL merge step is needed.
 
 The first build downloads the pinned NVIDIA Streamline SDK to
 `dependencies/streamline` and checks its SHA-256. To build without network access,
@@ -60,7 +57,7 @@ packages.
 Starting a game
 ---------------
 
-Use `updater.exe` for an installed game shortcut. A Steam build starts `core.exe`
+Use `updater.exe` for an installed game shortcut. A store build starts `core.exe`
 and does not ship the updater. The game manifest is `game/game.json` beside the core. Use
 `-gamediroverride` to select another game folder.
 
@@ -169,8 +166,8 @@ The service returns this JSON:
 ```
 
 Both URLs must use HTTPS. HTTP with a literal loopback IP is allowed for local
-tests. Redirects keep this rule. The manifest is limited to 64 KiB; the installer
-is limited to 4 GiB. The window offers Update now or Later. Cancel stops the
+tests. Redirects keep this rule. The manifest is limited to 64 KiB. The installer
+has no size limit. The window offers Update now or Later. Cancel stops the
 download and starts the game. A download stops after 60 seconds without data,
 with no limit on the total time. A download or hash failure shows a short status
 message, then starts the game.
@@ -180,11 +177,9 @@ For NSIS, put `/D={installDir}` last. It is passed without quotes, including whe
 the path has spaces. Other arguments use Windows argument quoting. The updater
 passes its own arguments unchanged to the game.
 
-Before it runs an installer, the updater checks SHA-256. When the updater has a
-valid Authenticode signature, the installer must have a valid signature from the
-same certificate. Signature checks use the local certificate cache. Developer
-builds without a valid signature use the hash check. A read handle blocks writes
-and replacement from verification through installer startup.
+Before it runs an installer, the updater compares its SHA-256 with the value
+from the update service. A read handle blocks writes and replacement from
+verification through installer startup.
 
 The updater copies itself into a private work folder below `%TEMP%/MGDF-updater`.
 The copy opens and checks the installer before the first updater releases it.
@@ -227,7 +222,7 @@ start because it cannot prove that setup has ended. Run the installer to repair
 the folder, then remove that starting record only after setup has exited.
 
 The installer stays open without write sharing from the temporary updater's
-hash and signature checks through the installer process creation. The first
+hash check through the installer process creation. The first
 updater also holds it until the temporary copy has opened and checked it.
 
 Run either tool with `--mgdf-tool-check` to check that its standalone executable
