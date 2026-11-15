@@ -13,8 +13,7 @@ namespace MGDF.CrashReporter
         var options = ReporterOptions.Parse(args);
         var crash = CrashMonitor.Wait(options);
         if (!crash.Failed || options.HideErrors) return 0;
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
+        MGDF.Tools.ToolForm.EnableStyles();
         using (var form = new ReportForm(options, crash)) Application.Run(form);
         return 0;
       }
