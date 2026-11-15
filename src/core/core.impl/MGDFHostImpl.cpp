@@ -57,7 +57,8 @@ HRESULT Host::TryCreate(ComObject<Game> game, HostComponents &components,
 }
 
 Host::Host(ComObject<Game> game, HostComponents &components)
-    : _game(game),
+    : _instanceGuard(components.InstanceGuard),
+      _game(game),
       _debugOverlay(nullptr),
       _module(nullptr),
       _version(VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION())),
@@ -643,16 +644,11 @@ void Host::FatalError(const char *sender, const char *message) {
     return;
   }
 
-  if (sender && message) {
-    std::ostringstream ss;
-    ss << "FATAL ERROR: " << message;
-    Logger::Instance().Log(sender, ss.str().c_str(), MGDF_LOG_ERROR);
-  }
-  LOG("Notified of fatal error, telling module to panic", MGDF_LOG_ERROR);
-  Logger::Instance().Flush();
-
-  if (_module) {
-    _module->Panic();
+  CrashExitState::Instance().BeginCrash();
+  if (!Logger::IsLockedByThisThread()) {
+    Logger::Instance().LogCrash(sender ? sender : "core",
+                                message ? message : "Fatal error");
+    if (_module) _module->Panic();
   }
 
   _fatalErrorHandler(

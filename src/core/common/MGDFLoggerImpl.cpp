@@ -51,6 +51,14 @@ void MGDFLog(std::function<void(std::ostringstream &)> msg, MGDFLogLevel level,
   }
 }
 
+namespace {
+thread_local unsigned loggerDepth = 0;
+struct LoggerSection {
+  LoggerSection() { ++loggerDepth; }
+  ~LoggerSection() { --loggerDepth; }
+};
+}  // namespace
+
 void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
   _ASSERTE(sender);
   _ASSERTE(message);
@@ -66,7 +74,10 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
     OutputDebugString(stream.str().c_str());
 #endif
     {
+      LoggerSection section;
       std::unique_lock<std::mutex> lock(_mutex);
+      if (_closed) return;
+      if (_hook) _hook(Point::Append);
       const auto timestamp = GetTimeStamp();
       _events.push_back(LogEntry{.Level = level,
                                  .Timestamp = timestamp,
@@ -82,42 +93,65 @@ void Logger::Log(const char *sender, const char *message, MGDFLogLevel level) {
 
 void Logger::Flush() { _cv.notify_one(); }
 
-void Logger::FlushSync() {
-  std::unique_lock<std::mutex> lock(_mutex);
-  std::vector<LogEntry> events(std::move(_events));
-  _events.clear();
-  lock.unlock();
+bool Logger::IsLockedByThisThread() { return loggerDepth != 0; }
 
-  std::ofstream outFile;
-  outFile.open(_filename.c_str(), std::ios::app);
-  for (const auto &evt : events) {
-    outFile << evt.Sender << ": " << evt.Message << std::endl;
-  }
-  outFile.close();
+bool Logger::LogCrash(const char *sender, const char *message) {
+  if (IsLockedByThisThread()) return false;
+  Log(sender, message, MGDF_LOG_ERROR);
+  FlushSync();
+  return true;
 }
 
-Logger::Logger() {
+void Logger::Write(const std::vector<LogEntry> &events) {
+  if (events.empty()) return;
+  if (_hook) _hook(Point::Write);
+  std::ofstream output(_filename.c_str(), std::ios::app);
+  for (const auto &event : events)
+    output << event.Sender << ": " << event.Message << std::endl;
+}
+
+void Logger::FlushSync() {
+  LoggerSection section;
+  std::lock_guard<std::mutex> write(_writeMutex);
+  std::vector<LogEntry> events;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    events.swap(_events);
+  }
+  Write(events);
+}
+
+Logger::Logger() : Logger(Resources::Instance().LogFile()) {}
+
+Logger::Logger(const std::wstring &filename, std::function<void(Point)> hook)
+    : _hook(std::move(hook)), _runLogger(true) {
   SetLoggingLevel(MGDF_LOG_MEDIUM);
-  SetOutputFile(Resources::Instance().LogFile());
-
-  _runLogger = true;
+  SetOutputFile(filename);
   _flushThread = std::thread([this]() {
-    while (_runLogger) {
-      std::unique_lock<std::mutex> lock(_mutex);
-      _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
-                   [this] { return !_runLogger || _events.size() > 0; });
-      std::vector<LogEntry> events(std::move(_events));
-      _events.clear();
-      lock.unlock();
-
-      if (events.size()) {
-        std::ofstream outFile;
-        outFile.open(_filename.c_str(), std::ios::app);
-        for (const auto &evt : events) {
-          outFile << evt.Sender << ": " << evt.Message << std::endl;
+    for (;;) {
+      {
+        LoggerSection section;
+        std::unique_lock<std::mutex> lock(_mutex);
+        _cv.wait_for(lock, LOG_FLUSH_TIMEOUT,
+                     [this] { return !_runLogger || !_events.empty(); });
+      }
+      std::vector<LogEntry> events;
+      std::function<void(const std::string &, const std::string &)>
+          remoteSender;
+      bool stop;
+      {
+        LoggerSection section;
+        std::lock_guard<std::mutex> write(_writeMutex);
+        {
+          std::lock_guard<std::mutex> lock(_mutex);
+          events.swap(_events);
+          stop = !_runLogger;
+          if (!_remoteEndpoint.empty()) remoteSender = _remoteSender;
         }
-
-        if (_remoteEndpoint.size()) {
+        Write(events);
+      }
+      if (!events.empty()) {
+        if (remoteSender) {
           nlohmann::json root;
           auto &streams = root["streams"] = nlohmann::json::array();
           auto &stream = streams.emplace_back(nlohmann::json::object());
@@ -153,7 +187,15 @@ Logger::Logger() {
 
           std::ostringstream requestBody;
           requestBody << root;
-          _remoteSender(requestBody.str(), "application/json");
+          remoteSender(requestBody.str(), "application/json");
+        }
+      }
+      if (stop) {
+        LoggerSection section;
+        std::lock_guard<std::mutex> lock(_mutex);
+        if (_events.empty()) {
+          _closed = true;
+          break;
         }
       }
     }
@@ -161,6 +203,8 @@ Logger::Logger() {
 }
 
 bool Logger::MoveOutputFile() {
+  LoggerSection section;
+  std::lock_guard<std::mutex> write(_writeMutex);
   const auto newFile = Resources::Instance().LogFile();
   if (newFile == _filename) return true;
   std::error_code error;
@@ -189,6 +233,7 @@ void Logger::SetRemoteEndpoint(
     std::function<void(const std::string &content,
                        const std::string &contentType)>
         remoteSender) {
+  LoggerSection section;
   std::lock_guard<std::mutex> lock(_mutex);
   _remoteEndpoint = endpoint;
   _remoteSender = remoteSender;
@@ -196,16 +241,19 @@ void Logger::SetRemoteEndpoint(
 
 MGDFLogLevel Logger::GetLoggingLevel() const { return _level; }
 
-Logger::~Logger(void) {
+void Logger::Stop() {
+  if (!_flushThread.joinable()) return;
   {
-    // force whatever is in the events buffer to be flushed & stop
-    // the flush thread running after its finished this last flush
-    std::unique_lock<std::mutex> lock(_mutex);
+    LoggerSection section;
+    std::lock_guard<std::mutex> lock(_mutex);
     _runLogger = false;
+    if (_hook) _hook(Point::Stop);
   }
   _cv.notify_one();
   _flushThread.join();
 }
+
+Logger::~Logger() { Stop(); }
 
 }  // namespace core
 }  // namespace MGDF

@@ -6,10 +6,11 @@
 #include <fstream>
 
 #include "../../src/core/common/MGDFCrashHandling.hpp"
+#include "../../src/core/common/MGDFCrashReporter.hpp"
 #include "../../src/core/common/MGDFLoggerImpl.hpp"
 #include "../../src/core/common/MGDFParameterManager.hpp"
-#include "../../src/core/common/MGDFCrashReporter.hpp"
 #include "../../src/core/common/MGDFResources.hpp"
+#include "../../src/core/common/win32Exception.hpp"
 #include "../../src/core/core.impl/MGDFSaveManagerImpl.hpp"
 
 using namespace MGDF::core;
@@ -111,6 +112,7 @@ TEST_F(CrashReporterIntegrationTests, HiddenFatalErrorWritesDump) {
   MINIDUMP_HEADER header{};
   ASSERT_TRUE(dump.read(reinterpret_cast<char *>(&header), sizeof(header)));
   EXPECT_EQ(MINIDUMP_SIGNATURE, header.Signature);
+  EXPECT_EQ(L"Renderer: No DirectX 12 device.", ErrorText());
 }
 
 int RunCrashReporterChild(const char *folder, const char *mode) {
@@ -132,6 +134,21 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
   if (selected == "reporter-exit" || selected == "reporter-timeout") {
     options.Executable = Resources::Instance().RootDir() + L"core.tests.exe";
     SetEnvironmentVariableA("MGDF_TEST_REPORTER_MODE", mode);
+  }
+  std::unique_ptr<Logger> logger;
+  if (selected == "logger-crash" || selected == "fatal") {
+    ParameterManager::Instance().AddParameterString("-hideerrors");
+    SetUnhandledExceptionFilter(HandleUnhandledException);
+    logger = std::make_unique<Logger>(
+        options.LogFile, [selected](Logger::Point point) {
+          if (point != Logger::Point::Append) return;
+          if (selected == "fatal") {
+            HandleFatalError("Renderer", "No DirectX 12 device.");
+            TerminateProcess(GetCurrentProcess(), 1);
+          }
+          RaiseException(EXCEPTION_ACCESS_VIOLATION, EXCEPTION_NONCONTINUABLE,
+                         0, nullptr);
+        });
   }
   if (selected == "send-crash" || selected == "send-fatal") {
     Resources::Instance().SetGameBaseDir((root / "stage" / "game").wstring());
@@ -157,6 +174,10 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
     return 3;
   }
   if (!CrashReporter::Instance().Start(options)) return 2;
+  if (logger) {
+    logger->Log("test", "crash while locked", MGDF_LOG_ERROR);
+    return 3;
+  }
   if (selected == "reporter-exit" || selected == "reporter-timeout")
     return CrashReporter::Instance().SignalCrash(
                nullptr, selected == "reporter-timeout" ? 0 : 15000)
@@ -224,4 +245,13 @@ TEST_F(CrashReporterIntegrationTests, CoreLimitsErrorTextBeforeItSignals) {
   std::wstring text;
   for (unsigned i = 0; i < 500; ++i) text += L"line \u03A9\n";
   EXPECT_EQ(text.substr(0, 2048), ErrorText());
+}
+
+TEST_F(CrashReporterIntegrationTests, CrashInsideLoggerStillWritesDump) {
+  ASSERT_NO_FATAL_FAILURE(
+      RunChild(L"logger-crash", EXCEPTION_ACCESS_VIOLATION));
+  EXPECT_FALSE(DumpFile().empty());
+  EXPECT_EQ(Resources::ToWString(
+                Win32Exception::TranslateError(EXCEPTION_ACCESS_VIOLATION)),
+            ErrorText());
 }

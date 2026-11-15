@@ -7,7 +7,9 @@ namespace core {
 
 class HostBuilder {
  public:
-  static HRESULT TryCreateHost(ComObject<Host> &host);
+  static HRESULT TryCreateHost(
+      ComObject<Host> &host,
+      std::shared_ptr<UserInstanceGuard> *instanceGuard = nullptr);
   static void InitLogLevel();
   static std::string StatisticsEndpoint(const std::string &manifestEndpoint,
                                         const char *endpointOverride);

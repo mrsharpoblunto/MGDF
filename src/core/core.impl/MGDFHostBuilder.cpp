@@ -80,9 +80,9 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
   return true;
 }
 
-HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
-  HostComponents components;
-  memset(&components, 0, sizeof(HostComponents));
+HRESULT HostBuilder::TryCreateHost(
+    ComObject<Host> &host, std::shared_ptr<UserInstanceGuard> *instanceGuard) {
+  HostComponents components{};
 
   // do the bare minimum setup required to be able to
   // load up the game configuration file
@@ -106,6 +106,10 @@ HRESULT HostBuilder::TryCreateHost(ComObject<Host> &host) {
   // now that we know the UID for the game, we'll set up the user resources
   // paths again and shift the logfile over to the new user directory
   InitResources(handler->GetGameUid());
+  result = UserInstanceGuard::Acquire(Resources::Instance().UserBaseDir(),
+                                      components.InstanceGuard);
+  if (result != S_OK) return result;
+  if (instanceGuard) *instanceGuard = components.InstanceGuard;
   if (!Logger::Instance().MoveOutputFile()) return E_FAIL;
 
   MGDFVersion version{};

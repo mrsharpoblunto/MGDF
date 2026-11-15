@@ -6,6 +6,7 @@
 #include "common/MGDFCrashHandling.hpp"
 #include "common/MGDFLoggerImpl.hpp"
 #include "common/MGDFParameterManager.hpp"
+#include "common/MGDFProcessLifetime.hpp"
 #include "common/MGDFResources.hpp"
 #include "common/win32Exception.hpp"
 #include "core.impl/MGDFHostBuilder.hpp"
@@ -36,7 +37,7 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
 
   ::SetUnhandledExceptionFilter(
       HandleUnhandledException);  // logs and stackdumps when any unexpected
-                                    // errors occur
+                                  // errors occur
 
   const HRESULT comHr = ::CoInitialize(NULL);
 
@@ -47,12 +48,16 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
   ::SetErrorMode(SEM_NOGPFAULTERRORBOX);
   LOG("starting up...", MGDF_LOG_LOW);
 
+  std::shared_ptr<UserInstanceGuard> instanceGuard;
   {
     // create the host object and related components
     ComObject<Host> host;
-    if (FAILED(HostBuilder::TryCreateHost(host))) {
+    const auto result = HostBuilder::TryCreateHost(host, &instanceGuard);
+    if (result == S_FALSE) return 0;
+    if (FAILED(result)) {
       LOG("failed to start up", MGDF_LOG_ERROR);
-      return 1;
+      Logger::Instance().Stop();
+      CrashExitState::Instance().ExitNormally(1);
     }
 
     // create the application instance and initialise the window
@@ -74,5 +79,6 @@ INT32 WINAPI WinMain(_In_ HINSTANCE const hInstance,
 
   LOG("shut down successfully", MGDF_LOG_LOW);
 
-  return 0;
+  Logger::Instance().Stop();
+  CrashExitState::Instance().ExitNormally(0);
 }

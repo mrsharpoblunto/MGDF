@@ -167,6 +167,7 @@
     <ClCompile Include="SaveManagerTests.cpp" />
     <ClCompile Include="CrashReporterIntegrationTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
+    <ClCompile Include="LoggerIntegrationTests.cpp" />
     <ClCompile Include="ReadOnlyVFSTests.cpp" />
     <ClCompile Include="VFSCommon.cpp" />
     <ClCompile Include="WriteableVFSTests.cpp" />

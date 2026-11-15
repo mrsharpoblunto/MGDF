@@ -144,4 +144,5 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup><ClInclude Include="MGDFProcessLifetime.hpp" /><ClCompile Include="MGDFProcessLifetime.cpp" /></ItemGroup>
 </Project>

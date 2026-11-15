@@ -224,3 +224,17 @@ the folder, then remove that starting record only after setup has exited.
 The installer stays open without write sharing from the temporary updater's
 hash check through the installer process creation. The first
 updater also holds it until the temporary copy has opened and checked it.
+
+Log and process lifetime
+------------------------
+
+The logger serializes each batch from removal from the queue through its file
+write. A synchronous flush waits for a batch that another thread already took.
+Remote sends do not hold the write lock. Stop drains the queue and joins the
+writer. Crash and fatal handlers skip logging and flushing when their own thread
+is inside a logger lock. An active crash handler prevents normal exit; the crash
+handler ends the process after the bounded reporter wait.
+
+The core holds a file lock for each user folder. It takes that lock before it
+moves the log or starts the reporter. A second process for the same folder exits
+with code 0. A process with a separate user folder can run at the same time.
