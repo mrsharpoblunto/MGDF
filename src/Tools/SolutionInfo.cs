@@ -1,9 +1,9 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyCompany("Team Junkship")]
+[assembly: AssemblyCompany("Straylight Technologies LLC")]
 [assembly: AssemblyProduct("Matchstick game development framework")]
-[assembly: AssemblyCopyright("Copyright @ Team Junkship 2020")]
+[assembly: AssemblyCopyright("Copyright © Straylight Technologies LLC 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
