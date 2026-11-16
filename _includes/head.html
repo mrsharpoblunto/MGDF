@@ -1,9 +1,13 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matchstick game development framework</title>
+    <title>{% if page.title %}{{ page.title }} - {% endif %}Matchstick game development framework</title>
     <link rel="icon" href="{{ site.baseurl }}/assets/favicon.ico" type="image/x-icon" /> 
     <link href="{{ site.baseurl }}/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    {% if page.wordmark %}
+    <link rel="preload" href="{{ site.baseurl }}/assets/fonts/comfortaa-wordmark.woff2" as="font" type="font/woff2" crossorigin />
+    <noscript><style>.hero .wordmark { opacity:1; }</style></noscript>
+    {% endif %}
     <link href="{{ site.baseurl }}/assets/css/styles.css" rel="stylesheet" type="text/css" />
     <link href="{{ site.baseurl }}/assets/css/highlight.css" rel="stylesheet" type="text/css" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2JP8PZRLJE"></script>
@@ -14,4 +18,3 @@
       gtag('config', 'G-2JP8PZRLJE');
     </script>
 </head>
-

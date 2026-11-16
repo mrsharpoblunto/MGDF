@@ -1,0 +1,17 @@
+<div class="signature"><code>
+    <span class="type">{% if include.m.ReturnTypeRefId != null and include.m.ReturnTypeRefId != empty %}<a href="#{{ include.m.ReturnTypeRefId }}">{{ include.m.ReturnType }}</a>{% else %}{{ include.m.ReturnType }}{% endif %}</span>
+    <span class="identifier">{{ include.m.Name }}</span>{% unless include.field %}<span class="keyword">(</span>{% for arg in include.m.Args %}{% if forloop.index > 1 %}<span class="keyword">, </span>{% endif %}<span class="type">{% if arg.TypeRefId != null and arg.TypeRefId != empty %}<a href="#{{ arg.TypeRefId }}">{{ arg.Type }}</a>{% else %}{{ arg.Type }}{% endif %}</span> <span class="identifier">{{ arg.Name }}</span>{% endfor %}<span class="keyword">)</span>{% if include.m.Const %}<span class="keyword"> const</span>{% endif %}{% endunless %}
+</code></div>
+{% capture args_size %}{{ include.m.Args | size }}{% endcapture %}
+{% if args_size != '0' %}
+<table class="table api-params">
+    <tbody>
+        {% for arg in include.m.Args %}
+        <tr><td><code>{{ arg.Name }}</code></td><td>{{ arg.Description }}</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% if include.m.ReturnDescription != null and include.m.ReturnDescription != empty %}
+<p class="api-returns"><strong>Returns</strong> {{ include.m.ReturnDescription }}</p>
+{% endif %}

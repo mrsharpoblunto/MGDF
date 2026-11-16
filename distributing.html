@@ -1,0 +1,351 @@
+---
+layout: default
+title: Distributing a game
+---
+<div class="row docs-row">
+    <div class="col-md-9 main guide">
+        <h1 id="distributing" class="page-header">Distributing a game</h1>
+        <p class="lead">Matchstick can keep an installed game up to date, report its crashes, and send you gameplay statistics. Each feature is optional, and each talks to a service you run.</p>
+
+        <div class="learn">
+            <h4>You will learn</h4>
+            <ul>
+                <li>Which programs to ship for a store build and for your own installer</li>
+                <li>What your installer has to do</li>
+                <li>How to publish an update</li>
+                <li>How to collect crash reports</li>
+                <li>How to record statistics and metrics</li>
+            </ul>
+        </div>
+
+        <h2 id="builds">Choose how you ship</h2>
+        <p>How the game starts depends on who keeps it up to date.</p>
+
+        <figure class="diagram">
+            <svg viewBox="0 0 720 200" role="img" aria-label="With your own installer, the shortcut starts updater.exe, which starts core.exe. On a store, the store client starts core.exe directly. If core.exe crashes, it starts crashreporter.exe.">
+                <defs><marker id="ship-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+                <text class="label start" x="20" y="20">Your own installer</text>
+                <rect class="box" x="20" y="32" width="130" height="48" rx="6"/>
+                <text x="85" y="61">Shortcut</text>
+                <path class="line" d="M150 56H188" marker-end="url(#ship-arrow)"/>
+                <rect class="box" x="190" y="32" width="150" height="48" rx="6"/>
+                <text x="265" y="53">updater.exe</text>
+                <text class="sub" x="265" y="70">checks for an update</text>
+                <path class="line" d="M340 56H398" marker-end="url(#ship-arrow)"/>
+
+                <text class="label start" x="20" y="132">Store</text>
+                <rect class="box" x="20" y="144" width="130" height="48" rx="6"/>
+                <text x="85" y="173">Store client</text>
+                <path class="line" d="M150 168H360V124H398" marker-end="url(#ship-arrow)"/>
+
+                <rect class="box you" x="400" y="32" width="120" height="104" rx="6"/>
+                <text x="460" y="81">core.exe</text>
+                <text class="sub" x="460" y="99">runs the game</text>
+                <path class="line" d="M520 84H558" marker-end="url(#ship-arrow)" stroke-dasharray="4 4"/>
+                <text class="label" x="539" y="72">crash</text>
+                <rect class="box hot" x="560" y="58" width="140" height="52" rx="6"/>
+                <text x="630" y="81">crashreporter.exe</text>
+                <text class="sub" x="630" y="98">offers to send a report</text>
+            </svg>
+        </figure>
+
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th></th><th>Your own installer</th><th>Store build</th></tr></thead>
+            <tbody>
+                <tr><td>Installs the game</td><td>Your installer</td><td>The store client</td></tr>
+                <tr><td>Updates the game</td><td><code>updater.exe</code></td><td>The store client</td></tr>
+                <tr><td>Shortcuts start</td><td><code>updater.exe</code></td><td><code>core.exe</code></td></tr>
+                <tr><td>Ship <code>updater.exe</code></td><td>Yes</td><td>No</td></tr>
+                <tr><td>Crash reports and statistics</td><td>Optional</td><td>Optional</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>The updater and the crash reporter need .NET Framework 4.8. The host doesn't.</p>
+
+        <h2 id="installing">Write an installer</h2>
+        <p>Matchstick doesn't install games. Bring your own installer, such as <a href="https://nsis.sourceforge.net/Main_Page">NSIS</a>, and have it do these steps in order:</p>
+        <ol>
+            <li>Copy the runtime and the <code>game</code> folder, <strong>except <code>game/game.json</code></strong>.</li>
+            <li>Run <code>dependencies\vc2022_redist.x64.exe /install /quiet /norestart</code>.</li>
+            <li>Install .NET Framework 4.8 if it is missing.</li>
+            <li>Create shortcuts that start <code>updater.exe</code>.</li>
+            <li>Register the uninstaller.</li>
+            <li>Write <code>game/game.json</code>.</li>
+        </ol>
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>Write <code>game.json</code> last. The updater reads its version to decide whether an install finished. If any step fails, exit with a non-zero code and leave the old file alone.</p>
+        </div>
+        <p>The updater runs your installer and reads its exit code:</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Exit code</th><th>Meaning</th></tr></thead>
+            <tbody>
+                <tr><td><code>0</code></td><td>Installed.</td></tr>
+                <tr><td><code>3010</code>, <code>1641</code></td><td>Installed, and Windows needs a restart.</td></tr>
+                <tr><td>Anything else</td><td>Failed.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>The updater starts the installer without elevation. If the installer needs administrator rights, it has to ask for them itself. In NSIS that is <code>RequestExecutionLevel admin</code>. Don't run <code>updater.exe</code> itself as administrator. It refuses to start the game.</p>
+
+        <details class="sample">
+            <summary>A complete NSIS script</summary>
+            <p>Put the runtime zip's contents in <code>runtime</code>, your game in <code>game</code>, and the .NET Framework 4.8 web installer (<code>ndp48-web.exe</code>) beside the script. Build it with <code>makensis /DGAME_VERSION=1.2.3 installer.nsi</code>.</p>
+<pre>
+!include "MUI2.nsh"
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
+
+!ifndef GAME_VERSION
+  !error "GAME_VERSION is required"
+!endif
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\NewGame"
+
+Name "New Game"
+OutFile "NewGameSetup.exe"
+InstallDir "$PROGRAMFILES64\NewGame"
+InstallDirRegKey HKLM "${UNINSTALL_KEY}" "InstallLocation"
+RequestExecutionLevel admin
+
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_LANGUAGE "English"
+
+; Stop with exit code 4 if the last step failed.
+!macro CheckInstallStep
+  IfErrors 0 +3
+    SetErrorLevel 4
+    Quit
+!macroend
+
+Function .onInit
+  SetRegView 64
+  SetShellVarContext all
+  InitPluginsDir
+FunctionEnd
+
+Section "Install New Game"
+  ; The updater and the crash reporter need .NET Framework 4.8.
+  ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
+  ${If} $0 &lt; 528040
+    SetOutPath "$PLUGINSDIR"
+    File "ndp48-web.exe"
+    ExecWait '"$PLUGINSDIR\ndp48-web.exe" /q /norestart' $0
+    ${If} $0 == 3010
+    ${OrIf} $0 == 1641
+      SetRebootFlag true
+    ${ElseIf} $0 != 0
+      IfSilent +2
+        MessageBox MB_OK|MB_ICONSTOP "Cannot install .NET Framework 4.8. Setup will stop."
+      SetErrorLevel 2
+      Quit
+    ${EndIf}
+  ${EndIf}
+
+  ClearErrors
+  SetOutPath "$INSTDIR"
+  File /r "runtime\*"
+  !insertmacro CheckInstallStep
+  ExecWait '"$INSTDIR\dependencies\vc2022_redist.x64.exe" /install /quiet /norestart' $0
+  !insertmacro CheckInstallStep
+  ${If} $0 == 3010
+    SetRebootFlag true
+  ${ElseIf} $0 != 0
+  ${AndIf} $0 != 1638
+    IfSilent +2
+      MessageBox MB_OK|MB_ICONSTOP "Cannot install the Visual C++ runtime. Setup will stop."
+    SetErrorLevel 3
+    Quit
+  ${EndIf}
+
+  SetOutPath "$INSTDIR\game"
+  File /r /x game.json "game\*"
+  !insertmacro CheckInstallStep
+
+  SetOutPath "$INSTDIR"
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+  CreateDirectory "$SMPROGRAMS\New Game"
+  CreateShortcut "$SMPROGRAMS\New Game\New Game.lnk" "$INSTDIR\updater.exe"
+  CreateShortcut "$DESKTOP\New Game.lnk" "$INSTDIR\updater.exe"
+  CreateShortcut "$SMPROGRAMS\New Game\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "New Game"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayVersion" "${GAME_VERSION}"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
+  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
+  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
+  !insertmacro CheckInstallStep
+  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "EstimatedSize" $0
+  !insertmacro CheckInstallStep
+
+  ; game.json marks a complete install. Write it last.
+  SetOutPath "$INSTDIR\game"
+  File "game\game.json"
+  !insertmacro CheckInstallStep
+SectionEnd
+
+Function un.onInit
+  SetRegView 64
+  SetShellVarContext all
+FunctionEnd
+
+Section "Uninstall"
+  Delete "$DESKTOP\New Game.lnk"
+  RMDir /r "$SMPROGRAMS\New Game"
+  DeleteRegKey HKLM "${UNINSTALL_KEY}"
+  RMDir /r "$INSTDIR"
+SectionEnd
+</pre>
+            <p>The Visual C++ installer returns 1638 when a newer runtime is already there. The script treats that as success.</p>
+        </details>
+
+        <h2 id="updating">Publish updates</h2>
+        <p>Add <code>updateService</code> to <code>game.json</code>. Every time the game starts, the updater sends a GET request to that URL and expects a description of the newest version:</p>
+{% highlight json %}
+{
+  "version": "1.2.3",
+  "installerUrl": "https://www.example.com/NewGameSetup_1.2.3.exe",
+  "sha256": "<64 hexadecimal digits>",
+  "installerArguments": ["/S", "/D={installDir}"]
+}
+{% endhighlight %}
+        <p>The updater passes <code>installerArguments</code> to your installer and replaces <code>{installDir}</code> with the install folder.</p>
+        <p>A static JSON file on a web server is enough. To release an update, upload the new installer and edit the file.</p>
+
+        <figure class="diagram">
+            <svg viewBox="0 0 720 196" role="img" aria-label="The updater checks the service. If there is a newer version and the player chooses Update now, it downloads the installer, verifies its hash, runs it, and starts the new version. Otherwise it starts the current version.">
+                <defs><marker id="upd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+                <rect class="box" x="20" y="20" width="110" height="52" rx="6"/>
+                <text x="75" y="43">Check</text>
+                <text class="sub" x="75" y="60">GET updateService</text>
+                <path class="line" d="M130 46H158" marker-end="url(#upd-arrow)"/>
+                <rect class="box" x="160" y="20" width="110" height="52" rx="6"/>
+                <text x="215" y="43">Ask</text>
+                <text class="sub" x="215" y="60">Update now / Later</text>
+                <path class="line" d="M270 46H298" marker-end="url(#upd-arrow)"/>
+                <rect class="box" x="300" y="20" width="110" height="52" rx="6"/>
+                <text x="355" y="43">Download</text>
+                <text class="sub" x="355" y="60">verify SHA-256</text>
+                <path class="line" d="M410 46H438" marker-end="url(#upd-arrow)"/>
+                <rect class="box" x="440" y="20" width="110" height="52" rx="6"/>
+                <text x="495" y="43">Install</text>
+                <text class="sub" x="495" y="60">run your installer</text>
+                <path class="line" d="M550 46H578" marker-end="url(#upd-arrow)"/>
+                <rect class="box you" x="580" y="20" width="120" height="52" rx="6"/>
+                <text x="640" y="43">Start</text>
+                <text class="sub" x="640" y="60">new version</text>
+
+                <path class="line" d="M75 72V150H158" marker-end="url(#upd-arrow)"/>
+                <text class="label start" x="83" y="112">nothing newer</text>
+                <path class="line" d="M215 72V128" marker-end="url(#upd-arrow)"/>
+                <text class="label start" x="223" y="104">Later</text>
+                <path class="line" d="M355 72V150H292" marker-end="url(#upd-arrow)"/>
+                <text class="label start" x="363" y="112">download failed</text>
+                <rect class="box" x="160" y="130" width="130" height="52" rx="6"/>
+                <text x="225" y="153">Start</text>
+                <text class="sub" x="225" y="170">current version</text>
+            </svg>
+        </figure>
+
+        <p>The updater stays out of the way. If the check fails or times out, the game starts without a message.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>If</th><th>The updater</th></tr></thead>
+            <tbody>
+                <tr><td>The player picks <strong>Later</strong> or cancels the download</td><td>Starts the current version.</td></tr>
+                <tr><td>The download fails or the hash doesn't match</td><td>Says so, then starts the current version.</td></tr>
+                <tr><td>The player refuses the elevation prompt</td><td>Starts the current version.</td></tr>
+                <tr><td>The installer fails</td><td>Doesn't start the game. On the next run it offers to repair the install.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <div class="callout">
+            <p><strong>Note</strong>Both URLs must use HTTPS. The updater checks the installer's SHA-256 hash, not its signature. For testing, plain HTTP to <code>127.0.0.1</code> is allowed.</p>
+        </div>
+        <p>See the <a href="{{ site.baseurl }}/api#updatemanifest">update service reference</a> for the fields, limits and timeouts.</p>
+
+        <h2 id="crashreports">Collect crash reports</h2>
+        <p>Add <code>crashReportService</code> to <code>game.json</code> and ship <code>crashreporter.exe</code> beside <code>core.exe</code>. Add <code>privacyPolicy</code> and the dialog links to it.</p>
+{% highlight json %}
+{
+    "crashReportService": "https://www.example.com/api/crashes",
+    "privacyPolicy": "https://www.example.com/privacy"
+}
+{% endhighlight %}
+        <p>When the game crashes, the player sees a dialog with the error and two buttons: <strong>Send report</strong> and <strong>Don't send</strong>. Nothing leaves the machine unless they choose to send.</p>
+        <p>A report is a zip file with two entries:</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>File</th><th>Contents</th></tr></thead>
+            <tbody>
+                <tr><td><code>log.txt</code></td><td>The game log, the crash details, and the game, Matchstick and Windows versions.</td></tr>
+                <tr><td><code>minidump.dmp</code></td><td>A minidump of <code>core.exe</code>, when one is available.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>Three things count as a crash: an unhandled exception, a call to <a href="{{ site.baseurl }}/api#IMGDFCommonHost">FatalError</a>, and <code>core.exe</code> exiting with an exception status code. A normal exit never shows the dialog.</p>
+        <p>For automated tests, start the host with <code>-hideerrors</code>. It suppresses the dialog and keeps the minidump in the user data folder instead.</p>
+        <p>See the <a href="{{ site.baseurl }}/api#crashreports">crash report service reference</a> for the requests your service has to answer.</p>
+
+        <h2 id="statistics">Record statistics</h2>
+        <p>Statistics are events from a play session, such as a level starting or a boss going down. Add <code>statisticsService</code> to <code>game.json</code>, then push values from the sim thread.</p>
+{% highlight c++ %}
+MGDF::ComObject<IMGDFStatisticsManager> statistics;
+host->GetStatistics(statistics.Assign());
+statistics->PushString("level_started", "caves", nullptr);
+{% endhighlight %}
+        <p>The host batches the values and posts them as JSON. Each one carries a timestamp and the session's id. See the <a href="{{ site.baseurl }}/api#statsservice">statistics service reference</a> for the format.</p>
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>Matchstick doesn't ask the player for consent. That is your job. Ask, remember the answer, and push nothing until the player agrees.</p>
+        </div>
+
+        <h2 id="metrics">Watch performance</h2>
+        <p>Metrics are numbers you sample while the game runs, such as frame time or entity count. Create one, record to it, and the host exposes it to <a href="https://prometheus.io">Prometheus</a>.</p>
+{% highlight c++ %}
+host->CreateGaugeMetric("entities", "Live entity count", _entities.Assign());
+_entities->Record(static_cast<double>(_world.Count()), nullptr);
+{% endhighlight %}
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Argument</th><th>What it does</th></tr></thead>
+            <tbody>
+                <tr><td><code>-metricsport</code></td><td>Serves metrics to Prometheus on this port.</td></tr>
+                <tr><td><code>-logendpoint</code></td><td>Streams the log to a <a href="https://grafana.com/docs/loki/latest/">Loki</a> server.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>Counters and histograms work the same way. You can also time code with <a href="{{ site.baseurl }}/api#IMGDFCommonHost">CreateCPUCounter</a>, and time GPU work with a <a href="{{ site.baseurl }}/rendering#counters">GPU counter</a>.</p>
+
+        <h2 id="next">Next steps</h2>
+        <div class="next-steps">
+            <a href="{{ site.baseurl }}/api#gamemanifeset"><strong>game.json reference</strong>Every field and built-in preference.</a>
+            <a href="{{ site.baseurl }}/api#updatemanifest"><strong>Service reference</strong>What your update, crash and statistics services receive.</a>
+            <a href="{{ site.baseurl }}/api#commandline"><strong>Command line reference</strong>Every host argument.</a>
+        </div>
+    </div>
+    <div class="col-md-3 hidden-xs hidden-sm">
+        <div class="side-nav">
+            <ul class="nav nav-stacked">
+                <li class="active"><a href="#distributing">Distributing a game</a></li>
+                <li><a href="#builds">Choose how you ship</a></li>
+                <li><a href="#installing">Write an installer</a></li>
+                <li><a href="#updating">Publish updates</a></li>
+                <li><a href="#crashreports">Collect crash reports</a></li>
+                <li><a href="#statistics">Record statistics</a></li>
+                <li><a href="#metrics">Watch performance</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function() {
+        $('body').scrollspy({ target: '.side-nav' });
+    });
+</script>

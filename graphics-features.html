@@ -1,0 +1,304 @@
+---
+layout: default
+title: Upscaling, HDR and ray tracing
+---
+<div class="row docs-row">
+    <div class="col-md-9 main guide">
+        <h1 id="overview" class="page-header">Upscaling, HDR and ray tracing</h1>
+        <p class="lead">Matchstick turns on the newer GPU features for you when the hardware has them. Your module asks what is available, renders the inputs, and makes one call.</p>
+
+        <div class="learn">
+            <h4>You will learn</h4>
+            <ul>
+                <li>How to find out what the player's GPU supports</li>
+                <li>How to upscale with DLSS</li>
+                <li>How to add frame generation and low latency</li>
+                <li>How to check for ray tracing</li>
+                <li>How to write HDR output</li>
+            </ul>
+        </div>
+
+        <h2 id="support">Check what is supported</h2>
+        <p>You never request a feature. The host starts whatever the device supports and reports it through <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Feature</th><th>Ask</th><th>Not supported when</th></tr></thead>
+            <tbody>
+                <tr><td>Upscaling (DLSS, DLAA)</td><td><code>GetUpscaleModeCount</code><br /><code>GetUpscaleMode</code></td><td>The count is 0.</td></tr>
+                <tr><td>Frame generation</td><td><code>GetMaxGeneratedFrames</code></td><td>It returns 0.</td></tr>
+                <tr><td>Low latency (Reflex)</td><td><code>GetLowLatencyModeCount</code><br /><code>GetLowLatencyMode</code></td><td>The only mode is <code>MGDF_LOW_LATENCY_OFF</code>.</td></tr>
+                <tr><td>Ray tracing</td><td><code>GetRayTracingSupport</code></td><td>It returns <code>FALSE</code>.</td></tr>
+                <tr><td>HDR</td><td><code>GetCurrentOutputDisplayInfo</code></td><td><code>SupportsHDR</code> is <code>FALSE</code>.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>Read the answers in <code>RTBeforeFirstDraw</code>. Read them again in <code>RTDeviceReset</code>, because a new device can support different things.</p>
+{% highlight c++ %}
+BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
+  MGDF::ComObject<IMGDFRenderSettingsManager> settings;
+  host->GetRenderSettings(settings.Assign());
+
+  _upscaleModes.clear();
+  for (UINT64 i = 0; i < settings->GetUpscaleModeCount(); ++i) {
+    MGDFUpscaleMode mode;
+    if (settings->GetUpscaleMode(i, &mode)) _upscaleModes.push_back(mode);
+  }
+  _maxGeneratedFrames = settings->GetMaxGeneratedFrames();
+  return TRUE;
+}
+{% endhighlight %}
+        <p>Build your settings menu from the same lists, and show only what the device offers.</p>
+        <div class="callout">
+            <p><strong>Note</strong>DLSS, frame generation and Reflex need an NVIDIA GPU. Everywhere else the lists come back empty, so always keep a render path that works without them.</p>
+        </div>
+
+        <h2 id="upscaling">Upscale with DLSS</h2>
+        <p>With upscaling, you render the scene small and let the upscaler produce the full-size image. Post-processing and UI then run at full size.</p>
+
+        <figure class="diagram">
+            <svg viewBox="0 0 720 132" role="img" aria-label="You render the scene at the render size, the host upscales it, you draw post-processing and UI at the output size, the host optionally generates frames, and then presents.">
+                <defs><marker id="up-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+                <rect class="box you" x="20" y="20" width="140" height="56" rx="6"/>
+                <text x="90" y="45">Scene</text>
+                <text class="sub" x="90" y="63">render size, jittered</text>
+                <path class="line" d="M160 48H178" marker-end="url(#up-arrow)"/>
+                <rect class="box hot" x="180" y="20" width="100" height="56" rx="6"/>
+                <text x="230" y="45">Upscale</text>
+                <text class="sub" x="230" y="63">host</text>
+                <path class="line" d="M280 48H298" marker-end="url(#up-arrow)"/>
+                <rect class="box you" x="300" y="20" width="140" height="56" rx="6"/>
+                <text x="370" y="45">Post and UI</text>
+                <text class="sub" x="370" y="63">output size</text>
+                <path class="line" d="M440 48H458" marker-end="url(#up-arrow)"/>
+                <rect class="box hot" x="460" y="20" width="130" height="56" rx="6"/>
+                <text x="525" y="45">Frame generation</text>
+                <text class="sub" x="525" y="63">host, optional</text>
+                <path class="line" d="M590 48H608" marker-end="url(#up-arrow)"/>
+                <rect class="box" x="610" y="20" width="90" height="56" rx="6"/>
+                <text x="655" y="53">Present</text>
+                <text class="label" x="90" y="100">color · depth</text>
+                <text class="label" x="90" y="116">motion vectors</text>
+            </svg>
+        </figure>
+
+        <h3>Choose a render size</h3>
+        <p>Pick a mode from the supported list and ask the host how big to render. The answer depends on the window size, so ask again in <code>RTBackBufferChange</code>.</p>
+{% highlight c++ %}
+BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
+  MGDFBackBufferInfo info = {};
+  host->GetBackBufferInfo(&info);
+
+  MGDFUpscaleRenderSize size = {};
+  _upscale = SUCCEEDED(host->GetUpscaleRenderSize(
+      MGDF_UPSCALE_MODE_QUALITY, info.Width, info.Height, &size));
+
+  return _upscale
+      ? CreateRenderTargets(size.Width, size.Height, info.Width, info.Height)
+      : CreateRenderTargets(info.Width, info.Height, info.Width, info.Height);
+}
+{% endhighlight %}
+        <p>The modes run from <code>MGDF_UPSCALE_MODE_DLAA</code>, which renders at full size and only anti-aliases, down to <code>MGDF_UPSCALE_MODE_ULTRA_PERFORMANCE</code>. See <a href="{{ site.baseurl }}/api#MGDFUpscaleMode">MGDFUpscaleMode</a>.</p>
+
+        <h3>Upscale each frame</h3>
+        <p>Give the host the camera for the frame, draw the scene with jitter, then record the upscale into your command list.</p>
+{% highlight c++ %}
+host->SetFrameConstants(&constants);   // Camera matrices and jitter
+
+DrawScene(list);                       // Render size, jittered
+
+MGDFUpscaleDesc upscale = {};
+upscale.Mode = MGDF_UPSCALE_MODE_QUALITY;
+upscale.RenderWidth = _renderWidth;
+upscale.RenderHeight = _renderHeight;
+upscale.OutputWidth = _outputWidth;
+upscale.OutputHeight = _outputHeight;
+upscale.ColorHDR = TRUE;
+upscale.ColorIn = {_color.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+upscale.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+upscale.MotionVectors = {_motion.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+upscale.ColorOut = {_upscaled.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS};
+if (FAILED(host->Upscale(list, &upscale))) return FALSE;
+
+list->SetDescriptorHeaps(1, _heaps.AsArray());
+DrawPostAndUI(list);                   // Output size
+{% endhighlight %}
+        <p>Each input names the resource and the state it will be in when the GPU reaches the upscale. The host adds no barriers, so make the transitions yourself first.</p>
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong><code>Upscale</code> leaves the command list's descriptor heaps, root signature, pipeline state, render targets and viewports undefined. Set them again before you draw anything else.</p>
+        </div>
+        <p>See <a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a> and <a href="{{ site.baseurl }}/api#MGDFUpscaleDesc">MGDFUpscaleDesc</a> for every field.</p>
+
+        <h2 id="framegeneration">Add frame generation</h2>
+        <p>Frame generation inserts extra frames between the ones you render. It needs the same depth and motion vectors as the upscaler. Hand them over before <code>RTDraw</code> returns.</p>
+{% highlight c++ %}
+MGDFFrameGenerationDesc generation = {};
+generation.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+generation.MotionVectors = {_motion.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+generation.HudlessColor = {_hudless.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+generation.UIColorAndAlpha = {_ui.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+host->SetFrameGenerationInputs(&generation);
+{% endhighlight %}
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Input</th><th>Required</th><th>What it is</th></tr></thead>
+            <tbody>
+                <tr><td><code>Depth</code></td><td>Yes</td><td>Scene depth.</td></tr>
+                <tr><td><code>MotionVectors</code></td><td>Yes</td><td>Per-pixel motion.</td></tr>
+                <tr><td><code>HudlessColor</code></td><td>No</td><td>The final image without UI.</td></tr>
+                <tr><td><code>UIColorAndAlpha</code></td><td>No</td><td>The UI alone, with premultiplied alpha.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>The two optional inputs are worth the effort. Without them, generated frames smear the UI.</p>
+        <p>Generated frames look wrong when the picture jumps. While the game loads, is paused, or cuts to a new scene, pass <code>nullptr</code> and the host skips generation for that frame:</p>
+{% highlight c++ %}
+if (_loading || _paused) host->SetFrameGenerationInputs(nullptr);
+{% endhighlight %}
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>Frame generation doesn't work with an scRGB back buffer. If you want both HDR and frame generation, <a href="#hdroutput">choose HDR10</a>.</p>
+        </div>
+
+        <h2 id="lowlatency">Measure and cut latency</h2>
+        <p>Low latency mode shortens the delay between the player's input and the frame that shows it. The host measures that delay from markers you report, so mark four points in <code>RTDraw</code>:</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Marker</th><th>Report it</th></tr></thead>
+            <tbody>
+                <tr><td><code>MGDF_FRAME_MARKER_SIMULATION_START</code></td><td>Before you read the simulation state.</td></tr>
+                <tr><td><code>MGDF_FRAME_MARKER_SIMULATION_END</code></td><td>Once you have it.</td></tr>
+                <tr><td><code>MGDF_FRAME_MARKER_RENDER_SUBMIT_START</code></td><td>Before you record the first command list.</td></tr>
+                <tr><td><code>MGDF_FRAME_MARKER_RENDER_SUBMIT_END</code></td><td>After the last <code>ExecuteCommandLists</code>.</td></tr>
+            </tbody>
+        </table>
+        </div>
+{% highlight c++ %}
+host->SetFrameMarker(MGDF_FRAME_MARKER_SIMULATION_START);
+Snapshot frame = TakeSnapshot();
+host->SetFrameMarker(MGDF_FRAME_MARKER_SIMULATION_END);
+{% endhighlight %}
+        <p>Report <code>MGDF_FRAME_MARKER_INPUT_SAMPLE</code> as well, at the moment you read controller input. The markers do nothing on a device without latency support, so you can call them unconditionally.</p>
+
+        <h2 id="settings">Let the player choose</h2>
+        <p>Frame generation, low latency, ray tracing and HDR are player settings. Change them through a pending change, which applies when you release it.</p>
+{% highlight c++ %}
+MGDF::ComObject<IMGDFPendingRenderSettingsChange> change;
+settings->CreatePendingSettingsChange(change.Assign());
+change->SetFrameGeneration(1);
+change->SetLowLatencyMode(MGDF_LOW_LATENCY_ON);
+change.Clear();   // Applies both
+{% endhighlight %}
+        <p>The host saves each choice as a preference and restores it on the next run.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Setting</th><th>Change</th><th>Read</th><th>Saved as</th></tr></thead>
+            <tbody>
+                <tr><td>Frame generation</td><td><code>SetFrameGeneration</code></td><td><code>GetFrameGeneration</code></td><td><code>host.frameGeneration</code></td></tr>
+                <tr><td>Low latency</td><td><code>SetLowLatencyMode</code></td><td><code>GetCurrentLowLatencyMode</code></td><td><code>host.lowLatencyMode</code></td></tr>
+                <tr><td>Ray tracing</td><td><code>SetRayTracing</code></td><td><code>GetRayTracing</code></td><td><code>host.rayTracing</code></td></tr>
+                <tr><td>HDR</td><td><code>SetHDREnabled</code></td><td><code>GetHDREnabled</code></td><td><code>host.hdrEnabled</code></td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>The first three setters return <code>FALSE</code> if the device can't do what you asked. Changing frame generation rebuilds the swap chain, so expect a <a href="{{ site.baseurl }}/rendering#resize">back buffer change</a>.</p>
+
+        <h2 id="raytracing">Check for ray tracing</h2>
+        <p>If your renderer uses DXR, ask the host whether to turn it on. The answer combines what the device supports with what the player chose.</p>
+{% highlight c++ %}
+MGDFRayTracingSupport support = {};
+_rayTracing = settings->GetRayTracingSupport(&support) && settings->GetRayTracing();
+_reorder = _rayTracing && support.ShaderExecutionReordering;
+{% endhighlight %}
+        <p>Support means DXR tier 1.1 and shader model 6.9. <code>ShaderExecutionReordering</code> tells you whether the device reorders shader execution as well.</p>
+        <p>The host does nothing else with this setting. Your module reads it and picks its own render path. When more than one adapter meets your requirements, the host prefers one that supports ray tracing.</p>
+
+        <h2 id="hdroutput">Write HDR output</h2>
+        <p>The host switches to HDR when the player turns it on and the display supports it. You choose the format ahead of time, with <code>HDRFormat</code> in <a href="{{ site.baseurl }}/rendering#requirements">GetGraphicsRequirements</a>.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th></th><th>scRGB (default)</th><th>HDR10</th></tr></thead>
+            <tbody>
+                <tr><td><code>HDRFormat</code></td><td><code>MGDF_HDR_FORMAT_SCRGB</code></td><td><code>MGDF_HDR_FORMAT_HDR10</code></td></tr>
+                <tr><td>Back buffer</td><td>16-bit float</td><td>10-bit UNORM</td></tr>
+                <tr><td>You write</td><td>Linear Rec.709, where 1.0 is 80 nits</td><td>PQ-encoded Rec.2020, where 1.0 is 10,000 nits</td></tr>
+                <tr><td>Frame generation</td><td>No</td><td>Yes</td></tr>
+                <tr><td>Effort</td><td>None. Write linear color.</td><td>You encode the final image.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>To find out whether HDR is on right now, compare the back buffer format with the HDR format in <code>RTBackBufferChange</code>:</p>
+{% highlight c++ %}
+MGDFBackBufferInfo info = {};
+host->GetBackBufferInfo(&info);
+_hdr = info.Format == settings->GetHDRBackBufferFormat();
+{% endhighlight %}
+
+        <h3>Encode for HDR10</h3>
+        <p>With HDR10 the back buffer holds encoded values, so do the encoding in your last pass:</p>
+        <ol>
+            <li>Composite the scene and UI in linear light.</li>
+            <li>Tonemap to the display's luminance range.</li>
+            <li>Convert from Rec.709 to Rec.2020 primaries.</li>
+            <li>Apply the PQ curve.</li>
+        </ol>
+{% highlight c++ %}
+// HLSL. nits is linear Rec.2020 color in nits.
+float3 EncodePQ(float3 nits) {
+  const float m1 = 0.1593017578125f, m2 = 78.84375f;
+  const float c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
+  const float3 y = pow(saturate(nits / 10000.0f), m1);
+  return pow((c1 + c2 * y) / (1.0f + c3 * y), m2);
+}
+{% endhighlight %}
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>Don't alpha-blend the UI straight into an HDR10 back buffer. That blends encoded values and the result is wrong. Blend in linear light, then encode.</p>
+        </div>
+
+        <h3>Describe your content to the display</h3>
+        <p>HDR10 displays tonemap better when they know how bright your content gets. Get the display's range from the host and send back the peak you tonemap to.</p>
+{% highlight c++ %}
+MGDFOutputDisplayInfo display = {};
+settings->GetCurrentOutputDisplayInfo(&display);
+const float peak = display.MaxLuminance > 0.0f ? display.MaxLuminance : 1000.0f;
+
+MGDFHDRMetadata metadata = {};
+metadata.MaxContentLightLevel = peak;
+metadata.MaxFrameAverageLightLevel = (std::min)(display.MaxFullFrameLuminance, peak);
+metadata.MaxMasteringLuminance = peak;
+metadata.MinMasteringLuminance = display.MinLuminance;
+host->SetHDRMetadata(&metadata);
+{% endhighlight %}
+        <p>The host keeps the metadata across resizes. See <a href="{{ site.baseurl }}/api#MGDFHDRMetadata">MGDFHDRMetadata</a> for the valid ranges.</p>
+
+        <h2 id="vr">In VR</h2>
+        <p>DLSS upscales each eye separately in VR. Frame generation and low latency switch off while the headset is active and come back when VR ends. See <a href="{{ site.baseurl }}/vr#upscaling">upscaling in VR</a>.</p>
+
+        <h2 id="next">Next steps</h2>
+        <div class="next-steps">
+            <a href="{{ site.baseurl }}/vr"><strong>VR</strong>Render to a headset through OpenXR.</a>
+            <a href="{{ site.baseurl }}/distributing"><strong>Distributing a game</strong>Install, update, and collect crash reports.</a>
+            <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager"><strong>IMGDFRenderSettingsManager</strong>Every render setting.</a>
+        </div>
+    </div>
+    <div class="col-md-3 hidden-xs hidden-sm">
+        <div class="side-nav">
+            <ul class="nav nav-stacked">
+                <li class="active"><a href="#overview">Upscaling, HDR and ray tracing</a></li>
+                <li><a href="#support">Check what is supported</a></li>
+                <li><a href="#upscaling">Upscale with DLSS</a></li>
+                <li><a href="#framegeneration">Add frame generation</a></li>
+                <li><a href="#lowlatency">Measure and cut latency</a></li>
+                <li><a href="#settings">Let the player choose</a></li>
+                <li><a href="#raytracing">Check for ray tracing</a></li>
+                <li><a href="#hdroutput">Write HDR output</a></li>
+                <li><a href="#vr">In VR</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function() {
+        $('body').scrollspy({ target: '.side-nav' });
+    });
+</script>

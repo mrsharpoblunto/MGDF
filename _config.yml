@@ -5,7 +5,9 @@ description: > # this means to ignore newlines until "baseurl:"
   Matchstick - A Game development framework designed to make developing and distributing c++ based games on windows easier. Don't waste time writing the same boilerplate code over and over when we've done it for you.
 # baseurl: "/MGDF" # the subpath of your site, e.g. /blog/
 url: "http://matchstickframework.org" # the base hostname & protocol for your site
-twitter_username: mr_sharpoblunto
+x_username: mr_sharpoblunto
+threads_username: mrsharpoblunto
+bluesky_handle: thestraylight.com
 github_username:  mrsharpoblunto
 sdkversion: "0.18.0"
 sdkdownloadurl: "https://s3.matchstickframework.org/MGDF_0.18.0_SDK.zip" 
