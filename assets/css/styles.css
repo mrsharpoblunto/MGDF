@@ -291,6 +291,17 @@
 	border-top:1px solid #222;
 }
 
+.guide .table-responsive > .table > thead > tr > th,
+.guide .table-responsive > .table > tbody > tr > td
+{
+	white-space:normal;
+}
+
+.guide .table td:first-child code
+{
+	white-space:nowrap;
+}
+
 .learn
 {
 	background:#111;
