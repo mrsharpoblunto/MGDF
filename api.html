@@ -1,8 +1,58 @@
 ---
 layout: default
+title: API reference
 ---
-<div class="row">
-    <div class="col-md-9 main">
+<div class="row docs-row">
+    <div class="col-md-3 hidden-xs hidden-sm">
+        <div class="side-nav api-nav">
+            <input type="search" id="api-filter" class="form-control" placeholder="Filter" aria-label="Filter the API reference" />
+            <ul class="nav nav-stacked">
+                <li class="active">
+                    <a href="#configuration">Configuration</a>
+                    <ul class="nav">
+                        <li><a href="#commandline">Command line options</a></li>
+                        <li><a href="#gamemanifeset">Game.json configuration</a></li>
+                        <li><a href="#updatemanifest">Update service</a></li>
+                        <li><a href="#statsservice">Statistics service</a></li>
+                        <li><a href="#crashreports">Crash report service</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#functions">Functions</a>
+                    <ul class="nav">
+                        {% for f in site.data.moduleApi.Functions %}
+                            <li><a href="#{{ f.Id }}">{{ f.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li>
+                    <a href="#interfaces">Interfaces</a>
+                    <ul class="nav">
+                        {% for c in site.data.api.Classes %}
+                            <li><a href="#{{ c.Id }}">{{ c.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li>
+                    <a href="#structs">Structs</a>
+                    <ul class="nav">
+                        {% for s in site.data.api.Structs %}
+                            <li><a href="#{{ s.Id }}">{{ s.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li>
+                    <a href="#enums">Enumerations</a>
+                    <ul class="nav">
+                        {% for e in site.data.api.Enums %}
+                            <li><a href="#{{ e.Id }}">{{ e.Name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-9 main guide api">
         <h1 id="configuration" class="page-header">Configuration Options</h1>
         
         <h2 id="commandline">Command line options</h2>
@@ -37,7 +87,7 @@ MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
         </dl>
 
         <h4>Running updater.exe from command line</h4>
-        <p>updater.exe reads game/game.json in its own folder and checks for an update (see <a href="{{ site.baseurl }}/getting-started#updating">Updating</a>). It then starts core.exe with all of its own command line arguments, without change. For example, <code>updater.exe -loglevel log_high</code> starts <code>core.exe -loglevel log_high</code>. Do not run updater.exe as administrator. It then stops and does not start the game.</p>
+        <p>updater.exe reads game/game.json in its own folder and checks for an update (see <a href="{{ site.baseurl }}/distributing#updating">Updating</a>). It then starts core.exe with all of its own command line arguments, without change. For example, <code>updater.exe -loglevel log_high</code> starts <code>core.exe -loglevel log_high</code>. Do not run updater.exe as administrator. It then stops and does not start the game.</p>
 
         <h2 id="gamemanifeset">Game.json configuration</h2>
         <p>The game.json file contains the configuration and default preferences of a game. The core reads all the fields except <code>updateService</code>. Only the updater reads <code>updateService</code>. MGDF does not read other fields. The full schema is as follows:</p>
@@ -117,7 +167,7 @@ MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
 		</dl>
 
         <h2 id="updatemanifest">Update service</h2>
-        <p>The updater sends a GET request to the <code>updateService</code> URL in game.json. The service returns a JSON document that describes the newest version of the game. For the update flow, see <a href="{{ site.baseurl }}/getting-started#updating">Updating</a>.</p>
+        <p>The updater sends a GET request to the <code>updateService</code> URL in game.json. The service returns a JSON document that describes the newest version of the game. For the update flow, see <a href="{{ site.baseurl }}/distributing#updating">Updating</a>.</p>
 {% highlight json %}
 {
   "version": "1.2.3",
@@ -181,7 +231,7 @@ Host: example.com
         <p>Return HTTP status 200. The core does not read the response body. The core logs an error for any other status and does not send the batch again.</p>
 
         <h2 id="crashreports">Crash report service</h2>
-        <p>The crash reporter sends a report in two steps. First, it sends a <code>POST</code> request with the crash data to the <code>crashReportService</code> URL in game.json. The service returns an upload URL. Then the crash reporter sends a <code>PUT</code> request with the report zip file to that URL. A <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html">presigned S3 URL</a> is one type of upload URL. For the report contents and the dialog, see <a href="{{ site.baseurl }}/getting-started#crashreports">Crash reports</a>.</p>
+        <p>The crash reporter sends a report in two steps. First, it sends a <code>POST</code> request with the crash data to the <code>crashReportService</code> URL in game.json. The service returns an upload URL. Then the crash reporter sends a <code>PUT</code> request with the report zip file to that URL. A <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html">presigned S3 URL</a> is one type of upload URL. For the report contents and the dialog, see <a href="{{ site.baseurl }}/distributing#crashreports">Crash reports</a>.</p>
 
         <h4>Request fields</h4>
         <dl class="dl-horizontal">
@@ -228,245 +278,96 @@ Content-Type: application/json; charset=UTF-8
         </ul>
 
         <h1 id="functions" class="page-header">Functions</h1>
-        <p>There are a number of entrypoint functions which can be exported by a module which are used by the host to create the module instance and to query the requirements of the module.</p>
+        <p>A module exports these functions. The host calls them to read the module's requirements and to create it.</p>
         {% for f in site.data.moduleApi.Functions %}
-            <div class="panel panel-default" id="{{ f.Id }}">
-                <div class="panel-heading"><h4>{{ f.Name }} <small>{{ f.Description }}</small></h4></div>
-                <div class="panel-body">
-                    <code>
-                        <span class="type">
-                            {% if f.ReturnTypeRefId != null and f.ReturnTypeRefId != empty %}
-                                <a href="#{{ f.ReturnTypeRefId }}">{{ f.ReturnType }}</a>
-                            {% else %}
-                                {{ f.ReturnType }}
-                            {% endif %}
-                        </span>
-                        <span class="identifier">{{ f.Name }}</span>
-                        <span class="keyword">(</span>
-                        {% capture arg_size %}{{ f.Args | size }}{% endcapture %}
-                        {% if arg_size != '0' %}
-                            {% for arg in f.Args %}
-                                {% if forloop.index > 1 %}
-                                    <span class="keyword">, </span>
-                                {% endif %}
-                                <span class="type">
-                                    {% if arg.TypeRefId != null and arg.TypeRefId != empty %}
-                                        <a href="#{{ arg.TypeRefId }}">{{ arg.Type }}</a>
-                                    {% else %}
-                                        {{ arg.Type }}
-                                    {% endif %}
-                                </span>
-                                <span class="identifier">{{ arg.Name }}</span>
-                            {% endfor %}
-                        {% endif %}
-                        <span class="keyword">)</span>
-                    </code>
-                    {% if arg_size != '0'  %}
-                        <dl>
-                            <dt>Parameters</dt>
-                            {% for arg in f.Args %}
-                                <dd><strong>{{ arg.Name }}</strong> {{ arg.Description }}</dd>
-                            {% endfor %}
-                        </dl>
-                    {% endif %}
-                    {% if f.ReturnDescription != null and f.ReturnDescription != empty %}
-                        <dl>
-                            <dt>Returns</dt>
-                            <dd>{{ f.ReturnDescription }}</dd>
-                        </dl>
-                    {% endif %}
-                </div>
-            </div>
+            <section class="api-type" id="{{ f.Id }}">
+                <h3>{{ f.Name }}</h3>
+                <p>{{ f.Description }}</p>
+                {% include signature.html m=f %}
+            </section>
         {% endfor %}
+
         <h1 id="interfaces" class="page-header">Interfaces</h1>
-        <p>Use <a href="#IMGDFSimHost">IMGDFSimHost</a> on the simulation thread and <a href="#IMGDFRenderHost">IMGDFRenderHost</a> on the render thread. Both inherit <a href="#IMGDFCommonHost">IMGDFCommonHost</a>, which provides the D3D12 device and queues. Get the other interfaces through these hosts. See the <a href="{{ site.baseurl }}/vr">VR guide</a> for headset rendering and input.</p>
+        <p>Use <a href="#IMGDFSimHost">IMGDFSimHost</a> on the simulation thread and <a href="#IMGDFRenderHost">IMGDFRenderHost</a> on the render thread. Both inherit <a href="#IMGDFCommonHost">IMGDFCommonHost</a>, which provides the D3D12 device and queues. Get the other interfaces through these hosts.</p>
         {% for c in site.data.api.Classes %}
-            <div class="panel panel-default" id="{{ c.Id }}">
-                <div class="panel-heading">
-                    <h4>{{ c.Name}} <small>{{ c.Description }}</small></h4>
-                    {% capture inherits_size %}{{ c.InheritsFromTypeRefIds | size }}{% endcapture %}
-                    {% capture inherits_unref_size %}{{ c.InheritsFromUnreferencedType | size }}{% endcapture %}
-                    {% if inherits_size != '0' or inherits_unref_size != '0' %}
-                        <h4>
-                            <small>Inherits from:</small>
-                            {% for i in c.InheritsFromTypeRefIds %}
-                                <span class="label label-default"><a href="#{{ i }}">{{ site.data.api.Mappings[i] }}</a></span>
-                            {% endfor %}
-                            {% for i in c.InheritsFromUnreferencedType %}
-                            <span class="label label-default">{{i}}</span>
-                            {% endfor %}
-                        </h4>
-                    {% endif %}
-                </div>
-                <ul class="list-group">
-                    {% for m in c.Members %}
-                        <li class="list-group-item">
-                            <h4 id="{{ m.Id }}">{{ m.Name }} <small>{{ m.Description }}</small></h4>
-                            <code>
-                                <span class="type">
-                                    {% if m.ReturnTypeRefId != null and m.ReturnTypeRefId != empty %}
-                                        <a href="#{{ m.ReturnTypeRefId }}">{{ m.ReturnType }}</a>
-                                    {% else %}
-                                        {{ m.ReturnType }}
-                                    {% endif %}
-                                </span>
-                                <span class="identifier">{{ m.Name }}</span>
-                                <span class="keyword">(</span>
-                                {% capture args_size %}{{ m.Args | size }}{% endcapture %}
-                                {% if args_size != '0'  %}
-                                    {% for arg in m.Args %}
-                                        {% if forloop.index > 1 %}
-                                            <span class="keyword">, </span>
-                                        {% endif %}
-                                        <span class="type">
-                                            {% if arg.TypeRefId != null and arg.TypeRefId != empty %}
-                                                <a href="#{{ arg.TypeRefId }}">{{ arg.Type }}</a>
-                                            {% else %}
-                                                {{ arg.Type }}
-                                            {% endif %}
-                                        </span>
-                                        <span class="identifier">{{ arg.Name }}</span>
-                                    {% endfor %}
-                                {% endif %}
-                                <span class="keyword">)</span>
-                                {% if m.Const %}
-                                    <span class="keyword"> const</span>
-                                {% endif %}
-                            </code>
-                            {% if args_size != '0' %}
-                                <dl>
-                                    <dt>Parameters</dt>
-                                    {% for arg in m.Args %}
-                                        <dd><strong>{{ arg.Name }}</strong> {{ arg.Description }}</dd>
-                                    {% endfor %}
-                                </dl>
-                            {% endif %}
-                            {% if m.ReturnDescription != null and m.ReturnDescription != empty %}
-                                <dl>
-                                    <dt>Returns</dt>
-                                    <dd>{{ m.ReturnDescription }}</dd>
-                                </dl>
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
+            <section class="api-type" id="{{ c.Id }}">
+                <h3>{{ c.Name }}</h3>
+                <p>{{ c.Description }}</p>
+                {% capture inherits_size %}{{ c.InheritsFromTypeRefIds | size }}{% endcapture %}
+                {% capture inherits_unref_size %}{{ c.InheritsFromUnreferencedType | size }}{% endcapture %}
+                {% if inherits_size != '0' or inherits_unref_size != '0' %}
+                    <p class="api-inherits">Inherits from
+                        {% for i in c.InheritsFromTypeRefIds %}<a href="#{{ i }}"><code>{{ site.data.api.Mappings[i] }}</code></a> {% endfor %}
+                        {% for i in c.InheritsFromUnreferencedType %}<code>{{ i }}</code> {% endfor %}
+                    </p>
+                {% endif %}
+                {% for m in c.Members %}
+                    <div class="api-member">
+                        <h4 id="{{ m.Id }}">{{ m.Name }}</h4>
+                        <p>{{ m.Description }}</p>
+                        {% include signature.html m=m %}
+                    </div>
+                {% endfor %}
+            </section>
         {% endfor %}
+
         <h1 id="structs" class="page-header">Structs</h1>
         {% for c in site.data.api.Structs %}
-            <div class="panel panel-default" id="{{ c.Id }}">
-                <div class="panel-heading"><h4>{{ c.Name }} <small>{{ c.Description }}</small></h4></div>
-                <ul class="list-group">
-                    {% for m in c.Members %}
-                        <li class="list-group-item">
-                            <h4 id="{{ m.Id }}">{{ m.Name }} <small>{{ m.Description }}</small></h4>
-                            <code>
-                                <span class="type">
-                                    {% if m.ReturnTypeRefId != null and m.ReturnTypeRefId != empty %}
-                                        <a href="#{{ m.ReturnTypeRefId }}">{{ m.ReturnType }}</a>
-                                    {% else %}
-                                        {{ m.ReturnType }}
-                                    {% endif %}
-                                </span>
-                                <span class="identifier">{{ m.Name }}</span>
-                            </code>
-                            {% capture args_size %}{{ m.Args | size }}{% endcapture %}
-                            {% if args_size != '0' %}
-                                <dl>
-                                    <dt>Parameters</dt>
-                                    {% for arg in m.Args %}
-                                        <dd><strong>{{ arg.Name }}</strong> {{ arg.Description }}</dd>
-                                    {% endfor %}
-                                </dl>
-                            {% endif %}
-                            {% if m.ReturnDescription != null and m.ReturnDescription != empty %}
-                                <dl>
-                                    <dt>Returns</dt>
-                                    <dd>{{ m.ReturnDescription }}</dd>
-                                </dl>
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
+            <section class="api-type" id="{{ c.Id }}">
+                <h3>{{ c.Name }}</h3>
+                <p>{{ c.Description }}</p>
+                <table class="table api-params">
+                    <tbody>
+                        {% for m in c.Members %}
+                        <tr id="{{ m.Id }}">
+                            <td><code>{{ m.Name }}</code></td>
+                            <td><code class="type">{% if m.ReturnTypeRefId != null and m.ReturnTypeRefId != empty %}<a href="#{{ m.ReturnTypeRefId }}">{{ m.ReturnType }}</a>{% else %}{{ m.ReturnType }}{% endif %}</code></td>
+                            <td>{{ m.Description }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
         {% endfor %}
+
         <h1 id="enums" class="page-header">Enumerations</h1>
         {% for e in site.data.api.Enums %}
-            <div class="panel panel-default" id="{{ e.Id }}">
-                <div class="panel-heading"><h4>{{ e.Name }} <small>{{ e.Description }}</small></h4></div>
-                <div class="panel-body">
-                    {% capture value_count %}{{e.Values | size }}{% endcapture %}
-                    {% if value_count != '0' %}
-                        <dl>
-                            <dt>Values</dt>
-                            {% for value in e.Values %}
-                                <dd><span class="param-name">{{ value }}</span> {{ e.ValueDescriptions[value] }}</dd>
-                            {% endfor %}
-                        </dl>
-                    {% endif %}
-                </div>
-            </div>
+            <section class="api-type" id="{{ e.Id }}">
+                <h3>{{ e.Name }}</h3>
+                <p>{{ e.Description }}</p>
+                <table class="table api-params">
+                    <tbody>
+                        {% for value in e.Values %}
+                        <tr><td><code>{{ value }}</code></td><td>{{ e.ValueDescriptions[value] }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
         {% endfor %}
-</div>
-    <div class="col-md-3 hidden-xs hidden-sm">
-        <div class="side-nav">
-            <ul class="nav nav-stacked">
-                <li class="active">
-                    <a href="#configuration">Configuration</a>
-                    <ul class="nav">
-                        <li><a href="#commandline">Command line options</a></li>
-                        <li><a href="#gamemanifeset">Game.json configuration</a></li>
-                        <li><a href="#updatemanifest">Update service</a></li>
-                        <li><a href="#statsservice">Statistics service</a></li>
-                        <li><a href="#crashreports">Crash report service</a></li>
-                    </ul>
-                </li> 
-                <li>
-                    <a href="#functions">Functions</a>
-                    <ul class="nav">
-                        {% for f in site.data.moduleApi.Functions %}
-                            <li><a href="#{{ f.Id }}">{{ f.Name }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </li> 
-                <li>
-                    <a href="#interfaces">Interfaces</a>
-                    <ul class="nav">
-                        {% for c in site.data.api.Classes %}
-                            <li><a href="#{{ c.Id }}">{{ c.Name }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </li>
-                <li>
-                    <a href="#structs">Structs</a>
-                    <ul class="nav">
-                        {% for s in site.data.api.Structs %}
-                            <li><a href="#{{ s.Id }}">{{ s.Name }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </li>
-                <li>
-                    <a href="#enums">Enumerations</a>
-                    <ul class="nav">
-                        {% for e in site.data.api.Enums %}
-                            <li><a href="#{{ e.Id }}">{{ e.Name }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </li>
-            </ul>
-        </div>
     </div>
 </div>
 
 <script type="text/javascript">
     $(function() {
-        $(document).ready(function () {
-            $('.side-nav').biscroll({
-                main: '.main',
-                footer: 'footer'
+        var nav = $('.api-nav');
+        $('body').scrollspy({ target: '.side-nav', offset: 80 });
+
+        // Keeps the current entry visible in the sidebar while the page scrolls.
+        nav.on('activate.bs.scrollspy', function (e) {
+            var item = $(e.target);
+            var link = item.children('a')[0];
+            if (!link || item.children('ul').length || nav.is(':hover')) return;
+            var top = link.getBoundingClientRect().top - nav[0].getBoundingClientRect().top + nav.scrollTop();
+            if (top < nav.scrollTop() + 60 || top > nav.scrollTop() + nav.height() - 60) {
+                nav.scrollTop(top - nav.height() / 2);
+            }
+        });
+
+        $('#api-filter').on('input', function () {
+            var term = this.value.toLowerCase();
+            nav.find('ul ul li').each(function () {
+                $(this).toggle($(this).text().toLowerCase().indexOf(term) !== -1);
             });
-            $('body').scrollspy({ target: '.side-nav',offset:60 });
         });
     });
 </script>
-

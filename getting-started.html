@@ -1,251 +1,127 @@
 ---
 layout: default
+title: Getting started
 ---
-<div class="row">    
-    <div class="col-md-9 main">
-        <h1 id="overview" class="page-header">Overview</h1>
-        <p>Matchstick (MGDF) provides tools to develop, distribute, and update C++ games on Windows. It provides DirectX 12 rendering with OpenXR VR support, OpenAL audio, XInput gamepad input, and HTTP/S and WebSocket networking support. Its virtual file system gives modules access to files on disk and in archives.</p>
-        
-        <p>MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game. For distribution, MGDF has an optional updater and an optional crash reporter.</p>
+<div class="row docs-row">
+    <div class="col-md-9 main guide">
+        <h1 id="overview" class="page-header">Getting started</h1>
+        <p class="lead">Matchstick (MGDF) runs your game. It opens the window, creates the Direct3D 12 device, and drives the game loop. You write a DLL that draws and updates.</p>
 
-        <p>MGDF has three parts. The core runs the game. The updater and the crash reporter are optional. A game installer or a store client installs the game.</p>
-
-        <h2>The core <small>(core.exe)</small></h2>
-        <p>This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before loading the user supplied game dll (known as a game module) and passing control on to that module. Once up and running the game module can then access the framework's functionality via a series of c++ interfaces (see the <a href="{{ site.baseurl }}/api#interfaces">API reference</a> for more details)</p>
-        <p>The module uses MGDF interfaces for audio, input, files, networking, and graphics settings. Call <code>IMGDFCommonHost::GetD3D12Device</code> to get the graphics device. Use <code>IMGDFRenderHost</code> on the render thread for frame data and rendering calls.</p>
-
-        <div class="architecture hidden-xs hidden-sm">
-            <br />
-            <div class="row">
-                <div class="col-md-12">
-                    <p><small>game/bin/module.dll</small></p>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12" style="background-color:#0094ff">
-                    <h4>Game module</h4>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <p><small>core.exe</small></p>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-10" style="background-color: #ff6a00; border-right: 5px solid #000">
-                    <h4>MGDF interfaces</h4>
-                </div>
-                <div class="col-md-2" style="background-color: #ff0094;">
-                    <h4>&nbsp;</h4>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-10" style="background-color: #00ff94; border: 5px solid #000; border-left:none">
-                    <h4>MGDF host</h4>
-                </div>
-                <div class="col-md-2" style="background-color: #ff0094; border-top: 5px solid #ff0094; border-bottom: 5px solid #ff0094; ">
-                    <h4>D3D12</h4>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-3" style="background-color: #808080; border-right:5px solid #000">
-                    <h4>OpenAL audio</h4>
-                </div>
-                <div class="col-md-3" style="background-color: #0094ff; border-right: 5px solid #000">
-                    <h4>Input devices</h4>
-                </div>
-                <div class="col-md-3" style="background-color: #4800ff; border-right: 5px solid #000">
-                    <h4>File system</h4>
-                </div>
-                <div class="col-md-3" style="background-color: #ff0094">
-                    <h4>&nbsp;</h4>
-                </div>
-            </div>
-            <br />
+        <div class="learn">
+            <h4>You will learn</h4>
+            <ul>
+                <li>How Matchstick and your game fit together</li>
+                <li>How to lay out a game folder</li>
+                <li>How to write a minimal game module</li>
+                <li>How to run and debug it</li>
+            </ul>
         </div>
 
-        <h2>The updater <small>(updater.exe)</small></h2>
-        <p>The game shortcut of an installed game starts the updater. The updater asks the update service of the game for a newer version. If there is a newer version, the player can install it or play the current version. Then the updater starts core.exe. See <a href="#updating">Updating</a>.</p>
-        <p class="alert alert-info"><strong>NOTE</strong> The updater is optional. A store build starts core.exe directly and does not ship updater.exe, because the store client updates the game.</p>
+        <h2 id="how-it-works">How it works</h2>
+        <p>Your game is a DLL called a <em>module</em>. The host, <code>core.exe</code>, loads it and calls it once per simulation tick and once per frame. In return, the module calls the host for audio, input, files, networking and settings.</p>
+        <p>Rendering is the exception. Matchstick doesn't wrap Direct3D. It hands you the device and the command queues, and you draw with them directly.</p>
 
-        <h2>The crash reporter <small>(crashreporter.exe)</small></h2>
-        <p>When the game crashes, the crash reporter shows a dialog. The player can send a crash report to the crash report service of the game. See <a href="#crashreports">Crash reports</a>.</p>
-        <p>The updater and the crash reporter need .NET Framework 4.8. The core does not need it.</p>
+        <figure class="diagram">
+            <svg viewBox="0 0 720 290" role="img" aria-label="Your module sits on top of core.exe. It calls the MGDF interfaces for audio, input, files, networking and telemetry, and uses Direct3D 12 directly.">
+                <defs><marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+                <rect class="box you" x="20" y="14" width="680" height="56" rx="6"/>
+                <text x="360" y="39">Your game</text>
+                <text class="sub" x="360" y="57">game/bin/module.dll</text>
+                <path class="line" d="M270 70V108" marker-end="url(#arch-arrow)"/>
+                <path class="line" d="M620 70V108" marker-end="url(#arch-arrow)"/>
+                <rect class="group" x="10" y="98" width="700" height="166" rx="8"/>
+                <rect class="box" x="20" y="110" width="500" height="56" rx="6"/>
+                <text x="270" y="135">MGDF interfaces</text>
+                <text class="sub" x="270" y="153">IMGDFSimHost · IMGDFRenderHost</text>
+                <rect class="box" x="20" y="186" width="92" height="56" rx="6"/>
+                <text x="66" y="219">Audio</text>
+                <rect class="box" x="122" y="186" width="92" height="56" rx="6"/>
+                <text x="168" y="219">Input</text>
+                <rect class="box" x="224" y="186" width="92" height="56" rx="6"/>
+                <text x="270" y="219">Files</text>
+                <rect class="box" x="326" y="186" width="92" height="56" rx="6"/>
+                <text x="372" y="219">Network</text>
+                <rect class="box" x="428" y="186" width="92" height="56" rx="6"/>
+                <text x="474" y="219">Telemetry</text>
+                <rect class="box hot" x="540" y="110" width="160" height="132" rx="6"/>
+                <text x="620" y="172">Direct3D 12</text>
+                <text class="sub" x="620" y="190">device and queues</text>
+                <text class="label start" x="20" y="282">core.exe</text>
+            </svg>
+        </figure>
 
-        <h1 id="newgame" class="page-header">Building a new game</h1>
-        <p id="folderstructure">MGDF expects the game files in a standard folder layout inside the install folder. The layout is as follows.</p>
+        <p>Two more programs ship beside the host. Both are optional.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Program</th><th>What it does</th><th>Ship it when</th></tr></thead>
+            <tbody>
+                <tr><td><code>core.exe</code></td><td>Runs the game.</td><td>Always.</td></tr>
+                <tr><td><code>updater.exe</code></td><td>Checks for a new version, then starts the game.</td><td>You distribute the game yourself.</td></tr>
+                <tr><td><code>crashreporter.exe</code></td><td>Offers to send a report after a crash.</td><td>You run a crash report service.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p><a href="{{ site.baseurl }}/distributing">Distributing a game</a> covers both.</p>
 
-        <p class="alert alert-info"><strong>NOTE</strong> The MGDF runtime zip in the SDK has this layout. Add the /game folder to make a complete game. Do not change the other runtime files and folders.</p>
-
-        <p>/install folder</p>
-        <ul class="fs-layout">
-            <li><h4>core.exe <small><em>[Required]</em></small></h4><p>Runs the game. A store build and a development build start this file directly.</p></li>
-            <li><h4>updater.exe <small><em>[Optional]</em></small></h4><p>Checks for updates, then starts core.exe. The shortcuts of an installed game start this file. Do not ship it in a store build.</p></li>
-            <li><h4>crashreporter.exe <small><em>[Optional]</em></small></h4><p>Shows the crash dialog and sends crash reports. The core uses it only when game.json has a <code>crashReportService</code>.</p></li>
-            <li><h4>.env <small><em>[Optional]</em></small></h4><p>Sets core.exe arguments for development. See <a href="#running">Running a game</a>.</p></li>
-            <li><p>... other runtime files and folders</p></li>
-            <li><p>/resources</p></li>
-            <li><h4>/dependencies</h4><p>Contains <code>vc2022_redist.x64.exe</code>. The game installer must run it (see <a href="#installing">Installing</a>).</p></li>
-            <li>
-                <h4>/game</h4>
-                <p>All games files should be placed inside this folder</p>
-                <ul>
-                    <li>
-                        <h4>/bin</h4><p>All game executable dlls should be placed inside this folder</p>
-                        <ul>
-                            <li><h4>module.dll <small><em>[Required]</em></small></h4><p> This dll is required and provides an entry point for the host to create an instance of the game module.</p></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <h4>/content</h4>
-                        <ul>
-                            <li><p>Any game data files should go in here. This folder serves as the root of the virtual file system and content outside this folder is not accessable</p></li>
-                        </ul>
-                    </li>
-                    <li><h4>game.json <small><em>[Required]</em></small></h4><p>This JSON file contains the name, version, services, and preference settings of the game. The game name is also the title of the game window. The game does not run without this file. An installer must write this file last (see <a href="#installing">Installing</a>).</p></li>
-                    <li><h4>gameIcon.png <small><em>[Optional]</em></small></h4><p>This 48x48 PNG file is the icon of the game window, the taskbar button, the update dialog, and the crash dialog. The host scales the image to the window icon sizes for the system DPI, so use a square image. If this file is not present, MGDF uses a default icon. The installer supplies the icons for shortcuts and the uninstall record.</p></li>
-                </ul>
-            </li>
+        <h2 id="setup">Before you start</h2>
+        <p>You need:</p>
+        <ul>
+            <li>Windows 10 or later, and a GPU with a Direct3D 12 driver</li>
+            <li>Visual Studio with the C++ desktop workload</li>
+            <li>Windows SDK 10.0.26100 or later</li>
+            <li>The <a href="{{ site.sdkdownloadurl }}">Matchstick SDK</a></li>
         </ul>
+        <p>The SDK contains the runtime, the headers, and a sample game in <code>src/samples/EmptyGame</code>. The sample is the quickest way to begin: it builds a working <code>module.dll</code> with every callback stubbed out.</p>
 
-        <h2 id="gamemanifest">Game.json</h2>
-        <p>The core and the updater read this file. A basic manifest is shown below. Only <code>gameUid</code>, <code>gameName</code>, and <code>version</code> are necessary. For all the fields and the programs that read them, see the <a href="{{ site.baseurl }}/api#gamemanifeset">API reference</a>.</p>
+        <h2 id="folderstructure">Lay out the game folder</h2>
+        <p>The runtime zip in the SDK is already a complete install folder. Add a <code>game</code> folder to it and you have a game.</p>
+<pre class="tree">
+install folder
+├── core.exe
+├── updater.exe              <span class="note">optional</span>
+├── crashreporter.exe        <span class="note">optional</span>
+├── dependencies/            <span class="note">Visual C++ runtime installer</span>
+├── resources/
+└── <span class="you">game/</span>
+    ├── <span class="you">game.json</span>            <span class="note">name, version and settings</span>
+    ├── <span class="you">gameIcon.png</span>         <span class="note">optional 48x48 window icon</span>
+    ├── <span class="you">bin/module.dll</span>       <span class="note">your code</span>
+    └── <span class="you">content/</span>             <span class="note">your data files</span>
+</pre>
+        <p>You own everything in green. Leave the rest of the runtime as it is.</p>
+        <p>The <code>content</code> folder is the root of the virtual file system. Your module can't read files outside it.</p>
+
+        <h2 id="gamemanifest">Describe the game</h2>
+        <p><code>game.json</code> tells the host what it is running. Three fields are required:</p>
 {% highlight json %}
 {
-    "gameUid":"a unique id",
-    "gameName":"A human readable name",
-    "version":"0.1",
-    "crashReportService":"https://www.example.com/api/crashes",
-    "privacyPolicy":"https://www.example.com/privacy",
-    "updateService":"https://www.example.com/api/update.json"
+    "gameUid": "b7a1c2de-0f3a-4c57-9d1e-2f6a8e4b9c10",
+    "gameName": "My Game",
+    "version": "0.1"
 }
 {% endhighlight %}
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Field</th><th>Used for</th></tr></thead>
+            <tbody>
+                <tr><td><code>gameUid</code></td><td>Keeps this game's saves, preferences and logs apart from other games. Use a GUID.</td></tr>
+                <tr><td><code>gameName</code></td><td>The window title.</td></tr>
+                <tr><td><code>version</code></td><td>Update checks and crash reports.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>The same file sets default preferences and turns on updates, crash reports and statistics. See the <a href="{{ site.baseurl }}/api#gamemanifeset">game.json reference</a> for every field.</p>
+        <p id="windowtitle">To change the window title while the game runs, call <a href="{{ site.baseurl }}/api#IMGDFCommonHost">SetWindowTitle</a>.</p>
 
-        <h2 id="gamemodule">Module.dll</h2>
-        <p>Module.dll is the actual entry point into your game. This dll requires a <a href="{{ site.baseurl }}/api#functions">number of functions</a> to be exported, and must be able to provide the mgdf host with an instance of the <a href="{{ site.baseurl }}/api#IMGDFModule">IMGDFModule</a> interface in order for the host to be able to run your game code.</p>
-        <p>MGDF is multithreaded and runs two main threads, the <em>Sim thread</em> and the <em>Render thread</em>. The Render thread is responsible for all rendering, and the Sim thread is responsible for handling input, audio, game logic. It is important to handle the sharing of data between these threads in a threadsafe manner for a game to work correctly. For the most part this means minimizing the amount of
-        shared state between the Sim and Rendering parts of your game and ensuring that appropriate locking strategies are in place. </p>
-        <p>One method for managing this is to use a Double Buffered game state, i.e. the Sim thread modifies the game state and on each tick makes a copy of the current game state (or as much of a copy as the renderer needs to do its job) and copies it into a buffer which the Render thread can pick up when it's ready to render the next frame. In this way the Sim and Render threads can operate mostly independantly of each
-        other without having to worry about concurrency issues. By default the Render thread will not run more than once per Sim tick, so you don't have to worry about buffer underrun in this case either (though this behaviour is configurable - if you have a very slow Sim framerate and want to interpolate a single game state over several render frames - check out the host.interpolateFrames preference option in the <a href="{{ site.baseurl }}/api#gamemanifeset">Game.json API reference</a>)</p>
-        <p class="alert alert-info"><strong>NOTE</strong> The SDK includes a sample visual studio game project in src/samples/EmptyGame. This project contains a game.json file and will create a compatible module.dll with a stub module class.</p>
-        <h4>Implementing the IMGDFModule interface</h4>
-        <p>Implement each method in <a href="{{ site.baseurl }}/api#IMGDFModule">IMGDFModule</a>. The host calls ST methods on the simulation thread. It calls RT methods on the render thread. It can call <code>Panic</code> on either thread. MGDF interfaces use COM reference counting. Release each interface when you no longer need it.</p>
-        <p>Call <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a> methods to get the D3D12 device and command queues from either thread. <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> inherits these methods. Call its <code>GetCurrentFrame</code> method on the render thread to get the back buffer and its render target view. The module creates its own depth buffers.</p>
-        <p>This example shows the module callbacks and resource access. Add the drawing commands described in <a href="#d3d12module">Writing a D3D12 module</a>. Local <code>MGDF::ComObject</code> values release their references when the method returns. If you keep resources between frames, release back buffer references in <code>RTBeforeBackBufferChange</code>. Release device resources in <code>RTBeforeDeviceReset</code> and <code>RTShutDown</code>.</p>
-        <h5>Module.hpp</h5>
+        <h2 id="gamemodule">Write the module</h2>
+        <p>A module exports two functions. <code>GetGraphicsRequirements</code> tells the host which GPU features you need, and <code>GetModule</code> returns your game object.</p>
 {% highlight c++ %}
-#pragma once
-#include <crtdbg.h>
-#include <cstring>
 #include <MGDF/MGDF.h>
 #include <MGDF/ComObject.hpp>
-
-class Module: public MGDF::ComBase<IMGDFModule>
-{
-public:
-    virtual ~Module() = default;
-    BOOL __stdcall STNew(IMGDFSimHost *host) final;
-    BOOL __stdcall STUpdate(IMGDFSimHost *host, double elapsedTime) final;
-    void __stdcall STShutDown(IMGDFSimHost *host) final;
-    BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *host) final;
-    BOOL __stdcall RTDraw(IMGDFRenderHost *host, double alpha) final;
-    void __stdcall RTAfterPresent(IMGDFRenderHost *host) final;
-    BOOL __stdcall RTBeforeBackBufferChange(IMGDFRenderHost *host) final;
-    BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *host) final;
-    BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *host) final;
-    BOOL __stdcall RTDeviceReset(IMGDFRenderHost *host) final;
-    void __stdcall RTShutDown(IMGDFRenderHost *host) final;
-    void __stdcall Panic() final;
-};
-{% endhighlight %}
-        <h5>Module.cpp</h5>
-{% highlight c++ %}
 #include "Module.hpp"
-
-BOOL __stdcall Module::STNew(IMGDFSimHost *host)
-{
-    // Initialize the simulation.
-    return TRUE;
-}
-BOOL __stdcall Module::STUpdate(IMGDFSimHost *host, double elapsedTime)
-{
-    // Update the game state.
-    return TRUE;
-}
-void __stdcall Module::STShutDown(IMGDFSimHost *host)
-{
-    host->ShutDown();
-}
-BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host)
-{
-    // Initialize rendering resources.
-    return TRUE;
-}
-BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha)
-{
-    MGDF::ComObject<ID3D12Device10> device;
-    host->GetD3D12Device(device.Assign());
-    MGDF::ComObject<ID3D12CommandQueue> directQueue;
-    host->GetDirectQueue(directQueue.Assign());
-    MGDFFrameInfo frame = {};
-    host->GetCurrentFrame(&frame);
-
-    // Record drawing commands for frame.BackBuffer and frame.BackBufferRTV.
-    // Restore D3D12_RESOURCE_STATE_PRESENT, then submit on directQueue.
-    return TRUE;
-}
-void __stdcall Module::RTAfterPresent(IMGDFRenderHost *host)
-{
-    // The host calls this after Present on each render frame.
-}
-BOOL __stdcall Module::RTBeforeBackBufferChange(IMGDFRenderHost *host)
-{
-    // Release saved back buffer references and views here.
-    return TRUE;
-}
-BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host)
-{
-    // Recreate resources that depend on the back buffer size.
-    return TRUE;
-}
-BOOL __stdcall Module::RTBeforeDeviceReset(IMGDFRenderHost *host)
-{
-    // Release saved device resources here.
-    host->QueueDeviceReset();
-    return TRUE;
-}
-BOOL __stdcall Module::RTDeviceReset(IMGDFRenderHost *host)
-{
-    // Recreate device resources here.
-    return TRUE;
-}
-void __stdcall Module::RTShutDown(IMGDFRenderHost *host)
-{
-    // Release saved rendering resources here.
-}
-void __stdcall Module::Panic()
-{
-    // Clean up after a fatal error without calling host methods.
-}
-{% endhighlight %}
-
-    <h4>Implementing main.cpp</h4>
-    <p>Export <a href="{{ site.baseurl }}/api#functions">GetGraphicsRequirements</a> to fill <a href="{{ site.baseurl }}/api#MGDFGraphicsRequirements">MGDFGraphicsRequirements</a>. Set <code>MinFeatureLevel</code> to the minimum D3D feature level and <code>MinShaderModel</code> to a <code>D3D_SHADER_MODEL</code> value. Set <code>HDRFormat</code> to the format that the module writes for HDR output. Zero selects scRGB. Set <code>VR</code> to <code>TRUE</code> only if the module renders both headset views and the window.</p>
-    <p>The host reads these requirements before it calls <code>GetModule</code>. This example requires feature level 11.0 and shader model 6.0. It keeps VR off.</p>
-{% highlight c++ %}
-#include "Module.hpp"
-
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
-{
-	return TRUE;
-}
 
 extern "C" __declspec(dllexport) HRESULT
 GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
-  if (!requirements) return E_POINTER;
   *requirements = {};
   requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
   requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
@@ -254,532 +130,168 @@ GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
 
 extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
   auto m = MGDF::MakeCom<Module>();
+  // Hands the host a reference of its own
   m.AddRawRef(module);
   return S_OK;
 }
-
 {% endhighlight %}
-    <h4 id="windowtitle">Window title</h4>
-    <p>The game window shows the <code>gameName</code> from game.json. Call <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost::SetWindowTitle</a> to show a different title, for example the build configuration or the current level. The title is UTF-8. A null or empty title restores the game name.</p>
-    <p>Call it from the Sim thread or the Render thread. The host changes the title on the window thread, so the call does not wait for the window.</p>
+        <p>The game object implements <a href="{{ site.baseurl }}/api#IMGDFModule">IMGDFModule</a>. The host calls its methods, and each one receives the host interface for the thread it runs on.</p>
 {% highlight c++ %}
-BOOL Module::STNew(IMGDFSimHost *host) {
-#if defined(_DEBUG)
-  host->SetWindowTitle("My Game - Debug");
-#endif
-  return TRUE;
+class Module : public MGDF::ComBase<IMGDFModule> {
+ public:
+  // Sim thread: game logic
+  BOOL __stdcall STNew(IMGDFSimHost *host) final;
+  BOOL __stdcall STUpdate(IMGDFSimHost *host, double elapsedTime) final;
+  void __stdcall STShutDown(IMGDFSimHost *host) final;
+
+  // Render thread: drawing, and rebuilding GPU resources
+  BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *host) final;
+  BOOL __stdcall RTDraw(IMGDFRenderHost *host, double alpha) final;
+  void __stdcall RTAfterPresent(IMGDFRenderHost *host) final;
+  BOOL __stdcall RTBeforeBackBufferChange(IMGDFRenderHost *host) final;
+  BOOL __stdcall RTBackBufferChange(IMGDFRenderHost *host) final;
+  BOOL __stdcall RTBeforeDeviceReset(IMGDFRenderHost *host) final;
+  BOOL __stdcall RTDeviceReset(IMGDFRenderHost *host) final;
+  void __stdcall RTShutDown(IMGDFRenderHost *host) final;
+
+  // A fatal error occurred. Clean up, and do not call the host.
+  void __stdcall Panic() final;
+};
+{% endhighlight %}
+        <p>The prefix tells you the thread. <code>ST</code> methods run on the sim thread and <code>RT</code> methods run on the render thread.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Callback</th><th>Called</th><th>Use it to</th></tr></thead>
+            <tbody>
+                <tr><td><code>STNew</code></td><td>Once, at startup</td><td>Set up the game state.</td></tr>
+                <tr><td><code>STUpdate</code></td><td>Every tick</td><td>Read input, play audio, advance the game.</td></tr>
+                <tr><td><code>STShutDown</code></td><td>When the player quits</td><td>Save, then call <code>host->ShutDown()</code>.</td></tr>
+                <tr><td><code>RTBeforeFirstDraw</code></td><td>Once, before the first frame</td><td>Create GPU resources.</td></tr>
+                <tr><td><code>RTDraw</code></td><td>Every frame</td><td>Record and submit your drawing.</td></tr>
+                <tr><td><code>RTAfterPresent</code></td><td>Every frame, after present</td><td>Submit background GPU work.</td></tr>
+                <tr><td><code>RTBeforeBackBufferChange</code><br /><code>RTBackBufferChange</code></td><td>Around a resize</td><td>Release, then recreate, anything sized to the window.</td></tr>
+                <tr><td><code>RTBeforeDeviceReset</code><br /><code>RTDeviceReset</code></td><td>Around a device loss</td><td>Release, then recreate, every GPU resource.</td></tr>
+                <tr><td><code>RTShutDown</code></td><td>Once, at exit</td><td>Release GPU resources.</td></tr>
+                <tr><td><code>Panic</code></td><td>On a fatal error</td><td>Clean up without calling the host.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>The game closes only when you say so. When the player quits, the host calls <code>STShutDown</code> and waits for you to call <code>ShutDown</code>:</p>
+{% highlight c++ %}
+void __stdcall Module::STShutDown(IMGDFSimHost *host) {
+  host->ShutDown();
 }
 {% endhighlight %}
-    <h2 id="d3d12module">Writing a D3D12 module</h2>
-    <p>Declare the module's graphics requirements as shown above. Use the device and queues to create resources, record commands, and submit each frame.</p>
-    <p>To render to a headset, follow the <a href="{{ site.baseurl }}/vr">OpenXR VR guide</a>. It covers opt-in, eye targets, controllers, and optional features. Keep drawing the window in VR.</p>
+        <div class="callout">
+            <p><strong>Note</strong>Host interfaces are COM objects. Hold them in <code>MGDF::ComObject</code> and they release themselves.</p>
+        </div>
 
-    <h4>Device and queue access</h4>
-    <p>Use <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a> methods from either thread. <code>GetD3D12Device</code> returns an <code>ID3D12Device10</code> reference. <code>GetDirectQueue</code>, <code>GetComputeQueue</code>, and <code>GetCopyQueue</code> return command queue references. The module owns these returned references. Release them before you acknowledge a device reset. The device can be null during a reset.</p>
-    <p>Use <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> on the render thread. <code>GetCurrentFrame</code> fills an <a href="{{ site.baseurl }}/api#MGDFFrameInfo">MGDFFrameInfo</a> structure. <code>GetFrameFence</code> returns an owned reference to the frame fence. Release that reference when you no longer need it. Do not signal this fence.</p>
-    <p><code>MGDFFrameInfo</code> supplies the current <code>BackBuffer</code>, <code>BackBufferRTV</code>, <code>BackBufferDesc</code>, and <code>BackBufferIndex</code>. The back buffer pointer is borrowed. Release any references you add before <code>RTBeforeBackBufferChange</code> returns. Get the current frame again after a back buffer change. The D3D12 swap chain uses one sample per pixel. The module creates its own depth buffers and multisample targets.</p>
+        <h2 id="threads">Share state between two threads</h2>
+        <p>The sim thread and the render thread run at the same time. The sim thread owns the game state. The render thread only draws.</p>
 
-    <h4>Frame contract</h4>
-    <ol>
-        <li>Call <code>GetCurrentFrame</code> in <code>RTDraw</code>. The back buffer enters this callback in <code>D3D12_RESOURCE_STATE_PRESENT</code>.</li>
-        <li>Record the module's command lists. Add a resource barrier before you use the back buffer as a render target. End each list that uses the back buffer with a transition to <code>D3D12_RESOURCE_STATE_PRESENT</code>.</li>
-        <li>Execute the lists on the direct queue in <code>RTDraw</code>. The module submits its own lists. The back buffer must be in <code>PRESENT</code> state when those lists complete.</li>
-        <li>The host calls <code>Present</code> after <code>RTDraw</code>. It then calls <code>void RTAfterPresent(IMGDFRenderHost *host)</code>. Use this callback to submit background work that does not use the presented back buffer.</li>
-        <li>After <code>RTAfterPresent</code> returns, the host resolves GPU counters. It then signals the frame fence on the direct queue with <code>FrameOrdinal</code>.</li>
-    </ol>
-    <p><code>FrameOrdinal</code> and <code>FrameSlot</code> stay fixed through <code>RTAfterPresent</code>. Work on the compute or copy queue needs explicit synchronization. Signal a module fence on that queue after its work. Add a wait for that value on the direct queue before <code>RTAfterPresent</code> returns. The host's frame fence covers that work only after this synchronization.</p>
+        <figure class="diagram">
+            <svg viewBox="0 0 720 262" role="img" aria-label="The sim thread calls STNew, then STUpdate every tick, then STShutDown. The render thread calls RTBeforeFirstDraw, then RTDraw and RTAfterPresent every frame, then RTShutDown. STUpdate publishes a state snapshot that RTDraw reads.">
+                <defs><marker id="thread-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+                <text class="label start" x="20" y="22">Sim thread</text>
+                <rect class="box" x="20" y="36" width="130" height="44" rx="6"/>
+                <text x="85" y="63">STNew</text>
+                <path class="line" d="M150 58H228" marker-end="url(#thread-arrow)"/>
+                <rect class="box you" x="230" y="36" width="130" height="44" rx="6"/>
+                <text x="295" y="63">STUpdate</text>
+                <path class="line" d="M270 36C270 4 320 4 320 34" marker-end="url(#thread-arrow)"/>
+                <text class="label start" x="330" y="20">every tick</text>
+                <path class="line" d="M360 58H568" marker-end="url(#thread-arrow)" stroke-dasharray="4 4"/>
+                <rect class="box" x="570" y="36" width="130" height="44" rx="6"/>
+                <text x="635" y="63">STShutDown</text>
 
-    <h4>Frame resources and deferred release</h4>
-    <p>The host permits two frames in flight. <code>FramesInFlight</code> is 2. <code>FrameSlot</code> equals <code>FrameOrdinal % FramesInFlight</code>. Keep a command allocator and other temporary resources for each frame slot. Use <code>FrameSlot</code> to select them. <code>BackBufferIndex</code> identifies the swap chain image and is separate from the frame slot.</p>
-    <p>The host waits for the previous use of a frame slot before it calls <code>RTDraw</code>. You can then reset that slot's command allocator and reuse its resources. This applies to work covered by the host's frame fence. Track other queue work with a module fence.</p>
-    <p>Record a resource's last <code>FrameOrdinal</code> when you submit its final use. Keep the resource in a deferred release list. <code>CompletedOrdinal</code> is the highest completed frame fence value when the host prepares the frame. Release the resource only when <code>CompletedOrdinal &gt;= lastUseOrdinal</code>. Apply the same rule before you reuse upload memory or GPU descriptor storage. CPU return from <code>RTDraw</code> does not indicate GPU completion.</p>
+                <path class="line" d="M295 80V160" marker-end="url(#thread-arrow)"/>
+                <text class="label start" x="305" y="125">state snapshot</text>
 
-    <h4>GPU counters</h4>
-    <p>Use <code>IMGDFRenderHost::CreateGPUCounter</code> to time commands on a direct queue list. Pass an <code>IMGDFMetric</code>, the native command list, and an output pointer for <code>IMGDFPerformanceCounter</code>. Compute and copy lists are not supported.</p>
-    <p>For lists used with GPU counters, include <code>MGDF/D3D12CommandList.hpp</code> from <code>include/MGDF/D3D12CommandList.hpp</code> in the SDK. Use <code>MGDF::D3D12CommandList::Create</code> to create each list. Call <code>Reset</code> on the helper to start a new recording. Call <code>Close</code> on the helper to finish recording. Use <code>Get</code> to record commands, create counters, and submit the native list. Do not call <code>Reset</code> or <code>Close</code> through the native pointer. The counter needs the helper's recording state. An untracked list returns <code>E_INVALIDARG</code>.</p>
-    <p>Begin each counter scope while its list is recording. Release the scope before you close or reset the list. Execute that list in the same frame before <code>RTAfterPresent</code> returns. The host logs and discards a scope that ends after its list closes, resets, or passes the end of its frame.</p>
-    <p>This helper records and submits a timed clear from <code>RTDraw</code>. The caller supplies an open command list for the current frame slot. Keep that list and its allocator alive until the frame completes. Create the metric with <code>IMGDFCommonHost::CreateGaugeMetric</code>.</p>
+                <text class="label start" x="20" y="148">Render thread</text>
+                <rect class="box" x="20" y="162" width="160" height="44" rx="6"/>
+                <text x="100" y="189">RTBeforeFirstDraw</text>
+                <path class="line" d="M180 184H228" marker-end="url(#thread-arrow)"/>
+                <rect class="box you" x="230" y="162" width="130" height="44" rx="6"/>
+                <text x="295" y="189">RTDraw</text>
+                <path class="line" d="M360 184H398" marker-end="url(#thread-arrow)"/>
+                <rect class="box" x="400" y="162" width="140" height="44" rx="6"/>
+                <text x="470" y="189">RTAfterPresent</text>
+                <path class="line" d="M470 206C470 244 295 244 295 208" marker-end="url(#thread-arrow)"/>
+                <text class="label" x="382" y="254">every frame</text>
+                <path class="line" d="M540 184H578" marker-end="url(#thread-arrow)" stroke-dasharray="4 4"/>
+                <rect class="box" x="580" y="162" width="120" height="44" rx="6"/>
+                <text x="640" y="189">RTShutDown</text>
+            </svg>
+        </figure>
+
+        <p>Keep the two apart. At the end of each tick, copy what the renderer needs into a snapshot and swap it in under a lock. <code>RTDraw</code> picks up the latest snapshot and draws from that alone.</p>
 {% highlight c++ %}
-#include <crtdbg.h>
-#include <cstring>
-#include <MGDF/MGDF.h>
-#include <MGDF/D3D12CommandList.hpp>
+BOOL __stdcall Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {
+  _world.Advance(elapsedTime);
 
-HRESULT DrawTimedClear(IMGDFRenderHost *host,
-                      ID3D12CommandQueue *directQueue,
-                      MGDF::D3D12CommandList &commands,
-                      IMGDFMetric *metric) {
-  MGDFFrameInfo frame = {};
-  host->GetCurrentFrame(&frame);
-  auto list = commands.Get();
+  // Publish a copy for the render thread
+  std::lock_guard<std::mutex> lock(_mutex);
+  _snapshot = _world.Snapshot();
+  return TRUE;
+}
 
-  MGDF::ComObject<IMGDFPerformanceCounter> counter;
-  HRESULT result = host->CreateGPUCounter(metric, list, counter.Assign());
-  if (FAILED(result)) return result;
-
+BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha) {
+  // Copy under the lock, then draw without holding it
+  Snapshot frame;
   {
-    MGDF::ComObject<IMGDFPerformanceCounterScope> scope;
-    result = counter->Begin(nullptr, scope.Assign());
-    if (FAILED(result)) return result;
-
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = frame.BackBuffer;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    list->ResourceBarrier(1, &barrier);
-
-    const float color[4] = {0.1f, 0.2f, 0.3f, 1.0f};
-    list->ClearRenderTargetView(frame.BackBufferRTV, color, 0, nullptr);
-
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    list->ResourceBarrier(1, &barrier);
-  } // Release the scope while the list is still recording.
-
-  result = commands.Close();
-  if (FAILED(result)) return result;
-  ID3D12CommandList *lists[] = {list};
-  directQueue->ExecuteCommandLists(1, lists);
-  return S_OK;
-}
-{% endhighlight %}
-    <p>Call <code>Create(device, allocator)</code> before the list's first use. This leaves the list open. For each later use, reset the completed frame slot's allocator first. Then call <code>Reset(allocator)</code> on the helper before <code>DrawTimedClear</code>. Return <code>TRUE</code> from <code>RTDraw</code> after a successful submission.</p>
-
-    <h4>Build requirements</h4>
-    <p>Build modules with Windows SDK 10.0.26100 or later. The MGDF headers need no other D3D12 headers. Modules use MGDF types and calls for VR and need no OpenXR SDK.</p>
-
-    <h2 id="upscaling">Upscaling, frame generation and low latency</h2>
-    <p>A module can use NVIDIA DLSS upscaling and DLAA, DLSS frame generation (DLSS-G) and Reflex low latency through the MGDF API. The module uses only MGDF types.</p>
-    <p>In VR, DLSS can upscale each eye separately. Frame generation is off and <code>GetMaxGeneratedFrames</code> returns 0. Low latency sleep and frame markers have no effect. The saved preferences apply again when VR ends. See <a href="{{ site.baseurl }}/vr#upscaling">VR upscaling and latency</a>.</p>
-    <p>The module does not request these features. The host starts them when the device supports them, and tells the module what is supported. The module:</p>
-    <ul>
-        <li>Reads the supported modes from the render settings manager.</li>
-        <li>Selects the upscale mode and the render size.</li>
-        <li>Renders the inputs: jittered color, depth and motion vectors. Frame generation can also use a color image without UI (hudless) and a UI image.</li>
-        <li>Supplies the camera data for each frame.</li>
-        <li>Reports the frame markers inside its frame: simulation, input and render submit.</li>
-        <li>Shows the settings to the user, and keeps a path that works without the features.</li>
-    </ul>
-
-    <h4>Find what the device supports</h4>
-    <p>Read the support from <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>:</p>
-    <ul>
-        <li><code>GetUpscaleModeCount</code> and <code>GetUpscaleMode</code> give the <a href="{{ site.baseurl }}/api#MGDFUpscaleMode">MGDFUpscaleMode</a> values that the device supports. The list is empty when the device has no upscaler.</li>
-        <li><code>GetMaxGeneratedFrames</code> gives the largest number of generated frames per rendered frame. It is 0 when frame generation is not supported.</li>
-        <li><code>GetLowLatencyModeCount</code> and <code>GetLowLatencyMode</code> give the supported <a href="{{ site.baseurl }}/api#MGDFLowLatencyMode">MGDFLowLatencyMode</a> values. <code>MGDF_LOW_LATENCY_OFF</code> is always in the list.</li>
-    </ul>
-    <p>The host gets the support when it creates the device. Before that, the lists report no support. Read them in <code>RTBeforeFirstDraw</code>, and read them again in <code>RTDeviceReset</code>, because a new device can have different support. Use the same lists to show the settings to the user: show only the modes in the lists.</p>
-{% highlight c++ %}
-BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
-  MGDF::ComObject<IMGDFRenderSettingsManager> settings;
-  host->GetRenderSettings(settings.Assign());
-  _upscaleModes.clear();
-  for (UINT64 i = 0; i < settings->GetUpscaleModeCount(); ++i) {
-    MGDFUpscaleMode mode;
-    if (settings->GetUpscaleMode(i, &mode)) _upscaleModes.push_back(mode);
+    std::lock_guard<std::mutex> lock(_mutex);
+    frame = _snapshot;
   }
-  _maxGeneratedFrames = settings->GetMaxGeneratedFrames();
-  _lowLatencyModes.clear();
-  for (UINT64 i = 0; i < settings->GetLowLatencyModeCount(); ++i) {
-    MGDFLowLatencyMode mode;
-    if (settings->GetLowLatencyMode(i, &mode)) _lowLatencyModes.push_back(mode);
-  }
-  return TRUE;
+  return Draw(host, frame);
 }
 {% endhighlight %}
-    <p>While frame generation runs, the low latency mode is at least <code>MGDF_LOW_LATENCY_ON</code>. Frame generation does not work with an scRGB back buffer. Set <code>HDRFormat</code> in <code>GetGraphicsRequirements</code> to <code>MGDF_HDR_FORMAT_HDR10</code> if the module supports HDR output and frame generation (see <a href="#hdroutput">HDR output</a>).</p>
+        <p>The sim thread ticks 60 times a second by default. Change the rate with the <a href="{{ site.baseurl }}/api#hostpreferences">host.simFps</a> preference.</p>
 
-    <h4>Select a render size</h4>
-    <p>The module selects the upscale mode. Use a mode from the list. Call <code>IMGDFCommonHost::GetUpscaleRenderSize</code> with that mode and the output size. Render the scene at the size it returns. DLAA renders at the output size. <code>MinWidth</code> to <code>MaxWidth</code> and <code>MinHeight</code> to <code>MaxHeight</code> give the range for dynamic resolution. The output size changes with the back buffer, so select the render size again in <code>RTBackBufferChange</code>.</p>
-{% highlight c++ %}
-BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
-  _upscale = std::find(_upscaleModes.begin(), _upscaleModes.end(),
-                       _upscaleMode) != _upscaleModes.end();
-
-  MGDFBackBufferInfo info = {};
-  host->GetBackBufferInfo(&info);
-  _renderSize = {info.Width, info.Height, info.Width,
-                 info.Height, info.Width, info.Height};
-  if (_upscale) {
-    if (FAILED(host->GetUpscaleRenderSize(_upscaleMode, info.Width,
-                                           info.Height, &_renderSize)))
-      _upscale = false;
-  }
-  return CreateRenderTargets(_renderSize.Width, _renderSize.Height,
-                             info.Width, info.Height);
-}
-{% endhighlight %}
-
-    <h4>Low latency and frame generation settings</h4>
-    <p>The user selects the low latency mode and the number of generated frames. Use <code>SetLowLatencyMode</code> and <code>SetFrameGeneration</code> on <a href="{{ site.baseurl }}/api#IMGDFPendingRenderSettingsChange">IMGDFPendingRenderSettingsChange</a>, then release the change to apply it. <code>SetLowLatencyMode</code> returns <code>FALSE</code> for a mode that is not in the list. <code>SetFrameGeneration</code> returns <code>FALSE</code> for a value more than <code>GetMaxGeneratedFrames</code>. Read the current values with <code>GetCurrentLowLatencyMode</code> and <code>GetFrameGeneration</code>.</p>
-    <p>A low latency change applies on the next frame. A frame generation change makes a new swap chain, so the module gets <code>RTBeforeBackBufferChange</code> and <code>RTBackBufferChange</code>. The host keeps both values in the <a href="{{ site.baseurl }}/api#hostpreferences">host.lowLatencyMode and host.frameGeneration</a> preferences. When the device does not support a saved value, the host uses off. On some devices, vsync does not work with frame generation. On these devices the host presents without vsync while frame generation runs.</p>
-
-    <h4>Each frame</h4>
-    <p>In <code>RTDraw</code> the module does these steps on <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a>:</p>
-    <ol>
-        <li>Call <code>SetFrameMarker</code> with <code>MGDF_FRAME_MARKER_SIMULATION_START</code> before it reads the simulation state, and with <code>MGDF_FRAME_MARKER_SIMULATION_END</code> after it has the state. Report <code>MGDF_FRAME_MARKER_INPUT_SAMPLE</code> when it reads controller input. Report <code>MGDF_FRAME_MARKER_RENDER_SUBMIT_START</code> before it records the first command list.</li>
-        <li>Call <code>SetFrameConstants</code> once for each used <code>View</code> (0 or 1) with the camera data of the frame (<a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a>). The matrices are row-major for row vectors (<code>v * M</code>) and do not contain the jitter. <code>JitterOffset</code> is in render pixels. Set <code>ResetHistory</code> to <code>TRUE</code> after a camera cut. Each view has separate history. Use the same <code>View</code> in <code>MGDFUpscaleDesc</code>. Frame generation uses view 0.</li>
-        <li>Render the scene at the render size with jitter. Then call <code>Upscale</code> to record the upscale into a command list.</li>
-        <li>Render the post-processing and the UI at the output size. Call <code>SetFrameGenerationInputs</code>.</li>
-        <li>Execute the command lists. Call <code>SetFrameMarker</code> with <code>MGDF_FRAME_MARKER_RENDER_SUBMIT_END</code> after the last submit.</li>
-    </ol>
-    <p>Each <a href="{{ site.baseurl }}/api#MGDFFrameResource">MGDFFrameResource</a> has a <code>State</code>. This is the state that the resource has when the GPU runs the work that uses it. The calls do not add barriers and do not change resource states. Add the barriers before the call. A zero <code>Width</code> or <code>Height</code> selects the default region.</p>
-    <p><code>Upscale</code> has these rules:</p>
-    <ul>
-        <li>The list must be a direct list that is recording. Create it with the SDK <code>MGDF::D3D12CommandList</code> helper (see GPU counters in <a href="#d3d12module">Writing a D3D12 module</a>). An untracked list returns <code>E_INVALIDARG</code>.</li>
-        <li><code>ColorIn</code>, <code>Depth</code> and <code>MotionVectors</code> are at the render size. <code>ColorOut</code> is at the output size and needs unordered access. <code>Exposure</code> and <code>BiasCurrentColor</code> are optional. Without <code>Exposure</code> the upscaler uses automatic exposure. Set <code>ColorHDR</code> to <code>TRUE</code> if <code>ColorIn</code> is linear HDR color before tonemapping.</li>
-        <li>After the call, the descriptor heaps, root signature, pipeline state, render targets and viewports of the list are undefined. Set them again before you record more work.</li>
-        <li>It returns <code>E_ILLEGAL_METHOD_CALL</code> if <code>SetFrameConstants</code> was not called for that view in this frame, and <code>E_FAIL</code> if the upscaler failed.</li>
-    </ul>
-{% highlight c++ %}
-render->SetFrameConstants(&constants);
-DrawScene(list);  // Jittered, at the render size.
-TransitionUpscaleInputs(list);
-
-MGDFUpscaleDesc upscale = {};
-upscale.Mode = _upscaleMode;
-upscale.RenderWidth = _renderSize.Width;
-upscale.RenderHeight = _renderSize.Height;
-upscale.OutputWidth = _outputWidth;
-upscale.OutputHeight = _outputHeight;
-upscale.ColorHDR = TRUE;
-upscale.ColorIn = {_color.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
-upscale.ColorOut = {_upscaled.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS};
-upscale.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
-upscale.MotionVectors = {_motion.Get(),
-                         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
-if (FAILED(render->Upscale(list, &upscale))) return FALSE;
-
-list->SetDescriptorHeaps(1, _heaps.AsArray());  // Bind again after Upscale.
-{% endhighlight %}
-    <p><code>SetFrameGenerationInputs</code> has these rules:</p>
-    <ul>
-        <li>Call it before <code>RTDraw</code> returns in each frame that frame generation can use. <code>Depth</code> and <code>MotionVectors</code> are necessary. Their default region is the full resource.</li>
-        <li><code>HudlessColor</code> and <code>UIColorAndAlpha</code> are optional, but frame generation gives much better results with UI when you supply them. They have the back buffer size and the back buffer encoding. <code>UIColorAndAlpha</code> has premultiplied color and zero alpha where there is no UI, so that the back buffer is <code>UI.rgb + (1 - UI.a) * hudless</code>. Its alpha needs more than 2 bits, so do not use <code>DXGI_FORMAT_R10G10B10A2_UNORM</code> for it.</li>
-        <li>Frame generation runs at present. Put each input in its <code>State</code> at the end of the frame's command lists. Keep its content and state until the frame is presented.</li>
-        <li>Pass null, or do not call it, while the game loads, is paused, or changes the world. Frame generation then stops for that frame.</li>
-        <li>It returns <code>S_FALSE</code> when frame generation is off.</li>
-    </ul>
-{% highlight c++ %}
-if (_loading || _paused) {
-  render->SetFrameGenerationInputs(nullptr);
-} else {
-  MGDFFrameGenerationDesc generation = {};
-  generation.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
-  generation.MotionVectors = {_motion.Get(),
-                              D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
-  generation.HudlessColor = {_hudless.Get(),
-                             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
-  generation.UIColorAndAlpha = {_ui.Get(),
-                                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
-  render->SetFrameGenerationInputs(&generation);
-}
-{% endhighlight %}
-
-    <h4>When the features are not available</h4>
-    <p>The features are not available on a non-NVIDIA adapter, on WARP or another software adapter, or when the driver does not support them. In these cases:</p>
-    <ul>
-        <li>The upscale mode list is empty, <code>GetMaxGeneratedFrames</code> returns 0, and the low latency mode list has only <code>MGDF_LOW_LATENCY_OFF</code>. <code>SetLowLatencyMode</code> and <code>SetFrameGeneration</code> return <code>FALSE</code> for any value other than off.</li>
-        <li><code>GetUpscaleRenderSize</code> and <code>Upscale</code> return <code>E_NOTIMPL</code>.</li>
-        <li><code>SetFrameMarker</code> and <code>SetFrameConstants</code> do nothing. <code>SetFrameGenerationInputs</code> returns <code>S_FALSE</code>.</li>
-    </ul>
-    <p>The log gives the reason. You can call the frame methods on each frame without a check, but keep a render path without <code>Upscale</code>. For example, render at the output size and use your own anti-aliasing.</p>
-    <p>The debug overlay data (<a href="{{ site.baseurl }}/api#MGDFDebugOverlayData">MGDFDebugOverlayData</a>) contains the render latency and the numbers of rendered and presented frames. While frame generation runs, the presented frames are more than the rendered frames.</p>
-
-    <h2 id="raytracing">Ray tracing</h2>
-    <p>A D3D12 module that uses DXR can ask the host if the device supports ray tracing. Call <code>GetRayTracingSupport</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>. It returns <code>TRUE</code> when the device supports D3D12 raytracing tier 1.1 and shader model 6.9, which <code>HitObject</code> and <code>MaybeReorderThread</code> need. It also fills <a href="{{ site.baseurl }}/api#MGDFRayTracingSupport">MGDFRayTracingSupport</a>. <code>ShaderExecutionReordering</code> is <code>TRUE</code> when the device reorders shader execution (raytracing tier 1.2). Without it, <code>MaybeReorderThread</code> does nothing. The support follows the same rules as the upscaling lists: read it in <code>RTBeforeFirstDraw</code> and again in <code>RTDeviceReset</code>.</p>
-    <p>The user can turn ray tracing off. <code>GetRayTracing</code> returns the setting, and <code>SetRayTracing</code> on <a href="{{ site.baseurl }}/api#IMGDFPendingRenderSettingsChange">IMGDFPendingRenderSettingsChange</a> changes it. <code>SetRayTracing(TRUE)</code> returns <code>FALSE</code> when the device does not support ray tracing. The host keeps the setting in the <a href="{{ site.baseurl }}/api#hostpreferences">host.rayTracing</a> preference. It is on by default, and the host turns it off when the device does not support ray tracing. The host does not change the back buffer or the device for this setting. The module reads it and selects its own render path.</p>
-{% highlight c++ %}
-MGDFRayTracingSupport support = {};
-_rayTracing = settings->GetRayTracingSupport(&support) &&
-              settings->GetRayTracing();
-_reorder = _rayTracing && support.ShaderExecutionReordering;
-{% endhighlight %}
-    <p>When several adapters meet the module's requirements, the host selects an adapter that supports ray tracing before an adapter with more dedicated memory.</p>
-
-    <h2 id="hdroutput">HDR output</h2>
-    <p>The host turns on HDR output when <code>SetHDREnabled</code> (or the <code>host.hdrEnabled</code> preference) is on and the display supports HDR. The module selects the HDR format with <code>HDRFormat</code> in <a href="{{ site.baseurl }}/api#MGDFGraphicsRequirements">MGDFGraphicsRequirements</a>. SDR output does not change.</p>
-    <table class="table">
-        <thead><tr><th></th><th><code>MGDF_HDR_FORMAT_SCRGB</code> (default)</th><th><code>MGDF_HDR_FORMAT_HDR10</code></th></tr></thead>
-        <tbody>
-            <tr><td>Back buffer</td><td><code>DXGI_FORMAT_R16G16B16A16_FLOAT</code></td><td><code>DXGI_FORMAT_R10G10B10A2_UNORM</code></td></tr>
-            <tr><td>Color space</td><td><code>DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709</code></td><td><code>DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020</code></td></tr>
-            <tr><td>Values</td><td>Linear, Rec.709 primaries, 1.0 is 80 nits</td><td>PQ (ST 2084) encoded, Rec.2020 primaries, 1.0 is 10000 nits</td></tr>
-            <tr><td>Frame generation</td><td>Not available</td><td>Available</td></tr>
-        </tbody>
-    </table>
-    <p>To find the current output, compare the <code>Format</code> from <code>GetBackBufferInfo</code> with <code>GetHDRBackBufferFormat</code> in <code>RTBackBufferChange</code>. <code>GetCurrentOutputDisplayInfo</code> gives the luminance range of the display.</p>
-    <p>With HDR10 the module writes encoded values. Do these steps in the last pass that writes the back buffer:</p>
-    <ol>
-        <li>Blend the scene and the UI in linear light. Blending into the back buffer mixes encoded values, so do not use it for the UI.</li>
-        <li>Tonemap to the luminance range of the display.</li>
-        <li>Convert the color from Rec.709 to Rec.2020 primaries.</li>
-        <li>Divide by 10000 nits and apply the PQ encode.</li>
-    </ol>
-{% highlight c++ %}
-// HLSL. nits: linear Rec.2020 color in nits.
-float3 EncodePQ(float3 nits) {
-  const float m1 = 0.1593017578125f, m2 = 78.84375f;
-  const float c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
-  const float3 y = pow(saturate(nits / 10000.0f), m1);
-  return pow((c1 + c2 * y) / (1.0f + c3 * y), m2);
-}
-{% endhighlight %}
-    <p>For frame generation, <code>HudlessColor</code> and <code>UIColorAndAlpha</code> use the same encoding as the back buffer (PQ with HDR10).</p>
-
-    <h4>HDR metadata</h4>
-    <p>Call <code>SetHDRMetadata</code> on <a href="{{ site.baseurl }}/api#IMGDFRenderHost">IMGDFRenderHost</a> to tell the display the light levels of the content (<a href="{{ site.baseurl }}/api#MGDFHDRMetadata">MGDFHDRMetadata</a>, in nits). The values stay in effect after resizes and back buffer changes. They apply only to HDR10 output. Pass null to clear the metadata. <code>SetHDRMetadata</code> returns <code>E_INVALIDARG</code> and keeps the old values if a value is out of range: MaxCLL from 0 to 65535, MaxFALL from 0 to MaxCLL, mastering maximum more than 0 and up to 10000, and mastering minimum from 0 to less than the mastering maximum.</p>
-{% highlight c++ %}
-MGDFOutputDisplayInfo display = {};
-settings->GetCurrentOutputDisplayInfo(&display);
-// The tonemapper limits the output to this peak.
-const float peak = display.MaxLuminance > 0.0f ? display.MaxLuminance : 1000.0f;
-
-MGDFHDRMetadata metadata = {};
-metadata.MaxContentLightLevel = peak;
-metadata.MaxFrameAverageLightLevel = (std::min)(display.MaxFullFrameLuminance, peak);
-metadata.MaxMasteringLuminance = peak;
-metadata.MinMasteringLuminance = display.MinLuminance;
-host->SetHDRMetadata(&metadata);
-{% endhighlight %}
-
-    <h1 id="running" class="page-header">Running a game</h1>
-    <p>The program that starts the game depends on the build:</p>
-    <ul>
-        <li><strong>Installed game.</strong> The game shortcuts start updater.exe. After the update check, the updater starts core.exe. It gives its own command line arguments to core.exe without change.</li>
-        <li><strong>Store build.</strong> The store client starts core.exe. Do not ship updater.exe in a store build.</li>
-        <li><strong>Development.</strong> Run core.exe directly. You can then attach the Visual Studio debugger.</li>
-    </ul>
-    <p>Do not run updater.exe as administrator. An updater that runs as administrator stops and does not start the game.</p>
-    <p>You do not have to keep the game in the runtime folder during development. To run a game folder from another location, give the folder to core.exe:</p>
-    <pre>core.exe -gamediroverride "C:\dev\mygame\game"</pre>
-    <p>The folder must have the same layout as the /game folder: /bin, /content, and game.json.</p>
-    <p>MGDF stores logs, saved games, and preferences in <code>%LOCALAPPDATA%\MGDF\1\&lt;gameUid&gt;</code>. With the flag <code>-userdiroverride</code>, MGDF stores these files in a /user folder next to the game folder. For example, with <code>-gamediroverride c:\mygame\game</code> and <code>-userdiroverride</code>, MGDF uses <code>c:\mygame\user</code>. Without <code>-gamediroverride</code>, MGDF uses <code>user\&lt;gameUid&gt;</code> in the core.exe folder.</p>
-    <p>Each argument <code>-name</code> also has an environment variable <code>MGDF_NAME</code>. Command line arguments have priority over environment variables. Before it reads the arguments, the core reads the file <code>.env</code> in the core.exe folder, if it is present. Each line of this file is <code>KEY=VALUE</code>. Blank lines, comment lines that start with <code>#</code>, and quoted values are permitted. A value in <code>.env</code> does not replace an environment variable that is already set. Use <code>.env</code> to keep development settings out of the command line:</p>
+        <h2 id="running">Run the game</h2>
+        <p>Build the module into <code>game/bin</code> and start <code>core.exe</code>. To debug, set <code>core.exe</code> as the debug command in Visual Studio.</p>
+        <p>The game folder doesn't have to live inside the runtime. Point the host at it instead:</p>
+<pre>core.exe -gamediroverride "C:\dev\mygame\game"</pre>
+        <p>Every argument also works as an environment variable, and the host reads a <code>.env</code> file beside <code>core.exe</code>. That keeps your development settings off the command line:</p>
 <pre>
-MGDF_LOGLEVEL=log_high
 MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
 MGDF_USERDIROVERRIDE=1
+MGDF_LOGLEVEL=log_high
 </pre>
-    <p>For all the arguments, see the <a href="{{ site.baseurl }}/api#commandline">command line options</a>.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Argument</th><th>What it does</th></tr></thead>
+            <tbody>
+                <tr><td><code>-gamediroverride</code></td><td>Runs a game folder from another location.</td></tr>
+                <tr><td><code>-userdiroverride</code></td><td>Keeps saves, preferences and logs in a <code>user</code> folder beside the game.</td></tr>
+                <tr><td><code>-loglevel</code></td><td>Sets how much the host logs.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>Without <code>-userdiroverride</code>, the host keeps user data in <code>%LOCALAPPDATA%\MGDF\1\&lt;gameUid&gt;</code>. That is where to look for the log when something goes wrong.</p>
+        <p>See the <a href="{{ site.baseurl }}/api#commandline">command line reference</a> for the full list.</p>
 
-    <h1 id="distributing" class="page-header">Distributing a game</h1>
-    <p>For an installed game, you supply an installer, an update service, and the services for crash reports and statistics. A store build uses the store client to install and update the game. A store build can also use crash reports and statistics.</p>
-
-    <h2 id="installing">Installing</h2>
-    <p>MGDF does not install games. Supply an installer, for example an <a href="https://nsis.sourceforge.net/Main_Page">NSIS</a> installer. The installer must do these steps:</p>
-    <ol>
-        <li>Copy the runtime files and the /game folder to the install folder in the <a href="#folderstructure">MGDF folder layout</a>. Do not copy game/game.json in this step.</li>
-        <li>Run <code>dependencies\vc2022_redist.x64.exe /install /quiet /norestart</code>. This installs the Visual C++ runtime when it is not installed. Exit codes 0, 1638 (a newer version is installed), and 3010 (a restart is necessary) are not errors.</li>
-        <li>Make sure that .NET Framework 4.8 is installed. The updater and the crash reporter need it. If it is not installed, install it or tell the player to install it.</li>
-        <li>Create the shortcuts. The shortcuts start updater.exe.</li>
-        <li>Write the uninstaller and the uninstall record in the registry.</li>
-        <li>Write game/game.json last, after all the other steps are successful.</li>
-    </ol>
-    <p>The updater uses game.json to find the end of an update. When game.json has the new version, the update is complete. If a step fails, stop the installer with a non-zero exit code before you write game.json. Return exit code 0 when the install is successful. Exit codes 3010 and 1641 (restart) also mean success.</p>
-    <p>The updater starts the installer without elevation. If the installer needs administrator rights, it must ask for them. For NSIS, use <code>RequestExecutionLevel admin</code>. The installer must also accept the arguments that your update service supplies (see <a href="#updating">Updating</a>).</p>
-    <br />
-    <h4>Example <a href="https://nsis.sourceforge.net/Main_Page">NSIS</a> install script <small>(for a game named 'New Game')</small></h4>
-    <p>The <code>runtime</code> folder contains the files of the MGDF runtime zip. The <code>game</code> folder contains your /game folder. Put <code>ndp48-web.exe</code> (the .NET Framework 4.8 web installer) beside the script. Build the installer with <code>makensis /DGAME_VERSION=1.2.3 installer.nsi</code>.</p>
-<pre>
-!include "MUI2.nsh"
-!include "FileFunc.nsh"
-!include "LogicLib.nsh"
-
-!ifndef GAME_VERSION
-  !error "GAME_VERSION is required"
-!endif
-!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\NewGame"
-
-Name "New Game"
-OutFile "NewGameSetup.exe"
-InstallDir "$PROGRAMFILES64\NewGame"
-InstallDirRegKey HKLM "${UNINSTALL_KEY}" "InstallLocation"
-RequestExecutionLevel admin
-
-!insertmacro MUI_PAGE_DIRECTORY
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-!insertmacro MUI_LANGUAGE "English"
-
-; Stop with exit code 4 if the last step failed.
-!macro CheckInstallStep
-  IfErrors 0 +3
-    SetErrorLevel 4
-    Quit
-!macroend
-
-Function .onInit
-  SetRegView 64
-  SetShellVarContext all
-  InitPluginsDir
-FunctionEnd
-
-Section "Install New Game"
-  ; The updater and the crash reporter need .NET Framework 4.8.
-  ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
-  ${If} $0 &lt; 528040
-    SetOutPath "$PLUGINSDIR"
-    File "ndp48-web.exe"
-    ExecWait '"$PLUGINSDIR\ndp48-web.exe" /q /norestart' $0
-    ${If} $0 == 3010
-    ${OrIf} $0 == 1641
-      SetRebootFlag true
-    ${ElseIf} $0 != 0
-      IfSilent +2
-        MessageBox MB_OK|MB_ICONSTOP "Cannot install .NET Framework 4.8. Setup will stop."
-      SetErrorLevel 2
-      Quit
-    ${EndIf}
-  ${EndIf}
-
-  ClearErrors
-  SetOutPath "$INSTDIR"
-  File /r "runtime\*"
-  !insertmacro CheckInstallStep
-  ExecWait '"$INSTDIR\dependencies\vc2022_redist.x64.exe" /install /quiet /norestart' $0
-  !insertmacro CheckInstallStep
-  ${If} $0 == 3010
-    SetRebootFlag true
-  ${ElseIf} $0 != 0
-  ${AndIf} $0 != 1638
-    IfSilent +2
-      MessageBox MB_OK|MB_ICONSTOP "Cannot install the Visual C++ runtime. Setup will stop."
-    SetErrorLevel 3
-    Quit
-  ${EndIf}
-
-  SetOutPath "$INSTDIR\game"
-  File /r /x game.json "game\*"
-  !insertmacro CheckInstallStep
-
-  SetOutPath "$INSTDIR"
-  WriteUninstaller "$INSTDIR\Uninstall.exe"
-  CreateDirectory "$SMPROGRAMS\New Game"
-  CreateShortcut "$SMPROGRAMS\New Game\New Game.lnk" "$INSTDIR\updater.exe"
-  CreateShortcut "$DESKTOP\New Game.lnk" "$INSTDIR\updater.exe"
-  CreateShortcut "$SMPROGRAMS\New Game\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "New Game"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayVersion" "${GAME_VERSION}"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
-  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
-  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
-  !insertmacro CheckInstallStep
-  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
-  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "EstimatedSize" $0
-  !insertmacro CheckInstallStep
-
-  ; game.json marks a complete install. Write it last.
-  SetOutPath "$INSTDIR\game"
-  File "game\game.json"
-  !insertmacro CheckInstallStep
-SectionEnd
-
-Function un.onInit
-  SetRegView 64
-  SetShellVarContext all
-FunctionEnd
-
-Section "Uninstall"
-  Delete "$DESKTOP\New Game.lnk"
-  RMDir /r "$SMPROGRAMS\New Game"
-  DeleteRegKey HKLM "${UNINSTALL_KEY}"
-  RMDir /r "$INSTDIR"
-SectionEnd
-</pre>
-    <p>With this script, an update service can use the installer arguments <code>["/S", "/D={installDir}"]</code>.</p>
-
-    <h2 id="updating">Updating</h2>
-    <p>To turn on updates, set <strong>updateService</strong> in game.json to the URL of your update service. Each time the updater starts, it sends a GET request to this URL. The service returns a JSON document that describes the newest version. For the fields, see the <a href="{{ site.baseurl }}/api#updatemanifest">update service reference</a>.</p>
-{% highlight json %}
-{
-  "version": "1.2.3",
-  "installerUrl": "https://www.example.com/NewGameSetup_1.2.3.exe",
-  "sha256": "<64 hexadecimal digits>",
-  "installerArguments": ["/S", "/D={installDir}"]
-}
-{% endhighlight %}
-    <p>These rules apply:</p>
-    <ul>
-        <li>The update service URL and <code>installerUrl</code> must use HTTPS. Redirects must also use HTTPS. For local tests, HTTP to a loopback IP address such as 127.0.0.1 is permitted.</li>
-        <li>The update service must reply in 5 seconds. The response is limited to 64 KiB.</li>
-        <li>The updater compares the SHA-256 hash of the downloaded installer with <code>sha256</code>. It does not run an installer with a different hash. The updater does not check installer signatures.</li>
-        <li>The installer has no size limit and the download has no time limit. The download stops if no data arrives for 60 seconds.</li>
-    </ul>
-    <p>The updater starts the game and shows no message in these cases: game.json has no <code>updateService</code>, the check fails, or the version from the service is not newer than the version in game.json.</p>
-    <p>When a newer version is available, the updater shows a dialog with two buttons:</p>
-    <ul>
-        <li><strong>Update now</strong> downloads the installer. During the download, <strong>Cancel</strong> stops the download and starts the current version of the game.</li>
-        <li><strong>Later</strong> starts the current version of the game.</li>
-    </ul>
-    <p>If the download or the hash check fails, the updater shows "Cannot download the update." and then starts the current version.</p>
-    <p>After the download, the updater closes and runs the installer with the installer arguments. Then:</p>
-    <ul>
-        <li>If the installer is successful, the updater starts the new version of the game.</li>
-        <li>If the player refuses the elevation prompt, the updater starts the current version of the game. During a repair, the game stays closed.</li>
-        <li>If the game or its crash dialog is open, the updater shows "Close the game and its crash report window, then try the update again." It does not run the installer, and it starts the current version.</li>
-        <li>If the installer fails, the updater shows "Cannot install the update. Run the updater again to repair the game." The game does not start. At the next start, the updater shows "The update did not finish. Install the update to repair the game." The game starts again only after the install is complete.</li>
-    </ul>
-    <p>Only one update can run for an install folder at a time. A second updater shows "An update is in progress." and does not start the game.</p>
-
-    <h2 id="crashreports">Crash reports</h2>
-    <p>To turn on crash reports, set <strong>crashReportService</strong> in game.json to the URL of your crash report service. Ship crashreporter.exe beside core.exe. Set <strong>privacyPolicy</strong> to add a privacy policy link to the dialog. Without a crash report service or crashreporter.exe, a crash shows a short error message that gives the location of the log file. The flag <code>-hideerrors</code> stops this message.</p>
-    <p>The crash dialog shows only after a crash:</p>
-    <ul>
-        <li>an unhandled exception in the core or in the module,</li>
-        <li>a fatal error, for example a call to <code>FatalError</code> on <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a>,</li>
-        <li>an exit of core.exe with an exception status code (<code>0xC0000000</code> and higher, but not <code>0xC000013A</code>).</li>
-    </ul>
-    <p>A normal exit and all other exit codes show no dialog and send no report. A failure during startup uses exit code 1.</p>
-    <p>The dialog tells the player that the game stopped unexpectedly. When there is error text, the dialog shows it in a read-only box with a <strong>Copy</strong> button. The error text has a maximum of 2048 characters. For a fatal error, the text gives the sender and the message. The dialog has two buttons: <strong>Send report</strong> and <strong>Don't send</strong>. If the report cannot be sent, the dialog shows "Cannot send the report. Please try again later."</p>
-    <p>The report is a zip file with these files:</p>
-    <ul>
-        <li><code>log.txt</code>: the MGDF version, the Windows version and architecture, the processor count, the game uid and version, the crash details, and the game log.</li>
-        <li><code>minidump.dmp</code>: a minidump of core.exe, when one is available.</li>
-    </ul>
-    <p>The flag <code>-hideerrors</code> stops the dialog and the report. The crash reporter then writes the minidump as <code>crash-&lt;id&gt;.dmp</code> in the game user folder and keeps it.</p>
-    <p>For the service contract, see the <a href="{{ site.baseurl }}/api#crashreports">crash report service reference</a>.</p>
-
-    <h2 id="statistics">Statistics tracking</h2>
-    <p>MGDF can send statistics from play sessions to a statistics service. Set <strong>statisticsService</strong> in game.json to the URL of your service. The core argument <code>-statisticsendpointoverride</code> replaces this URL. Without a URL, MGDF sends no statistics.</p>
-    <p>The game supplies the values. Get the <a href="{{ site.baseurl }}/api#IMGDFStatisticsManager">IMGDFStatisticsManager</a> interface with <code>GetStatistics</code> on <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a>. Call <code>PushString</code> to send a name, a value, and optional tags. Call <code>PushMetric</code> to send the current value of a metric.</p>
-    <p>MGDF does not ask the player for permission. The game owns the consent controls: ask the player, keep the choice, and push values only after the player agrees. Show your privacy policy with this choice.</p>
-    <p>Each value has a timestamp in milliseconds from the start of the session. All the values from one session have the same session id. For the service contract, see the <a href="{{ site.baseurl }}/api#statsservice">statistics service reference</a>.</p>
+        <h2 id="next">Next steps</h2>
+        <p>You have a module that loads, ticks and shuts down. Now make it draw.</p>
+        <div class="next-steps">
+            <a href="{{ site.baseurl }}/rendering"><strong>Rendering</strong>Draw a frame with Direct3D 12.</a>
+            <a href="{{ site.baseurl }}/graphics-features"><strong>Upscaling, HDR and ray tracing</strong>Use DLSS, frame generation, HDR output and DXR.</a>
+            <a href="{{ site.baseurl }}/vr"><strong>VR</strong>Render to a headset through OpenXR.</a>
+            <a href="{{ site.baseurl }}/distributing"><strong>Distributing a game</strong>Install, update, and collect crash reports.</a>
+            <a href="{{ site.baseurl }}/api"><strong>API reference</strong>Every interface, struct and setting.</a>
+        </div>
     </div>
     <div class="col-md-3 hidden-xs hidden-sm">
         <div class="side-nav">
             <ul class="nav nav-stacked">
-                <li class="active">
-                    <a href="#overview">Overview</a>
-                </li>
-                <li>
-                    <a href="#newgame">Building a new game</a>
-                    <ul class="nav">
-                        <li><a href="#folderstructure">Folder structure</a></li>
-                        <li><a href="#gamemanifest">Game.json</a></li>
-                        <li><a href="#gamemodule">Module.dll</a></li>
-                        <li><a href="#d3d12module">Writing a D3D12 module</a></li>
-                        <li><a href="#upscaling">Upscaling and frame generation</a></li>
-                        <li><a href="#raytracing">Ray tracing</a></li>
-                        <li><a href="#hdroutput">HDR output</a></li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="#running">Running a game</a>
-                </li>
-                <li><a href="#distributing">Distributing a game</a>
-                <ul class="nav">
-                    <li><a href="#installing">Installing</a></li>
-                    <li><a href="#updating">Updating</a></li>
-                    <li><a href="#crashreports">Crash reports</a></li>
-                    <li><a href="#statistics">Statistics tracking</a></li>
-                </ul>        
-                </li>        
+                <li class="active"><a href="#overview">Getting started</a></li>
+                <li><a href="#how-it-works">How it works</a></li>
+                <li><a href="#setup">Before you start</a></li>
+                <li><a href="#folderstructure">Lay out the game folder</a></li>
+                <li><a href="#gamemanifest">Describe the game</a></li>
+                <li><a href="#gamemodule">Write the module</a></li>
+                <li><a href="#threads">Share state between threads</a></li>
+                <li><a href="#running">Run the game</a></li>
+                <li><a href="#next">Next steps</a></li>
             </ul>
         </div>
     </div>
@@ -787,12 +299,6 @@ SectionEnd
 
 <script type="text/javascript">
     $(function() {
-        $(document).ready(function () {
-            $('.side-nav').biscroll({
-                main: '.main',
-                footer: 'footer'
-            });
-            $('body').scrollspy({ target: '.side-nav' });
-        });
+        $('body').scrollspy({ target: '.side-nav' });
     });
 </script>

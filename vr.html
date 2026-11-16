@@ -1,11 +1,12 @@
 ---
 layout: default
+title: VR
 ---
-<div class="row">
-    <div class="col-md-9 main">
+<div class="row docs-row">
+    <div class="col-md-9 main guide">
         <h1 id="overview" class="page-header">OpenXR VR</h1>
         <p>MGDF gives a module D3D12 eye targets, headset poses, controller input, and optional VR features. Players need an active OpenXR runtime, such as Meta Horizon Link or SteamVR. Modules use MGDF types and calls. They need no OpenXR SDK.</p>
-        <p>First implement the <a href="{{ site.baseurl }}/getting-started#d3d12module">D3D12 frame contract</a>. A VR module must render both eyes when requested. It must also draw the game window on every frame, including while VR is off or paused.</p>
+        <p>First implement the <a href="{{ site.baseurl }}/rendering#d3d12module">D3D12 frame contract</a>. A VR module must render both eyes when requested. It must also draw the game window on every frame, including while VR is off or paused.</p>
 
         <h2 id="settings">Enable and disable VR</h2>
         <p>Opt in through <a href="{{ site.baseurl }}/api#MGDFGraphicsRequirements">MGDFGraphicsRequirements::VR</a>. A zero-initialized requirements structure keeps VR unavailable. Set <code>VR</code> to <code>TRUE</code> only when the module can render both eyes.</p>
@@ -108,11 +109,11 @@ ndcY = (2 * y - (tan(eye.AngleUp) + tan(eye.AngleDown))) /
 
         <h2 id="upscaling">Upscaling, frame generation, and low latency</h2>
         <p>For DLSS, set <code>View</code> to the eye index in both <a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a> and <a href="{{ site.baseurl }}/api#MGDFUpscaleDesc">MGDFUpscaleDesc</a>. Call <code>SetFrameConstants</code> once for each used view in each frame. Then call <code>Upscale</code> for that view. Views 0 and 1 have separate histories and work with or without VR. Either view can be omitted from a frame. Set <code>ResetHistory</code> when <code>PoseEpoch</code> changes.</p>
-        <p>Frame generation is off in VR, and <code>GetMaxGeneratedFrames()</code> returns 0. Low latency sleep and frame markers have no effect in VR. Saved frame generation and low latency preferences stay unchanged and apply again when VR ends. See <a href="{{ site.baseurl }}/getting-started#upscaling">Upscaling and frame generation</a> for input resources and command list rules.</p>
+        <p>Frame generation is off in VR, and <code>GetMaxGeneratedFrames()</code> returns 0. Low latency sleep and frame markers have no effect in VR. Saved frame generation and low latency preferences stay unchanged and apply again when VR ends. See <a href="{{ site.baseurl }}/graphics-features#upscaling">Upscaling and frame generation</a> for input resources and command list rules.</p>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 hidden-xs hidden-sm">
         <div class="side-nav">
-            <ul class="nav">
+            <ul class="nav nav-stacked">
                 <li><a href="#overview">OpenXR VR</a></li>
                 <li><a href="#settings">Enable and disable VR</a></li>
                 <li><a href="#frames">Render each frame</a></li>
@@ -129,7 +130,6 @@ ndcY = (2 * y - (tan(eye.AngleUp) + tan(eye.AngleDown))) /
 </div>
 <script type="text/javascript">
 $(function() {
-    $('.side-nav').biscroll({main: '.main', footer: 'footer'});
     $('body').scrollspy({target: '.side-nav'});
 });
 </script>

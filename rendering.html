@@ -1,0 +1,236 @@
+---
+layout: default
+title: Rendering
+---
+<div class="row docs-row">
+    <div class="col-md-9 main guide">
+        <h1 id="overview" class="page-header">Rendering</h1>
+        <p class="lead">Matchstick owns the window, the swap chain and the present. You own the drawing: the host gives you a Direct3D 12 device and a back buffer, and you submit the command lists.</p>
+
+        <div class="learn">
+            <h4>You will learn</h4>
+            <ul>
+                <li>How to tell the host what your game needs from the GPU</li>
+                <li>How to draw and submit a frame</li>
+                <li>When it is safe to reuse or release GPU resources</li>
+                <li>How to handle a resize or a lost device</li>
+                <li>How to time GPU work</li>
+            </ul>
+        </div>
+
+        <h2 id="requirements">Declare what you need</h2>
+        <p>The host calls <code>GetGraphicsRequirements</code> before it creates the device. Fill in the minimum your game can run on, and the host picks an adapter that meets it.</p>
+{% highlight c++ %}
+extern "C" __declspec(dllexport) HRESULT
+GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
+  *requirements = {};
+  // The host refuses to start on a GPU below either minimum
+  requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+  requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
+  return S_OK;
+}
+{% endhighlight %}
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Field</th><th>Set it to</th></tr></thead>
+            <tbody>
+                <tr><td><code>MinFeatureLevel</code></td><td>The lowest Direct3D feature level you support.</td></tr>
+                <tr><td><code>MinShaderModel</code></td><td>The lowest shader model your shaders compile for.</td></tr>
+                <tr><td><code>HDRFormat</code></td><td>The format you write when HDR is on. Zero means scRGB. See <a href="{{ site.baseurl }}/graphics-features#hdroutput">HDR output</a>.</td></tr>
+                <tr><td><code>VR</code></td><td><code>TRUE</code> if you render to a headset. See the <a href="{{ site.baseurl }}/vr">VR guide</a>.</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <h2 id="device">Get the device and queues</h2>
+        <p>Both host interfaces hand out the device and the three command queues. You can call these from either thread.</p>
+{% highlight c++ %}
+MGDF::ComObject<ID3D12Device10> device;
+host->GetD3D12Device(device.Assign());
+
+MGDF::ComObject<ID3D12CommandQueue> directQueue;
+host->GetDirectQueue(directQueue.Assign());
+{% endhighlight %}
+        <p><code>GetComputeQueue</code> and <code>GetCopyQueue</code> work the same way. See <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a>.</p>
+
+        <h2 id="d3d12module">Draw a frame</h2>
+        <p>Each frame, the host calls <code>RTDraw</code>, presents, and then calls <code>RTAfterPresent</code>.</p>
+
+        <figure class="diagram">
+            <svg viewBox="0 0 720 150" role="img" aria-label="A frame runs in four steps: your RTDraw records and executes command lists, the host presents, your RTAfterPresent submits background work, and the host signals the frame fence.">
+                <defs><marker id="frame-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+                <rect class="box you" x="20" y="20" width="190" height="56" rx="6"/>
+                <text x="115" y="45">RTDraw</text>
+                <text class="sub" x="115" y="63">record and execute lists</text>
+                <path class="line" d="M210 48H238" marker-end="url(#frame-arrow)"/>
+                <rect class="box" x="240" y="20" width="110" height="56" rx="6"/>
+                <text x="295" y="45">Present</text>
+                <text class="sub" x="295" y="63">host</text>
+                <path class="line" d="M350 48H378" marker-end="url(#frame-arrow)"/>
+                <rect class="box you" x="380" y="20" width="160" height="56" rx="6"/>
+                <text x="460" y="45">RTAfterPresent</text>
+                <text class="sub" x="460" y="63">background work</text>
+                <path class="line" d="M540 48H568" marker-end="url(#frame-arrow)"/>
+                <rect class="box" x="570" y="20" width="130" height="56" rx="6"/>
+                <text x="635" y="45">Frame fence</text>
+                <text class="sub" x="635" y="63">host signals</text>
+                <path class="line" d="M20 96V104H210V96"/>
+                <text class="label" x="115" y="124">back buffer</text>
+                <text class="label" x="115" y="140">PRESENT → RENDER_TARGET → PRESENT</text>
+            </svg>
+            <figcaption>Green steps are yours. The rest belong to the host.</figcaption>
+        </figure>
+
+        <p>Inside <code>RTDraw</code>, ask for the current frame. It carries the back buffer and its render target view.</p>
+{% highlight c++ %}
+BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha) {
+  MGDFFrameInfo frame = {};
+  host->GetCurrentFrame(&frame);
+
+  // One allocator per frame slot. The GPU has finished with this
+  // slot's previous commands, so its memory is safe to reuse.
+  auto allocator = _allocators[frame.FrameSlot].Get();
+  allocator->Reset();
+  _commands.Reset(allocator);
+  auto list = _commands.Get();
+
+  // The back buffer arrives in the PRESENT state. A barrier tells
+  // the GPU you are about to draw to it.
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = frame.BackBuffer;
+  barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  list->ResourceBarrier(1, &barrier);
+
+  const float color[4] = {0.1f, 0.2f, 0.3f, 1.0f};
+  list->ClearRenderTargetView(frame.BackBufferRTV, color, 0, nullptr);
+
+  // Hand it back in the PRESENT state, ready for the host to show
+  std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+  list->ResourceBarrier(1, &barrier);
+
+  // Nothing runs until the list is closed and sent to the queue
+  _commands.Close();
+  ID3D12CommandList *lists[] = {list};
+  _directQueue->ExecuteCommandLists(1, lists);
+  return TRUE;
+}
+{% endhighlight %}
+        <p>Three rules make this work:</p>
+        <ol>
+            <li>The back buffer arrives in the <code>PRESENT</code> state. Transition it before you draw.</li>
+            <li>Put it back in <code>PRESENT</code> at the end of your last list.</li>
+            <li>Execute your lists on the direct queue before <code>RTDraw</code> returns. The host presents straight after.</li>
+        </ol>
+        <p>The swap chain has one sample per pixel and no depth buffer. Create your own depth and multisample targets.</p>
+        <div class="callout">
+            <p><strong>Note</strong>The example uses <code>MGDF::D3D12CommandList</code> from <code>MGDF/D3D12CommandList.hpp</code>. <code>Create</code> leaves the list open, so close it once after you create it. The host needs the wrapper for <a href="#counters">GPU counters</a> and <a href="{{ site.baseurl }}/graphics-features#upscaling">upscaling</a>.</p>
+        </div>
+
+        <h2 id="frameresources">Reuse and release resources safely</h2>
+        <p>The GPU runs behind the CPU. When <code>RTDraw</code> returns, the frame you submitted may not have started. The host lets two frames be in flight at once, and <code>MGDFFrameInfo</code> tells you where you stand.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+            <tbody>
+                <tr><td><code>FrameOrdinal</code></td><td>This frame's number. It only goes up.</td></tr>
+                <tr><td><code>FrameSlot</code></td><td><code>FrameOrdinal % FramesInFlight</code>, so 0 or 1.</td></tr>
+                <tr><td><code>CompletedOrdinal</code></td><td>The newest frame the GPU has finished.</td></tr>
+                <tr><td><code>BackBufferIndex</code></td><td>Which swap chain image this is. It is unrelated to the slot.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p><strong>To reuse</strong> per-frame resources, keep one set for each slot. The host waits for a slot's previous frame before it calls <code>RTDraw</code>, so you can reset that slot's command allocator straight away.</p>
+        <p><strong>To release</strong> a resource, note the <code>FrameOrdinal</code> of its last use and hold on to it until the GPU catches up:</p>
+{% highlight c++ %}
+// lastUse is the FrameOrdinal of the last frame that drew with the resource
+void Module::ReleaseLater(MGDF::ComObject<ID3D12Resource> resource, UINT64 lastUse) {
+  _pending.push_back({std::move(resource), lastUse});
+}
+
+// Call once per frame. Erasing an entry drops the last reference.
+void Module::Collect(const MGDFFrameInfo &frame) {
+  std::erase_if(_pending, [&](const Pending &p) {
+    // The GPU has finished every frame up to CompletedOrdinal
+    return frame.CompletedOrdinal >= p.LastUse;
+  });
+}
+{% endhighlight %}
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>The frame fence only covers the direct queue. If you submit work on the compute or copy queue, signal your own fence there and wait for it on the direct queue before <code>RTAfterPresent</code> returns.</p>
+        </div>
+
+        <h2 id="resize">Handle resizes and device loss</h2>
+        <p>The swap chain changes when the window resizes or a display setting changes. Less often, the whole device goes away. The host warns you before each one and tells you when it is over.</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Event</th><th>Before</th><th>After</th></tr></thead>
+            <tbody>
+                <tr><td>Back buffer change</td><td><code>RTBeforeBackBufferChange</code><br />Release every reference to the back buffer.</td><td><code>RTBackBufferChange</code><br />Recreate anything sized to it.</td></tr>
+                <tr><td>Device reset</td><td><code>RTBeforeDeviceReset</code><br />Release every device resource, then call <code>QueueDeviceReset</code>.</td><td><code>RTDeviceReset</code><br />Recreate them on the new device.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>Read the new size in <code>RTBackBufferChange</code>:</p>
+{% highlight c++ %}
+BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
+  MGDFBackBufferInfo info = {};
+  host->GetBackBufferInfo(&info);
+  // Anything sized to the window has to be rebuilt to match
+  return CreateDepthBuffer(info.Width, info.Height);
+}
+{% endhighlight %}
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>The back buffer in <code>MGDFFrameInfo</code> is borrowed. Don't keep a pointer to it across frames unless you add a reference, and drop that reference in <code>RTBeforeBackBufferChange</code>.</p>
+        </div>
+
+        <h2 id="counters">Time GPU work</h2>
+        <p>A GPU counter measures how long a stretch of commands takes and records it to a metric. Create the metric once, then open a scope around the commands you want to time.</p>
+{% highlight c++ %}
+// Once
+host->CreateGaugeMetric("shadow_pass_ms", "Shadow pass GPU time",
+                        _shadowMetric.Assign());
+
+// Each frame, while the list is recording
+MGDF::ComObject<IMGDFPerformanceCounter> counter;
+host->CreateGPUCounter(_shadowMetric, list, counter.Assign());
+{
+  // Timing stops when the scope is released at the closing brace
+  MGDF::ComObject<IMGDFPerformanceCounterScope> scope;
+  counter->Begin(nullptr, scope.Assign());
+  DrawShadows(list);
+}
+{% endhighlight %}
+        <p>The scope must end before you close the list, and the list must execute in the same frame. Counters only work on direct-queue lists created with <code>MGDF::D3D12CommandList</code>.</p>
+        <p>To see the numbers, start the host with <code>-metricsport</code> and point <a href="https://prometheus.io">Prometheus</a> at it. See <a href="{{ site.baseurl }}/api#IMGDFRenderHost">CreateGPUCounter</a> for the full contract.</p>
+
+        <h2 id="next">Next steps</h2>
+        <div class="next-steps">
+            <a href="{{ site.baseurl }}/graphics-features"><strong>Upscaling, HDR and ray tracing</strong>Use DLSS, frame generation, HDR output and DXR.</a>
+            <a href="{{ site.baseurl }}/vr"><strong>VR</strong>Render to a headset through OpenXR.</a>
+            <a href="{{ site.baseurl }}/api#IMGDFRenderHost"><strong>IMGDFRenderHost</strong>The full render thread API.</a>
+        </div>
+    </div>
+    <div class="col-md-3 hidden-xs hidden-sm">
+        <div class="side-nav">
+            <ul class="nav nav-stacked">
+                <li class="active"><a href="#overview">Rendering</a></li>
+                <li><a href="#requirements">Declare what you need</a></li>
+                <li><a href="#device">Get the device and queues</a></li>
+                <li><a href="#d3d12module">Draw a frame</a></li>
+                <li><a href="#frameresources">Reuse and release resources</a></li>
+                <li><a href="#resize">Resizes and device loss</a></li>
+                <li><a href="#counters">Time GPU work</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function() {
+        $('body').scrollspy({ target: '.side-nav' });
+    });
+</script>
