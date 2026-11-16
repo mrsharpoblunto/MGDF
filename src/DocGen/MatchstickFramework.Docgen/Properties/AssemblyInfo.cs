@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("MatchstickFramework.Docgen")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Straylight Technologies LLC")]
 [assembly: AssemblyProduct("MatchstickFramework.Docgen")]
-[assembly: AssemblyCopyright("Copyright © Team Junkship 2020")]
+[assembly: AssemblyCopyright("Copyright © Straylight Technologies LLC 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -12,6 +12,7 @@
 #include "../common/MGDFVersionInfo.hpp"
 #include "../vfs/archive/zip/ZipArchiveHandlerImpl.hpp"
 #include "MGDFGraphicsRequirements.hpp"
+#include "MGDFHostBuilder.hpp"
 #include "MGDFMetrics.hpp"
 #include "MGDFNetworkImpl.hpp"
 #include "MGDFParameterConstants.hpp"
@@ -56,7 +57,8 @@ HRESULT Host::TryCreate(ComObject<Game> game, HostComponents &components,
 }
 
 Host::Host(ComObject<Game> game, HostComponents &components)
-    : _game(game),
+    : _instanceGuard(components.InstanceGuard),
+      _game(game),
       _debugOverlay(nullptr),
       _module(nullptr),
       _version(VersionHelper::Create(MGDFVersionInfo::MGDF_VERSION())),
@@ -73,14 +75,11 @@ Host::Host(ComObject<Game> game, HostComponents &components)
   _shutdownQueued.store(false);
   _ASSERTE(game);
 
-  auto statsEndpointOverride = ParameterManager::Instance().GetParameter(
-      ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE);
-  if (statsEndpointOverride) {
-    _stats->SetRemoteEndpoint(statsEndpointOverride);
-  } else if (ParameterManager::Instance().HasParameter(
-                 ParameterConstants::STATISTICS_ENABLED)) {
-    _stats->SetRemoteEndpoint(_game->GetStatististicsService());
-  }
+  const auto statsEndpoint = HostBuilder::StatisticsEndpoint(
+      _game->GetStatististicsService(),
+      ParameterManager::Instance().GetParameter(
+          ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE));
+  if (!statsEndpoint.empty()) _stats->SetRemoteEndpoint(statsEndpoint);
 
   auto metricsPort = ParameterManager::Instance().GetParameter(
       ParameterConstants::METRICS_PORT);
@@ -645,16 +644,11 @@ void Host::FatalError(const char *sender, const char *message) {
     return;
   }
 
-  if (sender && message) {
-    std::ostringstream ss;
-    ss << "FATAL ERROR: " << message;
-    Logger::Instance().Log(sender, ss.str().c_str(), MGDF_LOG_ERROR);
-  }
-  LOG("Notified of fatal error, telling module to panic", MGDF_LOG_ERROR);
-  Logger::Instance().Flush();
-
-  if (_module) {
-    _module->Panic();
+  CrashExitState::Instance().BeginCrash();
+  if (!Logger::IsLockedByThisThread()) {
+    Logger::Instance().LogCrash(sender ? sender : "core",
+                                message ? message : "Fatal error");
+    if (_module) _module->Panic();
   }
 
   _fatalErrorHandler(

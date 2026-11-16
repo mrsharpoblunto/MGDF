@@ -9,6 +9,7 @@
 
 #include "../MGDFD3D12RenderBackend.hpp"
 #include "../audio/MGDFSoundManagerComponent.hpp"
+#include "../common/MGDFProcessLifetime.hpp"
 #include "../input/MGDFInputManagerComponent.hpp"
 #include "../network/MGDFNetworkManagerComponent.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"
@@ -27,6 +28,7 @@ namespace MGDF {
 namespace core {
 
 struct HostComponents {
+  std::shared_ptr<UserInstanceGuard> InstanceGuard;
   std::shared_ptr<storage::IStorageFactoryComponent> Storage;
   std::shared_ptr<network::INetworkManagerComponent> Network;
   ComObject<input::IInputManagerComponent> Input;
@@ -189,6 +191,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
 
   void ClearWorkingDirectory();
 
+  std::shared_ptr<UserInstanceGuard> _instanceGuard;
   ComObject<IMGDFModule> _module;  // the currently executing module
   std::unique_ptr<ModuleFactory> _moduleFactory;
 
