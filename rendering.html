@@ -24,6 +24,7 @@ title: Rendering
 extern "C" __declspec(dllexport) HRESULT
 GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
   *requirements = {};
+  // The host refuses to start on a GPU below either minimum
   requirements->MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
   requirements->MinShaderModel = D3D_SHADER_MODEL_6_0;
   return S_OK;
@@ -86,11 +87,15 @@ BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha) {
   MGDFFrameInfo frame = {};
   host->GetCurrentFrame(&frame);
 
+  // One allocator per frame slot. The GPU has finished with this
+  // slot's previous commands, so its memory is safe to reuse.
   auto allocator = _allocators[frame.FrameSlot].Get();
   allocator->Reset();
   _commands.Reset(allocator);
   auto list = _commands.Get();
 
+  // The back buffer arrives in the PRESENT state. A barrier tells
+  // the GPU you are about to draw to it.
   D3D12_RESOURCE_BARRIER barrier = {};
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
   barrier.Transition.pResource = frame.BackBuffer;
@@ -102,9 +107,11 @@ BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha) {
   const float color[4] = {0.1f, 0.2f, 0.3f, 1.0f};
   list->ClearRenderTargetView(frame.BackBufferRTV, color, 0, nullptr);
 
+  // Hand it back in the PRESENT state, ready for the host to show
   std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
   list->ResourceBarrier(1, &barrier);
 
+  // Nothing runs until the list is closed and sent to the queue
   _commands.Close();
   ID3D12CommandList *lists[] = {list};
   _directQueue->ExecuteCommandLists(1, lists);
@@ -138,12 +145,15 @@ BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha) {
         <p><strong>To reuse</strong> per-frame resources, keep one set for each slot. The host waits for a slot's previous frame before it calls <code>RTDraw</code>, so you can reset that slot's command allocator straight away.</p>
         <p><strong>To release</strong> a resource, note the <code>FrameOrdinal</code> of its last use and hold on to it until the GPU catches up:</p>
 {% highlight c++ %}
+// lastUse is the FrameOrdinal of the last frame that drew with the resource
 void Module::ReleaseLater(MGDF::ComObject<ID3D12Resource> resource, UINT64 lastUse) {
   _pending.push_back({std::move(resource), lastUse});
 }
 
+// Call once per frame. Erasing an entry drops the last reference.
 void Module::Collect(const MGDFFrameInfo &frame) {
   std::erase_if(_pending, [&](const Pending &p) {
+    // The GPU has finished every frame up to CompletedOrdinal
     return frame.CompletedOrdinal >= p.LastUse;
   });
 }
@@ -168,6 +178,7 @@ void Module::Collect(const MGDFFrameInfo &frame) {
 BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
   MGDFBackBufferInfo info = {};
   host->GetBackBufferInfo(&info);
+  // Anything sized to the window has to be rebuilt to match
   return CreateDepthBuffer(info.Width, info.Height);
 }
 {% endhighlight %}
@@ -186,6 +197,7 @@ host->CreateGaugeMetric("shadow_pass_ms", "Shadow pass GPU time",
 MGDF::ComObject<IMGDFPerformanceCounter> counter;
 host->CreateGPUCounter(_shadowMetric, list, counter.Assign());
 {
+  // Timing stops when the scope is released at the closing brace
   MGDF::ComObject<IMGDFPerformanceCounterScope> scope;
   counter->Begin(nullptr, scope.Assign());
   DrawShadows(list);

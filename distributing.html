@@ -297,6 +297,8 @@ SectionEnd
 {% highlight c++ %}
 MGDF::ComObject<IMGDFStatisticsManager> statistics;
 host->GetStatistics(statistics.Assign());
+// Does nothing unless game.json names a statistics service.
+// The last argument takes optional tags.
 statistics->PushString("level_started", "caves", nullptr);
 {% endhighlight %}
         <p>The host batches the values and posts them as JSON. Each one carries a timestamp and the session's id. See the <a href="{{ site.baseurl }}/api#statsservice">statistics service reference</a> for the format.</p>
@@ -307,7 +309,10 @@ statistics->PushString("level_started", "caves", nullptr);
         <h2 id="metrics">Watch performance</h2>
         <p>Metrics are numbers you sample while the game runs, such as frame time or entity count. Create one, record to it, and the host exposes it to <a href="https://prometheus.io">Prometheus</a>.</p>
 {% highlight c++ %}
+// Create the metric once and keep it
 host->CreateGaugeMetric("entities", "Live entity count", _entities.Assign());
+
+// Record a value whenever it changes
 _entities->Record(static_cast<double>(_world.Count()), nullptr);
 {% endhighlight %}
         <div class="table-responsive">

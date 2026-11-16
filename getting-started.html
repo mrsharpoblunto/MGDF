@@ -130,6 +130,7 @@ GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
 
 extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
   auto m = MGDF::MakeCom<Module>();
+  // Hands the host a reference of its own
   m.AddRawRef(module);
   return S_OK;
 }
@@ -138,10 +139,12 @@ extern "C" __declspec(dllexport) HRESULT GetModule(IMGDFModule **module) {
 {% highlight c++ %}
 class Module : public MGDF::ComBase<IMGDFModule> {
  public:
+  // Sim thread: game logic
   BOOL __stdcall STNew(IMGDFSimHost *host) final;
   BOOL __stdcall STUpdate(IMGDFSimHost *host, double elapsedTime) final;
   void __stdcall STShutDown(IMGDFSimHost *host) final;
 
+  // Render thread: drawing, and rebuilding GPU resources
   BOOL __stdcall RTBeforeFirstDraw(IMGDFRenderHost *host) final;
   BOOL __stdcall RTDraw(IMGDFRenderHost *host, double alpha) final;
   void __stdcall RTAfterPresent(IMGDFRenderHost *host) final;
@@ -151,6 +154,7 @@ class Module : public MGDF::ComBase<IMGDFModule> {
   BOOL __stdcall RTDeviceReset(IMGDFRenderHost *host) final;
   void __stdcall RTShutDown(IMGDFRenderHost *host) final;
 
+  // A fatal error occurred. Clean up, and do not call the host.
   void __stdcall Panic() final;
 };
 {% endhighlight %}
@@ -225,12 +229,14 @@ void __stdcall Module::STShutDown(IMGDFSimHost *host) {
 BOOL __stdcall Module::STUpdate(IMGDFSimHost *host, double elapsedTime) {
   _world.Advance(elapsedTime);
 
+  // Publish a copy for the render thread
   std::lock_guard<std::mutex> lock(_mutex);
   _snapshot = _world.Snapshot();
   return TRUE;
 }
 
 BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha) {
+  // Copy under the lock, then draw without holding it
   Snapshot frame;
   {
     std::lock_guard<std::mutex> lock(_mutex);

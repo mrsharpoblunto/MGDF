@@ -38,11 +38,13 @@ BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
   MGDF::ComObject<IMGDFRenderSettingsManager> settings;
   host->GetRenderSettings(settings.Assign());
 
+  // An empty list means the device cannot upscale
   _upscaleModes.clear();
   for (UINT64 i = 0; i < settings->GetUpscaleModeCount(); ++i) {
     MGDFUpscaleMode mode;
     if (settings->GetUpscaleMode(i, &mode)) _upscaleModes.push_back(mode);
   }
+  // 0 means no frame generation
   _maxGeneratedFrames = settings->GetMaxGeneratedFrames();
   return TRUE;
 }
@@ -53,10 +55,22 @@ BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
         </div>
 
         <h2 id="upscaling">Upscale with DLSS</h2>
-        <p>With upscaling, you render the scene small and let the upscaler produce the full-size image. Post-processing and UI then run at full size.</p>
+        <p>DLSS lets you render the scene at a fraction of the window size and still show a sharp, full-size image. The GPU shades far fewer pixels, so the frame rate goes up.</p>
+        <p>It works by combining many frames. A single small frame doesn't hold enough detail to fill the window, but the last several frames together do. You supply three things so the upscaler can line those frames up:</p>
+        <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Input</th><th>What it tells the upscaler</th></tr></thead>
+            <tbody>
+                <tr><td>Jitter</td><td>Where inside each pixel this frame sampled the scene.</td></tr>
+                <tr><td>Motion vectors</td><td>Where each pixel was in the previous frame.</td></tr>
+                <tr><td>Depth</td><td>Which surface is in front when two overlap.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>The upscaled image then goes back to you. Draw your post-processing effects, such as bloom and film grain, and then your UI on top of it. Both run at full size, so text and fine detail stay sharp.</p>
 
         <figure class="diagram">
-            <svg viewBox="0 0 720 132" role="img" aria-label="You render the scene at the render size, the host upscales it, you draw post-processing and UI at the output size, the host optionally generates frames, and then presents.">
+            <svg viewBox="0 0 720 132" role="img" aria-label="You render the scene at the render size, the host upscales it, you draw post-processing effects and the UI at the output size, the host optionally generates frames, and then presents.">
                 <defs><marker id="up-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
                 <rect class="box you" x="20" y="20" width="140" height="56" rx="6"/>
                 <text x="90" y="45">Scene</text>
@@ -67,7 +81,7 @@ BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
                 <text class="sub" x="230" y="63">host</text>
                 <path class="line" d="M280 48H298" marker-end="url(#up-arrow)"/>
                 <rect class="box you" x="300" y="20" width="140" height="56" rx="6"/>
-                <text x="370" y="45">Post and UI</text>
+                <text x="370" y="45">Effects and UI</text>
                 <text class="sub" x="370" y="63">output size</text>
                 <path class="line" d="M440 48H458" marker-end="url(#up-arrow)"/>
                 <rect class="box hot" x="460" y="20" width="130" height="56" rx="6"/>
@@ -88,10 +102,12 @@ BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
   MGDFBackBufferInfo info = {};
   host->GetBackBufferInfo(&info);
 
+  // Fails when the device cannot upscale in this mode
   MGDFUpscaleRenderSize size = {};
   _upscale = SUCCEEDED(host->GetUpscaleRenderSize(
       MGDF_UPSCALE_MODE_QUALITY, info.Width, info.Height, &size));
 
+  // Scene targets at the render size, everything after at the window size
   return _upscale
       ? CreateRenderTargets(size.Width, size.Height, info.Width, info.Height)
       : CreateRenderTargets(info.Width, info.Height, info.Width, info.Height);
@@ -99,12 +115,40 @@ BOOL __stdcall Module::RTBackBufferChange(IMGDFRenderHost *host) {
 {% endhighlight %}
         <p>The modes run from <code>MGDF_UPSCALE_MODE_DLAA</code>, which renders at full size and only anti-aliases, down to <code>MGDF_UPSCALE_MODE_ULTRA_PERFORMANCE</code>. See <a href="{{ site.baseurl }}/api#MGDFUpscaleMode">MGDFUpscaleMode</a>.</p>
 
-        <h3>Upscale each frame</h3>
-        <p>Give the host the camera for the frame, draw the scene with jitter, then record the upscale into your command list.</p>
+        <h3>Jitter the camera</h3>
+        <p>A small frame samples the scene once per pixel, always at the pixel center. Render it the same way every frame and the upscaler sees the same samples over and over, with nothing new to add.</p>
+        <p>Jitter fixes that. Each frame, nudge the projection by a different offset of less than a pixel. Every frame then samples a slightly different spot, and over a few frames those samples cover the gaps between pixels. That is where the extra detail comes from.</p>
 {% highlight c++ %}
-host->SetFrameConstants(&constants);   // Camera matrices and jitter
+// A repeating low-discrepancy sequence spreads the samples evenly
+constants.JitterOffset[0] = Halton(_frameIndex, 2) - 0.5f;
+constants.JitterOffset[1] = Halton(_frameIndex, 3) - 0.5f;
+{% endhighlight %}
+        <p>The offset is in render pixels. Shift the projection you draw with by that amount, but pass the host the matrices without it. The host needs both to undo the nudge when it combines frames.</p>
 
-DrawScene(list);                       // Render size, jittered
+        <h3>Upscale each frame</h3>
+        <p>Give the host the camera and jitter for the frame, draw the scene, then record the upscale into your command list.</p>
+{% highlight c++ %}
+// Camera matrices and this frame's jitter offset
+host->SetFrameConstants(&constants);
+
+// Draws color, depth and motion vectors at the render size,
+// using the jittered projection
+DrawScene(list);
+
+// The upscaler reads its inputs as shader resources and writes its
+// output through unordered access, so move each one into that state.
+// The host adds no barriers of its own.
+D3D12_RESOURCE_BARRIER barriers[] = {
+    Transition(_color.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+               D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+    Transition(_depth.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
+               D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+    Transition(_motion.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+               D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+    Transition(_upscaled.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+               D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+};
+list->ResourceBarrier(4, barriers);
 
 MGDFUpscaleDesc upscale = {};
 upscale.Mode = MGDF_UPSCALE_MODE_QUALITY;
@@ -112,17 +156,21 @@ upscale.RenderWidth = _renderWidth;
 upscale.RenderHeight = _renderHeight;
 upscale.OutputWidth = _outputWidth;
 upscale.OutputHeight = _outputHeight;
-upscale.ColorHDR = TRUE;
+upscale.ColorHDR = TRUE;   // Scene color is linear HDR, not yet tone mapped
+// Each input pairs a resource with the state the barriers left it in
 upscale.ColorIn = {_color.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
 upscale.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
 upscale.MotionVectors = {_motion.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
 upscale.ColorOut = {_upscaled.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS};
 if (FAILED(host->Upscale(list, &upscale))) return FALSE;
 
+// Upscale leaves the list's bindings undefined, so set them again
 list->SetDescriptorHeaps(1, _heaps.AsArray());
-DrawPostAndUI(list);                   // Output size
+
+// Reads _upscaled and draws at the output size
+DrawEffectsAndUI(list);
 {% endhighlight %}
-        <p>Each input names the resource and the state it will be in when the GPU reaches the upscale. The host adds no barriers, so make the transitions yourself first.</p>
+        <p><code>Transition</code> is a helper of your own that fills in a transition barrier. The states you move from depend on how your scene pass left each target.</p>
         <div class="callout pitfall">
             <p><strong>Pitfall</strong><code>Upscale</code> leaves the command list's descriptor heaps, root signature, pipeline state, render targets and viewports undefined. Set them again before you draw anything else.</p>
         </div>
@@ -134,7 +182,9 @@ DrawPostAndUI(list);                   // Output size
 MGDFFrameGenerationDesc generation = {};
 generation.Depth = {_depth.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
 generation.MotionVectors = {_motion.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+// The finished frame before the UI is drawn
 generation.HudlessColor = {_hudless.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
+// The UI on its own, with alpha, so generated frames keep it steady
 generation.UIColorAndAlpha = {_ui.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
 host->SetFrameGenerationInputs(&generation);
 {% endhighlight %}
@@ -152,6 +202,7 @@ host->SetFrameGenerationInputs(&generation);
         <p>The two optional inputs are worth the effort. Without them, generated frames smear the UI.</p>
         <p>Generated frames look wrong when the picture jumps. While the game loads, is paused, or cuts to a new scene, pass <code>nullptr</code> and the host skips generation for that frame:</p>
 {% highlight c++ %}
+// A null description turns generation off for this frame
 if (_loading || _paused) host->SetFrameGenerationInputs(nullptr);
 {% endhighlight %}
         <div class="callout pitfall">
@@ -172,6 +223,7 @@ if (_loading || _paused) host->SetFrameGenerationInputs(nullptr);
         </table>
         </div>
 {% highlight c++ %}
+// Marks where this frame's simulation starts and ends, for latency measurement
 host->SetFrameMarker(MGDF_FRAME_MARKER_SIMULATION_START);
 Snapshot frame = TakeSnapshot();
 host->SetFrameMarker(MGDF_FRAME_MARKER_SIMULATION_END);
@@ -185,7 +237,8 @@ MGDF::ComObject<IMGDFPendingRenderSettingsChange> change;
 settings->CreatePendingSettingsChange(change.Assign());
 change->SetFrameGeneration(1);
 change->SetLowLatencyMode(MGDF_LOW_LATENCY_ON);
-change.Clear();   // Applies both
+// Releasing the change applies both settings together
+change.Clear();
 {% endhighlight %}
         <p>The host saves each choice as a preference and restores it on the next run.</p>
         <div class="table-responsive">
@@ -205,6 +258,7 @@ change.Clear();   // Applies both
         <p>If your renderer uses DXR, ask the host whether to turn it on. The answer combines what the device supports with what the player chose.</p>
 {% highlight c++ %}
 MGDFRayTracingSupport support = {};
+// Supported by the device, and switched on by the player
 _rayTracing = settings->GetRayTracingSupport(&support) && settings->GetRayTracing();
 _reorder = _rayTracing && support.ShaderExecutionReordering;
 {% endhighlight %}
@@ -229,6 +283,7 @@ _reorder = _rayTracing && support.ShaderExecutionReordering;
 {% highlight c++ %}
 MGDFBackBufferInfo info = {};
 host->GetBackBufferInfo(&info);
+// The back buffer only takes the HDR format while HDR output is active
 _hdr = info.Format == settings->GetHDRBackBufferFormat();
 {% endhighlight %}
 
@@ -258,8 +313,10 @@ float3 EncodePQ(float3 nits) {
 {% highlight c++ %}
 MGDFOutputDisplayInfo display = {};
 settings->GetCurrentOutputDisplayInfo(&display);
+// Some displays report no peak brightness. 1000 nits is a safe guess.
 const float peak = display.MaxLuminance > 0.0f ? display.MaxLuminance : 1000.0f;
 
+// Describes how bright your image gets, so the display can map it
 MGDFHDRMetadata metadata = {};
 metadata.MaxContentLightLevel = peak;
 metadata.MaxFrameAverageLightLevel = (std::min)(display.MaxFullFrameLuminance, peak);
