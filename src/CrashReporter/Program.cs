@@ -10,7 +10,6 @@ namespace MGDF.CrashReporter
     [STAThread]
     private static int Main(string[] args)
     {
-      if (args.Length == 1 && args[0] == "--mgdf-tool-check") return 0;
       return Run(args, (text, title) => MessageBox.Show(text, title, MessageBoxButtons.OK, MessageBoxIcon.Error));
     }
 
