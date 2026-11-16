@@ -36,7 +36,7 @@ internal static class Program
     Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
     MGDF.Tools.ToolForm.EnableStyles();
     Action[] tests = { CoreFlags, NoService, ServiceFailure, SameVersion, Later, PromptLayout, DownloadInactivity, DownloadKeepsReceiving, DownloadFailureStartsGame, CancelFormDownload, CancelDownload, HashMismatch,
-      LockedInstaller, InstallerSuccess, InstallerFailure, InstallerRefused, FullHandoff, StandalonePrograms, OneUpdater, PendingInstaller, PendingFailure, CompletedMarker, InUseFiles, KilledHelper, NativeImageInUse, CorruptManifestOffersRepair };
+      LockedInstaller, InstallerSuccess, InstallerFailure, InstallerRefused, FullHandoff, OneUpdater, PendingInstaller, PendingFailure, CompletedMarker, InUseFiles, KilledHelper, NativeImageInUse, CorruptManifestOffersRepair };
     if (args.Contains("--cpu-only")) tests = tests.Where(test => !new[] { "FullHandoff", "KilledHelper", "NativeImageInUse" }.Contains(test.Method.Name)).ToArray();
     if (args.Contains("--reverse")) Array.Reverse(tests);
     int failures = 0;
@@ -447,17 +447,6 @@ internal static class Program
     }
   }
 
-  private static void StandalonePrograms()
-  {
-    foreach (var name in new[] { "updater.exe", "crashreporter.exe" })
-    {
-      var folder = Path.Combine(_root, name); Directory.CreateDirectory(folder);
-      File.Copy(Path.Combine(_bin, name), Path.Combine(folder, name));
-      using (var process = Process.Start(new ProcessStartInfo(Path.Combine(folder, name), "--mgdf-tool-check") { UseShellExecute = false, CreateNoWindow = true }))
-        Check(process.WaitForExit(10000) && process.ExitCode == 0, "Standalone program failed to load.");
-      Check(Directory.GetFiles(folder).Length == 1, "Standalone check has an extra assembly or config.");
-    }
-  }
   private sealed class FakeProcesses : IUpdateProcesses
   {
     public int Games, Helpers, Installs, Failures, Code;

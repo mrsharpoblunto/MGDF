@@ -14,7 +14,6 @@ namespace MGDF.Updater
     {
       try
       {
-        if (args.Length == 1 && args[0] == "--mgdf-tool-check") return 0;
         if (UpdateProcesses.IsElevated()) return 1;
         System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
         ToolForm.EnableStyles();

@@ -194,7 +194,7 @@ folders held by a running updater.
 
 The updater tests use a local HTTP server, a small installer process, and a game
 process. They check cancellation, hashes, parent exit, argument preservation,
-the game token, temporary file cleanup, and both standalone executables.
+the game token, and temporary file cleanup.
 
 Update completion contract
 --------------------------
@@ -224,6 +224,3 @@ the folder, then remove that starting record only after setup has exited.
 The installer stays open without write sharing from the temporary updater's
 hash check through the installer process creation. The first
 updater also holds it until the temporary copy has opened and checked it.
-
-Run either tool with `--mgdf-tool-check` to check that its standalone executable
-loads. This check needs no other file in its folder.
