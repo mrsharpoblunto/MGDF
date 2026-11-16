@@ -4,11 +4,11 @@ layout: default
 <div class="row">    
     <div class="col-md-9 main">
         <h1 id="overview" class="page-header">Overview</h1>
-        <p>Matchstick (MGDF) provides tools to develop, install, distribute, and update C++ games on Windows. It provides DirectX 12 rendering with OpenXR VR support, OpenAL audio, XInput gamepad input, and HTTP/S and WebSocket networking support. Its virtual file system gives modules access to files on disk and in archives.</p>
+        <p>Matchstick (MGDF) provides tools to develop, distribute, and update C++ games on Windows. It provides DirectX 12 rendering with OpenXR VR support, OpenAL audio, XInput gamepad input, and HTTP/S and WebSocket networking support. Its virtual file system gives modules access to files on disk and in archives.</p>
         
-        <p>MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game. It also makes distributing games easier as it includes an auto update mechanism with full versioning support.</p> 
+        <p>MGDF makes developing games in c++ faster and easier as you no longer have to build and rebuild the same boilerplate code for initializing DirectX/Audio etc, loading preferences and setting up a render loop every single time you make a game. This means you can spend more time making your game. For distribution, MGDF has an optional updater and an optional crash reporter.</p>
 
-        <p>MGDF is comprised of two main components (the second of which is not required for running games, but for online updating/distribution)</p>
+        <p>MGDF has three parts. The core runs the game. The updater and the crash reporter are optional. A game installer or a store client installs the game.</p>
 
         <h2>The core <small>(core.exe)</small></h2>
         <p>This is written in c++ and is the part of the framework which actually runs the games. The core works by initializing the graphics/input/audio devices, loading up user preferences and setting up a multithreaded render/simulation loop before loading the user supplied game dll (known as a game module) and passing control on to that module. Once up and running the game module can then access the framework's functionality via a series of c++ interfaces (see the <a href="{{ site.baseurl }}/api#interfaces">API reference</a> for more details)</p>
@@ -64,24 +64,28 @@ layout: default
             <br />
         </div>
 
-        <h2>The GamesManager <small>(GamesManager.exe)</small></h2>
-        <p>This is written in C# (.NET 4.8) and consists a windows forms application which provides a minimalist launcher that checks for game updates and displays friendly error messages if the core crashes. It is also responsible for sending game statistics if this feature is used. 
-           In addition to this, the GamesManager also can be used by an installer to handle the usual tasks of windows program installation such as adding a installed programs entry in the registry, a start menu entry, and a desktop icon (see the <a href="{{ site.baseurl }}/api#commandline">command line options</a> for more details)</p>
-        <p class="alert alert-info"  ><strong>NOTE</strong> This component is optional. If you plan on using your own solution for launching the game and managing updates (Steam, Itch.io, etc.), you can omit this piece of the framework from your game and start your game by running core.exe directly instead of launching it via GamesManager.exe</p>
-    
-        <h1 id="newgame" class="page-header">Building a new game</h1>
-        <p id="folderstructure">MGDF takes a convention over configuration approach for the most part and assumes that a number of files will be provided by the game and that these files will exist in a standard folder structure inside the root MGDF install folder. The standard folder layout with the relevant locations highlighted are as follows.</p>
-        
-        <p class="alert alert-info"><strong>NOTE</strong> The MGDF redistributable included in the SDK is already layed out in this format, all you need to add when building a new game is the contents of the /game folder.</p>
+        <h2>The updater <small>(updater.exe)</small></h2>
+        <p>The game shortcut of an installed game starts the updater. The updater asks the update service of the game for a newer version. If there is a newer version, the player can install it or play the current version. Then the updater starts core.exe. See <a href="#updating">Updating</a>.</p>
+        <p class="alert alert-info"><strong>NOTE</strong> The updater is optional. A store build starts core.exe directly and does not ship updater.exe, because the store client updates the game.</p>
 
-        <p>/install root</p>
+        <h2>The crash reporter <small>(crashreporter.exe)</small></h2>
+        <p>When the game crashes, the crash reporter shows a dialog. The player can send a crash report to the crash report service of the game. See <a href="#crashreports">Crash reports</a>.</p>
+        <p>The updater and the crash reporter need .NET Framework 4.8. The core does not need it.</p>
+
+        <h1 id="newgame" class="page-header">Building a new game</h1>
+        <p id="folderstructure">MGDF expects the game files in a standard folder layout inside the install folder. The layout is as follows.</p>
+
+        <p class="alert alert-info"><strong>NOTE</strong> The MGDF runtime zip in the SDK has this layout. Add the /game folder to make a complete game. Do not change the other runtime files and folders.</p>
+
+        <p>/install folder</p>
         <ul class="fs-layout">
-            <li><p>core.exe</p></li>
-            <li><p>GamesManager.exe</p></li>
-            <li><p>GamesManager.FrameworkUpdater.exe</p></li>
-            <li><p>... other framework dlls</p></li>
+            <li><h4>core.exe <small><em>[Required]</em></small></h4><p>Runs the game. A store build and a development build start this file directly.</p></li>
+            <li><h4>updater.exe <small><em>[Optional]</em></small></h4><p>Checks for updates, then starts core.exe. The shortcuts of an installed game start this file. Do not ship it in a store build.</p></li>
+            <li><h4>crashreporter.exe <small><em>[Optional]</em></small></h4><p>Shows the crash dialog and sends crash reports. The core uses it only when game.json has a <code>crashReportService</code>.</p></li>
+            <li><h4>.env <small><em>[Optional]</em></small></h4><p>Sets core.exe arguments for development. See <a href="#running">Running a game</a>.</p></li>
+            <li><p>... other runtime files and folders</p></li>
             <li><p>/resources</p></li>
-            <li><p>/dependencies</p></li>
+            <li><h4>/dependencies</h4><p>Contains <code>vc2022_redist.x64.exe</code>. The game installer must run it (see <a href="#installing">Installing</a>).</p></li>
             <li>
                 <h4>/game</h4>
                 <p>All games files should be placed inside this folder</p>
@@ -98,25 +102,22 @@ layout: default
                             <li><p>Any game data files should go in here. This folder serves as the root of the virtual file system and content outside this folder is not accessable</p></li>
                         </ul>
                     </li>
-                    <li><h4>game.json <small><em>[Required]</em></small></h4><p>This JSON file contains metadata including the name, version, and preference settings for the game. The game name is also the title of the game window. This file is required and the game will not run unless it is present.</p></li>
-                    <li><h4>gameIcon.png <small><em>[Optional]</em></small></h4><p>This 48x48 PNG file is used to display the game logo in the GamesManager UI, the installed programs registry entry, the desktop icon, and the game window and taskbar. The host scales the image to the window icon sizes for the system DPI, so use a square image. This file is optional, and if not specified a default icon will be used instead.</p></li>
-                    <li><h4>gameSystemIcon.ico <small><em>[Optional]</em></small></h4><p>By default the PNG image above will be converted automatically into an icon file for display in parts of the system that cannot use PNGs. If you don't wish to use the automatically converted icon file (sometimes the conversion results in messy transparency), and instead want to provide one, you can do so here.</p></li>
+                    <li><h4>game.json <small><em>[Required]</em></small></h4><p>This JSON file contains the name, version, services, and preference settings of the game. The game name is also the title of the game window. The game does not run without this file. An installer must write this file last (see <a href="#installing">Installing</a>).</p></li>
+                    <li><h4>gameIcon.png <small><em>[Optional]</em></small></h4><p>This 48x48 PNG file is the icon of the game window, the taskbar button, the update dialog, and the crash dialog. The host scales the image to the window icon sizes for the system DPI, so use a square image. If this file is not present, MGDF uses a default icon. The installer supplies the icons for shortcuts and the uninstall record.</p></li>
                 </ul>
             </li>
         </ul>
 
         <h2 id="gamemanifest">Game.json</h2>
-        <p>As mentioned above, this file is responsible for telling the GamesManager and core everything they need to know about running your game. A basic manifest file is shown below. For full information on all the fields and their meanings, check out the <a href="{{ site.baseurl }}/api#gamemanifeset">API reference</a> for more information.</p>
+        <p>The core and the updater read this file. A basic manifest is shown below. Only <code>gameUid</code>, <code>gameName</code>, and <code>version</code> are necessary. For all the fields and the programs that read them, see the <a href="{{ site.baseurl }}/api#gamemanifeset">API reference</a>.</p>
 {% highlight json %}
 {
     "gameUid":"a unique id",
     "gameName":"A human readable name",
     "version":"0.1",
-    "interfaceVersion":"1",
-    "developerName":"Human readable developer name",
-    "homepage":"https://www.example.com",
-    "supportType":"email",
-    "supportUrl":"support@example.com"
+    "crashReportService":"https://www.example.com/api/crashes",
+    "privacyPolicy":"https://www.example.com/privacy",
+    "updateService":"https://www.example.com/api/update.json"
 }
 {% endhighlight %}
 
@@ -545,180 +546,210 @@ host->SetHDRMetadata(&metadata);
 {% endhighlight %}
 
     <h1 id="running" class="page-header">Running a game</h1>
-    <p>When distributing a game to users, one simply has to put the game content and module in the prescribed locations inside the framework redistributable (as shown <a href="#folderstructure">here</a>). Users can then run the game by running GamesManager.exe.</p>
-    <p>However, having to keep your game inside the redistributable folder can be annoying during development, so there are a few other options available to make running the game in development easier.</p>
-    <p>Firstly, in development don't bother running GamesManager.exe, run core.exe directly instead. The GamesManager only wraps core.exe and does update checking and some other services that are not needed for testing development builds. Also running core.exe directly allows you to easily attach the Visual Studio debugger when running your game.</p>
-    <p>Secondly, you can actually run a game that exists anywhere on disk by passing in the following command line parameters when running core.exe</p>
-    <pre>core.exe -gamediroverride "some folder on disk"</pre>
-    <p>Provided that the folder specified has the usual /bin and /content structure that the /game folder in the framework would usually have, things will work as if the folder was in the /game folder in the framework redistributable folder.</p>
-    <p>Another useful commandline flag is</p><pre>-userdiroverride</pre><p>This changes the location that MGDF stores logs and per user data such as saved games and preferences from its usual folder in %appdata%/local/MGDF/1/&lt;GameUid&gt; to a /user folder in the parent folder of the current /game directory.
-       For example, if the -gamediroverride was set to c:\mygame\game, and -userdiroverride was also set, then c:\mygame\user would be used to store all user data.</p>
-    <h1 id="distributing" class="page-header">Distributing a game</h1>
-    <h2 id="installing">Installing</h2>
-    <p>In order to distribute your game to users it is recommended to bundle your game into an installer, rather than just provide a .zip archive containing a framework redistributable combined with your game module and content files.</p>
-    <p>The main advantages to bundling everything in an installer is that the GamesManager depends on the .NET framework 4.8 runtime, which is not guaranteed to be present on all users systems. Because of this an installer may be necessary to install the framework prior to running the GamesManager</p>
-    <p>The general procedure for integrating an MGDF game with an installer is as follows</p>
-    <ol>
-        <li>The installer should extract all files in the standard <a href="#folderstructure">MGDF folder structure</a> to somewhere on disk</li>
-        <li>The installer should then check for the presence of the .NET framework 4.8, and if not installed should install or prompt the user to install it</li>
-        <li>
-            <p>The installer should then invoke the following command</p>
-            <pre>GamesManager.exe -register</pre>
-            <p>This will cause the GamesManager to</p>
-            <ul>
-                <li>Silently install the Visual c++ runtime library that Core depends upon</li>
-                <li>Add the games information to the installed programs list</li>
-                <li>Add a start menu shortcut</li>
-                <li>Add a desktop icon shortcut</li>
-                <li>Perform any integration with the windows game explorer</li>
-            </ul>
-        </li>
-    </ol>
-    <br />
-    <h4>Example <a href="http://nsis.sourceforge.net/Main_Page">NSIS</a> install script <small>(assuming a game with a gameUid of 'newgame' )</small></h4>
+    <p>The program that starts the game depends on the build:</p>
+    <ul>
+        <li><strong>Installed game.</strong> The game shortcuts start updater.exe. After the update check, the updater starts core.exe. It gives its own command line arguments to core.exe without change.</li>
+        <li><strong>Store build.</strong> The store client starts core.exe. Do not ship updater.exe in a store build.</li>
+        <li><strong>Development.</strong> Run core.exe directly. You can then attach the Visual Studio debugger.</li>
+    </ul>
+    <p>Do not run updater.exe as administrator. An updater that runs as administrator stops and does not start the game.</p>
+    <p>You do not have to keep the game in the runtime folder during development. To run a game folder from another location, give the folder to core.exe:</p>
+    <pre>core.exe -gamediroverride "C:\dev\mygame\game"</pre>
+    <p>The folder must have the same layout as the /game folder: /bin, /content, and game.json.</p>
+    <p>MGDF stores logs, saved games, and preferences in <code>%LOCALAPPDATA%\MGDF\1\&lt;gameUid&gt;</code>. With the flag <code>-userdiroverride</code>, MGDF stores these files in a /user folder next to the game folder. For example, with <code>-gamediroverride c:\mygame\game</code> and <code>-userdiroverride</code>, MGDF uses <code>c:\mygame\user</code>. Without <code>-gamediroverride</code>, MGDF uses <code>user\&lt;gameUid&gt;</code> in the core.exe folder.</p>
+    <p>Each argument <code>-name</code> also has an environment variable <code>MGDF_NAME</code>. Command line arguments have priority over environment variables. Before it reads the arguments, the core reads the file <code>.env</code> in the core.exe folder, if it is present. Each line of this file is <code>KEY=VALUE</code>. Blank lines, comment lines that start with <code>#</code>, and quoted values are permitted. A value in <code>.env</code> does not replace an environment variable that is already set. Use <code>.env</code> to keep development settings out of the command line:</p>
 <pre>
-;Includes
-!include "MUI2.nsh"
-!include "FileFunc.nsh" 
-  
-;--------------------------------
-; The name of the installer
-    Name "New game"
-    OutFile "Setup.exe"
-
-; The default installation directory
-    InstallDir "$PROGRAMFILES\NewGame"
-    RequestExecutionLevel admin
-
-;--------------------------------
-;Constants
-    !define CSIDL_APPDATA '0x1A' ;Application Data path
-
-;--------------------------------
-;Pages
-    !insertmacro MUI_PAGE_DIRECTORY
-    !insertmacro MUI_PAGE_INSTFILES
-    !insertmacro MUI_UNPAGE_CONFIRM
-    !insertmacro MUI_UNPAGE_INSTFILES
-
-;--------------------------------
-;Languages 
-    !insertmacro MUI_LANGUAGE "English"
-  
-;--------------------------------
-; check for and install .net 4.8
-Section "Install .NET Framework 4.8"
-IfSilent Ignoredotnetsetup
-    Call CheckAndInstallDotNet
-Ignoredotnetsetup:
-SectionEnd
-
-;--------------------------------
-; Remove lastupdate file so we can check for updates as 
-; soon as we next start up (this installer may be out of date)
-Section "Remove lastUpdate check"
-    Delete $LOCALAPPDATA\MGDF\1\NewGame\.lastupdate
-SectionEnd
-
-;--------------------------------
-; the core engine components
-Section "Install NewGame"
-;--- core engine components ---
-    SetOutPath $INSTDIR
-    File /r "path to the MGDF root folder"
-	
-;--- write out the add/remove program's registry keys & install any framework dependencies
-    ExecWait '"$INSTDIR\GamesManager.exe" -register'
-    SetRegView 64
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MGDF1_NewGame" "UninstallString" "$INSTDIR\Uninstall.exe"
-	
-    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
-    IntFmt $0 "0x%08X" $0
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MGDF1_NewGame" "EstimatedSize" "$0"
-	
-    WriteUninstaller $INSTDIR\Uninstall.exe	
-SectionEnd
-
-;--------------------------------
-; uninstall the core engine
-Section "Uninstall"
-    ;-- remove registry keys, shortcuts etc.
-    ExecWait '"$INSTDIR\GamesManager.exe" -deregister'
-    ;--- remove uninstaller ---
-    Delete $INSTDIR\Uninstall.exe
-	
-    RMDIR /r $INSTDIR
-SectionEnd
-
-Function CheckAndInstallDotNet
-;--- https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed#net_d
-    ClearErrors
-    ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
-
-    IfErrors NotDetected
-
-    ${If} $0 >= 528040
-        DetailPrint "Microsoft .NET Framework 4.8 is installed ($0)"
-    ${Else}
-    NotDetected:
-        DetailPrint "Installing Microsoft .NET Framework 4.8"
-        SetDetailsPrint listonly
-		SetOutPath $TEMP\Junkship
-		File ndp48-web.exe
-        ExecWait '"$TEMP\Junkship\ndp48-web.exe" /q /norestart' $0
-        ${If} $0 == 3010 
-        ${OrIf} $0 == 1641
-            DetailPrint "Microsoft .NET Framework 4.8 installer requested reboot"
-            SetRebootFlag true
-        ${EndIf}
-        SetDetailsPrint lastused
-        DetailPrint "Microsoft .NET Framework 4.8 installer returned $0"
-		Delete $TEMP\Junkship\ndp48-web.exe
-    ${EndIf}
-FunctionEnd
+MGDF_LOGLEVEL=log_high
+MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
+MGDF_USERDIROVERRIDE=1
 </pre>
+    <p>For all the arguments, see the <a href="{{ site.baseurl }}/api#commandline">command line options</a>.</p>
+
+    <h1 id="distributing" class="page-header">Distributing a game</h1>
+    <p>For an installed game, you supply an installer, an update service, and the services for crash reports and statistics. A store build uses the store client to install and update the game. A store build can also use crash reports and statistics.</p>
+
+    <h2 id="installing">Installing</h2>
+    <p>MGDF does not install games. Supply an installer, for example an <a href="https://nsis.sourceforge.net/Main_Page">NSIS</a> installer. The installer must do these steps:</p>
+    <ol>
+        <li>Copy the runtime files and the /game folder to the install folder in the <a href="#folderstructure">MGDF folder layout</a>. Do not copy game/game.json in this step.</li>
+        <li>Run <code>dependencies\vc2022_redist.x64.exe /install /quiet /norestart</code>. This installs the Visual C++ runtime when it is not installed. Exit codes 0, 1638 (a newer version is installed), and 3010 (a restart is necessary) are not errors.</li>
+        <li>Make sure that .NET Framework 4.8 is installed. The updater and the crash reporter need it. If it is not installed, install it or tell the player to install it.</li>
+        <li>Create the shortcuts. The shortcuts start updater.exe.</li>
+        <li>Write the uninstaller and the uninstall record in the registry.</li>
+        <li>Write game/game.json last, after all the other steps are successful.</li>
+    </ol>
+    <p>The updater uses game.json to find the end of an update. When game.json has the new version, the update is complete. If a step fails, stop the installer with a non-zero exit code before you write game.json. Return exit code 0 when the install is successful. Exit codes 3010 and 1641 (restart) also mean success.</p>
+    <p>The updater starts the installer without elevation. If the installer needs administrator rights, it must ask for them. For NSIS, use <code>RequestExecutionLevel admin</code>. The installer must also accept the arguments that your update service supplies (see <a href="#updating">Updating</a>).</p>
+    <br />
+    <h4>Example <a href="https://nsis.sourceforge.net/Main_Page">NSIS</a> install script <small>(for a game named 'New Game')</small></h4>
+    <p>The <code>runtime</code> folder contains the files of the MGDF runtime zip. The <code>game</code> folder contains your /game folder. Put <code>ndp48-web.exe</code> (the .NET Framework 4.8 web installer) beside the script. Build the installer with <code>makensis /DGAME_VERSION=1.2.3 installer.nsi</code>.</p>
+<pre>
+!include "MUI2.nsh"
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
+
+!ifndef GAME_VERSION
+  !error "GAME_VERSION is required"
+!endif
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\NewGame"
+
+Name "New Game"
+OutFile "NewGameSetup.exe"
+InstallDir "$PROGRAMFILES64\NewGame"
+InstallDirRegKey HKLM "${UNINSTALL_KEY}" "InstallLocation"
+RequestExecutionLevel admin
+
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_LANGUAGE "English"
+
+; Stop with exit code 4 if the last step failed.
+!macro CheckInstallStep
+  IfErrors 0 +3
+    SetErrorLevel 4
+    Quit
+!macroend
+
+Function .onInit
+  SetRegView 64
+  SetShellVarContext all
+  InitPluginsDir
+FunctionEnd
+
+Section "Install New Game"
+  ; The updater and the crash reporter need .NET Framework 4.8.
+  ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
+  ${If} $0 &lt; 528040
+    SetOutPath "$PLUGINSDIR"
+    File "ndp48-web.exe"
+    ExecWait '"$PLUGINSDIR\ndp48-web.exe" /q /norestart' $0
+    ${If} $0 == 3010
+    ${OrIf} $0 == 1641
+      SetRebootFlag true
+    ${ElseIf} $0 != 0
+      IfSilent +2
+        MessageBox MB_OK|MB_ICONSTOP "Cannot install .NET Framework 4.8. Setup will stop."
+      SetErrorLevel 2
+      Quit
+    ${EndIf}
+  ${EndIf}
+
+  ClearErrors
+  SetOutPath "$INSTDIR"
+  File /r "runtime\*"
+  !insertmacro CheckInstallStep
+  ExecWait '"$INSTDIR\dependencies\vc2022_redist.x64.exe" /install /quiet /norestart' $0
+  !insertmacro CheckInstallStep
+  ${If} $0 == 3010
+    SetRebootFlag true
+  ${ElseIf} $0 != 0
+  ${AndIf} $0 != 1638
+    IfSilent +2
+      MessageBox MB_OK|MB_ICONSTOP "Cannot install the Visual C++ runtime. Setup will stop."
+    SetErrorLevel 3
+    Quit
+  ${EndIf}
+
+  SetOutPath "$INSTDIR\game"
+  File /r /x game.json "game\*"
+  !insertmacro CheckInstallStep
+
+  SetOutPath "$INSTDIR"
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+  CreateDirectory "$SMPROGRAMS\New Game"
+  CreateShortcut "$SMPROGRAMS\New Game\New Game.lnk" "$INSTDIR\updater.exe"
+  CreateShortcut "$DESKTOP\New Game.lnk" "$INSTDIR\updater.exe"
+  CreateShortcut "$SMPROGRAMS\New Game\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "New Game"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayVersion" "${GAME_VERSION}"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
+  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
+  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
+  !insertmacro CheckInstallStep
+  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "EstimatedSize" $0
+  !insertmacro CheckInstallStep
+
+  ; game.json marks a complete install. Write it last.
+  SetOutPath "$INSTDIR\game"
+  File "game\game.json"
+  !insertmacro CheckInstallStep
+SectionEnd
+
+Function un.onInit
+  SetRegView 64
+  SetShellVarContext all
+FunctionEnd
+
+Section "Uninstall"
+  Delete "$DESKTOP\New Game.lnk"
+  RMDir /r "$SMPROGRAMS\New Game"
+  DeleteRegKey HKLM "${UNINSTALL_KEY}"
+  RMDir /r "$INSTDIR"
+SectionEnd
+</pre>
+    <p>With this script, an update service can use the installer arguments <code>["/S", "/D={installDir}"]</code>.</p>
+
     <h2 id="updating">Updating</h2>
-    <p>The MGDF GamesManager can check for available updates to either the game or framework upon launching the game (this update check will occur at most once per day). To enable this feature, you need to add an <strong>updateservice</strong> property to your game.json file, listing a url pointing to a <a href="{{ site.baseurl }}/api#updatemanifest">game update manifest</a> file. The JSON format for the manifest url is shown below, listing the latest version of your game, and the MGDF framework version your games supports.</p>
+    <p>To turn on updates, set <strong>updateService</strong> in game.json to the URL of your update service. Each time the updater starts, it sends a GET request to this URL. The service returns a JSON document that describes the newest version. For the fields, see the <a href="{{ site.baseurl }}/api#updatemanifest">update service reference</a>.</p>
 {% highlight json %}
 {
-  "framework": {
-    "version": "0.11.22",
-    "url": "https://s3.matchstickframework.org/MGDF_0.11.22_x64.zip",
-    "md5": "be4573e2058fa6106093443e6c7857d1"
-  },
-  "latest": {
-    "version": "0.2.4",
-    "url": "http://www.example.com/game_0.2.4.zip",
-    "md5": "8059891b6663315a72a954c282a963c8"
-  },
-  "updateOlderVersions": [
-    {
-      "url": "http://www.example.com/game_0.2.4_update.zip",
-      "md5": "eac5db79ad1fa8f61d20283fef37ad33",
-      "fromVersion": "0.2.2",
-      "toVersion": "0.2.3"
-    }
-  ]
+  "version": "1.2.3",
+  "installerUrl": "https://www.example.com/NewGameSetup_1.2.3.exe",
+  "sha256": "<64 hexadecimal digits>",
+  "installerArguments": ["/S", "/D={installDir}"]
 }
 {% endhighlight %}
-    <p>There are three main objects in the update manifest, the first is the framework object which allows you to specify which version of the MGDF framework your game supports, this allows you to upgrade the framework independently to your own game module and content. The url used for this object should point to an MGDF redistributable zip file (such as those included in the SDK)</p>
-    <p>The other two objects are the latest object which should point to a zipped game package (more on how to create these packages shortly). Finally the updateOlderVersions is an optional object which lists an array of zipped partial update packages that include only the files to upgrade from a particular version (or range of versions) to the version specified in the Latest object.</p>
+    <p>These rules apply:</p>
+    <ul>
+        <li>The update service URL and <code>installerUrl</code> must use HTTPS. Redirects must also use HTTPS. For local tests, HTTP to a loopback IP address such as 127.0.0.1 is permitted.</li>
+        <li>The update service must reply in 5 seconds. The response is limited to 64 KiB.</li>
+        <li>The updater compares the SHA-256 hash of the downloaded installer with <code>sha256</code>. It does not run an installer with a different hash. The updater does not check installer signatures.</li>
+        <li>The installer has no size limit and the download has no time limit. The download stops if no data arrives for 60 seconds.</li>
+    </ul>
+    <p>The updater starts the game and shows no message in these cases: game.json has no <code>updateService</code>, the check fails, or the version from the service is not newer than the version in game.json.</p>
+    <p>When a newer version is available, the updater shows a dialog with two buttons:</p>
+    <ul>
+        <li><strong>Update now</strong> downloads the installer. During the download, <strong>Cancel</strong> stops the download and starts the current version of the game.</li>
+        <li><strong>Later</strong> starts the current version of the game.</li>
+    </ul>
+    <p>If the download or the hash check fails, the updater shows "Cannot download the update." and then starts the current version.</p>
+    <p>After the download, the updater closes and runs the installer with the installer arguments. Then:</p>
+    <ul>
+        <li>If the installer is successful, the updater starts the new version of the game.</li>
+        <li>If the player refuses the elevation prompt, the updater starts the current version of the game. During a repair, the game stays closed.</li>
+        <li>If the game or its crash dialog is open, the updater shows "Close the game and its crash report window, then try the update again." It does not run the installer, and it starts the current version.</li>
+        <li>If the installer fails, the updater shows "Cannot install the update. Run the updater again to repair the game." The game does not start. At the next start, the updater shows "The update did not finish. Install the update to repair the game." The game starts again only after the install is complete.</li>
+    </ul>
+    <p>Only one update can run for an install folder at a time. A second updater shows "An update is in progress." and does not start the game.</p>
 
-    <h4>Building update packages with PackageGen.exe</h4>
-    <p>As mentioned above, in order to provide updates to your game, it has to be packaged into an update package. There are two types of update packages, full, and partial. A full update package is just a zip file containing everything in the /game folder whereas a partial update package contains only files which are different between two full update packages.</p>
-    <p>In order to make it easier to create these packages, the SDK includes a tool that can generate either full or partial update packages. In the simplest case of creating a full update package, the usage is as shown below (for more information see the <a href="{{ site.baseurl }}/api#packageGen">API reference</a>)</p>
-<pre>PackageGen "framework /game folder" -o "game package file"</pre>
-<p class="alert alert-info"><strong>NOTE</strong> The program output includes the version number and MD5 hash of the generated package, which you can use to fill out the field information in the game update manifest.</p>
-        
+    <h2 id="crashreports">Crash reports</h2>
+    <p>To turn on crash reports, set <strong>crashReportService</strong> in game.json to the URL of your crash report service. Ship crashreporter.exe beside core.exe. Set <strong>privacyPolicy</strong> to add a privacy policy link to the dialog. Without a crash report service or crashreporter.exe, a crash shows a short error message that gives the location of the log file. The flag <code>-hideerrors</code> stops this message.</p>
+    <p>The crash dialog shows only after a crash:</p>
+    <ul>
+        <li>an unhandled exception in the core or in the module,</li>
+        <li>a fatal error, for example a call to <code>FatalError</code> on <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a>,</li>
+        <li>an exit of core.exe with an exception status code (<code>0xC0000000</code> and higher, but not <code>0xC000013A</code>).</li>
+    </ul>
+    <p>A normal exit and all other exit codes show no dialog and send no report. A failure during startup uses exit code 1.</p>
+    <p>The dialog tells the player that the game stopped unexpectedly. When there is error text, the dialog shows it in a read-only box with a <strong>Copy</strong> button. The error text has a maximum of 2048 characters. For a fatal error, the text gives the sender and the message. The dialog has two buttons: <strong>Send report</strong> and <strong>Don't send</strong>. If the report cannot be sent, the dialog shows "Cannot send the report. Please try again later."</p>
+    <p>The report is a zip file with these files:</p>
+    <ul>
+        <li><code>log.txt</code>: the MGDF version, the Windows version and architecture, the processor count, the game uid and version, the crash details, and the game log.</li>
+        <li><code>minidump.dmp</code>: a minidump of core.exe, when one is available.</li>
+    </ul>
+    <p>The flag <code>-hideerrors</code> stops the dialog and the report. The crash reporter then writes the minidump as <code>crash-&lt;id&gt;.dmp</code> in the game user folder and keeps it.</p>
+    <p>For the service contract, see the <a href="{{ site.baseurl }}/api#crashreports">crash report service reference</a>.</p>
+
     <h2 id="statistics">Statistics tracking</h2>
-    <p>MGDF also has the ability to record and upload statistics from users play sessions. The user is prompted if a game wishes to gather statistics and can allow or deny the statistics gathering.</p>
-    <p>If permitted, statistics are recorded as key/value pairs. These pairs also include a timestamp which represents the time in seconds since that game session began. All statistics gathered in a game session also include a unique non-identifiable session identifier id so that all the statistics that were posted in a given session can be correlated.</p> 
-    <p>In order to enable statistics tracking you need to add the following properties to your game.json file</p>
-    <ol>
-        <li><strong>statisticsService</strong> - This value should point to a url where a compatible statistics web service is hosted (for more information on hosting a statistics service, or implementing your own see the <a href="{{ site.baseurl }}/api#statsservice">API reference</a>)</li>
-        <li><strong>statisticsPrivacyPolicy</strong> - This value should point to a url containing your privacy policy for usage of the statistics. This will be displayed to the user when they are prompted if they want to accept the statistics tracking or not. If this value is not present, no statistics tracking will be performed.</li>
-    </ol>
-    <p>You can then upload statistics (as key value pairs) using the <a href="{{ site.baseurl }}/api#IMGDFStatisticsManager">IMGDFStatisticsManager</a> API. The GamesManager will upload any statistics recorded once a users play session has ended.</p>
+    <p>MGDF can send statistics from play sessions to a statistics service. Set <strong>statisticsService</strong> in game.json to the URL of your service. The core argument <code>-statisticsendpointoverride</code> replaces this URL. Without a URL, MGDF sends no statistics.</p>
+    <p>The game supplies the values. Get the <a href="{{ site.baseurl }}/api#IMGDFStatisticsManager">IMGDFStatisticsManager</a> interface with <code>GetStatistics</code> on <a href="{{ site.baseurl }}/api#IMGDFCommonHost">IMGDFCommonHost</a>. Call <code>PushString</code> to send a name, a value, and optional tags. Call <code>PushMetric</code> to send the current value of a metric.</p>
+    <p>MGDF does not ask the player for permission. The game owns the consent controls: ask the player, keep the choice, and push values only after the player agrees. Show your privacy policy with this choice.</p>
+    <p>Each value has a timestamp in milliseconds from the start of the session. All the values from one session have the same session id. For the service contract, see the <a href="{{ site.baseurl }}/api#statsservice">statistics service reference</a>.</p>
     </div>
     <div class="col-md-3 hidden-xs hidden-sm">
         <div class="side-nav">
@@ -745,6 +776,7 @@ FunctionEnd
                 <ul class="nav">
                     <li><a href="#installing">Installing</a></li>
                     <li><a href="#updating">Updating</a></li>
+                    <li><a href="#crashreports">Crash reports</a></li>
                     <li><a href="#statistics">Statistics tracking</a></li>
                 </ul>        
                 </li>        
