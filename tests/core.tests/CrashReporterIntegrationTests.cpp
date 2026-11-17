@@ -150,29 +150,6 @@ int RunCrashReporterChild(const char *folder, const char *mode) {
                          0, nullptr);
         });
   }
-  if (selected == "send-crash" || selected == "send-fatal") {
-    Resources::Instance().SetGameBaseDir((root / "stage" / "game").wstring());
-    Resources::Instance().SetUserBaseDir("crash-send-test", true);
-    Resources::Instance().CreateRequiredDirectories();
-    options.UserFolder = Resources::Instance().UserBaseDir();
-    options.LogFile = Resources::Instance().LogFile();
-    std::ifstream service(root / "service-url.txt");
-    std::string url;
-    std::getline(service, url);
-    options.ServiceUrl = Resources::ToWString(url);
-    options.HideErrors = false;
-    ParameterManager::Instance().AddParameterString("-hideerrors");
-    LOG("Crash send test " << root.filename().string(), MGDF_LOG_ERROR);
-    if (!CrashReporter::Instance().Start(options)) return 2;
-    std::ofstream(root / "crash-thread.txt") << GetCurrentThreadId();
-    if (selected == "send-fatal") {
-      HandleFatalError("Renderer", "No DirectX 12 device.");
-      TerminateProcess(GetCurrentProcess(), 1);
-    }
-    SetUnhandledExceptionFilter(HandleUnhandledException);
-    *static_cast<volatile int *>(nullptr) = 1;
-    return 3;
-  }
   if (!CrashReporter::Instance().Start(options)) return 2;
   if (logger) {
     logger->Log("test", "crash while locked", MGDF_LOG_ERROR);

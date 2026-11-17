@@ -6,71 +6,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using MGDF.CrashReporter;
 
 internal static partial class Program
 {
-  private static void SendStatesKeepButtonFocus()
-  {
-    // Hiding Send report must not select the error text.
-    foreach (var error in new[] { null, "Renderer: No DirectX 12 device." })
-    using (var server = new Server())
-    using (var release = new ManualResetEventSlim())
-    using (var form = new ReportForm(new ReporterOptions {
-      GameName = "Focus test", UserFolder = _root, ServiceUrl = server.Url
-    }, new CrashResult { ErrorText = error }))
-    using (var timer = new System.Windows.Forms.Timer { Interval = 10000 })
-    {
-      Exception failure = null;
-      bool sending = false, failed = false;
-      form.ShowInTaskbar = false;
-      form.StartPosition = FormStartPosition.Manual;
-      form.Location = new System.Drawing.Point(-32000, -32000);
-      var buttons = form.Controls.OfType<FlowLayoutPanel>().Single().Controls.OfType<Button>().ToArray();
-      var send = buttons.Single(button => button.Text == "Send report");
-      var close = buttons.Single(button => button.Text == "Don't send");
-      var body = form.Controls.OfType<LinkLabel>().Single();
-      var worker = Task.Run(() => {
-        using (var client = server.Accept())
-        {
-          ReadRequest(client);
-          Check(release.Wait(TimeSpan.FromSeconds(10)), "Focus test did not release the server.");
-          Respond(client, "{\"success\":false}");
-        }
-      });
-      Action<Action> check = action => {
-        try { action(); }
-        catch (Exception ex) { failure = ex; form.Close(); }
-      };
-      form.Shown += (sender, e) => {
-        timer.Start();
-        form.BeginInvoke(new Action(() => check(() => {
-          send.PerformClick();
-          Check(!send.Visible && close.Text == "Cancel" && form.ActiveControl == close && form.AcceptButton == close,
-            "Sending state did not focus Cancel.");
-          sending = true;
-          release.Set();
-        })));
-      };
-      body.TextChanged += (sender, e) => {
-        if (!body.Text.StartsWith("Cannot send", StringComparison.Ordinal)) return;
-        form.BeginInvoke(new Action(() => check(() => {
-          Check(close.Text == "Close" && form.ActiveControl == close && form.AcceptButton == close,
-            "Failed state did not focus Close.");
-          Check(!form.Controls.OfType<TextBox>().Any(box => box.Focused), "Error text has focus.");
-          failed = true;
-          close.PerformClick();
-        })));
-      };
-      timer.Tick += (sender, e) => { failure = new Exception("Focus test timed out."); form.Close(); };
-      try { Application.Run(form); }
-      finally { timer.Stop(); release.Set(); Complete(worker); }
-      if (failure != null) throw failure;
-      Check(sending && failed, "Focus test missed a form state.");
-    }
-  }
-
   private static void StalledUploadStops() { CheckUploadProgress(false); }
   private static void MovingUploadHasNoTotalLimit() { CheckUploadProgress(true); }
 

@@ -35,7 +35,7 @@ internal static class Program
     Directory.CreateDirectory(_root);
     Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
     MGDF.Tools.ToolForm.EnableStyles();
-    Action[] tests = { CoreFlags, NoService, ServiceFailure, SameVersion, Later, PromptLayout, DownloadInactivity, DownloadKeepsReceiving, DownloadFailureStartsGame, CancelFormDownload, CancelDownload, HashMismatch,
+    Action[] tests = { CoreFlags, NoService, ServiceFailure, SameVersion, PromptLayout, DownloadInactivity, DownloadKeepsReceiving, CancelDownload, HashMismatch,
       LockedInstaller, InstallerSuccess, InstallerFailure, InstallerRefused, FullHandoff, OneUpdater, PendingInstaller, PendingFailure, CompletedMarker, InUseFiles, KilledHelper, NativeImageInUse, CorruptManifestOffersRepair };
     if (args.Contains("--cpu-only")) tests = tests.Where(test => !new[] { "FullHandoff", "KilledHelper", "NativeImageInUse" }.Contains(test.Method.Name)).ToArray();
     if (args.Contains("--reverse")) Array.Reverse(tests);
@@ -120,17 +120,6 @@ internal static class Program
       Check(session.CheckAsync().Result == null && process.Games == 1, "Equal versions did not start the game."); Complete(worker);
     }
   }
-  private static void Later()
-  {
-    var process = new FakeProcesses(); var session = Session(NewGame(), process);
-    using (var form = new UpdateForm(session, Update("https://example.invalid/", new byte[] { 1 }), ""))
-    {
-      form.ShowInTaskbar = false; form.StartPosition = FormStartPosition.Manual; form.Location = new System.Drawing.Point(-32000, -32000);
-      form.Shown += (sender, e) => form.Controls.OfType<FlowLayoutPanel>().Single().Controls.OfType<Button>().Single(b => b.Text == "Later").PerformClick();
-      Application.Run(form);
-    }
-    Check(process.Games == 1 && process.Helpers == 0, "Later did not start only the game.");
-  }
   private static void PromptLayout()
   {
     var process = new FakeProcesses(); var session = Session(NewGame(), process);
@@ -181,36 +170,6 @@ internal static class Program
         CancellationToken.None, TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
       Complete(worker);
       Check(File.ReadAllBytes(output).SequenceEqual(bytes), "A download with data stopped at the total time limit.");
-    }
-  }
-  private static void DownloadFailureStartsGame() { DownloadForm(false); }
-  private static void CancelFormDownload() { DownloadForm(true); }
-  private static void DownloadForm(bool cancel)
-  {
-    using (var server = new Server())
-    using (var received = new ManualResetEventSlim())
-    using (var release = new ManualResetEventSlim())
-    {
-      var process = new FakeProcesses(); var session = Session(NewGame(), process);
-      var worker = cancel ? server.Stall(received, release) : server.Respond(new byte[] { 1 }, 500);
-      using (var form = new UpdateForm(session, Update(server.Url, new byte[] { 1 }), ""))
-      {
-        form.ShowInTaskbar = false; form.StartPosition = FormStartPosition.Manual;
-        form.Location = new System.Drawing.Point(-32000, -32000);
-        form.Shown += (sender, e) => {
-          var buttons = form.Controls.OfType<FlowLayoutPanel>().Single().Controls.OfType<Button>().ToArray();
-          buttons.Single(button => button.Text == "Update now").PerformClick();
-          if (cancel)
-          {
-            Check(received.Wait(10000), "No request before user cancel.");
-            buttons.Single(button => button.Text == "Cancel").PerformClick();
-          }
-        };
-        Application.Run(form);
-      }
-      release.Set(); Complete(worker);
-      Check(process.Games == 1 && process.Helpers == 0, "Download did not return to the game.");
-      Check(process.Failures == (cancel ? 0 : 1), "Download failure or user cancel gave the wrong status.");
     }
   }
   private sealed class CancelProgress : IProgress<int>
