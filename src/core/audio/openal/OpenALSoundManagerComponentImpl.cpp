@@ -549,7 +549,8 @@ struct OpenALSoundManagerComponentImpl::Impl {
     Filterf(source.Filter, AL_LOWPASS_GAIN, std::min(1.0f, gain));
     Filterf(source.Filter, AL_LOWPASS_GAINHF, voice.HF.At(Now) * bus.HF);
     alSourcei(source.Id, AL_DIRECT_FILTER, static_cast<ALint>(source.Filter));
-    alSourcei(source.Id, AL_SOURCE_RELATIVE, AL_TRUE);
+    alSourcei(source.Id, AL_SOURCE_RELATIVE,
+              voice.Desc.Spatial ? AL_FALSE : AL_TRUE);
     alSourcei(source.Id, AL_SOURCE_SPATIALIZE_SOFT,
               voice.Desc.Spatial ? AL_TRUE : AL_FALSE);
     alSourcei(source.Id, AL_DIRECT_CHANNELS_SOFT,

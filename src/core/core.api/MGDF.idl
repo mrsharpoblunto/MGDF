@@ -1673,7 +1673,9 @@ typedef struct MGDFBusDesc {
 } MGDFBusDesc;
 
 /**
-The listener for IMGDFSoundCommandList::SetListener. All values must be finite
+The listener that hears spatial voices, for IMGDFSoundCommandList::SetListener.
+The listener and the voices share one space, in which the listener's right is
+the cross product of Forward and Up. All values must be finite
 */
 typedef struct MGDFSoundListener {
   /** The position of the listener */
@@ -1719,7 +1721,7 @@ typedef struct MGDFVoiceDesc {
   /** TRUE to position the voice in 3D. FALSE plays it in 2D, for stereo beds
   and UI sounds */
   BOOL Spatial;
-  /** The position relative to the listener. Spatial voices only */
+  /** The position in the space of the listener. Spatial voices only */
   MGDFSoundPosition Position;
   /** The velocity, used for the Doppler shift. Spatial voices only */
   MGDFSoundPosition Velocity;
@@ -1924,7 +1926,7 @@ interface IMGDFSoundCommandList : IUnknown {
   /**
   Moves a spatial voice. A null position or velocity does nothing
   \param voice the voice to change
-  \param position the position relative to the listener
+  \param position the position in the space of the listener
   \param velocity the velocity, used for the Doppler shift
   \param radius the nonnegative source radius in position units
   \param ramp the time in seconds to reach the values. 0 applies them at once
@@ -1959,7 +1961,9 @@ interface IMGDFSoundCommandList : IUnknown {
   */
   void SetBusGainHF(MGDFBusId bus, float gainHF, float ramp);
   /**
-  Sets the listener. A null listener or a value that is not finite does nothing
+  Sets the listener that hears spatial voices. Before the first call the
+  listener is at the origin, faces -Z and has +Y up. A null listener or a
+  value that is not finite does nothing
   \param listener the position, velocity and orientation of the listener
   */
   void SetListener(const MGDFSoundListener *listener);
