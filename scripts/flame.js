@@ -15,6 +15,7 @@
     'uniform vec2 size;',
     'uniform float time;',
     'uniform float sway;',
+    'uniform float additive;',
     'float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
     'float noise(vec2 p) {',
     '  vec2 i = floor(p), f = fract(p);',
@@ -45,7 +46,11 @@
     '  vec2 g = vec2(x - bend * 0.5, (y - 0.45) * 0.8);',
     '  float glow = exp(-dot(g, g) * 1.5) * 0.42 * flicker * smoothstep(1.45, 0.5, length(g));',
     '  vec3 rgb = color * alpha + vec3(1.0, 0.55, 0.16) * glow * (1.0 - alpha);',
-    '  gl_FragColor = vec4(rgb, clamp(alpha + glow * 0.6, 0.0, 1.0));',
+    '  float cover = clamp(alpha + glow * 0.6, 0.0, 1.0);',
+    // The canvas is premultiplied, so colour written with less alpha adds light instead of covering.
+    // On a light page only the inner flame covers; the glow and fringe add, so they never darken it.
+    '  float lit = inside * smoothstep(0.9, 0.35, d);',
+    '  gl_FragColor = vec4(rgb, mix(cover, lit, additive));',
     '}'
   ].join('\n');
 
@@ -78,6 +83,7 @@
   var uSize = gl.getUniformLocation(program, 'size');
   var uTime = gl.getUniformLocation(program, 'time');
   var uSway = gl.getUniformLocation(program, 'sway');
+  var uAdditive = gl.getUniformLocation(program, 'additive');
 
   function resize() {
     var ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -113,6 +119,7 @@
     breeze *= 0.93;
     gl.uniform1f(uTime, seconds);
     gl.uniform1f(uSway, sway);
+    gl.uniform1f(uAdditive, document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -122,6 +129,9 @@
   if (still) {
     draw(0);
     window.addEventListener('resize', function () { draw(0); });
+    if (window.MutationObserver) {
+      new MutationObserver(function () { draw(0); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
     return;
   }
 
