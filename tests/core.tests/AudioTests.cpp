@@ -209,6 +209,38 @@ TEST_F(AudioTests, AncestorMuteSilencesItsChild) {
   EXPECT_TRUE(std::all_of(output.begin(), output.end(),
                           [](float x) { return x == 0; }));
 }
+TEST_F(AudioTests, ListenerPositionAndOrientationPanASpatialVoice) {
+  auto pcm = Pcm(48000, 9600, 1);
+  std::vector<float> tone(9600);
+  for (size_t i = 0; i < tone.size(); ++i)
+    tone[i] = 0.25f * std::sin(2.0f * std::numbers::pi_v<float> * i / 48.0f);
+  pcm->Write(tone.data(), 9600);
+  auto desc = Desc();
+  desc.Spatial = TRUE;
+  desc.Position = {2, 0, 0};
+  Commands->PlayPcm(pcm, &desc);
+  Submit();
+  // Positive when the right channel is louder.
+  const auto balance = [&] {
+    Render(480);
+    const auto output = Render(480);
+    float left = 0, right = 0;
+    for (size_t i = 0; i < output.size(); i += 2) {
+      left += output[i] * output[i];
+      right += output[i + 1] * output[i + 1];
+    }
+    return right - left;
+  };
+  EXPECT_GT(balance(), 0);
+  MGDFSoundListener listener{{4, 0, 0}, {}, {0, 0, -1}, {0, 1, 0}};
+  Commands->SetListener(&listener);
+  Submit();
+  EXPECT_LT(balance(), 0);
+  listener = {{}, {}, {0, 0, 1}, {0, 1, 0}};
+  Commands->SetListener(&listener);
+  Submit();
+  EXPECT_LT(balance(), 0);
+}
 TEST_F(AudioTests, PriorityTakesPrecedenceOverAudibility) {
   Open(1);
   auto a = Pcm(), b = Pcm();

@@ -23,6 +23,7 @@ class DisplayTests : public TestModule {
 
  private:
   bool _testHDR;
+  ULONGLONG _titleDeadline;
   ComObject<IMGDFInputManager> _input;
   ComObject<IMGDFRenderSettingsManager> _settings;
 };

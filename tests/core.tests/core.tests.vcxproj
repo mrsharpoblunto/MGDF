@@ -141,6 +141,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OpenXRTests.cpp" />
     <ClCompile Include="OpenXRIntegrationTests.cpp" />
+    <ClCompile Include="..\..\src\core\MGDFWindowIcon.cpp" />
     <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp" />
     <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
@@ -164,7 +165,9 @@
     <ClCompile Include="RenderSettingsTests.cpp" />
     <ClCompile Include="StreamlineTests.cpp" />
     <ClCompile Include="SaveManagerTests.cpp" />
+    <ClCompile Include="CrashReporterIntegrationTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
+    <ClCompile Include="LoggerIntegrationTests.cpp" />
     <ClCompile Include="ReadOnlyVFSTests.cpp" />
     <ClCompile Include="VFSCommon.cpp" />
     <ClCompile Include="WriteableVFSTests.cpp" />

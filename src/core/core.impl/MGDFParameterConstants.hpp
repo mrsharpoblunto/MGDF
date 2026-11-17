@@ -18,7 +18,6 @@ class ParameterConstants {
   static const char *METRICS_PORT;
   static const char *LOG_ENDPOINT;
   static const char *STATISTICS_ENDPOINT_OVERRIDE;
-  static const char *STATISTICS_ENABLED;
   static const char *VR;
   static const char *USE_DEFAULT_ADAPTER;
 

@@ -19,7 +19,9 @@ struct StreamlineState;
 struct StreamlineFrameStats {
   bool HasLatency = false;
   double RenderLatency = 0.0;
-  UINT64 PresentedFrames = 0;
+  // Frames the latest present put on the display. 0 when Streamline does not
+  // know.
+  UINT32 PresentFrames = 0;
 };
 
 /**

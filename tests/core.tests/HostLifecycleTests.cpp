@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include <filesystem>
+#include <future>
 
 #include "../../src/core/common/MGDFResources.hpp"
 #include "../../src/core/core.impl/MGDFHostImpl.hpp"
@@ -53,4 +54,50 @@ TEST_F(HostLifecycleIntegrationTests, RecursiveFatalErrorTerminates) {
         _host->FatalError("test", "first failure");
       },
       ::testing::ExitedWithCode(1), "");
+}
+
+namespace {
+class StatisticsNetwork : public network::INetworkManagerComponent {
+ public:
+  explicit StatisticsNetwork(
+      std::shared_ptr<network::INetworkManagerComponent> network)
+      : _network(std::move(network)) {}
+  void Stop() final { _network->Stop(); }
+  std::unique_ptr<network::IHttpClientRequest> CreateHttpRequest(
+      const std::string &url) final {
+    if (!_received.exchange(true)) Requested.set_value(url);
+    return _network->CreateHttpRequest(url);
+  }
+  std::shared_ptr<network::IHttpServer> CreateHttpServer(
+      uint32_t port, const std::string &path) final {
+    return _network->CreateHttpServer(port, path);
+  }
+  std::shared_ptr<network::IWebSocket> CreateWebSocket(
+      const std::string &url) final {
+    return _network->CreateWebSocket(url);
+  }
+  std::promise<std::string> Requested;
+
+ private:
+  std::shared_ptr<network::INetworkManagerComponent> _network;
+  std::atomic<bool> _received{false};
+};
+}  // namespace
+
+TEST_F(HostLifecycleIntegrationTests, ManifestStatisticsNeedNoPermissionFlag) {
+  _host.Clear();
+  // Capture the HTTP boundary. The host and statistics manager remain real.
+  auto network = std::make_shared<StatisticsNetwork>(_components.Network);
+  auto requested = network->Requested.get_future();
+  _components.Network = network;
+  const auto game =
+      MakeCom<Game>("host-tests", "Host tests", "http://127.0.0.1:1/statistics",
+                    MGDFVersion{}, _components.Storage);
+  _host = MakeCom<Host>(game, _components);
+  ComObject<IMGDFStatisticsManager> statistics;
+  _host->GetStatistics(statistics.Assign());
+  for (int i = 0; i < 25; ++i) statistics->PushString("test", "value", nullptr);
+  ASSERT_EQ(std::future_status::ready,
+            requested.wait_for(std::chrono::seconds(10)));
+  EXPECT_EQ("http://127.0.0.1:1/statistics", requested.get());
 }
