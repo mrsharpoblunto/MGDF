@@ -1,0 +1,274 @@
+---
+layout: default
+title: Sound
+---
+<div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li class="active"><a href="#overview">Sound</a></li>
+                <li><a href="#manager">Get the sound manager</a></li>
+                <li><a href="#play">Load and play a sound</a></li>
+                <li><a href="#control">Change and stop a voice</a></li>
+                <li><a href="#spatial">Place sounds in 3D</a></li>
+                <li><a href="#limits">Too many sounds at once</a></li>
+                <li><a href="#buses">Group sounds on buses</a></li>
+                <li><a href="#music">Stream music</a></li>
+                <li><a href="#pcm">Play audio you generate</a></li>
+                <li><a href="#output">Output and recording</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="main guide min-w-0 px-[15px] lg:w-3/4">
+        <h1 id="overview" class="page-header">Sound</h1>
+        <p class="lead">Matchstick mixes sound on its own thread, so audio keeps playing when your simulation stalls. You say what should play. The host mixes it, sends it to the speakers and adds it to recorded videos.</p>
+
+        <div class="learn">
+            <h4>You will learn</h4>
+            <ul>
+                <li>How to load a sound and play it</li>
+                <li>How to change or stop a sound that is playing</li>
+                <li>How to place sounds in 3D</li>
+                <li>How to group sounds on buses and save volume settings</li>
+                <li>How to stream music and play audio you generate</li>
+            </ul>
+        </div>
+
+        <figure class="diagram">
+            <svg viewBox="0 0 720 96" role="img" aria-label="Sound runs in four steps: you record commands in a command list, you submit the list, the host mixes on its audio thread, and the host sends the mix to the speakers and to recorded videos.">
+                <defs><marker id="sound-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+                <rect class="box you" x="20" y="20" width="170" height="56" rx="6"/>
+                <text x="105" y="45">Command list</text>
+                <text class="sub" x="105" y="63">record Play, SetVolume</text>
+                <path class="line" d="M190 48H218" marker-end="url(#sound-arrow)"/>
+                <rect class="box you" x="220" y="20" width="120" height="56" rx="6"/>
+                <text x="280" y="45">Submit</text>
+                <text class="sub" x="280" y="63">any thread</text>
+                <path class="line" d="M340 48H368" marker-end="url(#sound-arrow)"/>
+                <rect class="box" x="370" y="20" width="150" height="56" rx="6"/>
+                <text x="445" y="45">Mixer</text>
+                <text class="sub" x="445" y="63">host audio thread</text>
+                <path class="line" d="M520 48H548" marker-end="url(#sound-arrow)"/>
+                <rect class="box" x="550" y="20" width="150" height="56" rx="6"/>
+                <text x="625" y="45">Output</text>
+                <text class="sub" x="625" y="63">speakers and videos</text>
+            </svg>
+            <figcaption>Green steps are yours. The rest belong to the host.</figcaption>
+        </figure>
+
+        <h2 id="manager">Get the sound manager</h2>
+        <p>Ask the simulation host for the sound manager once, and keep it. Everything else in this guide starts from it.</p>
+{% highlight c++ %}
+MGDF::ComObject<IMGDFSoundManager> sound;
+host->GetSound(sound.Assign());
+
+// One list is enough. Submit resets it, so you can reuse it every update
+MGDF::ComObject<IMGDFSoundCommandList> commands;
+sound->CreateCommandList(commands.Assign());
+{% endhighlight %}
+        <p>A <a href="{{ site.baseurl }}/api#IMGDFSoundCommandList">command list</a> records what you want to happen. Nothing changes until you call <code>Submit</code>, which hands the whole list to the audio thread to apply in order.</p>
+        <div class="callout">
+            <p><strong>Note</strong>You can load samples, create streams and command lists, submit lists and read state from any thread. Make the other calls from the simulation thread. A command list itself belongs to one thread at a time.</p>
+        </div>
+
+        <h2 id="play">Load and play a sound</h2>
+        <p>A <em>sample set</em> is a WAV or Ogg Vorbis file loaded into memory. Use it for effects that you play often. The file loads on a worker thread, so creating one never blocks.</p>
+{% highlight c++ %}
+MGDF::ComObject<IMGDFReadOnlyVirtualFileSystem> vfs;
+host->GetVFS(vfs.Assign());
+MGDF::ComObject<IMGDFReadOnlyFile> file;
+vfs->GetFile(L"sounds/chime.wav", file.Assign());
+
+MGDF::ComObject<IMGDFSoundSamples> chime;
+sound->CreateSoundSamples(file, nullptr, chime.Assign());
+{% endhighlight %}
+        <p>You don't have to wait for the load. Play the sound right away, and the voice starts when the samples are ready.</p>
+{% highlight c++ %}
+MGDFVoiceDesc desc{};
+desc.Bus = sound->GetBus(MGDF_BUS_SOUND);
+desc.Volume = 1;
+desc.Pitch = 1;
+desc.GainHF = 1;
+
+// Zero means the description was invalid
+MGDFVoiceId voice = commands->Play(chime, &desc);
+sound->Submit(commands);
+{% endhighlight %}
+        <p>Each <code>Play</code> makes a new <em>voice</em>, and you can play one sample set on many voices at once. Keep the ID if you want to change the voice later. A one-shot ends by itself, so you can ignore its ID.</p>
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>A zeroed <a href="{{ site.baseurl }}/api#MGDFVoiceDesc">MGDFVoiceDesc</a> does not play. <code>Pitch</code> must be greater than zero, zero <code>Volume</code> is silent, and zero <code>GainHF</code> removes the high frequencies. Set all three.</p>
+        </div>
+        <div class="overflow-x-auto">
+        <table>
+            <thead><tr><th>Field</th><th>Set it to</th></tr></thead>
+            <tbody>
+                <tr><td><code>Bus</code></td><td>The <a href="#buses">bus</a> the voice plays on.</td></tr>
+                <tr><td><code>Volume</code></td><td>Linear volume. 1 is the recorded level.</td></tr>
+                <tr><td><code>Pitch</code></td><td>Playback rate. 1 is the recorded rate.</td></tr>
+                <tr><td><code>GainHF</code></td><td>High-frequency gain from 0 to 1. Lower it to muffle a sound.</td></tr>
+                <tr><td><code>FadeIn</code></td><td>Fade-in time in seconds.</td></tr>
+                <tr><td><code>StartTime</code></td><td>When to start, on the clock from <code>GetAudioTime</code>. Zero starts as soon as possible.</td></tr>
+                <tr><td><code>Segment</code></td><td>Which part of the file to play. Zero unless you loaded segments.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>To start two sounds in step, read <code>GetAudioTime</code> once and give both the same <code>StartTime</code> a little in the future. The mixer starts each on the exact output frame.</p>
+
+        <h3>Split one file into segments</h3>
+        <p>One file can hold several sounds, or an intro followed by a loop. Describe each part as a segment when you load the file, then pick one with <code>Segment</code>.</p>
+{% highlight c++ %}
+const MGDFSoundSegment segments[]{
+    {0.0, 1.5, FALSE},  // start, length in seconds, loop
+    {1.5, 0.0, TRUE},   // a length of zero runs to the end of the file
+};
+const MGDFSoundSamplesDesc samplesDesc{segments, 2};
+sound->CreateSoundSamples(file, &samplesDesc, engine.Assign());
+{% endhighlight %}
+        <p>A looping segment repeats until you stop the voice.</p>
+
+        <h2 id="control">Change and stop a voice</h2>
+        <p>Record changes against the voice ID, then submit. Most setters take a ramp time in seconds, so a change is smooth without any work each frame.</p>
+{% highlight c++ %}
+commands->SetVolume(voice, 0.5f, 0.2f);  // reach half volume over 0.2 seconds
+commands->SetPitch(voice, 1.2f, 0);      // at once
+commands->Stop(voice, 0.1f);             // fade out, then end
+sound->Submit(commands);
+{% endhighlight %}
+        <p>A command for a voice that has ended does nothing, so you never need to check first. Ask <code>GetVoiceStatus</code> when you do want to know.</p>
+        <div class="overflow-x-auto">
+        <table>
+            <thead><tr><th>Status</th><th>The voice</th></tr></thead>
+            <tbody>
+                <tr><td><code>MGDF_VOICE_PENDING</code></td><td>Waits for submission, for its samples to load, or for its start time.</td></tr>
+                <tr><td><code>MGDF_VOICE_PLAYING</code></td><td>Plays.</td></tr>
+                <tr><td><code>MGDF_VOICE_VIRTUAL</code></td><td>Keeps time but is silent, because <a href="#limits">louder voices</a> took every source.</td></tr>
+                <tr><td><code>MGDF_VOICE_PAUSED</code></td><td>Is on a paused bus.</td></tr>
+                <tr><td><code>MGDF_VOICE_ENDED</code></td><td>Finished, was stopped, or failed to load. Unknown IDs report this too.</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <h2 id="spatial">Place sounds in 3D</h2>
+        <p>Set <code>Spatial</code> to make a voice come from a point in your world. Tell the mixer where the listener is, and it pans each spatial voice to match.</p>
+{% highlight c++ %}
+// Once per update, from your camera
+const MGDFSoundListener listener{
+    cameraPosition, cameraVelocity, cameraForward, cameraUp};
+commands->SetListener(&listener);
+
+MGDFVoiceDesc desc{};
+desc.Bus = sound->GetBus(MGDF_BUS_SOUND);
+desc.Volume = 1;
+desc.Pitch = 1;
+desc.GainHF = 1;
+desc.Spatial = TRUE;
+desc.Position = {4, 0, -2};
+MGDFVoiceId voice = commands->Play(footstep, &desc);
+
+// Later, as the source moves. Ramp over one update to avoid steps
+commands->SetSpatial(voice, &position, &velocity, 0, 1.0f / 60);
+sound->Submit(commands);
+{% endhighlight %}
+        <p>A spatial voice needs a mono file. Stereo files are for 2D voices, such as music beds and menu sounds, which play as recorded.</p>
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>The listener's right is <code>Forward</code> cross <code>Up</code>, as in a right-handed world. If your world has +X right, +Y up and +Z forward, left and right are swapped. Negate Z in every position, velocity and direction that you pass to the sound API.</p>
+        </div>
+        <p>The mixer pans a spatial voice but does not make it quieter with distance. Work out the falloff you want and set it with <code>SetVolume</code>. Use <code>SetGainHF</code> to muffle a sound that is far away or behind a wall.</p>
+        <p>Velocities drive the Doppler shift. Tune it with <code>SetSpeedOfSound</code> and <code>SetDopplerFactor</code> on the sound manager, or leave every velocity at zero to turn it off.</p>
+
+        <h2 id="limits">Too many sounds at once</h2>
+        <p>The mixer has a fixed number of sources. When more voices play than it has sources, it keeps the ones that matter most: first by <code>Priority</code>, then by how loud each one is right now.</p>
+        <p>A voice that loses its source becomes <em>virtual</em>. It is silent but keeps its place, and it comes back at the right point when a source is free. A looping engine across the map costs nothing until the player walks over to it.</p>
+        <p>Raise <code>Priority</code> for sounds that must never drop out, such as dialogue. Call <code>GetStats</code> to see how many voices are real and how many are virtual.</p>
+
+        <h2 id="buses">Group sounds on buses</h2>
+        <p>Every voice plays on a <em>bus</em>. A bus has its own volume, mute and pause, and passes them down to its children. Three buses always exist.</p>
+        <div class="overflow-x-auto">
+        <table>
+            <thead><tr><th>Bus</th><th>Use it for</th></tr></thead>
+            <tbody>
+                <tr><td><code>MGDF_BUS_MASTER</code></td><td>Everything. It is the parent of every other bus.</td></tr>
+                <tr><td><code>MGDF_BUS_SOUND</code></td><td>Sound effects.</td></tr>
+                <tr><td><code>MGDF_BUS_MUSIC</code></td><td>Music. <a href="#music">Streams</a> play here by default.</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <p>Create your own buses below these to control a group of sounds together.</p>
+{% highlight c++ %}
+const MGDFBusDesc busDesc{
+    L"Dialogue", sound->GetBus(MGDF_BUS_SOUND), 1.0f, "game.dialogueVolume"};
+MGDFBusId dialogue = 0;
+sound->CreateBus(&busDesc, &dialogue);
+
+// Pause the game world but keep the menu music
+commands->SetBusPaused(sound->GetBus(MGDF_BUS_SOUND), TRUE);
+commands->SetBusVolume(sound->GetBus(MGDF_BUS_MUSIC), 0.4f, 0.5f);
+sound->Submit(commands);
+{% endhighlight %}
+
+        <h3>Save volume settings</h3>
+        <p>The last value in <code>MGDFBusDesc</code> is an optional preference name. <code>GetPreferences</code> returns the current volume of every bus that has one, ready to save.</p>
+{% highlight c++ %}
+MGDF::ComObject<IMGDFPreferenceSet> preferences;
+sound->GetPreferences(preferences.Assign());
+
+MGDF::ComObject<IMGDFGame> game;
+host->GetGame(game.Assign());
+game->SetPreferences(preferences);
+game->SavePreferences();
+{% endhighlight %}
+        <p>The host restores Master, Sound and Music at startup from <code>host.masterVolume</code>, <code>host.soundVolume</code> and <code>host.musicVolume</code>. For a bus of your own, read its preference and pass the value as <code>Volume</code> when you create the bus.</p>
+
+        <h2 id="music">Stream music</h2>
+        <p>A <em>sound stream</em> plays a WAV or Ogg Vorbis file from disk without loading all of it. Use it for music and long ambience. It keeps playing while your simulation is busy, for example during a level load.</p>
+{% highlight c++ %}
+MGDF::ComObject<IMGDFSoundStream> music;
+sound->CreateSoundStream(musicFile, music.Assign());
+
+music->SetLoop(12.0, 0);  // after the intro, repeat from 12 seconds to the end
+music->Play(1.0f);        // fade in over one second
+
+// Later
+music->Pause(0.5f);       // fade out and hold the position
+music->Stop(2.0f);        // fade out and return to the start
+{% endhighlight %}
+        <p>A stream takes no command list. Call it directly from one thread. Without <code>SetLoop</code> it plays once, unless an Ogg Vorbis file has <code>LOOPSTART</code> and <code>LOOPLENGTH</code> comments, which set the loop for you.</p>
+        <div class="callout pitfall">
+            <p><strong>Pitfall</strong>Releasing the last reference to a stream stops it. Keep the <code>ComObject</code> for as long as the music should play.</p>
+        </div>
+
+        <h2 id="pcm">Play audio you generate</h2>
+        <p>A <em>PCM stream</em> is a buffer of samples that you fill yourself. Use it for a video's sound track, voice chat or a synthesizer.</p>
+{% highlight c++ %}
+const MGDFSoundPcmDesc pcmDesc{2, 48000, 0};  // stereo, 48 kHz, default buffer
+MGDF::ComObject<IMGDFSoundPcmStream> pcm;
+sound->CreatePcmStream(&pcmDesc, pcm.Assign());
+
+MGDFVoiceId voice = commands->PlayPcm(pcm, &desc);
+sound->Submit(commands);
+
+// Each update: interleaved floats, one per channel in each frame
+UINT32 written = pcm->Write(samples, frames);
+
+// When there is no more to play
+pcm->End();
+{% endhighlight %}
+        <p><code>Write</code> never waits. It returns how many frames fit, so keep the rest for the next update. <code>GetWritableFrames</code> tells you how much room there is. After <code>End</code>, the voice finishes what is queued and then ends.</p>
+        <p>To keep pictures in step with the sound, call <code>GetPlayPosition</code>. It returns how many of your frames have played and the audio time at which that was true. If the buffer runs dry the voice plays silence and <code>Underruns</code> in the stats goes up.</p>
+
+        <h2 id="output">Output and recording</h2>
+        <p>The host mixes at 48 kHz and plays through the default Windows output device. When the player changes device, the mix moves to the new one and audio time keeps running.</p>
+        <p>A video from <a href="{{ site.baseurl }}/api#IMGDFRecorder">IMGDFRecorder</a> carries the same mix as its sound track, in time with the picture. You do nothing extra to record sound.</p>
+        <div class="callout">
+            <p><strong>Note</strong>Set the <code>host.hrtf</code> preference to <code>1</code> for players on headphones. Spatial voices then sound in front, behind, above and below, not only left and right. The host reads the preference at startup.</p>
+        </div>
+
+        <h2 id="next">Next steps</h2>
+        <div class="next-steps">
+            <a href="{{ site.baseurl }}/api#IMGDFSoundManager"><strong>IMGDFSoundManager</strong>Create samples, streams, buses and command lists.</a>
+            <a href="{{ site.baseurl }}/api#IMGDFSoundCommandList"><strong>IMGDFSoundCommandList</strong>Every command for voices, buses and the listener.</a>
+            <a href="{{ site.baseurl }}/api#hostpreferences"><strong>Host preferences</strong>The saved volume and headphone settings.</a>
+        </div>
+    </div>
+</div>
