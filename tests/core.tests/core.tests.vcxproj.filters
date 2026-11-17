@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="OpenXRTests.cpp" />
-    <ClCompile Include="OpenXRIntegrationTests.cpp" />
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="GamePreferencesTests.cpp" />
     <ClCompile Include="HostLifecycleTests.cpp" />
@@ -20,8 +19,6 @@
     <ClCompile Include="CrashReporterIntegrationTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
     <ClCompile Include="..\..\src\core\StdAfx.cpp" />
-    <ClCompile Include="..\..\src\core\MGDFWindowIcon.cpp" />
-    <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp" />
     <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />

@@ -140,9 +140,6 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OpenXRTests.cpp" />
-    <ClCompile Include="OpenXRIntegrationTests.cpp" />
-    <ClCompile Include="..\..\src\core\MGDFWindowIcon.cpp" />
-    <ClCompile Include="..\..\src\core\MGDFD3DAppFramework.cpp" />
     <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="GraphicsRequirementsTests.cpp" />
     <ClCompile Include="GamePreferencesTests.cpp" />
@@ -179,11 +176,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\core\audio\openal\core.audio.openal.vcxproj">
       <Project>{f3930f29-c621-41ea-892c-8b5d48c5d2bb}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\openxr.runtime\openxr.runtime.vcxproj">
-      <Project>{D53C8E87-EE18-4B0A-9B9A-FD4B3DBD3388}</Project>
-      <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\src\core\common\core.common.vcxproj">

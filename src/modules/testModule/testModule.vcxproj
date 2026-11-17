@@ -127,6 +127,7 @@
     </ClCompile>
     <ClCompile Include="InputTests.cpp" />
     <ClCompile Include="SoundTests.cpp" />
+    <ClCompile Include="VRTests.cpp" />
     <ClCompile Include="LoadSaveTests.cpp" />
     <ClCompile Include="NetworkTests.cpp" />
   </ItemGroup>
@@ -138,6 +139,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="InputTests.hpp" />
     <ClInclude Include="SoundTests.hpp" />
+    <ClInclude Include="VRTests.hpp" />
     <ClInclude Include="LoadSaveTests.hpp" />
     <ClInclude Include="NetworkTests.hpp" />
   </ItemGroup>

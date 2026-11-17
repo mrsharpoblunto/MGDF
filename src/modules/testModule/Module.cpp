@@ -9,6 +9,7 @@
 #include "LoadSaveTests.hpp"
 #include "NetworkTests.hpp"
 #include "SoundTests.hpp"
+#include "VRTests.hpp"
 
 #if defined(_DEBUG)
 #define new new (_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -116,7 +117,8 @@ BOOL Module::STNew(IMGDFSimHost *host) {
     change->SetVR(TRUE);
     host->Log("TestModule", "VR display test: F9 toggles VR; ESC exits",
               MGDF_LOG_LOW);
-    _currentModule = _testModules.end();
+    _testModules.push_back(std::make_unique<VRTests>(_vrEyeFrames));
+    _currentModule = _testModules.begin();
     return true;
   }
   _testModules.push_back(std::make_unique<DisplayTests>());
@@ -416,6 +418,7 @@ bool Module::DrawD3D12(IMGDFRenderHost *host, double elapsed) {
       list->ClearRenderTargetView(rtv, eyeColor.data(), 0, nullptr);
       if (!eye) _leftEyeColor = eyeColor;
     }
+    if (vr.EyeCount == 2) ++_vrEyeFrames;
     ComObject<ID3D12Resource> panel;
     if (host->GetVRPanelTarget(panel.Assign()) == S_OK) {
       const auto &view = vr.Eyes[0];
