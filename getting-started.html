@@ -3,6 +3,21 @@ layout: default
 title: Getting started
 ---
 <div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li class="active"><a href="#overview">Getting started</a></li>
+                <li><a href="#how-it-works">How it works</a></li>
+                <li><a href="#setup">Before you start</a></li>
+                <li><a href="#folderstructure">Lay out the game folder</a></li>
+                <li><a href="#gamemanifest">Describe the game</a></li>
+                <li><a href="#gamemodule">Write the module</a></li>
+                <li><a href="#threads">Share state between threads</a></li>
+                <li><a href="#running">Run the game</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
     <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="overview" class="page-header">Getting started</h1>
         <p class="lead">Matchstick (MGDF) runs your game. It opens the window, creates the Direct3D 12 device, and drives the game loop. You write a DLL that draws and updates.</p>
@@ -278,21 +293,6 @@ MGDF_LOGLEVEL=log_high
             <a href="{{ site.baseurl }}/vr"><strong>VR</strong>Render to a headset through OpenXR.</a>
             <a href="{{ site.baseurl }}/distributing"><strong>Distributing a game</strong>Install, update, and collect crash reports.</a>
             <a href="{{ site.baseurl }}/api"><strong>API reference</strong>Every interface, struct and setting.</a>
-        </div>
-    </div>
-    <div class="hidden px-[15px] lg:block lg:w-1/4">
-        <div class="side-nav">
-            <ul>
-                <li class="active"><a href="#overview">Getting started</a></li>
-                <li><a href="#how-it-works">How it works</a></li>
-                <li><a href="#setup">Before you start</a></li>
-                <li><a href="#folderstructure">Lay out the game folder</a></li>
-                <li><a href="#gamemanifest">Describe the game</a></li>
-                <li><a href="#gamemodule">Write the module</a></li>
-                <li><a href="#threads">Share state between threads</a></li>
-                <li><a href="#running">Run the game</a></li>
-                <li><a href="#next">Next steps</a></li>
-            </ul>
         </div>
     </div>
 </div>

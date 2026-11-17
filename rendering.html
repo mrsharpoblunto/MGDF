@@ -3,6 +3,20 @@ layout: default
 title: Rendering
 ---
 <div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li class="active"><a href="#overview">Rendering</a></li>
+                <li><a href="#requirements">Declare what you need</a></li>
+                <li><a href="#device">Get the device and queues</a></li>
+                <li><a href="#d3d12module">Draw a frame</a></li>
+                <li><a href="#frameresources">Reuse and release resources</a></li>
+                <li><a href="#resize">Resizes and device loss</a></li>
+                <li><a href="#counters">Time GPU work</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
     <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="overview" class="page-header">Rendering</h1>
         <p class="lead">Matchstick owns the window, the swap chain and the present. You own the drawing: the host gives you a Direct3D 12 device and a back buffer, and you submit the command lists.</p>
@@ -211,20 +225,6 @@ host->CreateGPUCounter(_shadowMetric, list, counter.Assign());
             <a href="{{ site.baseurl }}/graphics-features"><strong>Upscaling, HDR and ray tracing</strong>Use DLSS, frame generation, HDR output and DXR.</a>
             <a href="{{ site.baseurl }}/vr"><strong>VR</strong>Render to a headset through OpenXR.</a>
             <a href="{{ site.baseurl }}/api#IMGDFRenderHost"><strong>IMGDFRenderHost</strong>The full render thread API.</a>
-        </div>
-    </div>
-    <div class="hidden px-[15px] lg:block lg:w-1/4">
-        <div class="side-nav">
-            <ul>
-                <li class="active"><a href="#overview">Rendering</a></li>
-                <li><a href="#requirements">Declare what you need</a></li>
-                <li><a href="#device">Get the device and queues</a></li>
-                <li><a href="#d3d12module">Draw a frame</a></li>
-                <li><a href="#frameresources">Reuse and release resources</a></li>
-                <li><a href="#resize">Resizes and device loss</a></li>
-                <li><a href="#counters">Time GPU work</a></li>
-                <li><a href="#next">Next steps</a></li>
-            </ul>
         </div>
     </div>
 </div>

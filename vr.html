@@ -3,6 +3,22 @@ layout: default
 title: VR
 ---
 <div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li><a href="#overview">OpenXR VR</a></li>
+                <li><a href="#settings">Enable and disable VR</a></li>
+                <li><a href="#frames">Render each frame</a></li>
+                <li><a href="#poses">Poses and floor height</a></li>
+                <li><a href="#features">Optional features</a></li>
+                <li><a href="#masks">Hidden-area masks</a></li>
+                <li><a href="#depth">Reprojection depth</a></li>
+                <li><a href="#panel">Headset panel</a></li>
+                <li><a href="#input">Controllers and gaze</a></li>
+                <li><a href="#upscaling">Upscaling and latency</a></li>
+            </ul>
+        </div>
+    </div>
     <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="overview" class="page-header">OpenXR VR</h1>
         <p>MGDF gives a module D3D12 eye targets, headset poses, controller input, and optional VR features. Players need an active OpenXR runtime, such as Meta Horizon Link or SteamVR. Modules use MGDF types and calls. They need no OpenXR SDK.</p>
@@ -110,21 +126,5 @@ ndcY = (2 * y - (tan(eye.AngleUp) + tan(eye.AngleDown))) /
         <h2 id="upscaling">Upscaling, frame generation, and low latency</h2>
         <p>For DLSS, set <code>View</code> to the eye index in both <a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a> and <a href="{{ site.baseurl }}/api#MGDFUpscaleDesc">MGDFUpscaleDesc</a>. Call <code>SetFrameConstants</code> once for each used view in each frame. Then call <code>Upscale</code> for that view. Views 0 and 1 have separate histories and work with or without VR. Either view can be omitted from a frame. Set <code>ResetHistory</code> when <code>PoseEpoch</code> changes.</p>
         <p>Frame generation is off in VR, and <code>GetMaxGeneratedFrames()</code> returns 0. Low latency sleep and frame markers have no effect in VR. Saved frame generation and low latency preferences stay unchanged and apply again when VR ends. See <a href="{{ site.baseurl }}/graphics-features#upscaling">Upscaling and frame generation</a> for input resources and command list rules.</p>
-    </div>
-    <div class="hidden px-[15px] lg:block lg:w-1/4">
-        <div class="side-nav">
-            <ul>
-                <li><a href="#overview">OpenXR VR</a></li>
-                <li><a href="#settings">Enable and disable VR</a></li>
-                <li><a href="#frames">Render each frame</a></li>
-                <li><a href="#poses">Poses and floor height</a></li>
-                <li><a href="#features">Optional features</a></li>
-                <li><a href="#masks">Hidden-area masks</a></li>
-                <li><a href="#depth">Reprojection depth</a></li>
-                <li><a href="#panel">Headset panel</a></li>
-                <li><a href="#input">Controllers and gaze</a></li>
-                <li><a href="#upscaling">Upscaling and latency</a></li>
-            </ul>
-        </div>
     </div>
 </div>

@@ -3,6 +3,20 @@ layout: default
 title: Distributing a game
 ---
 <div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li class="active"><a href="#distributing">Distributing a game</a></li>
+                <li><a href="#builds">Choose how you ship</a></li>
+                <li><a href="#installing">Write an installer</a></li>
+                <li><a href="#updating">Publish updates</a></li>
+                <li><a href="#crashreports">Collect crash reports</a></li>
+                <li><a href="#statistics">Record statistics</a></li>
+                <li><a href="#metrics">Watch performance</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
     <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="distributing" class="page-header">Distributing a game</h1>
         <p class="lead">Matchstick can keep an installed game up to date, report its crashes, and send you gameplay statistics. Each feature is optional, and each talks to a service you run.</p>
@@ -331,20 +345,6 @@ _entities->Record(static_cast<double>(_world.Count()), nullptr);
             <a href="{{ site.baseurl }}/api#gamemanifeset"><strong>game.json reference</strong>Every field and built-in preference.</a>
             <a href="{{ site.baseurl }}/api#updatemanifest"><strong>Service reference</strong>What your update, crash and statistics services receive.</a>
             <a href="{{ site.baseurl }}/api#commandline"><strong>Command line reference</strong>Every host argument.</a>
-        </div>
-    </div>
-    <div class="hidden px-[15px] lg:block lg:w-1/4">
-        <div class="side-nav">
-            <ul>
-                <li class="active"><a href="#distributing">Distributing a game</a></li>
-                <li><a href="#builds">Choose how you ship</a></li>
-                <li><a href="#installing">Write an installer</a></li>
-                <li><a href="#updating">Publish updates</a></li>
-                <li><a href="#crashreports">Collect crash reports</a></li>
-                <li><a href="#statistics">Record statistics</a></li>
-                <li><a href="#metrics">Watch performance</a></li>
-                <li><a href="#next">Next steps</a></li>
-            </ul>
         </div>
     </div>
 </div>
