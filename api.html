@@ -2,14 +2,14 @@
 layout: default
 title: API reference
 ---
-<div class="row docs-row">
-    <div class="col-md-3 hidden-xs hidden-sm">
+<div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
         <div class="side-nav api-nav">
-            <input type="search" id="api-filter" class="form-control" placeholder="Filter" aria-label="Filter the API reference" />
-            <ul class="nav nav-stacked">
+            <input type="search" id="api-filter" class="mb-2.5 block h-[38px] w-full rounded border border-edge bg-panel px-3 py-2 text-sm text-heading placeholder:text-muted focus:border-brand focus:outline-none" placeholder="Filter" aria-label="Filter the API reference" />
+            <ul>
                 <li class="active">
                     <a href="#configuration">Configuration</a>
-                    <ul class="nav">
+                    <ul>
                         <li><a href="#commandline">Command line options</a></li>
                         <li><a href="#gamemanifeset">Game.json configuration</a></li>
                         <li><a href="#updatemanifest">Update service</a></li>
@@ -19,7 +19,7 @@ title: API reference
                 </li>
                 <li>
                     <a href="#functions">Functions</a>
-                    <ul class="nav">
+                    <ul>
                         {% for f in site.data.moduleApi.Functions %}
                             <li><a href="#{{ f.Id }}">{{ f.Name }}</a></li>
                         {% endfor %}
@@ -27,7 +27,7 @@ title: API reference
                 </li>
                 <li>
                     <a href="#interfaces">Interfaces</a>
-                    <ul class="nav">
+                    <ul>
                         {% for c in site.data.api.Classes %}
                             <li><a href="#{{ c.Id }}">{{ c.Name }}</a></li>
                         {% endfor %}
@@ -35,7 +35,7 @@ title: API reference
                 </li>
                 <li>
                     <a href="#structs">Structs</a>
-                    <ul class="nav">
+                    <ul>
                         {% for s in site.data.api.Structs %}
                             <li><a href="#{{ s.Id }}">{{ s.Name }}</a></li>
                         {% endfor %}
@@ -43,7 +43,7 @@ title: API reference
                 </li>
                 <li>
                     <a href="#enums">Enumerations</a>
-                    <ul class="nav">
+                    <ul>
                         {% for e in site.data.api.Enums %}
                             <li><a href="#{{ e.Id }}">{{ e.Name }}</a></li>
                         {% endfor %}
@@ -52,7 +52,7 @@ title: API reference
             </ul>
         </div>
     </div>
-    <div class="col-md-9 main guide api">
+    <div class="main guide api min-w-0 px-[15px] lg:w-3/4">
         <h1 id="configuration" class="page-header">Configuration Options</h1>
         
         <h2 id="commandline">Command line options</h2>
@@ -63,7 +63,7 @@ title: API reference
 MGDF_LOGLEVEL=log_high
 MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
 </pre>
-        <dl class ="dl-horizontal">
+        <dl>
             <dt>-vr</dt>
             <dd><em>[Optional]</em> Requests VR for this run without changing <code>host.vr</code>. The module must set <code>MGDFGraphicsRequirements::VR</code> to <code>TRUE</code>. See the <a href="{{ site.baseurl }}/vr">VR guide</a>.</dd>
             <dt>-loglevel</dt>
@@ -106,7 +106,7 @@ MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
 }
 {% endhighlight %}
         <h4>Game.json schema</h4>
-        <dl class="dl-horizontal">
+        <dl>
             <dt>gameUid</dt>
             <dd><em>[Required]</em> A unique identifier that keeps the data of this game apart from other MGDF games. Use a GUID or a similar string that other games are not likely to use. The core uses it in the user data folder path, crash reports, and statistics.</dd>
             <dt>gameName</dt>
@@ -126,7 +126,7 @@ MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
         </dl>
 
         <h4 id="hostpreferences">Built in host preferences</h4>
-        <dl class ="dl-horizontal">
+        <dl>
             <dt>host.vr</dt>
             <dd>Requests VR at startup ("1") or window rendering ("0"). Defaults to "0". The module must opt in through <code>MGDFGraphicsRequirements::VR</code>. Use <code>SetVR</code> on <a href="#IMGDFPendingRenderSettingsChange">IMGDFPendingRenderSettingsChange</a> to change this setting. If a headset session cannot start, the game continues in the window and keeps the saved preference. See the <a href="{{ site.baseurl }}/vr">VR guide</a>.</dd>
             <dt>host.musicVolume</dt>
@@ -178,7 +178,7 @@ MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
 {% endhighlight %}
 
         <h4>Update service schema</h4>
-        <dl class ="dl-horizontal">
+        <dl>
             <dt>version</dt>
             <dd><em>[Required]</em> The newest version, with two to four numeric parts. Missing parts are zero. The updater offers the update only if this version is newer than the version in game.json.</dd>
             <dt>installerUrl</dt>
@@ -200,7 +200,7 @@ MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
         <p>The core sends the values that the game pushes with <a href="#IMGDFStatisticsManager">IMGDFStatisticsManager</a> to the <code>statisticsService</code> URL in game.json. The core sends the values in batches: when 25 values are waiting, after 5 seconds, and when the game stops. Each batch is one <code>POST</code> request with a JSON body. The body uses gzip content encoding.</p>
 
         <h4>Request fields</h4>
-        <dl class="dl-horizontal">
+        <dl>
             <dt>gameUid</dt>
             <dd>A string value.</dd>
             <dt>sessionId</dt>
@@ -234,7 +234,7 @@ Host: example.com
         <p>The crash reporter sends a report in two steps. First, it sends a <code>POST</code> request with the crash data to the <code>crashReportService</code> URL in game.json. The service returns an upload URL. Then the crash reporter sends a <code>PUT</code> request with the report zip file to that URL. A <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html">presigned S3 URL</a> is one type of upload URL. For the report contents and the dialog, see <a href="{{ site.baseurl }}/distributing#crashreports">Crash reports</a>.</p>
 
         <h4>Request fields</h4>
-        <dl class="dl-horizontal">
+        <dl>
           <dt>detail</dt>
           <dd>A string value. It starts with "The game stopped unexpectedly.", then gives the error text when there is one, and ends with the exit code of core.exe.</dd>
             <dt>gameUid</dt>
@@ -256,7 +256,7 @@ Host: example.com
 
 
         <h4>Response fields</h4>
-        <dl class="dl-horizontal">
+        <dl>
             <dt>success</dt>
             <dd>A boolean value. Set it to true to accept the report.</dd>
             <dt>uploadUrl</dt>
@@ -316,7 +316,7 @@ Content-Type: application/json; charset=UTF-8
             <section class="api-type" id="{{ c.Id }}">
                 <h3>{{ c.Name }}</h3>
                 <p>{{ c.Description }}</p>
-                <table class="table api-params">
+                <table class="api-params">
                     <tbody>
                         {% for m in c.Members %}
                         <tr id="{{ m.Id }}">
@@ -335,7 +335,7 @@ Content-Type: application/json; charset=UTF-8
             <section class="api-type" id="{{ e.Id }}">
                 <h3>{{ e.Name }}</h3>
                 <p>{{ e.Description }}</p>
-                <table class="table api-params">
+                <table class="api-params">
                     <tbody>
                         {% for value in e.Values %}
                         <tr><td><code>{{ value }}</code></td><td>{{ e.ValueDescriptions[value] }}</td></tr>
@@ -346,28 +346,3 @@ Content-Type: application/json; charset=UTF-8
         {% endfor %}
     </div>
 </div>
-
-<script type="text/javascript">
-    $(function() {
-        var nav = $('.api-nav');
-        $('body').scrollspy({ target: '.side-nav', offset: 80 });
-
-        // Keeps the current entry visible in the sidebar while the page scrolls.
-        nav.on('activate.bs.scrollspy', function (e) {
-            var item = $(e.target);
-            var link = item.children('a')[0];
-            if (!link || item.children('ul').length || nav.is(':hover')) return;
-            var top = link.getBoundingClientRect().top - nav[0].getBoundingClientRect().top + nav.scrollTop();
-            if (top < nav.scrollTop() + 60 || top > nav.scrollTop() + nav.height() - 60) {
-                nav.scrollTop(top - nav.height() / 2);
-            }
-        });
-
-        $('#api-filter').on('input', function () {
-            var term = this.value.toLowerCase();
-            nav.find('ul ul li').each(function () {
-                $(this).toggle($(this).text().toLowerCase().indexOf(term) !== -1);
-            });
-        });
-    });
-</script>

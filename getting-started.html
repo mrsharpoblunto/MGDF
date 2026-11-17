@@ -2,8 +2,8 @@
 layout: default
 title: Getting started
 ---
-<div class="row docs-row">
-    <div class="col-md-9 main guide">
+<div class="-mx-[15px] lg:flex">
+    <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="overview" class="page-header">Getting started</h1>
         <p class="lead">Matchstick (MGDF) runs your game. It opens the window, creates the Direct3D 12 device, and drives the game loop. You write a DLL that draws and updates.</p>
 
@@ -51,8 +51,8 @@ title: Getting started
         </figure>
 
         <p>Two more programs ship beside the host. Both are optional.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Program</th><th>What it does</th><th>Ship it when</th></tr></thead>
             <tbody>
                 <tr><td><code>core.exe</code></td><td>Runs the game.</td><td>Always.</td></tr>
@@ -100,8 +100,8 @@ install folder
     "version": "0.1"
 }
 {% endhighlight %}
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Field</th><th>Used for</th></tr></thead>
             <tbody>
                 <tr><td><code>gameUid</code></td><td>Keeps this game's saves, preferences and logs apart from other games. Use a GUID.</td></tr>
@@ -159,8 +159,8 @@ class Module : public MGDF::ComBase<IMGDFModule> {
 };
 {% endhighlight %}
         <p>The prefix tells you the thread. <code>ST</code> methods run on the sim thread and <code>RT</code> methods run on the render thread.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Callback</th><th>Called</th><th>Use it to</th></tr></thead>
             <tbody>
                 <tr><td><code>STNew</code></td><td>Once, at startup</td><td>Set up the game state.</td></tr>
@@ -257,8 +257,8 @@ MGDF_GAMEDIROVERRIDE="C:\dev\mygame\game"
 MGDF_USERDIROVERRIDE=1
 MGDF_LOGLEVEL=log_high
 </pre>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Argument</th><th>What it does</th></tr></thead>
             <tbody>
                 <tr><td><code>-gamediroverride</code></td><td>Runs a game folder from another location.</td></tr>
@@ -280,9 +280,9 @@ MGDF_LOGLEVEL=log_high
             <a href="{{ site.baseurl }}/api"><strong>API reference</strong>Every interface, struct and setting.</a>
         </div>
     </div>
-    <div class="col-md-3 hidden-xs hidden-sm">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
         <div class="side-nav">
-            <ul class="nav nav-stacked">
+            <ul>
                 <li class="active"><a href="#overview">Getting started</a></li>
                 <li><a href="#how-it-works">How it works</a></li>
                 <li><a href="#setup">Before you start</a></li>
@@ -296,9 +296,3 @@ MGDF_LOGLEVEL=log_high
         </div>
     </div>
 </div>
-
-<script type="text/javascript">
-    $(function() {
-        $('body').scrollspy({ target: '.side-nav' });
-    });
-</script>

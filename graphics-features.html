@@ -2,8 +2,8 @@
 layout: default
 title: Upscaling, HDR and ray tracing
 ---
-<div class="row docs-row">
-    <div class="col-md-9 main guide">
+<div class="-mx-[15px] lg:flex">
+    <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="overview" class="page-header">Upscaling, HDR and ray tracing</h1>
         <p class="lead">Matchstick turns on the newer GPU features for you when the hardware has them. Your module asks what is available, renders the inputs, and makes one call.</p>
 
@@ -20,8 +20,8 @@ title: Upscaling, HDR and ray tracing
 
         <h2 id="support">Check what is supported</h2>
         <p>You never request a feature. The host starts whatever the device supports and reports it through <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager">IMGDFRenderSettingsManager</a>.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Feature</th><th>Ask</th><th>Not supported when</th></tr></thead>
             <tbody>
                 <tr><td>Upscaling (DLSS, DLAA)</td><td><code>GetUpscaleModeCount</code><br /><code>GetUpscaleMode</code></td><td>The count is 0.</td></tr>
@@ -57,8 +57,8 @@ BOOL __stdcall Module::RTBeforeFirstDraw(IMGDFRenderHost *host) {
         <h2 id="upscaling">Upscale with DLSS</h2>
         <p>DLSS lets you render the scene at a fraction of the window size and still show a sharp, full-size image. The GPU shades far fewer pixels, so the frame rate goes up.</p>
         <p>It works by combining many frames. A single small frame doesn't hold enough detail to fill the window, but the last several frames together do. You supply three things so the upscaler can line those frames up:</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Input</th><th>What it tells the upscaler</th></tr></thead>
             <tbody>
                 <tr><td>Jitter</td><td>Where inside each pixel this frame sampled the scene.</td></tr>
@@ -188,8 +188,8 @@ generation.HudlessColor = {_hudless.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER
 generation.UIColorAndAlpha = {_ui.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE};
 host->SetFrameGenerationInputs(&generation);
 {% endhighlight %}
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Input</th><th>Required</th><th>What it is</th></tr></thead>
             <tbody>
                 <tr><td><code>Depth</code></td><td>Yes</td><td>Scene depth.</td></tr>
@@ -211,8 +211,8 @@ if (_loading || _paused) host->SetFrameGenerationInputs(nullptr);
 
         <h2 id="lowlatency">Measure and cut latency</h2>
         <p>Low latency mode shortens the delay between the player's input and the frame that shows it. The host measures that delay from markers you report, so mark four points in <code>RTDraw</code>:</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Marker</th><th>Report it</th></tr></thead>
             <tbody>
                 <tr><td><code>MGDF_FRAME_MARKER_SIMULATION_START</code></td><td>Before you read the simulation state.</td></tr>
@@ -241,8 +241,8 @@ change->SetLowLatencyMode(MGDF_LOW_LATENCY_ON);
 change.Clear();
 {% endhighlight %}
         <p>The host saves each choice as a preference and restores it on the next run.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Setting</th><th>Change</th><th>Read</th><th>Saved as</th></tr></thead>
             <tbody>
                 <tr><td>Frame generation</td><td><code>SetFrameGeneration</code></td><td><code>GetFrameGeneration</code></td><td><code>host.frameGeneration</code></td></tr>
@@ -267,8 +267,8 @@ _reorder = _rayTracing && support.ShaderExecutionReordering;
 
         <h2 id="hdroutput">Write HDR output</h2>
         <p>The host switches to HDR when the player turns it on and the display supports it. You choose the format ahead of time, with <code>HDRFormat</code> in <a href="{{ site.baseurl }}/rendering#requirements">GetGraphicsRequirements</a>.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th></th><th>scRGB (default)</th><th>HDR10</th></tr></thead>
             <tbody>
                 <tr><td><code>HDRFormat</code></td><td><code>MGDF_HDR_FORMAT_SCRGB</code></td><td><code>MGDF_HDR_FORMAT_HDR10</code></td></tr>
@@ -336,9 +336,9 @@ host->SetHDRMetadata(&metadata);
             <a href="{{ site.baseurl }}/api#IMGDFRenderSettingsManager"><strong>IMGDFRenderSettingsManager</strong>Every render setting.</a>
         </div>
     </div>
-    <div class="col-md-3 hidden-xs hidden-sm">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
         <div class="side-nav">
-            <ul class="nav nav-stacked">
+            <ul>
                 <li class="active"><a href="#overview">Upscaling, HDR and ray tracing</a></li>
                 <li><a href="#support">Check what is supported</a></li>
                 <li><a href="#upscaling">Upscale with DLSS</a></li>
@@ -353,9 +353,3 @@ host->SetHDRMetadata(&metadata);
         </div>
     </div>
 </div>
-
-<script type="text/javascript">
-    $(function() {
-        $('body').scrollspy({ target: '.side-nav' });
-    });
-</script>

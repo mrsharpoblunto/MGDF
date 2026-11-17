@@ -2,7 +2,7 @@
 layout: default
 wordmark: true
 ---
-<div class="jumbotron hero">
+<div class="mb-[30px] rounded-md bg-hero px-[30px] pt-[30px] pb-[30px] text-center md:px-[60px] md:pb-12">
     <h1 class="wordmark" aria-label="Matchstick"><span class="wm" aria-hidden="true">matchst</span><span class="wick" aria-hidden="true"><span class="wm">&#305;</span><canvas id="flame" class="flame"></canvas></span><span class="wm" aria-hidden="true">ck</span></h1>
     <script type="text/javascript">
     // The wordmark stays hidden until its font is ready, so the fallback font never shows.
@@ -14,28 +14,28 @@ wordmark: true
         setTimeout(show, 3000);
     })();
     </script>
-    <p class="lead">A framework for building and shipping C++ games on Windows. Skip the boilerplate and get straight to your game.</p>
-    <p>
-        <a class="btn btn-primary sdk-download" href="{{ site.sdkdownloadurl }}">Download SDK<small class="hidden-xs"> - Version {{ site.sdkversion }}</small></a>
-        <a class="btn btn-default sdk-download" href="{{ site.baseurl }}/getting-started">Get started</a>
+    <p class="mx-auto mb-[15px] max-w-[640px] text-[21px]/[1.4] font-extralight text-(--hero-lead)">A framework for building and shipping C++ games on Windows. Skip the boilerplate and get straight to your game.</p>
+    <p class="mb-[15px]">
+        <a class="mx-1.5 mt-5 inline-block rounded-xl p-[15px] text-[21px]/[1.42857] [text-shadow:1px_1px_5px_#000] hover:no-underline focus:no-underline bg-brand text-white hover:bg-brand-hover" href="{{ site.sdkdownloadurl }}">Download SDK<small class="max-md:hidden"> - Version {{ site.sdkversion }}</small></a>
+        <a class="mx-1.5 mt-5 inline-block rounded-xl p-[15px] text-[21px]/[1.42857] dark:[text-shadow:1px_1px_5px_#000] hover:no-underline focus:no-underline bg-btn text-btn-text hover:bg-btn-hover" href="{{ site.baseurl }}/getting-started">Get started</a>
     </p>
 </div>
 
-<div class="row features">
-    <div class="col-md-4">
-        <h2>Modern APIs</h2>
-        <p>Render with DirectX 12, and add DXR ray tracing, HDR output, and DLSS upscaling and frame generation where the hardware supports them.</p>
-        <p><a class="btn btn-default" href="{{ site.baseurl }}/rendering">Learn more</a></p>
+<div class="-mx-[15px] lg:flex">
+    <div class="px-[15px] lg:w-1/3">
+        <h2 class="text-2xl">Modern APIs</h2>
+        <p class="text-(--hero-lead)">Render with DirectX 12, and add DXR ray tracing, HDR output, and DLSS upscaling and frame generation where the hardware supports them.</p>
+        <p><a class="inline-block rounded bg-btn px-3 py-2 text-btn-text hover:bg-btn-hover hover:no-underline focus:no-underline" href="{{ site.baseurl }}/rendering">Learn more</a></p>
     </div>
-    <div class="col-md-4">
-        <h2>VR support</h2>
-        <p>Render to a headset and read tracked controllers through OpenXR. Your module needs no OpenXR SDK.</p>
-        <p><a class="btn btn-default" href="{{ site.baseurl }}/vr">Learn more</a></p>
+    <div class="px-[15px] lg:w-1/3">
+        <h2 class="text-2xl">VR support</h2>
+        <p class="text-(--hero-lead)">Render to a headset and read tracked controllers through OpenXR. Your module needs no OpenXR SDK.</p>
+        <p><a class="inline-block rounded bg-btn px-3 py-2 text-btn-text hover:bg-btn-hover hover:no-underline focus:no-underline" href="{{ site.baseurl }}/vr">Learn more</a></p>
     </div>
-    <div class="col-md-4">
-        <h2>Telemetry &amp; updates</h2>
-        <p>Record gameplay statistics and performance metrics, ship automatic updates, and collect crash reports.</p>
-        <p><a class="btn btn-default" href="{{ site.baseurl }}/distributing">Learn more</a></p>
+    <div class="px-[15px] lg:w-1/3">
+        <h2 class="text-2xl">Telemetry &amp; updates</h2>
+        <p class="text-(--hero-lead)">Record gameplay statistics and performance metrics, ship automatic updates, and collect crash reports.</p>
+        <p><a class="inline-block rounded bg-btn px-3 py-2 text-btn-text hover:bg-btn-hover hover:no-underline focus:no-underline" href="{{ site.baseurl }}/distributing">Learn more</a></p>
     </div>
 </div>
 

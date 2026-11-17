@@ -1,0 +1,549 @@
+@import "tailwindcss" source(none);
+@import "./highlight.css" layer(components);
+
+@source "../*.html";
+@source "../_includes";
+@source "../_layouts";
+@source "../scripts";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme {
+  --breakpoint-lg: 62rem;
+  --breakpoint-xl: 75rem;
+
+  --font-sans: "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: Consolas, Menlo, Monaco, "Courier New", monospace;
+  --font-wordmark: "Matchstick Wordmark", "Droid Sans", sans-serif;
+
+  --color-brand: #0ea158;
+  --color-brand-hover: #0b8448;
+}
+
+/* Themed colours swap per [data-theme], so they are declared inline to keep var() references in the output. */
+@theme inline {
+  --color-page: var(--page);
+  --color-bar: var(--bar);
+  --color-bar-edge: var(--bar-edge);
+  --color-hero: var(--hero);
+  --color-panel: var(--panel);
+  --color-edge: var(--edge);
+  --color-rule: var(--rule);
+  --color-muted: var(--muted);
+  --color-body: var(--body);
+  --color-soft: var(--soft);
+  --color-heading: var(--heading);
+  --color-link: var(--link);
+  --color-btn: var(--btn);
+  --color-btn-hover: var(--btn-hover);
+  --color-btn-text: var(--btn-text);
+}
+
+/* Dark is the default so the site keeps its look without JavaScript; theme.js picks the stored or system theme. */
+:root {
+  color-scheme: dark;
+  --page: #060606;
+  --bar: #222;
+  --bar-edge: #080808;
+  --hero: #151515;
+  --panel: #111;
+  --edge: #262626;
+  --rule: #282828;
+  --muted: #888;
+  --body: #b8b8b8;
+  --soft: #d6d6d6;
+  --heading: #fff;
+  --link: #0ea158;
+  --btn: #424242;
+  --btn-hover: #2d2d2d;
+  --btn-text: #fff;
+  --code-bg: #1d1d1d;
+  --code-text: #e4e4e4;
+  --table: #181818;
+  --table-line: #222;
+  --table-head: #3a3a3a;
+  --callout: #0c1a14;
+  --pitfall: #ff9a3c;
+  --pitfall-bg: #1d1408;
+  --api-type: #8fb8d8;
+  --api-member: #1f1f1f;
+  --dropdown: #222;
+  --dropdown-edge: rgba(255, 255, 255, 0.1);
+  --hero-lead: #b4b4b4;
+  --icon: #828282;
+  --icon-hover: #fff;
+  --wordmark-top: #fff;
+  --wordmark-bottom: #8f8f8f;
+  --flame-blend: screen;
+
+  --diagram-box: #141414;
+  --diagram-stroke: #3d3d3d;
+  --diagram-you: #0b1f16;
+  --diagram-hot: #22160a;
+  --diagram-group: #333;
+  --diagram-text: #e6e6e6;
+  --diagram-sub: #8c8c8c;
+  --diagram-line: #6a6a6a;
+
+  --hl-text: #d4d4d4;
+  --hl-comment: #6f7b7b;
+  --hl-keyword: #c792ea;
+  --hl-type: #5ec4d6;
+  --hl-decl: #6cb6ff;
+  --hl-string: #7fd49b;
+  --hl-const: #f0a45d;
+  --hl-op: #a9b1b1;
+  --hl-builtin: #e5c07b;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #fff;
+  --bar: #f7f7f7;
+  --bar-edge: #e3e3e3;
+  --hero: #f3f3f3;
+  --panel: #f6f7f8;
+  --edge: #e1e3e5;
+  --rule: #e3e3e3;
+  --muted: #666;
+  --body: #3d3d3d;
+  --soft: #262626;
+  --heading: #111;
+  --link: #08803f;
+  --btn: #e4e4e4;
+  --btn-hover: #d2d2d2;
+  --btn-text: #1a1a1a;
+  --code-bg: #eef0f2;
+  --code-text: #24292f;
+  --table: #fafafa;
+  --table-line: #e6e6e6;
+  --table-head: #cfcfcf;
+  --callout: #eaf6ef;
+  --pitfall: #b85400;
+  --pitfall-bg: #fff3e5;
+  --api-type: #255f8f;
+  --api-member: #e6e6e6;
+  --dropdown: #fff;
+  --dropdown-edge: rgba(0, 0, 0, 0.12);
+  --hero-lead: #555;
+  --icon: #777;
+  --icon-hover: #111;
+  --wordmark-top: #5a5a5a;
+  --wordmark-bottom: #111;
+  --flame-blend: normal;
+
+  --diagram-box: #f7f7f7;
+  --diagram-stroke: #c9c9c9;
+  --diagram-you: #e8f6ee;
+  --diagram-hot: #fff2e3;
+  --diagram-group: #cfcfcf;
+  --diagram-text: #1f1f1f;
+  --diagram-sub: #666;
+  --diagram-line: #8a8a8a;
+
+  --hl-text: #24292f;
+  --hl-comment: #6e7781;
+  --hl-keyword: #8250df;
+  --hl-type: #0a7286;
+  --hl-decl: #0550ae;
+  --hl-string: #116329;
+  --hl-const: #a24f00;
+  --hl-op: #57606a;
+  --hl-builtin: #7d5300;
+}
+
+@layer base {
+  body {
+    @apply bg-page font-sans text-sm/[1.42857] text-muted;
+  }
+
+  a {
+    @apply text-link no-underline hover:underline focus:underline;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-medium leading-[1.1] text-heading;
+  }
+
+  h1, h2, h3 {
+    @apply mt-5 mb-2.5;
+  }
+
+  h4 {
+    @apply my-2.5;
+  }
+
+  h1 { @apply text-[36px]; }
+  h2 { @apply text-[30px]; }
+  h3 { @apply text-[24px]; }
+  h4 { @apply text-[18px]; }
+
+  p {
+    @apply mb-2.5;
+  }
+
+  small {
+    @apply text-[85%];
+  }
+
+  code {
+    @apply rounded px-1 py-0.5 font-mono text-[90%];
+  }
+
+  pre {
+    @apply mb-2.5 overflow-auto rounded p-[9.5px] font-mono text-[13px]/[1.42857];
+  }
+
+  pre code {
+    @apply rounded-none p-0 text-[length:inherit];
+  }
+
+  hr {
+    @apply my-5 border-rule;
+  }
+
+  /* Rouge wraps highlighted blocks in a figure. */
+  figure.highlight {
+    @apply m-0;
+  }
+
+  :where(.main) [id] {
+    scroll-margin-top: 70px;
+  }
+}
+
+@layer components {
+  .lead {
+    @apply mb-5 text-base/[1.4] font-extralight md:text-[21px];
+  }
+
+  .page-header {
+    @apply mt-10 mb-5 border-b border-rule pb-[9px];
+  }
+
+  /* Guide prose */
+
+  .guide :where(p, li, td, dd) {
+    @apply text-[15px]/[1.65] text-body;
+  }
+
+  .guide .lead {
+    @apply text-[19px]/[1.5] text-soft;
+  }
+
+  .guide h2 {
+    @apply mt-12 pt-1;
+  }
+
+  .guide h3 {
+    @apply mt-8 text-[19px];
+  }
+
+  .guide :where(ul, ol) {
+    @apply mb-2.5 pl-10;
+  }
+
+  .guide :where(ul) {
+    @apply list-disc;
+  }
+
+  .guide :where(ol) {
+    @apply list-decimal;
+  }
+
+  .guide :where(li li, li ul, li ol) {
+    @apply mb-0;
+  }
+
+  .guide code {
+    background-color: var(--code-bg);
+    color: var(--code-text);
+  }
+
+  .guide pre code {
+    @apply bg-transparent text-inherit;
+    white-space: pre;
+  }
+
+  .guide pre {
+    @apply break-normal;
+  }
+
+  .guide table {
+    @apply mb-5 w-full;
+    background-color: var(--table);
+  }
+
+  .guide :where(th, td) {
+    @apply p-2 text-left align-top leading-[1.42857];
+  }
+
+  .guide th {
+    @apply font-medium text-heading;
+    border-bottom: 1px solid var(--table-head);
+  }
+
+  .guide td {
+    border-top: 1px solid var(--table-line);
+  }
+
+  .guide table.bordered :where(th, td) {
+    border: 1px solid var(--rule);
+  }
+
+  .learn {
+    @apply mt-6 mb-2 rounded-lg border border-edge bg-panel px-[22px] pt-[18px] pb-2.5;
+  }
+
+  .learn h4 {
+    @apply mt-0 text-[13px] tracking-[0.08em] text-link uppercase;
+  }
+
+  .callout {
+    @apply my-5 rounded-r-md border-l-3 border-brand px-[18px] py-3;
+    background-color: var(--callout);
+  }
+
+  .callout p:last-child {
+    @apply mb-0;
+  }
+
+  .callout strong:first-child {
+    @apply mb-0.5 block text-xs tracking-[0.08em] text-link uppercase;
+  }
+
+  .callout.pitfall {
+    border-left-color: var(--pitfall);
+    background-color: var(--pitfall-bg);
+  }
+
+  .callout.pitfall strong:first-child {
+    color: var(--pitfall);
+  }
+
+  .tree {
+    @apply border border-edge bg-panel px-5 py-4 text-[13.5px]/[1.7] whitespace-pre text-soft;
+  }
+
+  .tree .you {
+    @apply font-bold text-link;
+  }
+
+  .tree .note {
+    @apply text-[#777];
+  }
+
+  figure.diagram {
+    @apply my-[26px];
+  }
+
+  figure.diagram svg {
+    @apply mx-auto block h-auto w-full max-w-[720px];
+  }
+
+  figure.diagram figcaption {
+    @apply mt-2 text-center text-[13px] text-[#777];
+  }
+
+  .diagram .box { fill: var(--diagram-box); stroke: var(--diagram-stroke); stroke-width: 1.5; }
+  .diagram .you { fill: var(--diagram-you); stroke: var(--color-brand); }
+  .diagram .hot { fill: var(--diagram-hot); stroke: #ff9a3c; }
+  .diagram .group { fill: none; stroke: var(--diagram-group); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  .diagram text { fill: var(--diagram-text); font-size: 14px; text-anchor: middle; }
+  .diagram .sub { fill: var(--diagram-sub); font-size: 11.5px; }
+  .diagram .label { fill: var(--diagram-sub); font-size: 12px; }
+  .diagram .start { text-anchor: start; }
+  .diagram .line { fill: none; stroke: var(--diagram-line); stroke-width: 1.5; }
+  .diagram .head { fill: var(--diagram-line); }
+
+  .next-steps {
+    @apply mt-5 mb-2.5 grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-3.5;
+  }
+
+  .next-steps a {
+    @apply block rounded-lg border border-edge bg-panel px-[18px] py-4 text-body no-underline hover:border-brand;
+  }
+
+  .next-steps a strong {
+    @apply mb-1 block text-base text-heading;
+  }
+
+  details.sample {
+    @apply my-4;
+  }
+
+  details.sample summary {
+    @apply mb-2.5 cursor-pointer text-link;
+  }
+
+  /* Side navigation; site.js marks the current section's items .active. */
+
+  .side-nav {
+    @apply mt-2.5 lg:sticky lg:top-[70px] lg:max-h-[calc(100vh-90px)] lg:overflow-y-auto;
+  }
+
+  .side-nav > ul > li + li {
+    @apply mt-0.5;
+  }
+
+  .side-nav a {
+    @apply block px-[15px] py-2.5 text-heading hover:bg-bar hover:no-underline focus:no-underline;
+  }
+
+  .side-nav ul ul {
+    @apply text-[90%];
+  }
+
+  .side-nav ul ul li {
+    @apply pl-[15px] leading-2;
+  }
+
+  .side-nav li.active > a {
+    @apply border-l-2 border-brand font-bold text-link;
+  }
+
+  .side-nav li.active li > a {
+    @apply border-l-0 font-normal text-heading;
+  }
+
+  .side-nav li.active li.active {
+    @apply border-l-2 border-brand;
+  }
+
+  .side-nav li.active li.active > a {
+    @apply text-link;
+  }
+
+  /* API reference */
+
+  .api-nav {
+    @apply pr-2.5;
+  }
+
+  .api-nav > ul > li > a {
+    @apply text-xs tracking-[0.08em] uppercase;
+  }
+
+  .api-nav ul ul li {
+    @apply leading-[1.2];
+  }
+
+  .api-nav ul ul li > a {
+    @apply px-[15px] py-[5px] break-all;
+  }
+
+  .api .api-type {
+    @apply mt-9 border-t border-edge pt-2;
+  }
+
+  .api .api-type > h3 {
+    @apply font-mono text-[22px] text-heading;
+  }
+
+  .api .api-member {
+    @apply mt-7 border-l-2 pl-4;
+    border-left-color: var(--api-member);
+  }
+
+  .api .api-member h4 {
+    @apply font-mono text-base;
+  }
+
+  .api .signature {
+    @apply my-2.5 rounded border border-edge bg-panel px-3.5 py-2.5;
+  }
+
+  .api .signature code {
+    @apply bg-transparent p-0 text-[13px];
+    color: var(--code-text);
+  }
+
+  .api .signature .type,
+  .api code.type {
+    color: var(--api-type);
+  }
+
+  .api .signature .keyword {
+    @apply text-muted;
+  }
+
+  .api .api-params {
+    @apply mb-2.5;
+  }
+
+  .api .api-params td:first-child {
+    @apply w-[1%] whitespace-nowrap;
+  }
+
+  .api .api-params td:first-child code {
+    @apply whitespace-nowrap;
+  }
+
+  .api .api-returns strong {
+    @apply mr-1.5 font-medium text-heading;
+  }
+
+  .api .api-inherits {
+    @apply text-muted;
+  }
+
+  .api dl {
+    @apply mb-5;
+  }
+
+  .api dt {
+    @apply mt-3.5 font-mono font-normal leading-[1.42857];
+    color: var(--code-text);
+  }
+
+  .api dd {
+    @apply ml-0;
+  }
+
+  /* Wordmark */
+
+  .wordmark {
+    @apply mx-0 mt-[0.55em] mb-[0.25em] font-wordmark text-[clamp(40px,11.5vw,150px)] leading-none font-bold tracking-[-0.03em] whitespace-nowrap select-none;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .wordmark.ready {
+    opacity: 1;
+  }
+
+  .wordmark .wm {
+    color: var(--wordmark-bottom);
+    background: linear-gradient(var(--wordmark-top) 25%, var(--wordmark-bottom) 88%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .wordmark .wick {
+    @apply relative inline-block;
+  }
+
+  /* The flame replaces the dot of the i, so it is placed in em units from the stem. */
+  .wordmark .flame {
+    @apply pointer-events-none absolute left-1/2 -ml-[0.75em] size-[1.5em];
+    bottom: 0.47em;
+    mix-blend-mode: var(--flame-blend);
+  }
+
+  .wordmark .flame.flame-static {
+    @apply -ml-[0.08em] h-[0.5em] w-[0.16em];
+    bottom: 0.74em;
+    border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%;
+    background: radial-gradient(ellipse at 50% 70%, #fff7d6 0%, #ffc45a 45%, #ff7a1a 80%, rgba(255, 122, 26, 0) 100%);
+    box-shadow: 0 0 0.35em 0.12em rgba(255, 150, 50, 0.45);
+  }
+}
+
+/* Comfortaa Bold (SIL Open Font License), subset to the letters of the wordmark. */
+@font-face {
+  font-family: "Matchstick Wordmark";
+  font-weight: 700;
+  font-display: block;
+  src: url("../fonts/comfortaa-wordmark.woff2") format("woff2");
+}
