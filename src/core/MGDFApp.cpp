@@ -67,6 +67,8 @@ MGDFApp::MGDFApp(ComObject<Host> &host, HINSTANCE hInstance)
     CloseWindow();
   });
   _host->SetDeviceResetHandler([this]() { QueueResetDevice(); });
+  _host->SetWindowTitleHandler(
+      [this](const std::string &title) { SetWindowTitle(title); });
 }
 
 MGDFApp::~MGDFApp() {
@@ -353,7 +355,7 @@ LRESULT MGDFApp::OnHandleMessage(HWND hwnd, UINT32 msg, WPARAM wParam,
       }
       [[fallthrough]];
     default:
-      return ::DefWindowProc(hwnd, msg, wParam, lParam);
+      return ::DefWindowProcW(hwnd, msg, wParam, lParam);
   }
 }
 

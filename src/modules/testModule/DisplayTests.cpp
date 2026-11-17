@@ -12,9 +12,42 @@
 namespace MGDF {
 namespace Test {
 
+namespace {
+std::wstring GameWindowTitle() {
+  struct Search {
+    DWORD ProcessId;
+    HWND Window;
+  } search{::GetCurrentProcessId(), nullptr};
+  ::EnumWindows(
+      [](HWND window, LPARAM param) -> BOOL {
+        auto &search = *reinterpret_cast<Search *>(param);
+        DWORD processId = 0;
+        ::GetWindowThreadProcessId(window, &processId);
+        if (processId != search.ProcessId || ::GetWindow(window, GW_OWNER) ||
+            !::IsWindowVisible(window)) {
+          return TRUE;
+        }
+        search.Window = window;
+        return FALSE;
+      },
+      reinterpret_cast<LPARAM>(&search));
+  if (!search.Window) return L"";
+  wchar_t title[256]{};
+  ::GetWindowTextW(search.Window, title, ARRAYSIZE(title));
+  return title;
+}
+
+std::wstring ToWide(const char *utf8) {
+  const int length = ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, nullptr, 0);
+  std::wstring result(length > 0 ? length - 1 : 0, L'\0');
+  ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, result.data(), length);
+  return result;
+}
+}  // namespace
+
 DisplayTests::~DisplayTests(void) {}
 
-DisplayTests::DisplayTests() : _testHDR(false) {}
+DisplayTests::DisplayTests() : _testHDR(false), _titleDeadline(0) {}
 
 void DisplayTests::Setup(IMGDFSimHost *host) {
   host->GetInput(_input.Assign());
@@ -87,6 +120,36 @@ void DisplayTests::Setup(IMGDFSimHost *host) {
         } else if (_input->IsKeyPress('N')) {
           return state->Fail(
               "User reported the information overlay toggle did not work");
+        }
+        return TestStep::CONT;
+      })
+      .StepOnce([host, this](auto state) {
+        state->Text.AddLine("Window title can be changed");
+        host->SetWindowTitle("MGDF title test \xC3\xA9");
+        _titleDeadline = ::GetTickCount64() + 2000;
+      })
+      .Step([this](auto state) {
+        if (GameWindowTitle() == L"MGDF title test \u00E9") {
+          return TestStep::PASSED;
+        }
+        if (::GetTickCount64() > _titleDeadline) {
+          return state->Fail("The window title did not change to the title set");
+        }
+        return TestStep::CONT;
+      })
+      .StepOnce([host, this](auto state) {
+        state->Text.AddLine("Window title returns to the game name");
+        host->SetWindowTitle(nullptr);
+        _titleDeadline = ::GetTickCount64() + 2000;
+      })
+      .Step([this, host](auto state) {
+        ComObject<IMGDFGame> game;
+        host->GetGame(game.Assign());
+        if (GameWindowTitle() == ToWide(game->GetName())) {
+          return TestStep::PASSED;
+        }
+        if (::GetTickCount64() > _titleDeadline) {
+          return state->Fail("The window title did not return to the game name");
         }
         return TestStep::CONT;
       });

@@ -9,6 +9,7 @@
 
 #include "../MGDFD3D12RenderBackend.hpp"
 #include "../audio/MGDFSoundManagerComponent.hpp"
+#include "../common/MGDFProcessLifetime.hpp"
 #include "../input/MGDFInputManagerComponent.hpp"
 #include "../network/MGDFNetworkManagerComponent.hpp"
 #include "../storage/MGDFStorageFactoryComponent.hpp"
@@ -27,6 +28,7 @@ namespace MGDF {
 namespace core {
 
 struct HostComponents {
+  std::shared_ptr<UserInstanceGuard> InstanceGuard;
   std::shared_ptr<storage::IStorageFactoryComponent> Storage;
   std::shared_ptr<network::INetworkManagerComponent> Network;
   ComObject<input::IInputManagerComponent> Input;
@@ -53,10 +55,12 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
       DeviceResetFunction;  // shutDown callback function signature
   typedef std::function<void(const std::string &, const std::string &)>
       FatalErrorFunction;  // fatal error callback function signature
+  typedef std::function<void(const std::string &)> WindowTitleFunction;
 
   void SetShutDownHandler(const ShutDownFunction handler);
   void SetDeviceResetHandler(const DeviceResetFunction handler);
   void SetFatalErrorHandler(const FatalErrorFunction handler);
+  void SetWindowTitleHandler(const WindowTitleFunction handler);
 
   void STCreateModule();
   void STUpdate(double simulationTime, HostMetrics &stats);
@@ -167,6 +171,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   HRESULT __stdcall CreateWebServer(unsigned int port, const small *socketPath,
                                     IMGDFWebServer **server) final;
   HRESULT __stdcall GetRecorder(IMGDFRecorder **recorder) final;
+  void __stdcall SetWindowTitle(const small *title) final;
 
  private:
   IMGDFRenderHost *RenderHost() { return static_cast<IMGDFRenderHost *>(this); }
@@ -186,6 +191,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
 
   void ClearWorkingDirectory();
 
+  std::shared_ptr<UserInstanceGuard> _instanceGuard;
   ComObject<IMGDFModule> _module;  // the currently executing module
   std::unique_ptr<ModuleFactory> _moduleFactory;
 
@@ -220,6 +226,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   // Guarded by _deviceMutex: GetUpscaleRenderSize runs on any thread.
   Streamline *_streamline = nullptr;
   UINT64 _renderedFrames = 0;
+  UINT64 _presentedFrames = 0;
   ComObject<ID3D12Device10> _d3d12Device;
   ComObject<ID3D12CommandQueue> _directQueue, _computeQueue, _copyQueue;
   ComObject<ID3D12Fence> _frameFence;
@@ -238,6 +245,7 @@ class Host : public IMGDFRenderHost, public IMGDFSimHost {
   ShutDownFunction _shutDownHandler;
   DeviceResetFunction _deviceResetHandler;
   FatalErrorFunction _fatalErrorHandler;
+  WindowTitleFunction _windowTitleHandler;
 };
 
 }  // namespace core

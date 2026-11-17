@@ -11,6 +11,7 @@
     <ClInclude Include="MGDFD3D12RenderBackend.hpp" />
     <ClInclude Include="MGDFD3D12FrameState.hpp" />
     <ClInclude Include="MGDFFrameLimiter.hpp" />
+    <ClInclude Include="MGDFWindowIcon.hpp" />
     <ClInclude Include="StdAfx.h" />
     <ClInclude Include="..\..\include\MGDF\ComObject.hpp">
       <Filter>interfaces</Filter>
@@ -26,6 +27,7 @@
     <ClCompile Include="MGDFD3DAppFramework.cpp" />
     <ClCompile Include="MGDFD3D12RenderBackend.cpp" />
     <ClCompile Include="MGDFFrameLimiter.cpp" />
+    <ClCompile Include="MGDFWindowIcon.cpp" />
     <ClCompile Include="StdAfx.cpp" />
   </ItemGroup>
   <ItemGroup>

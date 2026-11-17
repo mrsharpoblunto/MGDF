@@ -24,6 +24,14 @@ std::string JsonGameStorageHandler::GetStatisticsService() const {
   return _statisticsService;
 }
 
+std::string JsonGameStorageHandler::GetCrashReportService() const {
+  return _crashReportService;
+}
+
+std::string JsonGameStorageHandler::GetPrivacyPolicy() const {
+  return _privacyPolicy;
+}
+
 void JsonGameStorageHandler::GetVersion(MGDFVersion &version) const {
   version = _version;
 }
@@ -47,6 +55,8 @@ HRESULT JsonGameStorageHandler::Load(const std::wstring &filename) {
     _gameName = GetJsonValue(root, "gameName");
     _gameUid = GetJsonValue(root, "gameUid");
     _statisticsService = GetJsonValue(root, "statisticsService");
+    _crashReportService = GetJsonValue(root, "crashReportService");
+    _privacyPolicy = GetJsonValue(root, "privacyPolicy");
     _version = VersionHelper::Create(GetJsonValue(root, "version"));
     const auto preferences = root.find("preferences");
     if (preferences != root.end()) {

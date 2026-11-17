@@ -2,6 +2,7 @@
 
 #include "MGDFD3DAppFramework.hpp"
 
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -9,6 +10,7 @@
 #include "common/MGDFParameterManager.hpp"
 #include "common/MGDFResources.hpp"
 #include "common/MGDFWindowSizing.hpp"
+#include "MGDFWindowIcon.hpp"
 #include "core.impl/MGDFParameterConstants.hpp"
 #include "windowsx.h"
 
@@ -18,6 +20,8 @@
 #endif
 
 typedef uint64_t QWORD;
+
+constexpr UINT WM_MGDF_SET_TITLE = WM_APP + 1;
 
 namespace MGDF {
 namespace core {
@@ -52,10 +56,10 @@ static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam,
     return result;
   }
 
-  return DefWindowProc(hwnd, msg, wParam, lParam);
+  return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-#define WINDOW_CLASS_NAME "MGDFD3DAppFrameworkWindowClass"
+#define WINDOW_CLASS_NAME L"MGDFD3DAppFrameworkWindowClass"
 
 D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
     : _applicationInstance(hInstance),
@@ -75,7 +79,9 @@ D3DAppFramework::D3DAppFramework(HINSTANCE hInstance)
 }
 
 D3DAppFramework::~D3DAppFramework() {
-  ::UnregisterClass(WINDOW_CLASS_NAME, _applicationInstance);
+  ::UnregisterClassW(WINDOW_CLASS_NAME, _applicationInstance);
+  if (_icon) ::DestroyIcon(_icon);
+  if (_iconSmall) ::DestroyIcon(_iconSmall);
   RTUninitD3D();
 }
 
@@ -83,20 +89,31 @@ void D3DAppFramework::InitWindow(const std::string &caption) {
   // if the window has not already been created
   if (!_window) {
     LOG("Initializing window...", MGDF_LOG_LOW);
-    const WNDCLASS wc{
+    const auto iconPath =
+        std::filesystem::path(Resources::Instance().GameBaseDir()) /
+        L"gameIcon.png";
+    const UINT dpi = ::GetDpiForSystem();
+    _icon = LoadIconFromImage(iconPath,
+                              ::GetSystemMetricsForDpi(SM_CXICON, dpi));
+    _iconSmall = LoadIconFromImage(
+        iconPath, ::GetSystemMetricsForDpi(SM_CXSMICON, dpi));
+
+    const WNDCLASSEXW wc{
+        .cbSize = sizeof(WNDCLASSEXW),
         .style = CS_HREDRAW | CS_VREDRAW,
         .lpfnWndProc = StaticWindowProc,
         .cbClsExtra = 0,
         .cbWndExtra = 0,
         .hInstance = _applicationInstance,
-        .hIcon = LoadIcon(0, IDI_APPLICATION),
-        .hCursor = LoadCursor(0, IDC_ARROW),
+        .hIcon = _icon ? _icon : ::LoadIconA(nullptr, IDI_APPLICATION),
+        .hCursor = ::LoadCursorA(nullptr, IDC_ARROW),
         .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
-        .lpszMenuName = 0,
+        .lpszMenuName = nullptr,
         .lpszClassName = WINDOW_CLASS_NAME,
+        .hIconSm = _iconSmall,
     };
 
-    if (!::RegisterClass(&wc)) {
+    if (!::RegisterClassExW(&wc)) {
       FATALERROR(this, "RegisterClass FAILED");
     }
 
@@ -128,9 +145,10 @@ void D3DAppFramework::InitWindow(const std::string &caption) {
     const INT32 width = _rtWindowRect.right - _rtWindowRect.left;
     const INT32 height = _rtWindowRect.bottom - _rtWindowRect.top;
 
-    _window = ::CreateWindow(WINDOW_CLASS_NAME, caption.c_str(), _windowStyle,
-                             CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0,
-                             _applicationInstance, this);
+    _window = ::CreateWindowW(
+        WINDOW_CLASS_NAME, Resources::ToWString(caption).c_str(), _windowStyle,
+        CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, _applicationInstance,
+        this);
 
     if (!_window) {
       FATALERROR(this, "CreateWindow FAILED");
@@ -704,7 +722,16 @@ void D3DAppFramework::QueueResetDevice() { _awaitingD3DReset.store(false); }
 void D3DAppFramework::CloseWindow() {
   LOG("Sending WM_CLOSE message...", MGDF_LOG_HIGH);
   _internalShutDown.store(true);
-  ::PostMessage(_closeWindow, WM_CLOSE, 0, 0);
+  ::PostMessageW(_closeWindow, WM_CLOSE, 0, 0);
+}
+
+void D3DAppFramework::SetWindowTitle(const std::string &title) {
+  {
+    std::lock_guard lock(_titleMutex);
+    _pendingTitle = Resources::ToWString(title);
+  }
+  // posted rather than sent so a caller never waits on the window thread
+  ::PostMessageW(_closeWindow, WM_MGDF_SET_TITLE, 0, 0);
 }
 
 INT32 D3DAppFramework::Run() {
@@ -914,18 +941,18 @@ INT32 D3DAppFramework::Run() {
     while (
         !hasFocus
             // process all messages to ensure waking up reliably
-            ? ::PeekMessage(&msg, _window, 0, 0, PM_REMOVE)
+            ? ::PeekMessageW(&msg, _window, 0, 0, PM_REMOVE)
             // only process non WM_INPUT messages as WM_INPUT is handled
             // above by GetRawInputBuffer
-            : (::PeekMessage(&msg, _window, 0, WM_INPUT - 1, PM_REMOVE) != 0 ||
-               ::PeekMessage(&msg, _window, WM_INPUT + 1, (UINT)-1,
+            : (::PeekMessageW(&msg, _window, 0, WM_INPUT - 1, PM_REMOVE) != 0 ||
+               ::PeekMessageW(&msg, _window, WM_INPUT + 1, (UINT)-1,
                              PM_REMOVE) != 0)) {
       if (msg.message == WM_QUIT) {
         runMainThread = false;
         break;
       }
       ::TranslateMessage(&msg);
-      ::DispatchMessage(&msg);
+      ::DispatchMessageW(&msg);
     }
   }
 
@@ -977,6 +1004,16 @@ void D3DAppFramework::ProcessRawInput() {
 LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
                                  LPARAM lParam) {
   switch (msg) {
+    case WM_MGDF_SET_TITLE: {
+      std::wstring title;
+      {
+        std::lock_guard lock(_titleMutex);
+        title = _pendingTitle;
+      }
+      ::SetWindowTextW(hwnd, title.c_str());
+      return 0;
+    }
+
     // handle player mouse input
     case WM_MOUSEMOVE: {
       const INT32 x = GET_X_LPARAM(lParam);
@@ -1101,9 +1138,9 @@ LRESULT D3DAppFramework::MsgProc(HWND hwnd, UINT32 msg, WPARAM wParam,
                                              QS_ALLINPUT) ==
                  WAIT_OBJECT_0 + 1) {
             MSG pending{};
-            while (::PeekMessage(&pending, nullptr, 0, 0, PM_REMOVE)) {
+            while (::PeekMessageW(&pending, nullptr, 0, 0, PM_REMOVE)) {
               ::TranslateMessage(&pending);
-              ::DispatchMessage(&pending);
+              ::DispatchMessageW(&pending);
             }
           }
           _renderThread->join();
