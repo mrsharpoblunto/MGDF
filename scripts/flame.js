@@ -50,7 +50,8 @@
     // The canvas is premultiplied, so colour written with less alpha adds light instead of covering.
     // On a light page only the inner flame covers; the glow and fringe add, so they never darken it.
     '  float lit = inside * smoothstep(0.9, 0.35, d);',
-    '  gl_FragColor = vec4(rgb, mix(cover, lit, additive));',
+    '  float opacity = mix(1.0, 0.8, additive);',
+    '  gl_FragColor = vec4(rgb, mix(cover, lit, additive)) * opacity;',
     '}'
   ].join('\n');
 
