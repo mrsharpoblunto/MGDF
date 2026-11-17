@@ -12,6 +12,9 @@
     <ClCompile Include="SoundTests.cpp">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="VRTests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
     <ClCompile Include="LoadSaveTests.cpp">
       <Filter>tests</Filter>
     </ClCompile>
@@ -31,6 +34,9 @@
       <Filter>tests</Filter>
     </ClInclude>
     <ClInclude Include="SoundTests.hpp">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="VRTests.hpp">
       <Filter>tests</Filter>
     </ClInclude>
     <ClInclude Include="LoadSaveTests.hpp">

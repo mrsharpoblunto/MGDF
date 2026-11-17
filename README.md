@@ -48,11 +48,15 @@ crashreporter.tests.exe
 updater.tests.exe
 ```
 
-The full core suite includes graphics and OpenXR tests. The crash reporter tests
-use a local HTTP server. They check report files, the upload contract, failures,
-cancellation, and process exit codes. The core suite starts a child process to
-check external minidumps with errors hidden. The reporter tests need no test
-packages.
+The full core suite includes graphics tests. The crash reporter tests use a
+local HTTP server. They check report files, the upload contract, failures,
+cancellation, and process exit codes. The reporter tests need no test packages.
+These programs open no windows.
+
+Checks that need the game window, a headset, or a tester are in the test module,
+`src/modules/testModule`. The build places it in the `game` folder beside
+`core.exe`; start `core.exe` to run it. When VR is available it runs the VR
+test: use a headset, or the test runtime in `tests/openxr.runtime`.
 
 Starting a game
 ---------------

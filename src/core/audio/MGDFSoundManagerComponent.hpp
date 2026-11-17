@@ -4,6 +4,8 @@
 
 #include <MGDF/ComObject.hpp>
 
+#include "MGDFAudioCapture.hpp"
+
 namespace MGDF {
 namespace core {
 namespace audio {
@@ -11,8 +13,8 @@ namespace audio {
 class ISoundManagerComponent : public ComBase<IMGDFSoundManager> {
  public:
   virtual ~ISoundManagerComponent() {}
-  virtual void Update() = 0;
   virtual void Stop() = 0;
+  virtual ComObject<AudioCaptureSource> CaptureSource() = 0;
 };
 
 }  // namespace audio

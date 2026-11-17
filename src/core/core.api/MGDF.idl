@@ -1603,441 +1603,561 @@ typedef struct MGDFSoundPosition {
   float x, y, z;
 } MGDFSoundPosition;
 
+/** Identifies a voice from IMGDFSoundCommandList::Play or PlayPcm. 0 is no voice */
+typedef UINT64 MGDFVoiceId;
+/** Identifies a mixer bus from IMGDFSoundManager::GetBus or CreateBus */
+typedef UINT32 MGDFBusId;
+
 /**
-An sound source in 3d space
+A part of a sound file that a sample voice can play
 */
-[
-  uuid("EBCC1B73-815F-4870-BC80-67A5379E65FC"), object,
-  local
-] interface IMGDFSound : IUnknown {
+typedef struct MGDFSoundSegment {
+  /** The start of the segment in seconds from the file start */
+  double Start;
+  /** The length of the segment in seconds. 0 extends it to the file end */
+  double Length;
+  /** TRUE if a voice repeats the segment until it is stopped */
+  BOOL Loop;
+} MGDFSoundSegment;
+
+/**
+The segments that IMGDFSoundManager::CreateSoundSamples loads from a sound file
+*/
+typedef struct MGDFSoundSamplesDesc {
+  /** The segment list. The host copies it */
+  const MGDFSoundSegment *Segments;
+  /** The number of entries in Segments. 0 selects one segment for the whole
+  file */
+  UINT32 SegmentCount;
+} MGDFSoundSamplesDesc;
+
+/**
+The format and buffer size of a stream from IMGDFSoundManager::CreatePcmStream
+*/
+typedef struct MGDFSoundPcmDesc {
+  /** The channel count, 1 or 2. A spatial voice needs 1 */
+  UINT32 Channels;
+  /** The sample rate in Hz, 8000 through 192000. 0 selects the 48000 Hz host mix rate */
+  UINT32 SampleRate;
+  /** The buffer size in stream frames, at most 16777216. 0 selects 200 ms */
+  UINT32 CapacityFrames;
+} MGDFSoundPcmDesc;
+
+/**
+The buses that every sound manager has
+*/
+typedef enum MGDFBusKind {
+  /** The root bus. Its settings apply to every other bus */
+  MGDF_BUS_MASTER,
+  /** A child of Master for sound effects */
+  MGDF_BUS_SOUND,
+  /** A child of Master for music */
+  MGDF_BUS_MUSIC
+} MGDFBusKind;
+
+/**
+The settings of a bus from IMGDFSoundManager::CreateBus
+*/
+typedef struct MGDFBusDesc {
+  /** The name of the bus. The host copies it */
+  const wchar_t *Name;
+  /** An existing bus. Its volume, mute, pause and high-frequency gain also
+  apply to the new bus */
+  MGDFBusId Parent;
+  /** The initial linear volume; finite and nonnegative */
+  float Volume;
+  /** Optional preference name. IMGDFSoundManager::GetPreferences reports the
+  bus volume under it. The host copies it */
+  const small *PreferenceKey;
+} MGDFBusDesc;
+
+/**
+The listener that hears spatial voices, for IMGDFSoundCommandList::SetListener.
+The listener and the voices share one space, in which the listener's right is
+the cross product of Forward and Up. All values must be finite
+*/
+typedef struct MGDFSoundListener {
+  /** The position of the listener */
+  MGDFSoundPosition Position;
+  /** The velocity of the listener, used for the Doppler shift */
+  MGDFSoundPosition Velocity;
+  /** The direction the listener faces */
+  MGDFSoundPosition Forward;
+  /** The direction above the listener */
+  MGDFSoundPosition Up;
+} MGDFSoundListener;
+
+/**
+The settings of a new voice. All values must be finite. Volume, Audibility,
+Radius, FadeIn and offsets are nonnegative. Pitch is greater than 0 and at most
+16. GainHF is 0 through 1. Bus must exist. Spatial sample and PCM voices
+require one channel
+*/
+typedef struct MGDFVoiceDesc {
+  /** The index of the segment to play in the sample set's segment list. Sample
+  voices only */
+  UINT32 Segment;
+  /** The bus that the voice plays on */
+  MGDFBusId Bus;
+  /** The linear volume */
+  float Volume;
+  /** The playback rate. 1 is the recorded rate */
+  float Pitch;
+  /** The audio time (IMGDFSoundManager::GetAudioTime) at which the voice
+  starts. 0 starts it as soon as possible */
+  double StartTime;
+  /** The position in the segment, in seconds, at which playback starts. Sample
+  voices only */
+  float StartOffset;
+  /** The fade-in time in seconds */
+  float FadeIn;
+  /** When there are more voices than sources, voices with a higher priority
+  keep their sources */
+  INT32 Priority;
+  /** The level that ranks voices of equal priority, scaled by the voice and bus
+  volume. 0 selects the segment RMS for a sample voice, or 1 for a PCM voice */
+  float Audibility;
+  /** TRUE to position the voice in 3D. FALSE plays it in 2D, for stereo beds
+  and UI sounds */
+  BOOL Spatial;
+  /** The position in the space of the listener. Spatial voices only */
+  MGDFSoundPosition Position;
+  /** The velocity, used for the Doppler shift. Spatial voices only */
+  MGDFSoundPosition Velocity;
+  /** The source radius in position units */
+  float Radius;
+  /** The high-frequency gain, 0 through 1. 1 leaves the sound unfiltered */
+  float GainHF;
+} MGDFVoiceDesc;
+
+/**
+The last published state of a voice
+*/
+typedef enum MGDFVoiceStatus {
+  /** The voice waits for submission, for its samples to load or for its
+  StartTime */
+  MGDF_VOICE_PENDING,
+  /** The voice plays on a source */
+  MGDF_VOICE_PLAYING,
+  /** The voice advances without output, because voices of higher priority or
+  audibility use every source */
+  MGDF_VOICE_VIRTUAL,
+  /** The bus of the voice, or a parent of that bus, is paused */
+  MGDF_VOICE_PAUSED,
+  /** The voice finished, was stopped or failed. Unknown IDs also report this */
+  MGDF_VOICE_ENDED
+} MGDFVoiceStatus;
+
+/**
+Mixer statistics from IMGDFSoundManager::GetStats, as of the last audio thread
+update
+*/
+typedef struct MGDFSoundStats {
+  /** The number of voices that play on a source */
+  UINT32 RealVoices;
+  /** The number of voices that advance without a source */
+  UINT32 VirtualVoices;
+  /** The number of sources that no voice uses */
+  UINT32 FreeSources;
+  /** The number of sound streams with a voice */
+  UINT32 Streams;
+  /** The duration of the most recent audio thread update in milliseconds */
+  float AudioThreadMs;
+  /** The number of times a PCM voice had fewer queued frames than the output
+  needed before End */
+  UINT64 Underruns;
+  /** The number of changes of the output device, including to and from no
+  device */
+  UINT64 DeviceChanges;
+  /** The number of mix blocks that a video recording lost because its buffer
+  was full or the block was late */
+  UINT64 DroppedAudioBlocks;
+  /** The duration in milliseconds of the most recent mix block, including its
+  copy for a video recording */
+  float OutputThreadMs;
+} MGDFSoundStats;
+
+/**
+An immutable sample set loaded from one sound file. Reads are safe from any
+thread
+*/
+[uuid("CBEE7819-2C12-465D-BF40-8911889CB301"), object, local]
+interface IMGDFSoundSamples : IUnknown {
   /**
-  The name of the sound
-  \param name buffer to store the sound name
-  \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the name buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
+  Gets whether the set can play. Pending voices start when it is ready
+  \return TRUE when the set is loaded
   */
-  HRESULT GetName([ in, out ] wchar_t * name, [ in, out ] UINT64 * length);
-
+  BOOL IsLoaded();
   /**
-  The position of the sound
-  \param position the position of the sound
-  \return the position of the sound
+  Gets whether the load failed. Pending voices then end
+  \return TRUE if the file or a segment is invalid
   */
-  MGDFSoundPosition *GetPosition(MGDFSoundPosition * position);
-
+  BOOL HasFailed();
   /**
-  The velocity of the sound
-  \param velocity the velocity of the sound
-  \return the velocity of the sound
+  Gets the number of segments in the set
+  \return the number of segments; 1 for a set created without a segment list
   */
-  MGDFSoundPosition *GetVelocity(MGDFSoundPosition * velocity);
-
+  UINT32 GetSegmentCount();
   /**
-  Set the position of the sound
-  \param position the position of the sound
-  \return the position of the sound
+  Gets the duration of a segment
+  \param segment the index of the segment
+  \return the duration in seconds; 0 until loaded or for an invalid index
   */
-  MGDFSoundPosition *SetPosition(MGDFSoundPosition * position);
-
-  /**
-  Set the velocity of the sound
-  \param velocity the velocity of the sound
-  \return the velocity of the sound
-  */
-  MGDFSoundPosition *SetVelocity(MGDFSoundPosition * velocity);
-
-  /**
-  The distance (from the observer) at which the sound intensity reaches its
-  maximum. Getting closer than this will not cause the sound intensity to get
-  any greater \return The distance (from the observer) at which the sound
-  intensity reaches its maximum. Getting closer than this will not cause the
-  sound intensity to get any greater
-   */
-  float GetInnerRange();
-
-  /**
-   Set The distance (from the observer) at which the sound intensity reaches its
-   maximum. Getting closer than this will not cause the sound intensity to get
-   any greater
-   \param innerRange The distance (from the observer) at which the
-   sound intensity reaches its maximum. Getting closer than this will not cause
-   the sound intensity to get any greater
-   */
-  void SetInnerRange(float innerRange);
-
-  /**
-  The distance (from the observer) at which the sound intensity reaches 0
-  \return The distance (from the observer) at which the sound intensity reaches
-  its 0
-   */
-  float GetOuterRange();
-
-  /**
-   Set The distance (from the observer) at which the sound intensity reaches 0
-   \param outerRange The distance (from the observer) at which the sound
-   intensity reaches 0
-   */
-  void SetOuterRange(float outerRange);
-
-  /**
-   Does the sound stay relative to the listeners position or is it fixed in
-   absolute space
-   \return true if the sound is always relative to the listeners
-   position
-   */
-  BOOL GetSourceRelative();
-
-  /**
-   Does the sound stay relative to the listeners position or is it fixed in
-   absolute space
-   \param sourceRelative true if the sound is always relative to
-   the listeners position
-   */
-  void SetSourceRelative(BOOL sourceRelative);
-
-  /**
-  Get the current volume of the sound (ignoring attenuation due to position)
-  \return the current volume of the sound (ignoring attenuation due to position)
-  */
-  float GetVolume();
-
-  /**
-  Set the current volume of the sound (ignoring attenuation due to position)
-  \param volume the current volume of the sound (ignoring attenuation due to
-  position)
-  */
-  void SetVolume(float volume);
-
-  /**
-  Get the pitch of the current sound
-  \return 1.0 if the pitch is unchanged. between 0.5 and 1.0 is lower, and
-  between 1.0 and 2.0 is higher pitched
-  */
-  float GetPitch();
-
-  /**
-  Set the pitch of the current sound
-  \param pitch 1.0 if the pitch is unchanged. between 0.5 and 1.0 is lower, and
-  between 1.0 and 2.0 is higher pitched
-  */
-  void SetPitch(float pitch);
-
-  /**
-  Set the priority used by the sound system to determine which sounds get
-  deactivated if not enough sound sources are available to play all sounds
-  \param priority the priority to use for the sound. Higher values mean higher
-  priority
-  */
-  void SetPriority(INT32 priority);
-
-  /**
-  Get the priority used by the sound system to determine which sounds get
-  deactivated if not enough sound sources are available to play all sounds
-  \return priority the priority to use for the sound. Higher values mean higher
-  priority
-  */
-  INT32 GetPriority();
-
-  /**
-   Get whether the sound will loop playback continously
-   \return true if the sound should loop continously
-   */
-  BOOL GetLooping();
-
-  /**
-   Set whether the sound will loop playback continously
-   \param looping true if the sound should loop playback, false otherwise
-   \return looping true if the sound should loop continously
-   */
-  void SetLooping(BOOL looping);
-
-  /**
-  stop the playing of the current playlist if it was playing or paused (resets
-  playlist to the beginning aswell)
-  */
-  void Stop();
-
-  /**
-  pause the playing of the current playlist (if it was playing)
-  */
-  void Pause();
-
-  /**
-  resume the playing of the current playlist (if it was paused or stopped)
-  */
-  void Play();
-
-  /**
-  determines if the playlist has stopped play
-  \return true if the playlist has stopped play
-  */
-  BOOL IsStopped();
-
-  /**
-  determines if the playlist has paused play
-  \return true if the playlist has paused play
-  */
-  BOOL IsPaused();
-
-  /**
-  determines if the playlist is playing
-  \return true if the playlist is playing
-  */
-  BOOL IsPlaying();
-
-  /**
-  Is the sound currently playing or has it been culled
-  \return true if the sound manager has culled this sound source
-  */
-  BOOL IsActive();
+  double GetDuration(UINT32 segment);
 };
 
 /**
-A vorbis sound stream
+A buffer of PCM frames that the module writes and one voice plays. One writer
+thread at a time. Reads are safe from any thread. No call waits for playback.
+All counts use frames at this stream's rate. One voice can use a stream at a
+time. The voice retains it until the voice ends
 */
-[
-  uuid("2F0555E6-B5C3-40C4-9399-F74699A38811"), object,
-  local
-] interface IMGDFSoundStream : IUnknown {
+[uuid("41B99C6D-6F02-4960-8617-C11A650257D4"), object, local]
+interface IMGDFSoundPcmStream : IUnknown {
   /**
-  The name of the sound stream
-  \param name buffer to store the sound stream name
-  \param length the length of the buffer provided to store the value above. Will be set to the length required
-  \return S_OK if the name buffer was the correct length or was NULL, otherwise E_NOT_SUFFICIENT_BUFFER
+  Gets the channel count of the stream
+  \return the number of channels, 1 or 2
   */
-  HRESULT GetName([ in, out ] wchar_t * name, [ in, out ] UINT64 * length);
-
+  UINT32 GetChannels();
   /**
-  Get the volume level (0-1)
-  \return The volume level (0-1)
+  Gets the sample rate of the stream
+  \return the sample rate in Hz
   */
-  float GetVolume();
-
+  UINT32 GetSampleRate();
   /**
-  Set the volume level (0-1)
-  \param volume the volume level to set
+  Gets the number of frames that a write can accept
+  \return the free frames in the buffer; 0 after End or Stop
   */
-  void SetVolume(float volume);
-
+  UINT32 GetWritableFrames();
   /**
-  The position of playback in the stream (0 -> GetLength)
-  \return The position of playback in the stream
+  Gets the number of frames not yet read for output. Read-ahead frames are not
+  included
+  \return the number of queued frames
   */
-  UINT32 GetPosition();
-
+  UINT32 GetQueuedFrames();
   /**
-  The total length of the stream
-  \return The total length of the stream
+  Copies interleaved float frames into the stream
+  \param samples the frames to copy, with one float per channel in each frame
+  \param frames the number of frames in samples
+  \return the number of frames accepted, at most frames; 0 for null samples,
+  after End, or after Stop until another PlayPcm
   */
-  UINT32 GetLength();
-
+  UINT32 Write(const float *samples, UINT32 frames);
   /**
-  stop the playing of the current stream if it was playing or paused (resets it
-  to the beginning aswell)
+  Writes silence. These frames advance the position when played
+  \param frames the number of silent frames to write
+  \return the number of frames accepted, at most frames; 0 after End, or after
+  Stop until another PlayPcm
   */
-  void Stop();
-
+  UINT32 WriteSilence(UINT32 frames);
   /**
-  pause the playing of the current stream (if it was playing)
+  Finishes writes permanently. The voice ends after its last frame plays
   */
-  void Pause();
-
+  void End();
   /**
-  resume the playing of the current playlist (if it was paused or stopped)
-  \return success if the sound could resume playing, otherwise returns an error
-  code.
+  Reads one consistent pair: stream frames played and their audio time.
+  Inserted underrun silence does not advance frames. For time T, predict
+  frame + (T - audioTime) * sampleRate * currentPitch. A virtual voice counts
+  read-ahead frames as played, then advances at its rate times pitch. Pause
+  stops this advance; a scheduled start waits for StartTime
+  \param frame receives the number of stream frames played. Can be null
+  \param audioTime receives the audio time in seconds at which that frame
+  count was reached. Can be null
   */
-  HRESULT Play();
+  void GetPlayPosition(UINT64 *frame, double *audioTime);
+};
 
+/**
+A 2D WAV or Ogg Vorbis stream that plays from its file. Controls belong to one
+caller thread. Reads are safe from any thread and report the last published
+state. Controls apply in call order without waiting for playback. Releasing the
+last reference stops playback. Invalid control values do nothing. Fades and
+ramps use seconds
+*/
+[uuid("2F0555E6-B5C3-40C4-9399-F74699A38811"), object, local]
+interface IMGDFSoundStream : IUnknown {
   /**
-  determines if the stream has stopped play
-  \return true if the stream has stopped play
+  Gets the file name of the stream
+  \param name the buffer that receives the name. Null queries the required
+  length
+  \param length the length of the buffer on input; the required length,
+  including the terminator, on output
+  \return S_OK, E_POINTER for a null length, or E_NOT_SUFFICIENT_BUFFER
   */
-  BOOL IsStopped();
-
+  HRESULT GetName([in, out] wchar_t *name, [in, out] UINT64 *length);
   /**
-  determines if the stream has paused play
-  \return true if the stream has paused play
+  Gets the length of the file
+  \return the duration in seconds
   */
-  BOOL IsPaused();
-
+  double GetDuration();
   /**
-  determines if the stream is playing
-  \return true if the stream is playing
+  Gets the file position. Pause retains it; Stop resets it to zero
+  \return the position in seconds
+  */
+  double GetPosition();
+  /**
+  Enables looping. Play begins at file frame zero, then repeats the loop.
+  Changes affect audio not yet buffered. Valid Vorbis LOOPSTART and LOOPLENGTH
+  comments set the initial loop in file frames. Without them playback ends at
+  the file end
+  \param start the start of the loop in seconds
+  \param end the exclusive end of the loop in seconds. 0 selects the file end
+  */
+  void SetLoop(double start, double end);
+  /**
+  Starts or resumes the stream. An already playing stream is unchanged
+  \param fadeIn the fade-in time in seconds
+  */
+  void Play(float fadeIn);
+  /**
+  Fades the stream to zero, then holds the position
+  \param fadeOut the fade time in seconds
+  */
+  void Pause(float fadeOut);
+  /**
+  Fades the stream to zero, then resets it. The next Play starts at file frame
+  zero
+  \param fadeOut the fade time in seconds
+  */
+  void Stop(float fadeOut);
+  /**
+  Sets the volume of the stream
+  \param volume the linear volume; finite and nonnegative
+  \param ramp the time in seconds to reach the volume. 0 applies it at once
+  */
+  void SetVolume(float volume, float ramp);
+  /**
+  Selects the bus that the stream plays on. The default is Music
+  \param bus a bus from the manager that created the stream
+  */
+  void SetBus(MGDFBusId bus);
+  /**
+  Gets whether the stream plays
+  \return TRUE while playing or fading, including virtual playback
   */
   BOOL IsPlaying();
 };
 
 /**
- An interface for controlling positional sounds as well as streaming sound
- sources
+Records sound commands for IMGDFSoundManager::Submit. A command list belongs
+to one thread, including during Submit. Recording does not change playback.
+Submit applies its commands in order and resets it. An invalid setter or a
+command for an ended or unknown voice does nothing. Ramps and fades use
+nonnegative seconds
 */
-[
-  uuid("1E14DC82-8588-4686-888A-149993E4AE9B"), object,
-  local
-] interface IMGDFSoundManager : IUnknown {
+[uuid("21DE14ED-1156-4146-9A4F-4A65F540A742"), object, local]
+interface IMGDFSoundCommandList : IUnknown {
   /**
-  determine the position of the listener (i.e. the player)
-  \param listener the position of the listener (i.e. the player)
-  \return the position of the listener (i.e. the player)
+  Plays a segment of a sample set on a new voice. A StartTime of 0 waits for
+  the load; an explicit past time advances the sample offset
+  \param samples a sample set from the same manager as this list
+  \param desc the settings of the voice
+  \return the ID of the voice, which is pending until the list is submitted;
+  0 for invalid input or no free ID
   */
-  MGDFSoundPosition *GetListenerPosition(MGDFSoundPosition * listener);
-
+  MGDFVoiceId Play(IMGDFSoundSamples *samples, const MGDFVoiceDesc *desc);
   /**
-  determine the velocity of the listener (i.e. the player)
-  \param velocity the velocity of the listener (i.e. the player)
-  \return the velocity of the listener (i.e. the player)
+  Plays a PCM stream on a new voice. Segment and StartOffset are ignored. A new
+  voice uses the current unread position after an earlier voice ends
+  \param stream a stream from the same manager as this list that no other
+  voice uses
+  \param desc the settings of the voice
+  \return the ID of the voice, which is pending until the list is submitted;
+  0 for invalid input, a stream in use or no free ID
   */
-  MGDFSoundPosition *GetListenerVelocity(MGDFSoundPosition * velocity);
-
+  MGDFVoiceId PlayPcm(IMGDFSoundPcmStream *stream, const MGDFVoiceDesc *desc);
   /**
-   Get the vector representing the forward direction of the listener (i.e. the
-   player)
-   \param orientationForward the vector representing the forward direction of the listener
-   \return the vector representing the forward direction of the listener
+  Fades a voice to zero, then ends it
+  \param voice the voice to stop
+  \param fadeOut the fade time in seconds. 0 ends the voice at once
   */
-  MGDFSoundPosition *GetListenerOrientationForward(MGDFSoundPosition *
-                                                   orientationForward);
-
+  void Stop(MGDFVoiceId voice, float fadeOut);
   /**
-   Get the vector representing the upward direction of the listener (i.e. the
-   player)
-   \param orientationUp the vector representing the upward direction of the listener
-   \return the vector representing the upward direction of the listener
-   */
-  MGDFSoundPosition *GetListenerOrientationUp(MGDFSoundPosition *
-                                              orientationUp);
-
-  /**
-  set the position of the listener (i.e. the player)
-  \param listener the position of the listener (i.e. the player)
-  \return the position of the listener (i.e. the player)
+  Sets the volume of a voice
+  \param voice the voice to change
+  \param volume the linear volume; finite and nonnegative
+  \param ramp the time in seconds to reach the volume. 0 applies it at once
   */
-  MGDFSoundPosition *SetListenerPosition(MGDFSoundPosition * listener);
-
+  void SetVolume(MGDFVoiceId voice, float volume, float ramp);
   /**
-  set the velocity of the listener (i.e. the player)
-  \param velocity the velocity of the listener (i.e. the player)
-  \return the velocity of the listener (i.e. the player)
+  Sets the playback rate of a voice
+  \param voice the voice to change
+  \param pitch the playback rate, greater than 0 and at most 16. 1 is the
+  recorded rate
+  \param ramp the time in seconds to reach the pitch. 0 applies it at once
   */
-  MGDFSoundPosition *SetListenerVelocity(MGDFSoundPosition * velocity);
-
+  void SetPitch(MGDFVoiceId voice, float pitch, float ramp);
   /**
-   set the vector representing the forward direction of the listener (i.e. the
-   player)
-   \param orientationForward the vector representing the forward direction of
-  the listener
-   \return the vector representing the forward direction of the listener
-   */
-  MGDFSoundPosition *SetListenerOrientationForward(MGDFSoundPosition *
-                                                   orientationForward);
-
-  /**
-   set the vector representing the upward direction of the listener (i.e. the
-   player)
-   \param orientationUp the vector representing the upward direction of the listener
-   \return the vector representing the upward direction of the listener
-   */
-  MGDFSoundPosition *SetListenerOrientationUp(MGDFSoundPosition *
-                                              orientationUp);
-
-  /**
-  Get the master volume (0-1) All sounds volumes are relative to this setting
-  \return the master volume
+  Sets the level that ranks a voice against others of equal priority when
+  there are more voices than sources
+  \param voice the voice to change
+  \param audibility the nonnegative level. 0 selects the segment RMS for a
+  sample voice, or 1 for a PCM voice
   */
-  float GetSoundVolume();
-
+  void SetAudibility(MGDFVoiceId voice, float audibility);
   /**
-  Set the master volume (0-1) All sounds volumes are relative to this setting
-  \param volume the master volume
+  Sets the high-frequency gain of a voice
+  \param voice the voice to change
+  \param gainHF the gain, 0 through 1. 1 leaves the sound unfiltered
+  \param ramp the time in seconds to reach the gain. 0 applies it at once
   */
-  void SetSoundVolume(float volume);
-
+  void SetGainHF(MGDFVoiceId voice, float gainHF, float ramp);
   /**
-  Get the master volume for streamed sounds (0-1) All streams volumes are
-  relative to this setting \return the master stream volume
+  Moves a spatial voice. A null position or velocity does nothing
+  \param voice the voice to change
+  \param position the position in the space of the listener
+  \param velocity the velocity, used for the Doppler shift
+  \param radius the nonnegative source radius in position units
+  \param ramp the time in seconds to reach the values. 0 applies them at once
   */
-  float GetStreamVolume();
-
+  void SetSpatial(MGDFVoiceId voice, const MGDFSoundPosition *position,
+                  const MGDFSoundPosition *velocity, float radius, float ramp);
   /**
-  Set the master volume for streamed sounds (0-1) All streams volumes are
-  relative to this setting \param volume the master stream volume
+  Sets the volume of a bus. It scales every voice on the bus and its children
+  \param bus the bus to change
+  \param volume the linear volume; finite and nonnegative
+  \param ramp the time in seconds to reach the volume. 0 applies it at once
   */
-  void SetStreamVolume(float volume);
-
+  void SetBusVolume(MGDFBusId bus, float volume, float ramp);
   /**
-  Get whether sounds should attenuate with thier distance from the listener
-  \return true if sounds should attenuate with thier distance from the listener
+  Mutes or unmutes a bus and its children. Muted voices continue to advance
+  \param bus the bus to change
+  \param mute TRUE to mute the bus
   */
-  BOOL GetEnableAttenuation();
-
+  void SetBusMute(MGDFBusId bus, BOOL mute);
   /**
-  Set whether sounds should attenuate with thier distance from the listener
-  \param enableAttenuation true if sounds should attenuate with thier distance
-  from the listener
+  Pauses or resumes every voice on a bus and its children
+  \param bus the bus to change
+  \param paused TRUE to pause the bus
   */
-  void SetEnableAttenuation(BOOL enableAttenuation);
-
+  void SetBusPaused(MGDFBusId bus, BOOL paused);
   /**
-  Get whether sounds will doppler shift based on thier relative velocity to the
-  listener
-  \return whether sounds will doppler shift based on thier relative velocity to the listener
+  Sets the high-frequency gain of a bus. It scales the gain of every voice on
+  the bus and its children
+  \param bus the bus to change
+  \param gainHF the gain, 0 through 1. 1 leaves the sound unfiltered
+  \param ramp the time in seconds to reach the gain. 0 applies it at once
   */
-  float GetDopplerShiftFactor();
-
+  void SetBusGainHF(MGDFBusId bus, float gainHF, float ramp);
   /**
-  Set whether sounds will doppler shift based on thier relative velocity to the
-  listener
-  \param dopplerShiftFactor true if sounds should doppler shift based
-  on thier relative velocity to the listener
+  Sets the listener that hears spatial voices. Before the first call the
+  listener is at the origin, faces -Z and has +Y up. A null listener or a
+  value that is not finite does nothing
+  \param listener the position, velocity and orientation of the listener
   */
-  void SetDopplerShiftFactor(float dopplerShiftFactor);
+  void SetListener(const MGDFSoundListener *listener);
+};
 
+/** Audio access from IMGDFSimHost. CreateSoundSamples, CreatePcmStream,
+CreateSoundStream, CreateCommandList, Submit and read calls are safe from any
+thread. Other calls belong to the sim thread. Reads do not wait for playback. Submissions apply in
+submission order. Creation returns S_OK, E_POINTER for a null output,
+E_INVALIDARG for invalid input, E_OUTOFMEMORY for a limit or allocation failure,
+or E_ABORT after shutdown. Outputs are cleared on failure. */
+[uuid("1E14DC82-8588-4686-888A-149993E4AE9B"), object, local]
+interface IMGDFSoundManager : IUnknown {
   /**
-  Get the speed of sound used to calculate doppler shifting of sounds
-  \return the speed of sound used to calculate doppler shifting of sounds
+  Gets the ID of a bus that every sound manager has
+  \param kind the bus to get
+  \return the ID of the bus; the Master bus for an unknown kind
   */
-  float GetSpeedOfSound();
-
+  MGDFBusId GetBus(MGDFBusKind kind);
   /**
-  Set the speed of sound used to calculate doppler shifting of sounds
-  \param speedOfSound the speed of sound used to calculate doppler shifting of
-  sounds
+  Creates a child of an existing bus. At most 256 buses, including Master,
+  Sound and Music, can exist
+  \param desc the settings of the bus. The host copies Name and PreferenceKey
+  \param bus receives the ID of the new bus, or 0 on failure
+  \return S_OK; E_POINTER for a null bus; E_INVALIDARG for a null desc or Name,
+  an unknown Parent or an invalid Volume; E_OUTOFMEMORY at the bus limit;
+  E_ABORT after shutdown
   */
-  void SetSpeedOfSound(float speedOfSound);
-
+  HRESULT CreateBus(const MGDFBusDesc *desc, MGDFBusId *bus);
   /**
-  create a sound by loading a file in the VFS into memory. When no INT32er used
-  it should be Released
-  \param file the data source for the sound
-  \param priority the priority of the sound (used to determine what should play if no
-  free audio sources are available
-  \param sound If the sound is created successfully, this will point to the created sound
-  \return S_OK if the sound was created successfully, otherwise an error code will be returned
+  Begins the load of a WAV or Ogg Vorbis file as a sample set. File and
+  segment errors set IMGDFSoundSamples::HasFailed asynchronously
+  \param file the file to load. The host retains it until the load ends
+  \param desc the segments to load. The host copies the list. Null or a
+  SegmentCount of 0 selects one segment for the whole file
+  \param samples receives the sample set, which can be played at once
+  \return S_OK; E_POINTER for a null samples; E_INVALIDARG for a null file or
+  an invalid segment; E_OUTOFMEMORY; E_ABORT after shutdown
   */
-  HRESULT CreateSound([in] IMGDFReadOnlyFile * file,
-                      INT32 priority, [out] IMGDFSound * *sound);
-
+  HRESULT CreateSoundSamples(IMGDFReadOnlyFile *file, const MGDFSoundSamplesDesc *desc,
+                             IMGDFSoundSamples **samples);
   /**
-  create a sound stream from a file in the VFS. When no longer used it should be
-  Released
-  \param file the data source for the sound stream
-  \param stream If the stream is created successfully, this will point to the created stream
-  \return S_OK if the stream was created successfully, otherwise an error code will
-  be returned
+  Creates a stream of PCM frames that the module writes
+  \param desc the format and buffer size of the stream
+  \param stream receives the stream
+  \return S_OK; E_POINTER for a null stream; E_INVALIDARG for a null desc or an
+  invalid channel count, rate or capacity; E_OUTOFMEMORY; E_ABORT after shutdown
   */
-  HRESULT
-  CreateSoundStream([in] IMGDFReadOnlyFile * file, [out] IMGDFSoundStream *
-                                                       *stream);
-
+  HRESULT CreatePcmStream(const MGDFSoundPcmDesc *desc, IMGDFSoundPcmStream **stream);
   /**
-  Gets the current persistable sound settings. Note: this only consists of
-  master volume settings. Other settings like attenuation & speedOfSound need to
-  be reset on startup
-  \param preferences a pointer to a preference set that can be passed into the
-  IMGDFGame setPreferences method to set the preferences
+  Opens a mono or stereo WAV or Ogg Vorbis file as a stream. A later read
+  error ends playback. Playback does not depend on sim updates
+  \param file the file to play. The host keeps it open until the stream is
+  released
+  \param stream receives the stream
+  \return S_OK; E_POINTER for a null stream; E_INVALIDARG for a null file;
+  E_FAIL for an unreadable or unsupported file; E_OUTOFMEMORY; E_ABORT after
+  shutdown
   */
-  void GetPreferences([out] IMGDFPreferenceSet * *preferences);
+  HRESULT CreateSoundStream(IMGDFReadOnlyFile *file, IMGDFSoundStream **stream);
+  /**
+  Creates an empty command list
+  \param list receives the command list
+  \return S_OK; E_POINTER for a null list; E_OUTOFMEMORY; E_ABORT after
+  shutdown
+  */
+  HRESULT CreateCommandList(IMGDFSoundCommandList **list);
+  /**
+  Submits the commands of a list to the audio thread and resets the list. The
+  caller can reuse it at once
+  \param list a list from this manager. Any other list is ignored
+  */
+  void Submit(IMGDFSoundCommandList *list);
+  /**
+  Gets the last published audio time
+  \return the audio time in seconds
+  */
+  double GetAudioTime();
+  /**
+  Gets the rate of the host mix
+  \return the mix rate in Hz, which is 48000 for every output device
+  */
+  UINT32 GetSampleRate();
+  /**
+  Gets the last published state of a voice
+  \param voice the ID of the voice
+  \return the state of the voice. Unknown and expired IDs return ENDED
+  */
+  MGDFVoiceStatus GetVoiceStatus(MGDFVoiceId voice);
+  /**
+  Gets the last published mixer statistics
+  \param stats receives the statistics. A null output is ignored
+  */
+  void GetStats(MGDFSoundStats *stats);
+  /**
+  Sets the speed of sound for the Doppler shift
+  \param unitsPerSecond the speed in position units per second; finite and
+  greater than 0. Any other value is ignored
+  */
+  void SetSpeedOfSound(float unitsPerSecond);
+  /**
+  Sets the strength of the Doppler shift
+  \param factor the scale of the shift; finite and nonnegative. 0 disables the
+  shift and 1 is the physical shift. Any other value is ignored
+  */
+  void SetDopplerFactor(float factor);
+  /**
+  Gets the current persistable sound settings: the volume of each bus that has
+  a preference key, and host.hrtf. Master, Sound and Music use
+  host.masterVolume, host.soundVolume and host.musicVolume
+  \param preferences receives a preference set that can be passed into the
+  IMGDFGame SetPreferences method to set the preferences. A null output is
+  ignored
+  */
+  void GetPreferences(IMGDFPreferenceSet **preferences);
 };
 
 /**
@@ -2526,8 +2646,9 @@ thread
 };
 
 /**
-A video that the host records from drawn frames. Recording starts when the
-encoder is ready, about 0.1 seconds after the request, and ends at Stop, at
+A video of drawn frames with the host sound mix as the player hears it,
+encoded as stereo AAC. A host without a sound manager has no audio track.
+Recording starts when the encoder is ready, about 0.1 seconds after the request, and ends at Stop, at
 the final Release, at a back buffer size change or at host shutdown. The host
 then writes the remaining frames and completes the file. A device reset ends
 it with DXGI_ERROR_DEVICE_REMOVED and no file
@@ -2576,8 +2697,9 @@ IMGDFCommonHost::GetRecorder. Methods are safe to use from any thread
   HRESULT TakeScreenshot([in] const small *name, [out] IMGDFCapture **capture);
   /**
   Records drawn frames to an H.264 MP4, at up to 60 frames per second with
-  real frame times. Recording starts about 0.1 seconds after this call, when
-  the encoder is ready, and ends at Stop or at the final Release of the
+  real frame times and the host sound mix as the player hears it (stereo AAC).
+  A host without a sound manager has no audio track. Recording starts about
+  0.1 seconds after this call, when the encoder is ready, and ends at Stop or at the final Release of the
   recording. One video records at a time; screenshots can be taken while it
   records
   \param name the file name relative to the captures folder, with or without
