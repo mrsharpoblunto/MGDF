@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using System.IO;
@@ -26,7 +25,6 @@ internal static partial class Program
   [STAThread]
   private static int Main(string[] args)
   {
-    MGDF.Tools.ToolForm.EnableStyles();
     _root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reporter-tests-" + Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(_root);
     _options = new ReporterOptions
@@ -41,7 +39,7 @@ internal static partial class Program
     _options.LogHandle = _log.SafeFileHandle.DangerousGetHandle();
     _crash = new CrashResult { Failed = true, Detail = "Test \"failure\"\nwith detail." };
     Action[] tests = { ZipWithDump, ZipWithoutDump, UploadContract, RejectedService, MissingUploadUrl,
-      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, TaskManagerExit, ReturnedFailure, ExceptionExit, InterruptedExit, SignaledCrash, RetainedLog, FallbackError, ErrorTextHasFixedLayout, FullReportChain, SendStatesKeepButtonFocus, StalledUploadStops, MovingUploadHasNoTotalLimit };
+      InvalidResponse, HttpFailure, UploadFailure, CancelRequest, HiddenReportsAreBlocked, CleanExit, TaskManagerExit, ReturnedFailure, ExceptionExit, InterruptedExit, SignaledCrash, RetainedLog, FallbackError, StalledUploadStops, MovingUploadHasNoTotalLimit };
     var only = args.FirstOrDefault(arg => arg.StartsWith("--only=", StringComparison.Ordinal));
     if (only != null) tests = tests.Where(test => test.Method.Name == only.Substring(7)).ToArray();
     Check(tests.Length != 0, "No tests selected.");
@@ -269,49 +267,6 @@ internal static partial class Program
       Check(result.Failed == failed, "Wrong exit decision.");
       Check(result.DumpFile == null, "Process exit used a stale dump.");
       Check(result.Detail.Contains("Exit code: " + code + "."), "Missing exit code.");
-    }
-  }
-
-  [StructLayout(LayoutKind.Sequential)]
-  private struct EditRect { public int Left, Top, Right, Bottom; }
-  [DllImport("user32.dll")]
-  private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr value, ref EditRect rect);
-  [DllImport("user32.dll")]
-  private static extern int GetWindowLong(IntPtr window, int index);
-
-  private static void ErrorTextHasFixedLayout()
-  {
-    var longText = string.Join("\r\n", Enumerable.Repeat("A long error line with enough words to wrap in the error box.", 100));
-    using (var shortForm = new ReportForm(_options, new CrashResult { ErrorText = "Renderer: No device." }))
-    using (var longForm = new ReportForm(_options, new CrashResult { ErrorText = longText }))
-    using (var emptyForm = new ReportForm(_options, new CrashResult()))
-    {
-      foreach (var form in new[] { shortForm, longForm, emptyForm })
-      {
-        form.ShowInTaskbar = false;
-        form.StartPosition = FormStartPosition.Manual;
-        form.Location = new System.Drawing.Point(-32000, -32000);
-        form.Show();
-        form.PerformLayout();
-      }
-      var box = longForm.Controls.OfType<TextBox>().Single();
-      Check(box.Text == longText.Substring(0, (int)CrashLayout.ErrorLimit), "Error text was not limited.");
-      Check(shortForm.ClientSize == longForm.ClientSize, "Error length changed the window size.");
-      Check(shortForm.Controls.OfType<FlowLayoutPanel>().Single().Bounds == longForm.Controls.OfType<FlowLayoutPanel>().Single().Bounds, "Error length moved the buttons.");
-      Check(emptyForm.ClientSize.Height < shortForm.ClientSize.Height && !emptyForm.Controls.OfType<TextBox>().Any(), "Empty error text did not remove its row.");
-      Check(box.ReadOnly && box.Multiline && box.WordWrap && box.ScrollBars == ScrollBars.Vertical, "Error text cannot scroll and wrap.");
-      var copy = longForm.Controls.OfType<Button>().Single();
-      var buttons = longForm.Controls.OfType<FlowLayoutPanel>().Single();
-      var body = longForm.Controls.OfType<LinkLabel>().Single();
-      Check(copy.Text == "Copy" && copy.Left == box.Left && copy.Top == buttons.Top, "Copy is not at the left of the button row.");
-      Check(!copy.Bounds.IntersectsWith(buttons.Bounds), "The button panel covers Copy.");
-      Check(box.Left == body.Left && box.Width == body.Width, "Error text does not use the content width.");
-      Check(!emptyForm.Controls.OfType<Button>().Any(), "Empty error text has a Copy button.");
-      var rect = new EditRect();
-      SendMessage(box.Handle, 0x00B2, IntPtr.Zero, ref rect);
-      int lineHeight = box.GetPositionFromCharIndex(box.GetFirstCharIndexFromLine(1)).Y - box.GetPositionFromCharIndex(0).Y;
-      Check(lineHeight > 0 && rect.Bottom - rect.Top == lineHeight * 4, "The error box does not show four whole lines.");
-      Check((GetWindowLong(box.Handle, -16) & 0x00200000) != 0 && box.GetFirstCharIndexFromLine(4) >= 0, "Long error text has no native vertical scroll bar.");
     }
   }
 

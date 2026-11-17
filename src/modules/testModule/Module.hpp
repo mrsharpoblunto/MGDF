@@ -5,6 +5,7 @@
 #include <MGDF/ComObject.hpp>
 #include <MGDF/D3D12CommandList.hpp>
 #include <array>
+#include <atomic>
 #include <functional>
 
 #include "BufferedGameState.hpp"
@@ -79,6 +80,7 @@ class Module : public ComBase<IMGDFModule> {
 
  private:
   bool _vrTest = false;
+  std::atomic<UINT64> _vrEyeFrames{0};
   std::array<bool, 2> _profileLogged{};
   std::array<bool, 2> _triggerPressed{};
   std::array<double, 2> _vibrationSeconds{};
