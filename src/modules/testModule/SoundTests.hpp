@@ -16,6 +16,8 @@ class SoundTests : public TestModule {
   ComObject<IMGDFSoundCommandList> _commands;
   ComObject<IMGDFSoundSamples> _samples;
   ComObject<IMGDFInputManager> _input;
+  ComObject<IMGDFVideoRecording> _recording;
+  double _recordEnd = 0;
   MGDFVoiceId _voice = 0;
   MGDFSoundPosition _position{};
 };

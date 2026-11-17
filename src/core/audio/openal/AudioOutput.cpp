@@ -13,6 +13,7 @@
 #include <bit>
 #include <cmath>
 #include <future>
+#include <string>
 #include <thread>
 
 #include "AudioOutput.hpp"
@@ -30,6 +31,37 @@ int64_t QpcTime() {
   return static_cast<int64_t>(static_cast<double>(now.QuadPart) *
                               AudioTicksPerSecond / frequency.QuadPart);
 }
+struct __declspec(uuid("AB51B6E4-5E38-44CA-B9BA-F2B3EF9F6103")) IOutputEndpoint
+    : IUnknown {};
+
+class OutputEndpoint : public ComBase<IOutputEndpoint> {
+ public:
+  std::wstring Id;
+  UINT32 Channels = 2;
+  UINT32 BufferFrames = 0;
+  HANDLE Event = nullptr;
+  virtual HRESULT Start() = 0;
+  virtual HRESULT Padding(UINT32 &frames) = 0;
+  virtual HRESULT Buffer(UINT32 frames, float **data) = 0;
+  virtual HRESULT Submit(UINT32 frames) = 0;
+  virtual HRESULT Position(UINT64 &position, UINT64 &qpc,
+                           UINT64 &frequency) = 0;
+};
+
+struct __declspec(uuid("AB51B6E4-5E38-44CA-B9BA-F2B3EF9F6104"))
+IOutputEndpointSource : IUnknown {};
+
+class OutputEndpointSource : public ComBase<IOutputEndpointSource> {
+ public:
+  OutputEndpointSource()
+      : Changed(CreateEventW(nullptr, FALSE, FALSE, nullptr)) {}
+  ~OutputEndpointSource() {
+    if (Changed) CloseHandle(Changed);
+  }
+  HANDLE Changed = nullptr;
+  virtual ComObject<OutputEndpoint> Open() = 0;
+};
+
 class WasapiEndpoint final : public OutputEndpoint {
  public:
   ~WasapiEndpoint() {
@@ -163,11 +195,6 @@ class WasapiSource final : public OutputEndpointSource {
   ComObject<EndpointNotifications> _notifications;
 };
 }  // namespace
-OutputEndpointSource::OutputEndpointSource()
-    : Changed(CreateEventW(nullptr, FALSE, FALSE, nullptr)) {}
-OutputEndpointSource::~OutputEndpointSource() {
-  if (Changed) CloseHandle(Changed);
-}
 
 struct AudioOutput::Impl {
   AudioOutput &Owner;
@@ -192,13 +219,8 @@ struct AudioOutput::Impl {
   std::array<float, MixBlockFrames * 8> Mix{};
 
   Impl(AudioOutput &owner, ALCdevice *device, bool hrtf,
-       const ComObject<AudioCaptureSource> &capture,
-       const ComObject<OutputEndpointSource> &source)
-      : Owner(owner),
-        Device(device),
-        Hrtf(hrtf),
-        Capture(capture),
-        Source(source) {}
+       const ComObject<AudioCaptureSource> &capture)
+      : Owner(owner), Device(device), Hrtf(hrtf), Capture(capture) {}
   ~Impl() {
     if (Timer) CloseHandle(Timer);
     if (StopEvent) CloseHandle(StopEvent);
@@ -330,7 +352,7 @@ struct AudioOutput::Impl {
     Reset = std::bit_cast<LPALCRESETDEVICESOFT>(
         alcGetProcAddress(Device, "alcResetDeviceSOFT"));
     if (!Render || !Reset) return E_NOTIMPL;
-    if (!Source) Source = MakeCom<WasapiSource>();
+    Source = MakeCom<WasapiSource>();
     UseEndpoint(Source->Open());
     EndpointId = Endpoint ? Endpoint->Id : L"";
     StartPaced();
@@ -391,9 +413,8 @@ struct AudioOutput::Impl {
   }
 };
 AudioOutput::AudioOutput(ALCdevice *device, bool hrtf,
-                         const ComObject<AudioCaptureSource> &capture,
-                         const ComObject<OutputEndpointSource> &source)
-    : _impl(std::make_unique<Impl>(*this, device, hrtf, capture, source)) {}
+                         const ComObject<AudioCaptureSource> &capture)
+    : _impl(std::make_unique<Impl>(*this, device, hrtf, capture)) {}
 AudioOutput::~AudioOutput() { Stop(); }
 HRESULT AudioOutput::Start() {
   std::promise<HRESULT> ready;

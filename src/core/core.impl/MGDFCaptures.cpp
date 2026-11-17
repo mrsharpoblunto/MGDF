@@ -175,7 +175,6 @@ struct VideoState : CaptureState {
   };
 
   ComObject<audio::AudioCaptureRing> Audio;
-  ComObject<CaptureWorkerControl> Control;
   std::atomic<bool> StopRequested = false;
   // the encoder is open, so frames can be recorded
   std::atomic<bool> EncoderReady = false;
@@ -318,11 +317,6 @@ void VideoState::Encode(uint32_t width, uint32_t height,
   RecordingAudio audio(Audio);
   if (SUCCEEDED(result)) {
     EncoderReady = true;
-    if (Control) {
-      SetEvent(Control->Ready);
-      if (WaitForSingleObject(Control->Resume, 30000) != WAIT_OBJECT_0)
-        result = E_ABORT;
-    }
   } else {
     StopRequested = true;
   }
@@ -363,7 +357,6 @@ void VideoState::Encode(uint32_t width, uint32_t height,
       result = encoder.Write(pending.data(), pendingTime, time - pendingTime);
       if (SUCCEEDED(result)) {
         ++Frames;
-        if (Control) SetEvent(Control->Progress);
         result = audio.WriteUntil(encoder, time);
       }
     }
@@ -376,7 +369,6 @@ void VideoState::Encode(uint32_t width, uint32_t height,
                            kTicksPerSecond / kVideoFrameRate);
     if (SUCCEEDED(result)) {
       ++Frames;
-      if (Control) SetEvent(Control->Progress);
       result = audio.WriteUntil(
           encoder, pendingTime + kTicksPerSecond / kVideoFrameRate);
     }
@@ -797,11 +789,9 @@ bool MediaFoundationInstalled() {
 
 CaptureManager::CaptureManager(
     std::filesystem::path folder, bool deviceLost,
-    const ComObject<audio::AudioCaptureSource> &audio,
-    const ComObject<CaptureWorkerControl> &control)
+    const ComObject<audio::AudioCaptureSource> &audio)
     : _folder(std::move(folder)),
       _audio(audio),
-      _control(control),
       _deviceLost(deviceLost),
       _worker([this] { Work(); }) {}
 
@@ -930,7 +920,6 @@ HRESULT CaptureManager::StartVideo(const small *name,
         active && !active->StopRequested && !active->Complete) {
       return E_NOT_VALID_STATE;
     }
-    state->Control = _control;
     if (_audio) state->Audio = _audio->Start();
     _videoRequests.push_back(state);
     _activeVideo = state;
@@ -1048,8 +1037,7 @@ CaptureSlot *CaptureManager::RTFreeSlot(uint64_t bytes) {
 }
 
 void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
-                               CaptureEncoding encoding, float sdrWhiteNits,
-                               int64_t qpcTime) {
+                               CaptureEncoding encoding, float sdrWhiteNits) {
   if (!_device) return;
   RTDeliver(frame.CompletedOrdinal);
   const auto &desc = frame.BackBufferDesc;
@@ -1078,7 +1066,6 @@ void CaptureManager::RTCapture(const MGDFFrameInfo &frame, bool drawn,
   LARGE_INTEGER now, frequency;
   QueryPerformanceCounter(&now);
   QueryPerformanceFrequency(&frequency);
-  if (qpcTime) now.QuadPart = qpcTime;
   // a little early still counts, so a 60 Hz display records every frame
   const int64_t interval =
       frequency.QuadPart / kVideoFrameRate - frequency.QuadPart / 1000;

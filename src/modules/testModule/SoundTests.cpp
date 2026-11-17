@@ -56,6 +56,58 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         _commands->SetSpatial(_voice, &_position, &velocity, 0, 0.02f);
         _manager->Submit(_commands);
         return TestStep::CONT;
+      })
+      .Step([this, host](auto state) {
+        ComObject<IMGDFRecorder> recorder;
+        if (FAILED(host->GetRecorder(recorder.Assign())) ||
+            FAILED(recorder->StartVideo("testmodule-sound",
+                                        _recording.Assign())))
+          return state->Fail("Cannot start a video recording");
+        MGDFVoiceDesc voice{};
+        voice.Bus = _manager->GetBus(MGDF_BUS_SOUND);
+        voice.Volume = 1;
+        voice.Pitch = 1;
+        voice.GainHF = 1;
+        _voice = _commands->Play(_samples, &voice);
+        _manager->Submit(_commands);
+        _recordEnd = _manager->GetAudioTime() + 3;
+        state->Text.AddLine("Recording a 3 second video with sound");
+        return TestStep::NEXT;
+      })
+      .Step([this](auto) {
+        if (_manager->GetAudioTime() < _recordEnd) return TestStep::CONT;
+        _commands->Stop(_voice, 0.05f);
+        _manager->Submit(_commands);
+        _voice = 0;
+        _recording->Stop();
+        return TestStep::NEXT;
+      })
+      .Step([this](auto state) {
+        const auto result = _recording->GetResult();
+        if (result == E_PENDING) return TestStep::CONT;
+        if (FAILED(result)) return state->Fail("Video recording failed");
+        UINT64 length = 0;
+        _recording->GetPath(nullptr, &length);
+        std::wstring path(length, L'\0');
+        _recording->GetPath(path.data(), &length);
+        std::string utf8(
+            ::WideCharToMultiByte(CP_UTF8, 0, path.data(),
+                                  static_cast<int>(path.size()), nullptr, 0,
+                                  nullptr, nullptr),
+            '\0');
+        ::WideCharToMultiByte(CP_UTF8, 0, path.data(),
+                              static_cast<int>(path.size()), utf8.data(),
+                              static_cast<int>(utf8.size()), nullptr, nullptr);
+        state->Text.AddLine("Play " + utf8);
+        state->Text.AddLine(
+            "Press Y if the video has the chimes sound, or N if not.");
+        return TestStep::NEXT;
+      })
+      .Step([this](auto state) {
+        if (_input->IsKeyPress('Y')) return TestStep::PASSED;
+        if (_input->IsKeyPress('N'))
+          return state->Fail("The recorded video has no sound");
+        return TestStep::CONT;
       });
 }
 }  // namespace MGDF::Test

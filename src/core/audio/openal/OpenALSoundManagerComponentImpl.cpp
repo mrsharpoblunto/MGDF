@@ -777,8 +777,8 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
       try {
         opened = m.Open();
         if (SUCCEEDED(opened)) {
-          m.Output = std::make_unique<AudioOutput>(
-              m.Device, m.Options.Hrtf, m.Capture, m.Options.EndpointSource);
+          m.Output = std::make_unique<AudioOutput>(m.Device, m.Options.Hrtf,
+                                                   m.Capture);
           opened = m.Output->Start();
         }
       } catch (...) {
@@ -1015,21 +1015,6 @@ void OpenALSoundManagerComponentImpl::Render(float *stereo, UINT32 frames) {
   _ASSERTE(_impl->Options.Loopback);
   _impl->RenderSamples(_impl->Device, stereo, static_cast<ALCsizei>(frames));
   _impl->Update();
-}
-void OpenALSoundManagerComponentImpl::RenderAt(float *stereo, UINT32 frames,
-                                               int64_t qpcTime) {
-  _ASSERTE(_impl->Options.Loopback);
-  UINT32 offset = 0;
-  while (offset < frames) {
-    const auto count = std::min(frames - offset, MixBlockFrames);
-    const auto first =
-        static_cast<UINT64>(std::llround(_impl->Clock() * GetSampleRate()));
-    Render(stereo + size_t(offset) * 2, count);
-    _impl->Capture->Publish(
-        stereo + size_t(offset) * 2, 2, count, first,
-        qpcTime + int64_t(offset) * AudioTicksPerSecond / GetSampleRate());
-    offset += count;
-  }
 }
 bool OpenALSoundManagerComponentImpl::WaitForLoads(
     std::chrono::milliseconds timeout) {

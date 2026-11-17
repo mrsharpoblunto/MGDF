@@ -10,7 +10,6 @@ struct AudioOptions {
   UINT32 SampleRate = 48000;
   UINT32 Sources = 512;
   bool Hrtf = false;
-  ComObject<OutputEndpointSource> EndpointSource;
 };
 class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
  public:
@@ -40,7 +39,6 @@ class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
   // Loopback uses the caller as the audio thread.
   void Update();
   void Render(float *stereo, UINT32 frames);
-  void RenderAt(float *stereo, UINT32 frames, int64_t qpcTime);
   bool WaitForStreams(std::chrono::milliseconds timeout);
   bool WaitForLoads(std::chrono::milliseconds timeout);
 

@@ -82,23 +82,6 @@ class VideoEncoder {
   bool _started = false;
 };
 
-struct __declspec(uuid("AB51B6E4-5E38-44CA-B9BA-F2B3EF9F6112"))
-ICaptureWorkerControl : IUnknown {};
-// Optional worker signals for bounded integration tests.
-class CaptureWorkerControl : public ComBase<ICaptureWorkerControl> {
- public:
-  CaptureWorkerControl()
-      : Ready(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
-        Resume(CreateEventW(nullptr, TRUE, TRUE, nullptr)),
-        Progress(CreateEventW(nullptr, FALSE, FALSE, nullptr)) {}
-  ~CaptureWorkerControl() {
-    CloseHandle(Ready);
-    CloseHandle(Resume);
-    CloseHandle(Progress);
-  }
-  HANDLE Ready, Resume, Progress;
-};
-
 struct CaptureState;
 struct VideoState;
 struct CaptureSlot;
@@ -109,8 +92,7 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
  public:
   // deviceLost: the host is in a device reset
   CaptureManager(std::filesystem::path folder, bool deviceLost,
-                 const ComObject<audio::AudioCaptureSource> &audio = {},
-                 const ComObject<CaptureWorkerControl> &control = {});
+                 const ComObject<audio::AudioCaptureSource> &audio = {});
   ~CaptureManager();
 
   HRESULT __stdcall TakeScreenshot(const small *name,
@@ -124,8 +106,7 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
   // After the module's RTDraw, before present. Copies the back buffer when
   // drawn; the frame fence reaches frame.FrameOrdinal once the copy is done
   void RTCapture(const MGDFFrameInfo &frame, bool drawn,
-                 CaptureEncoding encoding, float sdrWhiteNits,
-                 int64_t qpcTime = 0);
+                 CaptureEncoding encoding, float sdrWhiteNits);
   // Before a device reset: captures in progress fail, and new captures fail
   // until RTSetDevice
   void RTReleaseDevice();
@@ -145,7 +126,6 @@ class CaptureManager : public ComBase<IMGDFRecorder> {
 
   std::filesystem::path _folder;
   ComObject<audio::AudioCaptureSource> _audio;
-  ComObject<CaptureWorkerControl> _control;
 
   std::mutex _encoderDeviceMutex;
   LUID _adapter{};
