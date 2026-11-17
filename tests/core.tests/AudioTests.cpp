@@ -1144,10 +1144,6 @@ TEST_F(AudioStreamIntegrationTests, StopAndPlayInOneBatchRestartsTheFile) {
 }  // namespace
 
 namespace {
-std::filesystem::path OutputTestFile() {
-  return std::filesystem::temp_directory_path() /
-         ("mgdf_output_" + std::to_string(GetCurrentProcessId()) + ".wav");
-}
 template <typename Complete>
 bool WaitForOutput(audio::AudioCaptureRing *ring, Complete complete,
                    audio::AudioBlock *last = nullptr) {
@@ -1174,62 +1170,6 @@ bool WaitForMix(audio::AudioCaptureRing *ring,
       ring, [&] { return manager->GetAudioTime() >= time; }, last);
 }
 }  // namespace
-TEST_F(AudioTests, FileOutputEqualsTheLoopbackMix) {
-  Commands.Clear();
-  Manager.Clear();
-  const auto path = OutputTestFile();
-  Manager = MakeCom<OpenALSoundManagerComponentImpl>(
-      AudioOptions{.Sources = 2, .OutputFile = path});
-  ASSERT_EQ(S_OK, Manager->Init());
-  auto ring = Manager->CaptureSource()->Start();
-  auto pcm = Pcm(48000, 9600);
-  const auto signal = Signal(4800);
-  pcm->Write(signal.data(), 4800);
-  pcm->End();
-  auto desc = Desc();
-  ASSERT_EQ(S_OK, Manager->CreateCommandList(Commands.Assign()));
-  const auto voice = Commands->PlayPcm(pcm, &desc);
-  Manager->Submit(Commands);
-  ASSERT_TRUE(WaitForOutput(ring, [&] {
-    return Manager->GetVoiceStatus(voice) == MGDF_VOICE_ENDED;
-  }));
-  Manager->Stop();
-  std::ifstream file(path, std::ios::binary);
-  ASSERT_TRUE(file.good());
-  std::array<UINT32, 11> header{};
-  file.read(reinterpret_cast<char *>(header.data()), sizeof(header));
-  ASSERT_EQ(48000u, header[6]);
-  ASSERT_EQ((2u << 16) | 3u, header[5]);
-  ASSERT_GT(header[10], 0u);
-  std::vector<float> recorded(header[10] / sizeof(float));
-  file.read(reinterpret_cast<char *>(recorded.data()), header[10]);
-  ASSERT_TRUE(file.good());
-  file.close();
-  std::filesystem::remove(path);
-  // Command setup can take any amount of time. Reproduce its actual start
-  // frame, then compare every WAV sample, including the silence around it.
-  const auto first = std::find_if(recorded.begin(), recorded.end(),
-                                  [](float value) { return value != 0; });
-  ASSERT_NE(recorded.end(), first);
-  ASSERT_EQ(0, std::distance(recorded.begin(), first) % 2);
-  desc.StartTime = double(std::distance(recorded.begin(), first) / 2) / 48000;
-  Open(2);
-  pcm = Pcm(48000, 9600);
-  pcm->Write(signal.data(), 4800);
-  pcm->End();
-  Commands->PlayPcm(pcm, &desc);
-  Submit();
-  std::vector<float> expected;
-  while (expected.size() < recorded.size()) {
-    const auto count = static_cast<UINT32>(
-        (std::min)(size_t(240), (recorded.size() - expected.size()) / 2));
-    const auto block = Render(count);
-    expected.insert(expected.end(), block.begin(), block.end());
-  }
-  ASSERT_EQ(expected.size(), recorded.size());
-  for (size_t i = 0; i < expected.size(); ++i)
-    ASSERT_NEAR(expected[i], recorded[i], 1e-6f) << i;
-}
 TEST_F(AudioTests, EndpointChangesPreserveTheClockAndPcmPosition) {
   auto source = MakeCom<TestOutputSource>();
   source->State->QueuedFrames = 2880;

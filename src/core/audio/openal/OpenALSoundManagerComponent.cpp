@@ -14,10 +14,10 @@ namespace core {
 namespace audio {
 namespace openal_audio {
 
-bool CreateSoundManagerComponent(bool hrtf, const std::filesystem::path &file,
+bool CreateSoundManagerComponent(bool hrtf,
                                  ComObject<ISoundManagerComponent> &comp) {
-  const auto impl = MakeCom<OpenALSoundManagerComponentImpl>(
-      AudioOptions{.Hrtf = hrtf, .OutputFile = file});
+  const auto impl =
+      MakeCom<OpenALSoundManagerComponentImpl>(AudioOptions{.Hrtf = hrtf});
   const auto result = impl->Init();
   if (FAILED(result)) {
     return false;

@@ -10,7 +10,6 @@ struct AudioOptions {
   UINT32 SampleRate = 48000;
   UINT32 Sources = 512;
   bool Hrtf = false;
-  std::filesystem::path OutputFile;
   ComObject<OutputEndpointSource> EndpointSource;
 };
 class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {

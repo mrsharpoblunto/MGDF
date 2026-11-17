@@ -12,7 +12,6 @@
 #include <array>
 #include <bit>
 #include <cmath>
-#include <fstream>
 #include <future>
 #include <thread>
 
@@ -163,43 +162,6 @@ class WasapiSource final : public OutputEndpointSource {
   ComObject<IMMDeviceEnumerator> _devices;
   ComObject<EndpointNotifications> _notifications;
 };
-class WavOutput {
- public:
-  HRESULT Open(const std::filesystem::path &path) {
-    std::error_code error;
-    if (path.has_parent_path())
-      std::filesystem::create_directories(path.parent_path(), error);
-    if (error) return HRESULT_FROM_WIN32(error.value());
-    _file.open(path, std::ios::binary | std::ios::trunc);
-    if (!_file) return HRESULT_FROM_WIN32(ERROR_OPEN_FAILED);
-    Header();
-    return S_OK;
-  }
-  void Write(const float *samples, UINT32 frames) {
-    _file.write(std::bit_cast<const char *>(samples),
-                static_cast<std::streamsize>(frames) * 8);
-    _bytes += frames * 8;
-  }
-  void Close() {
-    if (!_file.is_open()) return;
-    _file.seekp(0);
-    Header();
-    _file.close();
-  }
-  ~WavOutput() { Close(); }
-
- private:
-  void Header() {
-    const std::array<uint32_t, 11> header{
-        0x46464952, _bytes + 36, 0x45564157,
-        0x20746d66, 16,          (2u << 16) | WAVE_FORMAT_IEEE_FLOAT,
-        MixRate,    MixRate * 8, (32u << 16) | 8,
-        0x61746164, _bytes};
-    _file.write(std::bit_cast<const char *>(header.data()), sizeof(header));
-  }
-  std::ofstream _file;
-  uint32_t _bytes = 0;
-};
 }  // namespace
 OutputEndpointSource::OutputEndpointSource()
     : Changed(CreateEventW(nullptr, FALSE, FALSE, nullptr)) {}
@@ -212,7 +174,6 @@ struct AudioOutput::Impl {
   ALCdevice *Device;
   bool Hrtf;
   ComObject<AudioCaptureSource> Capture;
-  std::filesystem::path File;
   ComObject<OutputEndpointSource> Source;
   ComObject<OutputEndpoint> Endpoint;
   LPALCRENDERSAMPLESSOFT Render = nullptr;
@@ -228,17 +189,15 @@ struct AudioOutput::Impl {
   UINT32 Channels = 2;
   UINT64 Rendered = 0, Submitted = 0;
   int64_t Pace = 0, Retry = 0, PublishedThrough = 0;
-  WavOutput Wav;
   std::array<float, MixBlockFrames * 8> Mix{};
 
   Impl(AudioOutput &owner, ALCdevice *device, bool hrtf,
-       const ComObject<AudioCaptureSource> &capture, std::filesystem::path file,
+       const ComObject<AudioCaptureSource> &capture,
        const ComObject<OutputEndpointSource> &source)
       : Owner(owner),
         Device(device),
         Hrtf(hrtf),
         Capture(capture),
-        File(std::move(file)),
         Source(source) {}
   ~Impl() {
     if (Timer) CloseHandle(Timer);
@@ -292,7 +251,6 @@ struct AudioOutput::Impl {
       Layout(2);
       StartPaced();
     }
-    if (!Source) return;
     if (Opening.valid()) {
       OpenAgain = true;
       return;
@@ -372,12 +330,8 @@ struct AudioOutput::Impl {
     Reset = std::bit_cast<LPALCRESETDEVICESOFT>(
         alcGetProcAddress(Device, "alcResetDeviceSOFT"));
     if (!Render || !Reset) return E_NOTIMPL;
-    if (!File.empty()) {
-      const auto result = Wav.Open(File);
-      if (FAILED(result)) return result;
-    } else if (!Source)
-      Source = MakeCom<WasapiSource>();
-    if (Source) UseEndpoint(Source->Open());
+    if (!Source) Source = MakeCom<WasapiSource>();
+    UseEndpoint(Source->Open());
     EndpointId = Endpoint ? Endpoint->Id : L"";
     StartPaced();
     return S_OK;
@@ -402,8 +356,7 @@ struct AudioOutput::Impl {
           Retry = QpcTime() + AudioTicksPerSecond;
         }
       }
-      if (Source && WaitForSingleObject(Source->Changed, 0) == WAIT_OBJECT_0)
-        Reopen();
+      if (WaitForSingleObject(Source->Changed, 0) == WAIT_OBJECT_0) Reopen();
       if (Endpoint) {
         if (FAILED(FillEndpoint())) {
           Reopen();
@@ -427,26 +380,20 @@ struct AudioOutput::Impl {
             break;
         }
         RenderBlock(Mix.data(), MixBlockFrames, Pace);
-        if (!File.empty()) Wav.Write(Mix.data(), MixBlockFrames);
         Pace += MixBlockFrames * AudioTicksPerSecond / MixRate;
-        if (Source && !Opening.valid() && now >= Retry) {
-          Reopen();
-        }
+        if (!Opening.valid() && now >= Retry) Reopen();
       }
     }
     Endpoint.Clear();
     if (Opening.valid()) Opening.get().Clear();
     Source.Clear();
-    Wav.Close();
     if (mmcss) AvRevertMmThreadCharacteristics(mmcss);
   }
 };
 AudioOutput::AudioOutput(ALCdevice *device, bool hrtf,
                          const ComObject<AudioCaptureSource> &capture,
-                         std::filesystem::path file,
                          const ComObject<OutputEndpointSource> &source)
-    : _impl(std::make_unique<Impl>(*this, device, hrtf, capture,
-                                   std::move(file), source)) {}
+    : _impl(std::make_unique<Impl>(*this, device, hrtf, capture, source)) {}
 AudioOutput::~AudioOutput() { Stop(); }
 HRESULT AudioOutput::Start() {
   std::promise<HRESULT> ready;

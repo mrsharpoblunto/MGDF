@@ -4,7 +4,6 @@
 
 #include <MGDF/ComObject.hpp>
 #include <atomic>
-#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -45,7 +44,6 @@ class AudioOutput {
  public:
   AudioOutput(ALCdevice *device, bool hrtf,
               const ComObject<AudioCaptureSource> &capture,
-              std::filesystem::path file,
               const ComObject<OutputEndpointSource> &source);
   ~AudioOutput();
   HRESULT Start();

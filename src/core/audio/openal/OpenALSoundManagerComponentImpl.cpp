@@ -777,8 +777,7 @@ HRESULT OpenALSoundManagerComponentImpl::Init() {
         opened = m.Open();
         if (SUCCEEDED(opened)) {
           m.Output = std::make_unique<AudioOutput>(
-              m.Device, m.Options.Hrtf, m.Capture, m.Options.OutputFile,
-              m.Options.EndpointSource);
+              m.Device, m.Options.Hrtf, m.Capture, m.Options.EndpointSource);
           opened = m.Output->Start();
         }
       } catch (...) {
