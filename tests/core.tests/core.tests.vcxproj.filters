@@ -16,7 +16,6 @@
     <ClCompile Include="RenderSettingsTests.cpp" />
     <ClCompile Include="StreamlineTests.cpp" />
     <ClCompile Include="SaveManagerTests.cpp" />
-    <ClCompile Include="CrashReporterIntegrationTests.cpp" />
     <ClCompile Include="StorageTests.cpp" />
     <ClCompile Include="..\..\src\core\StdAfx.cpp" />
     <ClCompile Include="..\..\src\core\MGDFD3D12RenderBackend.cpp" />

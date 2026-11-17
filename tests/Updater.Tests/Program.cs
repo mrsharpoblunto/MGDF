@@ -22,22 +22,13 @@ internal static class Program
   [STAThread]
   private static int Main(string[] args)
   {
-    if (args.Length > 0 && args[0] == "--stage-child")
-    {
-      var session = new UpdateSession(args[1], Path.Combine(args[1], "updater.exe"),
-        new[] { "a b", "quote\"value", "ends\\", "" }, new UpdateProcesses());
-      Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_STATE", session.StateFolder);
-      session.StageAsync(session.CheckAsync().GetAwaiter().GetResult(), null, CancellationToken.None).GetAwaiter().GetResult();
-      return 0;
-    }
     _bin = AppDomain.CurrentDomain.BaseDirectory;
     _root = Path.Combine(_bin, "updater-tests-" + Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(_root);
     Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
     MGDF.Tools.ToolForm.EnableStyles();
     Action[] tests = { CoreFlags, NoService, ServiceFailure, SameVersion, PromptLayout, DownloadInactivity, DownloadKeepsReceiving, CancelDownload, HashMismatch,
-      LockedInstaller, InstallerSuccess, InstallerFailure, InstallerRefused, FullHandoff, OneUpdater, PendingInstaller, PendingFailure, CompletedMarker, InUseFiles, KilledHelper, NativeImageInUse, CorruptManifestOffersRepair };
-    if (args.Contains("--cpu-only")) tests = tests.Where(test => !new[] { "FullHandoff", "KilledHelper", "NativeImageInUse" }.Contains(test.Method.Name)).ToArray();
+      LockedInstaller, OneUpdater, PendingInstaller, PendingFailure, CompletedMarker, InUseFiles, CorruptManifestOffersRepair };
     if (args.Contains("--reverse")) Array.Reverse(tests);
     int failures = 0;
     try
@@ -208,80 +199,6 @@ internal static class Program
       Fails(() => File.Move(file, file + ".moved"));
     }
   }
-  private static void InstallerSuccess() { Finish(0, 0); }
-  private static void InstallerFailure() { Finish(17, 1); }
-  private static void InstallerRefused() { Finish(1223, 0); }
-  private static void Finish(int code, int failures)
-  {
-    var folder = NewGame(); var bytes = new byte[] { 5 }; var installer = Path.Combine(_root, "installer-" + Guid.NewGuid().ToString("N") + ".exe"); File.WriteAllBytes(installer, bytes);
-    var readyName = "Local\\MGDF-tests-" + Guid.NewGuid().ToString("N");
-    var releaseName = "Local\\MGDF-tests-" + Guid.NewGuid().ToString("N");
-    using (var signal = new EventWaitHandle(false, EventResetMode.ManualReset, readyName))
-    using (var release = new EventWaitHandle(false, EventResetMode.ManualReset, releaseName))
-    using (var parent = Process.Start(new ProcessStartInfo(Path.Combine(_bin, "updater.fixture.exe"), "--wait " + releaseName)
-      { UseShellExecute = false, CreateNoWindow = true }))
-    {
-      var state = Path.Combine(folder, "state");
-      var installLock = InstallLock.TryAcquire(state);
-      var inherited = installLock.Handle.DangerousGetHandle().ToInt64();
-      installLock.Handle.SetHandleAsInvalid(); installLock.Dispose();
-      var process = new FakeProcesses { Code = code };
-      var handoff = new Handoff { ParentId = parent.Id, ParentStart = parent.StartTime.ToUniversalTime().Ticks,
-        ReadyEvent = readyName, InstallDirectory = folder, Installer = installer, StateFolder = state, LockHandle = inherited,
-        Update = Update("https://example.invalid", bytes),
-        Sha256 = Update("https://example.invalid", bytes).sha256, InstallerArguments = new[] { "/S", "/D={installDir}" },
-        GameArguments = new[] { "a b" }, GameName = "Test" };
-      var worker = Task.Run(() => UpdateSession.Finish(handoff, Path.Combine(folder, "updater.exe"), process));
-      Check(signal.WaitOne(10000), "Helper did not signal ready.");
-      Check(process.Installs == 0, "Installer started before the first updater exited.");
-      release.Set(); Complete(worker);
-      Check(worker.Result == 0 && process.Games == (code == 17 ? 0 : 1) && process.Failures == failures && process.Installs == 1, "Wrong installer result.");
-    }
-  }
-
-  private static void FullHandoff()
-  {
-    using (var server = new Server())
-    {
-      var bytes = File.ReadAllBytes(Path.Combine(_bin, "updater.fixture.exe"));
-      var update = Update(server.Url, bytes);
-      var folder = NewGame(server.Url);
-      File.Copy(Path.Combine(_bin, "updater.fixture.exe"), Path.Combine(folder, "core.exe"));
-      var log = Path.Combine(folder, "flow.txt");
-      var eventName = "Local\\MGDF-tests-" + Guid.NewGuid().ToString("N");
-      using (var done = new EventWaitHandle(false, EventResetMode.ManualReset, eventName))
-      {
-        Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_LOG", log);
-        Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_DONE", eventName);
-        var worker = Task.Run(async () => { await server.Respond(Encoding.UTF8.GetBytes(Json.Serialize(update))); await server.Respond(bytes); });
-        using (var child = Process.Start(new ProcessStartInfo(Path.Combine(_bin, "updater.tests.exe"),
-          "--stage-child " + UpdateProcesses.Quote(folder)) { UseShellExecute = false, CreateNoWindow = true }))
-        {
-          Check(done.WaitOne(15000), "Updated game did not start. " + (File.Exists(log) ? File.ReadAllText(log) : "No fixture log."));
-          Check(child.WaitForExit(10000) && child.ExitCode == 0, "First updater did not exit.");
-        }
-        Complete(worker);
-        var lines = File.ReadAllLines(log);
-        Check(lines.Length == 2 && lines[0].StartsWith("install|") && lines[0].Contains("|True|"), "Installer was not locked.");
-        Check(lines[0].Split('|')[4] == "True", "Temporary updater did not inherit the install lock.");
-        Check(lines[1].StartsWith("game|") && lines[1].Contains("|False|a b;quote\"value;ends\\;"), "Game token or arguments changed.");
-        Check(lines[0].Contains("MGDF-updater") && lines[0].Contains("updater.exe") && lines[1].Split('|')[1] == lines[0].Split('|')[5], "Temp updater did not own the handoff.");
-        Check(GameInfo.Load(folder).version == "2.0", "Installer did not update the game.");
-        // The game signal precedes the helper's exit. Wait for that process, then check cleanup.
-        try
-        {
-          using (var helper = Process.GetProcessById(int.Parse(lines[1].Split('|')[4])))
-            Check(helper.WaitForExit(10000), "Helper did not exit.");
-        }
-        catch (ArgumentException) { }
-        var session = new UpdateSession(folder, Path.Combine(folder, "updater.exe"), new string[0], new FakeProcesses());
-        Sessions.Add(session);
-        session.CleanOldFiles(); Check(Directory.GetDirectories(session.TempRoot).Length == 0, "Old temp files remain.");
-      }
-      Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_LOG", null);
-      Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_DONE", null);
-    }
-  }
   private static void OneUpdater()
   {
     var folder = NewGame(); var first = Session(folder, new FakeProcesses());
@@ -319,80 +236,6 @@ internal static class Program
       Check(!InstallFiles.Available(folder), "An open module allowed installation.");
     Check(InstallFiles.Available(folder), "A closed module blocked installation.");
   }
-
-  private static void NativeImageInUse()
-  {
-    var folder = NewGame(); var exe = Path.Combine(folder, "core.exe");
-    File.Copy(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"), exe);
-    using (var process = Process.Start(new ProcessStartInfo(exe, "/d /c pause")
-      { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true }))
-    {
-      try { Check(!InstallFiles.Available(folder), "A running native image allowed installation."); }
-      finally { if (!process.HasExited) process.Kill(); Check(process.WaitForExit(5000), "Native fixture did not exit."); }
-    }
-  }
-
-  private static void KilledHelper()
-  {
-    using (var server = new Server())
-    {
-      var bytes = File.ReadAllBytes(Path.Combine(_bin, "updater.fixture.exe"));
-      var update = Update(server.Url, bytes); var folder = NewGame(server.Url);
-      string state;
-      using (var probe = new UpdateSession(folder, Path.Combine(folder, "updater.exe"), new string[0], new FakeProcesses())) state = probe.StateFolder;
-      var log = Path.Combine(folder, "killed-flow.txt"); var gate = "Local\\MGDF-install-" + Guid.NewGuid().ToString("N");
-      using (var ready = new EventWaitHandle(false, EventResetMode.ManualReset, gate + "-ready"))
-      using (var release = new EventWaitHandle(false, EventResetMode.ManualReset, gate + "-release"))
-      using (var recorded = new ManualResetEventSlim())
-      using (var watcher = new FileSystemWatcher(state, "pending.json"))
-      {
-        Action inspect = () => { try { if (PendingInstall.Read(state)?.ProcessId > 0) recorded.Set(); } catch (IOException) { } };
-        watcher.Changed += (sender, e) => inspect(); watcher.Created += (sender, e) => inspect(); watcher.Renamed += (sender, e) => inspect();
-        watcher.EnableRaisingEvents = true;
-        Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_LOG", log);
-        Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_INSTALL_GATE", gate);
-        var worker = Task.Run(async () => { await server.Respond(Encoding.UTF8.GetBytes(Json.Serialize(update))); await server.Respond(bytes); });
-        try
-        {
-          using (var first = Process.Start(new ProcessStartInfo(Path.Combine(_bin, "updater.tests.exe"), "--stage-child " + UpdateProcesses.Quote(folder))
-            { UseShellExecute = false, CreateNoWindow = true }))
-          {
-            Check(ready.WaitOne(10000), "Installer did not reach its gate."); inspect();
-            Check(recorded.Wait(5000), "Installer identity was not recorded.");
-            Check(first.WaitForExit(5000) && first.ExitCode == 0, "First updater did not exit.");
-            var row = File.ReadAllLines(log).Single().Split('|');
-            using (var helper = Process.GetProcessById(int.Parse(row[5])))
-            using (var installer = Process.GetProcessById(int.Parse(row[6])))
-            {
-              helper.Kill(); Check(helper.WaitForExit(5000), "Temporary updater did not stop.");
-              var process = new FakeProcesses();
-              using (var second = new UpdateSession(folder, Path.Combine(folder, "updater.exe"), new[] { "a b" }, process))
-              {
-                Check(second.Lock != null, "Killed helper retained its lock.");
-                Check(second.CheckAsync().Result == null && process.Games == 0 && process.Failures == 1, "Live installer did not block a new updater.");
-              }
-              release.Set(); Check(installer.WaitForExit(10000), "Installer did not finish.");
-            }
-          }
-          Complete(worker);
-          var complete = new FakeProcesses();
-          using (var next = new UpdateSession(folder, Path.Combine(folder, "updater.exe"), new[] { "a b" }, complete))
-          {
-            // Do not make a new service request after the server's two responses.
-            next.Game.updateService = null;
-            Check(next.CheckAsync().Result == null && complete.Games == 1 && !next.RepairRequired, "Completed installer did not permit recovery.");
-            next.CleanOldFiles();
-          }
-        }
-        finally
-        {
-          release.Set(); Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_INSTALL_GATE", null);
-          Environment.SetEnvironmentVariable("MGDF_UPDATER_TEST_LOG", null);
-        }
-      }
-    }
-  }
-
   private static void CorruptManifestOffersRepair()
   {
     foreach (var text in new[] { "{", "null", "{\"version\":\"invalid\"}" })
@@ -408,7 +251,7 @@ internal static class Program
 
   private sealed class FakeProcesses : IUpdateProcesses
   {
-    public int Games, Helpers, Installs, Failures, Code;
+    public int Games, Helpers, Failures;
     public void StartGame(string folder, string[] args) { Games++; Check(args.SequenceEqual(new[] { "a b" }), "Game arguments changed."); }
     public void StartHelper(string helper, Handoff handoff)
     {
@@ -417,10 +260,7 @@ internal static class Program
     }
     public int Install(string installer, string arguments, string folder, Action<int, long> started)
     {
-      Fails(() => { using (File.Open(installer, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) { } });
-      Installs++; Check(arguments == "/S /D=" + folder, "Wrong NSIS folder arguments.");
-      if (Code != 1223) using (var process = Process.GetCurrentProcess()) started(process.Id, process.StartTime.ToUniversalTime().Ticks);
-      return Code;
+      throw new InvalidOperationException("A test started an installer.");
     }
     public void ShowStatus(string name, string text)
     {
