@@ -11,6 +11,7 @@
 #include "../common/MGDFCrashReporter.hpp"
 #include "../common/MGDFLoggerImpl.hpp"
 #include "../common/MGDFParameterManager.hpp"
+#include "../common/MGDFPreferenceConstants.hpp"
 #include "../common/MGDFResources.hpp"
 #include "../common/MGDFVersionHelper.hpp"
 #include "../common/MGDFVersionInfo.hpp"
@@ -56,9 +57,11 @@ bool HostBuilder::RegisterBaseComponents(HostComponents &components) {
   return true;
 }
 
-bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
+bool HostBuilder::RegisterAdditionalComponents(IMGDFGame *game,
                                                HostComponents &components) {
-  std::ignore = gameUid;
+  std::string hrtf;
+  const bool enableHrtf =
+      GetPreference(game, "host.hrtf", hrtf) && FromString<bool>(hrtf);
   if (!input::xinput::CreateInputManagerComponent(components.Input)) {
     LOG("FATAL ERROR: Unable to register InputManager", MGDF_LOG_ERROR);
     return false;
@@ -69,9 +72,8 @@ bool HostBuilder::RegisterAdditionalComponents(std::string gameUid,
     return false;
   }
 
-  if (!audio::openal_audio::CreateSoundManagerComponent(
-          components.VFS.As<IMGDFReadOnlyVirtualFileSystem>(),
-          components.Sound)) {
+  if (!audio::openal_audio::CreateSoundManagerComponent(enableHrtf,
+                                                        components.Sound)) {
     // its a problem, but we can still probably run if the soundmanager failed
     // to initialize
     LOG("ERROR: Unable to register SoundManager", MGDF_LOG_ERROR);
@@ -140,7 +142,7 @@ HRESULT HostBuilder::TryCreateHost(
 
   // now that the game file loaded, initialize everything else
   // and set the log directory correctly.
-  if (!RegisterAdditionalComponents(game->GetUid(), components)) {
+  if (!RegisterAdditionalComponents(game, components)) {
     return E_FAIL;
   }
 
