@@ -2,8 +2,22 @@
 layout: default
 title: Rendering
 ---
-<div class="row docs-row">
-    <div class="col-md-9 main guide">
+<div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li class="active"><a href="#overview">Rendering</a></li>
+                <li><a href="#requirements">Declare what you need</a></li>
+                <li><a href="#device">Get the device and queues</a></li>
+                <li><a href="#d3d12module">Draw a frame</a></li>
+                <li><a href="#frameresources">Reuse and release resources</a></li>
+                <li><a href="#resize">Resizes and device loss</a></li>
+                <li><a href="#counters">Time GPU work</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="overview" class="page-header">Rendering</h1>
         <p class="lead">Matchstick owns the window, the swap chain and the present. You own the drawing: the host gives you a Direct3D 12 device and a back buffer, and you submit the command lists.</p>
 
@@ -30,8 +44,8 @@ GetGraphicsRequirements(MGDFGraphicsRequirements *requirements) {
   return S_OK;
 }
 {% endhighlight %}
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Field</th><th>Set it to</th></tr></thead>
             <tbody>
                 <tr><td><code>MinFeatureLevel</code></td><td>The lowest Direct3D feature level you support.</td></tr>
@@ -131,8 +145,8 @@ BOOL __stdcall Module::RTDraw(IMGDFRenderHost *host, double alpha) {
 
         <h2 id="frameresources">Reuse and release resources safely</h2>
         <p>The GPU runs behind the CPU. When <code>RTDraw</code> returns, the frame you submitted may not have started. The host lets two frames be in flight at once, and <code>MGDFFrameInfo</code> tells you where you stand.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
             <tbody>
                 <tr><td><code>FrameOrdinal</code></td><td>This frame's number. It only goes up.</td></tr>
@@ -164,8 +178,8 @@ void Module::Collect(const MGDFFrameInfo &frame) {
 
         <h2 id="resize">Handle resizes and device loss</h2>
         <p>The swap chain changes when the window resizes or a display setting changes. Less often, the whole device goes away. The host warns you before each one and tells you when it is over.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Event</th><th>Before</th><th>After</th></tr></thead>
             <tbody>
                 <tr><td>Back buffer change</td><td><code>RTBeforeBackBufferChange</code><br />Release every reference to the back buffer.</td><td><code>RTBackBufferChange</code><br />Recreate anything sized to it.</td></tr>
@@ -213,24 +227,4 @@ host->CreateGPUCounter(_shadowMetric, list, counter.Assign());
             <a href="{{ site.baseurl }}/api#IMGDFRenderHost"><strong>IMGDFRenderHost</strong>The full render thread API.</a>
         </div>
     </div>
-    <div class="col-md-3 hidden-xs hidden-sm">
-        <div class="side-nav">
-            <ul class="nav nav-stacked">
-                <li class="active"><a href="#overview">Rendering</a></li>
-                <li><a href="#requirements">Declare what you need</a></li>
-                <li><a href="#device">Get the device and queues</a></li>
-                <li><a href="#d3d12module">Draw a frame</a></li>
-                <li><a href="#frameresources">Reuse and release resources</a></li>
-                <li><a href="#resize">Resizes and device loss</a></li>
-                <li><a href="#counters">Time GPU work</a></li>
-                <li><a href="#next">Next steps</a></li>
-            </ul>
-        </div>
-    </div>
 </div>
-
-<script type="text/javascript">
-    $(function() {
-        $('body').scrollspy({ target: '.side-nav' });
-    });
-</script>

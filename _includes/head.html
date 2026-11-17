@@ -2,14 +2,26 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if page.title %}{{ page.title }} - {% endif %}Matchstick game development framework</title>
-    <link rel="icon" href="{{ site.baseurl }}/assets/favicon.ico" type="image/x-icon" /> 
-    <link href="{{ site.baseurl }}/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <script>
+    // Runs before the stylesheet so the page never paints in the wrong theme.
+    (function () {
+        var theme;
+        try { theme = localStorage.getItem('theme'); } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+            theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+    })();
+    </script>
+    <link rel="icon" href="{{ site.baseurl }}/assets/favicon.ico" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css?family=Droid+Sans:400,700&display=swap" rel="stylesheet" type="text/css" />
     {% if page.wordmark %}
     <link rel="preload" href="{{ site.baseurl }}/assets/fonts/comfortaa-wordmark.woff2" as="font" type="font/woff2" crossorigin />
-    <noscript><style>.hero .wordmark { opacity:1; }</style></noscript>
+    <noscript><style>.wordmark { opacity:1; }</style></noscript>
     {% endif %}
-    <link href="{{ site.baseurl }}/assets/css/styles.css?v={{ site.time | date: '%s' }}" rel="stylesheet" type="text/css" />
-    <link href="{{ site.baseurl }}/assets/css/highlight.css?v={{ site.time | date: '%s' }}" rel="stylesheet" type="text/css" />
+    <link href="{{ site.baseurl }}/assets/css/site.css?v={{ site.time | date: '%s' }}" rel="stylesheet" type="text/css" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2JP8PZRLJE"></script>
     <script>
       window.dataLayer = window.dataLayer || [];

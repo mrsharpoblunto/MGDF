@@ -1,14 +1,5 @@
-<footer>
-    <div class="container">
-        <hr />
-        <p>&copy; 2026 - Straylight Technologies LLC &middot; MIT licensed &middot; <a href="https://github.com/{{ site.github_username }}/MGDF">Source on GitHub</a></p>
-    </div>
+<footer class="mx-auto px-[15px] md:w-[750px] lg:w-[970px] xl:w-[1170px]">
+    <hr />
+    <p>&copy; 2026 - Straylight Technologies LLC &middot; MIT licensed &middot; <a href="https://github.com/{{ site.github_username }}/MGDF">Source on GitHub</a></p>
 </footer>
-<script src="{{ site.baseurl }}/scripts/jquery-1.10.2.min.js"></script>
-<script src="{{ site.baseurl }}/scripts/bootstrap.min.js"></script>
-<script type="text/javascript">
-if (typeof jQuery !== "undefined")
-{
-    $.each(q,function(i,f){$(f)});
-}
-</script>
+<script src="{{ site.baseurl }}/scripts/site.js?v={{ site.time | date: '%s' }}"></script>

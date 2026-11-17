@@ -2,8 +2,24 @@
 layout: default
 title: VR
 ---
-<div class="row docs-row">
-    <div class="col-md-9 main guide">
+<div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li><a href="#overview">OpenXR VR</a></li>
+                <li><a href="#settings">Enable and disable VR</a></li>
+                <li><a href="#frames">Render each frame</a></li>
+                <li><a href="#poses">Poses and floor height</a></li>
+                <li><a href="#features">Optional features</a></li>
+                <li><a href="#masks">Hidden-area masks</a></li>
+                <li><a href="#depth">Reprojection depth</a></li>
+                <li><a href="#panel">Headset panel</a></li>
+                <li><a href="#input">Controllers and gaze</a></li>
+                <li><a href="#upscaling">Upscaling and latency</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="overview" class="page-header">OpenXR VR</h1>
         <p>MGDF gives a module D3D12 eye targets, headset poses, controller input, and optional VR features. Players need an active OpenXR runtime, such as Meta Horizon Link or SteamVR. Modules use MGDF types and calls. They need no OpenXR SDK.</p>
         <p>First implement the <a href="{{ site.baseurl }}/rendering#d3d12module">D3D12 frame contract</a>. A VR module must render both eyes when requested. It must also draw the game window on every frame, including while VR is off or paused.</p>
@@ -48,8 +64,8 @@ BOOL RequestVR(IMGDFCommonHost *host, BOOL enabled) {
         </ol>
         <p>Release each target reference when it is no longer needed. Eye images rotate until the next back buffer change. You can cache descriptors by resource. Release all eye references and cached descriptors in <code>RTBeforeBackBufferChange</code>.</p>
         <p>Call <code>GetVRFrame</code> in <code>RTBackBufferChange</code> to size resources. With a session, it returns <code>S_FALSE</code> and supplies the eye target sizes and formats. Outside an eye frame, <code>EyeCount</code> is zero and poses and FOV angles are zero.</p>
-        <div class="table-responsive">
-        <table class="table table-bordered">
+        <div class="overflow-x-auto">
+        <table class="bordered">
             <thead><tr><th>Result</th><th>GetVRFrame</th><th>GetVREyeTarget</th></tr></thead>
             <tbody>
                 <tr><td><code>S_OK</code></td><td>Two eyes need rendering in this <code>RTDraw</code>.</td><td>An owned eye target reference is available.</td></tr>
@@ -111,25 +127,4 @@ ndcY = (2 * y - (tan(eye.AngleUp) + tan(eye.AngleDown))) /
         <p>For DLSS, set <code>View</code> to the eye index in both <a href="{{ site.baseurl }}/api#MGDFFrameConstants">MGDFFrameConstants</a> and <a href="{{ site.baseurl }}/api#MGDFUpscaleDesc">MGDFUpscaleDesc</a>. Call <code>SetFrameConstants</code> once for each used view in each frame. Then call <code>Upscale</code> for that view. Views 0 and 1 have separate histories and work with or without VR. Either view can be omitted from a frame. Set <code>ResetHistory</code> when <code>PoseEpoch</code> changes.</p>
         <p>Frame generation is off in VR, and <code>GetMaxGeneratedFrames()</code> returns 0. Low latency sleep and frame markers have no effect in VR. Saved frame generation and low latency preferences stay unchanged and apply again when VR ends. See <a href="{{ site.baseurl }}/graphics-features#upscaling">Upscaling and frame generation</a> for input resources and command list rules.</p>
     </div>
-    <div class="col-md-3 hidden-xs hidden-sm">
-        <div class="side-nav">
-            <ul class="nav nav-stacked">
-                <li><a href="#overview">OpenXR VR</a></li>
-                <li><a href="#settings">Enable and disable VR</a></li>
-                <li><a href="#frames">Render each frame</a></li>
-                <li><a href="#poses">Poses and floor height</a></li>
-                <li><a href="#features">Optional features</a></li>
-                <li><a href="#masks">Hidden-area masks</a></li>
-                <li><a href="#depth">Reprojection depth</a></li>
-                <li><a href="#panel">Headset panel</a></li>
-                <li><a href="#input">Controllers and gaze</a></li>
-                <li><a href="#upscaling">Upscaling and latency</a></li>
-            </ul>
-        </div>
-    </div>
 </div>
-<script type="text/javascript">
-$(function() {
-    $('body').scrollspy({target: '.side-nav'});
-});
-</script>

@@ -2,8 +2,22 @@
 layout: default
 title: Distributing a game
 ---
-<div class="row docs-row">
-    <div class="col-md-9 main guide">
+<div class="-mx-[15px] lg:flex">
+    <div class="hidden px-[15px] lg:block lg:w-1/4">
+        <div class="side-nav">
+            <ul>
+                <li class="active"><a href="#distributing">Distributing a game</a></li>
+                <li><a href="#builds">Choose how you ship</a></li>
+                <li><a href="#installing">Write an installer</a></li>
+                <li><a href="#updating">Publish updates</a></li>
+                <li><a href="#crashreports">Collect crash reports</a></li>
+                <li><a href="#statistics">Record statistics</a></li>
+                <li><a href="#metrics">Watch performance</a></li>
+                <li><a href="#next">Next steps</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="main guide min-w-0 px-[15px] lg:w-3/4">
         <h1 id="distributing" class="page-header">Distributing a game</h1>
         <p class="lead">Matchstick can keep an installed game up to date, report its crashes, and send you gameplay statistics. Each feature is optional, and each talks to a service you run.</p>
 
@@ -49,8 +63,8 @@ title: Distributing a game
             </svg>
         </figure>
 
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th></th><th>Your own installer</th><th>Store build</th></tr></thead>
             <tbody>
                 <tr><td>Installs the game</td><td>Your installer</td><td>The store client</td></tr>
@@ -77,8 +91,8 @@ title: Distributing a game
             <p><strong>Pitfall</strong>Write <code>game.json</code> last. The updater reads its version to decide whether an install finished. If any step fails, exit with a non-zero code and leave the old file alone.</p>
         </div>
         <p>The updater runs your installer and reads its exit code:</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Exit code</th><th>Meaning</th></tr></thead>
             <tbody>
                 <tr><td><code>0</code></td><td>Installed.</td></tr>
@@ -253,8 +267,8 @@ SectionEnd
         </figure>
 
         <p>The updater stays out of the way. If the check fails or times out, the game starts without a message.</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>If</th><th>The updater</th></tr></thead>
             <tbody>
                 <tr><td>The player picks <strong>Later</strong> or cancels the download</td><td>Starts the current version.</td></tr>
@@ -279,8 +293,8 @@ SectionEnd
 {% endhighlight %}
         <p>When the game crashes, the player sees a dialog with the error and two buttons: <strong>Send report</strong> and <strong>Don't send</strong>. Nothing leaves the machine unless they choose to send.</p>
         <p>A report is a zip file with two entries:</p>
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>File</th><th>Contents</th></tr></thead>
             <tbody>
                 <tr><td><code>log.txt</code></td><td>The game log, the crash details, and the game, Matchstick and Windows versions.</td></tr>
@@ -315,8 +329,8 @@ host->CreateGaugeMetric("entities", "Live entity count", _entities.Assign());
 // Record a value whenever it changes
 _entities->Record(static_cast<double>(_world.Count()), nullptr);
 {% endhighlight %}
-        <div class="table-responsive">
-        <table class="table">
+        <div class="overflow-x-auto">
+        <table>
             <thead><tr><th>Argument</th><th>What it does</th></tr></thead>
             <tbody>
                 <tr><td><code>-metricsport</code></td><td>Serves metrics to Prometheus on this port.</td></tr>
@@ -333,24 +347,4 @@ _entities->Record(static_cast<double>(_world.Count()), nullptr);
             <a href="{{ site.baseurl }}/api#commandline"><strong>Command line reference</strong>Every host argument.</a>
         </div>
     </div>
-    <div class="col-md-3 hidden-xs hidden-sm">
-        <div class="side-nav">
-            <ul class="nav nav-stacked">
-                <li class="active"><a href="#distributing">Distributing a game</a></li>
-                <li><a href="#builds">Choose how you ship</a></li>
-                <li><a href="#installing">Write an installer</a></li>
-                <li><a href="#updating">Publish updates</a></li>
-                <li><a href="#crashreports">Collect crash reports</a></li>
-                <li><a href="#statistics">Record statistics</a></li>
-                <li><a href="#metrics">Watch performance</a></li>
-                <li><a href="#next">Next steps</a></li>
-            </ul>
-        </div>
-    </div>
 </div>
-
-<script type="text/javascript">
-    $(function() {
-        $('body').scrollspy({ target: '.side-nav' });
-    });
-</script>

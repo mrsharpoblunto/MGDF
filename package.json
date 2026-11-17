@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "tailwindcss -i _tailwind/site.css -o assets/css/site.css --minify",
+    "watch": "tailwindcss -i _tailwind/site.css -o assets/css/site.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}
