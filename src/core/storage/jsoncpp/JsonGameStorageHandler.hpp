@@ -17,6 +17,8 @@ class JsonGameStorageHandler : public IGameStorageHandler {
   std::string GetGameName() const final;
   std::string GetGameUid() const final;
   std::string GetStatisticsService() const final;
+  std::string GetCrashReportService() const final;
+  std::string GetPrivacyPolicy() const final;
   void GetVersion(MGDFVersion &version) const final;
   const std::map<std::string, std::string> &GetPreferences() const final;
 
@@ -24,6 +26,7 @@ class JsonGameStorageHandler : public IGameStorageHandler {
 
  private:
   std::string _gameName, _gameUid, _statisticsService;
+  std::string _crashReportService, _privacyPolicy;
   std::map<std::string, std::string> _preferences;
   MGDFVersion _version;
 };

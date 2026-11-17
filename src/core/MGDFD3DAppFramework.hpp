@@ -88,6 +88,7 @@ class D3DAppFramework {
   virtual void FatalError(const char *sender, const char *message) = 0;
 
   void CloseWindow();
+  void SetWindowTitle(const std::string &title);
   void QueueResetDevice();
   void RTWaitForGpuIdle();
   bool RTIsVRRunning() const;
@@ -150,6 +151,10 @@ class D3DAppFramework {
   std::atomic_bool _fullScreen{false};
   // Published before worker startup; retained after WM_DESTROY.
   HWND _closeWindow = nullptr;
+  HICON _icon = nullptr;
+  HICON _iconSmall = nullptr;
+  std::mutex _titleMutex;
+  std::wstring _pendingTitle;
   bool _stoppingRenderThread = false;
   std::vector<BYTE> _rawInputBuffer;
 };

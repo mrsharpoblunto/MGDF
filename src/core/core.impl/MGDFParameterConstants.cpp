@@ -22,7 +22,6 @@ const char *ParameterConstants::METRICS_PORT = "metricsport";
 const char *ParameterConstants::LOG_ENDPOINT = "logendpoint";
 const char *ParameterConstants::STATISTICS_ENDPOINT_OVERRIDE =
     "statisticsendpointoverride";
-const char *ParameterConstants::STATISTICS_ENABLED = "statisticsenabled";
 const char *ParameterConstants::VR = "vr";
 const char *ParameterConstants::USE_DEFAULT_ADAPTER = "usedefaultadapter";
 

@@ -1,5 +1,0 @@
-{
-	"dependencies":[
-		{ "command": "vc2022_redist.x64.exe", "arguments":"/q /norestart" }
-	]
-}

@@ -23,7 +23,13 @@ void MGDFLog(std::function<void(std::ostringstream &)> msg, MGDFLogLevel level,
 */
 class Logger {
  public:
+  enum class Point { Append, Write, Stop };
+  explicit Logger(const std::wstring &filename,
+                  std::function<void(Point)> hook = {});
   virtual ~Logger();
+  void Stop();
+  bool LogCrash(const char *sender, const char *message);
+  static bool IsLockedByThisThread();
   static Logger &Instance() {
     static Logger log;
     return log;
@@ -37,7 +43,7 @@ class Logger {
   MGDFLogLevel GetLoggingLevel() const;
   void Log(const char *sender, const char *message, MGDFLogLevel level);
 
-  void MoveOutputFile();
+  bool MoveOutputFile();
   void Flush();
   void FlushSync();
 
@@ -53,11 +59,15 @@ class Logger {
     std::string Message;
   };
 
+  void Write(const std::vector<LogEntry> &events);
+  std::function<void(Point)> _hook;
+  std::mutex _writeMutex;
   std::mutex _mutex;
   std::condition_variable _cv;
   std::vector<LogEntry> _events;
   std::thread _flushThread;
   bool _runLogger;
+  bool _closed = false;
   std::wstring _filename;
   std::atomic<MGDFLogLevel> _level;
   std::function<void(const std::string &content,

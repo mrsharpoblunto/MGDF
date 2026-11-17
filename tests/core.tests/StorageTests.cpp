@@ -48,6 +48,11 @@ TEST_F(StorageTests, StorageGameHandlerTest) {
 
   EXPECT_EQ("Console", handler->GetGameUid());
   EXPECT_EQ("Lua Console", handler->GetGameName());
+  EXPECT_EQ("https://example.com/api/v1/crashes",
+            handler->GetCrashReportService());
+  EXPECT_EQ("https://example.com/privacy", handler->GetPrivacyPolicy());
+  EXPECT_EQ("http://statistics.junkship.org/statisticsservice.asmx",
+            handler->GetStatisticsService());
   MGDFVersion expected;
   expected.Major = 0;
   expected.Minor = 1;

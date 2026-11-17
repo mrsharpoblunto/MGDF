@@ -86,3 +86,13 @@ TEST(ParameterManagerTests, TestLogLevelParameterSetsLoggerLevel) {
   SetEnvironmentVariableA("MGDF_LOGLEVEL", nullptr);
   Logger::Instance().SetLoggingLevel(originalLevel);
 }
+
+TEST(ParameterManagerTests, StatisticsUsesManifestWithoutPermissionFlag) {
+  EXPECT_EQ(
+      "http://localhost/manifest",
+      HostBuilder::StatisticsEndpoint("http://localhost/manifest", nullptr));
+  EXPECT_EQ("http://localhost/override",
+            HostBuilder::StatisticsEndpoint("http://localhost/manifest",
+                                            "http://localhost/override"));
+  EXPECT_TRUE(HostBuilder::StatisticsEndpoint("", nullptr).empty());
+}
