@@ -36,6 +36,8 @@ class OpenALSoundManagerComponentImpl : public ISoundManagerComponent {
   void __stdcall SetSpeedOfSound(float) final;
   void __stdcall SetDopplerFactor(float) final;
   void __stdcall GetPreferences(IMGDFPreferenceSet **) final;
+  void __stdcall SetHRTFEnabled(BOOL) final;
+  BOOL __stdcall GetHRTFEnabled() final;
   // Loopback uses the caller as the audio thread.
   void Update();
   void Render(float *stereo, UINT32 frames);

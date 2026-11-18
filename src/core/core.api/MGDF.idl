@@ -2158,6 +2158,21 @@ interface IMGDFSoundManager : IUnknown {
   ignored
   */
   void GetPreferences(IMGDFPreferenceSet **preferences);
+  /**
+  Sets whether spatial voices are rendered for headphones with a head-related
+  transfer function (HRTF). The change applies at once without an interruption
+  of audio time. It has an effect only while the output device is stereo; a
+  surround device plays the usual mix. The setting starts at the value of the
+  host.hrtf preference, and GetPreferences reports the current value
+  \param enabled TRUE for headphone rendering, FALSE for speaker rendering
+  */
+  void SetHRTFEnabled(BOOL enabled);
+  /**
+  Gets whether spatial voices are rendered for headphones (see SetHRTFEnabled)
+  \return TRUE if headphone rendering is requested, including while a
+  surround device prevents it
+  */
+  BOOL GetHRTFEnabled();
 };
 
 /**

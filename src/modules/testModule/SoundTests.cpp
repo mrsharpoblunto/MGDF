@@ -36,8 +36,8 @@ void SoundTests::Setup(IMGDFSimHost *host) {
         _voice = _commands->Play(_samples, &voice);
         _manager->Submit(_commands);
         state->Text.AddLine(
-            "Use the arrow keys to move the sound. Press Y or N to record the "
-            "result.");
+            "Use the arrow keys to move the sound. Press H to switch headphone "
+            "rendering (HRTF). Press Y or N to record the result.");
       })
       .Step([this](auto state) {
         if (_input->IsKeyPress('Y') || _input->IsKeyPress('N')) {
@@ -47,6 +47,12 @@ void SoundTests::Setup(IMGDFSimHost *host) {
           return _input->IsKeyPress('Y')
                      ? TestStep::PASSED
                      : state->Fail("Sound did not pan with its position");
+        }
+        if (_input->IsKeyPress('H')) {
+          _manager->SetHRTFEnabled(!_manager->GetHRTFEnabled());
+          state->Text.AddLine(_manager->GetHRTFEnabled()
+                                  ? "Headphone rendering on"
+                                  : "Headphone rendering off");
         }
         if (_input->IsKeyDown(VK_LEFT)) _position.x -= 0.1f;
         if (_input->IsKeyDown(VK_RIGHT)) _position.x += 0.1f;
