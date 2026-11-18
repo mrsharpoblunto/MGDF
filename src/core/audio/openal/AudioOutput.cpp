@@ -199,7 +199,9 @@ class WasapiSource final : public OutputEndpointSource {
 struct AudioOutput::Impl {
   AudioOutput &Owner;
   ALCdevice *Device;
-  bool Hrtf;
+  std::atomic<bool> Hrtf;
+  // Output thread only: the value in the last device reset.
+  bool AppliedHrtf;
   ComObject<AudioCaptureSource> Capture;
   ComObject<OutputEndpointSource> Source;
   ComObject<OutputEndpoint> Endpoint;
@@ -220,13 +222,20 @@ struct AudioOutput::Impl {
 
   Impl(AudioOutput &owner, ALCdevice *device, bool hrtf,
        const ComObject<AudioCaptureSource> &capture)
-      : Owner(owner), Device(device), Hrtf(hrtf), Capture(capture) {}
+      : Owner(owner),
+        Device(device),
+        Hrtf(hrtf),
+        AppliedHrtf(hrtf),
+        Capture(capture) {}
   ~Impl() {
     if (Timer) CloseHandle(Timer);
     if (StopEvent) CloseHandle(StopEvent);
   }
   bool Layout(UINT32 channels) {
-    if (channels == Channels) return true;
+    const bool hrtf = Hrtf.load(std::memory_order_relaxed);
+    if (channels == Channels && hrtf == AppliedHrtf) return true;
+    // A failed reset is not repeated for the same value.
+    AppliedHrtf = hrtf;
     const ALCint layout = channels == 8   ? ALC_7POINT1_SOFT
                           : channels == 6 ? ALC_5POINT1_SOFT
                           : channels == 4 ? ALC_QUAD_SOFT
@@ -239,9 +248,9 @@ struct AudioOutput::Impl {
         ALC_FORMAT_TYPE_SOFT,
         ALC_FLOAT_SOFT,
         ALC_HRTF_SOFT,
-        Hrtf ? ALC_TRUE : ALC_FALSE,
+        hrtf ? ALC_TRUE : ALC_FALSE,
         ALC_OUTPUT_MODE_SOFT,
-        Hrtf ? ALC_STEREO_HRTF_SOFT : ALC_STEREO_BASIC_SOFT,
+        hrtf ? ALC_STEREO_HRTF_SOFT : ALC_STEREO_BASIC_SOFT,
         0};
     if (!Reset(Device, attributes)) return false;
     Channels = channels;
@@ -362,6 +371,9 @@ struct AudioOutput::Impl {
     DWORD task = 0;
     const auto mmcss = AvSetMmThreadCharacteristicsW(L"Pro Audio", &task);
     while (WaitForSingleObject(StopEvent, 0) != WAIT_OBJECT_0) {
+      if (Hrtf.load(std::memory_order_relaxed) != AppliedHrtf &&
+          !Layout(Channels))
+        Reopen();
       if (Opening.valid() && Opening.wait_for(std::chrono::seconds(0)) ==
                                  std::future_status::ready) {
         auto endpoint = Opening.get();
@@ -431,6 +443,9 @@ HRESULT AudioOutput::Start() {
     if (SUCCEEDED(com)) CoUninitialize();
   });
   return future.get();
+}
+void AudioOutput::SetHrtf(bool enabled) {
+  _impl->Hrtf.store(enabled, std::memory_order_relaxed);
 }
 void AudioOutput::Stop() {
   SetEvent(_impl->StopEvent);

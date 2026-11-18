@@ -240,6 +240,19 @@ TEST_F(AudioTests, ListenerPositionAndOrientationPanASpatialVoice) {
   Submit();
   EXPECT_LT(balance(), 0);
 }
+TEST_F(AudioTests, PreferencesReportTheCurrentHRTFSetting) {
+  const auto saved = [&] {
+    ComObject<IMGDFPreferenceSet> preferences;
+    Manager->GetPreferences(preferences.Assign());
+    return dynamic_cast<PreferenceSetImpl *>(preferences.Get())
+        ->Preferences.at("host.hrtf");
+  };
+  EXPECT_FALSE(Manager->GetHRTFEnabled());
+  EXPECT_EQ("0", saved());
+  Manager->SetHRTFEnabled(TRUE);
+  EXPECT_TRUE(Manager->GetHRTFEnabled());
+  EXPECT_EQ("1", saved());
+}
 TEST_F(AudioTests, PriorityTakesPrecedenceOverAudibility) {
   Open(1);
   auto a = Pcm(), b = Pcm();

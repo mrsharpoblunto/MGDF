@@ -161,6 +161,7 @@ struct OpenALSoundManagerComponentImpl::Impl {
   std::thread AudioThread, Decoder;
   ComObject<AudioCaptureSource> Capture = MakeCom<AudioCaptureSource>();
   std::unique_ptr<AudioOutput> Output;
+  std::atomic<bool> Hrtf{false};
   std::unique_ptr<StreamWorker> Streams;
   AudioQueue<DecodeJob> Decodes;
   AudioQueue<SampleRegistration> Registrations;
@@ -187,6 +188,7 @@ struct OpenALSoundManagerComponentImpl::Impl {
   double Now = 0;
 
   explicit Impl(AudioOptions options) : Options(options) {
+    Hrtf.store(options.Hrtf);
     const wchar_t *const names[]{L"Master", L"Sound", L"Music"};
     const char *const preferences[]{"host.masterVolume", "host.soundVolume",
                                     "host.musicVolume"};
@@ -1004,8 +1006,15 @@ void OpenALSoundManagerComponentImpl::GetPreferences(
     if (bus && !bus->Preference.empty())
       result->Preferences[bus->Preference] = std::to_string(bus->Volume.load());
   }
-  result->Preferences["host.hrtf"] = _impl->Options.Hrtf ? "1" : "0";
+  result->Preferences["host.hrtf"] = _impl->Hrtf.load() ? "1" : "0";
   result.AddRawRef(preferences);
+}
+void OpenALSoundManagerComponentImpl::SetHRTFEnabled(BOOL enabled) {
+  _impl->Hrtf.store(enabled != FALSE);
+  if (_impl->Output) _impl->Output->SetHrtf(enabled != FALSE);
+}
+BOOL OpenALSoundManagerComponentImpl::GetHRTFEnabled() {
+  return _impl->Hrtf.load();
 }
 void OpenALSoundManagerComponentImpl::Update() {
   _ASSERTE(_impl->Options.Loopback);

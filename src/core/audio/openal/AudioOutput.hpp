@@ -17,6 +17,7 @@ class AudioOutput {
   ~AudioOutput();
   HRESULT Start();
   void Stop();
+  void SetHrtf(bool enabled);
   std::atomic<UINT64> DeviceChanges{0};
   std::atomic<float> RenderMs{0};
 
