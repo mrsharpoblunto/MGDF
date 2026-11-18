@@ -9,8 +9,8 @@ x_username: mr_sharpoblunto
 threads_username: mrsharpoblunto
 bluesky_handle: thestraylight.com
 github_username:  mrsharpoblunto
-sdkversion: "0.20.0"
-sdkdownloadurl: "https://s3.matchstickframework.org/MGDF_0.20.0_SDK.zip" 
+sdkversion: "0.21.0"
+sdkdownloadurl: "https://s3.matchstickframework.org/MGDF_0.21.0_SDK.zip" 
 
 # Build settings
 markdown: kramdown
