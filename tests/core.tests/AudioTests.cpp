@@ -113,6 +113,28 @@ class AudioTests : public testing::Test {
   ComObject<IMGDFSoundCommandList> Commands;
 };
 
+TEST(AudioOutputTests, JoinedEndpointKeepsEveryFrameWhenItsClockJitters) {
+  constexpr int64_t through = 1'000'000;
+  // 100 ns early, 20 ms late: the stream stays continuous.
+  for (const int64_t time : {through - 1, through + 200'000}) {
+    const auto start = StartOutputBlock(true, time, through, 240);
+    EXPECT_EQ(0u, start.Silence);
+    EXPECT_EQ(through, start.PlayTime);
+  }
+  const auto late = StartOutputBlock(true, through + 400'000, through, 240);
+  EXPECT_EQ(0u, late.Silence);
+  EXPECT_EQ(through + 400'000, late.PlayTime);
+}
+
+TEST(AudioOutputTests, NewEndpointIsSilentUntilTheStreamEnd) {
+  // The stream ends 1 ms after the block start: 48 frames at 48 kHz.
+  const auto start = StartOutputBlock(false, 990'000, 1'000'000, 240);
+  EXPECT_EQ(48u, start.Silence);
+  EXPECT_EQ(1'000'000, start.PlayTime);
+  const auto whole = StartOutputBlock(false, 0, 1'000'000, 240);
+  EXPECT_EQ(240u, whole.Silence);
+}
+
 TEST_F(AudioTests, SubmissionStartsARecordedVoiceAndResetsTheList) {
   auto pcm = Pcm();
   pcm->WriteSilence(1000);

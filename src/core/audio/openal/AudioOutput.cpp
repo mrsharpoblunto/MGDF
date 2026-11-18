@@ -218,6 +218,8 @@ struct AudioOutput::Impl {
   UINT32 Channels = 2;
   UINT64 Rendered = 0, Submitted = 0;
   int64_t Pace = 0, Retry = 0, PublishedThrough = 0;
+  // The endpoint has rendered a block of the stream.
+  bool Joined = false;
   std::array<float, MixBlockFrames * 8> Mix{};
 
   Impl(AudioOutput &owner, ALCdevice *device, bool hrtf,
@@ -261,6 +263,7 @@ struct AudioOutput::Impl {
     const auto channels = Endpoint ? Endpoint->Channels : 2;
     if (!Layout(channels)) Endpoint.Clear();
     Submitted = 0;
+    Joined = false;
     if (Endpoint) {
       float *silence = nullptr;
       const auto frames = Endpoint->BufferFrames;
@@ -339,14 +342,14 @@ struct AudioOutput::Impl {
                       AudioTicksPerSecond / MixRate;
       // A new endpoint can play before the last block from paced output ends.
       // Fill that interval with silence without changing either clock.
-      const auto overlap = std::max<int64_t>(0, PublishedThrough - time);
-      const auto silence = static_cast<UINT32>(std::min<int64_t>(
-          count,
-          (overlap * MixRate + AudioTicksPerSecond - 1) / AudioTicksPerSecond));
-      std::fill_n(data, size_t(silence) * Channels, 0.0f);
-      if (silence < count)
-        RenderBlock(data + size_t(silence) * Channels, count - silence,
-                    time + silence * AudioTicksPerSecond / MixRate);
+      const auto start =
+          StartOutputBlock(Joined, time, PublishedThrough, count);
+      std::fill_n(data, size_t(start.Silence) * Channels, 0.0f);
+      if (start.Silence < count) {
+        RenderBlock(data + size_t(start.Silence) * Channels,
+                    count - start.Silence, start.PlayTime);
+        Joined = true;
+      }
       result = Endpoint->Submit(count);
       if (FAILED(result)) return result;
       Submitted += count;
@@ -424,6 +427,20 @@ struct AudioOutput::Impl {
     if (mmcss) AvRevertMmThreadCharacteristics(mmcss);
   }
 };
+OutputBlockStart StartOutputBlock(bool joined, int64_t time, int64_t through,
+                                  UINT32 frames) {
+  if (joined) {
+    // Recorded blocks keep exact times until the clocks differ by 40 ms.
+    constexpr int64_t resync = AudioTicksPerSecond / 25;
+    return {0, std::abs(time - through) < resync ? through : time};
+  }
+  const auto overlap = std::max<int64_t>(0, through - time);
+  const auto silence = static_cast<UINT32>(std::min<int64_t>(
+      frames,
+      (overlap * MixRate + AudioTicksPerSecond - 1) / AudioTicksPerSecond));
+  return {silence, time + silence * AudioTicksPerSecond / MixRate};
+}
+
 AudioOutput::AudioOutput(ALCdevice *device, bool hrtf,
                          const ComObject<AudioCaptureSource> &capture)
     : _impl(std::make_unique<Impl>(*this, device, hrtf, capture)) {}
