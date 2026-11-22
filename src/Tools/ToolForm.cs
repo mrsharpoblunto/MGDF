@@ -31,6 +31,8 @@ namespace MGDF.Tools
 
     public ToolForm(string gameName, string iconPath, string heading, string body, string primary, string secondary, string errorText = null)
     {
+      // Auto-scaling only runs on ResumeLayout; without it the form stays at 96 DPI size under system DPI awareness.
+      SuspendLayout();
       Text = gameName;
       Font = new Font("Segoe UI", 9F);
       AutoScaleDimensions = new SizeF(96, 96);
@@ -73,13 +75,15 @@ namespace MGDF.Tools
       ActiveControl = Primary;
       Body.TextChanged += (sender, e) => PerformLayout();
       Progress.VisibleChanged += (sender, e) => PerformLayout();
+      ResumeLayout(false);
     }
 
     protected override void OnLayout(LayoutEventArgs e)
     {
       base.OnLayout(e);
       if (Body == null) return;
-      float scale = Math.Max(DeviceDpi / 96F, Font.Size / 9F);
+      // DeviceDpi stays 96 without the PerMonitorV2 app.config setting.
+      float scale = Math.Max(CurrentAutoScaleDimensions.Width / 96F, Font.Size / 9F);
       int margin = (int)Math.Round(16 * scale);
       int width = ClientSize.Width - margin * 2;
       int icon = (int)Math.Round(48 * scale);
